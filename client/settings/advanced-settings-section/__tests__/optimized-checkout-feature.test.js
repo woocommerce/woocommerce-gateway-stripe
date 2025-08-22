@@ -23,61 +23,61 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 	} );
 
-	// it( 'should render', () => {
-	// 	render( <OptimizedCheckoutFeature /> );
-	//
-	// 	expect(
-	// 		screen.queryByText(
-	// 			'Enable Optimized Checkout Suite (recommended)'
-	// 		)
-	// 	).toBeInTheDocument();
-	// } );
+	it( 'should render', () => {
+		render( <OptimizedCheckoutFeature /> );
 
-	// it( 'should disable the OC setting on click', async () => {
-	// 	const setIsOCEnabledMock = jest.fn();
-	// 	useIsOCEnabled.mockReturnValue( [ true, setIsOCEnabledMock ] );
-	//
-	// 	render( <OptimizedCheckoutFeature /> );
-	//
-	// 	const OCCheckbox = screen.getByTestId(
-	// 		'optimized-checkout-element-checkbox'
-	// 	);
-	//
-	// 	await userEvent.click( OCCheckbox );
-	//
-	// 	expect( setIsOCEnabledMock ).toHaveBeenCalled();
-	// } );
+		expect(
+			screen.queryByText(
+				'Enable Optimized Checkout Suite (recommended)'
+			)
+		).toBeInTheDocument();
+	} );
 
-	// it( 'should be disabled when UPE is disabled', () => {
-	// 	useIsUpeEnabled.mockReturnValue( [ false, jest.fn() ] );
-	//
-	// 	render( <OptimizedCheckoutFeature /> );
-	//
-	// 	const checkbox = screen.getByTestId(
-	// 		'optimized-checkout-element-checkbox'
-	// 	);
-	//
-	// 	userEvent.click( checkbox );
-	//
-	// 	jest.runAllTimers();
-	//
-	// 	expect( checkbox ).toBeDisabled();
-	// 	expect( checkbox ).not.toBeChecked();
-	// } );
-	//
-	// it( 'layout setting should be available when OC is enabled', () => {
-	// 	useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
-	//
-	// 	render( <OptimizedCheckoutFeature /> );
-	//
-	// 	const label = screen.getByText( 'Layout' );
-	// 	expect( label ).toBeInTheDocument();
-	//
-	// 	const help = screen.getByText(
-	// 		'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
-	// 	);
-	// 	expect( help ).toBeInTheDocument();
-	// } );
+	it( 'should disable the OC setting on click', async () => {
+		const setIsOCEnabledMock = jest.fn();
+		useIsOCEnabled.mockReturnValue( [ true, setIsOCEnabledMock ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		const OCCheckbox = screen.getByTestId(
+			'optimized-checkout-element-checkbox'
+		);
+
+		await userEvent.click( OCCheckbox );
+
+		expect( setIsOCEnabledMock ).toHaveBeenCalled();
+	} );
+
+	it( 'should be disabled when UPE is disabled', () => {
+		useIsUpeEnabled.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		const checkbox = screen.getByTestId(
+			'optimized-checkout-element-checkbox'
+		);
+
+		userEvent.click( checkbox );
+
+		jest.runAllTimers();
+
+		expect( checkbox ).toBeDisabled();
+		expect( checkbox ).not.toBeChecked();
+	} );
+
+	it( 'layout setting should be available when OC is enabled', () => {
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		const label = screen.getByText( 'Layout' );
+		expect( label ).toBeInTheDocument();
+
+		const help = screen.getByText(
+			'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
+		);
+		expect( help ).toBeInTheDocument();
+	} );
 
 	it( 'triggers the hook when changing the layout setting', async () => {
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
