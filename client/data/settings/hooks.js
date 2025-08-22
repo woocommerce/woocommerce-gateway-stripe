@@ -5,15 +5,14 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const EMPTY_ARR = [];
 
-const makeReadOnlySettingsHook = (
-	fieldName,
-	fieldDefaultValue = false
-) => () =>
-	useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
+const makeReadOnlySettingsHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() =>
+		useSelect( ( select ) => {
+			const { getSettings } = select( STORE_NAME );
 
-		return getSettings()[ fieldName ] || fieldDefaultValue;
-	}, [] );
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		}, [] );
 
 const makeSettingsHook =
 	( fieldName, fieldDefaultValue = false ) =>
