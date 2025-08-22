@@ -35,10 +35,10 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 
 		$order->set_transaction_id( $charge_id );
-		$order->update_meta_data( '_stripe_source_id', $source_id );
-		$order->update_meta_data( '_stripe_refund_id', $refund_id );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->update_meta_data( '_stripe_setup_intent_id', $setup_intent_id );
+		WC_Stripe_Order_Helper::set_stripe_source_id( $order, $source_id );
+		WC_Stripe_Order_Helper::set_stripe_refund_id( $order, $refund_id );
+		WC_Stripe_Order_Helper::set_stripe_intent_id( $order, $intent_id );
+		WC_Stripe_Order_Helper::set_stripe_setup_intent_id( $order, $setup_intent_id );
 		$order->save_meta_data();
 		$order->save();
 

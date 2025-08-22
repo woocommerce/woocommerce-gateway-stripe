@@ -76,12 +76,64 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Meta key for Stripe setup intent ID.
 	 */
-	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
+	private const META_STRIPE_SETUP_INTENT_ID = '_stripe_setup_intent';
 
 	/**
 	 * Meta key for Stripe card brand.
 	 */
 	private const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
+
+	/**
+	 * Meta key for the Stripe mandate id.
+	 */
+	private const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
+
+	/**
+	 * Meta key for the Stripe UPE payment type.
+	 */
+	private const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
+
+	/**
+	 * Meta key for the Stripe customer ID.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
+
+	/**
+	 * Meta key for the Stripe Multibanco data.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_MULTIBANCO_DATA = '_stripe_multibanco';
+
+	/**
+	 * Meta key for the Stripe UPE redirect processed.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
+
+	/**
+	 * Meta key for the Stripe UPE waiting for redirect.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
+
+	/**
+	 * Meta key for the Stripe charge captured.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_CHARGE_CAPTURED = '_stripe_charge_captured';
+
+	/**
+	 * Meta key for the Stripe status before hold.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
 
 	/**
 	 * Meta key for payment awaiting action.
@@ -282,8 +334,8 @@ class WC_Stripe_Order_Helper {
 	 * @param $setup_intent_id string The Stripe setup intent ID.
 	 * @return void
 	 */
-	public static function set_stripe_setup_intent( $order, $setup_intent_id ) {
-		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $setup_intent_id );
+	public static function set_stripe_setup_intent_id( $order, $setup_intent_id ) {
+		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT_ID, $setup_intent_id );
 	}
 
 	/**
@@ -371,7 +423,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_mandate_id( $order, $mandate_id ) {
-		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$order->update_meta_data( self::META_STRIPE_MANDATE_ID, $mandate_id );
 	}
 
 	/**
@@ -382,7 +434,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_upe_payment_type( $order, $payment_type ) {
-		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+		$order->update_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
 	}
 
 	/**
@@ -393,7 +445,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_customer_id( $order, $customer_id ) {
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
 	}
 
 	/**
@@ -404,7 +456,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_multibanco_data( $order, $data ) {
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		$order->update_meta_data( self::META_STRIPE_MULTIBANCO_DATA, $data );
 	}
 
 	/**
@@ -414,7 +466,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_upe_redirect_processed( $order ) {
-		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order->update_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED, true );
 	}
 
 	/**
@@ -424,7 +476,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_upe_waiting_for_redirect( $order ) {
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order->update_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, true );
 	}
 
 	/**
@@ -434,7 +486,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_charge_captured( $order ) {
-		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->update_meta_data( self::META_STRIPE_CHARGE_CAPTURED, 'yes' );
 	}
 
 	/**
@@ -444,7 +496,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_stripe_status_final( $order ) {
-		$order->update_meta_data( '_stripe_status_final', true );
+		$order->update_meta_data( self::META_STRIPE_STATUS_FINAL, true );
 	}
 
 	/**
@@ -501,7 +553,7 @@ class WC_Stripe_Order_Helper {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
-		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT, $intent_id );
+		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT_ID, $intent_id );
 	}
 
 	/**
