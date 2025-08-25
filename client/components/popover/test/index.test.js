@@ -40,7 +40,7 @@ describe( 'Popover', () => {
 
 		expect( screen.queryByText( 'Popover Content' ) ).toBeInTheDocument();
 
-		act( async () => {
+		await act( async () => {
 			await userEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
