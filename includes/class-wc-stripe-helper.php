@@ -1950,7 +1950,7 @@ class WC_Stripe_Helper {
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$order_intent_id       = self::get_intent_id_from_order( $order );
 		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
-		$intent_amount         = isset( $intent->amount ) ? (float) $intent->amount : null;
+		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 
 		if ( 'payment_intent' === $intent->object ) {
 			$is_valid = $order_currency === $intent_currency
