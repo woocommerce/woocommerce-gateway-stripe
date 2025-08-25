@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Popover from '..';
 
@@ -34,18 +34,20 @@ describe( 'Popover', () => {
 			screen.queryByText( 'Popover Content' )
 		).not.toBeInTheDocument();
 
-		await act( async () => {
-			await userEvent.click( screen.getByTestId( 'base-component' ) );
+		userEvent.click( screen.getByTestId( 'base-component' ) );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByText( 'Popover Content' )
+			).toBeInTheDocument();
 		} );
 
-		expect( screen.queryByText( 'Popover Content' ) ).toBeInTheDocument();
+		userEvent.click( screen.getByTestId( 'base-component' ) );
 
-		await act( async () => {
-			await userEvent.click( screen.getByTestId( 'base-component' ) );
+		await waitFor( () => {
+			expect(
+				screen.queryByText( 'Popover Content' )
+			).not.toBeInTheDocument();
 		} );
-
-		expect(
-			screen.queryByText( 'Popover Content' )
-		).not.toBeInTheDocument();
 	} );
 } );

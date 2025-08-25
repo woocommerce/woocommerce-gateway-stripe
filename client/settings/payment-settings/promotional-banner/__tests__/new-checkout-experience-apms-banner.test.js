@@ -1,5 +1,5 @@
 import { useDispatch } from '@wordpress/data';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
 
@@ -58,8 +58,10 @@ describe( 'New checkout experience APMs banner', () => {
 		);
 		const dismissButton = getByText( 'Dismiss' );
 
-		await userEvent.click( dismissButton );
+		userEvent.click( dismissButton );
 
-		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
+		await waitFor( () => {
+			expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
+		} );
 	} );
 } );

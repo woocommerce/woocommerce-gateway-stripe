@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
+import { screen, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SavePaymentGatewaySection from '..';
 import { usePaymentGateway } from 'wcstripe/data';
@@ -50,8 +50,10 @@ describe( 'SavePaymentGatewaySection', () => {
 		expect( savePaymentGatewayMock ).not.toHaveBeenCalled();
 		expect( saveChangesButton ).not.toBeDisabled();
 
-		await userEvent.click( saveChangesButton );
+		userEvent.click( saveChangesButton );
 
-		expect( savePaymentGatewayMock ).toHaveBeenCalled();
+		await waitFor( () => {
+			expect( savePaymentGatewayMock ).toHaveBeenCalled();
+		} );
 	} );
 } );
