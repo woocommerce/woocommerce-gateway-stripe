@@ -76,8 +76,8 @@ const getRedirectUrlPartials = ( url ) => {
  * Helper function. Requests that the provided intent (identified by the secret) is be
  * handled by Stripe. Returns a promise from Stripe.
  *
- * @param {Object} stripe - The stripe object.
- * @param {string} intentType - The type of intent. Either `pi` or `si`.
+ * @param {Object} stripe       - The stripe object.
+ * @param {string} intentType   - The type of intent. Either `pi` or `si`.
  * @param {string} clientSecret - Client secret returned from Stripe.
  *
  * @return {Promise} A promise from Stripe with the confirmed intent or an error.
@@ -94,7 +94,7 @@ const requestIntentConfirmation = ( stripe, intentType, clientSecret ) => {
 /**
  * Helper function. Returns the payment or setup intent from a given confirmed intent.
  *
- * @param {Object} intent - The confirmed intent.
+ * @param {Object} intent     - The confirmed intent.
  * @param {string} intentType - The payment intent's type. Either `pi` or `si`.
  *
  * @return {Object} The Stripe payment or setup intent.
@@ -122,7 +122,7 @@ const didIntentSucceed = ( intent ) => {
  * payment method of the intent was confirmed successfully.
  *
  * @param {string} redirectUrl - The URL to redirect to after a successful payment.
- * @param {string} intentType - The type of the payment intent. Either `pi` or `si`.
+ * @param {string} intentType  - The type of the payment intent. Either `pi` or `si`.
  */
 const handleIntentConfirmation = ( redirectUrl, intentType ) => (
 	confirmation
@@ -144,8 +144,8 @@ const handleIntentConfirmation = ( redirectUrl, intentType ) => (
  * our AJAX API, proceeds with payment if possible, otherwise attempts to confirm the
  * payment (i.e. 3DS verification) through Stripe.
  *
- * @param {Object} stripe - The Stripe JS object.
- * @param {Object} evt - The `source` event from the Stripe payment request button.
+ * @param {Object}   stripe                 - The Stripe JS object.
+ * @param {Object}   evt                    - The `source` event from the Stripe payment request button.
  * @param {Function} setExpressPaymentError - Used to show error messages to the customer.
  */
 const performPayment = ( stripe, evt, setExpressPaymentError ) => (

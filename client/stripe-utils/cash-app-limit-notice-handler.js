@@ -29,8 +29,8 @@ export function removeCashAppLimitNotice() {
 /**
  * Render the Cash App limit notice in the checkout form if the amount is above the threshold.
  *
- * @param {string} wrapperElementSelector
- * @param {boolean} appendToElement Whether to append the notice to the element.
+ * @param {string}  wrapperElementSelector
+ * @param {boolean} appendToElement        Whether to append the notice to the element.
  */
 function maybeRenderCashAppLimitNotice(
 	wrapperElementSelector,
@@ -50,9 +50,9 @@ function maybeRenderCashAppLimitNotice(
 /**
  * Show the Cash App limit notice in the checkout form.
  *
- * @param {string} wrapperElementSelector The selector for the wrapper element.
- * @param {number} cartAmount The cart amount.
- * @param {boolean} isBlockCheckout Whether the checkout form is a block checkout.
+ * @param {string}  wrapperElementSelector The selector for the wrapper element.
+ * @param {number}  cartAmount             The cart amount.
+ * @param {boolean} isBlockCheckout        Whether the checkout form is a block checkout.
  */
 export function maybeShowCashAppLimitNotice(
 	wrapperElementSelector,

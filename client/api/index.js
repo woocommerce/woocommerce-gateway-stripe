@@ -33,7 +33,7 @@ export default class WCStripeAPI {
 	 * Construct WC AJAX endpoint URL.
 	 *
 	 * @param {string} endpoint Request endpoint URL.
-	 * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+	 * @param {string} prefix   Endpoint URI prefix (default: 'wc_stripe_').
 	 * @return {string} URL with interpolated endpoint.
 	 */
 	getAjaxUrl( endpoint, prefix = 'wc_stripe_' ) {
@@ -140,7 +140,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates an intent based on a payment method.
 	 *
-	 * @param {number|null} orderId The id of the order if creating the intent on Order Pay page.
+	 * @param {number|null} orderId           The id of the order if creating the intent on Order Pay page.
 	 * @param {string|null} paymentMethodType The type of payment method.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
@@ -172,7 +172,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates and confirms a setup intent.
 	 *
-	 * @param {Object} paymentMethod Payment method data.
+	 * @param {Object} paymentMethod  Payment method data.
 	 * @param {Object} additionalData Additional data to send with the request.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
@@ -251,12 +251,12 @@ export default class WCStripeAPI {
 	/**
 	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
 	 *
-	 * @param {string} intentId The id of the payment intent.
-	 * @param {number} orderId The id of the order.
-	 * @param {string} savePaymentMethod 'yes' if saving.
+	 * @param {string} intentId               The id of the payment intent.
+	 * @param {number} orderId                The id of the order.
+	 * @param {string} savePaymentMethod      'yes' if saving.
 	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
 	 *
-	 * @return {Promise} The final promise for the request to the server.
+	 * @return {Object|undefined} The response from the server or undefined if the intent is a setup intent.
 	 */
 	updateIntent(
 		intentId,
@@ -298,7 +298,7 @@ export default class WCStripeAPI {
 	 * Extracts the details about a payment intent from the redirect URL,
 	 * and displays the intent confirmation modal (if needed).
 	 *
-	 * @param {string} redirectUrl The redirect URL, returned from the server.
+	 * @param {string} redirectUrl         The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
 	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
 	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
@@ -385,7 +385,7 @@ export default class WCStripeAPI {
 	 * Process checkout and update payment intent via AJAX.
 	 *
 	 * @param {string} paymentIntentId ID of payment intent to be updated.
-	 * @param {Object} fields Checkout fields.
+	 * @param {Object} fields          Checkout fields.
 	 * @return {Promise} Promise containing redirect URL for UPE element.
 	 */
 	processCheckout( paymentIntentId, fields ) {
@@ -415,7 +415,7 @@ export default class WCStripeAPI {
 	 * Updates order status, if there is an error while confirming intent.
 	 *
 	 * @param {string} intentId The id of the Payment/Setup Intent.
-	 * @param {number} orderId The id of the WC_Order.
+	 * @param {number} orderId  The id of the WC_Order.
 	 */
 	updateFailedOrder( intentId, orderId ) {
 		this.request( this.getAjaxUrl( 'update_failed_order' ), {
@@ -496,7 +496,7 @@ export default class WCStripeAPI {
 	/**
 	 * Normalizes address fields in WooCommerce supported format.
 	 *
-	 * @param {Object} billingAddress Billing address.
+	 * @param {Object} billingAddress  Billing address.
 	 * @param {Object} shippingAddress Shipping address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
@@ -604,7 +604,7 @@ export default class WCStripeAPI {
 	/**
 	 * Empty the cart (legacy version, non-StoreAPI).
 	 *
-	 * @param {Object} params Parameters.
+	 * @param {Object} params           Parameters.
 	 * @param {number} params.bookingId Booking ID.
 	 * @return {Promise} Promise for the request to the server.
 	 */
@@ -640,9 +640,9 @@ export default class WCStripeAPI {
 	/**
 	 * Pays for an order based on the Express Checkout payment method.
 	 *
-	 * @param {number} order The order ID.
+	 * @param {number} order        The order ID.
 	 * @param {Object} orderDetails Order details, including order key and billing email.
-	 * @param {Object} paymentData Order data.
+	 * @param {Object} paymentData  Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
@@ -657,8 +657,8 @@ export default class WCStripeAPI {
 	/**
 	 * Posts data to the Blocks API.
 	 *
-	 * @param {string} path The path to post to.
-	 * @param {Object} data The data to post.
+	 * @param {string} path    The path to post to.
+	 * @param {Object} data    The data to post.
 	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */

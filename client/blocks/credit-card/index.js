@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { PAYMENT_METHOD_NAME } from './constants';

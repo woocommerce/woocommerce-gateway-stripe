@@ -1,11 +1,11 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import React, { useContext, useState } from 'react';
-import { TabPanel } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
+import { TabPanel } from '@wordpress/components';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';

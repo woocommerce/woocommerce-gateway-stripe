@@ -7,7 +7,7 @@ import logo from './logo.svg';
  *
  * @param {Object} props             The component props.
  * @param {string} [props.className] Additional classes to add to the WooLogo component.
- * @param {any} props.restProps      Additional props to add to the WooLogo component.
+ * @param {any}    props.restProps   Additional props to add to the WooLogo component.
  *
  * @return {JSX.Element} The rendered WooLogo component.
  */

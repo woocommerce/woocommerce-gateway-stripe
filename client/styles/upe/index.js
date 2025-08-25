@@ -143,7 +143,7 @@ const hiddenElementsForUPE = {
 	 * Create invalid element row for generating UPE styles.
 	 *
 	 * @param {string} elementType Type of element to create.
-	 * @param {Array} classes Array of classes to be added to the element. Default: empty array.
+	 * @param {Array}  classes     Array of classes to be added to the element. Default: empty array.
 	 *
 	 * @return {Object} Object of the created invalid row element.
 	 */
@@ -158,9 +158,9 @@ const hiddenElementsForUPE = {
 	/**
 	 * Append elements to target container.
 	 *
-	 * @param {Object} appendTarget Element object where clone should be appended.
+	 * @param {Object} appendTarget   Element object where clone should be appended.
 	 * @param {string} elementToClone Selector of the element to be cloned.
-	 * @param {string} newElementID Selector for the cloned element.
+	 * @param {string} newElementID   Selector for the cloned element.
 	 */
 	appendClone( appendTarget, elementToClone, newElementID ) {
 		const cloneTarget = document.querySelector( elementToClone );

@@ -1,12 +1,12 @@
 /**
  * Handles the confirmation of card payments (3DSv2 modals/SCA challenge).
  *
- * @param {Object}   api            The API used for connection both with the server and Stripe.
- * @param {string}   redirectUrl    The URL to redirect to after confirming the intent on Stripe.
- * @param {boolean}  paymentNeeded  A boolean whether a payment or a setup confirmation is needed.
- * @param {Object}   elements       Reference to the Stripe elements.
- * @param {Object}   billingData    An object containing the customer's billing data.
- * @param {Object}   emitResponse   Various helpers for usage with observer response objects.
+ * @param {Object}  api           The API used for connection both with the server and Stripe.
+ * @param {string}  redirectUrl   The URL to redirect to after confirming the intent on Stripe.
+ * @param {boolean} paymentNeeded A boolean whether a payment or a setup confirmation is needed.
+ * @param {Object}  elements      Reference to the Stripe elements.
+ * @param {Object}  billingData   An object containing the customer's billing data.
+ * @param {Object}  emitResponse  Various helpers for usage with observer response objects.
  * @return {Object}                An object, which contains the result from the action.
  */
 export const confirmUpePayment = async (

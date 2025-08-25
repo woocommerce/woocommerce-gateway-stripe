@@ -1,8 +1,8 @@
 import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
-import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
+import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
 import { useAccount } from 'wcstripe/data/account';
 import { useGetOrderedPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
