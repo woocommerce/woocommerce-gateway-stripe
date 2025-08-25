@@ -45,7 +45,7 @@ describe( 'TooltipBase', () => {
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'does not call onHide when an internal element is clicked', () => {
+	it( 'does not call onHide when an internal element is clicked', async () => {
 		const handleHideMock = jest.fn();
 		render(
 			<TooltipBase
@@ -57,14 +57,14 @@ describe( 'TooltipBase', () => {
 			</TooltipBase>
 		);
 
-		userEvent.click( screen.getByText( 'Tooltip content' ) );
+		await userEvent.click( screen.getByText( 'Tooltip content' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'calls onHide when an external element is clicked', () => {
+	it( 'calls onHide when an external element is clicked', async () => {
 		const handleHideMock = jest.fn();
 		render(
 			<>
@@ -79,7 +79,7 @@ describe( 'TooltipBase', () => {
 			</>
 		);
 
-		userEvent.click( screen.getByText( 'External element' ) );
+		await userEvent.click( screen.getByText( 'External element' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();

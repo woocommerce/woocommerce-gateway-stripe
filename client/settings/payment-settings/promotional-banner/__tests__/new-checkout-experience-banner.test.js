@@ -48,7 +48,7 @@ describe( 'New checkout experience banner', () => {
 		).toBeInTheDocument();
 		expect( getByText( 'Enable the new checkout' ) ).toBeInTheDocument();
 	} );
-	it( 'should dismiss on button click', () => {
+	it( 'should dismiss on button click', async () => {
 		const { getByText } = render(
 			<NewCheckoutExperienceBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -56,7 +56,7 @@ describe( 'New checkout experience banner', () => {
 		);
 		const dismissButton = getByText( 'Dismiss' );
 
-		userEvent.click( dismissButton );
+		await userEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
