@@ -91,7 +91,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+		await userEvent.click( screen.getByLabelText( 'Tabs' ) );
 
 		await waitFor( async () => {
 			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
