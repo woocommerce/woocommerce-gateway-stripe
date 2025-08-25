@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { maybeShowCashAppLimitNotice } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
+import {
+	CASH_APP_NOTICE_AMOUNT_THRESHOLD,
+	maybeShowCashAppLimitNotice,
+} from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
-import { CASH_APP_NOTICE_AMOUNT_THRESHOLD } from 'wcstripe/data/constants';
 
 const wrapperElementClassName = 'woocommerce-checkout-payment';
 

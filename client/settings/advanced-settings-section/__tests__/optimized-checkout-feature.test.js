@@ -43,14 +43,14 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		userEvent.click( OCCheckbox );
+		await userEvent.click( OCCheckbox );
 
 		await waitFor( () => {
 			expect( setIsOCEnabledMock ).toHaveBeenCalled();
 		} );
 	} );
 
-	it( 'should be disabled when UPE is disabled', () => {
+	it( 'should be disabled when UPE is disabled', async () => {
 		useIsUpeEnabled.mockReturnValue( [ false, jest.fn() ] );
 
 		render( <OptimizedCheckoutFeature /> );
@@ -59,7 +59,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		userEvent.click( checkbox );
+		await userEvent.click( checkbox );
 
 		jest.runAllTimers();
 
@@ -91,7 +91,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+		await userEvent.click( screen.getByLabelText( 'Tabs' ) );
 
 		await waitFor( async () => {
 			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
