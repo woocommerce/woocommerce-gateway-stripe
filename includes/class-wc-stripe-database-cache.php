@@ -271,8 +271,6 @@ class WC_Stripe_Database_Cache {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$cached_rows = $wpdb->get_results( $wpdb->prepare( $raw_query, ...$query_args ) );
 
-		$cache_prefix_length = strlen( self::CACHE_KEY_PREFIX );
-
 		foreach ( $cached_rows as $cached_row ) {
 			$result['last_key'] = $cached_row->option_name;
 			$result['processed']++;
