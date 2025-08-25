@@ -65,7 +65,7 @@ const PaymentMethodWrapper = styled.div`
 /**
  * Formats the payment method description with the account default currency.
  *
- * @param {*} method Payment method ID.
+ * @param {*} method                 Payment method ID.
  * @param {*} accountDefaultCurrency Account default currency.
  */
 const getFormattedPaymentMethodDescription = (

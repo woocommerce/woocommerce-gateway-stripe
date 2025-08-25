@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Button } from '@wordpress/components';
 import styled from '@emotion/styled';
+import { Button } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import { usePaymentGateway } from '../../data';
 

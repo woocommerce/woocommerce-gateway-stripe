@@ -1068,12 +1068,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$response_args                 = [];
 
 			if ( $this->oc_enabled && isset( $payment_method_details->type ) ) {
-				foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_method_details->type ) {
-						$upe_payment_method = $payment_method;
-					}
-				}
+				$upe_payment_method = self::get_payment_method_instance( $payment_method_details->type );
 			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
@@ -2234,12 +2229,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->oc_enabled ) {
 				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
 				if ( ! empty( $payment_method_type ) ) {
-					foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-						$payment_method_instance = new $payment_method_class();
-						if ( $payment_method_instance->get_id() === $payment_method_type ) {
-							$payment_method = $payment_method_instance;
-						}
-					}
+					$payment_method = self::get_payment_method_instance( $payment_method_type );
 				}
 			} else {
 				$payment_method = $this->payment_methods[ $payment_method_type ] ?? null;

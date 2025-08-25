@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { ExternalLink } from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
+import { ExternalLink } from '@wordpress/components';
 import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';

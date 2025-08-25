@@ -79,6 +79,18 @@ export function validateElements( elements ) {
 }
 
 /**
+ * Updates the payment element's default values.
+ */
+function updatePaymentElementDefaultValues() {
+	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+		return;
+	}
+
+	const paymentElement = gatewayUPEComponents.card.upeElement;
+	paymentElement.update( getDefaultValues() );
+}
+
+/**
  * Creates a Stripe payment element with the specified payment method type and options.
  *
  * If the payment method doesn't support deferred intent, the intent must be created first.
@@ -86,7 +98,7 @@ export function validateElements( elements ) {
  *
  * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
- * @param {Object} api The API object used to create the Stripe payment element.
+ * @param {Object} api               The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
@@ -231,18 +243,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 }
 
 /**
- * Updates the payment element's default values.
- */
-function updatePaymentElementDefaultValues() {
-	if ( ! gatewayUPEComponents?.card?.upeElement ) {
-		return;
-	}
-
-	const paymentElement = gatewayUPEComponents.card.upeElement;
-	paymentElement.update( getDefaultValues() );
-}
-
-/**
  * Submits the provided jQuery form and removes the 'processing' class from it.
  *
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
@@ -255,9 +255,9 @@ function submitForm( jQueryForm ) {
  * Creates a Stripe payment method by calling the Stripe API's createPaymentMethod with the provided elements
  * and billing details. The billing details are obtained from various form elements on the page.
  *
- * @param {Object} api The API object used to call the Stripe API's createPaymentMethod method.
- * @param {Object} elements The Stripe elements object used to create a Stripe payment method.
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {Object} api               The API object used to call the Stripe API's createPaymentMethod method.
+ * @param {Object} elements          The Stripe elements object used to create a Stripe payment method.
+ * @param {Object} jQueryForm        The jQuery object for the form being submitted.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Promise<Object>} A promise that resolves with the created Stripe payment method.
  */
@@ -325,10 +325,10 @@ function createStripePaymentMethod(
  * Mounts the existing Stripe Payment Element to the DOM element.
  * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
- * @param {Object} api The API object.
+ * @param {Object} api        The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
- **/
+ */
 export async function mountStripePaymentElement( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
@@ -397,8 +397,8 @@ export async function mountStripePaymentElement( api, domElement ) {
  * object and appends the necessary data to the form for checkout completion. Finally, it submits the form and prevents
  * the default form submission from WC Core.
  *
- * @param {Object} api The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {Object} api               The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm        The jQuery object for the form being submitted.
  * @param {string} paymentMethodType The type of Stripe payment method being used.
  * @return {boolean} return false to prevent the default form submission from WC Core.
  * @throws {Error} If there is an error creating the Stripe payment method.
@@ -536,9 +536,9 @@ export const processPayment = (
  *
  * With the confirmed setup intent, this function will add the new setup intent ID to the form before submitting.
  *
- * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
- * @param {Object} api The API object used to create the Stripe payment method.
+ * @param {string}   paymentMethod         The payment method ID (i.e. pm_1234567890).
+ * @param {Object}   jQueryForm            The jQuery object for the form being submitted.
+ * @param {Object}   api                   The API object used to create the Stripe payment method.
  * @param {Function} setStopFormSubmission The callback function to execute when a redirect occurred or the setup wasn't completed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
@@ -578,8 +578,8 @@ export const createAndConfirmSetupIntent = (
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the voucher payment.
  *
- * @param {Object} api           The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ * @param {Object} api        The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
  */
 export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	const stripeServerData = getStripeServerData();
@@ -709,8 +709,8 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
- * @param {Object} api           The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ * @param {Object} api        The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
  */
 export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	const isOrderPay = getStripeServerData()?.isOrderPay;

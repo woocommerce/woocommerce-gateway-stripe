@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
-import { Icon } from '@wordpress/components';
 import { help, link, linkOff } from '@wordpress/icons';
+import { Icon } from '@wordpress/components';
 import Chip from 'wcstripe/components/chip';
 import Tooltip from 'wcstripe/components/tooltip';
 import {
@@ -16,11 +16,11 @@ import { useIsPMCEnabled } from 'wcstripe/data';
 /**
  * Generates a status chip.
  *
- * @param {Object} props           The component props.
- * @param {string} props.label     The label/type of the status.
- * @param {string} props.text      The text of the status. The actual status message. eg "Enabled".
- * @param {string} props.color     The color of the status.
- * @param {JSX.Element} props.icon The icon of the status.
+ * @param {Object}      props       The component props.
+ * @param {string}      props.label The label/type of the status.
+ * @param {string}      props.text  The text of the status. The actual status message. eg "Enabled".
+ * @param {string}      props.color The color of the status.
+ * @param {JSX.Element} props.icon  The icon of the status.
  *
  * @return {JSX.Element} The status chip.
  */
@@ -104,9 +104,9 @@ const expiredAppKeysTip = () => {
  *   - unconnected: There are account keys stored, but the account isn't connected to the WooCommerce Stripe App.
  *   - disconnected: The account is not set up.
  *
- * @param {Object} accountKeys The account keys.
- * @param {Object} data        The account data.
- * @param {boolean} testMode   Whether the component is for test mode.
+ * @param {Object}  accountKeys The account keys.
+ * @param {Object}  data        The account data.
+ * @param {boolean} testMode    Whether the component is for test mode.
  *
  * @return {Object} The account status. Contains the status text (label), color, and optionally an icon.
  */
@@ -171,7 +171,7 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 /**
  * Gets the webhook status.
  *
- * @param {string} webhookSecret  The webhook secret.
+ * @param {string}  webhookSecret The webhook secret.
  * @param {boolean} hasWebhookURL Whether the webhook URL is set.
  *
  * @return {Object} The webhook status. Contains the status text (label), color, and optionally an icon.
@@ -219,7 +219,7 @@ const getSyncStatus = ( isPMCEnabled ) => {
 /**
  * The AccountStatusPanel component.
  *
- * @param {Object} props           The component props.
+ * @param {Object}  props          The component props.
  * @param {boolean} props.testMode Indicates whether the component is for test mode.
  *
  * @return {JSX.Element} The rendered AccountStatusPanel component.

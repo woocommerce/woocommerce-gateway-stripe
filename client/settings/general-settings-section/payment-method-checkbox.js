@@ -1,8 +1,8 @@
 import { __, sprintf } from '@wordpress/i18n';
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
-import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
+import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import {

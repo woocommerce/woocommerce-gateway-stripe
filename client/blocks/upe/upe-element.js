@@ -21,11 +21,36 @@ const checkoutIcons = initializeCheckoutIcons( isAdmin );
 const upeMethods = getPaymentMethodsConstants();
 
 /**
- * Returns the UPE payment method element for registration.
+ * Returns the icon for the UPE payment method.
  *
  * @param {string} paymentMethod The payment method name.
- * @param {WCStripeAPI} api The Stripe API object.
- * @param {Object} upeConfig The UPE configuration.
+ * @return {JSX.Element|null} The icon element.
+ */
+const getUpeElementIcon = ( paymentMethod ) => {
+	if ( getBlocksConfiguration()?.isOCEnabled ) {
+		return null;
+	}
+
+	let iconName = paymentMethod;
+
+	// Afterpay/Clearpay have different icons for UK merchants.
+	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
+		iconName =
+			getBlocksConfiguration()?.accountCountry === 'GB'
+				? PAYMENT_METHOD_CLEARPAY
+				: PAYMENT_METHOD_AFTERPAY;
+	}
+
+	// Use checkout icons if available, otherwise fallback to default Icons
+	return ( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
+};
+
+/**
+ * Returns the UPE payment method element for registration.
+ *
+ * @param {string}      paymentMethod The payment method name.
+ * @param {WCStripeAPI} api           The Stripe API object.
+ * @param {Object}      upeConfig     The UPE configuration.
  * @return {Object} The UPE payment method configuration.
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
@@ -106,29 +131,4 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		ariaLabel: 'Stripe',
 		supports,
 	};
-};
-
-/**
- * Returns the icon for the UPE payment method.
- *
- * @param {string} paymentMethod The payment method name.
- * @return {JSX.Element|null} The icon element.
- */
-const getUpeElementIcon = ( paymentMethod ) => {
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		return null;
-	}
-
-	let iconName = paymentMethod;
-
-	// Afterpay/Clearpay have different icons for UK merchants.
-	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		iconName =
-			getBlocksConfiguration()?.accountCountry === 'GB'
-				? PAYMENT_METHOD_CLEARPAY
-				: PAYMENT_METHOD_AFTERPAY;
-	}
-
-	// Use checkout icons if available, otherwise fallback to default Icons
-	return ( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
 };

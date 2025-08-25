@@ -7,7 +7,7 @@ import mark from './mark.svg';
  *
  * @param {Object} props             The component props.
  * @param {string} [props.className] Additional classes to add to the StripeMark component.
- * @param {any} props.restProps      Additional props to add to the StripeMark component.
+ * @param {any}    props.restProps   Additional props to add to the StripeMark component.
  *
  * @return {JSX.Element} The rendered StripeMark component.
  */

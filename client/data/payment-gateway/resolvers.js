@@ -1,7 +1,7 @@
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { apiFetch } from '@wordpress/data-controls';
 import { getQuery } from '@woocommerce/navigation';
+import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE } from '../constants';
 import { updatePaymentGateway } from './actions';
 
