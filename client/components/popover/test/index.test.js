@@ -34,7 +34,7 @@ describe( 'Popover', () => {
 			screen.queryByText( 'Popover Content' )
 		).not.toBeInTheDocument();
 
-		act( async () => {
+		await act( async () => {
 			await userEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
