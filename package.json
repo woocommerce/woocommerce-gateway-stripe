@@ -84,7 +84,6 @@
     "prettier": "npm:wp-prettier@^2.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-test-renderer": "^18.3.1",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "stripe": "^11.4.0",
