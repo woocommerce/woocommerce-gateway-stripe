@@ -13,7 +13,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OC;
 
 	/**
-	 * Constructor for card payment method
+	 * Constructor for the Optimized Checkout payment method (which renders all methods).
 	 */
 	public function __construct() {
 		parent::__construct();
@@ -82,7 +82,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * The Credit Card method allows automatic capture.
+	 * The Optimized Checkout method allows automatic capture.
 	 *
 	 * @inheritDoc
 	 */
