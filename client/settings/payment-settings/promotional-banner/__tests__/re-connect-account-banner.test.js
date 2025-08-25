@@ -1,5 +1,5 @@
 import { useDispatch } from '@wordpress/data';
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { recordEvent } from 'wcstripe/tracking';
@@ -60,14 +60,12 @@ describe( 'Reconnect banner', () => {
 			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
-		await waitFor( () => {
-			expect( recordEvent ).toHaveBeenCalledWith(
-				'wcstripe_create_or_connect_test_account_click',
-				{}
-			);
-		} );
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_create_or_connect_test_account_click',
+			{}
+		);
 
 		expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
 
@@ -85,13 +83,11 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
-		await waitFor( () => {
-			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-				'There was an error. Please reload the page and try again.'
-			);
-		} );
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
 	} );
 	it( 'should create error notice when live oauth URL is invalid, and test mode is disabled', async () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
@@ -104,25 +100,21 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
-		await waitFor( () => {
-			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-				'There was an error. Please reload the page and try again.'
-			);
-		} );
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
 	} );
 	it( 'should create error notice when both oauth URLs are invalid', async () => {
 		const { getByText } = render(
 			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
-		await waitFor( () => {
-			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-				'There was an error. Please reload the page and try again.'
-			);
-		} );
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
 	} );
 } );
