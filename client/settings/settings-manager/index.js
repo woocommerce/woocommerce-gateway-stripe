@@ -10,7 +10,7 @@ import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
-import { useEnabledPaymentMethodIds, useSettings } from '../../data';
+import { useEnabledPaymentMethodIds, useSettings } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
