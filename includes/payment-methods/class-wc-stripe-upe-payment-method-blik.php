@@ -56,7 +56,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions() {
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
 			esc_html__( '%1$sTest mode:%2$s use any 6-digit number to authorize payment.', 'woocommerce-gateway-stripe' ),

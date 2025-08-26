@@ -516,7 +516,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions() {
 		return '';
 	}
 
