@@ -81,7 +81,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	public function test_feature_methods() {
 		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
 
-		$this->assertTrue( $payment_method->is_available() );
+		$this->assertFalse( $payment_method->is_available() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $payment_method->get_retrievable_type() );
 		$this->assertTrue( $payment_method->is_capability_active() );
 		$this->assertFalse( $payment_method->requires_automatic_capture() );
