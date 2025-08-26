@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { ExternalLink, Icon } from '@wordpress/components';
 import { help } from '@wordpress/icons';
 import styled from '@emotion/styled';
+import { ExternalLink, Icon } from '@wordpress/components';
 import SectionStatus from '../section-status';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';

@@ -34,7 +34,7 @@ test( 'customer can purchase a subscription product @smoke @subscriptions', asyn
 	await setupShortcodeCheckout( page, customerData );
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
 
-	await page.locator( 'text=Sign up now' ).click();
+	await page.locator( 'text=Add to cart' ).click();
 	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

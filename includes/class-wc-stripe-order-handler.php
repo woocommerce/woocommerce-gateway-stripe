@@ -471,7 +471,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Bail if payment method is not stripe or `stripe_{apm_method}` or doesn't have an intent yet.
-		if ( substr( (string) $order->get_payment_method(), 0, 6 ) !== 'stripe' || ! $this->get_intent_from_order( $order ) ) {
+		if ( ! WC_Stripe_Helper::is_stripe_gateway_order( $order ) || ! $this->get_intent_from_order( $order ) ) {
 			return $cancel_order;
 		}
 

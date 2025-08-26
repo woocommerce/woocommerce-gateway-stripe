@@ -1,8 +1,8 @@
 import { __, sprintf } from '@wordpress/i18n';
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
-import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
+import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import {
@@ -33,7 +33,6 @@ const PaymentMethodCheckbox = ( {
 	label,
 	isAllowingManualCapture,
 	disabled,
-	disabledButChecked,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
@@ -45,12 +44,10 @@ const PaymentMethodCheckbox = ( {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const checked =
-		! disabled &&
-		( disabledButChecked || enabledPaymentMethods.includes( id ) );
+	const checked = ! disabled && enabledPaymentMethods.includes( id );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
-		if ( disabled || disabledButChecked ) {
+		if ( disabled ) {
 			return;
 		}
 		if ( ! hasBeenChecked ) {
@@ -113,7 +110,7 @@ const PaymentMethodCheckbox = ( {
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }
 					onChange={ handleCheckboxChange }
 					checked={ checked }
-					disabled={ disabled || disabledButChecked }
+					disabled={ disabled }
 				/>
 			) }
 			{ isConfirmationModalOpen && (

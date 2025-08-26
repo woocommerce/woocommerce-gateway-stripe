@@ -120,86 +120,6 @@ jQuery( function ( $ ) {
 		return event.resolve( clickOptions );
 	};
 
-	const handleProductPageECEButtonClick = async ( event, options ) => {
-		const addToCartButton = document.querySelector(
-			'.single_add_to_cart_button'
-		);
-
-		// First check if product can be added to cart.
-		if ( addToCartButton.classList.contains( 'disabled' ) ) {
-			const defaultMessage = __(
-				'Please select your product options before proceeding.',
-				'woocommerce-gateway-stripe'
-			);
-			let message;
-			if (
-				addToCartButton.classList.contains(
-					'wc-variation-is-unavailable'
-				)
-			) {
-				message =
-					getAddToCartVariationParams( 'i18n_unavailable_text' ) ||
-					__(
-						'Sorry, this product is unavailable. Please choose a different combination.',
-						'woocommerce-gateway-stripe'
-					);
-			}
-
-			// eslint-disable-next-line no-alert
-			window.alert( message || defaultMessage );
-			return;
-		}
-
-		if ( wcStripeECEError ) {
-			// eslint-disable-next-line no-alert
-			window.alert( wcStripeECEError );
-			return;
-		}
-
-		// Stripe requires event.resolve() to be called within 1s of the click event.
-		// Here, we enforce a timeout for the addToCart operation. If the operation
-		// takes longer, we will call event.resolve() immediately,
-		// and wait for the addToCart operation to finish after.
-		const addToCartPromise = wcStripeECE.addToCart();
-		const timeout = new Promise( ( resolve ) =>
-			setTimeout( () => {
-				resolve( 'timeout' );
-			}, 700 )
-		);
-		const result = await Promise.race( [ addToCartPromise, timeout ] );
-		if ( result === 'timeout' ) {
-			// Immediately resolve the click event to avoid the 1s timeout.
-			resolveClickEvent( event, options );
-
-			// Wait for the addToCart operation to finish, checking
-			// that the product was successfully added to the cart.
-			wcStripeECE.isAddToCartSuccessful = false;
-			const response = await addToCartPromise;
-			const isAddToCartSuccessful = response?.items_count > 0;
-			const isLegacyAddToCartSuccessful = response?.result === 'success';
-			if ( isAddToCartSuccessful || isLegacyAddToCartSuccessful ) {
-				wcStripeECE.isAddToCartSuccessful = true;
-			}
-
-			return;
-		}
-
-		wcStripeECE.isAddToCartSuccessful = true;
-		return resolveClickEvent( event, options );
-	};
-
-	const handleProductPageShippingAddressChange = async (
-		event,
-		elements
-	) => {
-		if ( wcStripeECE.isAddToCartSuccessful === false ) {
-			// wait 1s for the item to be added to the cart before proceeding
-			await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
-		}
-
-		return shippingAddressChangeHandler( api, event, elements );
-	};
-
 	// Check if the product is waiting for a variation to be selected.
 	const isVariationSelectionNeeded = () => {
 		// This check only makes sense on the product page.
@@ -322,6 +242,86 @@ jQuery( function ( $ ) {
 		},
 
 		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+			const handleProductPageECEButtonClick = async (
+				event,
+				clickOptions
+			) => {
+				const addToCartButton = document.querySelector(
+					'.single_add_to_cart_button'
+				);
+
+				// First check if product can be added to cart.
+				if ( addToCartButton.classList.contains( 'disabled' ) ) {
+					const defaultMessage = __(
+						'Please select your product options before proceeding.',
+						'woocommerce-gateway-stripe'
+					);
+					let message;
+					if (
+						addToCartButton.classList.contains(
+							'wc-variation-is-unavailable'
+						)
+					) {
+						message =
+							getAddToCartVariationParams(
+								'i18n_unavailable_text'
+							) ||
+							__(
+								'Sorry, this product is unavailable. Please choose a different combination.',
+								'woocommerce-gateway-stripe'
+							);
+					}
+
+					// eslint-disable-next-line no-alert
+					window.alert( message || defaultMessage );
+					return;
+				}
+
+				if ( wcStripeECEError ) {
+					// eslint-disable-next-line no-alert
+					window.alert( wcStripeECEError );
+					return;
+				}
+
+				// Stripe requires event.resolve() to be called within 1s of the click event.
+				// Here, we enforce a timeout for the addToCart operation. If the operation
+				// takes longer, we will call event.resolve() immediately,
+				// and wait for the addToCart operation to finish after.
+				const addToCartPromise = wcStripeECE.addToCart();
+				const timeout = new Promise( ( resolve ) =>
+					setTimeout( () => {
+						resolve( 'timeout' );
+					}, 700 )
+				);
+				const result = await Promise.race( [
+					addToCartPromise,
+					timeout,
+				] );
+				if ( result === 'timeout' ) {
+					// Immediately resolve the click event to avoid the 1s timeout.
+					resolveClickEvent( event, clickOptions );
+
+					// Wait for the addToCart operation to finish, checking
+					// that the product was successfully added to the cart.
+					wcStripeECE.isAddToCartSuccessful = false;
+					const response = await addToCartPromise;
+					const isAddToCartSuccessful = response?.items_count > 0;
+					const isLegacyAddToCartSuccessful =
+						response?.result === 'success';
+					if (
+						isAddToCartSuccessful ||
+						isLegacyAddToCartSuccessful
+					) {
+						wcStripeECE.isAddToCartSuccessful = true;
+					}
+
+					return;
+				}
+
+				wcStripeECE.isAddToCartSuccessful = true;
+				return resolveClickEvent( event, clickOptions );
+			};
+
 			// This is a bit of a hack, but we need some way to get the shipping information before rendering the button, and
 			// since we don't have any address information at this point it seems best to rely on what came with the cart response.
 			// Relying on what's provided in the cart response seems safest since it should always include a valid shipping
@@ -394,6 +394,24 @@ jQuery( function ( $ ) {
 
 				return await handleProductPageECEButtonClick( event, options );
 			} );
+
+			const handleProductPageShippingAddressChange = async (
+				event,
+				stripeElements
+			) => {
+				if ( wcStripeECE.isAddToCartSuccessful === false ) {
+					// wait 1s for the item to be added to the cart before proceeding
+					await new Promise( ( resolve ) =>
+						setTimeout( resolve, 1000 )
+					);
+				}
+
+				return shippingAddressChangeHandler(
+					api,
+					event,
+					stripeElements
+				);
+			};
 
 			eceButton.on( 'shippingaddresschange', async ( event ) => {
 				if ( getExpressCheckoutData( 'is_product_page' ) ) {
@@ -723,9 +741,9 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment Payment response instance.
-		 * @param {string} message Error message to display.
-		 * @param {boolean} isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment      Payment response instance.
+		 * @param {string}          message      Error message to display.
+		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
 		 */
 		abortPayment: ( payment, message, isOrderError = false ) => {
 			if ( ! isOrderError ) {

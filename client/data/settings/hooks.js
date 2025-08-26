@@ -9,14 +9,11 @@ const makeReadOnlySettingsHook = (
 	fieldName,
 	fieldDefaultValue = false
 ) => () =>
-	useSelect(
-		( select ) => {
-			const { getSettings } = select( STORE_NAME );
+	useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
 
-			return getSettings()[ fieldName ] || fieldDefaultValue;
-		},
-		[ fieldName, fieldDefaultValue ]
-	);
+		return getSettings()[ fieldName ] || fieldDefaultValue;
+	}, [] );
 
 const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );
@@ -166,6 +163,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
+export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',
 	false

@@ -141,6 +141,61 @@ describe( 'Express checkout normalization', () => {
 	} );
 
 	describe( 'normalizeOrderData', () => {
+		const paymentMethodId = 'pm_123456';
+		const expectedNormalizedData = {
+			billing_address: {
+				address_1: '123 Main St',
+				address_2: 'Apt 4B',
+				city: 'New York',
+				company: 'Some Company',
+				country: 'US',
+				email: 'john.doe@example.com',
+				first_name: 'John',
+				last_name: 'Doe',
+				phone: '1234567890',
+				postcode: '10001',
+				state: 'NY',
+			},
+			extensions: {},
+			payment_data: [
+				{
+					key: 'payment_method',
+					value: 'stripe',
+				},
+				{
+					key: 'wc-stripe-payment-method',
+					value: '',
+				},
+				{
+					key: 'wc-stripe-confirmation-token',
+					value: '',
+				},
+				{
+					key: 'express_payment_type',
+					value: 'express',
+				},
+				{
+					key: 'wc-stripe-is-deferred-intent',
+					value: true,
+				},
+			],
+			payment_method: 'stripe',
+			shipping_address: {
+				address_1: '123 Main St',
+				address_2: 'Apt 4B',
+				city: 'New York',
+				company: 'Some Company',
+				country: 'US',
+				first_name: 'John',
+				last_name: 'Doe',
+				method: [ 'rate_1' ],
+				phone: '1234567890',
+				postcode: '10001',
+				state: 'NY',
+			},
+			additional_fields: {},
+		};
+
 		beforeEach( () => {
 			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
 			expectedNormalizedData.payment_data[ 2 ].value = '';
@@ -205,61 +260,6 @@ describe( 'Express checkout normalization', () => {
 			},
 			shippingRate: { id: 'rate_1' },
 			expressPaymentType: 'express',
-		};
-
-		const paymentMethodId = 'pm_123456';
-		const expectedNormalizedData = {
-			billing_address: {
-				address_1: '123 Main St',
-				address_2: 'Apt 4B',
-				city: 'New York',
-				company: 'Some Company',
-				country: 'US',
-				email: 'john.doe@example.com',
-				first_name: 'John',
-				last_name: 'Doe',
-				phone: '1234567890',
-				postcode: '10001',
-				state: 'NY',
-			},
-			extensions: {},
-			payment_data: [
-				{
-					key: 'payment_method',
-					value: 'stripe',
-				},
-				{
-					key: 'wc-stripe-payment-method',
-					value: '',
-				},
-				{
-					key: 'wc-stripe-confirmation-token',
-					value: '',
-				},
-				{
-					key: 'express_payment_type',
-					value: 'express',
-				},
-				{
-					key: 'wc-stripe-is-deferred-intent',
-					value: true,
-				},
-			],
-			payment_method: 'stripe',
-			shipping_address: {
-				address_1: '123 Main St',
-				address_2: 'Apt 4B',
-				city: 'New York',
-				company: 'Some Company',
-				country: 'US',
-				first_name: 'John',
-				last_name: 'Doe',
-				method: [ 'rate_1' ],
-				phone: '1234567890',
-				postcode: '10001',
-				state: 'NY',
-			},
-			additional_fields: {},
 		};
 
 		test( 'should normalize order data with complete event and payment information', () => {

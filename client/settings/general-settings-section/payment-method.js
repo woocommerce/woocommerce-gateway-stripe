@@ -7,15 +7,14 @@ import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useIsOCEnabled, useManualCapture } from 'wcstripe/data';
+import { useManualCapture } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_KLARNA,
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 
 const ListElement = styled.li`
 	display: flex;
@@ -66,7 +65,7 @@ const PaymentMethodWrapper = styled.div`
 /**
  * Formats the payment method description with the account default currency.
  *
- * @param {*} method Payment method ID.
+ * @param {*} method                 Payment method ID.
  * @param {*} accountDefaultCurrency Account default currency.
  */
 const getFormattedPaymentMethodDescription = (
@@ -105,9 +104,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const PaymentMethod = ( { method, data } ) => {
-	const [ isOCEnabled ] = useIsOCEnabled();
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
+	const paymentMethodUnavailableReason = usePaymentMethodUnavailableReason(
+		method
+	);
 
 	const {
 		Icon,
@@ -127,18 +127,7 @@ const PaymentMethod = ( { method, data } ) => {
 		wc_stripe_settings_params.are_apms_deprecated &&
 		method !== PAYMENT_METHOD_CARD;
 
-	const storeCurrency = window?.wcSettings?.currency?.code;
-	const isDisabled =
-		( paymentMethodCurrencies.length &&
-			! paymentMethodCurrencies.includes( storeCurrency ) ) ||
-		( PAYMENT_METHOD_AFFIRM === method &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
-		( PAYMENT_METHOD_KLARNA === method &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_klarna_gateway_plugin );
-
-	const isDisabledButChecked = PAYMENT_METHOD_CARD === method && isOCEnabled;
+	const isDisabled = paymentMethodUnavailableReason !== null;
 
 	return (
 		<div key={ method }>
@@ -154,7 +143,6 @@ const PaymentMethod = ( { method, data } ) => {
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
 					disabled={ deprecated || isDisabled }
-					disabledButChecked={ isDisabledButChecked }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription

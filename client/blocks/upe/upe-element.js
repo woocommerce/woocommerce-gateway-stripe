@@ -6,6 +6,8 @@ import {
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_BACS,
+	PAYMENT_METHOD_CARD,
+	EXPRESS_PAYMENT_METHODS,
 } from 'wcstripe/stripe-utils/constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
@@ -19,11 +21,36 @@ const checkoutIcons = initializeCheckoutIcons( isAdmin );
 const upeMethods = getPaymentMethodsConstants();
 
 /**
- * Returns the UPE payment method element for registration.
+ * Returns the icon for the UPE payment method.
  *
  * @param {string} paymentMethod The payment method name.
- * @param {WCStripeAPI} api The Stripe API object.
- * @param {Object} upeConfig The UPE configuration.
+ * @return {JSX.Element|null} The icon element.
+ */
+const getUpeElementIcon = ( paymentMethod ) => {
+	if ( getBlocksConfiguration()?.isOCEnabled ) {
+		return null;
+	}
+
+	let iconName = paymentMethod;
+
+	// Afterpay/Clearpay have different icons for UK merchants.
+	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
+		iconName =
+			getBlocksConfiguration()?.accountCountry === 'GB'
+				? PAYMENT_METHOD_CLEARPAY
+				: PAYMENT_METHOD_AFTERPAY;
+	}
+
+	// Use checkout icons if available, otherwise fallback to default Icons
+	return ( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
+};
+
+/**
+ * Returns the UPE payment method element for registration.
+ *
+ * @param {string}      paymentMethod The payment method name.
+ * @param {WCStripeAPI} api           The Stripe API object.
+ * @param {Object}      upeConfig     The UPE configuration.
  * @return {Object} The UPE payment method configuration.
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
@@ -78,6 +105,18 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				return false;
 			}
 
+			const nonExpressPaymentMethods = upeConfig?.enabledPaymentMethods.filter(
+				( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
+			);
+
+			if (
+				paymentMethod === PAYMENT_METHOD_CARD &&
+				getBlocksConfiguration()?.isOCEnabled &&
+				nonExpressPaymentMethods.length === 0
+			) {
+				return false;
+			}
+
 			return isAvailableInTheCountry && !! api.getStripe();
 		},
 		// see .wc-block-checkout__payment-method styles in blocks/style.scss
@@ -92,29 +131,4 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		ariaLabel: 'Stripe',
 		supports,
 	};
-};
-
-/**
- * Returns the icon for the UPE payment method.
- *
- * @param {string} paymentMethod The payment method name.
- * @return {JSX.Element|null} The icon element.
- */
-const getUpeElementIcon = ( paymentMethod ) => {
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		return null;
-	}
-
-	let iconName = paymentMethod;
-
-	// Afterpay/Clearpay have different icons for UK merchants.
-	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		iconName =
-			getBlocksConfiguration()?.accountCountry === 'GB'
-				? PAYMENT_METHOD_CLEARPAY
-				: PAYMENT_METHOD_AFTERPAY;
-	}
-
-	// Use checkout icons if available, otherwise fallback to default Icons
-	return ( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
 };

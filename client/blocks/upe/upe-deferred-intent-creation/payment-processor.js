@@ -2,8 +2,8 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
 	useElements,
@@ -24,6 +24,7 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
+	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -87,7 +88,9 @@ const getStripeElementOptions = () => {
 		options = {
 			...options,
 			layout: {
-				type: 'accordion',
+				type:
+					getBlocksConfiguration()?.OCLayout ||
+					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 				radios: false,
 			},
 		};

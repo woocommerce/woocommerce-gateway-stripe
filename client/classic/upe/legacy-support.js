@@ -8,8 +8,8 @@ import {
 /**
  * Handles hashchange events when using PRBs.
  *
- * @param {Object}   api        The Stripe API interface.
- * @param {Function} showError  Function used to present an error to the customer.
+ * @param {Object}   api       The Stripe API interface.
+ * @param {Function} showError Function used to present an error to the customer.
  */
 export const legacyHashchangeHandler = ( api, showError ) => {
 	const partials = window.location.hash.match(

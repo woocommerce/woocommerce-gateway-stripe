@@ -14,7 +14,7 @@ describe( 'ManualCaptureControl', () => {
 		useManualCapture.mockReturnValue( [ false, () => null ] );
 	} );
 
-	it( 'should not render the confirmation modal when UPE is disabled', () => {
+	it( 'should not render the confirmation modal when UPE is disabled', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
@@ -24,7 +24,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -36,7 +36,7 @@ describe( 'ManualCaptureControl', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should render the confirmation modal when UPE is enabled', () => {
+	it( 'should render the confirmation modal when UPE is enabled', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
@@ -46,7 +46,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -57,7 +57,7 @@ describe( 'ManualCaptureControl', () => {
 			screen.queryByText( 'Enable manual capture' )
 		).toBeInTheDocument();
 
-		userEvent.click( screen.getByText( 'Cancel' ) );
+		await userEvent.click( screen.getByText( 'Cancel' ) );
 
 		expect(
 			screen.queryByText( 'Enable manual capture' )
@@ -65,7 +65,7 @@ describe( 'ManualCaptureControl', () => {
 		expect( manualCaptureToggleMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'should toggle the flag when UPE is enabled', () => {
+	it( 'should toggle the flag when UPE is enabled', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
@@ -75,7 +75,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -86,7 +86,7 @@ describe( 'ManualCaptureControl', () => {
 			screen.queryByText( 'Enable manual capture' )
 		).toBeInTheDocument();
 
-		userEvent.click( screen.getByText( 'Enable' ) );
+		await userEvent.click( screen.getByText( 'Enable' ) );
 
 		expect(
 			screen.queryByText( 'Enable manual capture' )
@@ -94,7 +94,7 @@ describe( 'ManualCaptureControl', () => {
 		expect( manualCaptureToggleMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should not show the modal when manual capture is already enabled', () => {
+	it( 'should not show the modal when manual capture is already enabled', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ true, manualCaptureToggleMock ] );
 
@@ -104,7 +104,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
