@@ -38,7 +38,7 @@
     "@wordpress/data-controls": "^2.2.3",
     "@wordpress/date": "3.9.0",
     "@wordpress/dom-ready": "^3.2.1",
-		"@wordpress/eslint-plugin": "^17.13.0",
+    "@wordpress/eslint-plugin": "^17.13.0",
     "@wordpress/hooks": "3.2.0",
     "@wordpress/i18n": "^4.2.1",
     "@wordpress/icons": "^5.0.1",
