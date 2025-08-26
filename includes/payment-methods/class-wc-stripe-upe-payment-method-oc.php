@@ -64,6 +64,10 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	 * @inheritDoc
 	 */
 	public function is_available() {
+		if ( ! parent::is_available() ) {
+			return false;
+		}
+
 		return true;
 	}
 
