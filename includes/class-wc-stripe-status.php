@@ -310,7 +310,7 @@ class WC_Stripe_Status {
 	 * @return void
 	 */
 	public function database_cache_cleanup(): void {
-		$result = WC_Stripe_Database_Cache::delete_all_stale_entries( 'inline', -1 );
+		$result = WC_Stripe_Database_Cache::delete_all_stale_entries( WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE, -1 );
 
 		if ( is_wp_error( $result['error'] ) ) {
 			echo '<div class="notice notice-error inline">';

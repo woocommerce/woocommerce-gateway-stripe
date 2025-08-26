@@ -39,6 +39,30 @@ class WC_Stripe_Database_Cache {
 	public const CACHE_KEY_PREFIX = 'wcstripe_cache_';
 
 	/**
+	 * Cleanup approach that runs in the current process.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_APPROACH_INLINE = 'inline';
+
+	/**
+	 * Cleanup approach that runs asynchronously via Action Scheduler.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_APPROACH_ASYNC = 'async';
+
+	/**
+	 * Permitted/accepted approaches.
+	 *
+	 * @var string[]
+	 */
+	protected const CLEANUP_APPROACHES = [
+		self::CLEANUP_APPROACH_INLINE,
+		self::CLEANUP_APPROACH_ASYNC,
+	];
+
+	/**
 	 * Class constructor.
 	 */
 	private function __construct() {
@@ -294,7 +318,8 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Deletes all stale entries from the cache.
 	 *
-	 * @param string $approach The approach to use to delete the entries. 'inline' will delete the entries in the current process, 'async' will enqueue an async job to delete the entries.
+	 * @param string $approach The approach to use to delete the entries. {@see CLEANUP_APPROACH_INLINE} will delete the entries in the
+	 *                         current process, and {@see CLEANUP_APPROACH_ASYNC} will enqueue an async job to delete the entries.
 	 * @param int    $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
 	 *
 	 * @return array {
@@ -310,12 +335,12 @@ class WC_Stripe_Database_Cache {
 			'error'     => null,
 		];
 
-		if ( ! in_array( $approach, [ 'inline', 'async' ], true ) ) {
+		if ( ! in_array( $approach, self::CLEANUP_APPROACHES, true ) ) {
 			$result['error'] = new WP_Error( 'invalid_approach', 'Invalid approach' );
 			return $result;
 		}
 
-		if ( 'inline' === $approach ) {
+		if ( self::CLEANUP_APPROACH_INLINE === $approach ) {
 			$has_more_entries = false;
 			$last_key         = null;
 			do {
@@ -327,7 +352,7 @@ class WC_Stripe_Database_Cache {
 				$result['processed'] += $delete_result['processed'];
 				$result['deleted']   += $delete_result['deleted'];
 			} while ( $has_more_entries && null !== $last_key );
-		} else {
+		} elseif ( self::CLEANUP_APPROACH_ASYNC === $approach ) {
 			if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
 				$result['error'] = new WP_Error( 'action_scheduler_not_initialized', 'Action Scheduler is not initialized' );
 				return $result;
