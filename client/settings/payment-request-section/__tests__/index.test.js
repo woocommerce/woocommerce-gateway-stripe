@@ -5,6 +5,7 @@ import {
 	useGetAvailablePaymentMethodIds,
 	usePaymentRequestEnabledSettings,
 	useAmazonPayEnabledSettings,
+	useIsOCEnabled,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -17,6 +18,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useAmazonPayEnabledSettings: jest.fn(),
+	useIsOCEnabled: jest.fn(),
 } ) );
 
 const getMockPaymentRequestEnabledSettings = (
@@ -41,6 +43,7 @@ describe( 'PaymentRequestSection', () => {
 			PAYMENT_METHOD_AMAZON_PAY,
 		] );
 		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		global.wc_stripe_settings_params = {
 			...globalValues,
 			is_amazon_pay_available: true,
@@ -59,7 +62,7 @@ describe( 'PaymentRequestSection', () => {
 		expect( label ).toBeInTheDocument();
 	} );
 
-	it( 'hide link payment if card payment method is inactive', () => {
+	it( 'hide link payment if card payment method is inactive (OC disabled)', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_LINK,
 			PAYMENT_METHOD_CARD,
@@ -73,7 +76,7 @@ describe( 'PaymentRequestSection', () => {
 		expect( screen.queryByText( 'Link by Stripe' ) ).toBeNull();
 	} );
 
-	it( 'show link payment if card payment method is active', () => {
+	it( 'show link payment if card payment method is active (OC disabled)', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_LINK,
 			PAYMENT_METHOD_CARD,
@@ -81,6 +84,21 @@ describe( 'PaymentRequestSection', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
 		] );
+
+		render( <PaymentRequestSection /> );
+
+		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
+	} );
+
+	it( 'show link payment if card payment method is inactive (OC enabled)', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_CARD,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_LINK ],
+		] );
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <PaymentRequestSection /> );
 
