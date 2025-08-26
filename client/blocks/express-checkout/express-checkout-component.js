@@ -70,20 +70,15 @@ const ExpressCheckoutComponent = ( {
 	onClose,
 	expressPaymentMethod = '',
 } ) => {
-	const {
-		buttonOptions,
-		onButtonClick,
-		onConfirm,
-		onCancel,
-		elements,
-	} = useExpressCheckout( {
-		api,
-		billing,
-		shippingData,
-		onClick,
-		onClose,
-		setExpressPaymentError,
-	} );
+	const { buttonOptions, onButtonClick, onConfirm, onCancel, elements } =
+		useExpressCheckout( {
+			api,
+			billing,
+			shippingData,
+			onClick,
+			onClose,
+			setExpressPaymentError,
+		} );
 
 	const onShippingAddressChange = ( event ) =>
 		shippingAddressChangeHandler( api, event, elements );

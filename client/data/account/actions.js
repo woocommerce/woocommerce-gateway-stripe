@@ -23,9 +23,8 @@ export function* refreshAccount() {
 	try {
 		yield updateIsRefreshingAccount( true );
 
-		const activeCapabilitiesBeforeRefresh = select(
-			STORE_NAME
-		).getAccountCapabilitiesByStatus( 'active' );
+		const activeCapabilitiesBeforeRefresh =
+			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
 
 		const data = yield apiFetch( {
 			method: 'POST',
@@ -34,9 +33,8 @@ export function* refreshAccount() {
 
 		yield updateAccount( data );
 
-		const activeCapabilitiesAfterRefresh = select(
-			STORE_NAME
-		).getAccountCapabilitiesByStatus( 'active' );
+		const activeCapabilitiesAfterRefresh =
+			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
 
 		// Check new payment methods available for account.
 		const newPaymentMethods = activeCapabilitiesAfterRefresh.filter(

@@ -10,10 +10,8 @@ import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
-	const [
-		enabledPaymentMethods,
-		setEnabledPaymentMethods,
-	] = useEnabledPaymentMethodIds();
+	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
+		useEnabledPaymentMethodIds();
 	const [ modalType, setModalType ] = useState( '' );
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 

@@ -143,17 +143,17 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: getBlocksConfiguration()
-						?.paymentMethodConfigurationParentId,
+					paymentMethodConfiguration:
+						getBlocksConfiguration()
+							?.paymentMethodConfigurationParentId,
 				},
 			};
 		} else {
 			options = {
 				...options,
 				...{
-					paymentMethodTypes: getPaymentMethodTypes(
-						paymentMethodId
-					),
+					paymentMethodTypes:
+						getPaymentMethodTypes( paymentMethodId ),
 				},
 			};
 

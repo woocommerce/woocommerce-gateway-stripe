@@ -51,11 +51,8 @@ const PaymentRequestExpressComponent = ( {
 	const { needsShipping } = shippingData;
 
 	/* Set up payment request and its event handlers. */
-	const [
-		paymentRequest,
-		paymentRequestType,
-		isUpdatingPaymentRequest,
-	] = usePaymentRequest( stripe, needsShipping, billing );
+	const [ paymentRequest, paymentRequestType, isUpdatingPaymentRequest ] =
+		usePaymentRequest( stripe, needsShipping, billing );
 	useShippingAddressUpdateHandler( paymentRequest, paymentRequestType );
 	useShippingOptionChangeHandler( paymentRequest, paymentRequestType );
 	useProcessPaymentHandler(

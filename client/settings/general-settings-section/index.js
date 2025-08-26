@@ -35,15 +35,12 @@ const GeneralSettingsSection = ( {
 	onSaveChanges,
 	showLegacyExperienceTransitionNotice,
 } ) => {
-	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
-		false
-	);
+	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] =
+		useState( false );
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
-	const {
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 	const isPMCEnabled = useIsPMCEnabled();
 
 	const [ initialOrder, setInitialOrder ] = useState( [] );

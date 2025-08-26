@@ -50,11 +50,8 @@ const ActionItems = styled.div`
 const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const [ isOCEnabled ] = useIsOCEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const {
-		orderedPaymentMethodIds,
-		isSaving,
-		saveOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, isSaving, saveOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 
 	const { refreshAccount } = useAccount();
 

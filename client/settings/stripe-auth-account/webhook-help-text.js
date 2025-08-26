@@ -33,9 +33,8 @@ const WebhookHelpText = ( { testMode } ) => {
 	const { data } = useAccount();
 	const initialWebhookURL = data?.configured_webhook_urls?.[ mode ] ?? '';
 
-	const [ webhookURLForDisplay, setDisplayWebhookURL ] = useState(
-		initialWebhookURL
-	);
+	const [ webhookURLForDisplay, setDisplayWebhookURL ] =
+		useState( initialWebhookURL );
 
 	// If the webhook URL is changed via the hook, use that value in the component.
 	useEffect( () => {

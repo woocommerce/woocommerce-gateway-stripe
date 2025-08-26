@@ -34,9 +34,8 @@ const LegacyExperienceTransitionNotice = ( {
 	isUpeEnabled,
 	setIsUpeEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	// The merchant already disabled the legacy experience. Nothing to do here.
 	if ( isUpeEnabled ) {

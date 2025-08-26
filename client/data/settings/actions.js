@@ -71,9 +71,8 @@ export function* saveSettings() {
 
 export function* saveOrderedPaymentMethodIds() {
 	try {
-		const orderedPaymentMethodIds = select(
-			STORE_NAME
-		).getOrderedPaymentMethodIds();
+		const orderedPaymentMethodIds =
+			select( STORE_NAME ).getOrderedPaymentMethodIds();
 
 		yield updateIsSavingOrderedPaymentMethodIds( true );
 
