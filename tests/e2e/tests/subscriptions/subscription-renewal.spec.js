@@ -3,7 +3,11 @@ import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products, user } from '../../utils';
 
-const { setupShortcodeCheckout, fillCreditCardDetailsShortcode } = payments;
+const {
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcode,
+	clickAddToCartButton,
+} = payments;
 
 let productId;
 let username, userEmail;
@@ -43,7 +47,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 	await test.step( 'customer purchase a subscription product', async () => {
 		await page.goto( `?p=${ productId }` );
-		await page.locator( 'button[name="add-to-cart"]' ).click();
+		await clickAddToCartButton( page );
 
 		await setupShortcodeCheckout( page );
 		await fillCreditCardDetailsShortcode(
@@ -51,7 +55,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 			config.get( 'cards.basic' )
 		);
 
-		await page.locator( 'text=Add to cart' ).click();
+		await page.locator( 'text=Place order' ).click();
 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'

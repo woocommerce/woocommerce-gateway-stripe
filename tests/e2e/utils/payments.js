@@ -2,6 +2,20 @@ import { expect } from '@playwright/test';
 import config from 'config';
 
 /**
+ * Click the primary add to cart button for the current page.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {Locator} Playwright locator for the add to cart button.
+ */
+export async function clickAddToCartButton( page, label = 'Add to cart' ) {
+	const addToCartButton = await page
+		.getByRole( 'button', { name: label, exact: true } )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
