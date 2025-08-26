@@ -1,5 +1,5 @@
 import { useSelect, useDispatch } from '@wordpress/data';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { useAccountKeys, useAccountKeysPublishableKey } from '../hooks';
 import { STORE_NAME } from '../../constants';
 
