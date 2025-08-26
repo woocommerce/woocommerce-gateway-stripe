@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
-* Update - Upgrades the ESLint packages and their related libraries
+* Dev - Upgrades the ESLint packages and their related libraries
 * Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
 * Fix - The availability of the Link payment method when the Optimized Checkout is enabled
 * Dev - Update Javascript unit tests for compatibility with Node 20
