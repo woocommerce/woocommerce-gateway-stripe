@@ -9,6 +9,7 @@ import InlineNotice from 'components/inline-notice';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	PAYMENT_METHOD_CARD,
 } from 'wcstripe/stripe-utils/constants';
 
 const buttonSizeToPxMap = {
@@ -38,6 +39,7 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 				spacingUnit: '6px',
 			},
 		},
+		paymentMethodTypes: [ PAYMENT_METHOD_CARD ],
 	};
 
 	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.medium;
