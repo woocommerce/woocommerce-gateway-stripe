@@ -614,19 +614,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$settings = [];
 
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
+		$payment_methods         = $this->payment_methods;
 
 		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
 		if ( $this->oc_enabled ) {
+			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
-			$enabled_payment_methods = array_merge( [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ], $enabled_express_methods );
+			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods );
+			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
-			$payment_method = $this->payment_methods[ $payment_method_id ];
+			$payment_method = $payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
 				'isReusable'             => $payment_method->is_reusable(),
@@ -636,7 +640,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
-				'enabledPaymentMethods'  => $this->get_upe_enabled_payment_method_ids(), // For the Optimized Checkout.
+				'enabledPaymentMethods'  => $original_method_ids,
 			];
 		}
 
@@ -2030,19 +2034,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.5.0
 	 */
 	public function set_payment_method_title_for_order( $order, $payment_method_type, $stripe_payment_method = false ) {
-		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+		$payment_methods = $this->payment_methods;
+
+		// Override the payment method type if the Optimized Checkout is enabled.
+		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::OC === $payment_method_type ) {
+			$payment_methods[ WC_Stripe_Payment_Methods::OC ] = new WC_Stripe_UPE_Payment_Method_OC();
+		}
+
+		if ( ! isset( $payment_methods[ $payment_method_type ] ) ) {
 			return;
 		}
 
-		$payment_method    = $this->payment_methods[ $payment_method_type ];
+		$payment_method    = $payment_methods[ $payment_method_type ];
 		$payment_method_id = $payment_method instanceof WC_Stripe_UPE_Payment_Method_CC ? $this->id : $payment_method->id;
 		$is_stripe_link    = WC_Stripe_Payment_Methods::LINK === $payment_method_type ||
 			( isset( $stripe_payment_method->type ) && WC_Stripe_Payment_Methods::LINK === $stripe_payment_method->type );
 
 		// Stripe Link uses the main gateway to process payments, however Link payments should use the title of the Link payment method.
-		if ( $is_stripe_link && isset( $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ] ) ) {
+		if ( $is_stripe_link && isset( $payment_methods[ WC_Stripe_Payment_Methods::LINK ] ) ) {
 			$payment_method_id    = $this->id;
-			$payment_method_title = $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ]->get_title( $stripe_payment_method );
+			$payment_method_title = $payment_methods[ WC_Stripe_Payment_Methods::LINK ]->get_title( $stripe_payment_method );
 		} else {
 			$payment_method_title = $payment_method->get_title( $stripe_payment_method );
 		}
@@ -2485,12 +2496,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
-		$payment_method_types = $this->get_payment_method_types_for_intent_creation(
-			$selected_payment_type,
-			$order->get_id(),
-			$this->get_express_payment_type_from_request(),
-			( $payment_method_details->type ?? null )
-		);
+		// Override the payment method type with the API value when OC is enabled
+		if ( $this->oc_enabled ) {
+			$selected_payment_type = $payment_method_details->type ?? null;
+			$payment_method_types  = [ $selected_payment_type ];
+		} else {
+			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
+				$selected_payment_type,
+				$order->get_id(),
+				$this->get_express_payment_type_from_request()
+			);
+		}
 
 		$payment_information = [
 			'amount'                        => $amount,
@@ -3085,14 +3101,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_payment_method_types_for_intent_creation(
 		string $selected_payment_type,
 		int $order_id,
-		?string $express_payment_type = null,
-		?string $payment_method_type = null
+		?string $express_payment_type = null
 	): array {
-		// If Single Payment Element is enabled, return only the payment method type.
-		if ( $this->oc_enabled && ! empty( $payment_method_type ) ) {
-			return [ $payment_method_type ];
-		}
-
 		// If the shopper didn't select a payment type, return all the enabled ones.
 		if ( '' === $selected_payment_type ) {
 			return $this->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
