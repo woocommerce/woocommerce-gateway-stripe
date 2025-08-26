@@ -1,10 +1,7 @@
 /* global wc_stripe_settings_params */
 
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from 'interpolate-components';
-import { addQueryArgs } from '@wordpress/url';
-import { Card, CheckboxControl } from '@wordpress/components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';
@@ -18,6 +15,9 @@ import {
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
+import { __ } from '@wordpress/i18n';
+import { Card, CheckboxControl } from '@wordpress/components';
+import { addQueryArgs } from '@wordpress/url';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,

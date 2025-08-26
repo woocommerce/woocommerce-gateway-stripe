@@ -1,8 +1,8 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
-import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import interpolateComponents from 'interpolate-components';
+import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';

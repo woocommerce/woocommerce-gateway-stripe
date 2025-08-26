@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
+import { __ } from '@wordpress/i18n';
 
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	let errorMessage;

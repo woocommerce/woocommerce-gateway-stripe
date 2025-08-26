@@ -1,8 +1,8 @@
-import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import React, { useContext, useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import { CheckboxControl, Button } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';

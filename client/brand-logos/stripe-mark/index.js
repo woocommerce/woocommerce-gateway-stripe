@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import classNames from 'classnames';
 import mark from './mark.svg';
+import { __ } from '@wordpress/i18n';
 
 /**
  * StripeMark component.

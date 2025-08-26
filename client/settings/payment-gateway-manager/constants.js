@@ -1,6 +1,6 @@
+import { usePaymentGatewayExpiration } from '../../data/payment-gateway/hooks';
 import { __ } from '@wordpress/i18n';
 import { TextControl } from '@wordpress/components';
-import { usePaymentGatewayExpiration } from '../../data/payment-gateway/hooks';
 
 export const gatewaysInfo = {
 	stripe_sepa: {

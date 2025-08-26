@@ -1,11 +1,11 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Button } from '@wordpress/components';
 import {
 	useEnabledPaymentMethodIds,
 	usePaymentRequestEnabledSettings,
 } from '../../data';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
+import { Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import './style.scss';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';

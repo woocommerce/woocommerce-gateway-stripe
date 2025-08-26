@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import apiFetch from '@wordpress/api-fetch';
 import { OCPromotionBanner } from '../oc-promotion-banner';
+import apiFetch from '@wordpress/api-fetch';
+import { useDispatch } from '@wordpress/data';
 
 const noticesDispatch = {
 	createErrorNotice: jest.fn(),

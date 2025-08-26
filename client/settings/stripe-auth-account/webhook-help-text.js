@@ -1,6 +1,6 @@
+import interpolateComponents from 'interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-import interpolateComponents from 'interpolate-components';
 import {
 	useAccountKeysWebhookURL,
 	useAccountKeysTestWebhookURL,
