@@ -67,6 +67,7 @@
     "eslint": "^8.57.1",
     "eslint-import-resolver-webpack": "^0.13.8",
     "eslint-plugin-jest": "^26.9.0",
+		"eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "4.3",
     "husky": "^7.0.1",
     "inquirer": "^8.2.5",
@@ -101,7 +102,6 @@
     "@stripe/stripe-js": "^1.36.0",
     "@woocommerce/settings": "^1.0.0",
     "@wordpress/html-entities": "^3.6.1",
-    "eslint-plugin-prettier": "^5.5.4",
     "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"
