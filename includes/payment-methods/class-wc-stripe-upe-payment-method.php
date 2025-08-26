@@ -515,7 +515,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @return string
 	 */
-	public function get_testing_instructions() {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
+		if ( $show_optimized_checkout_instruction ) {
+			_deprecated_argument(
+				__FUNCTION__,
+				'9.9.0'
+			);
+		}
+
 		return '';
 	}
 
