@@ -195,7 +195,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 					return ! in_array( $method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true );
 				}
 			);
-			return WC_Stripe_Payment_Methods::OC === $this->stripe_id && count( $non_express_methods ) > 0;
+			return WC_Stripe_Payment_Methods::OC === $this->stripe_id && ( has_block( 'woocommerce/checkout' ) || count( $non_express_methods ) > 0 );
 		}
 
 		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
