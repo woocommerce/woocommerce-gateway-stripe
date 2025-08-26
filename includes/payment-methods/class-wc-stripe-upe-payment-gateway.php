@@ -778,7 +778,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->testmode ) :
 				if ( $this->oc_enabled ) :
 					echo wp_kses(
-						self::get_testing_instructions_for_optimized_checkout(),
+						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
 							'div' => [
 								'id'    => [],
