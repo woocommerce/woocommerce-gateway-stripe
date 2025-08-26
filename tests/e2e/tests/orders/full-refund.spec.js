@@ -46,59 +46,56 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 		await userPage.close();
 	} );
 
-	await test.step(
-		'merchant issue a full refund in the dashboard',
-		async () => {
-			await adminPage.goto(
-				`/wp-admin/post.php?post=${ orderId }&action=edit`
+	await test.step( 'merchant issue a full refund in the dashboard', async () => {
+		await adminPage.goto(
+			`/wp-admin/post.php?post=${ orderId }&action=edit`
+		);
+
+		const order = await api.get.order( orderId );
+
+		// Ensure this isn't already refunded.
+		await expect( adminPage.locator( '.order_notes' ) ).not.toHaveText(
+			/Refunded .* – Refund ID: .* – Reason:.*/
+		);
+
+		stripeChargeId = await adminPage
+			.locator( '.woocommerce-order-data__meta a' )
+			.innerText();
+
+		await adminPage
+			.locator( '#woocommerce-order-items button.refund-items' )
+			.click();
+		await adminPage.locator( '#refund_amount' ).type( order.total );
+
+		adminPage.on( 'dialog', ( dialog ) => dialog.accept() );
+		await adminPage
+			.locator( '.refund-actions .button.do-api-refund' )
+			.filter( { hasText: /Refund.*via Stripe/ } )
+			.click();
+
+		await adminPage.waitForNavigation();
+
+		// Ensure the order status is updated.
+		await expect( adminPage.locator( '#order_status' ) ).toHaveValue(
+			'wc-refunded'
+		);
+
+		// Ensure the refund note is present.
+		await expect( adminPage.locator( '.order_notes' ) ).toHaveText(
+			/Refunded .* – Refund ID: .* – Reason:.*/
+		);
+
+		stripeRefundId = await adminPage
+			.locator( '.order_notes' )
+			.filter( {
+				hasText: /Refunded .* – Refund ID: .* – Reason:.*/,
+			} )
+			.innerText()
+			.then(
+				( text ) =>
+					text.match( /(?<=Refund ID: ).*?(?= – Reason)/ )[ 0 ]
 			);
-
-			const order = await api.get.order( orderId );
-
-			// Ensure this isn't already refunded.
-			await expect( adminPage.locator( '.order_notes' ) ).not.toHaveText(
-				/Refunded .* – Refund ID: .* – Reason:.*/
-			);
-
-			stripeChargeId = await adminPage
-				.locator( '.woocommerce-order-data__meta a' )
-				.innerText();
-
-			await adminPage
-				.locator( '#woocommerce-order-items button.refund-items' )
-				.click();
-			await adminPage.locator( '#refund_amount' ).type( order.total );
-
-			adminPage.on( 'dialog', ( dialog ) => dialog.accept() );
-			await adminPage
-				.locator( '.refund-actions .button.do-api-refund' )
-				.filter( { hasText: /Refund.*via Stripe/ } )
-				.click();
-
-			await adminPage.waitForNavigation();
-
-			// Ensure the order status is updated.
-			await expect( adminPage.locator( '#order_status' ) ).toHaveValue(
-				'wc-refunded'
-			);
-
-			// Ensure the refund note is present.
-			await expect( adminPage.locator( '.order_notes' ) ).toHaveText(
-				/Refunded .* – Refund ID: .* – Reason:.*/
-			);
-
-			stripeRefundId = await adminPage
-				.locator( '.order_notes' )
-				.filter( {
-					hasText: /Refunded .* – Refund ID: .* – Reason:.*/,
-				} )
-				.innerText()
-				.then(
-					( text ) =>
-						text.match( /(?<=Refund ID: ).*?(?= – Reason)/ )[ 0 ]
-				);
-		}
-	);
+	} );
 
 	await test.step( 'check Stripe payment status ', async () => {
 		const stripeClient = stripe( process.env.STRIPE_SECRET_KEY );
