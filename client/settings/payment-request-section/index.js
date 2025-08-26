@@ -104,7 +104,7 @@ const PaymentRequestSection = () => {
 							<li className="express-checkout">
 								<div>
 									{ __(
-										'Credit card / debit card must be enabled as a payment method in order to use Google Pay and Apple Pay.',
+										'Credit card / debit card must be enabled as a payment method in order to use Google Pay and Apple Pay (and Link in the classic checkout).',
 										'woocommerce-gateway-stripe'
 									) }
 								</div>
