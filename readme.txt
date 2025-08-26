@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Fix - The availability of the Link payment method when the Optimized Checkout is enabled
 * Dev - Update Javascript unit tests for compatibility with Node 20
 * Dev - Replaces some payment method instantiation logic for the Optimized Checkout with calls to the `get_payment_method_instance` method
 * Dev - Multiple lint fixes in preparation for the Node 20 upgrade
