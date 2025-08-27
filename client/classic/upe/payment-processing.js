@@ -29,6 +29,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
@@ -207,14 +208,17 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// Set the layout to accordion if OC is enabled.
 	if ( getStripeServerData()?.isOCEnabled ) {
+		const layout = {
+			type:
+				getBlocksConfiguration()?.OCLayout ||
+				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = false;
+		}
 		paymentElementOptions = {
 			...paymentElementOptions,
-			layout: {
-				type:
-					getStripeServerData()?.OCLayout ||
-					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-				radios: false,
-			},
+			layout,
 		};
 	}
 

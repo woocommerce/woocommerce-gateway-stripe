@@ -85,14 +85,17 @@ const getStripeElementOptions = () => {
 	}
 
 	if ( getBlocksConfiguration()?.isOCEnabled ) {
+		const layout = {
+			type:
+				getBlocksConfiguration()?.OCLayout ||
+				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = false;
+		}
 		options = {
 			...options,
-			layout: {
-				type:
-					getBlocksConfiguration()?.OCLayout ||
-					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-				radios: false,
-			},
+			layout,
 		};
 	}
 
