@@ -90,8 +90,8 @@ jQuery( function ( $ ) {
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
 			// Return a default shipping option when shipping is required but no rates are provided
-			const defaultShippingOption = getExpressCheckoutData( 'checkout' )
-				?.default_shipping_option;
+			const defaultShippingOption =
+				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
 			return defaultShippingOption ? [ defaultShippingOption ] : [];
 		};
 		const allowedShippingCountries = getExpressCheckoutData(
@@ -340,9 +340,8 @@ jQuery( function ( $ ) {
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
 				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-				paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
-					expressPaymentType
-				),
+				paymentMethodTypes:
+					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
 			const eceButton = wcStripeECE.createButton( elements, {
@@ -521,8 +520,8 @@ jQuery( function ( $ ) {
 				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
 					total,
-					currency: getExpressCheckoutData( 'checkout' )
-						.currency_code,
+					currency:
+						getExpressCheckoutData( 'checkout' ).currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
@@ -571,11 +570,12 @@ jQuery( function ( $ ) {
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total,
-						currency: getExpressCheckoutData( 'checkout' )
-							?.currency_code,
+						currency:
+							getExpressCheckoutData( 'checkout' )?.currency_code,
 						requestShipping: cart.needs_shipping === true,
-						requestPhone: getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone,
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone,
 						displayItems: transformCartDataForDisplayItems( cart ),
 					} );
 				} );
@@ -785,7 +785,8 @@ jQuery( function ( $ ) {
 							if ( response.error ) {
 								wcStripeECE.hide();
 							} else {
-								const isDeposits = wcStripeECE.productHasDepositOption();
+								const isDeposits =
+									wcStripeECE.productHasDepositOption();
 								/**
 								 * If the customer aborted the express checkout,
 								 * we need to re init the express checkout button to ensure the shipping

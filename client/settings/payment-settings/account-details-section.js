@@ -38,10 +38,8 @@ const AccountSettingsDropdownMenu = ( {
 	const [ isTestModeEnabled ] = useTestMode();
 	const { refreshAccount } = useDispatch( 'wc/stripe' );
 	const { createSuccessNotice } = useDispatch( 'core/notices' );
-	const [
-		isConfirmationModalVisible,
-		setIsConfirmationModalVisible,
-	] = useState( false );
+	const [ isConfirmationModalVisible, setIsConfirmationModalVisible ] =
+		useState( false );
 
 	const handleRefreshAccount = async () => {
 		await refreshAccount();

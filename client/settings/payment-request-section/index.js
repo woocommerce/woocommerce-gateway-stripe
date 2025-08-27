@@ -25,22 +25,16 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
-	const [
-		isPaymentRequestEnabled,
-		updateIsPaymentRequestEnabled,
-	] = usePaymentRequestEnabledSettings();
+	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
+		usePaymentRequestEnabledSettings();
 
-	const [
-		isAmazonPayEnabled,
-		updateIsAmazonPayEnabled,
-	] = useAmazonPayEnabledSettings();
+	const [ isAmazonPayEnabled, updateIsAmazonPayEnabled ] =
+		useAmazonPayEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
-	const [
-		enabledMethodIds,
-		updateEnabledMethodIds,
-	] = useEnabledPaymentMethodIds();
+	const [ enabledMethodIds, updateEnabledMethodIds ] =
+		useEnabledPaymentMethodIds();
 
 	const [ isOCEnabled ] = useIsOCEnabled();
 
@@ -60,15 +54,13 @@ const PaymentRequestSection = () => {
 		}
 	};
 
-	const displayExpressPaymentMethods = enabledMethodIds.includes(
-		PAYMENT_METHOD_CARD
-	);
+	const displayExpressPaymentMethods =
+		enabledMethodIds.includes( PAYMENT_METHOD_CARD );
 	const displayLinkPaymentMethod =
 		( enabledMethodIds.includes( PAYMENT_METHOD_CARD ) || isOCEnabled ) &&
 		availablePaymentMethodIds.includes( PAYMENT_METHOD_LINK );
-	const isStripeLinkEnabled = enabledMethodIds.includes(
-		PAYMENT_METHOD_LINK
-	);
+	const isStripeLinkEnabled =
+		enabledMethodIds.includes( PAYMENT_METHOD_LINK );
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',

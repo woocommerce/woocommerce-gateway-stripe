@@ -81,10 +81,8 @@ const AmazonPaySettingsSection = () => {
 
 	const [ isAmazonPayEnabled ] = useAmazonPayEnabledSettings();
 
-	const [
-		amazonPayLocations,
-		updateAmazonPayLocations,
-	] = useAmazonPayLocations();
+	const [ amazonPayLocations, updateAmazonPayLocations ] =
+		useAmazonPayLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {

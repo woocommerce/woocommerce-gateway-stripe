@@ -5,31 +5,35 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const EMPTY_ARR = [];
 
-const makeReadOnlySettingsHook = (
-	fieldName,
-	fieldDefaultValue = false
-) => () =>
-	useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
+const makeReadOnlySettingsHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() =>
+		useSelect( ( select ) => {
+			const { getSettings } = select( STORE_NAME );
 
-		return getSettings()[ fieldName ] || fieldDefaultValue;
-	}, [] );
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		}, [] );
 
-const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
+const makeSettingsHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() => {
+		const { updateSettingsValues } = useDispatch( STORE_NAME );
 
-	const field = makeReadOnlySettingsHook( fieldName, fieldDefaultValue )();
+		const field = makeReadOnlySettingsHook(
+			fieldName,
+			fieldDefaultValue
+		)();
 
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				[ fieldName ]: value,
-			} ),
-		[ updateSettingsValues ]
-	);
+		const handler = useCallback(
+			( value ) =>
+				updateSettingsValues( {
+					[ fieldName ]: value,
+				} ),
+			[ updateSettingsValues ]
+		);
 
-	return [ field, handler ];
-};
+		return [ field, handler ];
+	};
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
@@ -114,10 +118,8 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useAmazonPayEnabledSettings = () => {
-	const [
-		enabledMethodIds,
-		updateEnabledMethodIds,
-	] = useEnabledPaymentMethodIds();
+	const [ enabledMethodIds, updateEnabledMethodIds ] =
+		useEnabledPaymentMethodIds();
 	const isAmazonPayEnabled = enabledMethodIds.includes(
 		PAYMENT_METHOD_AMAZON_PAY
 	);

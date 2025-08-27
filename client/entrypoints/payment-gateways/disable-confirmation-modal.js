@@ -13,9 +13,8 @@ import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const [
-		paymentRequestEnabledSettings,
-	] = usePaymentRequestEnabledSettings();
+	const [ paymentRequestEnabledSettings ] =
+		usePaymentRequestEnabledSettings();
 
 	const enabledMethodIds = enabledPaymentMethodIds.filter(
 		( methodId ) => methodId !== PAYMENT_METHOD_LINK

@@ -151,13 +151,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
-	const [
-		selectedPaymentMethodType,
-		setSelectedPaymentMethodType,
-	] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
-		false
-	);
+	const [ selectedPaymentMethodType, setSelectedPaymentMethodType ] =
+		useState( null );
+	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
+		useState( false );
 	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
 		? testingInstructions
 		: '';

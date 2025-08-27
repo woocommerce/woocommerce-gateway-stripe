@@ -42,9 +42,8 @@ export const OCPromotionBanner = ( {
 	setShowPromotionalBanner,
 	setIsOCEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		apiFetch( {

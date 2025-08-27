@@ -35,13 +35,10 @@ const PaymentMethodCheckbox = ( {
 	disabled,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
-		false
-	);
-	const [
-		enabledPaymentMethods,
-		setEnabledPaymentMethods,
-	] = useEnabledPaymentMethodIds();
+	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
+		useState( false );
+	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
+		useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const checked = ! disabled && enabledPaymentMethods.includes( id );

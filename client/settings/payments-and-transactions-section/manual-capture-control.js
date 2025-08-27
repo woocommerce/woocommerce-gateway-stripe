@@ -36,15 +36,12 @@ const WarningListElement = ( { children } ) => (
 );
 
 const ManualCaptureControl = () => {
-	const [
-		isManualCaptureEnabled,
-		setIsManualCaptureEnabled,
-	] = useManualCapture();
+	const [ isManualCaptureEnabled, setIsManualCaptureEnabled ] =
+		useManualCapture();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
-		false
-	);
+	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
+		useState( false );
 
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.

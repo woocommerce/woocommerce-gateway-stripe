@@ -84,16 +84,13 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		);
 	} );
 
-	await test.step(
-		'check for new entry in the related orders table',
-		async () => {
-			await page.goto( `/my-account` );
-			await page.click( 'text=My Subscription' );
+	await test.step( 'check for new entry in the related orders table', async () => {
+		await page.goto( `/my-account` );
+		await page.click( 'text=My Subscription' );
 
-			// Expect only one related order.
-			await expect(
-				page.locator( '.woocommerce-orders-table--orders tbody tr' )
-			).toHaveCount( 2 );
-		}
-	);
+		// Expect only one related order.
+		await expect(
+			page.locator( '.woocommerce-orders-table--orders tbody tr' )
+		).toHaveCount( 2 );
+	} );
 } );

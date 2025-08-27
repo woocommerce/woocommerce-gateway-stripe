@@ -91,11 +91,8 @@ export const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const {
-		setShippingAddress,
-		setBillingAddress,
-		setBillingData,
-	} = useDispatch( WC_STORE_CART );
+	const { setShippingAddress, setBillingAddress, setBillingData } =
+		useDispatch( WC_STORE_CART );
 
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;

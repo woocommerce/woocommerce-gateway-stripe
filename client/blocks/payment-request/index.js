@@ -54,9 +54,10 @@ const paymentRequestPaymentMethod = {
 						),
 						pending: true,
 					},
-					currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
-					country_code: getBlocksConfiguration()?.baseLocation
-						?.country,
+					currency:
+						cartData?.cartTotals?.currency_code?.toLowerCase(),
+					country_code:
+						getBlocksConfiguration()?.baseLocation?.country,
 					displayItems: [],
 				},
 				shipping_required: false,

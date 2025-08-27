@@ -31,12 +31,8 @@ const DivSpinner = styled.div`
 
 export const AccountKeysConnectionStatus = ( { formRef } ) => {
 	const dispatch = useDispatch();
-	const {
-		isTesting,
-		isValid,
-		updateIsValidAccountKeys,
-		testAccountKeys,
-	} = useAccountKeys();
+	const { isTesting, isValid, updateIsValidAccountKeys, testAccountKeys } =
+		useAccountKeys();
 
 	const handleTestConnection = async ( ref ) => {
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.

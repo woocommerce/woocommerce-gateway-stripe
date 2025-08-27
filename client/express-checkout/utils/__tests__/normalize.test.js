@@ -273,7 +273,8 @@ describe( 'Express checkout normalization', () => {
 				...expectedNormalizedData,
 			};
 			expectedNormalizedData.payment_data[ 1 ].value = '';
-			expectedNormalizedData.payment_data[ 2 ].value = confirmationTokenId;
+			expectedNormalizedData.payment_data[ 2 ].value =
+				confirmationTokenId;
 
 			expect(
 				normalizeOrderData( { event, confirmationTokenId } )

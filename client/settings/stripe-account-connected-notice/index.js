@@ -34,9 +34,8 @@ if (
 
 const shouldShowNotice = () => {
 	const { wc_stripe_connected: stripeAccountConnected } = getQuery();
-	const isOnboardingThroughWCSetup = getStorageWithExpiration(
-		LOCAL_STORAGE_KEY
-	);
+	const isOnboardingThroughWCSetup =
+		getStorageWithExpiration( LOCAL_STORAGE_KEY );
 
 	return stripeAccountConnected && isOnboardingThroughWCSetup;
 };

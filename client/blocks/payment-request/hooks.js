@@ -27,9 +27,8 @@ import { getCartDetails } from 'wcstripe/api/blocks';
 export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
-	const [ isUpdatingPaymentRequest, setIsUpdatingPaymentRequest ] = useState(
-		false
-	);
+	const [ isUpdatingPaymentRequest, setIsUpdatingPaymentRequest ] =
+		useState( false );
 
 	// Create a payment request if:
 	//   a) Stripe object is loaded; and

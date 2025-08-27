@@ -215,10 +215,8 @@ const getFormattedPaymentMethodDescription = (
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const {
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 
 	const availablePaymentMethods = orderedPaymentMethodIds;

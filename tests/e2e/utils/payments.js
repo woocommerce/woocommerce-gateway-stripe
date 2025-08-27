@@ -170,18 +170,15 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 	const options = {
 		multi: {
 			cardNumber: {
-				iFrame:
-					'#stripe-card-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-card-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cardnumber"]',
 			},
 			cardExpiry: {
-				iFrame:
-					'#stripe-exp-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-exp-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="exp-date"]',
 			},
 			cardCvc: {
-				iFrame:
-					'#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cvc"]',
 			},
 		},
@@ -571,14 +568,12 @@ export const setupOptimizedCheckout = async (
 
 	const selectors = {
 		blocks: {
-			iframe:
-				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
+			iframe: '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
 			container:
 				'#radio-control-wc-payment-method-options-stripe__content',
 		},
 		shortcode: {
-			iframe:
-				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
+			iframe: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
 			container: '#wc-stripe-upe-form',
 		},
 	};
