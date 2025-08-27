@@ -18,9 +18,8 @@ export const NewCheckoutExperienceBanner = ( {
 	setShowPromotionalBanner,
 	setIsUpeEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );

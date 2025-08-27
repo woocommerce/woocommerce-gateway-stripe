@@ -75,9 +75,8 @@ export const useCheckoutSubscriptions = (
 			// so we don't break the observers.
 			return true;
 		};
-		const unsubscribeAfterProcessing = onCheckoutAfterProcessingWithError(
-			onError
-		);
+		const unsubscribeAfterProcessing =
+			onCheckoutAfterProcessingWithError( onError );
 		return () => {
 			unsubscribeAfterProcessing();
 		};

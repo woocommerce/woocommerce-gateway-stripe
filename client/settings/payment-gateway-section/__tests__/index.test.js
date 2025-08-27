@@ -33,8 +33,11 @@ jest.mock( '../../../data/payment-gateway/hooks', () => ( {
 	usePaymentGatewayDescription: jest.fn(),
 } ) );
 
-jest.mock( '../../loadable-payment-gateway-section', () => ( { children } ) =>
-	children
+jest.mock(
+	'../../loadable-payment-gateway-section',
+	() =>
+		( { children } ) =>
+			children
 );
 
 describe( 'PaymentGatewaySection', () => {

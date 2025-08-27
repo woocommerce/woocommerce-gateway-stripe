@@ -4,10 +4,8 @@ import { Card, CheckboxControl } from '@wordpress/components';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 const AmazonPayEnableSection = () => {
-	const [
-		isAmazonPayEnabled,
-		updateIsAmazonPayEnabled,
-	] = useAmazonPayEnabledSettings();
+	const [ isAmazonPayEnabled, updateIsAmazonPayEnabled ] =
+		useAmazonPayEnabledSettings();
 
 	return (
 		<Card className="express-checkout-settings">

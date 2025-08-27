@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.9.0 - xxxx-xx-xx =
+* Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
 * Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
 * Fix - The availability of the Link payment method when the Optimized Checkout is enabled
 * Dev - Update Javascript unit tests for compatibility with Node 20
@@ -24,6 +25,7 @@
 * Tweak - Use smaller image for Optimized Checkout banner
 * Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
 * Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
+* Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 
 = 9.8.1 - 2025-08-15 =

@@ -152,10 +152,8 @@ describe( 'Settings hooks tests', () => {
 
 		test( 'returns orderedPaymentMethodIds from selector', () => {
 			const { result } = renderHook( useGetOrderedPaymentMethodIds );
-			const {
-				orderedPaymentMethodIds,
-				setOrderedPaymentMethodIds,
-			} = result.current;
+			const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+				result.current;
 
 			expect( orderedPaymentMethodIds ).toEqual( [
 				PAYMENT_METHOD_CARD,

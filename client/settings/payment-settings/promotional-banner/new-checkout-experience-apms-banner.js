@@ -21,9 +21,8 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 	setShowPromotionalBanner,
 	setIsUpeEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
@@ -89,7 +88,8 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 					</h4>
 					<p>
 						{ interpolateComponents( {
-							mixedString: newCheckoutExperienceAPMsBannerDescription,
+							mixedString:
+								newCheckoutExperienceAPMsBannerDescription,
 							components: {
 								StripeLegacyLink: (
 									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />

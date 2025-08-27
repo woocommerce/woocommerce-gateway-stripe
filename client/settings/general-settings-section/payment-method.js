@@ -105,9 +105,8 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 
 const PaymentMethod = ( { method, data } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const paymentMethodUnavailableReason = usePaymentMethodUnavailableReason(
-		method
-	);
+	const paymentMethodUnavailableReason =
+		usePaymentMethodUnavailableReason( method );
 
 	const {
 		Icon,

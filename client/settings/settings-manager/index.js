@@ -66,9 +66,8 @@ const SettingsManager = () => {
 	) {
 		initialBannerState = true;
 	}
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		initialBannerState
-	);
+	const [ showPromotionalBanner, setShowPromotionalBanner ] =
+		useState( initialBannerState );
 
 	useEffect( () => {
 		if ( isLoading && ! isEmpty( settings ) ) {

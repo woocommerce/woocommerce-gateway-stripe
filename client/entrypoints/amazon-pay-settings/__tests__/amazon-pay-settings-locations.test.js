@@ -48,11 +48,8 @@ describe( 'AmazonPaySettingsSection', () => {
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
 		render( <AmazonPaySettingsSection /> );
 
-		const [
-			checkoutCheckbox,
-			productPageCheckbox,
-			cartCheckbox,
-		] = screen.getAllByRole( 'checkbox' );
+		const [ checkoutCheckbox, productPageCheckbox, cartCheckbox ] =
+			screen.getAllByRole( 'checkbox' );
 
 		expect( checkoutCheckbox ).not.toBeDisabled();
 		expect( checkoutCheckbox ).toBeChecked();
