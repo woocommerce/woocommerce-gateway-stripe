@@ -25,11 +25,42 @@ class WC_Stripe_Database_Cache {
 	private static $in_memory_cache = [];
 
 	/**
+	 * The action used for the asynchronous cache cleanup code.
+	 *
+	 * @var string
+	 */
+	public const ASYNC_CLEANUP_ACTION = 'wc_stripe_database_cache_cleanup_async';
+
+	/**
 	 * The prefix used for every cache key.
 	 *
 	 * @var string
 	 */
-	const CACHE_KEY_PREFIX = 'wcstripe_cache_';
+	public const CACHE_KEY_PREFIX = 'wcstripe_cache_';
+
+	/**
+	 * Cleanup approach that runs in the current process.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_APPROACH_INLINE = 'inline';
+
+	/**
+	 * Cleanup approach that runs asynchronously via Action Scheduler.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_APPROACH_ASYNC = 'async';
+
+	/**
+	 * Permitted/accepted approaches.
+	 *
+	 * @var string[]
+	 */
+	protected const CLEANUP_APPROACHES = [
+		self::CLEANUP_APPROACH_INLINE,
+		self::CLEANUP_APPROACH_ASYNC,
+	];
 
 	/**
 	 * Class constructor.
@@ -87,6 +118,18 @@ class WC_Stripe_Database_Cache {
 	 */
 	public static function delete( $key ) {
 		$prefixed_key = self::add_key_prefix( $key );
+
+		self::delete_from_cache( $prefixed_key );
+	}
+
+	/**
+	 * Deletes a value from the cache.
+	 *
+	 * @param string $prefixed_key The key to delete.
+	 *
+	 * @return void
+	 */
+	private static function delete_from_cache( string $prefixed_key ): void {
 		// Remove from the in-memory cache.
 		unset( self::$in_memory_cache[ $prefixed_key ] );
 
@@ -204,5 +247,285 @@ class WC_Stripe_Database_Cache {
 	private static function add_key_prefix( $key ) {
 		$mode = WC_Stripe_Mode::is_test() ? 'test_' : 'live_';
 		return self::CACHE_KEY_PREFIX . $mode . $key;
+	}
+
+	/**
+	 * Deletes stale entries from the cache.
+	 *
+	 * @param int         $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
+	 * @param string|null $last_key The last key processed. If provided, the query will start from the next key. Allows for pagination.
+	 * @return array {
+	 *     @type bool        $more_entries True if more entries may exist. False if all rows have been processed.
+	 *     @type string|null $last_key     The last key processed.
+	 *     @type int         $processed    The number of entries processed.
+	 *     @type int         $deleted      The number of entries deleted.
+	 * }
+	 */
+	public static function delete_stale_entries( int $max_rows = 500, ?string $last_key = null ): array {
+		global $wpdb;
+
+		$result = [
+			'more_entries' => false,
+			'last_key'     => null,
+			'processed'    => 0,
+			'deleted'      => 0,
+		];
+
+		if ( 0 === $max_rows ) {
+			return $result;
+		}
+
+		// We call prepare() below after building the components.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$raw_query  = "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s";
+		$query_args = [ self::CACHE_KEY_PREFIX . '%' ];
+
+		if ( null !== $last_key ) {
+			$raw_query .= ' AND option_name > %s';
+			$query_args[] = $last_key;
+		}
+
+		$raw_query .= ' ORDER BY option_name ASC';
+
+		if ( $max_rows > 0 ) {
+			$raw_query .= ' LIMIT %d';
+			$query_args[] = $max_rows;
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$cached_rows = $wpdb->get_results( $wpdb->prepare( $raw_query, ...$query_args ) );
+
+		foreach ( $cached_rows as $cached_row ) {
+			$result['last_key'] = $cached_row->option_name;
+			$result['processed']++;
+
+			// We fetched the raw contents, so check if we need to unserialize the data.
+			$cache_contents = maybe_unserialize( $cached_row->option_value );
+
+			if ( self::is_expired( $cached_row->option_name, $cache_contents ) ) {
+				self::delete_from_cache( $cached_row->option_name );
+				$result['deleted']++;
+			}
+		}
+
+		if ( $max_rows > 0 && count( $cached_rows ) === $max_rows ) {
+			$result['more_entries'] = true;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Deletes all stale entries from the cache.
+	 *
+	 * @param string $approach The approach to use to delete the entries. {@see CLEANUP_APPROACH_INLINE} will delete the entries in the
+	 *                         current process, and {@see CLEANUP_APPROACH_ASYNC} will enqueue an async job to delete the entries.
+	 * @param int    $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
+	 *
+	 * @return array {
+	 *     @type int           $processed The number of entries processed.
+	 *     @type int           $deleted   The number of entries deleted.
+	 *     @type WP_Error|null $error     Null if all is OK; WP_Error if there is an error.
+	 * }
+	 */
+	public static function delete_all_stale_entries( string $approach, int $max_rows = 500 ): array {
+		$result = [
+			'processed' => 0,
+			'deleted'   => 0,
+			'error'     => null,
+		];
+
+		if ( ! in_array( $approach, self::CLEANUP_APPROACHES, true ) ) {
+			$result['error'] = new WP_Error( 'invalid_approach', 'Invalid approach' );
+			return $result;
+		}
+
+		if ( self::CLEANUP_APPROACH_INLINE === $approach ) {
+			$has_more_entries = false;
+			$last_key         = null;
+			do {
+				$delete_result = self::delete_stale_entries( $max_rows, $last_key );
+
+				$last_key         = $delete_result['last_key'];
+				$has_more_entries = $delete_result['more_entries'];
+
+				$result['processed'] += $delete_result['processed'];
+				$result['deleted']   += $delete_result['deleted'];
+			} while ( $has_more_entries && null !== $last_key );
+		} elseif ( self::CLEANUP_APPROACH_ASYNC === $approach ) {
+			if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+				$result['error'] = new WP_Error( 'action_scheduler_not_initialized', 'Action Scheduler is not initialized' );
+				return $result;
+			}
+
+			$enqueue_result = as_enqueue_async_action( self::ASYNC_CLEANUP_ACTION, [ $max_rows ], 'woocommerce-gateway-stripe' );
+
+			if ( 0 === $enqueue_result ) {
+				$result['error'] = new WP_Error( 'failed_to_enqueue_async_action', 'Failed to enqueue async action' );
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Schedule a daily async cleanup of the Stripe database cache.
+	 *
+	 * @return void
+	 */
+	public static function maybe_schedule_daily_async_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			WC_Stripe_Logger::debug( 'Unable to schedule daily asynchronous cache cleanup: Action Scheduler is not initialized' );
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::ASYNC_CLEANUP_ACTION, null ) ) {
+			WC_Stripe_Logger::debug( 'Daily asynchronous cache cleanup already scheduled' );
+			return;
+		}
+
+		$one_am_tomorrow = strtotime( 'tomorrow 01:00' );
+		$schedule_id = as_schedule_recurring_action( $one_am_tomorrow, DAY_IN_SECONDS, self::ASYNC_CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+
+		if ( 0 === $schedule_id ) {
+			WC_Stripe_Logger::error( 'Failed to schedule daily asynchronous cache cleanup' );
+		} else {
+			WC_Stripe_Logger::info( 'Scheduled daily asynchronous cache cleanup', [ 'schedule_id' => $schedule_id ] );
+		}
+	}
+
+	/**
+	 * Unschedule the daily async cleanup of the Stripe database cache.
+	 *
+	 * @return void
+	 */
+	public static function unschedule_daily_async_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			WC_Stripe_Logger::debug( 'Unable to unschedule daily asynchronous cache cleanup: Action Scheduler is not initialized' );
+			return;
+		}
+
+		as_unschedule_all_actions( self::ASYNC_CLEANUP_ACTION, null, 'woocommerce-gateway-stripe' );
+
+		WC_Stripe_Logger::info( 'Unscheduled daily asynchronous cache cleanup' );
+	}
+
+	/**
+	 * Deletes all stale entries from the cache asynchronously using Action Scheduler and the `wc_stripe_database_cache_cleanup_async` action.
+	 *
+	 * @param int   $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
+	 * @param array $job_data Internal job data. Must not be provided when calling the function/action.
+	 *
+	 * @return void
+	 */
+	public static function delete_all_stale_entries_async( int $max_rows = 500, array $job_data = [] ): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_schedule_single_action' ) ) {
+			WC_Stripe_Logger::error( 'Unable to run cache cleanup asynchronously: Action Scheduler is not initialized' );
+			return;
+		}
+
+		if ( ! isset( $job_data['run_id'] ) || ! is_int( $job_data['run_id'] ) ) {
+			$job_data = [
+				'run_id'     => rand( 1, 1000000 ),
+				'processed'  => 0,
+				'deleted'    => 0,
+				'job_runs'   => 1,
+				'last_key'   => null,
+			];
+
+			WC_Stripe_Logger::info(
+				"Starting asynchronous cache cleanup [run_id: {$job_data['run_id']}]",
+				[
+					'max_rows' => $max_rows,
+					'job_data' => $job_data,
+				]
+			);
+		} elseif ( ! self::validate_stale_entries_async_job_data( $job_data ) ) {
+			$run_id = $job_data['run_id'] ?? 'unknown';
+
+			WC_Stripe_Logger::error(
+				"Invalid job data. [run_id: {$run_id}]",
+				[
+					'max_rows' => $max_rows,
+					'job_data' => $job_data,
+				]
+			);
+			return;
+		} else {
+			WC_Stripe_Logger::info(
+				"Continuing asynchronous cache cleanup [run_id: {$job_data['run_id']}]",
+				[
+					'max_rows' => $max_rows,
+					'job_data' => $job_data,
+				]
+			);
+
+			$job_data['job_runs']++;
+		}
+
+		$delete_result = self::delete_stale_entries( $max_rows, $job_data['last_key'] );
+
+		$job_data['processed'] += $delete_result['processed'];
+		$job_data['deleted']   += $delete_result['deleted'];
+		$job_data['last_key']  = $delete_result['last_key'];
+
+		if ( $delete_result['more_entries'] && null !== $delete_result['last_key'] ) {
+			$job_delay = MINUTE_IN_SECONDS;
+
+			WC_Stripe_Logger::info(
+				"Asynchronous cache cleanup progress update [run_id: {$job_data['run_id']}]. Scheduling next run in {$job_delay} seconds.",
+				[
+					'max_rows'  => $max_rows,
+					'job_data'  => $job_data,
+				]
+			);
+
+			$schedule_result = as_schedule_single_action( time() + $job_delay, self::ASYNC_CLEANUP_ACTION, [ $max_rows, $job_data ], 'woocommerce-gateway-stripe' );
+
+			if ( 0 === $schedule_result ) {
+				WC_Stripe_Logger::error( "Failed to schedule next asynchronous cache cleanup run [run_id: {$job_data['run_id']}]", [ 'job_data' => $job_data ] );
+			}
+
+			return;
+		}
+
+		WC_Stripe_Logger::info(
+			"Asynchronous cache cleanup complete: {$job_data['processed']} entries processed, {$job_data['deleted']} stale entries deleted [run_id: {$job_data['run_id']}]",
+			[
+				'max_rows' => $max_rows,
+				'job_data' => $job_data,
+			]
+		);
+	}
+
+	/**
+	 * Helper function to validate the job data for {@see delete_all_stale_entries_async()}.
+	 *
+	 * @param array $job_data The job data.
+	 *
+	 * @return bool True if the job data is valid. False otherwise.
+	 */
+	private static function validate_stale_entries_async_job_data( array $job_data ): bool {
+		if ( ! isset( $job_data['run_id'] ) || ! is_int( $job_data['run_id'] ) ) {
+			return false;
+		}
+
+		if ( ! isset( $job_data['processed'] ) || ! is_int( $job_data['processed'] ) ) {
+			return false;
+		}
+
+		if ( ! isset( $job_data['deleted'] ) || ! is_int( $job_data['deleted'] ) ) {
+			return false;
+		}
+
+		if ( ! isset( $job_data['last_key'] ) || ! is_string( $job_data['last_key'] ) ) {
+			return false;
+		}
+
+		if ( ! isset( $job_data['job_runs'] ) || ! is_int( $job_data['job_runs'] ) ) {
+			return false;
+		}
+
+		return true;
 	}
 }
