@@ -10,6 +10,10 @@ use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Stripe_Helper;
+use WC_Subscription;
+use WC_Subscriptions_Cart;
+use WC_Subscriptions_Product;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
@@ -882,6 +886,103 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					$product_1->get_id(),
 					$product_3->get_id(),
 				],
+			],
+		];
+	}
+
+	/**
+	 * Test for has_free_trial().
+	 *
+	 * @param bool            $is_product Whether is product page.
+	 * @param \WC_Order|null  $product Product on product page.
+	 * @param int             $trial_length Trial length of the product.
+	 * @param bool            $is_checkout Whether is checkout page.
+	 * @param bool            $cart_contains_free_trial Whether cart contains a product with free trial.
+	 * @param bool            $expected Expected result.
+	 * @return void
+	 * @dataProvider provide_test_has_free_trial
+	 */
+	public function test_has_free_trial( $is_product, $product, $trial_length, $is_checkout, $cart_contains_free_trial, $expected ) {
+		add_filter(
+			'woocommerce_is_checkout',
+			function () use ( $is_checkout ) {
+				return $is_checkout;
+			}
+		);
+
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( $cart_contains_free_trial );
+
+		WC_Subscriptions_Product::set_is_subscription( true );
+
+		WC_Subscriptions_Product::set_trial_length( $trial_length );
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'get_product' ] )
+			->getMock();
+
+		$helper->method( 'is_product' )
+			->willReturn( $is_product );
+
+		$helper->method( 'get_product' )
+			->willReturn( $product );
+
+		$actual = $helper->has_free_trial();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_has_free_trial`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_has_free_trial() {
+		$subscription = new WC_Subscription();
+
+		$subscription_with_trial = new WC_Subscription();
+		$subscription_with_trial->update_meta_data( 'subscription_trial_length', 14 );
+		$subscription_with_trial->save_meta_data();
+
+		return [
+			'product page, missing product' => [
+				'is_product'               => true,
+				'product'                  => null,
+				'trial length'             => 0,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'product page, no free trial' => [
+				'is_product'               => true,
+				'product'                  => $subscription,
+				'trial length'             => 0,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'product page, with free trial' => [
+				'is_product'               => true,
+				'product'                  => $subscription_with_trial,
+				'trial length'             => 14,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => true,
+			],
+			'cart/checkout page, no free trial' => [
+				'is_product'               => false,
+				'product'                  => $subscription,
+				'trial length'             => 0,
+				'is checkout'              => true,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'cart/checkout page, with free trial' => [
+				'is_product'               => false,
+				'product'                  => $subscription_with_trial,
+				'trial length'             => 14,
+				'is checkout'              => true,
+				'cart contains free trial' => true,
+				'expected'                 => true,
 			],
 		];
 	}

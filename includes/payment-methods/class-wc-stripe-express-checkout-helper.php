@@ -577,24 +577,19 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return bool
 	 */
 	public function has_free_trial() {
-		if ( ! class_exists( 'WC_Subscriptions_Product' ) ) {
-			return false;
-		}
-
 		if ( $this->is_product() ) {
 			$product = $this->get_product();
 			if ( ! $product ) {
 				return false;
 			}
-			if ( WC_Subscriptions_Product::is_subscription( $product ) && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+			if ( class_exists( 'WC_Subscriptions_Product' )
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-				if ( WC_Subscriptions_Product::is_subscription( $_product ) && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
-					return true;
-				}
+			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+				return true;
 			}
 		}
 
