@@ -8,8 +8,8 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
 } from './constants';
-import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData

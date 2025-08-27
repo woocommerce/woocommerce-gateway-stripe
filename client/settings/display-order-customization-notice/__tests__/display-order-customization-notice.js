@@ -1,6 +1,6 @@
 import React from 'react';
 import { screen, render, act } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import DisplayOrderCustomizationNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import apiFetch from '@wordpress/api-fetch';

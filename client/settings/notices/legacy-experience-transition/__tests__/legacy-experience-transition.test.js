@@ -1,6 +1,6 @@
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
 import LegacyExperienceTransitionNotice from '..';
 import { useDispatch } from '@wordpress/data';
 import { recordEvent } from 'wcstripe/tracking';

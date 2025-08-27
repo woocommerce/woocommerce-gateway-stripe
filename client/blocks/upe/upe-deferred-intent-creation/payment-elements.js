@@ -3,6 +3,9 @@ import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
+/**
+ * Internal dependencies
+ */
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,

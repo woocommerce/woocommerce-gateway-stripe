@@ -6,7 +6,6 @@ use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WC_Stripe_Database_Cache;
-use WC_Stripe_Payment_Method_Configurations;
 use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
