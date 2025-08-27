@@ -133,6 +133,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show all available payment methods before unavailable payment methods
 * Tweak - Use smaller image for Optimized Checkout banner
 * Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
+* Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
 * Dev - Consolidate component used for unavailable payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
