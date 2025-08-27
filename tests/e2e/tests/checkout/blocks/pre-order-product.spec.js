@@ -4,11 +4,8 @@ import config from 'config';
 import { api, payments, products } from '../../../utils';
 import { isPluginInstalled } from '../../../utils/plugin-utils';
 
-const {
-	setupBlocksCheckout,
-	fillCreditCardDetails,
-	clickAddToCartButton,
-} = payments;
+const { setupBlocksCheckout, fillCreditCardDetails, clickAddToCartButton } =
+	payments;
 
 let productId;
 

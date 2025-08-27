@@ -3,11 +3,8 @@ import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
 
-const {
-	setupBlocksCheckout,
-	fillCreditCardDetails,
-	clickAddToCartButton,
-} = payments;
+const { setupBlocksCheckout, fillCreditCardDetails, clickAddToCartButton } =
+	payments;
 
 let productId;
 
