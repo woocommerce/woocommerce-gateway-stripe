@@ -1,10 +1,10 @@
-import { __, sprintf } from '@wordpress/i18n';
 import { React, useState, useEffect } from 'react';
 import {
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
 import { shouldUseGooglePayBrand } from './utils/utils';
+import { __, sprintf } from '@wordpress/i18n';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import {
 	usePaymentRequestButtonType,

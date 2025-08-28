@@ -17,9 +17,8 @@ export const ExpressCheckoutContainer = ( props ) => {
 		} ),
 		amount: billing.cartTotal.value,
 		currency: billing.currency.code.toLowerCase(),
-		paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
-			expressPaymentMethod
-		),
+		paymentMethodTypes:
+			getPaymentMethodTypesForExpressMethod( expressPaymentMethod ),
 		appearance: getExpressCheckoutButtonAppearance(),
 		locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 	};

@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import React, { useState } from 'react';
+import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';

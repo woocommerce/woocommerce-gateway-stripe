@@ -1,10 +1,10 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import CurrencyFactory from '@woocommerce/currency';
-import { Icon } from '@wordpress/components';
 import { CreditCardIcon } from './icons/creditCard';
 import { CashAppIcon } from './icons/cashApp.js';
 import { BankIcon } from './icons/bank.js';
+import { Icon } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import './style.scss';
 
 const icons = {

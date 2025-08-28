@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
+import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';

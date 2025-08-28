@@ -58,49 +58,43 @@ test.describe( 'ACH payment tests @blocks', () => {
 		page,
 	} ) => {
 		// First order - Save the payment method
-		await test.step(
-			'Save payment method during first checkout',
-			async () => {
-				await user.login(
-					page,
-					username,
-					config.get( 'users.customer.password' )
-				);
-				await setupACHCheckout( page, 'blocks' );
-				await fillACHBankDetails( page );
-				await page
-					.locator(
-						'.wc-block-components-payment-methods__save-card-info'
-					)
-					.click();
-				await page.locator( 'text=Place order' ).click();
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Save payment method during first checkout', async () => {
+			await user.login(
+				page,
+				username,
+				config.get( 'users.customer.password' )
+			);
+			await setupACHCheckout( page, 'blocks' );
+			await fillACHBankDetails( page );
+			await page
+				.locator(
+					'.wc-block-components-payment-methods__save-card-info'
+				)
+				.click();
+			await page.locator( 'text=Place order' ).click();
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 
 		// Second order - Use saved payment method
-		await test.step(
-			'Use saved payment method for second checkout',
-			async () => {
-				await emptyCart( page );
-				await setupCart( page );
-				await setupBlocksCheckout(
-					page,
-					config.get( 'addresses.customer.billing' )
-				);
-				await page
-					.locator( 'label' )
-					.filter( { hasText: 'Checking account ending in' } )
-					.click();
-				await page.locator( 'text=Place order' ).click();
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Use saved payment method for second checkout', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupBlocksCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+			await page
+				.locator( 'label' )
+				.filter( { hasText: 'Checking account ending in' } )
+				.click();
+			await page.locator( 'text=Place order' ).click();
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 	} );
 } );
