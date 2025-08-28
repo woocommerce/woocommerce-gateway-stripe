@@ -1,7 +1,7 @@
 import { getAdminLink } from '@woocommerce/settings';
+import { getQuery } from '@woocommerce/navigation';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
-import { getQuery } from '@woocommerce/navigation';
 import {
 	getStorageWithExpiration,
 	setStorageWithExpiration,

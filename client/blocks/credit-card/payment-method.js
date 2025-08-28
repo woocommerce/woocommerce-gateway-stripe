@@ -1,7 +1,7 @@
-import { useState } from '@wordpress/element';
 import { Elements, useStripe } from '@stripe/react-stripe-js';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { InlineCard, CardElements } from './elements';
+import { useState } from '@wordpress/element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**

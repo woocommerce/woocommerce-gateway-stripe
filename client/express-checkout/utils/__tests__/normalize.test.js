@@ -1,9 +1,9 @@
-import { select } from '@wordpress/data';
 import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( '@wordpress/data' );

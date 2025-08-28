@@ -1,6 +1,6 @@
-import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 export const useAccountKeys = () => {
 	const {

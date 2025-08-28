@@ -1,8 +1,8 @@
+import { NAMESPACE, STORE_NAME } from '../constants';
+import ACTION_TYPES from './action-types';
 import { dispatch, select } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
-import { NAMESPACE, STORE_NAME } from '../constants';
-import ACTION_TYPES from './action-types';
 
 export function updateSettingsValues( payload ) {
 	return {

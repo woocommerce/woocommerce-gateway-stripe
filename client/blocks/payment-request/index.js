@@ -1,7 +1,7 @@
-import { __ } from '@wordpress/i18n';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
+import { __ } from '@wordpress/i18n';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import {
 	getBlocksConfiguration,

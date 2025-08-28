@@ -1,6 +1,5 @@
 /* global wc_stripe_settings_params */
 import { getSetting } from '@woocommerce/settings';
-import { sprintf } from '@wordpress/i18n';
 import React, { useContext, useMemo } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -11,6 +10,7 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
+import { sprintf } from '@wordpress/i18n';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
 	useEnabledPaymentMethodIds,

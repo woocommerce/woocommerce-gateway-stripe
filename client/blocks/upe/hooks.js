@@ -1,6 +1,6 @@
+import confirmCardPayment from './confirm-card-payment.js';
 import { useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
-import confirmCardPayment from './confirm-card-payment.js';
 import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
 
 /**

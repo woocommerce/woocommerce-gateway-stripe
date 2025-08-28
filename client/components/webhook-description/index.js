@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
+import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 import useWebhookStateMessage from 'wcstripe/settings/account-details/use-webhook-state-message';

@@ -103,21 +103,30 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
 	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
-		if ( ! $show_optimized_checkout_instruction ) {
-			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_optimized_checkout();
+		if ( false !== $show_optimized_checkout_instruction ) {
+			_deprecated_argument(
+				__FUNCTION__,
+				'9.9.0'
+			);
 		}
 
-		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
-			'<strong>',
-			'</strong>',
-			'<a href="https://docs.stripe.com/testing" target="_blank">',
-			'</a>'
-		);
+		$instructions          = '';
+		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_method_id );
+			if ( ! $payment_method ) {
+				continue;
+			}
+
+			$payment_method_instructions = $payment_method->get_testing_instructions();
+			if ( $payment_method_instructions ) {
+				$instructions .= sprintf( $base_instruction_html, $payment_method::STRIPE_ID, $payment_method_instructions );
+			}
+		}
+
+		return $instructions;
 	}
 }

@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
+import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
 
 const SpanConnectionText = styled.span`

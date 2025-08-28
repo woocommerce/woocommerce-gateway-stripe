@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
+import { __ } from '@wordpress/i18n';
 import { Card, CheckboxControl } from '@wordpress/components';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';

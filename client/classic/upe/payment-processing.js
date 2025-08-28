@@ -1,4 +1,3 @@
-import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -17,6 +16,7 @@ import {
 	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,

@@ -1,7 +1,7 @@
-import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import { STORE_NAME } from '../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 const makeReadOnlyPaymentGatewayHook =
 	( fieldName, fieldDefaultValue = false ) =>

@@ -1,16 +1,16 @@
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
-import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
 import interpolateComponents from 'interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
+import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
 	Card,
 	RadioControl,
 	CheckboxControl,
 	Notice,
 } from '@wordpress/components';
-import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
+import { __ } from '@wordpress/i18n';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,

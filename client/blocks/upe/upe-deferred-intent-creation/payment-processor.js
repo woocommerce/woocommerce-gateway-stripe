@@ -2,8 +2,6 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { select } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
 	useElements,
@@ -16,6 +14,8 @@ import { useEffect, useState, useRef } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
+import { __ } from '@wordpress/i18n';
+import { select } from '@wordpress/data';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {

@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
+import { useState, useEffect, useCallback } from '@wordpress/element';
 import {
 	getBlocksConfiguration,
 	createPaymentRequestUsingCart,

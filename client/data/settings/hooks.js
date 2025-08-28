@@ -1,6 +1,6 @@
-import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const EMPTY_ARR = [];

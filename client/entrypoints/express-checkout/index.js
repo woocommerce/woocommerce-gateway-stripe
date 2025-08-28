@@ -1,10 +1,10 @@
 /* global wcStripeExpressCheckoutPayForOrderParams */
 /* global wc_stripe_express_checkout_params */
 
-import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,

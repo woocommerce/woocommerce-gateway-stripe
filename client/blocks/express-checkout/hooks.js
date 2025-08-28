@@ -1,6 +1,6 @@
+import { useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { useStripe, useElements } from '@stripe/react-stripe-js';
 import {
 	onAbortPaymentHandler,
 	onCancelHandler,

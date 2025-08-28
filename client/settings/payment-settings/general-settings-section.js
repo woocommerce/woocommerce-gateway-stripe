@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import { React, useState, useContext } from 'react';
-import { Card, CheckboxControl } from '@wordpress/components';
 import CardBody from '../card-body';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
+import { Card, CheckboxControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { useIsStripeEnabled, useEnabledPaymentMethodIds } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
