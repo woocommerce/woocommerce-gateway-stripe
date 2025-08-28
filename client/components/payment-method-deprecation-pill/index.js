@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from 'interpolate-components';
+import { __ } from '@wordpress/i18n';
 import PaymentMethodUnavailablePill, {
 	PaymentMethodPopoverLink,
 } from 'wcstripe/components/payment-method-unavailable-pill';
