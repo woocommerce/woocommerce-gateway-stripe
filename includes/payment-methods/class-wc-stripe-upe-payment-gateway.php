@@ -296,32 +296,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns the HTML for the bundled payment instructions when Smart Checkout is enabled.
-	 *
-	 * @return string
-	 *
-	 * @deprecated 9.5.0 Use `get_testing_instructions_for_optimized_checkout()` instead.
-	 */
-	public static function get_testing_instructions_for_smart_checkout() {
-		return static::get_testing_instructions_for_optimized_checkout();
-	}
-
-	/**
 	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
 	 *
 	 * @return string
+	 *
+	 * @deprecated 9.9.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
 	 */
 	public static function get_testing_instructions_for_optimized_checkout() {
-		$instructions          = '';
-		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions( true );
-			if ( $payment_method_instructions ) {
-				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
-			}
-		}
-
-		return $instructions;
+		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+		return $payment_method->get_testing_instructions();
 	}
 
 	/**
@@ -795,7 +778,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->testmode ) :
 				if ( $this->oc_enabled ) :
 					echo wp_kses(
-						self::get_testing_instructions_for_optimized_checkout(),
+						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
 							'div' => [
 								'id'    => [],
