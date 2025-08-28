@@ -24,8 +24,9 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	updateQueryString: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/settings/notices/legacy-experience-transition', () => () =>
-	null
+jest.mock(
+	'wcstripe/settings/notices/legacy-experience-transition',
+	() => () => null
 );
 
 jest.mock(

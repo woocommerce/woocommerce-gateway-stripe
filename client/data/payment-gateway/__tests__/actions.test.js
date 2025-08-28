@@ -1,7 +1,7 @@
-import { dispatch, select } from '@wordpress/data';
 import { findIndex } from 'lodash';
-import { apiFetch } from '@wordpress/data-controls';
 import { savePaymentGateway, updateIsSavingPaymentGateway } from '../actions';
+import { dispatch, select } from '@wordpress/data';
+import { apiFetch } from '@wordpress/data-controls';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );

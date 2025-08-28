@@ -1,10 +1,10 @@
-import { registerStore, combineReducers } from '@wordpress/data';
-import { controls } from '@wordpress/data-controls';
 import { STORE_NAME } from './constants';
 import * as settings from './settings';
 import * as account from './account';
 import * as accountKeys from './account-keys';
 import * as paymentGateway from './payment-gateway';
+import { controls } from '@wordpress/data-controls';
+import { registerStore, combineReducers } from '@wordpress/data';
 
 const actions = {};
 const selectors = {};

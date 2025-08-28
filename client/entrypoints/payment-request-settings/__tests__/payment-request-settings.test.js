@@ -93,9 +93,8 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		).toBeInTheDocument();
 
 		// confirm radio button groups displayed.
-		const [ ctaRadio, sizeRadio, themeRadio ] = screen.queryAllByRole(
-			'radio'
-		);
+		const [ ctaRadio, sizeRadio, themeRadio ] =
+			screen.queryAllByRole( 'radio' );
 
 		expect( ctaRadio ).toBeInTheDocument();
 		expect( sizeRadio ).toBeInTheDocument();

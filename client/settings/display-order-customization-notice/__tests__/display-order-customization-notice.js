@@ -1,9 +1,9 @@
 import React, { act } from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import apiFetch from '@wordpress/api-fetch';
 import DisplayOrderCustomizationNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
+import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
 

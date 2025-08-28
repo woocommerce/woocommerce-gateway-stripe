@@ -1,8 +1,8 @@
 import React, { useEffect, useContext } from 'react';
 import { render, waitFor } from '@testing-library/react';
-import apiFetch from '@wordpress/api-fetch';
 import OCToggleContextProvider from '../provider';
 import OCToggleContext from '../context';
+import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( 'wcstripe/tracking', () => ( { recordEvent: jest.fn() } ) );

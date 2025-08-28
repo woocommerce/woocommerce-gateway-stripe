@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
+import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( '@wordpress/data', () => ( {

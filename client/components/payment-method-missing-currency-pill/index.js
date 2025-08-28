@@ -1,8 +1,8 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
 import Popover from 'wcstripe/components/popover';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
