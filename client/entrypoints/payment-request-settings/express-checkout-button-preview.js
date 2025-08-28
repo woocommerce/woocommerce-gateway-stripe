@@ -1,9 +1,9 @@
 /* global wc_stripe_payment_request_settings_params */
 
-import { __ } from '@wordpress/i18n';
 import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { __ } from '@wordpress/i18n';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
 import {

@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
+import { __ } from '@wordpress/i18n';
 import {
 	PAYMENT_METHOD_ACH,
 	PAYMENT_METHOD_ACSS,
