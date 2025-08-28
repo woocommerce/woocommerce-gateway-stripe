@@ -115,10 +115,15 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 
 		$instructions          = '';
 		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions();
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_method_id );
+			if ( ! $payment_method ) {
+				continue;
+			}
+
+			$payment_method_instructions = $payment_method->get_testing_instructions();
 			if ( $payment_method_instructions ) {
-				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
+				$instructions .= sprintf( $base_instruction_html, $payment_method::STRIPE_ID, $payment_method_instructions );
 			}
 		}
 
