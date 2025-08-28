@@ -1,9 +1,9 @@
-import { dispatch, select } from '@wordpress/data';
-import { __, sprintf } from '@wordpress/i18n';
-import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import PaymentMethodsMap from '../../payment-methods-map';
 import ACTION_TYPES from './action-types';
+import { dispatch, select } from '@wordpress/data';
+import { __, sprintf } from '@wordpress/i18n';
+import { apiFetch } from '@wordpress/data-controls';
 
 export function updateAccount( payload ) {
 	return {
@@ -23,9 +23,8 @@ export function* refreshAccount() {
 	try {
 		yield updateIsRefreshingAccount( true );
 
-		const activeCapabilitiesBeforeRefresh = select(
-			STORE_NAME
-		).getAccountCapabilitiesByStatus( 'active' );
+		const activeCapabilitiesBeforeRefresh =
+			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
 
 		const data = yield apiFetch( {
 			method: 'POST',
@@ -34,9 +33,8 @@ export function* refreshAccount() {
 
 		yield updateAccount( data );
 
-		const activeCapabilitiesAfterRefresh = select(
-			STORE_NAME
-		).getAccountCapabilitiesByStatus( 'active' );
+		const activeCapabilitiesAfterRefresh =
+			select( STORE_NAME ).getAccountCapabilitiesByStatus( 'active' );
 
 		// Check new payment methods available for account.
 		const newPaymentMethods = activeCapabilitiesAfterRefresh.filter(

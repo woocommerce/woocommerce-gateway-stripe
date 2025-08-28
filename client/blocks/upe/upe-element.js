@@ -105,9 +105,10 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				return false;
 			}
 
-			const nonExpressPaymentMethods = upeConfig?.enabledPaymentMethods.filter(
-				( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
-			);
+			const nonExpressPaymentMethods =
+				upeConfig?.enabledPaymentMethods.filter(
+					( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
+				);
 
 			if (
 				paymentMethod === PAYMENT_METHOD_CARD &&

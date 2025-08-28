@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.9.0 - xxxx-xx-xx =
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
+* Dev - Upgrades the ESLint packages and their related libraries
+* Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
 * Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
 * Fix - The availability of the Link payment method when the Optimized Checkout is enabled
 * Dev - Update Javascript unit tests for compatibility with Node 20
@@ -134,5 +136,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show all available payment methods before unavailable payment methods
 * Tweak - Use smaller image for Optimized Checkout banner
 * Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
+* Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
+* Dev - Make 'Add to cart' more robust in e2e tests
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

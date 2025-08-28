@@ -124,19 +124,21 @@ const didIntentSucceed = ( intent ) => {
  * @param {string} redirectUrl - The URL to redirect to after a successful payment.
  * @param {string} intentType  - The type of the payment intent. Either `pi` or `si`.
  */
-const handleIntentConfirmation = ( redirectUrl, intentType ) => (
-	confirmation
-) => {
-	if ( confirmation.error ) {
-		throw confirmation.error;
-	}
+const handleIntentConfirmation =
+	( redirectUrl, intentType ) => ( confirmation ) => {
+		if ( confirmation.error ) {
+			throw confirmation.error;
+		}
 
-	const intent = getIntentFromConfirmation( confirmation, intentType );
-	if ( doesIntentRequireCapture( intent ) || didIntentSucceed( intent ) ) {
-		// If the 3DS verification was successful we can proceed with checkout as usual.
-		window.location = redirectUrl;
-	}
-};
+		const intent = getIntentFromConfirmation( confirmation, intentType );
+		if (
+			doesIntentRequireCapture( intent ) ||
+			didIntentSucceed( intent )
+		) {
+			// If the 3DS verification was successful we can proceed with checkout as usual.
+			window.location = redirectUrl;
+		}
+	};
 
 /**
  * Helper function; part of a promise chain.
@@ -148,65 +150,63 @@ const handleIntentConfirmation = ( redirectUrl, intentType ) => (
  * @param {Object}   evt                    - The `source` event from the Stripe payment request button.
  * @param {Function} setExpressPaymentError - Used to show error messages to the customer.
  */
-const performPayment = ( stripe, evt, setExpressPaymentError ) => (
-	createOrderResponse
-) => {
-	if ( createOrderResponse.result === 'success' ) {
-		evt.complete( 'success' );
+const performPayment =
+	( stripe, evt, setExpressPaymentError ) => ( createOrderResponse ) => {
+		if ( createOrderResponse.result === 'success' ) {
+			evt.complete( 'success' );
 
-		const partials = getRedirectUrlPartials( createOrderResponse.redirect );
+			const partials = getRedirectUrlPartials(
+				createOrderResponse.redirect
+			);
 
-		// If no information is embedded in the URL that means the payment doesn't need
-		// verification and we can proceed as usual.
-		if ( ! partials || partials.length < 4 ) {
-			window.location = createOrderResponse.redirect;
-			return;
+			// If no information is embedded in the URL that means the payment doesn't need
+			// verification and we can proceed as usual.
+			if ( ! partials || partials.length < 4 ) {
+				window.location = createOrderResponse.redirect;
+				return;
+			}
+
+			const { type, clientSecret, redirectUrl } = partials;
+
+			// The payment requires 3DS verification, so we try to take care of that here.
+			requestIntentConfirmation( stripe, type, clientSecret )
+				.then( handleIntentConfirmation( redirectUrl, type ) )
+				.catch( ( error ) => {
+					setExpressPaymentError( error.message );
+
+					// Report back to the server.
+					$.get( redirectUrl + '&is_ajax' );
+				} );
+		} else {
+			evt.complete( 'fail' );
+
+			// WooCommerce returns a message embedded in a notice via HTML here, so we need
+			// to extract the actual message from the notice.
+			const div = document.createElement( 'div' );
+			div.innerHTML = createOrderResponse.messages;
+			const errorMessage = div?.firstElementChild?.textContent ?? '';
+
+			setExpressPaymentError( errorMessage );
 		}
+	};
 
-		const { type, clientSecret, redirectUrl } = partials;
+const paymentProcessingHandler =
+	( stripe, paymentRequestType, setExpressPaymentError ) => ( evt ) => {
+		const allowPrepaidCards =
+			getBlocksConfiguration()?.stripe?.allow_prepaid_card === 'yes';
 
-		// The payment requires 3DS verification, so we try to take care of that here.
-		requestIntentConfirmation( stripe, type, clientSecret )
-			.then( handleIntentConfirmation( redirectUrl, type ) )
-			.catch( ( error ) => {
-				setExpressPaymentError( error.message );
-
-				// Report back to the server.
-				$.get( redirectUrl + '&is_ajax' );
-			} );
-	} else {
-		evt.complete( 'fail' );
-
-		// WooCommerce returns a message embedded in a notice via HTML here, so we need
-		// to extract the actual message from the notice.
-		const div = document.createElement( 'div' );
-		div.innerHTML = createOrderResponse.messages;
-		const errorMessage = div?.firstElementChild?.textContent ?? '';
-
-		setExpressPaymentError( errorMessage );
-	}
-};
-
-const paymentProcessingHandler = (
-	stripe,
-	paymentRequestType,
-	setExpressPaymentError
-) => ( evt ) => {
-	const allowPrepaidCards =
-		getBlocksConfiguration()?.stripe?.allow_prepaid_card === 'yes';
-
-	// Check if we allow prepaid cards.
-	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError(
-			getBlocksConfiguration()?.i18n?.no_prepaid_card
-		);
-	} else {
-		// Create the order and attempt to pay.
-		createOrder( evt, paymentRequestType ).then(
-			performPayment( stripe, evt, setExpressPaymentError )
-		);
-	}
-};
+		// Check if we allow prepaid cards.
+		if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
+			setExpressPaymentError(
+				getBlocksConfiguration()?.i18n?.no_prepaid_card
+			);
+		} else {
+			// Create the order and attempt to pay.
+			createOrder( evt, paymentRequestType ).then(
+				performPayment( stripe, evt, setExpressPaymentError )
+			);
+		}
+	};
 
 export {
 	shippingAddressChangeHandler,

@@ -1,7 +1,7 @@
 import { getAdminLink } from '@woocommerce/settings';
+import { getQuery } from '@woocommerce/navigation';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
-import { getQuery } from '@woocommerce/navigation';
 import {
 	getStorageWithExpiration,
 	setStorageWithExpiration,
@@ -34,9 +34,8 @@ if (
 
 const shouldShowNotice = () => {
 	const { wc_stripe_connected: stripeAccountConnected } = getQuery();
-	const isOnboardingThroughWCSetup = getStorageWithExpiration(
-		LOCAL_STORAGE_KEY
-	);
+	const isOnboardingThroughWCSetup =
+		getStorageWithExpiration( LOCAL_STORAGE_KEY );
 
 	return stripeAccountConnected && isOnboardingThroughWCSetup;
 };

@@ -287,6 +287,9 @@ class WC_Stripe {
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'init', [ $this, 'maybe_toggle_payment_methods' ] );
+
+		add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
+		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
 	}
 
 	/**
@@ -358,6 +361,9 @@ class WC_Stripe {
 			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+			// Try to schedule the daily async cleanup of the Stripe database cache.
+			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
 		}
 	}
 

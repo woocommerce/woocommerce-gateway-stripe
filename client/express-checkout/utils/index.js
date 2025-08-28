@@ -238,9 +238,8 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 		return data;
 	}
 
-	const requiredfields = checkoutForm.querySelectorAll(
-		'.validate-required'
-	);
+	const requiredfields =
+		checkoutForm.querySelectorAll( '.validate-required' );
 
 	if ( requiredfields.length ) {
 		requiredfields.forEach( ( element ) => {

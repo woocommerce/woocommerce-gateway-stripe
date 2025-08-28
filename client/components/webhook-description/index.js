@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
+import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 import useWebhookStateMessage from 'wcstripe/settings/account-details/use-webhook-state-message';
@@ -32,12 +32,8 @@ const WebhookDescriptionInner = styled.div`
 `;
 
 export const WebhookDescription = ( { isWebhookEnabled } ) => {
-	const {
-		code,
-		message,
-		requestStatus,
-		refreshMessage,
-	} = useWebhookStateMessage();
+	const { code, message, requestStatus, refreshMessage } =
+		useWebhookStateMessage();
 	const isWarningMessage = code === 3 || code === 4;
 	const isSuccessMessage = code === 1;
 	const isSuccessMessageWithSecret = isSuccessMessage && isWebhookEnabled;
