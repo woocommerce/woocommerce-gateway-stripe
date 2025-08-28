@@ -1,6 +1,6 @@
+import confirmCardPayment from './confirm-card-payment.js';
 import { useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
-import confirmCardPayment from './confirm-card-payment.js';
 import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
 
 /**
@@ -91,11 +91,8 @@ export const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const {
-		setShippingAddress,
-		setBillingAddress,
-		setBillingData,
-	} = useDispatch( WC_STORE_CART );
+	const { setShippingAddress, setBillingAddress, setBillingData } =
+		useDispatch( WC_STORE_CART );
 
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;

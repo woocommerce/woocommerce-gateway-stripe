@@ -1,7 +1,7 @@
-import { __ } from '@wordpress/i18n';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
+import { __ } from '@wordpress/i18n';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import {
 	getBlocksConfiguration,
@@ -54,9 +54,10 @@ const paymentRequestPaymentMethod = {
 						),
 						pending: true,
 					},
-					currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
-					country_code: getBlocksConfiguration()?.baseLocation
-						?.country,
+					currency:
+						cartData?.cartTotals?.currency_code?.toLowerCase(),
+					country_code:
+						getBlocksConfiguration()?.baseLocation?.country,
 					displayItems: [],
 				},
 				shipping_required: false,

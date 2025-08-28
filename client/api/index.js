@@ -630,9 +630,9 @@ export default class WCStripeAPI {
 			},
 			{
 				'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
-				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE': getExpressCheckoutData(
-					'nonce'
-				)?.wc_store_api_express_checkout,
+				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
+					getExpressCheckoutData( 'nonce' )
+						?.wc_store_api_express_checkout,
 			}
 		);
 	}
@@ -684,8 +684,9 @@ export default class WCStripeAPI {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )
-					?.get_selected_product_data,
+				security:
+					getExpressCheckoutData( 'nonce' )
+						?.get_selected_product_data,
 				...productData,
 			}
 		);

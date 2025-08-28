@@ -1,9 +1,9 @@
-import { select } from '@wordpress/data';
 import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( '@wordpress/data' );
@@ -311,7 +311,8 @@ describe( 'Express checkout normalization', () => {
 				...expectedNormalizedData,
 			};
 			expectedNormalizedData.payment_data[ 1 ].value = '';
-			expectedNormalizedData.payment_data[ 2 ].value = confirmationTokenId;
+			expectedNormalizedData.payment_data[ 2 ].value =
+				confirmationTokenId;
 
 			expect(
 				normalizeOrderData( { event, confirmationTokenId } )

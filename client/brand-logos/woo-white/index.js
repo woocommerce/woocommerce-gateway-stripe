@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import classNames from 'classnames';
 import logo from './logo.svg';
+import { __ } from '@wordpress/i18n';
 
 /**
  * WooLogo component.

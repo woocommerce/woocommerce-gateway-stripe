@@ -1,6 +1,6 @@
+import { React } from 'react';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
-import { React } from 'react';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';
 import { recordEvent } from 'wcstripe/tracking';
@@ -18,9 +18,8 @@ export const NewCheckoutExperienceBanner = ( {
 	setShowPromotionalBanner,
 	setIsUpeEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
