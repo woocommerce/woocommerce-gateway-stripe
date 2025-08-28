@@ -1,9 +1,6 @@
 import React from 'react';
-import interpolateComponents from 'interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
-import PaymentMethodUnavailablePill, {
-	PaymentMethodPopoverLink,
-} from 'wcstripe/components/payment-method-unavailable-pill';
+import PaymentMethodUnavailablePill from 'wcstripe/components/payment-method-unavailable-pill';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
@@ -21,21 +18,14 @@ const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
 		<PaymentMethodUnavailablePill
 			title={ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
 		>
-			{ interpolateComponents( {
-				mixedString: sprintf(
-					/* translators: $1: a payment method name */
-					__(
-						'%1$s is unavailable due to another official plugin being active.',
-						'woocommerce-gateway-stripe'
-					),
-					label
+			{ sprintf(
+				/* translators: $1: a payment method name */
+				__(
+					'%1$s is unavailable due to another official plugin being active.',
+					'woocommerce-gateway-stripe'
 				),
-				components: {
-					currencySettingsLink: (
-						<PaymentMethodPopoverLink href="/wp-admin/admin.php?page=wc-settings&tab=general" />
-					),
-				},
-			} ) }
+				label
+			) }
 		</PaymentMethodUnavailablePill>
 	);
 };
