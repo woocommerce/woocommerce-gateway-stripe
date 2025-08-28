@@ -136,6 +136,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show all available payment methods before unavailable payment methods
 * Tweak - Use smaller image for Optimized Checkout banner
 * Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
+* Fix - Display only Apple Pay and Google Pay buttons in the Customize page preview
 * Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
 * Dev - Make 'Add to cart' more robust in e2e tests
 
