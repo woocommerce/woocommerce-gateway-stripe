@@ -108,11 +108,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $saved_cards;
 
 	/**
-	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
 	 */
 	public $sepa_tokens_for_other_methods;
+
+	/**
+	 * Should SEPA tokens be used for Bancontact
+	 *
+	 * @var bool
+	 */
+	public $sepa_tokens_for_bancontact;
 
 	/**
 	 * Is Single Payment Element enabled?
@@ -2005,12 +2012,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
+	 * Checks if the setting to allow the saving of SEPA tokens for iDEAL is enabled.
 	 *
-	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 * @return bool Whether the setting to allow SEPA tokens for iDEAL is enabled.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		return $this->sepa_tokens_for_other_methods;
+	}
+
+	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for Bancontact is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for Bancontact is enabled.
+	 */
+	public function is_sepa_tokens_for_bancontact_enabled() {
+		return $this->sepa_tokens_for_bancontact;
 	}
 
 	/**

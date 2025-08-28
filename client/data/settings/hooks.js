@@ -155,6 +155,9 @@ export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
 export const useSepaTokensForOtherMethods = makeSettingsHook(
 	'is_sepa_tokens_for_other_methods_enabled'
 );
+export const useSepaTokensForBancontact = makeSettingsHook(
+	'is_sepa_tokens_for_bancontact_enabled'
+);
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
 	'is_separate_card_form_enabled'

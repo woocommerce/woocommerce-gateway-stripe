@@ -19,6 +19,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
 	useSepaTokensForOtherMethods,
+	useSepaTokensForBancontact,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
@@ -44,6 +45,10 @@ const PaymentsAndTransactionsSection = () => {
 		isSepaTokensForOtherMethodsEnabled,
 		setIsSepaTokensForOtherMethodsEnabled,
 	] = useSepaTokensForOtherMethods();
+	const [
+		isSepaTokensForBancontactEnabled,
+		setIsSepaTokensForBancontactEnabled,
+	] = useSepaTokensForBancontact();
 	const [ isSeparateCardFormEnabled, setIsSeparateCardFormEnabled ] =
 		useSeparateCardForm();
 	const [
@@ -99,11 +104,23 @@ const PaymentsAndTransactionsSection = () => {
 					checked={ isSepaTokensForOtherMethodsEnabled }
 					onChange={ setIsSepaTokensForOtherMethodsEnabled }
 					label={ __(
-						'Enable SEPA Direct Debit tokens for other methods',
+						'Enable saved iDEAL payments for repeat payments',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.',
+						'Let customers save iDEAL as a SEPA Direct Debit method for future purchases. Requires iDEAL and SEPA Direct Debit to be enabled.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+				<CheckboxControl
+					checked={ isSepaTokensForBancontactEnabled }
+					onChange={ setIsSepaTokensForBancontactEnabled }
+					label={ __(
+						'Enable saved Bancontact payments for repeat payments',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'Let customers save Bancontact as a SEPA Direct Debit method for future purchases. Requires Bancontact and SEPA Direct Debit to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
