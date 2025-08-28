@@ -9,6 +9,7 @@ import {
 	useIsShortAccountStatementEnabled,
 	useSeparateCardForm,
 	useGetSavingError,
+	useSepaTokensForBancontact,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -23,6 +24,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 	useSavedCards: jest.fn(),
 	useSepaTokensForOtherMethods: jest.fn(),
+	useSepaTokensForBancontact: jest.fn(),
 	useIsShortAccountStatementEnabled: jest.fn(),
 	useSeparateCardForm: jest.fn(),
 	useGetSavingError: jest.fn(),
@@ -34,6 +36,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		useManualCapture.mockReturnValue( [ true, jest.fn() ] );
 		useSavedCards.mockReturnValue( [ true, jest.fn() ] );
 		useSepaTokensForOtherMethods.mockReturnValue( [ true, jest.fn() ] );
+		useSepaTokensForBancontact.mockReturnValue( [ true, jest.fn() ] );
 		useIsShortAccountStatementEnabled.mockReturnValue( [
 			false,
 			jest.fn(),
