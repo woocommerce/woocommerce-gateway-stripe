@@ -31,6 +31,7 @@
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Tweak - Improve how we cache saved payment methods for customers
+* Dev - Fix some e2e issues: timing, optional flows, and WooCommerce RC support
 
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt
@@ -70,7 +71,6 @@
 * Update - Copy for the Optimized Checkout settings and notices
 * Update - Removes the ability to change the title for the Optimized Checkout payment element, as it is now set to "Stripe" by default
 * Fix - Handle missing customer when calling payment_methods API
-* Dev - Fix some e2e issues: timing, optional flows, and WooCommerce RC support
 * Fix - Reduce number of calls to Stripe payment_methods API
 * Fix - Add `get_icon_url()` to Payment Method base class
 
