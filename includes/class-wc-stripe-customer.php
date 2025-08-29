@@ -717,6 +717,7 @@ class WC_Stripe_Customer {
 		} elseif ( empty( $response->id ) ) {
 			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
 		} else {
+			$this->customer_data = [];
 			return $response;
 		}
 	}
