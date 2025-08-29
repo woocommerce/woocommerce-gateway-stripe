@@ -1,7 +1,7 @@
-import { __ } from '@wordpress/i18n';
 import { React } from 'react';
-import { CheckboxControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
+import { __ } from '@wordpress/i18n';
+import { CheckboxControl } from '@wordpress/components';
 import { useTestMode } from 'wcstripe/data';
 
 const TestModeCheckbox = () => {

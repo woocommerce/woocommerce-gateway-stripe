@@ -1,8 +1,8 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import AmazonPayEnableSection from './amazon-pay-enable-section';
 import AmazonPaySettingsSection from './amazon-pay-settings-section';
+import { __ } from '@wordpress/i18n';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';

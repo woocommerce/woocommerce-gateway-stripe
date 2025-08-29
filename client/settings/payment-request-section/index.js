@@ -1,9 +1,6 @@
 /* global wc_stripe_settings_params */
 
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Card, CheckboxControl } from '@wordpress/components';
-import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
@@ -13,10 +10,14 @@ import {
 	useAmazonPayEnabledSettings,
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
+	useIsOCEnabled,
 } from '../../data';
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
+import { __ } from '@wordpress/i18n';
+import { Card, CheckboxControl } from '@wordpress/components';
+import { addQueryArgs } from '@wordpress/url';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -24,22 +25,18 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
-	const [
-		isPaymentRequestEnabled,
-		updateIsPaymentRequestEnabled,
-	] = usePaymentRequestEnabledSettings();
+	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
+		usePaymentRequestEnabledSettings();
 
-	const [
-		isAmazonPayEnabled,
-		updateIsAmazonPayEnabled,
-	] = useAmazonPayEnabledSettings();
+	const [ isAmazonPayEnabled, updateIsAmazonPayEnabled ] =
+		useAmazonPayEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
-	const [
-		enabledMethodIds,
-		updateEnabledMethodIds,
-	] = useEnabledPaymentMethodIds();
+	const [ enabledMethodIds, updateEnabledMethodIds ] =
+		useEnabledPaymentMethodIds();
+
+	const [ isOCEnabled ] = useIsOCEnabled();
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
@@ -57,15 +54,13 @@ const PaymentRequestSection = () => {
 		}
 	};
 
-	const displayExpressPaymentMethods = enabledMethodIds.includes(
-		PAYMENT_METHOD_CARD
-	);
+	const displayExpressPaymentMethods =
+		enabledMethodIds.includes( PAYMENT_METHOD_CARD );
 	const displayLinkPaymentMethod =
-		enabledMethodIds.includes( PAYMENT_METHOD_CARD ) &&
+		( enabledMethodIds.includes( PAYMENT_METHOD_CARD ) || isOCEnabled ) &&
 		availablePaymentMethodIds.includes( PAYMENT_METHOD_LINK );
-	const isStripeLinkEnabled = enabledMethodIds.includes(
-		PAYMENT_METHOD_LINK
-	);
+	const isStripeLinkEnabled =
+		enabledMethodIds.includes( PAYMENT_METHOD_LINK );
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',
@@ -91,6 +86,17 @@ const PaymentRequestSection = () => {
 								<div>
 									{ __(
 										'Credit card / debit card must be enabled as a payment method in order to use Express Checkout.',
+										'woocommerce-gateway-stripe'
+									) }
+								</div>
+							</li>
+						) }
+					{ ! displayExpressPaymentMethods &&
+						displayLinkPaymentMethod && (
+							<li className="express-checkout">
+								<div>
+									{ __(
+										'Credit card / debit card must be enabled as a payment method in order to use Google Pay and Apple Pay (and Link in the classic checkout).',
 										'woocommerce-gateway-stripe'
 									) }
 								</div>

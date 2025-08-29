@@ -1,14 +1,11 @@
-/* global wc_stripe_settings_params */
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
+import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import Popover from 'wcstripe/components/popover';
-import {
-	PAYMENT_METHOD_AFFIRM,
-	PAYMENT_METHOD_KLARNA,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -49,48 +46,45 @@ const IconComponent = ( { children, ...props } ) => (
 );
 
 const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
-	if (
-		( id === PAYMENT_METHOD_AFFIRM &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
-		( id === PAYMENT_METHOD_KLARNA &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_klarna_gateway_plugin )
-	) {
-		return (
-			<StyledPill>
-				{ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
-				<Popover
-					BaseComponent={ IconComponent }
-					content={ interpolateComponents( {
-						mixedString: sprintf(
-							/* translators: $1: a payment method name */
-							__(
-								'%1$s is unavailable due to another official plugin being active.',
-								'woocommerce-gateway-stripe'
-							),
-							label
-						),
-						components: {
-							currencySettingsLink: (
-								<StyledLink
-									href="/wp-admin/admin.php?page=wc-settings&tab=general"
-									target="_blank"
-									rel="noreferrer"
-									onClick={ ( ev ) => {
-										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-										ev.stopPropagation();
-									} }
-								/>
-							),
-						},
-					} ) }
-				/>
-			</StyledPill>
-		);
-	}
+	const unavailableReason = usePaymentMethodUnavailableReason( id );
 
-	return null;
+	if (
+		unavailableReason !==
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT
+	) {
+		return null;
+	}
+	return (
+		<StyledPill>
+			{ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
+			<Popover
+				BaseComponent={ IconComponent }
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: $1: a payment method name */
+						__(
+							'%1$s is unavailable due to another official plugin being active.',
+							'woocommerce-gateway-stripe'
+						),
+						label
+					),
+					components: {
+						currencySettingsLink: (
+							<StyledLink
+								href="/wp-admin/admin.php?page=wc-settings&tab=general"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
+			/>
+		</StyledPill>
+	);
 };
 
 export default PaymentMethodUnavailableDueConflictPill;

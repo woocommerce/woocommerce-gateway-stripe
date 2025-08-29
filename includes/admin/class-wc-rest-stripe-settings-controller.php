@@ -80,6 +80,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'oc_layout'                        => [
+						'description'       => __( 'The Optimized Checkout layout (accordion or tabs).', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( $form_fields['optimized_checkout_layout']['options'] ?? [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'amazon_pay_button_size'           => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
@@ -242,6 +248,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
+				'oc_layout'                                => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
 				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
 			]
 		);
@@ -535,6 +542,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_oc_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'is_oc_enabled' => 'optimized_checkout_element',
+			'oc_layout'     => 'optimized_checkout_layout',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );

@@ -33,6 +33,7 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
+	const OC                = 'card'; // This is a special case for the Optimized Checkout
 
 	// Express method constants
 	const AMAZON_PAY = 'amazon_pay';
@@ -46,6 +47,18 @@ class WC_Stripe_Payment_Methods {
 	const APPLE_PAY_LABEL       = 'Apple Pay';
 	const LINK_LABEL            = 'Link';
 	const PAYMENT_REQUEST_LABEL = 'Payment Request';
+
+	/**
+	 * Payment methods that are considered as express payment methods.
+	 *
+	 * @var array
+	 */
+	const EXPRESS_PAYMENT_METHODS = [
+		self::AMAZON_PAY,
+		self::GOOGLE_PAY,
+		self::APPLE_PAY,
+		self::LINK,
+	];
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.
@@ -77,13 +90,6 @@ class WC_Stripe_Payment_Methods {
 	const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
-	];
-
-	const EXPRESS_PAYMENT_METHODS = [
-		self::AMAZON_PAY,
-		self::APPLE_PAY,
-		self::GOOGLE_PAY,
-		self::LINK,
 	];
 
 	/**

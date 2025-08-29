@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.8.0
+Stable tag: 9.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,6 +111,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
+* Dev - Upgrades the ESLint packages and their related libraries
+* Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
+* Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
+* Fix - The availability of the Link payment method when the Optimized Checkout is enabled
+* Dev - Update Javascript unit tests for compatibility with Node 20
+* Dev - Replaces some payment method instantiation logic for the Optimized Checkout with calls to the `get_payment_method_instance` method
+* Dev - Multiple lint fixes in preparation for the Node 20 upgrade
+* Dev - Introduces a new helper method to identify Stripe orders
+* Add - Setting to allow merchants to control the layout of the Optimized Checkout payment element on the checkout page
+* Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
 * Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 * Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
@@ -118,11 +129,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Implements WooCommerce constants for the tax statuses
 * Fix - Ensure all Javascript strings use the correct text domain for translation
 * Tweak - Use more specific selector in express checkout e2e tests
-* Fix - Relax customer validation that was preventing payments from the pay for order page
-* Fix - Remove connection type requirement from PMC sync migration attempt
 * Tweak - Small improvements to e2e tests
-* Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
-* Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
+* Fix - Fix unnecessary Stripe API calls when rendering subscription details
+* Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
+* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
+* Update - Show all available payment methods before unavailable payment methods
+* Tweak - Use smaller image for Optimized Checkout banner
+* Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
+* Fix - Display only Apple Pay and Google Pay buttons in the Customize page preview
+* Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
+* Dev - Make 'Add to cart' more robust in e2e tests
+* Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Tweak - Improve how we cache saved payment methods for customers
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

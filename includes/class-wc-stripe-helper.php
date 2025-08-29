@@ -1949,11 +1949,13 @@ class WC_Stripe_Helper {
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$order_intent_id       = self::get_intent_id_from_order( $order );
+		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
+		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 
 		if ( 'payment_intent' === $intent->object ) {
-			$is_valid = $order_currency === $intent->currency
+			$is_valid = $order_currency === $intent_currency
 				&& $is_valid_payment_type
-				&& $order_amount === $intent->amount
+				&& $order_amount === $intent_amount
 				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
 		} else {
 			// Setup intents don't have an amount or currency.
@@ -1968,12 +1970,12 @@ class WC_Stripe_Helper {
 
 		$permitted_payment_types = implode( '/', $intent->payment_method_types );
 		WC_Stripe_Logger::critical(
-			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			"Error: Invalid payment intent for order. Intent: {$intent_currency} {$intent_amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
 			[
 				'order_id'                    => $order->get_id(),
 				'intent_id'                   => $intent->id,
-				'intent_currency'             => $intent->currency,
-				'intent_amount'               => $intent->amount,
+				'intent_currency'             => $intent_currency,
+				'intent_amount'               => $intent_amount,
 				'intent_payment_method_types' => $intent->payment_method_types,
 				'selected_payment_type'       => $selected_payment_type,
 				'order_currency'              => $order->get_currency(),
@@ -2002,5 +2004,15 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
+	}
+
+	/**
+	 * Checks if the order is using a Stripe payment method.
+	 *
+	 * @param $order WC_Order The order to check.
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_order( $order ) {
+		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 }

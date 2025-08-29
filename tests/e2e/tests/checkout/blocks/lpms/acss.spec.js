@@ -50,45 +50,39 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 		page,
 	} ) => {
 		// First order - Save the payment method.
-		await test.step(
-			'Save payment method during first checkout',
-			async () => {
-				await user.login(
-					page,
-					username,
-					config.get( 'users.customer.password' )
-				);
-				await setupACSSCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
-				await clickPlaceOrder( page );
-				await fillACSSDetails( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Save payment method during first checkout', async () => {
+			await user.login(
+				page,
+				username,
+				config.get( 'users.customer.password' )
+			);
+			await setupACSSCheckout( page, 'blocks' );
+			await page.getByLabel( 'Save payment information' ).click();
+			await clickPlaceOrder( page );
+			await fillACSSDetails( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 
 		// Second order - Use saved payment method.
-		await test.step(
-			'Use saved payment method for second checkout',
-			async () => {
-				await emptyCart( page );
-				await setupCart( page );
-				await setupBlocksCheckout(
-					page,
-					config.get( 'addresses.customer_canada.billing' )
-				);
-				await page
-					.locator( 'label' )
-					.filter( { hasText: 'STRIPE TEST BANK ending in' } )
-					.click();
-				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Use saved payment method for second checkout', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupBlocksCheckout(
+				page,
+				config.get( 'addresses.customer_canada.billing' )
+			);
+			await page
+				.locator( 'label' )
+				.filter( { hasText: 'STRIPE TEST BANK ending in' } )
+				.click();
+			await clickPlaceOrder( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 	} );
 } );

@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import React, { useContext, useState } from 'react';
-import { CheckboxControl, Button } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
+import { CheckboxControl, Button } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -36,15 +36,12 @@ const WarningListElement = ( { children } ) => (
 );
 
 const ManualCaptureControl = () => {
-	const [
-		isManualCaptureEnabled,
-		setIsManualCaptureEnabled,
-	] = useManualCapture();
+	const [ isManualCaptureEnabled, setIsManualCaptureEnabled ] =
+		useManualCapture();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
-		false
-	);
+	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
+		useState( false );
 
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.

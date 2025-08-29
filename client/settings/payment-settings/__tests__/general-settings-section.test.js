@@ -34,7 +34,7 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
-	it( 'should enable stripe when stripe checkbox is clicked', () => {
+	it( 'should enable stripe when stripe checkbox is clicked', async () => {
 		const setIsStripeEnabledMock = jest.fn();
 		const setTestModeMock = jest.fn();
 		useIsStripeEnabled.mockReturnValue( [ false, setIsStripeEnabledMock ] );
@@ -60,11 +60,11 @@ describe( 'GeneralSettingsSection', () => {
 		expect( enableStripeCheckbox ).not.toBeChecked();
 		expect( testModeCheckbox ).not.toBeChecked();
 
-		userEvent.click( enableStripeCheckbox );
+		await userEvent.click( enableStripeCheckbox );
 
 		expect( setIsStripeEnabledMock ).toHaveBeenCalledWith( true );
 
-		userEvent.click( testModeCheckbox );
+		await userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );

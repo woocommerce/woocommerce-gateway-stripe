@@ -8,14 +8,20 @@ import {
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
+	useOCLayout,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
+	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
+} ) );
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
 describe( 'AdvancedSettings', () => {
@@ -25,6 +31,7 @@ describe( 'AdvancedSettings', () => {
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
@@ -37,7 +44,7 @@ describe( 'AdvancedSettings', () => {
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should enable debug mode when checkbox is clicked', () => {
+	it( 'should enable debug mode when checkbox is clicked', async () => {
 		const setIsLoggingCheckedMock = jest.fn();
 		useDebugLog.mockReturnValue( [ false, setIsLoggingCheckedMock ] );
 
@@ -50,7 +57,7 @@ describe( 'AdvancedSettings', () => {
 			screen.getByLabelText( 'Log debug messages' )
 		).not.toBeChecked();
 
-		userEvent.click( debugModeCheckbox );
+		await userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
@@ -75,5 +82,20 @@ describe( 'AdvancedSettings', () => {
 				'Enable Optimized Checkout Suite (recommended)'
 			)
 		).toBeInTheDocument();
+	} );
+
+	it( 'should display the Optimized Checkout layout setting if the Optimized Checkout feature is enabled', () => {
+		global.wc_stripe_settings_params = { is_oc_available: true };
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <AdvancedSettings /> );
+
+		expect(
+			screen.queryByText(
+				'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
+			)
+		).toBeInTheDocument();
+		expect( screen.queryByText( 'Layout' ) ).toBeInTheDocument();
 	} );
 } );
