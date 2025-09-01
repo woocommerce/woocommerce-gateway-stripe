@@ -24,4 +24,6 @@ setup( 'Configure store for default tests', async ( { browser } ) => {
 	await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
 
 	await adminContext.close();
+
+	await admin.initializeOptimizedCheckout( browser, false );
 } );
