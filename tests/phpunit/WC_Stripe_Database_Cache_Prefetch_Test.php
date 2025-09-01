@@ -59,7 +59,7 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 			'pmc_key_expires_in_5_seconds_should_prefetch'                         => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true ],
 			'pmc_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'  => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, 2 ],
 			'pmc_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch' => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, -2 ],
-			'pmc_key_expires_in_5_seconds_with_option_set_-6s_should_prefetch'     => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, -6 ],
+			'pmc_key_expires_in_5_seconds_with_option_set_-11s_should_prefetch'    => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, -11 ],
 			'pmc_key_expires_in_5_seconds_with_invalid_option_should_prefetch'     => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, 'invalid' ],
 		];
 	}
