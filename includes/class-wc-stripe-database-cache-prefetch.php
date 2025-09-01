@@ -97,12 +97,12 @@ class WC_Stripe_Database_Cache_Prefetch {
 		}
 
 		$prefetch_option_key = $this->get_prefetch_option_name( $key );
-		update_option( $prefetch_option_key, time() );
 
 		$result = as_enqueue_async_action( self::ASYNC_PREFETCH_ACTION, [ $key ], 'woocommerce-gateway-stripe' );
 		if ( 0 === $result ) {
 			WC_Stripe_Logger::warning( 'Failed to enqueue cache prefetch', $logging_context );
 		} else {
+			update_option( $prefetch_option_key, time() );
 			WC_Stripe_Logger::debug( 'Enqueued cache prefetch', $logging_context );
 		}
 	}
