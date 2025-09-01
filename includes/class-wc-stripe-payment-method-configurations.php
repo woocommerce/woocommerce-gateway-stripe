@@ -35,7 +35,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var string
 	 */
-	const CONFIGURATION_CACHE_KEY = 'payment_method_configuration';
+	public const CONFIGURATION_CACHE_KEY = 'payment_method_configuration';
 
 	/**
 	 * The payment method configuration cache expiration (TTL).
