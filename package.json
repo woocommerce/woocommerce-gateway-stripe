@@ -200,5 +200,9 @@
         "cssfolder": "assets/css/"
       }
     }
-  }
+  },
+	"overrides": {
+		"rimraf": "^5.0.10",
+		"mkdirp": "^3.0.1"
+	}
 }
