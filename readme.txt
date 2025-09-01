@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Update - Upgrade React to v18 and related dependencies
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
 * Dev - Upgrades the ESLint packages and their related libraries
 * Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
