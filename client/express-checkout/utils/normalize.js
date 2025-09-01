@@ -18,7 +18,7 @@ export const normalizeLineItems = ( displayItems ) => {
 		}
 
 		return {
-			name: displayItem.label,
+			name: displayItem.label ?? displayItem.name,
 			amount,
 		};
 	} );

@@ -7,6 +7,5 @@ const amazonPayContainer = document.getElementById(
 );
 
 if ( amazonPayContainer ) {
-	const amazonPayRoot = createRoot( amazonPayContainer );
-	amazonPayRoot.render( <AmazonPayPage /> );
+	createRoot( amazonPayContainer ).render( <AmazonPayPage /> );
 }

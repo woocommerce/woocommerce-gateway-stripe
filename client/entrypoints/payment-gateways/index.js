@@ -6,6 +6,7 @@ const paymentGatewaysContainer = document.getElementById(
 	'wc-stripe-payment-gateways-container'
 );
 if ( paymentGatewaysContainer ) {
-	const paymentGatewaysRoot = createRoot( paymentGatewaysContainer );
-	paymentGatewaysRoot.render( <PaymentGatewaysConfirmation /> );
+	createRoot( paymentGatewaysContainer ).render(
+		<PaymentGatewaysConfirmation />
+	);
 }

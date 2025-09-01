@@ -7,6 +7,5 @@ const container = document.getElementById(
 );
 
 if ( container ) {
-	const paymentRequestsRoot = createRoot( container );
-	paymentRequestsRoot.render( <PaymentRequestsPage /> );
+	createRoot( container ).render( <PaymentRequestsPage /> );
 }
