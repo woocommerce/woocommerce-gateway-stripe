@@ -1,5 +1,4 @@
-import { act } from 'react';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BNPLPromotionBanner } from '../bnpl-promotion-banner';
 import apiFetch from '@wordpress/api-fetch';

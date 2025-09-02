@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook } from '@testing-library/react-hooks';
 import { useGetCapabilities, useAccount } from '../hooks';
 import { useSelect, useDispatch } from '@wordpress/data';
 

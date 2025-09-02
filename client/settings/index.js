@@ -1,6 +1,6 @@
 /* global wc_stripe_settings_params */
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import ConnectStripeAccount from './connect-stripe-account';
 import StripeAccountConnectedNotice from './stripe-account-connected-notice';
 import SettingsManager from './settings-manager';
@@ -22,7 +22,7 @@ const newAccountContainer = document.getElementById(
 );
 
 if ( settingsContainer ) {
-	createRoot( settingsContainer ).render(
+	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
 				// eslint-disable-next-line camelcase
@@ -38,12 +38,13 @@ if ( settingsContainer ) {
 				<StripeAccountConnectedNotice />
 				<SettingsManager />
 			</OCToggleContextProvider>
-		</UpeToggleContextProvider>
+		</UpeToggleContextProvider>,
+		settingsContainer
 	);
 }
 
 if ( paymentGatewayContainer ) {
-	createRoot( paymentGatewayContainer ).render(
+	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
 				// eslint-disable-next-line camelcase
@@ -58,12 +59,13 @@ if ( paymentGatewayContainer ) {
 			>
 				<PaymentGatewayManager />
 			</OCToggleContextProvider>
-		</UpeToggleContextProvider>
+		</UpeToggleContextProvider>,
+		paymentGatewayContainer
 	);
 }
 
 if ( newAccountContainer ) {
-	createRoot( newAccountContainer ).render(
+	ReactDOM.render(
 		<ConnectStripeAccount
 			oauthUrl={
 				// eslint-disable-next-line camelcase
@@ -73,6 +75,7 @@ if ( newAccountContainer ) {
 				// eslint-disable-next-line camelcase
 				wc_stripe_settings_params.stripe_test_oauth_url
 			}
-		/>
+		/>,
+		newAccountContainer
 	);
 }

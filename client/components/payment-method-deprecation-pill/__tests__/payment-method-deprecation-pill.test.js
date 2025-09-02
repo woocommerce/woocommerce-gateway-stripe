@@ -6,7 +6,7 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 describe( 'PaymentMethodDeprecationPill', () => {
 	it( 'should render', () => {
 		render(
-			<UpeToggleContext.Provider value={ true }>
+			<UpeToggleContext.Provider>
 				<PaymentMethodDeprecationPill />
 			</UpeToggleContext.Provider>
 		);

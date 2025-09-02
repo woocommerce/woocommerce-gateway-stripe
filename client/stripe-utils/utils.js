@@ -1,6 +1,5 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
-import React from 'react';
-import { createPortal } from 'react-dom';
+import ReactDOM from 'react-dom';
 import { getAppearance } from '../styles/upe';
 import {
 	errorTypes,
@@ -537,7 +536,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		$container.find( '.wc-block-components-notices' ).remove();
 
 		$container.prepend( wrapper );
-		createPortal( <NoticeComponent />, wrapper );
+		ReactDOM.createRoot( wrapper ).render( <NoticeComponent /> );
 	} else {
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;

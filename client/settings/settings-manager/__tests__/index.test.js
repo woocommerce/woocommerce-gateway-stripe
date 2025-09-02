@@ -2,28 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsManager from '..';
 
-jest.mock( '../../payment-settings' );
-
-jest.mock( '../../payment-methods' );
-
-jest.mock( '../../save-settings-section' );
-
-jest.mock( 'wcstripe/data', () => ( {
-	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
-	useSettings: jest.fn().mockReturnValue( {} ),
-} ) );
-
-jest.mock( 'wcstripe/data/account', () => ( {
-	useAccount: jest.fn().mockReturnValue( {
-		data: null,
-	} ),
-} ) );
-
-jest.mock( '@woocommerce/navigation', () => ( {
-	getQuery: jest.fn().mockReturnValue( {} ),
-	updateQueryString: jest.fn(),
-} ) );
-
 jest.mock(
 	'wcstripe/settings/notices/legacy-experience-transition',
 	() => () => null

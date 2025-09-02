@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
 import {
@@ -23,7 +23,7 @@ export const checkPaymentMethodIsAvailable = memoize(
 
 			document.querySelector( 'body' ).appendChild( containerEl );
 
-			const root = createRoot( containerEl );
+			const root = ReactDOM.createRoot( containerEl );
 
 			root.render(
 				<Elements
