@@ -112,7 +112,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.9.0 - xxxx-xx-xx =
 * Fix - Use the item name as fallback when normalizing line items for the express checkout
-* Dev - Upgrades the Emotion-related packages (Babel plugin, React, and Styled)
 * Update - Upgrade React to v18 and related dependencies
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
 * Dev - Upgrades the ESLint packages and their related libraries
