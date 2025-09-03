@@ -77,7 +77,6 @@
     "jquery": "^3.6.0",
     "lint-staged": "11.1.2",
     "lodash": "4.17.21",
-    "mkdirp": "^3.0.1",
     "mocha": "^5.2.0",
     "moment-timezone": "^0.6.0",
     "nock": "^13.1.1",
