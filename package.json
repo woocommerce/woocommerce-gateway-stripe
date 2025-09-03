@@ -209,12 +209,8 @@
     }
   },
   "overrides": {
-    "@es-joy/jsdoccomment": "^0.40.0",
     "@wordpress/eslint-plugin": {
       "eslint-plugin-jsdoc": "^46.0.0"
-    },
-    "glob": "^9.3.5",
-    "rimraf": "^5.0.0",
-    "mkdirp": "^3.0.0"
+    }
   }
 }
