@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
 * Dev - Upgrades the ESLint packages and their related libraries
 * Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
