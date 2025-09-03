@@ -113,7 +113,7 @@
     "@stripe/stripe-js": "^1.36.0",
     "@woocommerce/settings": "^1.0.0",
     "@wordpress/html-entities": "^3.6.1",
-    "framer-motion": "^10.16.16",
+    "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"
   },
