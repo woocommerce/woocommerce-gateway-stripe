@@ -1,8 +1,8 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import { Icon, info } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
+import { __ } from '@wordpress/i18n';
 import Pill from 'wcstripe/components/pill';
 import Popover from 'wcstripe/components/popover';
 

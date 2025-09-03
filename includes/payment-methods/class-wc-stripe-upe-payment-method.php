@@ -175,7 +175,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		return 'yes' === $this->enabled;
+		return 'yes' === $this->enabled
+			// When OC is enabled, we use the OC payment container to render all the methods.
+			|| ( $this->oc_enabled && WC_Stripe_Payment_Methods::OC === $this->stripe_id );
 	}
 
 	/**
@@ -184,9 +186,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		// When OC is enabled, we use the card payment container to render all the methods.
-		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::CARD !== $this->stripe_id ) {
-			return false;
+		// When OC is enabled, we use the OC payment container to render all the methods.
+		if ( $this->oc_enabled ) {
+			$enabled_methods     = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_upe_enabled_at_checkout_payment_method_ids();
+			$non_express_methods = array_filter(
+				$enabled_methods,
+				function ( $method_id ) {
+					return ! in_array( $method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true );
+				}
+			);
+			return WC_Stripe_Payment_Methods::OC === $this->stripe_id && ( has_block( 'woocommerce/checkout' ) || count( $non_express_methods ) > 0 );
 		}
 
 		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
@@ -504,10 +513,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
 	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
+		if ( $show_optimized_checkout_instruction ) {
+			_deprecated_argument(
+				__FUNCTION__,
+				'9.9.0'
+			);
+		}
+
 		return '';
 	}
 
@@ -774,5 +789,24 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_upe_enabled_payment_method_ids() {
 		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
+	}
+
+	/**
+	 * Returns the title for the card wallet type.
+	 * This is used to display the title for Apple Pay and Google Pay.
+	 *
+	 * @param $express_payment_type string The type of express payment method.
+	 *
+	 * @return string The title for the card wallet type.
+	 */
+	protected function get_card_wallet_type_title( $express_payment_type ) {
+		$express_payment_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
+		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
+
+		if ( ! $payment_method_title ) {
+			return parent::get_title();
+		}
+
+		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 	}
 }

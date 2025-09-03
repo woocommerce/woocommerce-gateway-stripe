@@ -1,5 +1,4 @@
-import { useSelect, useDispatch } from '@wordpress/data';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
@@ -24,6 +23,7 @@ import {
 	useIsOCEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
@@ -152,10 +152,8 @@ describe( 'Settings hooks tests', () => {
 
 		test( 'returns orderedPaymentMethodIds from selector', () => {
 			const { result } = renderHook( useGetOrderedPaymentMethodIds );
-			const {
-				orderedPaymentMethodIds,
-				setOrderedPaymentMethodIds,
-			} = result.current;
+			const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+				result.current;
 
 			expect( orderedPaymentMethodIds ).toEqual( [
 				PAYMENT_METHOD_CARD,

@@ -584,6 +584,14 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
+			'optimized_checkout_layout' => [
+				'oc_layout',
+				'optimized_checkout_layout',
+				'accordion',
+				'tabs',
+				'foo',
+				true, // is_upe_enabled
+			],
 		];
 	}
 

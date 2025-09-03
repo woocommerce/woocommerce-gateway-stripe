@@ -17,9 +17,42 @@ export const getBlocksConfiguration = () => {
 };
 
 /**
+ * Whether manual renewal is required based on the payment method's reusability.
+ *
+ * It is considered required if:
+ * - The payment method is not reusable and manual renewal is enabled in the configuration.
+ * - The configuration explicitly requires manual renewal.
+ *
+ * @param {boolean} isReusablePaymentMethod
+ * @return {boolean} True if manual renewal is required, false otherwise.
+ */
+const isManualRenewalRequired = ( isReusablePaymentMethod ) => {
+	const config = getBlocksConfiguration();
+	return (
+		( ! isReusablePaymentMethod &&
+			config?.subscriptionManualRenewalEnabled ) ||
+		config?.subscriptionRequiresManualRenewal
+	);
+};
+
+/**
+ * Checks if the cart contains an auto-renewing subscription.
+ *
+ * @param {boolean} isReusablePaymentMethod Indicates if the payment method is reusable.
+ * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
+ */
+const hasAutoRenewingSubscription = ( isReusablePaymentMethod ) => {
+	const config = getBlocksConfiguration();
+	return (
+		config?.cartContainsSubscription &&
+		! isManualRenewalRequired( isReusablePaymentMethod )
+	);
+};
+
+/**
  * Determines if off-session payment should be set up.
  *
- * @param {boolean} shouldShowSaveOption - Whether to show the save option.
+ * @param {boolean} shouldShowSaveOption    - Whether to show the save option.
  * @param {boolean} isPaymentMethodReusable - Whether the payment method is reusable.
  * @return {boolean} True if off-session payment should be set up, false otherwise.
  */
@@ -39,7 +72,7 @@ export const shouldSetupOffSessionPayment = (
  * Creates a payment request using cart data from WooCommerce.
  *
  * @param {Object} stripe - The Stripe JS object.
- * @param {Object} cart - The cart data response from the store's AJAX API.
+ * @param {Object} cart   - The cart data response from the store's AJAX API.
  *
  * @return {Object} A Stripe payment request.
  */
@@ -67,8 +100,8 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		country: cart.order_data.country_code,
 		requestPayerName: true,
 		requestPayerEmail: true,
-		requestPayerPhone: getBlocksConfiguration()?.checkout
-			?.needs_payer_phone,
+		requestPayerPhone:
+			getBlocksConfiguration()?.checkout?.needs_payer_phone,
 		requestShipping: cart.shipping_required ? true : false,
 		displayItems: cart.order_data.displayItems,
 		disableWallets,
@@ -92,8 +125,8 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 /**
  * Updates the given PaymentRequest using the data in the cart object.
  *
- * @param {Object} paymentRequest  The payment request object.
- * @param {Object} cart  The cart data response from the store's AJAX API.
+ * @param {Object} paymentRequest The payment request object.
+ * @param {Object} cart           The cart data response from the store's AJAX API.
  */
 export const updatePaymentRequestUsingCart = ( paymentRequest, cart ) => {
 	const options = {
@@ -184,37 +217,4 @@ export const addOrderAttributionInputsIfNotExists = () => {
 export const getStripeImageUrl = ( imageName ) => {
 	const config = getBlocksConfiguration();
 	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
-};
-
-/**
- * Whether manual renewal is required based on the payment method's reusability.
- *
- * It is considered required if:
- * - The payment method is not reusable and manual renewal is enabled in the configuration.
- * - The configuration explicitly requires manual renewal.
- *
- * @param {boolean} isReusablePaymentMethod
- * @return {boolean} True if manual renewal is required, false otherwise.
- */
-const isManualRenewalRequired = ( isReusablePaymentMethod ) => {
-	const config = getBlocksConfiguration();
-	return (
-		( ! isReusablePaymentMethod &&
-			config?.subscriptionManualRenewalEnabled ) ||
-		config?.subscriptionRequiresManualRenewal
-	);
-};
-
-/**
- * Checks if the cart contains an auto-renewing subscription.
- *
- * @param {boolean} isReusablePaymentMethod Indicates if the payment method is reusable.
- * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
- */
-const hasAutoRenewingSubscription = ( isReusablePaymentMethod ) => {
-	const config = getBlocksConfiguration();
-	return (
-		config?.cartContainsSubscription &&
-		! isManualRenewalRequired( isReusablePaymentMethod )
-	);
 };

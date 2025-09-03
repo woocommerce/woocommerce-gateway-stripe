@@ -1,6 +1,6 @@
-import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useDispatch } from '@wordpress/data';
 import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
 
 const noticesDispatch = {
@@ -48,7 +48,7 @@ describe( 'New checkout experience banner', () => {
 		).toBeInTheDocument();
 		expect( getByText( 'Enable the new checkout' ) ).toBeInTheDocument();
 	} );
-	it( 'should dismiss on button click', () => {
+	it( 'should dismiss on button click', async () => {
 		const { getByText } = render(
 			<NewCheckoutExperienceBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -56,7 +56,7 @@ describe( 'New checkout experience banner', () => {
 		);
 		const dismissButton = getByText( 'Dismiss' );
 
-		userEvent.click( dismissButton );
+		await userEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );

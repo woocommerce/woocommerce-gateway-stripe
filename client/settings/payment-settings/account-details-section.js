@@ -1,7 +1,4 @@
-import { __ } from '@wordpress/i18n';
-import { useDispatch } from '@wordpress/data';
 import { React, useState } from 'react';
-import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
@@ -9,6 +6,9 @@ import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
+import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
@@ -38,10 +38,8 @@ const AccountSettingsDropdownMenu = ( {
 	const [ isTestModeEnabled ] = useTestMode();
 	const { refreshAccount } = useDispatch( 'wc/stripe' );
 	const { createSuccessNotice } = useDispatch( 'core/notices' );
-	const [
-		isConfirmationModalVisible,
-		setIsConfirmationModalVisible,
-	] = useState( false );
+	const [ isConfirmationModalVisible, setIsConfirmationModalVisible ] =
+		useState( false );
 
 	const handleRefreshAccount = async () => {
 		await refreshAccount();

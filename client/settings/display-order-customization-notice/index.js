@@ -1,11 +1,11 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React, { useContext, useState } from 'react';
-import { Icon, Notice } from '@wordpress/components';
 import { info } from '@wordpress/icons';
-import apiFetch from '@wordpress/api-fetch';
 import UpeToggleContext from '../upe-toggle/context';
+import { Icon, Notice } from '@wordpress/components';
+import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 
 const NoticeWrapper = styled( Notice )`
 	border-left: none;

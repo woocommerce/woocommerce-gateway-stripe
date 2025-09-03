@@ -1,6 +1,6 @@
-import { useSelect, useDispatch } from '@wordpress/data';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useGetCapabilities, useAccount } from '../hooks';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 jest.mock( '@wordpress/data' );
 

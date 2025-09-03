@@ -26,6 +26,7 @@ export const displayLoginConfirmation = ( paymentRequestType ) => {
 	// eslint-disable-next-line no-alert, no-undef
 	if ( confirm( message ) ) {
 		// Redirect to my account page.
-		window.location.href = getBlocksConfiguration()?.login_confirmation?.redirect_url;
+		window.location.href =
+			getBlocksConfiguration()?.login_confirmation?.redirect_url;
 	}
 };

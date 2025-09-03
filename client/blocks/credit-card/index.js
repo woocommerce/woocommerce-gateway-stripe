@@ -1,8 +1,8 @@
-import { __ } from '@wordpress/i18n';
-import { useEffect, useState } from '@wordpress/element';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { PAYMENT_METHOD_NAME } from './constants';
+import { __ } from '@wordpress/i18n';
+import { useEffect, useState } from '@wordpress/element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 

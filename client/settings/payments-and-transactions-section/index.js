@@ -1,17 +1,17 @@
-import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
+import interpolateComponents from 'interpolate-components';
+import CardBody from '../card-body';
+import StatementPreviewsWrapper from './statement-previews-wrapper';
+import StatementPreview from './statement-preview';
+import ManualCaptureControl from './manual-capture-control';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
 	ExternalLink,
 } from '@wordpress/components';
-import interpolateComponents from 'interpolate-components';
-import CardBody from '../card-body';
-import StatementPreviewsWrapper from './statement-previews-wrapper';
-import StatementPreview from './statement-preview';
-import ManualCaptureControl from './manual-capture-control';
+import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
@@ -44,10 +44,8 @@ const PaymentsAndTransactionsSection = () => {
 		isSepaTokensForOtherMethodsEnabled,
 		setIsSepaTokensForOtherMethodsEnabled,
 	] = useSepaTokensForOtherMethods();
-	const [
-		isSeparateCardFormEnabled,
-		setIsSeparateCardFormEnabled,
-	] = useSeparateCardForm();
+	const [ isSeparateCardFormEnabled, setIsSeparateCardFormEnabled ] =
+		useSeparateCardForm();
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
@@ -76,9 +74,8 @@ const PaymentsAndTransactionsSection = () => {
 
 	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
 	// To meet this requirement, we use the first character of the full statement descriptor.
-	const shortStatementDescriptorSuffix = stripeAccountShortStatementDescriptor.charAt(
-		0
-	);
+	const shortStatementDescriptorSuffix =
+		stripeAccountShortStatementDescriptor.charAt( 0 );
 
 	return (
 		<Card className="transactions-and-payouts">

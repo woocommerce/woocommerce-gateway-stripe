@@ -1,11 +1,12 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
 import Popover from 'wcstripe/components/popover';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
-import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -47,47 +48,47 @@ const IconComponent = ( { children, ...props } ) => (
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( id );
-	const storeCurrency = window?.wcSettings?.currency?.code;
+	const unavailableReason = usePaymentMethodUnavailableReason( id );
 
 	if (
-		id !== PAYMENT_METHOD_CARD &&
-		! paymentMethodCurrencies.includes( storeCurrency )
+		unavailableReason !==
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY
 	) {
-		return (
-			<StyledPill>
-				{ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
-				<Popover
-					BaseComponent={ IconComponent }
-					content={ interpolateComponents( {
-						mixedString: sprintf(
-							/* translators: $1: a payment method name. %2: Currency(ies). */
-							__(
-								'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
-								'woocommerce-gateway-stripe'
-							),
-							label,
-							paymentMethodCurrencies.join( ', ' )
-						),
-						components: {
-							currencySettingsLink: (
-								<StyledLink
-									href="/wp-admin/admin.php?page=wc-settings&tab=general"
-									target="_blank"
-									rel="noreferrer"
-									onClick={ ( ev ) => {
-										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-										ev.stopPropagation();
-									} }
-								/>
-							),
-						},
-					} ) }
-				/>
-			</StyledPill>
-		);
+		return null;
 	}
 
-	return null;
+	return (
+		<StyledPill>
+			{ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
+			<Popover
+				BaseComponent={ IconComponent }
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: $1: a payment method name. %2: Currency(ies). */
+						__(
+							'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+							'woocommerce-gateway-stripe'
+						),
+						label,
+						paymentMethodCurrencies.join( ', ' )
+					),
+					components: {
+						currencySettingsLink: (
+							<StyledLink
+								href="/wp-admin/admin.php?page=wc-settings&tab=general"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
+			/>
+		</StyledPill>
+	);
 };
 
 export default PaymentMethodMissingCurrencyPill;
