@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import React, { useState } from 'react';
 import { info } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
-import { Icon, Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { Icon, Notice } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 
 const NoticeWrapper = styled( Notice )`
