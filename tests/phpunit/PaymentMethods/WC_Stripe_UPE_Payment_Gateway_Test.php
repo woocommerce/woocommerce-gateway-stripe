@@ -293,14 +293,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
 		$metadata     = [
-			'customer_name'  => 'Jeroen Sormani',
-			'customer_email' => 'admin@example.org',
-			'site_url'       => 'http://example.org',
-			'order_id'       => $order_number,
-			'order_key'      => $order_key,
-			'payment_type'   => 'single',
-			'signature'      => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
-			'tax_amount'     => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
+			'customer_name'              => 'Jeroen Sormani',
+			'customer_email'             => 'admin@example.org',
+			'site_url'                   => 'http://example.org',
+			'order_id'                   => $order_number,
+			'order_key'                  => $order_key,
+			'payment_type'               => 'single',
+			'signature'                  => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
+			'tax_amount'                 => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
+			'is_legacy_checkout_enabled' => false,
+			'is_oc_enabled'              => false,
 		];
 		return [ $amount, $description, $metadata, strtolower( $currency ) ];
 	}

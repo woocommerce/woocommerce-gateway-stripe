@@ -279,6 +279,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			);
 		}
+
+		// Add metadata to Stripe intents for easier debugging of BNPL issues.
+		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
 	}
 
 	/**
@@ -2173,6 +2176,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
+	}
+
+	/**
+	 * Adds BNPL debug metadata to the metadata array.
+	 *
+	 * @return array
+	 */
+	public function add_bnpl_debug_metadata( $metadata, $order ) {
+		// The following parameters are used to debug BNPL display issues.
+		return array_merge(
+			$metadata,
+			[
+				'is_legacy_checkout_enabled' => ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+				'is_oc_enabled'              => $this->is_oc_enabled(),
+			]
+		);
 	}
 
 	/**
