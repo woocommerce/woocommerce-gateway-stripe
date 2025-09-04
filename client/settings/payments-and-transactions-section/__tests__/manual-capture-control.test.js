@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import ManualCaptureControl from '../manual-capture-control';
 import { useManualCapture } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';

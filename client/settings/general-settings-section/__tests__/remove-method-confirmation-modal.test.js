@@ -1,6 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import RemoveMethodConfirmationModal from '../remove-method-confirmation-modal';
 
 describe( 'RemoveMethodConfirmationModal', () => {

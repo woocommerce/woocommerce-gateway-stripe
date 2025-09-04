@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import PaymentRequestsSettingsSection from '../payment-request-settings-section';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
 import {
