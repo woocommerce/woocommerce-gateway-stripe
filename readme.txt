@@ -144,5 +144,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Fix - Fix some PHP warnings
+* Dev - Consolidate component used for unavailable payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
