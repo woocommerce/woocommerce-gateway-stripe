@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.9.0 - xxxx-xx-xx =
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
+* Dev - Upgrades the Babel-related packages
 * Fix - Use the item name as fallback when normalizing line items for the express checkout
 * Update - Upgrade React to v18 and related dependencies
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
@@ -144,5 +145,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Fix - Fix some PHP warnings
+* Dev - Consolidate component used for unavailable payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
