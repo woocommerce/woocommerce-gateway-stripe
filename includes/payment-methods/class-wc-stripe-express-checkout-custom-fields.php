@@ -215,6 +215,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			$classic_custom_checkout_fields = [];
 			$standard_checkout_fields       = $this->get_standard_checkout_fields();
 			$all_fields                     = WC()->checkout()->get_checkout_fields();
+
+			if ( empty( $all_fields ) ) {
+				return $classic_custom_checkout_fields;
+			}
+
 			foreach ( $all_fields as $fieldset => $fields ) {
 				foreach ( $fields as $field_key => $field ) {
 					if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
