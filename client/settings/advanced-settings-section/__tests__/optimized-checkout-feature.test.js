@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
 import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from 'wcstripe/data';
 
+jest.useFakeTimers();
+
 jest.mock( 'wcstripe/data', () => ( {
 	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
@@ -41,7 +43,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		userEvent.click( OCCheckbox );
+		await userEvent.click( OCCheckbox );
 
 		await waitFor( () => {
 			expect( setIsOCEnabledMock ).toHaveBeenCalled();
@@ -57,11 +59,11 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		userEvent.click( checkbox );
+		await userEvent.click( checkbox );
 
-		await waitFor( () => {
-			expect( checkbox ).toBeDisabled();
-		} );
+		jest.runAllTimers();
+
+		expect( checkbox ).toBeDisabled();
 		expect( checkbox ).not.toBeChecked();
 	} );
 
@@ -89,7 +91,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+		await userEvent.click( screen.getByLabelText( 'Tabs' ) );
 
 		await waitFor( async () => {
 			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );

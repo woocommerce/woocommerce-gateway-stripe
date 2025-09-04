@@ -1,6 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act } from 'react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Tooltip from '..';
+
+jest.useFakeTimers();
 
 describe( 'Tooltip', () => {
 	it( 'does not render its content when hidden', () => {
@@ -14,6 +17,8 @@ describe( 'Tooltip', () => {
 				<span>Trigger element</span>
 			</Tooltip>
 		);
+
+		jest.runAllTimers();
 
 		expect(
 			screen.queryByText( 'Tooltip content' )
@@ -34,6 +39,8 @@ describe( 'Tooltip', () => {
 			</Tooltip>
 		);
 
+		jest.runAllTimers();
+
 		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
@@ -47,16 +54,21 @@ describe( 'Tooltip', () => {
 			</Tooltip>
 		);
 
+		jest.runAllTimers();
+
 		expect(
 			screen.queryByText( 'Tooltip content' )
 		).not.toBeInTheDocument();
 
 		await userEvent.click( screen.getByText( 'Trigger element' ) );
 
+		jest.runAllTimers();
+
 		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 
 		await userEvent.click( screen.getByText( 'Trigger element' ) );
+		jest.runAllTimers();
 
 		expect( handleHideMock ).toHaveBeenCalled();
 	} );
@@ -75,6 +87,8 @@ describe( 'Tooltip', () => {
 			</>
 		);
 
+		jest.runAllTimers();
+
 		expect(
 			screen.queryByText( 'Tooltip 1 content' )
 		).not.toBeInTheDocument();
@@ -85,27 +99,28 @@ describe( 'Tooltip', () => {
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
 		// opening the first tooltip, no need to call any hide handlers
-		userEvent.click( screen.getByText( 'Open tooltip 1' ) );
-
-		await waitFor( () => {
-			expect(
-				screen.queryByText( 'Tooltip 1 content' )
-			).toBeInTheDocument();
+		await act( async () => {
+			await userEvent.click( screen.getByText( 'Open tooltip 1' ) );
 		} );
+
+		expect( screen.queryByText( 'Tooltip 1 content' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( 'Tooltip 2 content' )
 		).not.toBeInTheDocument();
 		expect( handleHide1Mock ).not.toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
-		// opening the second tooltip, only the first tooltip should not be visible anymore
-		userEvent.click( screen.getByText( 'Open tooltip 2' ) );
+		jest.runAllTimers();
 
-		await waitFor( () => {
-			expect(
-				screen.queryByText( 'Tooltip 1 content' )
-			).not.toBeInTheDocument();
+		// opening the second tooltip, only the first tooltip should not be visible anymore
+		await act( async () => {
+			await userEvent.click( screen.getByText( 'Open tooltip 2' ) );
+			jest.runAllTimers();
 		} );
+
+		expect(
+			screen.queryByText( 'Tooltip 1 content' )
+		).not.toBeInTheDocument();
 		expect( screen.queryByText( 'Tooltip 2 content' ) ).toBeInTheDocument();
 		expect( handleHide1Mock ).toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();

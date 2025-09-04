@@ -1,3 +1,6 @@
+/**
+ * External dependencies
+ */
 import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';

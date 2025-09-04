@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TooltipBase from '../tooltip-base';
 
+jest.useFakeTimers();
+
 describe( 'TooltipBase', () => {
 	it( 'does not render its content when hidden', () => {
 		const handleHideMock = jest.fn();
@@ -14,6 +16,8 @@ describe( 'TooltipBase', () => {
 				<span>Trigger element</span>
 			</TooltipBase>
 		);
+
+		jest.runAllTimers();
 
 		expect(
 			screen.queryByText( 'Tooltip content' )
@@ -34,6 +38,8 @@ describe( 'TooltipBase', () => {
 			</TooltipBase>
 		);
 
+		jest.runAllTimers();
+
 		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
@@ -52,6 +58,7 @@ describe( 'TooltipBase', () => {
 		);
 
 		await userEvent.click( screen.getByText( 'Tooltip content' ) );
+		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
@@ -73,6 +80,7 @@ describe( 'TooltipBase', () => {
 		);
 
 		await userEvent.click( screen.getByText( 'External element' ) );
+		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).toHaveBeenCalled();
