@@ -3,10 +3,17 @@ const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
+const defaultConfigOutput = defaultConfig.output;
+
+// Exclude jsonpFunction as it is not supported by webpack 5+.
+// https://github.com/webpack/webpack.js.org/issues/3942
+delete defaultConfigOutput.jsonpFunction;
+
 module.exports = {
 	...defaultConfig,
 	output: {
-		...defaultConfig.output,
+		...defaultConfigOutput,
+		chunkLoadingGlobal: defaultConfig.output.jsonpFunction,
 		devtoolModuleFilenameTemplate: 'webpack://[resource-path]',
 	},
 	devtool:
