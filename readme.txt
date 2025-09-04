@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Fix - Use the item name as fallback when normalizing line items for the express checkout
 * Update - Upgrade React to v18 and related dependencies
