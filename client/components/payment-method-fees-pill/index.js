@@ -1,6 +1,6 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import Pill from '../pill';
+import { __, sprintf } from '@wordpress/i18n';
 
 // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 const PaymentMethodFeesPill = ( { id, ...restProps } ) => {

@@ -99,15 +99,13 @@ describe( 'Express checkout utils', () => {
 
 	describe( 'getPaymentMethodTypesForExpressMethod', () => {
 		test( 'default', () => {
-			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
-				PAYMENT_METHOD_CARD
-			);
+			const paymentMethodTypes =
+				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_CARD );
 			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
 		} );
 		test( 'Link, disabled', () => {
-			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
-				PAYMENT_METHOD_LINK
-			);
+			const paymentMethodTypes =
+				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
 			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
 		} );
 		test( 'Link, enabled', () => {
@@ -115,9 +113,8 @@ describe( 'Express checkout utils', () => {
 				card: {},
 				link: {},
 			} );
-			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
-				PAYMENT_METHOD_LINK
-			);
+			const paymentMethodTypes =
+				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
 			expect( paymentMethodTypes ).toEqual( [
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_LINK,

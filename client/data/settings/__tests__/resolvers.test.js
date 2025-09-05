@@ -1,7 +1,7 @@
-import { dispatch } from '@wordpress/data';
-import { apiFetch } from '@wordpress/data-controls';
 import { getSettings } from '../resolvers';
 import { updateSettings } from '../actions';
+import { dispatch } from '@wordpress/data';
+import { apiFetch } from '@wordpress/data-controls';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );

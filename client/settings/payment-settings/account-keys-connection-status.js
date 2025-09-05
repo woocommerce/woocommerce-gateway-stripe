@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
+import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
 
 const SpanConnectionText = styled.span`
@@ -31,12 +31,8 @@ const DivSpinner = styled.div`
 
 export const AccountKeysConnectionStatus = ( { formRef } ) => {
 	const dispatch = useDispatch();
-	const {
-		isTesting,
-		isValid,
-		updateIsValidAccountKeys,
-		testAccountKeys,
-	} = useAccountKeys();
+	const { isTesting, isValid, updateIsValidAccountKeys, testAccountKeys } =
+		useAccountKeys();
 
 	const handleTestConnection = async ( ref ) => {
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.

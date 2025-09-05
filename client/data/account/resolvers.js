@@ -1,8 +1,8 @@
+import { NAMESPACE } from '../constants';
+import { updateAccount } from './actions';
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
-import { NAMESPACE } from '../constants';
-import { updateAccount } from './actions';
 
 /**
  * Retrieve the account data from the site's REST API.

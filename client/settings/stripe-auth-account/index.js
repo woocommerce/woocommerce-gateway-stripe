@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import interpolateComponents from 'interpolate-components';
 import StripeAuthDiagram from './stripe-auth-diagram';
 import StripeAuthActions from './stripe-auth-actions';
 import AccountStatusPanel from './account-status-panel';
 import WebhookHelpText from './webhook-help-text';
+import { __ } from '@wordpress/i18n';
 import {
 	useAccountKeysSecretKey,
 	useAccountKeysTestSecretKey,

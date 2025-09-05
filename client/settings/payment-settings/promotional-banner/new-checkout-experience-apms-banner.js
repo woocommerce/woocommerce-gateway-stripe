@@ -1,8 +1,8 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
-import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import interpolateComponents from 'interpolate-components';
+import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';
@@ -21,9 +21,8 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 	setShowPromotionalBanner,
 	setIsUpeEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
@@ -89,7 +88,8 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 					</h4>
 					<p>
 						{ interpolateComponents( {
-							mixedString: newCheckoutExperienceAPMsBannerDescription,
+							mixedString:
+								newCheckoutExperienceAPMsBannerDescription,
 							components: {
 								StripeLegacyLink: (
 									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />
