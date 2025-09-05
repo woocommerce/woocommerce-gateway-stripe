@@ -307,7 +307,7 @@ class WC_Stripe_Payment_Tokens {
 
 			// Add SEPA if it is disabled and iDEAL or Bancontact are enabled. iDEAL and Bancontact tokens are saved as SEPA tokens.
 			if ( ! in_array( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID, $active_reusable_payment_method_types, true ) ) {
-				$ideal_tokens_enabled      = $gateway->is_sepa_tokens_for_other_methods_enabled();
+				$ideal_tokens_enabled      = $gateway->is_sepa_tokens_for_ideal_enabled();
 				$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 				if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )

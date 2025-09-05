@@ -215,6 +215,7 @@ class WC_Stripe {
 		new Allowed_Payment_Request_Button_Types_Update();
 		// TODO: Temporary disabling the migration as it has a conflict with the new UPE checkout.
 		// new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
 		$this->api                           = new WC_Stripe_Connect_API();
 		$this->connect                       = new WC_Stripe_Connect( $this->api );
