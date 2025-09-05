@@ -303,6 +303,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'tax_amount'                 => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
 			'is_legacy_checkout_enabled' => false,
 			'is_oc_enabled'              => false,
+			'pmc_enabled'                => 'no',
 		];
 		return [ $amount, $description, $metadata, strtolower( $currency ) ];
 	}
