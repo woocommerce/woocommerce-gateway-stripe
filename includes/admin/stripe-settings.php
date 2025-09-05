@@ -225,7 +225,7 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'sepa_tokens_for_other_methods'       => [
+		'sepa_tokens_for_ideal'       => [
 			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL methods', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable saved iDEAL payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',

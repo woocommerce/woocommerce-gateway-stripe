@@ -18,8 +18,8 @@ import {
 	useSeparateCardForm,
 	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
-	useSepaTokensForOtherMethods,
 	useSepaTokensForBancontact,
+	useSepaTokensForIdeal,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
@@ -41,10 +41,8 @@ const StatementDescriptorInputWrapper = styled.div`
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
-	const [
-		isSepaTokensForOtherMethodsEnabled,
-		setIsSepaTokensForOtherMethodsEnabled,
-	] = useSepaTokensForOtherMethods();
+	const [ isSepaTokensForIdealEnabled, setIsSepaTokensForIdealEnabled ] =
+		useSepaTokensForIdeal();
 	const [
 		isSepaTokensForBancontactEnabled,
 		setIsSepaTokensForBancontactEnabled,
@@ -101,8 +99,8 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 				/>
 				<CheckboxControl
-					checked={ isSepaTokensForOtherMethodsEnabled }
-					onChange={ setIsSepaTokensForOtherMethodsEnabled }
+					checked={ isSepaTokensForIdealEnabled }
+					onChange={ setIsSepaTokensForIdealEnabled }
 					label={ __(
 						'Enable saved iDEAL payments for repeat payments',
 						'woocommerce-gateway-stripe'
