@@ -112,6 +112,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.9.0 - xxxx-xx-xx =
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
+* Dev - Upgrades the Webpack-related packages
+* Dev - Adds debug information to the Payment Intent object metadata
+* Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
+* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Fix - Use the item name as fallback when normalizing line items for the express checkout
 * Update - Upgrade React to v18 and related dependencies
