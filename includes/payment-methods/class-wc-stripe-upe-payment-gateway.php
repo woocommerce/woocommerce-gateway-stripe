@@ -2190,7 +2190,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			[
 				'is_legacy_checkout_enabled' => ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 				'is_oc_enabled'              => $this->is_oc_enabled(),
-				'pmc_enabled'                => 'yes' === $this->get_option( 'pmc_enabled' ),
+				'pmc_enabled'                => $this->get_option( 'pmc_enabled' ),
 			]
 		);
 	}
