@@ -301,8 +301,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'payment_type'               => 'single',
 			'signature'                  => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
 			'tax_amount'                 => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
-			'is_legacy_checkout_enabled' => false,
-			'is_oc_enabled'              => false,
+			'is_legacy_checkout_enabled' => 'no',
+			'is_oc_enabled'              => 'no',
 			'pmc_enabled'                => 'no',
 		];
 		return [ $amount, $description, $metadata, strtolower( $currency ) ];
@@ -3086,5 +3086,76 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_get_payment_method_instance() {
 		$actual = $this->mock_gateway->get_payment_method_instance( WC_Stripe_Payment_Methods::CARD );
 		$this->assertInstanceOf( WC_Stripe_UPE_Payment_Method_CC::class, $actual );
+	}
+
+	/**
+	 * Data provider for {@see test_add_bnpl_debug_metadata()}.
+	 */
+	public function provide_test_add_bnpl_debug_metadata(): array {
+		return [
+			'All disabled' => [
+				'upe_enabled' => false,
+				'oc_enabled'  => false,
+				'pmc_enabled' => false,
+			],
+			'All disabled with null pmc_enabled' => [
+				'upe_enabled' => false,
+				'oc_enabled'  => false,
+				'pmc_enabled' => null,
+			],
+			'All enabled' => [
+				'upe_enabled' => true,
+				'oc_enabled'  => true,
+				'pmc_enabled' => true,
+			],
+		];
+	}
+
+	/**
+	 * Test for `add_bnpl_debug_metadata`.
+	 *
+	 * @dataProvider provide_test_add_bnpl_debug_metadata
+	 * @param bool $upe_enabled Whether the UPE feature flag is enabled.
+	 * @param bool $oc_enabled Whether the OC feature is enabled.
+	 * @param bool|null $pmc_enabled Whether the PMC feature is enabled, disabled, or not specified.
+	 * @return void
+	 */
+	public function test_add_bnpl_debug_metadata( bool $upe_enabled, bool $oc_enabled, ?bool $pmc_enabled = null ) {
+		$init_oc_enabled  = $this->mock_gateway->oc_enabled;
+		$init_pmc_enabled = $this->mock_gateway->settings['pmc_enabled'] ?? null;
+
+		$this->mock_gateway->oc_enabled = $oc_enabled;
+		if ( null === $pmc_enabled ) {
+			unset( $this->mock_gateway->settings['pmc_enabled'] );
+		} else {
+			$this->mock_gateway->settings['pmc_enabled'] = $pmc_enabled;
+		}
+
+		$mock_upe_enabled = $upe_enabled ? '__return_true' : '__return_false';
+		add_filter( 'wc_stripe_is_upe_checkout_enabled', $mock_upe_enabled, 999 );
+
+		$order = WC_Helper_Order::create_order();
+
+		$result = apply_filters( 'wc_stripe_intent_metadata', [], $order );
+
+		// Reset all variables and filters.
+		remove_filter( 'wc_stripe_is_upe_checkout_enabled', $mock_upe_enabled, 999 );
+		$this->mock_gateway->oc_enabled = $init_oc_enabled;
+		if ( null === $init_pmc_enabled ) {
+			unset( $this->mock_gateway->settings['pmc_enabled'] );
+		} else {
+			$this->mock_gateway->settings['pmc_enabled'] = $init_pmc_enabled ? 'yes' : 'no';
+		}
+
+		$this->assertArrayHasKey( 'is_legacy_checkout_enabled', $result );
+		$this->assertEquals( $upe_enabled ? 'no' : 'yes', $result['is_legacy_checkout_enabled'] );
+		$this->assertArrayHasKey( 'is_oc_enabled', $result );
+		$this->assertEquals( $oc_enabled ? 'yes' : 'no', $result['is_oc_enabled'] );
+		$this->assertArrayHasKey( 'pmc_enabled', $result );
+		if ( null === $pmc_enabled ) {
+			$this->assertEquals( 'null', $result['pmc_enabled'] );
+		} else {
+			$this->assertEquals( $pmc_enabled ? 'yes' : 'no', $result['pmc_enabled'] );
+		}
 	}
 }

@@ -35,6 +35,7 @@
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Fix - Fix some PHP warnings
+* Dev - Normalize intent metadata to yes/no/null values
 
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt

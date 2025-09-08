@@ -143,6 +143,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Upgrade React to v18 and related dependencies
 * Dev - Adds PMC setting information to the Payment Intent object metadata
 * Dev - Adds debug information to the Payment Intent object metadata
+* Dev - Normalize intent metadata to yes/no/null values
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
 * Dev - Upgrades the ESLint packages and their related libraries
 * Dev - Upgrade the Prettier package and related libraries, and apply updated formatting rules
