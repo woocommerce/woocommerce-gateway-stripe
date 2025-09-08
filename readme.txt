@@ -121,13 +121,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Update - Show all available payment methods before unavailable payment methods
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
-* Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
 * Fix - The availability of the Link payment method when the Optimized Checkout is enabled
 * Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
 * Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 * Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
+* Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
 
 **Other Fixes**
 
