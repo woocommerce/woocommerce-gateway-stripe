@@ -116,5 +116,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
+* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
