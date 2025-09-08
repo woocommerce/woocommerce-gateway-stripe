@@ -115,20 +115,19 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **New Features**
 
 * Add - Setting to allow merchants to control the layout of the Optimized Checkout payment element on the checkout page
-* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
 * Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
 
 **Important Fixes and Updates**
 
-* Fix - The availability of the Link payment method when the Optimized Checkout is enabled
-* Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
-* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
-* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
-* Fix - Fix unnecessary Stripe API calls when rendering subscription details
-* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 * Update - Show all available payment methods before unavailable payment methods
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
 * Update - Add nightly task and WooCommerce tool to remove stale entries from our database cache
+* Fix - The availability of the Link payment method when the Optimized Checkout is enabled
+* Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
+* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
+* Fix - Fix unnecessary Stripe API calls when rendering subscription details
+* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
+* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 
 **Other Fixes**
 
@@ -136,9 +135,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure all Javascript strings use the correct text domain for translation
 * Fix - Display only Apple Pay and Google Pay buttons in the Customize page preview
 * Fix - Fix some PHP warnings
+* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
 * Tweak - Use smaller image for Optimized Checkout banner
-* Tweak - Use more specific selector in express checkout e2e tests
-* Tweak - Small improvements to e2e tests
 
 **Internal Changes and Upcoming Features**
 
@@ -157,5 +155,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
+* Tweak - Use more specific selector in express checkout e2e tests
+* Tweak - Small improvements to e2e tests
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
