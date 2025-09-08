@@ -3131,9 +3131,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->mock_gateway->settings['pmc_enabled'] = $pmc_enabled;
 		}
 
-		$mock_upe_enabled = function () use ( $upe_enabled ) {
-			return $upe_enabled;
-		};
+		$mock_upe_enabled = $upe_enabled ? '__return_true' : '__return_false';
 		add_filter( 'wc_stripe_is_upe_checkout_enabled', $mock_upe_enabled, 999 );
 
 		$order = WC_Helper_Order::create_order();
