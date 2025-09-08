@@ -2185,12 +2185,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function add_bnpl_debug_metadata( $metadata, $order ) {
 		// The following parameters are used to debug BNPL display issues.
+		$pmc_enabled = $this->get_option( 'pmc_enabled', 'null' );
+		if ( ! is_string( $pmc_enabled ) ) {
+			$pmc_enabled = $pmc_enabled ? 'yes' : 'no';
+		}
 		return array_merge(
 			$metadata,
 			[
-				'is_legacy_checkout_enabled' => ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-				'is_oc_enabled'              => $this->is_oc_enabled(),
-				'pmc_enabled'                => $this->get_option( 'pmc_enabled' ),
+				'is_legacy_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ? 'no' : 'yes',
+				'is_oc_enabled'              => $this->is_oc_enabled() ? 'yes' : 'no',
+				'pmc_enabled'                => $pmc_enabled,
 			]
 		);
 	}
