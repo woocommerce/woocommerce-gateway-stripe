@@ -3093,7 +3093,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_add_bnpl_debug_metadata(): array {
 		return [
-			'All disabled)' => [
+			'All disabled' => [
 				'upe_enabled' => false,
 				'oc_enabled'  => false,
 				'pmc_enabled' => false,
