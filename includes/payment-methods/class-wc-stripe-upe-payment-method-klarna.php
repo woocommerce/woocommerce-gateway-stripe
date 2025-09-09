@@ -192,7 +192,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token The payment token created.
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		$token = new WC_Payment_Token_CashApp();
+		$token = new WC_Payment_Token_Klarna();
 
 		$gateway_id = $this->is_oc_enabled() ? 'stripe' : $this->id;
 
@@ -200,8 +200,8 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
 
-		if ( isset( $payment_method->cashapp->cashtag ) ) {
-			$token->set_cashtag( $payment_method->cashapp->cashtag );
+		if ( isset( $payment_method->klarna->dob ) ) {
+			$token->set_dob( $payment_method->klarna->dob );
 		}
 
 		$token->save();
