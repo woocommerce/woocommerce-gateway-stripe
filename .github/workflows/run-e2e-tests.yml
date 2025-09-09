@@ -38,7 +38,6 @@ jobs:
       # E2E test environment
       - name: Prepare test environment
         env:
-          GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
           STRIPE_PUB_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup

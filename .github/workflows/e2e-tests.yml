@@ -75,7 +75,6 @@ jobs:
       - name: Prepare test environment
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
