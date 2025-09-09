@@ -766,6 +766,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 				],
 				true
 			) ) {
@@ -778,8 +779,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 			$account_currency = null;
 
-			// Use different currencies for ACSS or payment methods that have domestic transactions restrictions.
-			if ( $payment_method->has_domestic_transactions_restrictions() || WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id ) {
+			// Use different currencies for ACSS, Klarna or payment methods that have domestic transactions restrictions.
+			if ( $payment_method->has_domestic_transactions_restrictions()
+				|| WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id
+				|| WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID === $payment_method_id ) {
 				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
