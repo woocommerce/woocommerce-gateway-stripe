@@ -39,8 +39,12 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	public function get_display_name( $deprecated = '' ) {
 		$dob = $this->get_dob();
 
+		if ( empty( $dob ) ) {
+			return __( 'Klarna', 'woocommerce-gateway-stripe' );
+		}
+
 		// Translators: %s is the customer's date of birth.
-		return empty( $dob ) ? __( 'Klarna', 'woocommerce-gateway-stripe' ) : sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $dob );
+		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $this->format_dob( $dob ) );
 	}
 
 	/**
@@ -67,9 +71,17 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::KLARNA === $this->get_type()
-			&& ( $payment_method->klarna->dob ?? null ) === $this->get_dob() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::KLARNA === $this->get_type() ) {
+			$method_dob = $payment_method->klarna->dob ?? null;
+			if ( null === $method_dob && null === $this->get_dob() ) {
+				return true;
+			}
+
+			$formated_method_dob = $this->format_dob( $method_dob );
+			$formated_dob        = $this->format_dob( $this->get_dob() );
+			if ( $formated_method_dob === $formated_dob ) {
+				return true;
+			}
 		}
 
 		return false;
@@ -82,5 +94,15 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 */
 	protected function get_hook_prefix() {
 		return 'woocommerce_payment_token_klarna_get_';
+	}
+
+	/**
+	 * Formats the date of birth for display.
+	 *
+	 * @param $dob object The date of birth object.
+	 * @return string The formatted date of birth.
+	 */
+	protected function format_dob( $dob ) {
+		return sprintf( '%04d-%02d-%02d', $dob->year, $dob->month, $dob->day );
 	}
 }
