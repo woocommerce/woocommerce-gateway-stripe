@@ -84,6 +84,8 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 				return [ 'NO' ];
 			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
 				return [ 'PL' ];
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				return [ 'RO' ];
 			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				return [ 'SE' ];
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -134,6 +136,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 		];
 	}
