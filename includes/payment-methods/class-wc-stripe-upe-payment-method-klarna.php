@@ -17,7 +17,10 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
+		$this->is_reusable          = true;
+		$this->supports[]           = 'subscriptions';
+		$this->supports[]           = 'tokenization';
+		$this->supports[]           = 'multiple_subscriptions';
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -169,5 +172,40 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return parent::is_available();
+	}
+
+	/**
+	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
+	 *
+	 * @return string The payment method type.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Creates a Klarna payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 *
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Payment_Token_CashApp();
+
+		$gateway_id = $this->is_oc_enabled() ? 'stripe' : $this->id;
+
+		$token->set_gateway_id( $gateway_id );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+
+		if ( isset( $payment_method->cashapp->cashtag ) ) {
+			$token->set_cashtag( $payment_method->cashapp->cashtag );
+		}
+
+		$token->save();
+
+		return $token;
 	}
 }
