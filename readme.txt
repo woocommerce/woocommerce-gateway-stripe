@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
+* Update - Reduces the minimum transaction amount for Affirm to 15 USD
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
