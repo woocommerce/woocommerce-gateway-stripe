@@ -82,10 +82,11 @@ const paymentMethodsMap = {
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
 		// translators: %s is the store currency.
 		description: __(
-			'Allow customers to pay over time. Available to all customers paying in %s. Purchases from 50 %s to 30,000 %s are eligible for Affirm financing.',
+			'Allow customers to pay over time. Available to all customers paying in %s. Purchases from %s %s to 30,000 %s are eligible for Affirm financing.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
+		minAmounts: { USD: 15, CAD: 50 },
 		currencies: [ 'USD', 'CAD' ],
 		allows_manual_capture: true,
 	},
