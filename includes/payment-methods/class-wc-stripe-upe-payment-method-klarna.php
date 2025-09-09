@@ -144,7 +144,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
-	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, SE, CH, GB, US.
+	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, RO, SE, CH, GB, US.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
