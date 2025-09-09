@@ -27,6 +27,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable = true;
 		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
+		$this->supports[]  = 'multiple_subscriptions';
 	}
 
 	/**

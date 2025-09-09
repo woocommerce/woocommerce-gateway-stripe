@@ -27,6 +27,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
+		$this->supports[]  = 'multiple_subscriptions';
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'

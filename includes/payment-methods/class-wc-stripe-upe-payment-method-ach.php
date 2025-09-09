@@ -31,6 +31,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_countries  = [ 'US' ];
 		$this->supports[]           = 'tokenization';
 		$this->supports[]           = 'subscriptions';
+		$this->supports[]           = 'multiple_subscriptions';
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
