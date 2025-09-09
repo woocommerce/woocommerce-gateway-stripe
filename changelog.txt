@@ -1,11 +1,15 @@
 *** Changelog ***
 
-= 9.9.0 - xxxx-xx-xx =
+= 9.10.0 - xxxx-xx-xx =
 * Dev - Upgrades the Webpack-related packages
-* Dev - Adds debug information to the Payment Intent object metadata
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
+* Dev - Consolidate component used for unavailable payment methods
+
+= 9.9.0 - 2025-09-08 =
+* Dev - Adds PMC setting information to the Payment Intent object metadata
+* Dev - Adds debug information to the Payment Intent object metadata
 * Fix - Use the item name as fallback when normalizing line items for the express checkout
 * Update - Upgrade React to v18 and related dependencies
 * Dev - Simplifies the way test payment instructions are built when the Optimized Checkout is enabled
@@ -38,8 +42,7 @@
 * Dev - Make 'Add to cart' more robust in e2e tests
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Fix - Fix some PHP warnings
-* Dev - Consolidate component used for unavailable payment methods
-
+* Dev - Normalize intent metadata to yes/no/null values
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt
 * Fix - Relax customer validation that was preventing payments from the pay for order page
