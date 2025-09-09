@@ -33,6 +33,9 @@ class Sepa_Tokens_For_Other_Methods_Settings_Update {
 			return;
 		}
 
+		/**
+		 * TODO: Remove this setting and the migration logic after 10.2.0 is released.
+		 */
 		$value = $stripe_gateway->get_option( 'sepa_tokens_for_other_methods', 'no' );
 
 		$stripe_gateway->update_option( 'sepa_tokens_for_ideal', $value );
