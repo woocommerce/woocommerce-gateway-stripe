@@ -1,6 +1,8 @@
 *** Changelog ***
 
 = 9.10.0 - xxxx-xx-xx =
+* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
@@ -43,6 +45,7 @@
 * Dev - Ensure e2e tests enable or disable Optimized Checkout during setup
 * Fix - Fix some PHP warnings
 * Dev - Normalize intent metadata to yes/no/null values
+
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt
 * Fix - Relax customer validation that was preventing payments from the pay for order page

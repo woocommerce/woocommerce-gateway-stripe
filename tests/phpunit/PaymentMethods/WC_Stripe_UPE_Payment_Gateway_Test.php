@@ -174,8 +174,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_ideal']      = 'yes';
+		$stripe_settings['sepa_tokens_for_bancontact'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
