@@ -27,8 +27,11 @@ import {
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
-const isSepaTokensEnabled =
-	window.wc_stripe_settings_params?.is_sepa_tokens_enabled === '1';
+const isSepaTokensForIdealEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_ideal_enabled === '1';
+const isSepaTokensForBancontactEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_bancontact_enabled ===
+	'1';
 
 const paymentMethodsMap = {
 	card: {
@@ -162,7 +165,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForBancontactEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
@@ -173,7 +176,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForIdealEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,
