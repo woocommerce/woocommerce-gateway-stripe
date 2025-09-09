@@ -12,7 +12,7 @@ describe( 'getFormattedPaymentMethodDescription', () => {
 			'usd'
 		);
 		expect( result ).toBe(
-			'Allow customers to pay over time. Available to all customers paying in USD. Purchases from 15 USD to 30,000 USD are eligible for Affirm financing.'
+			'Allow customers to pay over time. Available to all customers paying in USD. Purchases from 35 USD to 30,000 USD are eligible for Affirm financing.'
 		);
 	} );
 

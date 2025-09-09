@@ -89,7 +89,7 @@ const paymentMethodsMap = {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
-		minAmounts: { USD: 15, CAD: 50 },
+		minAmounts: { USD: 35, CAD: 50 },
 		currencies: [ 'USD', 'CAD' ],
 		allows_manual_capture: true,
 	},
