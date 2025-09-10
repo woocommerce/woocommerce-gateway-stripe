@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
@@ -118,5 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
+* Fix - Fatal error caused by type mismatch when processing webhooks
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
