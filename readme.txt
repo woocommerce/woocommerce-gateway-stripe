@@ -112,8 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Update - Changes the background color and spacing for the Woo logo shown in the account modal
-* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency

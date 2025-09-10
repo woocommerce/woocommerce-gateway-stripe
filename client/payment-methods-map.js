@@ -75,6 +75,7 @@ const paymentMethodsMap = {
 			'NOK',
 			'NZD',
 			'PLN',
+			'RON',
 			'SEK',
 			'USD',
 		],
