@@ -1470,9 +1470,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	private function run_webhook_received_action( string $webhook_type, object $notification ): void {
 		try {
-			// Ensure we have an order or null.
-			$resolved_order = $this->resolved_order ? $this->resolved_order : null;
-
 			/**
 			 * Fires after a webhook has been processed, but before we respond to Stripe.
 			 * This allows for custom processing of the webhook after it has been processed.
@@ -1485,7 +1482,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			 * @param object $notification The webhook data sent from Stripe.
 			 * @param WC_Order|null $order The order being processed by the webhook.
 			 */
-			do_action( 'wc_stripe_webhook_received', $webhook_type, $notification, $resolved_order );
+			do_action( 'wc_stripe_webhook_received', $webhook_type, $notification, $this->resolved_order );
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Error in wc_stripe_webhook_received action: ' . $e->getMessage(), [ 'error' => $e ] );
 		}
