@@ -111,11 +111,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
+* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
+* Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
+* Fix - Fatal error caused by type mismatch when processing webhooks
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

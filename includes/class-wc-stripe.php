@@ -288,7 +288,7 @@ class WC_Stripe {
 		// Check for payment methods that should be toggled, e.g. unreleased,
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
-		add_action( 'init', [ $this, 'maybe_toggle_payment_methods' ] );
+		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
 		add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
