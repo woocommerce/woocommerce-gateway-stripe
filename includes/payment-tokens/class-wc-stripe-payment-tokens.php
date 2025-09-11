@@ -448,6 +448,13 @@ class WC_Stripe_Payment_Tokens {
 					esc_html( $payment_token->get_email() )
 				);
 				break;
+			case WC_Stripe_Payment_Methods::KLARNA:
+				$item['method']['brand'] = sprintf(
+					/* translators: customer date of birth */
+					esc_html__( 'Klarna (%s)', 'woocommerce-gateway-stripe' ),
+					esc_html( $payment_token->get_formatted_dob() )
+				);
+				break;
 		}
 
 		return $item;
