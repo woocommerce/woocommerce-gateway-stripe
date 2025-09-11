@@ -70,18 +70,20 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::KLARNA === $this->get_type() ) {
-			$method_dob = $payment_method->klarna->dob ?? null;
-			if ( null === $method_dob && empty( $this->get_dob() ) ) {
-				return true;
-			}
-
-			if ( $this->format_dob( $method_dob ) === $this->get_dob() ) {
-				return true;
-			}
+		if ( WC_Stripe_Payment_Methods::KLARNA !== $this->get_type() ) {
+			return false;
 		}
 
-		return false;
+		$payment_method_dob = $payment_method->klarna->dob ?? null;
+		if ( empty( $this->get_dob() ) ) {
+			return null === $payment_method_dob;
+		}
+
+		if ( null === $payment_method_dob ) {
+			return false;
+		}
+
+		return $this->format_dob( $payment_method_dob ) === $this->get_dob();
 	}
 
 	/**
