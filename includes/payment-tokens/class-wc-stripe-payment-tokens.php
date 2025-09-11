@@ -450,11 +450,8 @@ class WC_Stripe_Payment_Tokens {
 				);
 				break;
 			case WC_Stripe_Payment_Methods::KLARNA:
-				$item['method']['brand'] = sprintf(
-					/* translators: customer date of birth */
-					esc_html__( 'Klarna (%s)', 'woocommerce-gateway-stripe' ),
-					esc_html( $payment_token->get_masked_dob() )
-				);
+				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
+				$item['method']['last4'] = $payment_token->get_masked_dob();
 				break;
 		}
 
