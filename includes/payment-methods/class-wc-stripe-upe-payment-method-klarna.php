@@ -203,7 +203,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$token->set_user_id( $user_id );
 
 		if ( isset( $payment_method->klarna->dob ) ) {
-			$token->set_formated_dob( $payment_method->klarna->dob );
+			$token->set_formatted_dob( $payment_method->klarna->dob );
 		}
 
 		$token->save();

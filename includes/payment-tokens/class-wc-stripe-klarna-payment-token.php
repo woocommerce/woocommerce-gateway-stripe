@@ -48,14 +48,14 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	/**
 	 * Sets the Klarna token's date of birth.
 	 *
-	 * @param string $dob The formated date of birth object (YYYY-mm-dd).
+	 * @param string $dob The formatted date of birth object (YYYY-mm-dd).
 	 */
 	public function set_dob( $dob ) {
 		$this->set_prop( 'dob', $dob );
 	}
 
 	/**
-	 * Fetches Klarna token's date of birth (formated to Y-m-d).
+	 * Fetches Klarna token's date of birth (formatted to Y-m-d).
 	 *
 	 * @return string The Klarna token's date of birth.
 	 */
@@ -68,7 +68,7 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 *
 	 * @param object $dob The raw date of birth object (from Stripe's API).
 	 */
-	public function set_formated_dob( $dob ) {
+	public function set_formatted_dob( $dob ) {
 		$this->set_dob( $this->format_dob( $dob ) );
 	}
 
