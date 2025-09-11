@@ -35,9 +35,9 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 			],
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
 				'US' => [
-					'min' => 5000,
+					'min' => 3500,
 					'max' => 3000000,
-				], // Represents USD 50 - 30,000 USD.
+				], // Represents USD 35 - 30,000 USD.
 			],
 		];
 	}

@@ -19,7 +19,8 @@ import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
-	useSepaTokensForOtherMethods,
+	useSepaTokensForIdeal,
+	useSepaTokensForBancontact,
 	useIsOCEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
@@ -225,9 +226,15 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		useSepaTokensForOtherMethods: {
-			hook: useSepaTokensForOtherMethods,
-			storeKey: 'is_sepa_tokens_for_other_methods_enabled',
+		useSepaTokensForIdeal: {
+			hook: useSepaTokensForIdeal,
+			storeKey: 'is_sepa_tokens_for_ideal_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useSepaTokensForBancontact: {
+			hook: useSepaTokensForBancontact,
+			storeKey: 'is_sepa_tokens_for_bancontact_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},

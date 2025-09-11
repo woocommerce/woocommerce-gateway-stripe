@@ -5,12 +5,10 @@ import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
-import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
-import { sprintf } from '@wordpress/i18n';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
 	useEnabledPaymentMethodIds,
@@ -20,13 +18,12 @@ import {
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import {
-	PAYMENT_METHOD_AFFIRM,
-	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
+import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
 const List = styled.ul`
 	margin: 0;
@@ -173,43 +170,6 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 	}, [ orderedPaymentMethodIds, storeCurrencyCode, isUpeEnabled ] );
 
 	return sortedPaymentMethodIds;
-};
-
-/**
- * Formats the payment method description with the account default currency.
- *
- * @param {*} method                 Payment method ID.
- * @param {*} accountDefaultCurrency Account default currency.
- */
-const getFormattedPaymentMethodDescription = (
-	method,
-	accountDefaultCurrency
-) => {
-	const { description } = PaymentMethodsMap[ method ];
-
-	if ( method === PAYMENT_METHOD_AFFIRM ) {
-		const currency = accountDefaultCurrency?.toUpperCase();
-		return sprintf( description, currency, currency, currency );
-	}
-
-	if ( method === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		/* eslint-disable jsx-a11y/anchor-has-content */
-		return interpolateComponents( {
-			mixedString: description,
-			components: {
-				limitsLink: (
-					<a
-						target="_blank"
-						rel="noreferrer"
-						href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
-					/>
-				),
-			},
-		} );
-		/* eslint-enable jsx-a11y/anchor-has-content */
-	}
-
-	return description;
 };
 
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
