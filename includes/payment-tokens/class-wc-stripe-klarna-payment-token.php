@@ -41,8 +41,10 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 			return __( 'Klarna', 'woocommerce-gateway-stripe' );
 		}
 
-		// Translators: %s is the customer's date of birth.
-		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $this->get_dob() );
+		$masked_dob = 'xxxx' . gmdate( '-m-d', strtotime( $this->get_dob() ) );
+
+		// Translators: %s is the customer's masked date of birth.
+		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $masked_dob );
 	}
 
 	/**
