@@ -233,15 +233,25 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
-				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
-					...options,
-					shippingRates,
-				} );
+				wcStripeECE.createExpressCheckoutElement(
+					expressPaymentType,
+					hasFreeTrial,
+					{
+						...options,
+						shippingRates,
+					}
+				);
 			} );
 		},
 
-		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+		createExpressCheckoutElement: (
+			expressPaymentType,
+			hasFreeTrial,
+			options
+		) => {
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
@@ -331,11 +341,19 @@ jQuery( function ( $ ) {
 				return;
 			}
 
+			let mode = options.mode;
+			if ( ! mode ) {
+				mode = hasFreeTrial ? 'subscription' : 'payment';
+			}
+
 			const elements = api.getStripe().elements( {
-				mode: options.mode ? options.mode : 'payment',
+				mode,
 				amount: options.total,
 				currency: options.currency,
-				...( isManualPaymentMethodCreation( expressPaymentType ) && {
+				...( isManualPaymentMethodCreation(
+					expressPaymentType,
+					hasFreeTrial
+				) && {
 					paymentMethodCreation: 'manual',
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
@@ -462,6 +480,7 @@ jQuery( function ( $ ) {
 					event,
 					order,
 					orderDetails,
+					hasFreeTrial,
 				} );
 			} );
 

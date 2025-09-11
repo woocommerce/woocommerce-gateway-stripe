@@ -16,6 +16,8 @@ import {
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 			// Create the DIV container on the fly
 			const containerEl = document.createElement( 'div' );
 
@@ -30,10 +32,11 @@ export const checkPaymentMethodIsAvailable = memoize(
 				<Elements
 					stripe={ api.loadStripe() }
 					options={ {
-						mode: getExpressCheckoutData( 'has_free_trial' )
-							? 'subscription'
-							: 'payment',
-						...( isManualPaymentMethodCreation( paymentMethod ) && {
+						mode: hasFreeTrial ? 'subscription' : 'payment',
+						...( isManualPaymentMethodCreation(
+							paymentMethod,
+							hasFreeTrial
+						) && {
 							paymentMethodCreation: 'manual',
 						} ),
 						amount: Number( cart.cartTotals.total_price ),
