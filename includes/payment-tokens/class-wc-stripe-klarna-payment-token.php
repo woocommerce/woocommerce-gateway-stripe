@@ -42,22 +42,23 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 		}
 
 		// Translators: %s is the customer's date of birth.
-		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $this->get_formatted_dob() );
+		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $this->get_dob() );
 	}
 
 	/**
-	 * Sets the Klarna token's date of birth.
+	 * Sets the Klarna token's date of birth, converting it to a formatted string.
 	 *
-	 * @param object $dob The date of birth.
+	 * @param object $dob The raw date of birth object (from Stripe's API).
 	 */
 	public function set_dob( $dob ) {
-		$this->set_prop( 'dob', $dob );
+		$formatted_dob = $this->format_dob( $dob );
+		$this->set_prop( 'dob', $formatted_dob );
 	}
 
 	/**
-	 * Fetches Klarna token's date of birth.
+	 * Fetches Klarna token's date of birth (formated to Y-m-d).
 	 *
-	 * @return object The Klarna token's date of birth.
+	 * @return string The Klarna token's date of birth.
 	 */
 	public function get_dob() {
 		return $this->get_prop( 'dob' );
@@ -71,30 +72,16 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	public function is_equal_payment_method( $payment_method ): bool {
 		if ( WC_Stripe_Payment_Methods::KLARNA === $this->get_type() ) {
 			$method_dob = $payment_method->klarna->dob ?? null;
-			if ( null === $method_dob && null === $this->get_dob() ) {
+			if ( null === $method_dob && empty( $this->get_dob() ) ) {
 				return true;
 			}
 
-			$formated_method_dob = $this->format_dob( $method_dob );
-			if ( $formated_method_dob === $this->get_formatted_dob() ) {
+			if ( $this->format_dob( $method_dob ) === $this->get_dob() ) {
 				return true;
 			}
 		}
 
 		return false;
-	}
-
-	/**
-	 * Returns the formatted date of birth.
-	 *
-	 * @return string
-	 */
-	public function get_formatted_dob() {
-		$dob = $this->get_dob();
-		if ( empty( $dob ) ) {
-			return '';
-		}
-		return $this->format_dob( $dob );
 	}
 
 	/**
