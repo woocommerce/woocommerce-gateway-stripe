@@ -429,7 +429,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			return;
 		}
 
-		$this->assertCount( count( $expected_result ), $expected_result );
+		$this->assertCount( count( $expected_result ), $result['method'] );
 
 		foreach ( $expected_result as $expected_key => $expected_value ) {
 			$this->assertArrayHasKey( $expected_key, $result['method'] );
