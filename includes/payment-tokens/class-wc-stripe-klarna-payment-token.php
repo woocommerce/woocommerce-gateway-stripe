@@ -41,10 +41,8 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 			return __( 'Klarna', 'woocommerce-gateway-stripe' );
 		}
 
-		$masked_dob = 'xxxx' . gmdate( '-m-d', strtotime( $this->get_dob() ) );
-
 		// Translators: %s is the customer's masked date of birth.
-		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $masked_dob );
+		return sprintf( __( 'Klarna (%s)', 'woocommerce-gateway-stripe' ), $this->get_masked_dob() );
 	}
 
 	/**
@@ -72,6 +70,19 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 */
 	public function set_formated_dob( $dob ) {
 		$this->set_dob( $this->format_dob( $dob ) );
+	}
+
+	/**
+	 * Returns the masked date of birth for display.
+	 *
+	 * @return string
+	 */
+	public function get_masked_dob() {
+		if ( empty( $this->get_dob() ) ) {
+			return '';
+		}
+
+		return 'xxxx' . gmdate( '-m-d', strtotime( $this->get_dob() ) );
 	}
 
 	/**

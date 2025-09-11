@@ -39,13 +39,20 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests for the DOB getter and setter.
+	 * Tests for the DOB getters and setters.
 	 *
 	 * @return void
 	 */
-	public function test_getter_setter() {
-		$this->token->set_dob( '2000-02-01' );
+	public function test_getters_setters() {
+		$this->token->set_formated_dob(
+			(object) [
+				'day'   => 1,
+				'month' => 2,
+				'year'  => 2000,
+			]
+		);
 		$this->assertSame( '2000-02-01', $this->token->get_dob() );
+		$this->assertSame( 'xxxx-xx-xx', $this->token->get_masked_dob() );
 	}
 
 	/**
