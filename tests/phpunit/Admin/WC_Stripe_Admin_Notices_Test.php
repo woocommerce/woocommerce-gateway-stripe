@@ -12,6 +12,9 @@ use WC_Subscription;
 use WC_Subscriptions;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
+/**
+ * Tests for the admin notices class.
+ */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * The original value of the HPOS option.
@@ -20,6 +23,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	private static $original_hpos_value;
 
+	/**
+	 * @inheritDoc
+	 *
+	 * @return void
+	 */
 	public function set_up() {
 		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -56,6 +64,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
 	}
 
+	/**
+	 * Test that no notices are shown when the user is not an admin.
+	 *
+	 * @return void
+	 */
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
 		$notices = new WC_Stripe_Admin_Notices();
@@ -65,6 +78,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertCount( 0, $notices->notices );
 	}
 
+	/**
+	 * Test that no notices are shown when Stripe is not enabled.
+	 *
+	 * @return void
+	 */
 	public function test_no_notices_are_shown_when_stripe_is_not_enabled() {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'no' ] );
@@ -76,13 +94,28 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that the correct notices are shown in all scenarios.
+	 *
+	 * @param array $options_to_set         Options to set before running the test.
+	 * @param array $expected_notices       Notices expected to be shown.
+	 * @param string|false $expected_output Optional. If set, the output is expected to match this regex.
+	 * @param array $query_params           Optional. Query parameters to set before running the test.
+	 * @return void
+	 *
 	 * @dataProvider options_to_notices_map
 	 */
-	public function test_correct_stripe_notices_are_shown_in_all_scenarios( $options_to_set, $expected_notices = [], $expected_output = false, $query_params = [] ) {
+	public function test_correct_stripe_notices_are_shown_in_all_scenarios(
+		$options_to_set,
+		array $expected_notices = [],
+		$expected_output = false,
+		array $query_params = []
+	) {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		foreach ( $query_params as $param => $value ) {
 			$_GET[ $param ] = $value;
 		}
+
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
@@ -94,6 +127,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
+
 		// Displaying the style notice results in an early return.
 		if ( ! in_array( 'style', $expected_notices, true ) ) {
 			if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
@@ -204,6 +238,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertMatchesRegularExpression( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
 	}
 
+	/**
+	 * Data provider for `test_correct_stripe_notices_are_shown_in_all_scenarios`.
+	 *
+	 * @return array
+	 */
 	public function options_to_notices_map() {
 		return [
 			[

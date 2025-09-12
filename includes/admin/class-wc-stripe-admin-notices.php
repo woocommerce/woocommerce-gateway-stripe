@@ -413,7 +413,7 @@ class WC_Stripe_Admin_Notices {
 				$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
 
 				$oauth_required = $needs_live_oauth || $needs_test_oauth;
-				if ( true ) {
+				if ( $oauth_required ) {
 					$icon_img_url = WC_STRIPE_PLUGIN_URL . '/assets/images/info.svg';
 					$message      = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
 					$this->add_admin_notice( 'oauth_required', 'notice notice-warning', $message, true, $icon_img_url );
