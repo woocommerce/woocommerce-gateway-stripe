@@ -456,7 +456,6 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			case WC_Stripe_Payment_Methods::KLARNA:
 				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
-				$item['method']['last4'] = $payment_token->get_masked_dob();
 				break;
 		}
 

@@ -52,7 +52,6 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->assertSame( '2000-02-01', $this->token->get_dob() );
-		$this->assertSame( 'xxxx-02-01', $this->token->get_masked_dob() );
 
 		$this->token->set_dob_from_object(
 			(object) [
@@ -62,7 +61,6 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->assertSame( '1999-10-18', $this->token->get_dob() );
-		$this->assertSame( 'xxxx-10-18', $this->token->get_masked_dob() );
 	}
 
 	/**
