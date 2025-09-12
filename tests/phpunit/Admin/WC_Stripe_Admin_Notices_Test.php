@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use WC_Stripe;
 use WC_Stripe_Admin_Notices;
+use WC_Stripe_Connect;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
@@ -22,6 +23,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @var string
 	 */
 	private static $original_hpos_value;
+
+	/**
+	 * The original `WC_Stripe_Connect` instance, to be restored after tests.
+	 *
+	 * @var WC_Stripe_Connect
+	 */
+	private WC_Stripe_Connect $stripe_connect_original;
 
 	/**
 	 * @inheritDoc
@@ -46,6 +54,28 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test' => 'test',
 			]
 		);
+
+		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
+		$stripe_connect_mock = $this->createPartialMock( WC_Stripe_Connect::class, [ 'is_connected_via_oauth' ] );
+		$stripe_connect_mock
+			->expects( $this->any() )
+			->method( 'is_connected_via_oauth' )
+			->willReturn( true );
+
+		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
+		woocommerce_gateway_stripe()->connect = $stripe_connect_mock;
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @return void
+	 */
+	public function tear_down() {
+		parent::tear_down();
+
+		// Restoring the original `WC_Stripe_Connect` instance.
+		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 	}
 
 	/**
