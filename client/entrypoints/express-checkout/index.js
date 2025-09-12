@@ -233,25 +233,15 @@ jQuery( function ( $ ) {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
-			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
-
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
-				wcStripeECE.createExpressCheckoutElement(
-					expressPaymentType,
-					hasFreeTrial,
-					{
-						...options,
-						shippingRates,
-					}
-				);
+				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
+					...options,
+					shippingRates,
+				} );
 			} );
 		},
 
-		createExpressCheckoutElement: (
-			expressPaymentType,
-			hasFreeTrial,
-			options
-		) => {
+		createExpressCheckoutElement: ( expressPaymentType, options ) => {
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
@@ -341,13 +331,10 @@ jQuery( function ( $ ) {
 				return;
 			}
 
-			let mode = options.mode;
-			if ( ! mode ) {
-				mode = hasFreeTrial ? 'subscription' : 'payment';
-			}
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 
 			const elements = api.getStripe().elements( {
-				mode,
+				mode: options.mode ? options.mode : 'payment',
 				amount: options.total,
 				currency: options.currency,
 				...( isManualPaymentMethodCreation(
@@ -536,8 +523,10 @@ jQuery( function ( $ ) {
 					return;
 				}
 
+				const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 				wcStripeECE.startExpressCheckout( {
-					mode: 'payment',
+					mode: hasFreeTrial ? 'subscription' : 'payment',
 					total,
 					currency:
 						getExpressCheckoutData( 'checkout' ).currency_code,
@@ -554,10 +543,12 @@ jQuery( function ( $ ) {
 					getExpressCheckoutData( 'product' )
 						?.validVariationSelected ?? true;
 				if ( isProductSupported ) {
+					const hasFreeTrial =
+						getExpressCheckoutData( 'has_free_trial' );
 					const displayItems =
 						getExpressCheckoutData( 'product' ).displayItems ?? [];
 					wcStripeECE.startExpressCheckout( {
-						mode: 'payment',
+						mode: hasFreeTrial ? 'subscription' : 'payment',
 						total: getExpressCheckoutData( 'product' )?.total
 							.amount,
 						currency: getExpressCheckoutData( 'product' )?.currency,
@@ -581,13 +572,16 @@ jQuery( function ( $ ) {
 						cart.totals
 					);
 
-					if ( total === 0 ) {
+					const hasFreeTrial =
+						getExpressCheckoutData( 'has_free_trial' );
+
+					if ( total === 0 && ! hasFreeTrial ) {
 						wcStripeECE.hide();
 						return;
 					}
 
 					wcStripeECE.startExpressCheckout( {
-						mode: 'payment',
+						mode: hasFreeTrial ? 'subscription' : 'payment',
 						total,
 						currency:
 							getExpressCheckoutData( 'checkout' )?.currency_code,
