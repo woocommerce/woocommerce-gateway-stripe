@@ -123,5 +123,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
 * Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
 * Fix - Fatal error caused by type mismatch when processing webhooks
+* Fix - Prevent type collisions for saved payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
