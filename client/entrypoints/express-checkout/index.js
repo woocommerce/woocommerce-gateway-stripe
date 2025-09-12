@@ -211,24 +211,19 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isPaymentRequestEnabled =
-				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_payment_request_enabled;
-			const isAmazonPayEnabled =
-				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_amazon_pay_enabled;
-			const isLinkEnabled =
-				wc_stripe_express_checkout_params?.stripe?.is_link_enabled; // eslint-disable-line camelcase
+			const eceParams = wc_stripe_express_checkout_params; // eslint-disable-line camelcase
+
+			const isECEEnabled = eceParams?.stripe?.is_payment_request_enabled; // eslint-disable-line camelcase
+			const isAmazonPayEnabled = eceParams?.stripe?.is_amazon_pay_enabled; // eslint-disable-line camelcase
+			const isLinkEnabled = eceParams?.stripe?.is_link_enabled; // eslint-disable-line camelcase
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isPaymentRequestEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isPaymentRequestEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isECEEnabled && EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isECEEnabled && EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
@@ -332,9 +327,8 @@ jQuery( function ( $ ) {
 			}
 
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
-
 			const elements = api.getStripe().elements( {
-				mode: options.mode ? options.mode : 'payment',
+				mode: hasFreeTrial ? 'subscription' : 'payment',
 				amount: options.total,
 				currency: options.currency,
 				...( isManualPaymentMethodCreation(
@@ -508,7 +502,7 @@ jQuery( function ( $ ) {
 
 				const {
 					total: { amount: total },
-					displayItems,
+					displayItems: rawItems,
 					order,
 					orderDetails,
 				} = wcStripeExpressCheckoutPayForOrderParams;
@@ -523,46 +517,43 @@ jQuery( function ( $ ) {
 					return;
 				}
 
-				const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
-
+				const currency =
+					getExpressCheckoutData( 'checkout' )?.currency_code;
+				const displayItems = transformLabeledDisplayItems(
+					rawItems ?? []
+				);
 				wcStripeECE.startExpressCheckout( {
-					mode: hasFreeTrial ? 'subscription' : 'payment',
 					total,
-					currency:
-						getExpressCheckoutData( 'checkout' ).currency_code,
-					appearance: getExpressCheckoutButtonAppearance(),
-					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
-					),
+					currency,
+					displayItems,
 					order,
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
+				const product = getExpressCheckoutData( 'product' );
 				const isProductSupported =
-					getExpressCheckoutData( 'product' )
-						?.validVariationSelected ?? true;
-				if ( isProductSupported ) {
-					const hasFreeTrial =
-						getExpressCheckoutData( 'has_free_trial' );
-					const displayItems =
-						getExpressCheckoutData( 'product' ).displayItems ?? [];
-					wcStripeECE.startExpressCheckout( {
-						mode: hasFreeTrial ? 'subscription' : 'payment',
-						total: getExpressCheckoutData( 'product' )?.total
-							.amount,
-						currency: getExpressCheckoutData( 'product' )?.currency,
-						requestShipping:
-							getExpressCheckoutData( 'product' )
-								?.requestShipping ?? false,
-						requestPhone:
-							getExpressCheckoutData( 'checkout' )
-								?.needs_payer_phone ?? false,
-						displayItems: useLegacyCartEndpoints
-							? displayItems
-							: transformLabeledDisplayItems( displayItems ),
-					} );
+					product?.validVariationSelected ?? true;
+				if ( ! isProductSupported ) {
+					return;
 				}
+
+				const total = product?.total.amount;
+				const currency = product?.currency;
+				const requestShipping = product?.requestShipping ?? false;
+				const requestPhone =
+					getExpressCheckoutData( 'checkout' )?.needs_payer_phone ??
+					false;
+				let displayItems = product.displayItems ?? [];
+				if ( ! useLegacyCartEndpoints ) {
+					displayItems = transformLabeledDisplayItems( displayItems );
+				}
+				wcStripeECE.startExpressCheckout( {
+					total,
+					currency,
+					requestShipping,
+					requestPhone,
+					displayItems,
+				} );
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
@@ -571,25 +562,26 @@ jQuery( function ( $ ) {
 							parseInt( cart.totals.total_refund || 0, 10 ),
 						cart.totals
 					);
-
-					const hasFreeTrial =
-						getExpressCheckoutData( 'has_free_trial' );
-
-					if ( total === 0 && ! hasFreeTrial ) {
+					if (
+						total === 0 &&
+						! getExpressCheckoutData( 'has_free_trial' )
+					) {
 						wcStripeECE.hide();
 						return;
 					}
 
+					const checkoutData = getExpressCheckoutData( 'checkout' );
+					const currency = checkoutData?.currency_code;
+					const requestShipping = cart.needs_shipping === true;
+					const requestPhone = checkoutData?.needs_payer_phone;
+					const displayItems =
+						transformCartDataForDisplayItems( cart );
 					wcStripeECE.startExpressCheckout( {
-						mode: hasFreeTrial ? 'subscription' : 'payment',
 						total,
-						currency:
-							getExpressCheckoutData( 'checkout' )?.currency_code,
-						requestShipping: cart.needs_shipping === true,
-						requestPhone:
-							getExpressCheckoutData( 'checkout' )
-								?.needs_payer_phone,
-						displayItems: transformCartDataForDisplayItems( cart ),
+						currency,
+						requestShipping,
+						requestPhone,
+						displayItems,
 					} );
 				} );
 			}
