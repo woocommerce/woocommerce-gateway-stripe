@@ -105,7 +105,7 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 			return null === $payment_method_dob;
 		}
 
-		if ( null === $payment_method_dob ) {
+		if ( null === $payment_method_dob || empty( get_object_vars( $payment_method_dob ) ) ) {
 			return false;
 		}
 
@@ -128,6 +128,11 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @return string The formatted date of birth.
 	 */
 	protected function format_dob( object $dob ) {
-		return sprintf( '%04d-%02d-%02d', $dob->year, $dob->month, $dob->day );
+		$dob_parts = [
+			$dob->year ?? null,
+			isset( $dob->month ) ? str_pad( $dob->month, 2, '0', STR_PAD_LEFT ) : null,
+			isset( $dob->day ) ? str_pad( $dob->day, 2, '0', STR_PAD_LEFT ) : null,
+		];
+		return implode( '-', array_filter( $dob_parts ) );
 	}
 }
