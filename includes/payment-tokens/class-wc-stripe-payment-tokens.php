@@ -410,6 +410,11 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array $item Modified list item.
 	 */
 	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
+		// If this isn't a Stripe payment token, take no action.
+		if ( ! $payment_token instanceof WC_Stripe_Payment_Method_Comparison_Interface ) {
+			return $item;
+		}
+
 		switch ( strtolower( $payment_token->get_type() ) ) {
 			case WC_Stripe_Payment_Methods::SEPA:
 				$item['method']['last4'] = $payment_token->get_last4();
