@@ -176,7 +176,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Payment_Methods::KLARNA => [
 			'dob' => [
 				'day'   => 1,
-				'month' => 1,
+				'month' => 2,
 				'year'  => 1970,
 			],
 		],
