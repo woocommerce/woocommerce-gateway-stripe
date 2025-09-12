@@ -122,7 +122,7 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @param $dob object The date of birth object.
 	 * @return string The formatted date of birth.
 	 */
-	protected function format_dob( $dob ) {
+	protected function format_dob( object $dob ) {
 		return sprintf( '%04d-%02d-%02d', $dob->year, $dob->month, $dob->day );
 	}
 }
