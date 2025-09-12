@@ -91,7 +91,7 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::KLARNA !== $this->get_type() ) {
+		if ( WC_Stripe_Payment_Methods::KLARNA !== $payment_method->get_type() ) {
 			return false;
 		}
 
