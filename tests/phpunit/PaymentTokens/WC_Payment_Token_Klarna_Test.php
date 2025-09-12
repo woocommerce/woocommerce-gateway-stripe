@@ -44,7 +44,7 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_getters_setters() {
-		$this->token->set_formatted_dob(
+		$this->token->set_dob_from_object(
 			(object) [
 				'day'   => 1,
 				'month' => 2,
@@ -74,7 +74,7 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 
 		// Equal
 		$this->token->set_token( 'pm_123' );
-		$this->token->set_formatted_dob( $payment_method->klarna->dob );
+		$this->token->set_dob_from_object( $payment_method->klarna->dob );
 		$this->assertTrue( $this->token->is_equal_payment_method( $payment_method ) );
 
 		// Different DOB.
