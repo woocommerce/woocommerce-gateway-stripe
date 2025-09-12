@@ -41,11 +41,12 @@ class WC_Stripe_Admin_Notices {
 	 * @since 1.0.0
 	 * @version 4.0.0
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $icon_img_url = '' ) {
 		$this->notices[ $slug ] = [
-			'class'       => $class,
-			'message'     => $message,
-			'dismissible' => $dismissible,
+			'class'        => $class,
+			'message'      => $message,
+			'dismissible'  => $dismissible,
+			'icon_img_url' => $icon_img_url,
 		];
 	}
 
@@ -78,6 +79,12 @@ class WC_Stripe_Admin_Notices {
 			if ( $notice['dismissible'] ) {
 				?>
 				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0px 9px 9px 9px;text-decoration:none;"></a>
+				<?php
+			}
+
+			if ( ! empty( $notice['icon_img_url'] ) ) {
+				?>
+				<img class="info-icon" src="<?php echo esc_url( $notice['icon_img_url'] ); ?>" style="float: left; width: 1.5em; margin: 8px 10px 8px 0;" />
 				<?php
 			}
 
@@ -196,6 +203,7 @@ class WC_Stripe_Admin_Notices {
 		$show_sca_notice           = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
+		$oauth_required_notice     = get_option( 'wc_stripe_oauth_required' );
 		$options                   = WC_Stripe_Helper::get_stripe_settings();
 		$testmode                  = WC_Stripe_Mode::is_test();
 		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
@@ -391,6 +399,24 @@ class WC_Stripe_Admin_Notices {
 					);
 
 					$this->add_admin_notice( 'legacy_deprecation', 'notice notice-warning', $message, true );
+				}
+			}
+
+			if ( empty( $oauth_required_notice ) ) {
+				// Show the reconnection notice if the account requires OAuth reconnection.
+				$has_live_keys  = ! empty( $live_pub_key ) && ! empty( $live_secret_key );
+				$has_test_keys  = ! empty( $test_pub_key ) && ! empty( $test_secret_key );
+				$stripe_connect = woocommerce_gateway_stripe()->connect;
+
+				// Check each mode only if it has keys
+				$needs_live_oauth = $has_live_keys && ! $stripe_connect->is_connected_via_oauth( 'live' );
+				$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
+
+				$oauth_required = $needs_live_oauth || $needs_test_oauth;
+				if ( true ) {
+					$icon_img_url = WC_STRIPE_PLUGIN_URL . '/assets/images/info.svg';
+					$message      = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
+					$this->add_admin_notice( 'oauth_required', 'notice notice-warning', $message, true, $icon_img_url );
 				}
 			}
 		}
@@ -632,6 +658,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'upe_payment_methods':
 					update_option( 'wc_stripe_show_upe_payment_methods_notice', 'no' );
+					break;
+				case 'oauth_required':
+					update_option( 'wc_stripe_show_oauth_required_notice', 'no' );
 					break;
 				case 'subscriptions':
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
