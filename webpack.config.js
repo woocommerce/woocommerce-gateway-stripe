@@ -1,12 +1,9 @@
 const path = require( 'path' );
 const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
-const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 const defaultConfigOutput = defaultConfig.output;
-
-const isProduction = process.env.NODE_ENV === 'production';
 
 // Exclude jsonpFunction as it is not supported by webpack 5+.
 // https://github.com/webpack/webpack.js.org/issues/3942
@@ -40,9 +37,7 @@ module.exports = {
 	plugins: [
 		...defaultConfig.plugins.filter(
 			( plugin ) =>
-				plugin.constructor.name !==
-					'DependencyExtractionWebpackPlugin' &&
-				plugin.constructor.name !== 'LiveReloadPlugin'
+				plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
@@ -52,10 +47,6 @@ module.exports = {
 				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
 			),
 		} ),
-		! isProduction &&
-			new LiveReloadWebpackPlugin( {
-				port: process.env.WP_LIVE_RELOAD_PORT || 35729,
-			} ),
 	],
 	module: {
 		...defaultConfig.module,
