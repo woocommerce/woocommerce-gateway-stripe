@@ -67,7 +67,7 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token implements WC_Stripe_Pay
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::CASHAPP_PAY !== $this->get_type() ) {
+		if ( WC_Stripe_Payment_Methods::CASHAPP_PAY !== $payment_method->type ) {
 			return false;
 		}
 
