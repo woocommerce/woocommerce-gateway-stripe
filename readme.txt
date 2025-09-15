@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
+* Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
 * Dev - Fix live reload issue with Webpack 5
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
 * Update - Reduces the minimum transaction amount for Affirm to 35 USD
