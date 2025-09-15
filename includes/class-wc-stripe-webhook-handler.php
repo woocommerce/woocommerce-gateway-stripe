@@ -283,7 +283,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
-		if ( $this->lock_order_payment( $order ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order ) ) {
 			return;
 		}
 
@@ -300,7 +300,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$response = null;
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
 
 			WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
@@ -332,7 +332,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					// Unlock the order before retrying.
-					$this->unlock_order_payment( $order );
+					WC_Stripe_Order_Helper::unlock_order_payment( $order );
 
 					if ( $retry ) {
 						// Don't do anymore retries after this.
@@ -393,7 +393,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$this->unlock_order_payment( $order );
+		WC_Stripe_Order_Helper::unlock_order_payment( $order );
 	}
 
 	/**
@@ -735,7 +735,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( WC_Stripe_Helper::is_stripe_gateway_order( $order ) ) {
+		if ( WC_Stripe_Order_Helper::is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
 			$captured   = $order->get_meta( '_stripe_charge_captured' );
 			$refund_id  = $order->get_meta( '_stripe_refund_id' );
@@ -761,7 +761,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $this->lock_order_refund( $order ) ) {
+			if ( WC_Stripe_Order_Helper::lock_order_refund( $order ) ) {
 				return;
 			}
 
@@ -794,7 +794,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->update_fees( $order, $refund_object->balance_transaction );
 				}
 
-				$this->unlock_order_refund( $order );
+				WC_Stripe_Order_Helper::unlock_order_refund( $order );
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
@@ -821,7 +821,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( WC_Stripe_Helper::is_stripe_gateway_order( $order ) ) {
+		if ( WC_Stripe_Order_Helper::is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
 			$refund_id  = $order->get_meta( '_stripe_refund_id' );
 			$currency   = $order->get_currency();
@@ -1090,7 +1090,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 
@@ -1185,7 +1185,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 		}
 
-		$this->unlock_order_payment( $order );
+		WC_Stripe_Order_Helper::unlock_order_payment( $order );
 	}
 
 	public function process_setup_intent( $notification ) {
@@ -1228,7 +1228,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 
@@ -1258,7 +1258,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->send_failed_order_email( $order_id, $status_update );
 		}
 
-		$this->unlock_order_payment( $order );
+		WC_Stripe_Order_Helper::unlock_order_payment( $order );
 	}
 
 	/**
@@ -1505,7 +1505,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
 
 				if ( $order ) {
-					$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
+					$intent_id = WC_Stripe_Order_Helper::get_intent_id_from_order( $order );
 
 					// Return the order if the intent ID matches.
 					if ( $intent->id === $intent_id ) {
