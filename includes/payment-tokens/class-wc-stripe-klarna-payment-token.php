@@ -110,10 +110,14 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 * @return string The formatted date of birth.
 	 */
 	protected function format_dob( object $dob ) {
+		if ( empty( $dob->year ) && empty( $dob->month ) && empty( $dob->day ) ) {
+			// Either return null or ''. Empty string probably make more sense.
+			return '';
+		}
 		$dob_parts = [
-			$dob->year ?? null,
-			isset( $dob->month ) ? str_pad( $dob->month, 2, '0', STR_PAD_LEFT ) : null,
-			isset( $dob->day ) ? str_pad( $dob->day, 2, '0', STR_PAD_LEFT ) : null,
+			$dob->year ?? 'YYYY',
+			$dob->month ? str_pad( $dob->month, 2, '0', STR_PAD_LEFT ) : 'MM',
+			$dob->day ? str_pad( $dob->day, 2, '0', STR_PAD_LEFT ) : 'DDDD',
 		];
 		return implode( '-', array_filter( $dob_parts ) );
 	}
