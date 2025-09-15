@@ -35,7 +35,7 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 
 		// With DOB.
 		$this->token->set_dob( '2000-02-01' );
-		$this->assertSame( 'Klarna (xxxx-02-01)', $this->token->get_display_name() );
+		$this->assertSame( 'Klarna', $this->token->get_display_name() );
 	}
 
 	/**
@@ -71,6 +71,7 @@ class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
 	public function test_is_equal_payment_method() {
 		$payment_method = (object) [
 			'id'     => 'pm_123',
+			'type'   => WC_Stripe_Payment_Methods::KLARNA,
 			'klarna' => (object) [
 				'dob' => (object) [
 					'day'   => 1,
