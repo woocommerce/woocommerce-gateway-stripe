@@ -81,7 +81,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @return string $currency
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -98,7 +98,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @param string $currency
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
@@ -115,7 +115,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @return string $amount
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -144,7 +144,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @param float  $amount
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -160,7 +160,7 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -178,7 +178,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @return string $amount
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -207,7 +207,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @param float  $amount
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -223,7 +223,7 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -1301,7 +1301,7 @@ class WC_Stripe_Helper {
 	 * @param $payment_intent_id
 	 * @param $order
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
 
@@ -1418,7 +1418,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
 		$intent_id = $order->get_meta( '_stripe_intent_id' );
@@ -1458,7 +1458,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return void
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
@@ -1476,7 +1476,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return void
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
@@ -1932,7 +1932,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
@@ -2038,7 +2038,7 @@ class WC_Stripe_Helper {
 	 * @param $order WC_Order The order to check.
 	 * @return bool
 	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
