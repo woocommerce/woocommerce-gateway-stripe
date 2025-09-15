@@ -1,14 +1,14 @@
-import { __ } from '@wordpress/i18n';
-import { createInterpolateElement } from '@wordpress/element';
+import React, { useEffect, useRef } from 'react';
+import { getQuery } from '@woocommerce/navigation';
+import styled from '@emotion/styled';
+import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from '../../data';
 import {
 	CheckboxControl,
 	ExternalLink,
 	RadioControl,
 } from '@wordpress/components';
-import React, { useEffect, useRef } from 'react';
-import { getQuery } from '@woocommerce/navigation';
-import styled from '@emotion/styled';
-import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from '../../data';
+import { createInterpolateElement } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 const StyledRadioControl = styled( RadioControl )`
 	legend {

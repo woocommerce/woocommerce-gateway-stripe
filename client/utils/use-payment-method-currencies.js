@@ -1,6 +1,6 @@
-import { useContext } from '@wordpress/element';
 import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
+import { useContext } from '@wordpress/element';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,
@@ -209,7 +209,17 @@ const getKlarnaCurrencies = () => {
 
 	// Countries located in the EEA, Switzerland and the UK can also transact in any EU based currencies including NOK, PLN, DKK etc.
 	if ( eeaCountries.includes( accountCountry ) ) {
-		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
+		return [
+			'EUR',
+			'SEK',
+			'PLN',
+			'CHF',
+			'CZK',
+			'DKK',
+			'GBP',
+			'NOK',
+			'RON',
+		];
 	}
 
 	// eslint-disable-next-line no-console

@@ -209,12 +209,14 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
 		new Allowed_Payment_Request_Button_Types_Update();
 		// TODO: Temporary disabling the migration as it has a conflict with the new UPE checkout.
 		// new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
 		$this->api                           = new WC_Stripe_Connect_API();
 		$this->connect                       = new WC_Stripe_Connect( $this->api );
@@ -286,7 +288,10 @@ class WC_Stripe {
 		// Check for payment methods that should be toggled, e.g. unreleased,
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
-		add_action( 'init', [ $this, 'maybe_toggle_payment_methods' ] );
+		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
+
+		add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
+		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
 	}
 
 	/**
@@ -358,6 +363,9 @@ class WC_Stripe {
 			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+			// Try to schedule the daily async cleanup of the Stripe database cache.
+			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
 		}
 	}
 

@@ -225,11 +225,19 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'sepa_tokens_for_other_methods'       => [
-			'title'       => __( 'SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+		'sepa_tokens_for_ideal'       => [
+			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable saved iDEAL payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
-			'description' => __( 'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'If enabled, users will be able to pay with iDEAL and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'yes',
+			'desc_tip'    => true,
+		],
+		'sepa_tokens_for_bancontact'       => [
+			'title'       => __( 'SEPA Direct Debit tokens when saving Bancontact methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable saved Bancontact payments for repeat payments', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will be able to pay with Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],

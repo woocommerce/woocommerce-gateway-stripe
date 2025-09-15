@@ -1,15 +1,13 @@
-const { test, expect } = require( '@playwright/test' );
+import { test, expect } from '@playwright/test';
+import { payments } from '../../utils';
+
+const { clickAddToCartButton } = payments;
 
 const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
 	await page.goto( `/product/${ productSlug }` );
 
-	const addToCartButton = await page.getByRole( 'button', {
-		name: 'Add to cart',
-		exact: true, // Needs to be exact, as there are other "Add to cart" buttons for other products in WooCommerce 10.1.
-	} );
-	await expect( addToCartButton ).toBeEnabled();
-	await addToCartButton.dispatchEvent( 'click' );
+	await clickAddToCartButton( page );
 
 	// Wait for the cart update to complete - look for success message or cart count update
 	await expect(

@@ -111,8 +111,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
 	 *
 	 * @var bool
+	 *
+	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
 	 */
 	public $sepa_tokens_for_other_methods;
+
+	/**
+	 * Should SEPA tokens be used for iDEAL
+	 *
+	 * @var bool
+	 */
+	public $sepa_tokens_for_ideal;
+
+	/**
+	 * Should SEPA tokens be used for Bancontact
+	 *
+	 * @var bool
+	 */
+	public $sepa_tokens_for_bancontact;
 
 	/**
 	 * Is Single Payment Element enabled?
@@ -223,7 +239,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->title                         = $this->payment_methods['card']->get_title();
 		$this->description                   = $this->payment_methods['card']->get_description();
 		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		$this->sepa_tokens_for_ideal         = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
+		$this->sepa_tokens_for_bancontact    = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
 		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
@@ -279,6 +296,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			);
 		}
+
+		// Add metadata to Stripe intents for easier debugging of BNPL issues.
+		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
 	}
 
 	/**
@@ -296,32 +316,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns the HTML for the bundled payment instructions when Smart Checkout is enabled.
-	 *
-	 * @return string
-	 *
-	 * @deprecated 9.5.0 Use `get_testing_instructions_for_optimized_checkout()` instead.
-	 */
-	public static function get_testing_instructions_for_smart_checkout() {
-		return static::get_testing_instructions_for_optimized_checkout();
-	}
-
-	/**
 	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
 	 *
 	 * @return string
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
 	 */
 	public static function get_testing_instructions_for_optimized_checkout() {
-		$instructions          = '';
-		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions( true );
-			if ( $payment_method_instructions ) {
-				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
-			}
-		}
-
-		return $instructions;
+		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+		return $payment_method->get_testing_instructions();
 	}
 
 	/**
@@ -795,7 +798,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->testmode ) :
 				if ( $this->oc_enabled ) :
 					echo wp_kses(
-						self::get_testing_instructions_for_optimized_checkout(),
+						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
 							'div' => [
 								'id'    => [],
@@ -2008,9 +2011,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
 	 *
 	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 *
+	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		return $this->sepa_tokens_for_other_methods;
+	}
+
+	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for iDEAL is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for iDEAL is enabled.
+	 */
+	public function is_sepa_tokens_for_ideal_enabled() {
+		return $this->sepa_tokens_for_ideal;
+	}
+
+	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for Bancontact is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for Bancontact is enabled.
+	 */
+	public function is_sepa_tokens_for_bancontact_enabled() {
+		return $this->sepa_tokens_for_bancontact;
 	}
 
 	/**
@@ -2190,6 +2213,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
+	}
+
+	/**
+	 * Adds BNPL debug metadata to the metadata array.
+	 *
+	 * @return array
+	 */
+	public function add_bnpl_debug_metadata( $metadata, $order ) {
+		// The following parameters are used to debug BNPL display issues.
+		$pmc_enabled = $this->get_option( 'pmc_enabled', 'null' );
+		if ( ! is_string( $pmc_enabled ) ) {
+			$pmc_enabled = $pmc_enabled ? 'yes' : 'no';
+		}
+		return array_merge(
+			$metadata,
+			[
+				'is_legacy_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ? 'no' : 'yes',
+				'is_oc_enabled'              => $this->is_oc_enabled() ? 'yes' : 'no',
+				'pmc_enabled'                => $pmc_enabled,
+			]
+		);
 	}
 
 	/**

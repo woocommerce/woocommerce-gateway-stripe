@@ -17,17 +17,17 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function __construct() {
 		parent::__construct();
-		$is_sepa_tokens_for_other_methods_enabled = $this->is_sepa_tokens_for_other_methods_enabled();
+		$is_sepa_tokens_for_bancontact_enabled    = $this->is_sepa_tokens_for_bancontact_enabled();
 		$this->stripe_id                          = self::STRIPE_ID;
 		$this->title                              = 'Bancontact';
-		$this->is_reusable                        = $is_sepa_tokens_for_other_methods_enabled;
+		$this->is_reusable                        = $is_sepa_tokens_for_bancontact_enabled;
 		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                              = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->description                        = __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
 		);
-		if ( $is_sepa_tokens_for_other_methods_enabled ) {
+		if ( $is_sepa_tokens_for_bancontact_enabled ) {
 			$this->supports[] = 'subscriptions';
 			$this->supports[] = 'tokenization';
 			$this->supports[] = 'multiple_subscriptions';

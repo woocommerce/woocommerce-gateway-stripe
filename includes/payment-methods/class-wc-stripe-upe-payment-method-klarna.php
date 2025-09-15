@@ -29,6 +29,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
@@ -83,6 +84,8 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 				return [ 'NO' ];
 			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
 				return [ 'PL' ];
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				return [ 'RO' ];
 			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				return [ 'SE' ];
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -133,6 +136,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 		];
 	}
@@ -140,7 +144,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
-	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, SE, CH, GB, US.
+	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, RO, SE, CH, GB, US.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */

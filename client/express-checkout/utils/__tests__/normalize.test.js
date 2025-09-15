@@ -1,9 +1,9 @@
-import { select } from '@wordpress/data';
 import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( '@wordpress/data' );
@@ -70,6 +70,44 @@ describe( 'Express checkout normalization', () => {
 				},
 				{
 					label: 'Item 3',
+					amount: 300,
+				},
+			];
+
+			const expected = [
+				{
+					name: 'Item 1',
+					amount: 100,
+				},
+				{
+					name: 'Item 2',
+					amount: 200,
+				},
+				{
+					name: 'Item 3',
+					amount: 300,
+				},
+			];
+
+			expect( normalizeLineItems( displayItems ) ).toStrictEqual(
+				expected
+			);
+		} );
+
+		test( 'normalizes line item properly where label is not set', () => {
+			const displayItems = [
+				{
+					name: 'Item 1',
+					label: null,
+					amount: 100,
+				},
+				{
+					name: 'Item 2',
+					label: undefined,
+					amount: 200,
+				},
+				{
+					name: 'Item 3',
 					amount: 300,
 				},
 			];
@@ -273,7 +311,8 @@ describe( 'Express checkout normalization', () => {
 				...expectedNormalizedData,
 			};
 			expectedNormalizedData.payment_data[ 1 ].value = '';
-			expectedNormalizedData.payment_data[ 2 ].value = confirmationTokenId;
+			expectedNormalizedData.payment_data[ 2 ].value =
+				confirmationTokenId;
 
 			expect(
 				normalizeOrderData( { event, confirmationTokenId } )

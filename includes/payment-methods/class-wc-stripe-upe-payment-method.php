@@ -513,10 +513,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
 	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
+		if ( $show_optimized_checkout_instruction ) {
+			_deprecated_argument(
+				__FUNCTION__,
+				'9.9.0'
+			);
+		}
+
 		return '';
 	}
 
@@ -657,12 +663,32 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Returns true if the SEPA tokens for other methods (Bancontact and iDEAL) feature is enabled.
+	 * Returns true if the SEPA tokens for iDEAL feature is enabled.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+	}
+
+	/**
+	 * Returns true if the SEPA tokens for iDEAL feature is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_sepa_tokens_for_ideal_enabled() {
+		return 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
+	}
+
+	/**
+	 * Returns true if the SEPA tokens for Bancontact feature is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_sepa_tokens_for_bancontact_enabled() {
+		return 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
 	}
 
 	/**

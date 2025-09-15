@@ -1,9 +1,9 @@
 /* global wc_stripe_amazon_pay_settings_params */
 
-import { __ } from '@wordpress/i18n';
 import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { __ } from '@wordpress/i18n';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
@@ -44,9 +44,6 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 		paymentMethods: {
 			amazonPay: 'auto',
-			link: 'never',
-			googlePay: 'never',
-			applePay: 'never',
 		},
 		layout: { overflow: 'never' },
 	};

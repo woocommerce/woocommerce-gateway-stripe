@@ -1,24 +1,25 @@
-import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
+import CardBody from '../card-body';
+import StatementPreviewsWrapper from './statement-previews-wrapper';
+import StatementPreview from './statement-preview';
+import ManualCaptureControl from './manual-capture-control';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
 	ExternalLink,
 } from '@wordpress/components';
-import CardBody from '../card-body';
-import StatementPreviewsWrapper from './statement-previews-wrapper';
-import StatementPreview from './statement-preview';
-import ManualCaptureControl from './manual-capture-control';
+import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
 	useSeparateCardForm,
 	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
-	useSepaTokensForOtherMethods,
+	useSepaTokensForBancontact,
+	useSepaTokensForIdeal,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
@@ -40,14 +41,14 @@ const StatementDescriptorInputWrapper = styled.div`
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
+	const [ isSepaTokensForIdealEnabled, setIsSepaTokensForIdealEnabled ] =
+		useSepaTokensForIdeal();
 	const [
-		isSepaTokensForOtherMethodsEnabled,
-		setIsSepaTokensForOtherMethodsEnabled,
-	] = useSepaTokensForOtherMethods();
-	const [
-		isSeparateCardFormEnabled,
-		setIsSeparateCardFormEnabled,
-	] = useSeparateCardForm();
+		isSepaTokensForBancontactEnabled,
+		setIsSepaTokensForBancontactEnabled,
+	] = useSepaTokensForBancontact();
+	const [ isSeparateCardFormEnabled, setIsSeparateCardFormEnabled ] =
+		useSeparateCardForm();
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
@@ -76,9 +77,8 @@ const PaymentsAndTransactionsSection = () => {
 
 	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
 	// To meet this requirement, we use the first character of the full statement descriptor.
-	const shortStatementDescriptorSuffix = stripeAccountShortStatementDescriptor.charAt(
-		0
-	);
+	const shortStatementDescriptorSuffix =
+		stripeAccountShortStatementDescriptor.charAt( 0 );
 
 	return (
 		<Card className="transactions-and-payouts">
@@ -99,14 +99,26 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 				/>
 				<CheckboxControl
-					checked={ isSepaTokensForOtherMethodsEnabled }
-					onChange={ setIsSepaTokensForOtherMethodsEnabled }
+					checked={ isSepaTokensForIdealEnabled }
+					onChange={ setIsSepaTokensForIdealEnabled }
 					label={ __(
-						'Enable SEPA Direct Debit tokens for other methods',
+						'Enable saved iDEAL payments for repeat payments',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.',
+						'Let customers save iDEAL as a SEPA Direct Debit method for future purchases. Requires iDEAL and SEPA Direct Debit to be enabled.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+				<CheckboxControl
+					checked={ isSepaTokensForBancontactEnabled }
+					onChange={ setIsSepaTokensForBancontactEnabled }
+					label={ __(
+						'Enable saved Bancontact payments for repeat payments',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'Let customers save Bancontact as a SEPA Direct Debit method for future purchases. Requires Bancontact and SEPA Direct Debit to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>

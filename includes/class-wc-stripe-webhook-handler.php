@@ -721,17 +721,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
+			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
 			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		}
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::warning( "Could not find order via refund ID ({$refund_object->id}) or charge ID ({$notification->data->object->id})" );
+			return;
 		}
 
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
-
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
-			return;
-		}
 
 		$order_id = $order->get_id();
 
@@ -1140,7 +1140,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
 
-					$this->run_webhook_received_action( (string) $notification->type, $notification, $this->resolved_order );
+					$this->run_webhook_received_action( (string) $notification->type, $notification );
 				} else {
 					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
@@ -1322,7 +1322,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 			}
 
-			$this->run_webhook_received_action( (string) $webhook_type, $notification, $this->resolved_order );
+			$this->run_webhook_received_action( (string) $webhook_type, $notification );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error processing deferred webhook: ' . $e->getMessage() );
 
@@ -1459,7 +1459,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$this->run_webhook_received_action( $notification->type, $notification, $this->resolved_order );
+		$this->run_webhook_received_action( $notification->type, $notification );
 	}
 
 	/**
@@ -1467,9 +1467,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param string $webhook_type The type of webhook that was processed.
 	 * @param object $notification The webhook data sent from Stripe.
-	 * @param WC_Order|null $order The order being processed by the webhook.
 	 */
-	private function run_webhook_received_action( string $webhook_type, object $notification, ?WC_Order $order = null ): void {
+	private function run_webhook_received_action( string $webhook_type, object $notification ): void {
 		try {
 			/**
 			 * Fires after a webhook has been processed, but before we respond to Stripe.
