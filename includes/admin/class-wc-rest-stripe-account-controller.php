@@ -116,7 +116,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 		// Use statement descriptor from settings, falling back to Stripe account statement descriptor if needed.
 		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->gateway->get_option( 'statement_descriptor' ) );
 		if ( empty( $statement_descriptor ) ) {
-			$statement_descriptor = $account['settings']['payments']['statement_descriptor'];
+			$statement_descriptor = $account['settings']['payments']['statement_descriptor'] ?? null;
 		}
 		if ( empty( $statement_descriptor ) ) {
 			$statement_descriptor = null;

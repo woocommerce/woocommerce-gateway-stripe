@@ -9,7 +9,7 @@ import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
  * Returns the reason why a payment method is unavailable, or null if it is available.
  * Intentionally outside of a React hook to support looping over payment methods.
  *
- * @param {Object} context
+ * @param {Object}      context
  * @param {string}      context.paymentMethodId   The payment method ID.
  * @param {boolean}     context.isUpeEnabled      Whether UPE is enabled. If false, the payment method is available.
  * @param {string|null} context.storeCurrencyCode The store currency code. If null, the payment method is available.

@@ -1,5 +1,4 @@
-import { useSelect, useDispatch } from '@wordpress/data';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
@@ -20,10 +19,12 @@ import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
-	useSepaTokensForOtherMethods,
+	useSepaTokensForIdeal,
+	useSepaTokensForBancontact,
 	useIsOCEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
@@ -152,10 +153,8 @@ describe( 'Settings hooks tests', () => {
 
 		test( 'returns orderedPaymentMethodIds from selector', () => {
 			const { result } = renderHook( useGetOrderedPaymentMethodIds );
-			const {
-				orderedPaymentMethodIds,
-				setOrderedPaymentMethodIds,
-			} = result.current;
+			const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+				result.current;
 
 			expect( orderedPaymentMethodIds ).toEqual( [
 				PAYMENT_METHOD_CARD,
@@ -227,9 +226,15 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		useSepaTokensForOtherMethods: {
-			hook: useSepaTokensForOtherMethods,
-			storeKey: 'is_sepa_tokens_for_other_methods_enabled',
+		useSepaTokensForIdeal: {
+			hook: useSepaTokensForIdeal,
+			storeKey: 'is_sepa_tokens_for_ideal_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useSepaTokensForBancontact: {
+			hook: useSepaTokensForBancontact,
+			storeKey: 'is_sepa_tokens_for_bancontact_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},

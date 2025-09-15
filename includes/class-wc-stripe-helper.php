@@ -80,8 +80,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $currency
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -97,8 +95,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param string $currency
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
@@ -114,8 +110,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $amount
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -143,8 +137,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -159,8 +151,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -177,8 +167,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $amount
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -206,8 +194,6 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -222,8 +208,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 *
-	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -901,8 +885,6 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $source_id
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_order_by_source_id() instead.
 	 */
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
@@ -937,8 +919,6 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_order_by_charge_id() instead.
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
 		global $wpdb;
@@ -971,8 +951,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 7.5.0
 	 * @param string $refund_id
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_order_by_refund_id() instead.
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
@@ -1007,8 +985,6 @@ class WC_Stripe_Helper {
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_order_by_intent_id() instead.
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
@@ -1047,8 +1023,6 @@ class WC_Stripe_Helper {
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_order_by_setup_intent_id() instead.
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
@@ -1310,8 +1284,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $payment_intent_id
 	 * @param $order
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
 
@@ -1427,8 +1399,6 @@ class WC_Stripe_Helper {
 	 * @param WC_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
 		$intent_id = $order->get_meta( '_stripe_intent_id' );
@@ -1467,8 +1437,6 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
@@ -1485,8 +1453,6 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
@@ -1941,8 +1907,6 @@ class WC_Stripe_Helper {
 	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
@@ -1984,12 +1948,14 @@ class WC_Stripe_Helper {
 		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = WC_Stripe_Order_Helper::get_intent_id_from_order( $order );
+		$order_intent_id       = self::get_intent_id_from_order( $order );
+		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
+		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 
 		if ( 'payment_intent' === $intent->object ) {
-			$is_valid = $order_currency === $intent->currency
+			$is_valid = $order_currency === $intent_currency
 				&& $is_valid_payment_type
-				&& $order_amount === $intent->amount
+				&& $order_amount === $intent_amount
 				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
 		} else {
 			// Setup intents don't have an amount or currency.
@@ -2004,12 +1970,12 @@ class WC_Stripe_Helper {
 
 		$permitted_payment_types = implode( '/', $intent->payment_method_types );
 		WC_Stripe_Logger::critical(
-			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			"Error: Invalid payment intent for order. Intent: {$intent_currency} {$intent_amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
 			[
 				'order_id'                    => $order->get_id(),
 				'intent_id'                   => $intent->id,
-				'intent_currency'             => $intent->currency,
-				'intent_amount'               => $intent->amount,
+				'intent_currency'             => $intent_currency,
+				'intent_amount'               => $intent_amount,
 				'intent_payment_method_types' => $intent->payment_method_types,
 				'selected_payment_type'       => $selected_payment_type,
 				'order_currency'              => $order->get_currency(),
@@ -2045,8 +2011,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $order WC_Order The order to check.
 	 * @return bool
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );

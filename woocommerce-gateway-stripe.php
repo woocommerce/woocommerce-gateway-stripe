@@ -5,12 +5,12 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.8.1
+ * Version: 9.9.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.6
  * Tested up to: 6.8.2
- * WC requires at least: 9.8
- * WC tested up to: 10.0
+ * WC requires at least: 9.9
+ * WC tested up to: 10.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.8.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.9.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '9.8' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.9' );
+define( 'WC_STRIPE_MIN_WC_VER', '9.9' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -120,7 +120,7 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
-function wcstripe_deactivated() {
+function wcstripe_deactivated(): void {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
@@ -132,6 +132,10 @@ function wcstripe_deactivated() {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}
+
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+
+	WC_Stripe_Database_Cache::unschedule_daily_async_cleanup();
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
 

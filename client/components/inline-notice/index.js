@@ -1,6 +1,6 @@
 import React from 'react';
-import { Notice } from '@wordpress/components';
 import classNames from 'classnames';
+import { Notice } from '@wordpress/components';
 
 import './style.scss';
 

@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import LegacyExperienceTransitionNotice from '..';
+import { useDispatch } from '@wordpress/data';
 import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/data' );
@@ -51,7 +51,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should enable UPE when clicking on the CTA button', () => {
+	it( 'should enable UPE when clicking on the CTA button', async () => {
 		const setIsUpeEnabledMock = jest.fn().mockResolvedValue( true );
 
 		render(
@@ -61,11 +61,13 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		await userEvent.click(
+			screen.queryByTestId( 'disable-legacy-button' )
+		);
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should display a success message when clicking on the CTA button', () => {
+	it( 'should display a success message when clicking on the CTA button', async () => {
 		render(
 			<LegacyExperienceTransitionNotice
 				isUpeEnabled={ false }
@@ -73,14 +75,16 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		await userEvent.click(
+			screen.queryByTestId( 'disable-legacy-button' )
+		);
 
 		expect( noticesDispatch.createSuccessNotice ).toHaveBeenCalledWith(
 			'New checkout experience enabled'
 		);
 	} );
 
-	it( 'should record a Track event when clicking on the CTA button', () => {
+	it( 'should record a Track event when clicking on the CTA button', async () => {
 		render(
 			<LegacyExperienceTransitionNotice
 				isUpeEnabled={ false }
@@ -88,7 +92,9 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		await userEvent.click(
+			screen.queryByTestId( 'disable-legacy-button' )
+		);
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_legacy_experience_disabled',

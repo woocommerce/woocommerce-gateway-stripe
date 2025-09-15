@@ -110,24 +110,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.9.0 - xxxx-xx-xx =
+= 9.10.0 - xxxx-xx-xx =
 * Dev - Introduces a new helper class to handle Stripe orders
-* Dev - Introduces a new helper method to identify Stripe orders
-* Add - Setting to allow merchants to control the layout of the Optimized Checkout payment element on the checkout page
-* Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
-* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
-* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
-* Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
-* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
-* Dev - Implements WooCommerce constants for the tax statuses
-* Fix - Ensure all Javascript strings use the correct text domain for translation
-* Tweak - Use more specific selector in express checkout e2e tests
-* Tweak - Small improvements to e2e tests
-* Fix - Fix unnecessary Stripe API calls when rendering subscription details
-* Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
-* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
-* Update - Show all available payment methods before unavailable payment methods
-* Tweak - Use smaller image for Optimized Checkout banner
-* Dev - Update WooCommerce Subscriptions e2e tests after 7.8.0 release
+* Dev - Fix live reload issue with Webpack 5
+* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
+* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
+* Dev - Upgrades the Webpack-related packages
+* Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
+* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
+* Dev - Upgrades the Babel-related packages
+* Dev - Consolidate component used for unavailable payment methods
+* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
+* Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
+* Fix - Fatal error caused by type mismatch when processing webhooks
+* Fix - Validate order when verifying payment intent
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

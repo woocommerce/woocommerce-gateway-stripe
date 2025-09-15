@@ -11,7 +11,7 @@ import {
 /**
  * WebhookSecretComponent component.
  *
- * @param {Object} props                    The component props.
+ * @param {Object}  props                   The component props.
  * @param {boolean} props.secretKeyHook     Indicates whether the component is in test mode.
  * @param {boolean} props.webhookSecretHook Indicates whether the component is in test mode.
  * @param {boolean} props.liveMode          Indicates whether the component is in test mode.
@@ -55,7 +55,7 @@ const WebhookSecretComponent = ( {
 /**
  * ConfigureWebhookButton component.
  *
- * @param {Object} props           The component props.
+ * @param {Object}  props          The component props.
  * @param {boolean} props.testMode Indicates whether this is for test mode.
  *
  * @return {JSX.Element} The rendered ConfigureWebhookButton component.

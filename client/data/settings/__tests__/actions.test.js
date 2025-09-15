@@ -1,5 +1,3 @@
-import { dispatch, select } from '@wordpress/data';
-import { apiFetch } from '@wordpress/data-controls';
 import { findIndex } from 'lodash';
 import {
 	saveSettings,
@@ -7,6 +5,8 @@ import {
 	saveOrderedPaymentMethodIds,
 	updateIsSavingOrderedPaymentMethodIds,
 } from '../actions';
+import { dispatch, select } from '@wordpress/data';
+import { apiFetch } from '@wordpress/data-controls';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,

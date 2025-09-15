@@ -47,6 +47,7 @@ jest.mock( '@woocommerce/settings', () => ( {
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
+	createSelector: jest.fn(),
 	createReduxStore: jest.fn(),
 	register: jest.fn(),
 	combineReducers: jest.fn(),
@@ -55,8 +56,11 @@ jest.mock(
 	'wcstripe/components/payment-method-capability-status-pill',
 	() => () => null
 );
-jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
-	children
+jest.mock(
+	'../../loadable-settings-section',
+	() =>
+		( { children } ) =>
+			children
 );
 
 describe( 'GeneralSettingsSection', () => {
@@ -110,7 +114,7 @@ describe( 'GeneralSettingsSection', () => {
 		global.wcSettings = globalValues;
 	} );
 
-	it( 'should show information to screen readers about the payment methods being updated', () => {
+	it( 'should show information to screen readers about the payment methods being updated', async () => {
 		const refreshAccountMock = jest.fn();
 		useAccount.mockReturnValue( {
 			isRefreshing: true,
@@ -131,7 +135,7 @@ describe( 'GeneralSettingsSection', () => {
 			)
 		).toBeInTheDocument();
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByRole( 'button', {
 				name: 'Payment methods menu',
 			} )
@@ -139,7 +143,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect( refreshAccountMock ).not.toHaveBeenCalled();
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByRole( 'menuitem', {
 				name: 'Refresh payment methods',
 			} )
@@ -164,7 +168,7 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should allow to enable a payment method when UPE is enabled', () => {
+	it( 'should allow to enable a payment method when UPE is enabled', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -198,7 +202,7 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( alipayCheckbox );
+		await userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			PAYMENT_METHOD_CARD,
@@ -206,7 +210,7 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should allow to enable a payment method when UPE is disabled', () => {
+	it( 'should allow to enable a payment method when UPE is disabled', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -240,7 +244,7 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( alipayCheckbox );
+		await userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			PAYMENT_METHOD_CARD,
@@ -248,7 +252,7 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should show modal to disable a payment method', () => {
+	it( 'should show modal to disable a payment method', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -277,7 +281,7 @@ describe( 'GeneralSettingsSection', () => {
 			} )
 		).not.toBeInTheDocument();
 
-		userEvent.click( cardCheckbox );
+		await userEvent.click( cardCheckbox );
 
 		expect(
 			screen.getByRole( 'heading', {
@@ -286,7 +290,7 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should not allow to disable a payment method when canceled via modal', () => {
+	it( 'should not allow to disable a payment method when canceled via modal', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -311,13 +315,15 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( cardCheckbox ).toBeChecked();
 
-		userEvent.click( cardCheckbox );
-		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		await userEvent.click( cardCheckbox );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Cancel' } )
+		);
 
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'should allow to disable a payment method when confirmed via modal', () => {
+	it( 'should allow to disable a payment method when confirmed via modal', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -342,8 +348,10 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( cardCheckbox ).toBeChecked();
 
-		userEvent.click( cardCheckbox );
-		userEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
+		await userEvent.click( cardCheckbox );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Remove' } )
+		);
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );

@@ -9,7 +9,7 @@ import './style.scss';
  * Base PaymentButtonPreview Component
  *
  * @param {Object} props
- * @param {string} props.icon - The icon to display.
+ * @param {string} props.icon        - The icon to display.
  * @param {string} [props.className] - Optional additional class names.
  * @return {JSX.Element} The rendered component.
  */

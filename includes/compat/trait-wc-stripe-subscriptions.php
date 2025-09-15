@@ -781,7 +781,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			$mandate = $order->get_meta( '_stripe_mandate_id', true );
 			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
+
+				// We already have a mandate -- unset mandate_data and setup_future_usage, if set.
+				unset( $request['mandate_data'] );
 				unset( $request['setup_future_usage'] );
+
 				return $request;
 			}
 
@@ -795,7 +799,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( ! empty( $mandate ) ) {
 					$request['confirm'] = 'true';
 					$request['mandate'] = $mandate;
+
+					// We already have a mandate -- unset mandate_data and setup_future_usage, if set.
+					unset( $request['mandate_data'] );
 					unset( $request['setup_future_usage'] );
+
 					return $request;
 				}
 			}

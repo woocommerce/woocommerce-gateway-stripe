@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
-import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import styled from '@emotion/styled';
-import apiFetch from '@wordpress/api-fetch';
 import interpolateComponents from 'interpolate-components';
+import { useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {
@@ -42,9 +42,8 @@ export const OCPromotionBanner = ( {
 	setShowPromotionalBanner,
 	setIsOCEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		apiFetch( {

@@ -2,6 +2,20 @@ import { expect } from '@playwright/test';
 import config from 'config';
 
 /**
+ * Click the primary add to cart button for the current page.
+ *
+ * @param {Page}   page  Playwright page fixture.
+ * @param {string} label The expected text for the "Add to cart" button.
+ */
+export async function clickAddToCartButton( page, label = 'Add to cart' ) {
+	const addToCartButton = await page
+		.getByRole( 'button', { name: label, exact: true } )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
@@ -156,18 +170,15 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 	const options = {
 		multi: {
 			cardNumber: {
-				iFrame:
-					'#stripe-card-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-card-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cardnumber"]',
 			},
 			cardExpiry: {
-				iFrame:
-					'#stripe-exp-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-exp-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="exp-date"]',
 			},
 			cardCvc: {
-				iFrame:
-					'#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cvc"]',
 			},
 		},
@@ -557,14 +568,12 @@ export const setupOptimizedCheckout = async (
 
 	const selectors = {
 		blocks: {
-			iframe:
-				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
+			iframe: '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
 			container:
 				'#radio-control-wc-payment-method-options-stripe__content',
 		},
 		shortcode: {
-			iframe:
-				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
+			iframe: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
 			container: '#wc-stripe-upe-form',
 		},
 	};

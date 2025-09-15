@@ -80,7 +80,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception An exception if there is no order ID or the order does not exist.
 	 * @return WC_Order
 	 */
-	protected function get_order_from_request() {
+	private function get_order_from_request() {
 		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['nonce'] ), 'wc_stripe_confirm_pi' ) ) {
 			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -114,7 +114,27 @@ class WC_Stripe_Intent_Controller {
 
 		try {
 			$order = $this->get_order_from_request();
+
+			// Validate order status.
+			if ( ! $order->has_status(
+				apply_filters(
+					'wc_stripe_allowed_payment_processing_statuses',
+					[ OrderStatus::PENDING, OrderStatus::FAILED ],
+					$order
+				)
+			) ) {
+				throw new WC_Stripe_Exception( 'invalid_order_status', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Validate the intent being verified.
+			$order_intent_id = $order->get_meta( '_stripe_intent_id', true );
+			if ( ! $order_intent_id || ! isset( $_GET['intent_id'] ) || $order_intent_id !== $_GET['intent_id'] ) {
+				throw new WC_Stripe_Exception( 'invalid_intent', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
 		} catch ( WC_Stripe_Exception $e ) {
+			// Unset the order.
+			$order = null;
+
 			/* translators: Error message text */
 			$message = sprintf( __( 'Payment verification error: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() );
 			wc_add_notice( esc_html( $message ), 'error' );
