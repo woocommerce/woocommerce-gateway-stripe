@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Dev - Fix live reload issue with Webpack 5
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
 * Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
@@ -123,5 +124,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
 * Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
 * Fix - Fatal error caused by type mismatch when processing webhooks
+* Fix - Validate order when verifying payment intent
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
