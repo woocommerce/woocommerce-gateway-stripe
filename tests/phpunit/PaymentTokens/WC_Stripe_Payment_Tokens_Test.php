@@ -305,4 +305,135 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Data provider for {@see test_get_account_saved_payment_methods_list_item()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_account_saved_payment_methods_list_item(): array {
+		$mock_sepa_collision_token = $this->getMockBuilder( WC_Payment_Token_CC::class )->getMock();
+
+		$mock_sepa_collision_token->method( 'get_type' )->willReturn( WC_Stripe_Payment_Methods::SEPA );
+
+		$sepa_token = new \WC_Payment_Token_SEPA();
+		$sepa_token->set_last4( '1234' );
+
+		$bacs_debit_token = new \WC_Payment_Token_Bacs_Debit();
+		$bacs_debit_token->set_last4( '2345' );
+
+		$ach_token = new \WC_Payment_Token_ACH();
+		$ach_token->set_last4( '3456' );
+		$ach_token->set_bank_name( 'Test ACH Bank' );
+
+		$acss_token = new \WC_Payment_Token_ACSS();
+		$acss_token->set_last4( '4567' );
+		$acss_token->set_bank_name( 'Test ACSS Bank' );
+
+		$becs_debit_token = new \WC_Payment_Token_Becs_Debit();
+		$becs_debit_token->set_last4( '5678' );
+
+		$link_token = new \WC_Payment_Token_Link();
+		$link_token->set_email( 'link.test@example.com' );
+
+		$amazon_pay_token = new \WC_Payment_Token_Amazon_Pay();
+		$amazon_pay_token->set_email( 'amazon.test@example.com' );
+
+		return [
+			'Non-Stripe payment token' => [
+				'payment_token'   => new \WC_Payment_Token_CC(),
+				'expected_result' => [],
+			],
+			'Non-Stripe payment token with SEPA type collision' => [
+				'payment_token'   => $mock_sepa_collision_token,
+				'expected_result' => [],
+			],
+			'Stripe payment token with unhandled type' => [
+				'payment_token'   => new \WC_Stripe_Payment_Token_CC(),
+				'expected_result' => [],
+			],
+			'SEPA token' => [
+				'payment_token'   => $sepa_token,
+				'expected_result' => [
+					'last4' => '1234',
+					'brand' => 'SEPA IBAN',
+				],
+			],
+			'BACS Debit token' => [
+				'payment_token'   => $bacs_debit_token,
+				'expected_result' => [
+					'last4' => '2345',
+					'brand' => 'Bacs Direct Debit',
+				],
+			],
+			'CashApp token' => [
+				'payment_token'   => new \WC_Payment_Token_CashApp(),
+				'expected_result' => [
+					'brand' => 'Cash App Pay',
+				],
+			],
+			'ACH token' => [
+				'payment_token'   => $ach_token,
+				'expected_result' => [
+					'last4' => '3456',
+					'brand' => 'Test ACH Bank',
+				],
+			],
+			'ACSS token' => [
+				'payment_token'   => $acss_token,
+				'expected_result' => [
+					'last4' => '4567',
+					'brand' => 'Test ACSS Bank',
+				],
+			],
+			'BECS Debit token' => [
+				'payment_token'   => $becs_debit_token,
+				'expected_result' => [
+					'last4' => '5678',
+					'brand' => 'BECS Direct Debit',
+				],
+			],
+			'Link token' => [
+				'payment_token'   => $link_token,
+				'expected_result' => [
+					'brand' => 'Stripe Link (link.test@example.com)',
+				],
+			],
+			'Amazon Pay token' => [
+				'payment_token'   => $amazon_pay_token,
+				'expected_result' => [
+					'brand' => 'Amazon Pay (amazon.test@example.com)',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test `get_account_saved_payment_methods_list_item()`.
+	 *
+	 * @param WC_Payment_Token $payment_token   Payment token.
+	 * @param array            $expected_result Expected result.
+	 * @return void
+	 * @dataProvider provide_test_get_account_saved_payment_methods_list_item
+	 */
+	public function test_get_account_saved_payment_methods_list_item( WC_Payment_Token $payment_token, array $expected_result ): void {
+		$initial_item = [
+			'method' => [],
+		];
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $payment_token );
+
+		if ( [] === $expected_result ) {
+			$this->assertEquals( $expected_result, $result['method'] );
+			$this->assertEquals( $initial_item, $result );
+			return;
+		}
+
+		$this->assertCount( count( $expected_result ), $result['method'] );
+
+		foreach ( $expected_result as $expected_key => $expected_value ) {
+			$this->assertArrayHasKey( $expected_key, $result['method'] );
+			$this->assertEquals( $expected_value, $result['method'][ $expected_key ] );
+		}
+	}
 }
