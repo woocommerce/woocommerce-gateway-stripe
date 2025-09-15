@@ -30,4 +30,5 @@ module.exports = {
 		dispatch: stub,
 	} ) ),
 	register: jest.fn(),
+	registerStore: jest.fn(),
 };

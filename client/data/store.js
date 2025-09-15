@@ -4,7 +4,7 @@ import * as account from './account';
 import * as accountKeys from './account-keys';
 import * as paymentGateway from './payment-gateway';
 import { controls } from '@wordpress/data-controls';
-import { register, combineReducers } from '@wordpress/data';
+import { registerStore, combineReducers } from '@wordpress/data';
 
 const actions = {};
 const selectors = {};
@@ -18,7 +18,7 @@ const resolvers = {};
 
 // Extracted into wrapper function to facilitate testing.
 export const initStore = () =>
-	register( STORE_NAME, {
+	registerStore( STORE_NAME, {
 		reducer: combineReducers( {
 			settings: settings.reducer,
 			account: account.reducer,
