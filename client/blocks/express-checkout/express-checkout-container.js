@@ -10,9 +10,13 @@ import {
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
+	const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 	const options = {
-		mode: 'payment',
-		...( isManualPaymentMethodCreation( expressPaymentMethod ) && {
+		mode: hasFreeTrial ? 'subscription' : 'payment',
+		...( isManualPaymentMethodCreation(
+			expressPaymentMethod,
+			hasFreeTrial
+		) && {
 			paymentMethodCreation: 'manual',
 		} ),
 		amount: billing.cartTotal.value,

@@ -17,6 +17,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /** @typedef {import('react')} React */
 
@@ -83,7 +84,10 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 	);
 	const edit = getEditorElement( expressPaymentMethod );
 	const canMakePayment = ( { cart } ) => {
-		if ( parseFloat( cart.cartTotals.total_price ) === 0.0 ) {
+		if (
+			parseFloat( cart.cartTotals.total_price ) === 0.0 &&
+			! getExpressCheckoutData( 'has_free_trial' )
+		) {
 			return false;
 		}
 
