@@ -389,12 +389,18 @@ export const expressCheckoutNoticeDelay = async () => {
 /**
  * Determine if the express payment type should use manual payment method creation.
  *
- * @param {string} expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {string}  expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {boolean} hasFreeTrial       Whether the product being purchased has a free trial.
  * @return {boolean} True if manual payment method creation should be used, false otherwise.
  */
-export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
-	return ! [
-		EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-		PAYMENT_METHOD_AMAZON_PAY,
-	].includes( expressPaymentType );
+export const isManualPaymentMethodCreation = (
+	expressPaymentType,
+	hasFreeTrial
+) => {
+	return (
+		! [
+			EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+			PAYMENT_METHOD_AMAZON_PAY,
+		].includes( expressPaymentType ) || hasFreeTrial
+	);
 };

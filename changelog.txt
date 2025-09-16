@@ -2,6 +2,11 @@
 
 = 9.10.0 - xxxx-xx-xx =
 * Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
+* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Dev - Upgrades Node to v20
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
 * Add - Allow Klarna to be used for recurring payments and subscriptions
 * Dev - Fix live reload issue with Webpack 5
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna

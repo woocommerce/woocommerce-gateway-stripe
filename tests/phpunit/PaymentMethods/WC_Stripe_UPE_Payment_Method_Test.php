@@ -9,15 +9,13 @@ use WC_Payment_Token_Amazon_Pay;
 use WC_Payment_Token_Bacs_Debit;
 use WC_Payment_Token_Becs_Debit;
 use WC_Payment_Token_CashApp;
-use WC_Payment_Token_Klarna;
 use WC_Payment_Token_Link;
 use WC_Payment_Token_SEPA;
 use WC_Stripe;
 use WC_Stripe_Currency_Code;
-use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
-use WC_Stripe_Payment_Method_Configurations;
+use WC_Stripe_Klarna_Payment_Token;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -31,8 +29,6 @@ use WC_Stripe_UPE_Payment_Method_CC;
 use WC_Stripe_UPE_Payment_Method_Klarna;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
@@ -912,7 +908,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 					$klarna_payment_method_mock = $this->array_to_object( self::MOCK_KLARNA_PAYMENT_METHOD_TEMPLATE );
 					$token                      = $payment_method->create_payment_token_for_user( $user_id, $klarna_payment_method_mock );
 					$token_dob_parts            = explode( '-', $token->get_dob() );
-					$this->assertTrue( WC_Payment_Token_Klarna::class === get_class( $token ) );
+					$this->assertTrue( WC_Stripe_Klarna_Payment_Token::class === get_class( $token ) );
 					$this->assertSame( (int) $token_dob_parts[0], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->year );
 					$this->assertSame( (int) $token_dob_parts[1], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->month );
 					$this->assertSame( (int) $token_dob_parts[2], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->day );

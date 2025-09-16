@@ -240,6 +240,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
+			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 		];
 	}
 
