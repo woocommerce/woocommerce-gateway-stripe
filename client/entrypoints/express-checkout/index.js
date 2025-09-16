@@ -331,11 +331,16 @@ jQuery( function ( $ ) {
 				return;
 			}
 
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 			const elements = api.getStripe().elements( {
-				mode: options.mode ? options.mode : 'payment',
+				mode: hasFreeTrial ? 'subscription' : 'payment',
 				amount: options.total,
 				currency: options.currency,
-				...( isManualPaymentMethodCreation( expressPaymentType ) && {
+				...( isManualPaymentMethodCreation(
+					expressPaymentType,
+					hasFreeTrial
+				) && {
 					paymentMethodCreation: 'manual',
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
@@ -462,6 +467,7 @@ jQuery( function ( $ ) {
 					event,
 					order,
 					orderDetails,
+					hasFreeTrial,
 				} );
 			} );
 
@@ -518,7 +524,6 @@ jQuery( function ( $ ) {
 				}
 
 				wcStripeECE.startExpressCheckout( {
-					mode: 'payment',
 					total,
 					currency:
 						getExpressCheckoutData( 'checkout' ).currency_code,
@@ -538,7 +543,6 @@ jQuery( function ( $ ) {
 					const displayItems =
 						getExpressCheckoutData( 'product' ).displayItems ?? [];
 					wcStripeECE.startExpressCheckout( {
-						mode: 'payment',
 						total: getExpressCheckoutData( 'product' )?.total
 							.amount,
 						currency: getExpressCheckoutData( 'product' )?.currency,
@@ -562,13 +566,15 @@ jQuery( function ( $ ) {
 						cart.totals
 					);
 
-					if ( total === 0 ) {
+					if (
+						total === 0 &&
+						! getExpressCheckoutData( 'has_free_trial' )
+					) {
 						wcStripeECE.hide();
 						return;
 					}
 
 					wcStripeECE.startExpressCheckout( {
-						mode: 'payment',
 						total,
 						currency:
 							getExpressCheckoutData( 'checkout' )?.currency_code,

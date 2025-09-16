@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
 import {
+	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
@@ -15,6 +16,8 @@ import {
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 			// Create the DIV container on the fly
 			const containerEl = document.createElement( 'div' );
 
@@ -29,8 +32,11 @@ export const checkPaymentMethodIsAvailable = memoize(
 				<Elements
 					stripe={ api.loadStripe() }
 					options={ {
-						mode: 'payment',
-						...( isManualPaymentMethodCreation( paymentMethod ) && {
+						mode: hasFreeTrial ? 'subscription' : 'payment',
+						...( isManualPaymentMethodCreation(
+							paymentMethod,
+							hasFreeTrial
+						) && {
 							paymentMethodCreation: 'manual',
 						} ),
 						amount: Number( cart.cartTotals.total_price ),
