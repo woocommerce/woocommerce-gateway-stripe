@@ -100,7 +100,7 @@ class WC_Stripe_Klarna_Payment_Token extends WC_Payment_Token implements WC_Stri
 	 * @return string The hook prefix.
 	 */
 	protected function get_hook_prefix() {
-		return 'woocommerce_payment_token_klarna_get_';
+		return 'wc_stripe_payment_token_klarna_get_';
 	}
 
 	/**
