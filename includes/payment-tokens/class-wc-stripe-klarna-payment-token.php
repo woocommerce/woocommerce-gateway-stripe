@@ -111,7 +111,6 @@ class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Paym
 	 */
 	protected function format_dob( object $dob ) {
 		if ( empty( $dob->year ) && empty( $dob->month ) && empty( $dob->day ) ) {
-			// Either return null or ''. Empty string probably make more sense.
 			return '';
 		}
 		$dob_parts = [
