@@ -175,7 +175,7 @@
     "changelog": "node bin/changelog.js"
   },
   "engines": {
-    "node": ">=20.11.1",
+    "node": ">=20.18.1",
     "npm": ">=10.2.3"
   },
   "config": {
