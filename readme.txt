@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Dev - Upgrades Node to v20
+* Add - Allow Klarna to be used for recurring payments and subscriptions
 * Dev - Fix live reload issue with Webpack 5
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
 * Update - Reduces the minimum transaction amount for Affirm to 35 USD

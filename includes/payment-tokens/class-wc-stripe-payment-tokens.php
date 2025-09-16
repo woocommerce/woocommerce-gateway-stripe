@@ -33,6 +33,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 	];
 
 	/**
@@ -453,6 +454,9 @@ class WC_Stripe_Payment_Tokens {
 					esc_html( $payment_token->get_email() )
 				);
 				break;
+			case WC_Stripe_Payment_Methods::KLARNA:
+				$item['method']['brand'] = esc_html__( 'Klarna', 'woocommerce-gateway-stripe' );
+				break;
 		}
 
 		return $item;
@@ -629,6 +633,15 @@ class WC_Stripe_Payment_Tokens {
 					}
 					if ( isset( $au_becs_debit_fields->fingerprint ) ) {
 						$token->set_fingerprint( $au_becs_debit_fields->fingerprint );
+					}
+				}
+				break;
+			case WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID:
+				$token = new WC_Payment_Token_Klarna();
+				if ( isset( $payment_method->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID} ) ) {
+					$klarna_fields = $payment_method->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID};
+					if ( isset( $klarna_fields->dob ) ) {
+						$token->set_dob_from_object( $klarna_fields->dob );
 					}
 				}
 				break;
