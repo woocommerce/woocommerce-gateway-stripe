@@ -210,7 +210,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if ( getStripeServerData()?.isOCEnabled ) {
 		const layout = {
 			type:
-				getBlocksConfiguration()?.OCLayout ||
+				getStripeServerData()?.OCLayout ||
 				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
