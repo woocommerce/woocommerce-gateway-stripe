@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
-* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 13.0.3, and `form-data` to 4.0.4 in the JavaScript development dependencies
+* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
 * Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
 * Dev - Upgrades Node to v20
 * Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
