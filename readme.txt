@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
 * Add - Allow Klarna to be used for recurring payments and subscriptions
 * Dev - Fix live reload issue with Webpack 5
 * Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna

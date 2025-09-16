@@ -71,7 +71,7 @@ const OptimizedCheckoutFeature = () => {
 					),
 					{
 						learnMoreLink: (
-							<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/settings-guide/#advanced-settings" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/" />
 						),
 					}
 				) }
