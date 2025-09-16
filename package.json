@@ -201,8 +201,8 @@
     "@wordpress/eslint-plugin": {
       "eslint-plugin-jsdoc": "^46.0.0"
     },
-		"@wordpress/i18n": {
-			"memize": "^2.1.1"
-		}
+    "@wordpress/i18n": {
+      "memize": "^2.1.1"
+    }
   }
 }
