@@ -13,7 +13,7 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-class WC_Payment_Token_Klarna extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
+class WC_Stripe_Klarna_Payment_Token extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	/**
 	 * Token Type.
 	 *

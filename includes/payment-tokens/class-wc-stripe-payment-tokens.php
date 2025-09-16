@@ -637,7 +637,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 				break;
 			case WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID:
-				$token = new WC_Payment_Token_Klarna();
+				$token = new WC_Stripe_Klarna_Payment_Token();
 				if ( isset( $payment_method->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID} ) ) {
 					$klarna_fields = $payment_method->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID};
 					if ( isset( $klarna_fields->dob ) ) {
