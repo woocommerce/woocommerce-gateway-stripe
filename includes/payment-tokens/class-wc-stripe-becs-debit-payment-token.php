@@ -115,6 +115,7 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 			return false;
 		}
 
-		return ( $payment_method->{WC_Stripe_Payment_Methods::BECS_DEBIT}->fingerprint ?? null ) === $this->get_fingerprint();
+		// Becs Debit uses the au_becs_debit property.
+		return ( $payment_method->au_becs_debit->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }
