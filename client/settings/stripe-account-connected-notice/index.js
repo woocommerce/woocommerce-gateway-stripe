@@ -1,7 +1,7 @@
-import { __ } from '@wordpress/i18n';
-import { dispatch } from '@wordpress/data';
 import { getAdminLink } from '@woocommerce/settings';
 import { getQuery } from '@woocommerce/navigation';
+import { __ } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 import {
 	getStorageWithExpiration,
 	setStorageWithExpiration,
@@ -34,9 +34,8 @@ if (
 
 const shouldShowNotice = () => {
 	const { wc_stripe_connected: stripeAccountConnected } = getQuery();
-	const isOnboardingThroughWCSetup = getStorageWithExpiration(
-		LOCAL_STORAGE_KEY
-	);
+	const isOnboardingThroughWCSetup =
+		getStorageWithExpiration( LOCAL_STORAGE_KEY );
 
 	return stripeAccountConnected && isOnboardingThroughWCSetup;
 };
@@ -45,7 +44,7 @@ const StripeAccountConnectedNotice = () => {
 	if ( shouldShowNotice() ) {
 		localStorage.removeItem( LOCAL_STORAGE_KEY );
 		dispatch( 'core/notices' ).createSuccessNotice(
-			__( 'Stripe Account Connected', 'woocommerce' ),
+			__( 'Stripe Account Connected', 'woocommerce-gateway-stripe' ),
 			{
 				id: 'WOOCOMMERCE_STRIPE_ACCOUNT_CONNECTED_NOTICE',
 				actions: [

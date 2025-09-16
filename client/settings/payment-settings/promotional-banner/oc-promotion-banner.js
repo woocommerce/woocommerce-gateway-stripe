@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
-import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import styled from '@emotion/styled';
-import apiFetch from '@wordpress/api-fetch';
 import interpolateComponents from 'interpolate-components';
+import { useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {
@@ -42,9 +42,8 @@ export const OCPromotionBanner = ( {
 	setShowPromotionalBanner,
 	setIsOCEnabled,
 } ) => {
-	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		'core/notices'
-	);
+	const { createErrorNotice, createSuccessNotice } =
+		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
 		apiFetch( {
@@ -89,7 +88,7 @@ export const OCPromotionBanner = ( {
 				<CardColumn>
 					<TitleBNPL>
 						{ __(
-							"Increase conversions with Stripe's Optimized Checkout Suite",
+							"Increase conversion with Stripe's Optimized Checkout Suite",
 							'woocommerce-gateway-stripe'
 						) }
 					</TitleBNPL>
@@ -97,7 +96,7 @@ export const OCPromotionBanner = ( {
 						{ __( '', 'woocommerce-gateway-stripe' ) }
 						{ interpolateComponents( {
 							mixedString: __(
-								"Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer. {{docLink}}Learn more{{/docLink}} about Stripe's Optimized Checkout Suite.",
+								"Optimize your checkout experience for more sales by dynamically displaying the most relevant payment methods you've enabled for each customer. {{docLink}}Learn more{{/docLink}} about Stripe's Optimized Checkout Suite.",
 								'woocommerce-gateway-stripe'
 							),
 							components: {

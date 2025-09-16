@@ -225,11 +225,19 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'sepa_tokens_for_other_methods'       => [
-			'title'       => __( 'SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+		'sepa_tokens_for_ideal'       => [
+			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable saved iDEAL payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
-			'description' => __( 'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'If enabled, users will be able to pay with iDEAL and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'yes',
+			'desc_tip'    => true,
+		],
+		'sepa_tokens_for_bancontact'       => [
+			'title'       => __( 'SEPA Direct Debit tokens when saving Bancontact methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable saved Bancontact payments for repeat payments', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will be able to pay with Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
@@ -267,6 +275,17 @@ $stripe_settings = apply_filters(
 				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
 				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
+			],
+		],
+		'optimized_checkout_layout'           => [
+			'title'       => __( 'Optimized Checkout Layout', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the layout of the container.', 'woocommerce-gateway-stripe' ),
+			'default'     => WC_Stripe_UPE_Payment_Gateway::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			'desc_tip'    => true,
+			'options'     => [
+				'accordion' => __( 'Accordion', 'woocommerce-gateway-stripe' ),
+				'tabs'      => __( 'Tabs', 'woocommerce-gateway-stripe' ),
 			],
 		],
 	]

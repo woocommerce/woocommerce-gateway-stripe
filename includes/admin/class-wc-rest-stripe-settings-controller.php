@@ -80,9 +80,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'oc_title'                         => [
-						'description'       => __( 'The default title to show above the Optimized Checkout element.', 'woocommerce-gateway-stripe' ),
+					'oc_layout'                        => [
+						'description'       => __( 'The Optimized Checkout layout (accordion or tabs).', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
+						'enum'              => array_keys( $form_fields['optimized_checkout_layout']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'amazon_pay_button_size'           => [
@@ -143,8 +144,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_sepa_tokens_for_other_methods_enabled' => [
-						'description'       => __( 'If "SEPA tokens for other methods" should be enabled.', 'woocommerce-gateway-stripe' ),
+					'is_sepa_tokens_for_ideal' => [
+						'description'       => __( 'If "SEPA tokens for iDEAL" should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_sepa_tokens_for_bancontact_enabled' => [
+						'description'       => __( 'If "SEPA tokens for Bancontact" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -239,7 +245,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'                => ! $this->gateway->is_automatic_capture_enabled(),
 				'is_saved_cards_enabled'                   => 'yes' === $this->gateway->get_option( 'saved_cards' ),
-				'is_sepa_tokens_for_other_methods_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods' ),
+				'is_sepa_tokens_for_ideal_enabled'         => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal' ),
+				'is_sepa_tokens_for_bancontact_enabled'    => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact' ),
 				'is_separate_card_form_enabled'            => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
 				'is_short_statement_descriptor_enabled'    => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
 
@@ -247,7 +254,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
-				'oc_title'                                 => $this->gateway->get_validated_option( 'optimized_checkout_element_title' ),
+				'oc_layout'                                => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
 				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
 			]
 		);
@@ -277,7 +284,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
 		$this->update_is_saved_cards_enabled( $request );
-		$this->update_is_sepa_tokens_for_other_methods_enabled( $request );
+		$this->update_is_sepa_tokens_for_ideal_enabled( $request );
+		$this->update_is_sepa_tokens_for_bancontact_enabled( $request );
 		$this->update_is_separate_card_form_enabled( $request );
 		$this->update_is_short_account_statement_enabled( $request );
 
@@ -300,7 +308,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
 
-		if ( $is_upe_enabled && $is_payment_request_enabled ) {
+		// Card is required for Apple Pay and Google Pay.
+		if ( $is_upe_enabled &&
+			 $is_payment_request_enabled &&
+			 in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
+		) {
 			$payment_method_ids_to_enable = array_merge(
 				$payment_method_ids_to_enable,
 				[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
@@ -426,18 +438,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates "SEPA tokens for other methods" feature.
+	 * Updates "SEPA tokens for other iDEAL" feature.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_is_sepa_tokens_for_other_methods_enabled( WP_REST_Request $request ) {
-		$is_sepa_tokens_for_other_methods_enabled = $request->get_param( 'is_sepa_tokens_for_other_methods_enabled' );
+	private function update_is_sepa_tokens_for_ideal_enabled( WP_REST_Request $request ) {
+		$is_sepa_tokens_for_ideal_enabled = $request->get_param( 'is_sepa_tokens_for_ideal_enabled' );
 
-		if ( null === $is_sepa_tokens_for_other_methods_enabled ) {
+		if ( null === $is_sepa_tokens_for_ideal_enabled ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'sepa_tokens_for_other_methods', $is_sepa_tokens_for_other_methods_enabled ? 'yes' : 'no' );
+		$this->gateway->update_option( 'sepa_tokens_for_ideal', $is_sepa_tokens_for_ideal_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates "SEPA tokens for Bancontact" feature.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_sepa_tokens_for_bancontact_enabled( WP_REST_Request $request ) {
+		$is_sepa_tokens_for_bancontact_enabled = $request->get_param( 'is_sepa_tokens_for_bancontact_enabled' );
+
+		if ( null === $is_sepa_tokens_for_bancontact_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'sepa_tokens_for_bancontact', $is_sepa_tokens_for_bancontact_enabled ? 'yes' : 'no' );
 	}
 
 	/**
@@ -537,7 +564,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_oc_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'is_oc_enabled' => 'optimized_checkout_element',
-			'oc_title'      => 'optimized_checkout_element_title',
+			'oc_layout'     => 'optimized_checkout_layout',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
@@ -554,7 +581,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
 				wc_admin_record_tracks_event(
 					$value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
-					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+					[
+						'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+						'source'    => 'settings_rest_api',
+					]
 				);
 			}
 		}
@@ -617,6 +647,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function dismiss_notice( WP_REST_Request $request ) {
 		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
+			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
 			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
 			return new WP_REST_Response( [], 200 );
@@ -624,6 +655,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
 			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_optimized_checkout_notice' ) ) {
+			update_option( 'wc_stripe_show_optimized_checkout_notice', 'no' );
 		}
 
 		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {

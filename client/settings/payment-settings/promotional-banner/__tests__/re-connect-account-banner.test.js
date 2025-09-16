@@ -1,6 +1,6 @@
-import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useDispatch } from '@wordpress/data';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { recordEvent } from 'wcstripe/tracking';
 import { useTestMode } from 'wcstripe/data';
@@ -47,7 +47,7 @@ describe( 'Reconnect banner', () => {
 		).toBeInTheDocument();
 		expect( getByText( 'Re-authenticate' ) ).toBeInTheDocument();
 	} );
-	it( 'should record event on button click', () => {
+	it( 'should record event on button click', async () => {
 		// Keep the original function at hand.
 		const assign = window.location.assign;
 
@@ -60,7 +60,7 @@ describe( 'Reconnect banner', () => {
 			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_test_account_click',
@@ -74,7 +74,7 @@ describe( 'Reconnect banner', () => {
 			value: { assign },
 		} );
 	} );
-	it( 'should create error notice when test oauth URL is invalid, and test mode is enabled', () => {
+	it( 'should create error notice when test oauth URL is invalid, and test mode is enabled', async () => {
 		const oauthUrl = 'http://example.com/test-oauth';
 		const { getByText } = render(
 			<ReConnectAccountBanner
@@ -83,13 +83,13 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'
 		);
 	} );
-	it( 'should create error notice when live oauth URL is invalid, and test mode is disabled', () => {
+	it( 'should create error notice when live oauth URL is invalid, and test mode is disabled', async () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
 
 		const oauthUrl = 'http://example.com/test-oauth';
@@ -100,18 +100,18 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'
 		);
 	} );
-	it( 'should create error notice when both oauth URLs are invalid', () => {
+	it( 'should create error notice when both oauth URLs are invalid', async () => {
 		const { getByText } = render(
 			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		await userEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'

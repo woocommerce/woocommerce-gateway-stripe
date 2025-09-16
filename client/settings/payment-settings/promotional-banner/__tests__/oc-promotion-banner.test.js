@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import apiFetch from '@wordpress/api-fetch';
 import { OCPromotionBanner } from '../oc-promotion-banner';
+import apiFetch from '@wordpress/api-fetch';
+import { useDispatch } from '@wordpress/data';
 
 const noticesDispatch = {
 	createErrorNotice: jest.fn(),
@@ -43,12 +43,12 @@ describe( 'OC promotional banner', () => {
 		);
 		expect(
 			getByText(
-				"Increase conversions with Stripe's Optimized Checkout Suite"
+				"Increase conversion with Stripe's Optimized Checkout Suite"
 			)
 		).toBeInTheDocument();
 		expect(
 			getByText(
-				/Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer./
+				/Optimize your checkout experience for more sales by dynamically displaying the most relevant payment methods you've enabled for each customer./
 			)
 		).toBeInTheDocument();
 	} );

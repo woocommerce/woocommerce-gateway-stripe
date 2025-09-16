@@ -1,8 +1,5 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
-import { useEffect } from '@wordpress/element';
 import React, { useContext, useState } from 'react';
-import { TabPanel } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
@@ -11,6 +8,9 @@ import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
+import { TabPanel } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -66,9 +66,8 @@ const SettingsManager = () => {
 	) {
 		initialBannerState = true;
 	}
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		initialBannerState
-	);
+	const [ showPromotionalBanner, setShowPromotionalBanner ] =
+		useState( initialBannerState );
 
 	useEffect( () => {
 		if ( isLoading && ! isEmpty( settings ) ) {
@@ -111,6 +110,7 @@ const SettingsManager = () => {
 									setShowPromotionalBanner
 								}
 								promotionalBannerType={ promotionalBannerType }
+								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
@@ -122,6 +122,7 @@ const SettingsManager = () => {
 									setShowPromotionalBanner
 								}
 								promotionalBannerType={ promotionalBannerType }
+								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 							/>

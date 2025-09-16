@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .payment-method-settings {
 	&__breadcrumbs {
@@ -6,11 +6,11 @@
 	}
 
 	&__option-muted-text {
-		color: #757575;
+		color: styles.$gray-700;
 	}
 
 	&__option-help-text {
-		color: #757575;
+		color: styles.$gray-700;
 		padding-left: 30px;
 
 		@media ( min-width: 600px ) {
@@ -26,10 +26,10 @@
 	}
 
 	&__preview {
-		border: 1px dashed #ddd;
+		border: 1px dashed styles.$gray-300;
 		box-sizing: border-box;
 		border-radius: 3px;
-		background-color: #f0f0f0;
+		background-color: styles.$gray-100;
 		padding: 16px;
 	}
 
@@ -52,7 +52,7 @@
 	.components-card-body {
 		padding: calc(16px) calc(24px);
 
-		@include breakpoint( '>660px' ) {
+		@include styles.breakpoint( '>660px' ) {
 			padding: 24px 24px 24px 24px;
 		}
 	}
@@ -62,10 +62,10 @@
 		display: none;
 		height: 40px;
 		margin: 1px 17px 1px 1px; // 1px to accommodate for box-shadow
-		box-shadow: 0 0 0 1px #ddd;
-		background: #fff;
+		box-shadow: 0 0 0 1px styles.$gray-300;
+		background: styles.$white;
 
-		@include breakpoint( '>660px' ) {
+		@include styles.breakpoint( '>660px' ) {
 			display: inline-block;
 		}
 	}

@@ -44,7 +44,7 @@ export const getExpressCheckoutData = ( key ) =>
  * Construct Express Checkout AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
- * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+ * @param {string} prefix   Endpoint URI prefix (default: 'wc_stripe_').
  * @return {string} URL with interpolated endpoint.
  */
 export const getExpressCheckoutAjaxURL = (
@@ -198,12 +198,6 @@ export const getCustomerNote = () => {
 	return '';
 };
 
-export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
-	return getExpressCheckoutData( 'has_block' )
-		? getRequiredFieldDataFromBlockCheckoutForm( data )
-		: getRequiredFieldDataFromShortcodeCheckoutForm( data );
-};
-
 const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( '.wc-block-checkout' );
 	// Return if cart page.
@@ -244,9 +238,8 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 		return data;
 	}
 
-	const requiredfields = checkoutForm.querySelectorAll(
-		'.validate-required'
-	);
+	const requiredfields =
+		checkoutForm.querySelectorAll( '.validate-required' );
 
 	if ( requiredfields.length ) {
 		requiredfields.forEach( ( element ) => {
@@ -292,6 +285,12 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 	return data;
 };
 
+export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
+	return getExpressCheckoutData( 'has_block' )
+		? getRequiredFieldDataFromBlockCheckoutForm( data )
+		: getRequiredFieldDataFromShortcodeCheckoutForm( data );
+};
+
 /**
  * Fetches the payment method types required to process a payment for an Express method.
  *
@@ -327,9 +326,9 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 /**
  * Display a notice on the checkout page (for Express Checkout Element).
  *
- * @param {string} message The message to display.
- * @param {string} type The type of notice.
- * @param {Array} additionalClasses Additional classes to add to the notice.
+ * @param {string} message           The message to display.
+ * @param {string} type              The type of notice.
+ * @param {Array}  additionalClasses Additional classes to add to the notice.
  */
 export const displayExpressCheckoutNotice = (
 	message,
@@ -390,12 +389,18 @@ export const expressCheckoutNoticeDelay = async () => {
 /**
  * Determine if the express payment type should use manual payment method creation.
  *
- * @param {string} expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {string}  expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @param {boolean} hasFreeTrial       Whether the product being purchased has a free trial.
  * @return {boolean} True if manual payment method creation should be used, false otherwise.
  */
-export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
-	return ! [
-		EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-		PAYMENT_METHOD_AMAZON_PAY,
-	].includes( expressPaymentType );
+export const isManualPaymentMethodCreation = (
+	expressPaymentType,
+	hasFreeTrial
+) => {
+	return (
+		! [
+			EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+			PAYMENT_METHOD_AMAZON_PAY,
+		].includes( expressPaymentType ) || hasFreeTrial
+	);
 };

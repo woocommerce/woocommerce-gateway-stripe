@@ -1,7 +1,6 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
-import { dispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
-import ReactDOM from 'react-dom';
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { getAppearance } from '../styles/upe';
 import {
 	errorTypes,
@@ -10,6 +9,8 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
 } from './constants';
+import { __ } from '@wordpress/i18n';
+import { dispatch } from '@wordpress/data';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -161,9 +162,9 @@ export const getUPETerms = ( value = 'always' ) => {
  * Sets a key-value pair in the localStorage along with a time-to-live (TTL) value, which specifies
  * the time (in milliseconds) after which the item will be considered expired.
  *
- * @param {string} key - The key to be stored in the localStorage.
- * @param {*} value - The value to be stored corresponding to the key.
- * @param {number} ttl - The time-to-live (TTL) value in milliseconds for the stored item.
+ * @param {string} key   - The key to be stored in the localStorage.
+ * @param {*}      value - The value to be stored corresponding to the key.
+ * @param {number} ttl   - The time-to-live (TTL) value in milliseconds for the stored item.
  */
 export const setStorageWithExpiration = ( key, value, ttl ) => {
 	const now = new Date();
@@ -295,7 +296,7 @@ export const generateCheckoutEventNames = () => {
 /**
  * Appends a payment method ID to the form.
  *
- * @param {Object} form The jQuery form object.
+ * @param {Object} form            The jQuery form object.
  * @param {string} paymentMethodId The payment method ID to append to the form.
  */
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
@@ -322,6 +323,20 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-setup-intent" name="wc-stripe-setup-intent" value="${ setupIntent.id }" />`
 	);
+};
+
+/**
+ * Gets the payment method name from the given payment method type.
+ * For example, when passed 'card' returns 'stripe' and for 'ideal' returns 'stripe_ideal'.
+ *
+ * Defaults to 'stripe' if the given payment method type is not found in the list of payment methods constants.
+ *
+ * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
+ *
+ * @return {string} The payment method name.
+ */
+export const getPaymentMethodName = ( paymentMethodType ) => {
+	return getPaymentMethodsConstants()[ paymentMethodType ] || 'stripe';
 };
 
 /**
@@ -522,7 +537,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		$container.find( '.wc-block-components-notices' ).remove();
 
 		$container.prepend( wrapper );
-		ReactDOM.createRoot( wrapper ).render( <NoticeComponent /> );
+		createPortal( <NoticeComponent />, wrapper );
 	} else {
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;
@@ -562,8 +577,8 @@ export const showErrorCheckout = ( errorMessage ) => {
  * Show an error notice inside a specific payment method container.
  * Will try to use a translatable message using the message code if available.
  *
- * @param {string|Object} errorMessage - The error message or error object.
- * @param {string} containerSelector   - Selector for the container where the error should be appended.
+ * @param {string|Object} errorMessage      - The error message or error object.
+ * @param {string}        containerSelector - Selector for the container where the error should be appended.
  */
 export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	const $container = jQuery( containerSelector ).first();
@@ -654,20 +669,6 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 	}
 
 	return appearance;
-};
-
-/**
- * Gets the payment method name from the given payment method type.
- * For example, when passed 'card' returns 'stripe' and for 'ideal' returns 'stripe_ideal'.
- *
- * Defaults to 'stripe' if the given payment method type is not found in the list of payment methods constants.
- *
- * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
- *
- * @return {string} The payment method name.
- */
-export const getPaymentMethodName = ( paymentMethodType ) => {
-	return getPaymentMethodsConstants()[ paymentMethodType ] || 'stripe';
 };
 
 /**
@@ -841,4 +842,23 @@ export const maybeClearBlikCodeValidation = () => {
 			'woocommerce-invalid woocommerce-invalid-required-field'
 		);
 	}
+};
+
+/**
+ * Gets the base font size for both the regular checkout and the Optimized Checkout (which is 2px larger than the default font size).
+ * So it matches the rest of the checkout form when it is scaled down.
+ *
+ * @param {string} defaultFontSize The default font size of the checkout form, e.g. '16px'.
+ * @return {string} The base font size.
+ */
+export const getFontSizeBase = ( defaultFontSize ) => {
+	if ( getStripeServerData()?.isOCEnabled ) {
+		// Find numbers for font size.
+		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
+		if ( matches.length > 0 ) {
+			return parseFloat( matches[ 0 ] ) + 2 + 'px';
+		}
+	}
+
+	return defaultFontSize;
 };

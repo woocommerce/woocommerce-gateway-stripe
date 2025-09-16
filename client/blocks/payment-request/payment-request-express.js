@@ -1,5 +1,3 @@
-import { __ } from '@wordpress/i18n';
-import { useEffect } from '@wordpress/element';
 import {
 	Elements,
 	PaymentRequestButtonElement,
@@ -15,6 +13,8 @@ import {
 	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
+import { __ } from '@wordpress/i18n';
+import { useEffect } from '@wordpress/element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
@@ -51,11 +51,8 @@ const PaymentRequestExpressComponent = ( {
 	const { needsShipping } = shippingData;
 
 	/* Set up payment request and its event handlers. */
-	const [
-		paymentRequest,
-		paymentRequestType,
-		isUpdatingPaymentRequest,
-	] = usePaymentRequest( stripe, needsShipping, billing );
+	const [ paymentRequest, paymentRequestType, isUpdatingPaymentRequest ] =
+		usePaymentRequest( stripe, needsShipping, billing );
 	useShippingAddressUpdateHandler( paymentRequest, paymentRequestType );
 	useShippingOptionChangeHandler( paymentRequest, paymentRequestType );
 	useProcessPaymentHandler(

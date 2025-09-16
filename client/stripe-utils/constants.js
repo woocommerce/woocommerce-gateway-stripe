@@ -133,6 +133,16 @@ export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
 
 /**
+ * List of express payment methods
+ */
+export const EXPRESS_PAYMENT_METHODS = [
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+];
+
+/**
  * List of payment methods that are not recurring
  */
 export const NON_REUSABLE_METHODS = [
@@ -143,7 +153,6 @@ export const NON_REUSABLE_METHODS = [
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_EPS,
 	PAYMENT_METHOD_GIROPAY,
-	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_P24,
 	PAYMENT_METHOD_OXXO,
@@ -158,3 +167,15 @@ export const BNPL_METHODS = [
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_KLARNA,
 ];
+
+export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
+	UNSUPPORTED_CURRENCY: 'unsupported_currency',
+	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
+};
+
+/**
+ * Default layout for the optimized checkout
+ *
+ * @type {string}
+ */
+export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';

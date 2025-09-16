@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromotionalBanner from '..';
+import { useDispatch } from '@wordpress/data';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -58,7 +58,7 @@ describe( 'PromotionalBanner', () => {
 		jest.restoreAllMocks();
 	} );
 
-	it( 'dismiss function should be called', () => {
+	it( 'dismiss function should be called', async () => {
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -69,12 +69,12 @@ describe( 'PromotionalBanner', () => {
 
 		const dismissButton = screen.getByTestId( 'dismiss' );
 
-		userEvent.click( dismissButton );
+		await userEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
 
-	it( 'Main CTA link for the first version should disable the legacy checkout experience', () => {
+	it( 'Main CTA link for the first version should disable the legacy checkout experience', async () => {
 		const setIsUpeEnabledMock = jest.fn().mockResolvedValue( true );
 
 		render(
@@ -87,7 +87,7 @@ describe( 'PromotionalBanner', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		await userEvent.click( screen.getByText( 'Enable the new checkout' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 

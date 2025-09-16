@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.7.0
+Stable tag: 9.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,20 +110,26 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.8.0 - xxxx-xx-xx =
+= 9.10.0 - xxxx-xx-xx =
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 13.0.3, and `form-data` to 4.0.4 in the JavaScript development dependencies
-* Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
-* Dev - Use product type constants that were added in WooCommerce 9.7
-* Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
-* Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
-* Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
-* Tweak - Check for checkout validation error before creating a payment method in Stripe
-* Add - Add state mapping for Lithuania in express checkout
-* Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
-* Dev - Fix WooCommerce version fetching in GitHub workflows
-* Dev - Fix failing test cases associated with WooCommerce 10.0.x
-* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
-* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
-* Fix - Fix fatal when processing Boleto setup intents via webhooks
+* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Dev - Upgrades Node to v20
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
+* Add - Allow Klarna to be used for recurring payments and subscriptions
+* Dev - Fix live reload issue with Webpack 5
+* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
+* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
+* Dev - Upgrades the Webpack-related packages
+* Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
+* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
+* Dev - Upgrades the Babel-related packages
+* Dev - Consolidate component used for unavailable payment methods
+* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
+* Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
+* Fix - Fatal error caused by type mismatch when processing webhooks
+* Fix - Validate order when verifying payment intent
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

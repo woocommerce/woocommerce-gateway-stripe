@@ -1,38 +1,39 @@
-import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const EMPTY_ARR = [];
 
-const makeReadOnlySettingsHook = (
-	fieldName,
-	fieldDefaultValue = false
-) => () =>
-	useSelect(
-		( select ) => {
+const makeReadOnlySettingsHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() =>
+		useSelect( ( select ) => {
 			const { getSettings } = select( STORE_NAME );
 
 			return getSettings()[ fieldName ] || fieldDefaultValue;
-		},
-		[ fieldName, fieldDefaultValue ]
-	);
+		}, [] );
 
-const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
+const makeSettingsHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() => {
+		const { updateSettingsValues } = useDispatch( STORE_NAME );
 
-	const field = makeReadOnlySettingsHook( fieldName, fieldDefaultValue )();
+		const field = makeReadOnlySettingsHook(
+			fieldName,
+			fieldDefaultValue
+		)();
 
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				[ fieldName ]: value,
-			} ),
-		[ updateSettingsValues ]
-	);
+		const handler = useCallback(
+			( value ) =>
+				updateSettingsValues( {
+					[ fieldName ]: value,
+				} ),
+			[ updateSettingsValues ]
+		);
 
-	return [ field, handler ];
-};
+		return [ field, handler ];
+	};
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
@@ -117,10 +118,8 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useAmazonPayEnabledSettings = () => {
-	const [
-		enabledMethodIds,
-		updateEnabledMethodIds,
-	] = useEnabledPaymentMethodIds();
+	const [ enabledMethodIds, updateEnabledMethodIds ] =
+		useEnabledPaymentMethodIds();
 	const isAmazonPayEnabled = enabledMethodIds.includes(
 		PAYMENT_METHOD_AMAZON_PAY
 	);
@@ -153,8 +152,11 @@ export const useAmazonPayLocations = makeSettingsHook(
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
-export const useSepaTokensForOtherMethods = makeSettingsHook(
-	'is_sepa_tokens_for_other_methods_enabled'
+export const useSepaTokensForIdeal = makeSettingsHook(
+	'is_sepa_tokens_for_ideal_enabled'
+);
+export const useSepaTokensForBancontact = makeSettingsHook(
+	'is_sepa_tokens_for_bancontact_enabled'
 );
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
@@ -166,7 +168,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
-export const useOCTitle = makeSettingsHook( 'oc_title', 'Stripe' );
+export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',
 	false

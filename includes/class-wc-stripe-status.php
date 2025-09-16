@@ -151,6 +151,20 @@ class WC_Stripe_Status {
 				</td>
 			</tr>
 			<tr>
+				<td data-export-label="Optimized Checkout Enabled"><?php esc_html_e( 'Optimized Checkout Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Optimized Checkout Suite is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td>
+					<?php
+					$is_oc_enabled = 'yes' === $this->gateway->get_option( 'optimized_checkout_element', 'no' );
+					$class         = $is_oc_enabled ? 'yes' : 'no';
+					$icon          = $is_oc_enabled ? 'yes' : 'no';
+					?>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>"></span>
+						<?php $is_oc_enabled ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' ); ?>
+					</mark>
+				</td>
+			</tr>
+			<tr>
 				<td data-export-label="Enabled Payment Methods"><?php esc_html_e( 'Enabled Payment Methods', 'woocommerce-gateway-stripe' ); ?>:</td>
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'What payment methods are enabled for the store.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td><?php echo esc_html( implode( ',', $this->gateway->get_upe_enabled_payment_method_ids() ) ); ?></td>
@@ -238,6 +252,14 @@ class WC_Stripe_Status {
 				'callback' => [ $this, 'list_detached_subscriptions' ],
 			];
 		}
+
+		$tools['wc_stripe_database_cache_cleanup'] = [
+			'name'     => __( 'Stripe database cache cleanup', 'woocommerce-gateway-stripe' ),
+			'button'   => __( 'Clean Stripe cache', 'woocommerce-gateway-stripe' ),
+			'desc'     => __( 'This tool will remove stale entries from the Stripe database cache.', 'woocommerce-gateway-stripe' ),
+			'callback' => [ $this, 'database_cache_cleanup' ],
+		];
+
 		return $tools;
 	}
 
@@ -279,6 +301,36 @@ class WC_Stripe_Status {
 				echo '</p>';
 			echo '</div>';
 		}
+		echo '</div>';
+	}
+
+	/**
+	 * Clean up stale entries from the Stripe database cache.
+	 *
+	 * @return void
+	 */
+	public function database_cache_cleanup(): void {
+		$result = WC_Stripe_Database_Cache::delete_all_stale_entries( WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE, -1 );
+
+		if ( is_wp_error( $result['error'] ) ) {
+			echo '<div class="notice notice-error inline">';
+				echo '<p>' . esc_html__( 'Error cleaning up Stripe database cache.', 'woocommerce-gateway-stripe' ) . '</p>';
+				echo '<p>' . esc_html( $result['error']->get_error_message() ) . '</p>';
+			echo '</div>';
+
+			return;
+		}
+
+		$result_summary = sprintf(
+			/* translators: %1$d: number of entries processed; %2$d: number of stale entries removed */
+			__( '%1$d entries processed; %2$d stale entries removed', 'woocommerce-gateway-stripe' ),
+			$result['processed'],
+			$result['deleted']
+		);
+
+		echo '<div class="notice notice-success inline">';
+			echo '<p>' . esc_html__( 'Stripe database cache cleaned up successfully.', 'woocommerce-gateway-stripe' ) . '</p>';
+			echo '<p>' . esc_html( $result_summary ) . '</p>';
 		echo '</div>';
 	}
 }

@@ -2,8 +2,6 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
 import {
 	PaymentElement,
 	useElements,
@@ -16,6 +14,8 @@ import { useEffect, useState, useRef } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
+import { __ } from '@wordpress/i18n';
+import { select } from '@wordpress/data';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -24,6 +24,7 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
+	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -87,7 +88,9 @@ const getStripeElementOptions = () => {
 		options = {
 			...options,
 			layout: {
-				type: 'accordion',
+				type:
+					getBlocksConfiguration()?.OCLayout ||
+					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 				radios: false,
 			},
 		};
@@ -148,13 +151,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
-	const [
-		selectedPaymentMethodType,
-		setSelectedPaymentMethodType,
-	] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
-		false
-	);
+	const [ selectedPaymentMethodType, setSelectedPaymentMethodType ] =
+		useState( null );
+	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
+		useState( false );
 	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
 		? testingInstructions
 		: '';

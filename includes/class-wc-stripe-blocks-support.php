@@ -497,6 +497,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				[
 					'order'       => $context->order->get_id(),
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+					'intent_id'   => $payment_details['payment_intent_id'],
 					'redirect_to' => rawurlencode( $result->redirect_url ),
 				],
 				home_url() . \WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )

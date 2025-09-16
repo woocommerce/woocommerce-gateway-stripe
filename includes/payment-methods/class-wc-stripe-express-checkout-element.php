@@ -193,10 +193,14 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return array  The settings used for the Stripe express checkout element in JavaScript.
 	 */
 	public function javascript_params() {
+		$publishable_key = WC_Stripe_Mode::is_test()
+			? ( $this->stripe_settings['test_publishable_key'] ?? '' )
+			: ( $this->stripe_settings['publishable_key'] ?? '' );
+
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
-				'publishable_key'             => WC_Stripe_Mode::is_test() ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
+				'publishable_key'             => $publishable_key,
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
@@ -236,6 +240,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
+			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 		];
 	}
 

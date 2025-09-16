@@ -1012,7 +1012,8 @@ jQuery( function($ ) {
 						return;
 					}
 
-					window.location = redirectURL;
+					var intentId = intent?.id;
+					window.location = redirectURL + ( intentId ? '&intent_id=' + encodeURIComponent( intentId ) : '' );
 				} )
 				.catch( function( error ) {
 					if ( alwaysRedirect ) {

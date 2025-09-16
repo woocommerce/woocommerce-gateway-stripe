@@ -1,14 +1,13 @@
-const { test, expect } = require( '@playwright/test' );
+import { test, expect } from '@playwright/test';
+import { payments } from '../../utils';
+
+const { clickAddToCartButton } = payments;
 
 const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
 	await page.goto( `/product/${ productSlug }` );
 
-	const addToCartButton = await page.getByRole( 'button', {
-		name: 'Add to cart',
-	} );
-	await expect( addToCartButton ).toBeEnabled();
-	await addToCartButton.dispatchEvent( 'click' );
+	await clickAddToCartButton( page );
 
 	// Wait for the cart update to complete - look for success message or cart count update
 	await expect(
@@ -101,6 +100,9 @@ test.describe( 'express checkout and variable products', () => {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
+		await page
+			.getByLabel( 'color', { exact: true } )
+			.selectOption( 'Blue' );
 		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible();

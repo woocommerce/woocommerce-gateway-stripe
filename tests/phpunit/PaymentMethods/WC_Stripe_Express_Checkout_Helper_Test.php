@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Gateway_Stripe;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
@@ -9,6 +10,10 @@ use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Stripe_Helper;
+use WC_Subscription;
+use WC_Subscriptions_Cart;
+use WC_Subscriptions_Product;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
@@ -163,17 +168,17 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_nontaxable_product->set_virtual( true );
-		$virtual_nontaxable_product->set_tax_status( 'none' );
+		$virtual_nontaxable_product->set_tax_status( ProductTaxStatus::NONE );
 		$virtual_nontaxable_product->save();
 
 		$virtual_taxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_taxable_product->set_virtual( true );
-		$virtual_taxable_product->set_tax_status( 'taxable' );
+		$virtual_taxable_product->set_tax_status( ProductTaxStatus::TAXABLE );
 		$virtual_taxable_product->save();
 
 		$shippable_taxable_product = WC_Helper_Product::create_simple_product();
 		$shippable_taxable_product->set_virtual( false );
-		$shippable_taxable_product->set_tax_status( 'taxable' );
+		$shippable_taxable_product->set_tax_status( ProductTaxStatus::TAXABLE );
 		$shippable_taxable_product->save();
 		$this->products = [
 			'virtual_nontaxable' => $virtual_nontaxable_product,
@@ -291,7 +296,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Add a non-taxable product to the cart.
 		$product = WC_Helper_Product::create_simple_product();
 		$product->set_virtual( false );
-		$product->set_tax_status( 'none' );
+		$product->set_tax_status( ProductTaxStatus::NONE );
 		$product->save();
 
 		WC()->session->init();
@@ -312,6 +317,86 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->session->cleanup_sessions();
 		WC()->cart->empty_cart();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+	}
+
+	/**
+	 * Test should_show_express_checkout_button, free trial logic.
+	 *
+	 * @return void
+	 */
+	public function test_hides_ece_if_free_trial_requires_shipping() {
+		$this->set_up_shipping_methods();
+
+		$wc_stripe_ece_helper_mock = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'is_product',
+				'get_product',
+				'allowed_items_in_cart',
+				'should_show_ece_on_cart_page',
+				'should_show_ece_on_checkout_page',
+			],
+		);
+
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->testmode = true;
+
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+
+		// Ensure that the 'stripe' gateway is available.
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Gateway_Stripe(),
+		];
+
+		update_option( 'woocommerce_calc_taxes', 'no' );
+
+		// Should show, as free virtual products does not require shipping.
+		$virtual_product = WC_Helper_Product::create_simple_product();
+		$virtual_product->set_virtual( true );
+		$virtual_product->set_tax_status( 'none' );
+		$virtual_product->set_price( 0 );
+		$virtual_product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
+		$wc_stripe_ece_helper_mock
+			->expects( $this->any() )
+			->method( 'get_product' )
+			->willReturn( $virtual_product );
+
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Should hide if the free product requires shipping.
+		$shippable_product = WC_Helper_Product::create_simple_product();
+		$shippable_product->set_virtual( false );
+		$shippable_product->set_tax_status( 'none' );
+		$shippable_product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
+		$wc_stripe_ece_helper_mock
+			->expects( $this->any() )
+			->method( 'get_product' )
+			->willReturn( $shippable_product );
+
+		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original settings.
+		WC()->cart->empty_cart();
+		WC()->session->cleanup_sessions();
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
 	}
 
 	/**
@@ -544,7 +629,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_express_checkout_context() {
 		return [
-			'Not Store API request' => [
+			'Not Store API request'                 => [
 				'is_store_api'       => false,
 				'has_express_header' => true,
 				'has_nonce_header'   => true,
@@ -619,11 +704,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api() {
 		return [
-			'No rest_route set' => [
+			'No rest_route set'         => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route' => [
+			'Store API checkout route'  => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
@@ -631,7 +716,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'rest_route' => '/wc/store/v1/cart',
 				'expected'   => false,
 			],
-			'Non-Store API route' => [
+			'Non-Store API route'       => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],
@@ -661,7 +746,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function provide_test_get_stripe_currency_decimals() {
 		return [
 			// No decimal currencies - should return 0
-			'Japanese Yen (no decimals)' => [
+			'Japanese Yen (no decimals)'      => [
 				'currency' => 'JPY',
 				'expected' => 0,
 			],
@@ -671,13 +756,233 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'expected' => 3,
 			],
 			// Default currencies - should return 2
-			'US Dollar (default)' => [
+			'US Dollar (default)'             => [
 				'currency' => 'USD',
 				'expected' => 2,
 			],
-			'Euro (default)' => [
+			'Euro (default)'                  => [
 				'currency' => 'EUR',
 				'expected' => 2,
+			],
+		];
+	}
+
+	/**
+	 * Tests for `get_booking_ids_from_cart`.
+	 *
+	 * @param array $cart_contents Cart contents.
+	 * @param array $expected Expected booking IDs.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_booking_ids_from_cart
+	 */
+	public function test_get_booking_ids_from_cart( $cart_contents, $expected ) {
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->cart_contents = $cart_contents;
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$actual = $helper->get_booking_ids_from_cart();
+
+		// Clean up.
+		WC()->session->cleanup_sessions();
+		WC()->cart->empty_cart();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_booking_ids_from_cart`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_booking_ids_from_cart() {
+		$product_1 = WC_Helper_Product::create_simple_product();
+		$product_1->save();
+
+		$product_2 = WC_Helper_Product::create_simple_product();
+		$product_2->save();
+
+		$product_3 = WC_Helper_Product::create_simple_product();
+		$product_3->save();
+
+		return [
+			'no products'                => [
+				'cart contents' => [],
+				'expected'      => [],
+			],
+			'single product'             => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+				],
+			],
+			'multiple products'          => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_2->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_2->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+					$product_2->get_id(),
+				],
+			],
+			'multiple products, same ID' => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+				],
+			],
+			'mixed products (booking data not always present)' => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_2->get_id(),
+					],
+					[
+						'product_id' => $product_3->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_3->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+					$product_3->get_id(),
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test for has_free_trial().
+	 *
+	 * @param bool            $is_product Whether is product page.
+	 * @param \WC_Order|null  $product Product on product page.
+	 * @param int             $trial_length Trial length of the product.
+	 * @param bool            $is_checkout Whether is checkout page.
+	 * @param bool            $cart_contains_free_trial Whether cart contains a product with free trial.
+	 * @param bool            $expected Expected result.
+	 * @return void
+	 * @dataProvider provide_test_has_free_trial
+	 */
+	public function test_has_free_trial( $is_product, $product, $trial_length, $is_checkout, $cart_contains_free_trial, $expected ) {
+		add_filter(
+			'woocommerce_is_checkout',
+			function () use ( $is_checkout ) {
+				return $is_checkout;
+			}
+		);
+
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( $cart_contains_free_trial );
+
+		WC_Subscriptions_Product::set_is_subscription( true );
+
+		WC_Subscriptions_Product::set_trial_length( $trial_length );
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'get_product' ] )
+			->getMock();
+
+		$helper->method( 'is_product' )
+			->willReturn( $is_product );
+
+		$helper->method( 'get_product' )
+			->willReturn( $product );
+
+		$actual = $helper->has_free_trial();
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_has_free_trial`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_has_free_trial() {
+		$subscription = new WC_Subscription();
+
+		$subscription_with_trial = new WC_Subscription();
+		$subscription_with_trial->update_meta_data( 'subscription_trial_length', 14 );
+		$subscription_with_trial->save_meta_data();
+
+		return [
+			'product page, missing product' => [
+				'is_product'               => true,
+				'product'                  => null,
+				'trial length'             => 0,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'product page, no free trial' => [
+				'is_product'               => true,
+				'product'                  => $subscription,
+				'trial length'             => 0,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'product page, with free trial' => [
+				'is_product'               => true,
+				'product'                  => $subscription_with_trial,
+				'trial length'             => 14,
+				'is checkout'              => false,
+				'cart contains free trial' => false,
+				'expected'                 => true,
+			],
+			'cart/checkout page, no free trial' => [
+				'is_product'               => false,
+				'product'                  => $subscription,
+				'trial length'             => 0,
+				'is checkout'              => true,
+				'cart contains free trial' => false,
+				'expected'                 => false,
+			],
+			'cart/checkout page, with free trial' => [
+				'is_product'               => false,
+				'product'                  => $subscription_with_trial,
+				'trial length'             => 14,
+				'is checkout'              => true,
+				'cart contains free trial' => true,
+				'expected'                 => true,
 			],
 		];
 	}

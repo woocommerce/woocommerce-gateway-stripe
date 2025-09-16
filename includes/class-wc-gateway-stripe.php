@@ -505,6 +505,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						return [
 							'result'                => 'success',
 							'redirect'              => $this->get_return_url( $order ),
+							'payment_intent_id'     => $intent->id,
 							'payment_intent_secret' => $intent->client_secret,
 							'save_payment_method'   => $this->save_payment_method_requested(),
 						];
@@ -1229,5 +1230,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_payment_request_enabled() {
 		return 'yes' === $this->get_option( 'payment_request' );
+	}
+
+	/**
+	 * Checks if the Optimized Checkout setting is enabled.
+	 *
+	 * OC is not supported in the legacy gateway, so we return false here,
+	 * this method is then overridden by UPE payment gateway which extends from this class.
+	 *
+	 * @return bool Always false.
+	 */
+	public function is_oc_enabled() {
+		// Always return false here, as OC is not supported in the legacy gateway.
+		return false;
 	}
 }

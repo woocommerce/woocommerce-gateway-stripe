@@ -151,6 +151,11 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
+		if ( ! WC_Stripe_Helper::is_stripe_gateway_order( $subscription ) ) {
+			// If the payment method is not a Stripe method, we don't need to check further.
+			return false;
+		}
+
 		$source_id = $subscription->get_meta( '_stripe_source_id' );
 		if ( ! $source_id ) {
 			return false;
@@ -291,5 +296,42 @@ class WC_Stripe_Subscriptions_Helper {
 			$customer_payment_method_link,
 			$customer_stripe_page
 		);
+	}
+
+	/**
+	 * Helper function to get and temporarily cache the payment method details for a customer and payment method ID.
+	 *
+	 * @param string $stripe_customer_id The Stripe customer ID.
+	 * @param string $payment_method_id  The Stripe payment method ID. This may be a source ID or a payment method ID.
+	 * @return object|null The payment method details or null if the payment method is not found.
+	 */
+	public static function get_subscription_payment_method_details( string $stripe_customer_id, string $payment_method_id ): ?object {
+		static $cached_payment_methods = [];
+
+		if ( empty( $stripe_customer_id ) || empty( $payment_method_id ) ) {
+			return null;
+		}
+
+		if ( isset( $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] ) ) {
+			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
+		}
+
+		$saved_payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
+		if ( is_wp_error( $saved_payment_method ) ) {
+			return null;
+		}
+
+		if ( isset( $saved_payment_method->error ) || empty( $saved_payment_method->id ) || empty( $saved_payment_method->customer ) || $saved_payment_method->customer !== $stripe_customer_id ) {
+			$saved_payment_method = null;
+		}
+
+		// Make sure we build the array tree.
+		if ( ! isset( $cached_payment_methods[ $stripe_customer_id ] ) ) {
+			$cached_payment_methods[ $stripe_customer_id ] = [];
+		}
+
+		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
+
+		return $saved_payment_method;
 	}
 }

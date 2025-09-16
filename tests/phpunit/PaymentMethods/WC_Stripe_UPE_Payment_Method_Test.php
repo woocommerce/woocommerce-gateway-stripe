@@ -13,10 +13,9 @@ use WC_Payment_Token_Link;
 use WC_Payment_Token_SEPA;
 use WC_Stripe;
 use WC_Stripe_Currency_Code;
-use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
-use WC_Stripe_Payment_Method_Configurations;
+use WC_Stripe_Klarna_Payment_Token;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -27,10 +26,9 @@ use WC_Stripe_UPE_Payment_Method_Bacs_Debit;
 use WC_Stripe_UPE_Payment_Method_Becs_Debit;
 use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
 use WC_Stripe_UPE_Payment_Method_CC;
+use WC_Stripe_UPE_Payment_Method_Klarna;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
@@ -166,6 +164,21 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	];
 
 	/**
+	 * Base template for Stripe's Klarna
+	 */
+	const MOCK_KLARNA_PAYMENT_METHOD_TEMPLATE = [
+		'id'                                  => 'pm_mock_payment_method_id',
+		'type'                                => WC_Stripe_Payment_Methods::KLARNA,
+		WC_Stripe_Payment_Methods::KLARNA => [
+			'dob' => [
+				'day'   => 1,
+				'month' => 2,
+				'year'  => 1970,
+			],
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
@@ -230,19 +243,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function set_up() {
 		parent::set_up();
 		WC_Stripe_Helper::delete_main_stripe_settings();
-		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
-		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
-		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
-		update_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME, 'yes' );
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
 		WC_Stripe_Helper::delete_main_stripe_settings();
-		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
-		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
-		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
-		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -757,6 +762,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 				],
 				true
 			) ) {
@@ -769,8 +775,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 			$account_currency = null;
 
-			// Use different currencies for ACSS or payment methods that have domestic transactions restrictions.
-			if ( $payment_method->has_domestic_transactions_restrictions() || WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id ) {
+			// Use different currencies for ACSS, Klarna or payment methods that have domestic transactions restrictions.
+			if ( $payment_method->has_domestic_transactions_restrictions()
+				|| WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id
+				|| WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID === $payment_method_id ) {
 				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
@@ -896,6 +904,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 					$this->assertTrue( WC_Payment_Token_Becs_Debit::class === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $becs_debit_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID}->last4 );
 					break;
+				case WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID:
+					$klarna_payment_method_mock = $this->array_to_object( self::MOCK_KLARNA_PAYMENT_METHOD_TEMPLATE );
+					$token                      = $payment_method->create_payment_token_for_user( $user_id, $klarna_payment_method_mock );
+					$token_dob_parts            = explode( '-', $token->get_dob() );
+					$this->assertTrue( WC_Stripe_Klarna_Payment_Token::class === get_class( $token ) );
+					$this->assertSame( (int) $token_dob_parts[0], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->year );
+					$this->assertSame( (int) $token_dob_parts[1], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->month );
+					$this->assertSame( (int) $token_dob_parts[2], $klarna_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID}->dob->day );
+					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
@@ -933,78 +950,92 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
-	 * Tests that UPE methods are enabled if Stripe is enabled and the account is connected to the platform.
+	 * Tests that UPE methods are enabled if Stripe is enabled and the method is enabled in the PMC,
+	 * for accounts with PMC sync.
 	 */
 	public function test_upe_method_enabled() {
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
+		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
 		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled']          = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
-
-		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CASHAPP_PAY ], [] );
+		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
+		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
+		$wechat_upe_method  = new WC_Stripe_UPE_Payment_Method_Wechat_Pay();
 		$this->assertTrue( $link_upe_method->is_enabled() );
+		$this->assertTrue( $cashapp_upe_method->is_enabled() );
+		$this->assertFalse( $wechat_upe_method->is_enabled() );
 	}
 
 	/**
-	 * Tests that UPE methods are not enabled if Stripe is disabled.
+	 * Tests that UPE methods are not enabled if Stripe is disabled,
+	 * for accounts with PMC sync.
 	 */
 	public function test_upe_method_disabled() {
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled'] = 'no';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'no';
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled']          = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
-
-		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CASHAPP_PAY ], [] );
+		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
+		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
+		$wechat_upe_method  = new WC_Stripe_UPE_Payment_Method_Wechat_Pay();
 		$this->assertFalse( $link_upe_method->is_enabled() );
+		$this->assertFalse( $cashapp_upe_method->is_enabled() );
+		$this->assertFalse( $wechat_upe_method->is_enabled() );
 	}
 
 	/**
-	 * Tests that UPE methods are only enabled if Stripe is enabled and the account is not connected to the platform.
+	 * Tests that UPE methods are only enabled if Stripe is enabled and the method is enabled in the local settings,
+	 * for accounts with no PMC sync.
 	 */
-	public function test_upe_method_enabled_for_non_connected_accounts() {
+	public function test_upe_method_enabled_no_pmc_sync() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled'] = 'yes';
-		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled']          = 'no';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::CASHAPP_PAY,
+		];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// For each method we'll test the following combinations:
-		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
-		$upe_method_enabled_options = [ true, false ];
+		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
+		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
+		$wechat_upe_method  = new WC_Stripe_UPE_Payment_Method_Wechat_Pay();
+		$this->assertTrue( $link_upe_method->is_enabled() );
+		$this->assertTrue( $cashapp_upe_method->is_enabled() );
+		$this->assertFalse( $wechat_upe_method->is_enabled() );
+	}
 
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method ) {
-			foreach ( $stripe_enabled_settings as $stripe_enabled ) {
-				foreach ( $upe_method_enabled_options as $upe_method_enabled_option ) {
-					// CARD is always enabled for UPE and non connected accounts.
-					if ( WC_Stripe_Payment_Methods::CARD === $payment_method::STRIPE_ID && ! $upe_method_enabled_option ) {
-						continue;
-					}
+	/**
+	 * Tests that UPE methods are only enabled if Stripe is enabled and the method is enabled in the local settings,
+	 * for accounts with no PMC sync.
+	 */
+	public function test_upe_method_disabled_no_pmc_sync() {
+		// Enable Stripe and reset the accepted payment methods.
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled']          = 'no';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::CASHAPP_PAY,
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-					// Update the settings.
-					$stripe_settings['enabled'] = $stripe_enabled;
-
-					$payment_method_index = array_search( $payment_method::STRIPE_ID, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-					if ( $upe_method_enabled_option && false === $payment_method_index ) {
-						$stripe_settings['upe_checkout_experience_accepted_payments'][] = $payment_method::STRIPE_ID;
-					} elseif ( ! $upe_method_enabled_option && false !== $payment_method_index ) {
-						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
-					}
-
-					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-					// Verify that the payment method is enabled/disabled.
-					$payment_method_instance = new $payment_method();
-					// The UPE method is only enabled if Stripe is enabled and the method is enabled in the settings.
-					if ( 'yes' === $stripe_enabled && $upe_method_enabled_option ) {
-						$this->assertTrue( $payment_method_instance->is_enabled() );
-					} else {
-						$this->assertFalse( $payment_method_instance->is_enabled() );
-					}
-				}
-			}
-		}
+		$link_upe_method    = new WC_Stripe_UPE_Payment_Method_Link();
+		$cashapp_upe_method = new WC_Stripe_UPE_Payment_Method_Cash_App_Pay();
+		$wechat_upe_method  = new WC_Stripe_UPE_Payment_Method_Wechat_Pay();
+		$this->assertTrue( $link_upe_method->is_enabled() );
+		$this->assertTrue( $cashapp_upe_method->is_enabled() );
+		$this->assertFalse( $wechat_upe_method->is_enabled() );
 	}
 }

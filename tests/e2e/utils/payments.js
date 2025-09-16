@@ -2,6 +2,20 @@ import { expect } from '@playwright/test';
 import config from 'config';
 
 /**
+ * Click the primary add to cart button for the current page.
+ *
+ * @param {Page}   page  Playwright page fixture.
+ * @param {string} label The expected text for the "Add to cart" button.
+ */
+export async function clickAddToCartButton( page, label = 'Add to cart' ) {
+	const addToCartButton = await page
+		.getByRole( 'button', { name: label, exact: true } )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
@@ -156,18 +170,15 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 	const options = {
 		multi: {
 			cardNumber: {
-				iFrame:
-					'#stripe-card-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-card-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cardnumber"]',
 			},
 			cardExpiry: {
-				iFrame:
-					'#stripe-exp-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-exp-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="exp-date"]',
 			},
 			cardCvc: {
-				iFrame:
-					'#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
+				iFrame: '#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
 				selector: '[name="cvc"]',
 			},
 		},
@@ -476,10 +487,24 @@ export const fillACHBankDetails = async ( page ) => {
 	// Click "Connect Account" button.
 	await frame.getByTestId( 'select-button' ).click();
 
-	// Skip link registration
-	await frame.getByTestId( 'link-not-now-button' ).click();
+	// Link registration button may or may not appear.
+	await Promise.race( [
+		frame
+			.getByTestId( 'link-not-now-button' )
+			.waitFor( {
+				state: 'visible',
+				timeout: 5000,
+			} )
+			.then( async () => {
+				await frame.getByTestId( 'link-not-now-button' ).click();
+			} ),
 
-	// Click "Done" button.
+		frame.getByTestId( 'done-button' ).waitFor( {
+			state: 'visible',
+			timeout: 5000,
+		} ),
+	] );
+
 	await frame.getByTestId( 'done-button' ).click();
 };
 
@@ -543,14 +568,12 @@ export const setupOptimizedCheckout = async (
 
 	const selectors = {
 		blocks: {
-			iframe:
-				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
+			iframe: '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
 			container:
 				'#radio-control-wc-payment-method-options-stripe__content',
 		},
 		shortcode: {
-			iframe:
-				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
+			iframe: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
 			container: '#wc-stripe-upe-form',
 		},
 	};
@@ -663,12 +686,11 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
 		outerFrameLocator.locator( '.LightboxModalLoadingIndicator' )
 	).toBeHidden();
 
-	const buttonId =
-		action === 'authorize'
-			? '#test-source-authorize-3ds'
-			: '#test-source-fail-3ds';
-	await expect( innerFrameLocator.locator( buttonId ) ).toBeVisible();
-	await innerFrameLocator.locator( buttonId ).click();
+	const buttonName = action === 'authorize' ? 'Complete' : 'Fail';
+	await expect(
+		innerFrameLocator.getByRole( 'button', { name: buttonName } )
+	).toBeVisible();
+	await innerFrameLocator.getByRole( 'button', { name: buttonName } ).click();
 
 	if ( action === 'fail' ) {
 		await expect( innerFrameLocator.owner() ).toBeHidden();
@@ -905,16 +927,24 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
 		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_affirm__content'
-		);
+		await expect(
+			page
+				.frameLocator(
+					'#radio-control-wc-payment-method-options-stripe_affirm__content iframe[name^="__privateStripeFrame"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	} else {
 		const affirmLabel = page.getByText( 'Affirm' );
 		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
-		await page.waitForSelector(
-			'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
-		);
+		await expect(
+			page
+				.frameLocator(
+					'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	}
 };
 
@@ -943,15 +973,23 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
 		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_klarna__content'
-		);
+		await expect(
+			page
+				.frameLocator(
+					'#radio-control-wc-payment-method-options-stripe_klarna__content iframe[name^="__privateStripeFrame"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	} else {
 		const klarnaLabel = page.getByText( 'Klarna' );
 		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
-		await page.waitForSelector(
-			'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
-		);
+		await expect(
+			page
+				.frameLocator(
+					'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	}
 };
