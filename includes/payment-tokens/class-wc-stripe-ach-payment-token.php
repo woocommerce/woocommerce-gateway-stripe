@@ -165,6 +165,7 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 			return false;
 		}
 
-		return ( $payment_method->{WC_Stripe_Payment_Methods::ACH}->fingerprint ?? null ) === $this->get_fingerprint();
+		// ACH uses the `us_bank_account` property
+		return ( $payment_method->us_bank_account->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }
