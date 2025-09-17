@@ -29,7 +29,6 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
