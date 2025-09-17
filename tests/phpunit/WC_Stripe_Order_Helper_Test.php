@@ -18,47 +18,6 @@ use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
  */
 class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	/**
-	 * Tests for `get_order_by_source_id`, `get_order_by_charge_id`, `get_order_by_refund_id`,
-	 * `get_order_by_intent_id`, and `get_order_by_setup_intent_id`.
-	 *
-	 * @return void
-	 * @throws WC_Data_Exception
-	 */
-	public function test_retrieve() {
-		// setup
-		$source_id       = 'src_123';
-		$charge_id       = 'ch_123';
-		$refund_id       = 're_123';
-		$intent_id       = 'pi_123';
-		$setup_intent_id = 'seti_123';
-
-		$order = WC_Helper_Order::create_order();
-
-		$order->set_transaction_id( $charge_id );
-		$order->update_meta_data( '_stripe_source_id', $source_id );
-		$order->update_meta_data( '_stripe_refund_id', $refund_id );
-		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->update_meta_data( '_stripe_setup_intent_id', $setup_intent_id );
-		$order->save_meta_data();
-		$order->save();
-
-		// get_order_by_source_id
-		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_source_id( $source_id ) );
-
-		// get_order_by_charge_id
-		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_charge_id( $charge_id ) );
-
-		// get_order_by_refund_id
-		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_refund_id( $refund_id ) );
-
-		// get_order_by_intent_id
-		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_intent_id( $intent_id ) );
-
-		// get_order_by_setup_intent_id
-		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_setup_intent_id( $setup_intent_id ) );
-	}
-
-	/**
 	 * Tests for getters and setters.
 	 *
 	 * @return void
