@@ -207,14 +207,17 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// Set the layout to accordion if OC is enabled.
 	if ( getStripeServerData()?.isOCEnabled ) {
+		const layout = {
+			type:
+				getStripeServerData()?.OCLayout ||
+				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = false;
+		}
 		paymentElementOptions = {
 			...paymentElementOptions,
-			layout: {
-				type:
-					getStripeServerData()?.OCLayout ||
-					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-				radios: false,
-			},
+			layout,
 		};
 	}
 
