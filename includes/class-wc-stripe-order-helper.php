@@ -338,7 +338,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 9.9.0
 	 *
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return object $details
 	 */
 	public static function get_owner_details( $order ) {
