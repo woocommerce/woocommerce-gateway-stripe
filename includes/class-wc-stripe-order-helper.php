@@ -13,7 +13,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Meta key for Stripe currency.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_CURRENCY = '_stripe_currency';
 
