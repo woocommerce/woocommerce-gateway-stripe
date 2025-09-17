@@ -60,7 +60,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * @return bool True if the cache key can be prefetched, false otherwise.
 	 */
 	public function should_prefetch_cache_key( string $key ): bool {
-		return isset( self::PREFETCH_CONFIG[ $key ] ) && self::PREFETCH_CONFIG[ $key ] > 0;
+		return $this->get_prefetch_window( $key ) > 0;
 	}
 
 	/**
@@ -70,11 +70,10 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * @param int    $expiry_time The expiry time of the cache entry.
 	 */
 	public function maybe_queue_prefetch( string $key, int $expiry_time ): void {
-		if ( ! $this->should_prefetch_cache_key( $key ) ) {
+		$prefetch_window = $this->get_prefetch_window( $key );
+		if ( 0 === $prefetch_window ) {
 			return;
 		}
-
-		$prefetch_window = self::PREFETCH_CONFIG[ $key ];
 
 		// If now plus the prefetch window is before the expiry time, do not trigger a prefetch.
 		if ( ( time() + $prefetch_window ) < $expiry_time ) {
@@ -108,13 +107,47 @@ class WC_Stripe_Database_Cache_Prefetch {
 	}
 
 	/**
+	 * Get the prefetch window for a given cache key.
+	 *
+	 * @param string $key The unprefixed cache key to get the prefetch window for.
+	 * @return int The prefetch window for the cache key. 0 indicates that prefetching is disabled for the key.
+	 */
+	private function get_prefetch_window( string $cache_key ): int {
+		if ( ! isset( self::PREFETCH_CONFIG[ $cache_key ] ) ) {
+			return 0;
+		}
+
+		$initial_prefetch_window = self::PREFETCH_CONFIG[ $cache_key ];
+
+		/**
+		 * Filters the cache prefetch window for a given cache key. Return 0 or less to disable prefetching for the key.
+		 *
+		 * @param int    $prefetch_window The prefetch window for the cache key.
+		 * @param string $cache_key       The unprefixed cache key.
+		 */
+		$prefetch_window = apply_filters( 'wc_stripe_database_cache_prefetch_window', $initial_prefetch_window, $cache_key );
+
+		// If the filter returns a non-integer, use the initial prefetch window.
+		if ( ! is_int( $prefetch_window ) ) {
+			return $initial_prefetch_window;
+		}
+
+		if ( $prefetch_window <= 0 ) {
+			return 0;
+		}
+
+		return $prefetch_window;
+	}
+
+	/**
 	 * Check if a prefetch is already queued up.
 	 *
 	 * @param string $key The unprefixed cache key to check.
 	 * @return bool True if a prefetch is queued up, false otherwise.
 	 */
 	private function is_prefetch_queued( string $key ): bool {
-		if ( ! isset( self::PREFETCH_CONFIG[ $key ] ) ) {
+		$prefetch_window = $this->get_prefetch_window( $key );
+		if ( 0 === $prefetch_window ) {
 			return false;
 		}
 
@@ -126,8 +159,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 			return false;
 		}
 
-		$now             = time();
-		$prefetch_window = self::PREFETCH_CONFIG[ $key ];
+		$now = time();
 
 		if ( $prefetch_option >= ( $now - $prefetch_window ) ) {
 			// If the prefetch entry expires in the future, or falls within the prefetch window for the key, we should consider the item live and queued.
@@ -161,18 +193,30 @@ class WC_Stripe_Database_Cache_Prefetch {
 				'Invalid cache prefetch key',
 				[
 					'cache_key' => $key,
-					'reason'    => 'invalid_key',
+					'reason'    => 'invalid_cache_key',
 				]
 			);
 			return;
 		}
 
-		if ( ! $this->should_prefetch_cache_key( $key ) ) {
+		if ( ! isset( self::PREFETCH_CONFIG[ $key ] ) ) {
 			WC_Stripe_Logger::warning(
 				'Invalid cache prefetch key',
 				[
 					'cache_key' => $key,
 					'reason'    => 'unsupported_cache_key',
+				]
+			);
+			return;
+		}
+
+		$prefetch_window = $this->get_prefetch_window( $key );
+		if ( 0 === $prefetch_window ) {
+			WC_Stripe_Logger::warning(
+				'Cache prefetch key was disabled',
+				[
+					'cache_key' => $key,
+					'reason'    => 'cache_key_disabled',
 				]
 			);
 			return;

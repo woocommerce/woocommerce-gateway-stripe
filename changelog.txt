@@ -17,6 +17,7 @@
 * Dev - Consolidate component used for unavailable payment methods
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
 
 = 9.9.1 - 2025-09-16 =
 * Add - Allow Klarna to be used for recurring payments and subscriptions
