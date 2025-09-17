@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.10.0 - xxxx-xx-xx =
+* Dev - Upgrades  the @woocommerce/dependency-extraction-webpack-plugin package
 * Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
 * Dev - Upgrades Node to v20
 * Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
