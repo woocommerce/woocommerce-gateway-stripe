@@ -536,29 +536,6 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Checks if an order is locked for payment processing.
-	 *
-	 * @since 10.0.0
-	 *
-	 * @param WC_Order $order The order to check the lock for
-	 * @return bool
-	 */
-	protected static function is_order_payment_locked( $order ) {
-		$existing_lock = self::get_order_existing_payment_lock( $order );
-		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
-			$expiration = (int) $parts[0];
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Locks an order for refund processing for 5 minutes.
 	 *
 	 * @since 10.0.0
@@ -567,14 +544,9 @@ class WC_Stripe_Order_Helper {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public static function lock_order_refund( $order ) {
-		$existing_lock = self::get_order_existing_refund_lock( $order );
-		if ( $existing_lock ) {
-			$expiration = (int) $existing_lock;
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration ) {
-				return true;
-			}
+		if ( self::is_order_refund_locked( $order ) ) {
+			// If the order is already locked, return true.
+			return true;
 		}
 
 		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
@@ -608,5 +580,50 @@ class WC_Stripe_Order_Helper {
 	public static function unlock_order_refund( $order ) {
 		$order->delete_meta_data( '_stripe_lock_refund' );
 		$order->save_meta_data();
+	}
+
+	/**
+	 * Checks if an order is locked for payment processing.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 */
+	protected static function is_order_payment_locked( $order ) {
+		$existing_lock = self::get_order_existing_payment_lock( $order );
+		if ( $existing_lock ) {
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Checks if an order is locked for refund.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 */
+	protected static function is_order_refund_locked( $order ) {
+		$existing_lock = self::get_order_existing_refund_lock( $order );
+		if ( $existing_lock ) {
+			$expiration = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
