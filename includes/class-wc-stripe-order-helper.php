@@ -515,7 +515,6 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 9.9.0
 	 *
-	 * @since 4.2
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public static function unlock_order_payment( $order ) {
