@@ -2,25 +2,24 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentTokens;
 
-use stdClass;
-use WC_Payment_Token_Klarna;
 use WC_Stripe_Payment_Methods;
 use WP_UnitTestCase;
+use WC_Stripe_Klarna_Payment_Token;
 
 /**
- * Class WC_Payment_Token_Klarna tests.
+ * Class WC_Stripe_Klarna_Payment tests.
  */
-class WC_Payment_Token_Klarna_Test extends WP_UnitTestCase {
+class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 
 	/**
-	 * WC_Payment_Token_Klarna instance.
+	 * WC_Stripe_Klarna_Payment_Token instance.
 	 *
-	 * @var WC_Payment_Token_Klarna
+	 * @var WC_Stripe_Klarna_Payment_Token
 	 */
 	protected $token;
 
 	protected function setUp(): void {
-		$this->token = new WC_Payment_Token_Klarna();
+		$this->token = new WC_Stripe_Klarna_Payment_Token();
 	}
 
 	/**
