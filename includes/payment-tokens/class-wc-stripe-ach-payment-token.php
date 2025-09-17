@@ -161,12 +161,11 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if (
-			WC_Stripe_Payment_Methods::ACH === $payment_method->type
-			&& ( $payment_method->{WC_Stripe_Payment_Methods::ACH}->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::ACH !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		// ACH uses the `us_bank_account` property
+		return ( $payment_method->us_bank_account->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }

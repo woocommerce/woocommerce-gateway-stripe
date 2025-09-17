@@ -852,7 +852,7 @@ export const maybeClearBlikCodeValidation = () => {
  * @return {string} The base font size.
  */
 export const getFontSizeBase = ( defaultFontSize ) => {
-	if ( getStripeServerData()?.isOCEnabled ) {
+	if ( getStripeServerData()?.isOCEnabled && defaultFontSize ) {
 		// Find numbers for font size.
 		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
 		if ( matches.length > 0 ) {
