@@ -135,11 +135,10 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::SEPA_DEBIT === $payment_method->type
-			&& ( $payment_method->sepa_debit->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::SEPA_DEBIT !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		return ( $payment_method->sepa_debit->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }
