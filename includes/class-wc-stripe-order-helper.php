@@ -88,7 +88,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Gets the Stripe currency for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @return string $currency
@@ -104,7 +104,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Updates the Stripe currency for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @param string $currency
@@ -120,7 +120,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @return string $amount
@@ -148,7 +148,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Updates the Stripe fee for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @param float  $amount
@@ -164,7 +164,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Deletes the Stripe fee for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 */
@@ -180,7 +180,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Gets the Stripe net for order. With legacy check.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @return string $amount
@@ -208,7 +208,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Updates the Stripe net for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @param float  $amount
@@ -224,7 +224,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Deletes the Stripe net for order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 */
@@ -240,7 +240,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param $payment_intent_id
 	 * @param $order WC_Order
@@ -269,7 +269,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to add the metadata to.
 	 * @param bool     $save  Whether to save the order after adding the metadata.
@@ -287,7 +287,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Checks if the order is awaiting action for payment.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param $order
 	 * @return bool
@@ -299,7 +299,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to remove the metadata from.
 	 * @param bool     $save  Whether to save the order after removing the metadata.
@@ -317,7 +317,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Returns the payment intent or setup intent ID from a given order object.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to fetch the Stripe intent from.
 	 *
@@ -336,7 +336,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Get owner details.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order
 	 * @return object $details
@@ -378,7 +378,7 @@ class WC_Stripe_Order_Helper {
 	 * This checks the currency, amount, and payment method types.
 	 * The function will log a critical error if there is a mismatch.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order      $order                 The order to check.
 	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
@@ -465,7 +465,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param $order WC_Order The order to check.
 	 * @return bool
@@ -478,7 +478,7 @@ class WC_Stripe_Order_Helper {
 	 * Validates that the order meets the minimum order amount
 	 * set by Stripe.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 * @param WC_Order $order
 	 */
 	public static function validate_minimum_order_amount( $order ) {
@@ -491,7 +491,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order  The order that is being paid.
 	 * @return bool            A flag that indicates whether the order is already locked.
@@ -513,7 +513,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Unlocks an order for processing by payment intents.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
@@ -525,7 +525,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Retrieves the existing lock for an order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to retrieve the lock for
 	 * @return mixed
@@ -538,7 +538,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Checks if an order is locked for payment processing.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to check the lock for
 	 * @return bool
@@ -561,7 +561,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Locks an order for refund processing for 5 minutes.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
@@ -588,7 +588,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Retrieves the existing refund lock for an order.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param $order WC_Order The order to retrieve the lock for
 	 * @return mixed
@@ -601,7 +601,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Unlocks an order for processing refund.
 	 *
-	 * @since 9.9.0
+	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
