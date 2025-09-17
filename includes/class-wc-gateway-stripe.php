@@ -455,7 +455,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Confirm the intent after locking the order to make sure webhooks will not interfere.
 			if ( empty( $intent->error ) ) {
-				WC_Stripe_Order_Helper::lock_order_payment( $order, $intent );
+				WC_Stripe_Order_Helper::lock_order_payment( $order );
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
@@ -898,7 +898,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order ) ) {
 			return;
 		}
 
