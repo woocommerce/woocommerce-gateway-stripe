@@ -86,18 +86,21 @@ class WC_Stripe_Account {
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param string|null $mode  Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param bool $bypass_cache Optional. Whether to bypass the cache and retrieve the account data from Stripe. Default is false.
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public function get_cached_account_data( $mode = null ) {
+	public function get_cached_account_data( $mode = null, bool $bypass_cache = false ) {
 		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache();
+		if ( ! $bypass_cache ) {
+			$account = $this->read_account_from_cache();
 
-		if ( ! empty( $account ) ) {
-			return $account;
+			if ( ! empty( $account ) ) {
+				return $account;
+			}
 		}
 
 		return $this->cache_account( $mode );

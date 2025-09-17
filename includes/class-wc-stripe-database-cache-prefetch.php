@@ -21,6 +21,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * @var int[]
 	 */
 	protected const PREFETCH_CONFIG = [
+		WC_Stripe_Account::ACCOUNT_CACHE_KEY                             => 10,
 		WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY => 10,
 	];
 
@@ -194,6 +195,10 @@ class WC_Stripe_Database_Cache_Prefetch {
 		$prefetched = null;
 
 		switch ( $key ) {
+			case WC_Stripe_Account::ACCOUNT_CACHE_KEY:
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( null, true );
+				$prefetched = ! empty( $account_data );
+				break;
 			case WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY:
 				if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 					WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( true );
