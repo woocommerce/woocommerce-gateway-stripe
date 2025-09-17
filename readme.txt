@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.8.1
+Stable tag: 9.9.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -112,18 +112,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Dev - Introduces a new helper class to handle Stripe orders
+* Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
+* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Fix - Minor fixes and code improvements for the saved payment methods comparison logic
+* Dev - Upgrades Node to v20
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
 * Dev - Fix live reload issue with Webpack 5
-* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
-* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
-* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
-* Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
-* Fix - Fatal error caused by type mismatch when processing webhooks
-* Fix - Validate order when verifying payment intent
+* Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
