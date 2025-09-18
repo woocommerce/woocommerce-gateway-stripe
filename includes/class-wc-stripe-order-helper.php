@@ -18,68 +18,70 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Meta key for Stripe fee.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_FEE = '_stripe_fee';
 
 	/**
 	 * Meta key for Stripe fee (legacy version).
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const LEGACY_META_STRIPE_FEE = 'Stripe Fee';
 
 	/**
 	 * Meta key for Stripe net.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_NET = '_stripe_net';
 
 	/**
 	 * Meta key for Stripe net (legacy version).
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const LEGACY_META_STRIPE_NET = 'Net Revenue From Stripe';
 
 	/**
 	 * Meta key for Stripe source ID.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_SOURCE_ID = '_stripe_source_id';
 
 	/**
 	 * Meta key for Stripe charge ID.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_CHARGE_ID = '_stripe_charge_id';
 
 	/**
 	 * Meta key for Stripe refund ID.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_REFUND_ID = '_stripe_refund_id';
 
 	/**
 	 * Meta key for Stripe intent ID.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_INTENT_ID = '_stripe_intent_id';
 
 	/**
 	 * Meta key for Stripe setup intent ID.
+	 *
+	 * @var string
 	 */
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
 	 * Meta key for payment awaiting action.
 	 *
-	 * @string
+	 * @var string
 	 */
 	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
