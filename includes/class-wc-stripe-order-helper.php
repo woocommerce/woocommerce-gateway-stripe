@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\WooCommerce\Enums\OrderStatus;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -86,6 +84,36 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Singleton instance of the class.
+	 *
+	 * @var null|WC_Stripe_Order_Helper
+	 */
+	private static $instance = null;
+
+	/**
+	 * Gets the singleton instance of the class.
+	 *
+	 * @return WC_Stripe_Order_Helper
+	 */
+	public static function get_instance(): ?self {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Sets the singleton instance of the class.
+	 *
+	 * @param WC_Stripe_Order_Helper $instance
+	 * @return void
+	 */
+	public static function set_instance( self $instance ) {
+		self::$instance = $instance;
+	}
+
+	/**
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 10.0.0
@@ -93,7 +121,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order
 	 * @return string $currency
 	 */
-	public static function get_stripe_currency( $order = null ) {
+	public function get_stripe_currency( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -109,7 +137,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order
 	 * @param string $currency
 	 */
-	public static function update_stripe_currency( $order, $currency ) {
+	public function update_stripe_currency( WC_Order $order, string $currency ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -122,10 +150,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 * @return string $amount
 	 */
-	public static function get_stripe_fee( $order = null ) {
+	public function get_stripe_fee( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -150,10 +178,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 * @param float  $amount
 	 */
-	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+	public function update_stripe_fee( ?WC_Order $order = null, float $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -166,9 +194,9 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 */
-	public static function delete_stripe_fee( $order = null ) {
+	public function delete_stripe_fee( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -182,10 +210,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 * @return string $amount
 	 */
-	public static function get_stripe_net( $order = null ) {
+	public function get_stripe_net( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -210,10 +238,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 * @param float  $amount
 	 */
-	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+	public function update_stripe_net( ?WC_Order $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -226,9 +254,9 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order|null $order
 	 */
-	public static function delete_stripe_net( $order = null ) {
+	public function delete_stripe_net( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -242,10 +270,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param $payment_intent_id
+	 * @param string $payment_intent_id The payment intent ID to add to the order.
 	 * @param $order WC_Order
 	 */
-	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+	public function add_payment_intent_to_order( string $payment_intent_id, WC_Order $order ): void {
 		$old_intent_id = $order->get_meta( self::META_STRIPE_INTENT_ID );
 
 		if ( $old_intent_id === $payment_intent_id ) {
@@ -276,7 +304,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @return void
 	 */
-	public static function set_payment_awaiting_action( $order, $save = true ) {
+	public function set_payment_awaiting_action( WC_Order $order, bool $save = true ): void {
 		$order->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -289,10 +317,10 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param $order
+	 * @param WC_Order $order The order to check.
 	 * @return bool
 	 */
-	public static function is_payment_awaiting_action( $order ) {
+	public function is_payment_awaiting_action( WC_Order $order ): bool {
 		return wc_string_to_bool( $order->get_meta( self::META_STRIPE_PAYMENT_AWAITING_ACTION, true ) );
 	}
 
@@ -306,7 +334,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @return void
 	 */
-	public static function remove_payment_awaiting_action( $order, $save = true ) {
+	public function remove_payment_awaiting_action( WC_Order $order, bool $save = true ): void {
 		$order->delete_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION );
 
 		if ( $save ) {
@@ -323,7 +351,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 */
-	public static function get_intent_id_from_order( $order ) {
+	public function get_intent_id_from_order( WC_Order $order ) {
 		$intent_id = $order->get_meta( self::META_STRIPE_INTENT_ID );
 
 		if ( ! $intent_id ) {
@@ -341,7 +369,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order
 	 * @return object $details
 	 */
-	public static function get_owner_details( $order ) {
+	public function get_owner_details( WC_Order $order ): object {
 		$billing_first_name = $order->get_billing_first_name();
 		$billing_last_name  = $order->get_billing_last_name();
 
@@ -386,7 +414,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
 	 */
-	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+	public function validate_intent_for_order( WC_Order $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
 			$intent_id = $intent;
@@ -470,7 +498,7 @@ class WC_Stripe_Order_Helper {
 	 * @param $order WC_Order The order to check.
 	 * @return bool
 	 */
-	public static function is_stripe_gateway_order( $order ) {
+	public function is_stripe_gateway_order( WC_Order $order ): bool {
 		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
@@ -481,7 +509,7 @@ class WC_Stripe_Order_Helper {
 	 * @since 10.0.0
 	 * @param WC_Order $order
 	 */
-	public static function validate_minimum_order_amount( $order ) {
+	public function validate_minimum_order_amount( WC_Order $order ): void {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
@@ -496,7 +524,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order  The order that is being paid.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
-	public static function lock_order_payment( $order ) {
+	public function lock_order_payment( WC_Order $order ): bool {
 		if ( self::is_order_payment_locked( $order ) ) {
 			// If the order is already locked, return true.
 			return true;
@@ -517,7 +545,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
-	public static function unlock_order_payment( $order ) {
+	public function unlock_order_payment( WC_Order $order ): void {
 		$order->delete_meta_data( '_stripe_lock_payment' );
 		$order->save_meta_data();
 	}
@@ -530,7 +558,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order to retrieve the lock for
 	 * @return mixed
 	 */
-	public static function get_order_existing_payment_lock( $order ) {
+	public function get_order_existing_payment_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
 		return $order->get_meta( '_stripe_lock_payment', true );
 	}
@@ -543,7 +571,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
-	public static function lock_order_refund( $order ) {
+	public function lock_order_refund( WC_Order $order ): bool {
 		if ( self::is_order_refund_locked( $order ) ) {
 			// If the order is already locked, return true.
 			return true;
@@ -565,7 +593,7 @@ class WC_Stripe_Order_Helper {
 	 * @param $order WC_Order The order to retrieve the lock for
 	 * @return mixed
 	 */
-	public static function get_order_existing_refund_lock( $order ) {
+	public function get_order_existing_refund_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
 		return $order->get_meta( '_stripe_lock_refund', true );
 	}
@@ -577,7 +605,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
-	public static function unlock_order_refund( $order ) {
+	public function unlock_order_refund( WC_Order $order ) {
 		$order->delete_meta_data( '_stripe_lock_refund' );
 		$order->save_meta_data();
 	}
@@ -590,7 +618,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order to check the lock for
 	 * @return bool
 	 */
-	protected static function is_order_payment_locked( $order ) {
+	protected function is_order_payment_locked( WC_Order $order ): bool {
 		$existing_lock = self::get_order_existing_payment_lock( $order );
 		if ( $existing_lock ) {
 			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
@@ -613,7 +641,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order to check the lock for
 	 * @return bool
 	 */
-	protected static function is_order_refund_locked( $order ) {
+	protected function is_order_refund_locked( WC_Order $order ): bool {
 		$existing_lock = self::get_order_existing_refund_lock( $order );
 		if ( $existing_lock ) {
 			$expiration = (int) $existing_lock;
