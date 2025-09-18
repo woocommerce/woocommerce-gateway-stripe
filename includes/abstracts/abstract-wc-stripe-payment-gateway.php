@@ -1192,6 +1192,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return true;
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 		$response = new stdClass();
@@ -1225,12 +1227,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( ! $intent_cancelled && 'yes' === $captured ) {
-				WC_Stripe_Order_Helper::lock_order_payment( $order );
+				$order_helper->lock_order_refund( $order );
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
-			WC_Stripe_Order_Helper::unlock_order_refund( $order );
+			$order_helper->unlock_order_refund( $order );
 
 			return new WP_Error(
 				'stripe_error',
@@ -1244,7 +1246,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line (return statement is added)
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
-			WC_Stripe_Order_Helper::unlock_order_refund( $order );
+			$order_helper->unlock_order_refund( $order );
 
 			return new WP_Error(
 				'stripe_error',
@@ -1286,7 +1288,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $response->id, $reason );
 
 			$order->add_order_note( $refund_message );
-			WC_Stripe_Order_Helper::unlock_order_refund( $order );
+			$order_helper->unlock_order_refund( $order );
 
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( wp_strip_all_tags( $refund_message ), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401 ) );
 
