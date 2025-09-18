@@ -251,10 +251,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 
 		$order_helper->expects( $this->any() )
-			->method( 'unlock_order_payment' )
-			->will(
-				$this->returnValue( null )
-			);
+			->method( 'unlock_order_payment' );
 
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 	}
