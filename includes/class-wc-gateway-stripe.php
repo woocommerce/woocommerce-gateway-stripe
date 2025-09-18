@@ -560,8 +560,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		$fee      = WC_Stripe_Order_Helper::get_stripe_fee( $order );
-		$currency = WC_Stripe_Order_Helper::get_stripe_currency( $order );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$fee          = $order_helper->get_stripe_fee( $order );
+		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $fee || ! $currency ) {
 			return;
@@ -597,8 +598,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		$net      = WC_Stripe_Order_Helper::get_stripe_net( $order );
-		$currency = WC_Stripe_Order_Helper::get_stripe_currency( $order );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$net      = $order_helper->get_stripe_net( $order );
+		$currency = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;
@@ -898,7 +900,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( WC_Stripe_Order_Helper::lock_order_payment( $order ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
 		}
 
@@ -917,13 +921,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->handle_intent_verification_failure( $order, $intent );
 		}
 
-		WC_Stripe_Order_Helper::unlock_order_payment( $order );
+		$order_helper->unlock_order_payment( $order );
 
 		/**
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
 		 * Now that payment is confirmed, we can remove this meta.
 		 */
-		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order );
+		$order_helper->remove_payment_awaiting_action( $order );
 	}
 
 	/**

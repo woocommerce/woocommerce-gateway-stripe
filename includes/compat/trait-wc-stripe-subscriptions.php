@@ -446,6 +446,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 			// If the payment gateway is SEPA, use the charges API.
 			// TODO: Remove when SEPA is migrated to payment intents.
 			if ( 'stripe_sepa' === $this->id ) {
@@ -456,7 +458,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				WC_Stripe_Order_Helper::lock_order_payment( $renewal_order );
+				$order_helper->lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -517,7 +519,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			WC_Stripe_Order_Helper::unlock_order_payment( $renewal_order );
+			$order_helper->unlock_order_payment( $renewal_order );
 
 			return;
 		}
@@ -589,7 +591,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		WC_Stripe_Order_Helper::unlock_order_payment( $renewal_order );
+		$order_helper->unlock_order_payment( $renewal_order );
 	}
 
 	/**

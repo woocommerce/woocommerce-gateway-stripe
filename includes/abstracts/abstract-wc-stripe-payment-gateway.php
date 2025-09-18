@@ -1100,7 +1100,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.6
-	 * @param object $order The order object
+	 * @param WC_Order $order The order object
 	 * @param int    $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
@@ -1114,18 +1114,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
 
 				// Current data fee & net.
-				$fee_current = WC_Stripe_Order_Helper::get_stripe_fee( $order );
-				$net_current = WC_Stripe_Order_Helper::get_stripe_net( $order );
+				$order_helper = WC_Stripe_Order_Helper::get_instance();
+				$fee_current  = $order_helper->get_stripe_fee( $order );
+				$net_current  = $order_helper->get_stripe_net( $order );
 
 				// Calculation.
 				$fee = (float) $fee_current + (float) $fee_refund;
 				$net = (float) $net_current + (float) $net_refund;
 
-				WC_Stripe_Order_Helper::update_stripe_fee( $order, $fee );
-				WC_Stripe_Order_Helper::update_stripe_net( $order, $net );
+				$order_helper->update_stripe_fee( $order, $fee );
+				$order_helper->update_stripe_net( $order, $net );
 
 				$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
-				WC_Stripe_Order_Helper::update_stripe_currency( $order, $currency );
+				$order_helper->update_stripe_currency( $order, $currency );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1684,7 +1685,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( 'payment_intent' === $intent->object ) {
-			WC_Stripe_Order_Helper::add_payment_intent_to_order( $intent->id, $order );
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $intent->id, $order );
 
 			// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
 			// The mandate ID is not available for the intent object, so we need to fetch the charge.
