@@ -126,5 +126,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
+* Add - Implement cache prefetch for payment method configuration
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
