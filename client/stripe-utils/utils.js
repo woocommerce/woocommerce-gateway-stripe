@@ -233,13 +233,19 @@ export const isAmazonPayEnabled = () => {
 /**
  * Get array of payment method types to use with intent.
  *
- * @todo Make paymentMethodType required when Split is implemented.
- *
  * @param {string} paymentMethodType Payment method type Stripe ID.
  * @return {Array} Array of payment method types to use with intent.
  */
-export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
+export const getPaymentMethodTypes = ( paymentMethodType ) => {
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+
+	// If OC is enabled, we always want to keep only the allowed payment methods.
+	if ( getStripeServerData()?.isOCEnabled ) {
+		return (
+			paymentMethodsConfig?.[ PAYMENT_METHOD_CARD ]
+				.enabledPaymentMethods || [ PAYMENT_METHOD_CARD ]
+		);
+	}
 
 	if ( paymentMethodType === null ) {
 		if (

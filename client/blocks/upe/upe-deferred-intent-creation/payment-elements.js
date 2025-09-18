@@ -136,6 +136,7 @@ const PaymentElements = ( {
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
 				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				paymentMethodTypes: getPaymentMethodTypes( paymentMethodId ),
 			},
 		};
 
@@ -148,29 +149,19 @@ const PaymentElements = ( {
 							?.paymentMethodConfigurationParentId,
 				},
 			};
-		} else {
+		} else if (
+			shouldSetupOffSessionPayment(
+				props.showSaveOption,
+				paymentMethodsConfig[ paymentMethodId ].isReusable
+			)
+		) {
+			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
 			options = {
 				...options,
 				...{
-					paymentMethodTypes:
-						getPaymentMethodTypes( paymentMethodId ),
+					setupFutureUsage: 'off_session',
 				},
 			};
-
-			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-			if (
-				shouldSetupOffSessionPayment(
-					props.showSaveOption,
-					paymentMethodsConfig[ paymentMethodId ].isReusable
-				)
-			) {
-				options = {
-					...options,
-					...{
-						setupFutureUsage: 'off_session',
-					},
-				};
-			}
 		}
 	} else {
 		options = {
