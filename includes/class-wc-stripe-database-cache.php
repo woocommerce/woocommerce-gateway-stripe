@@ -101,6 +101,8 @@ class WC_Stripe_Database_Cache {
 				return null;
 			}
 
+			self::maybe_trigger_prefetch( $key, $cache_contents );
+
 			return $cache_contents['data'];
 		}
 
@@ -209,18 +211,17 @@ class WC_Stripe_Database_Cache {
 	 * @return boolean True if the contents are expired. False otherwise.
 	 */
 	private static function is_expired( $prefixed_key, $cache_contents ) {
-		if ( ! is_array( $cache_contents ) || ! isset( $cache_contents['updated'] ) || ! isset( $cache_contents['ttl'] ) ) {
+		if ( ! is_array( $cache_contents ) ) {
 			// Treat bad/invalid cache contents as expired
 			return true;
 		}
 
-		// Double-check that we have integers for `updated` and `ttl`.
-		if ( ! is_int( $cache_contents['updated'] ) || ! is_int( $cache_contents['ttl'] ) ) {
+		$expires = self::get_expiry_time( $cache_contents );
+		if ( null === $expires ) {
 			return true;
 		}
 
-		$expires = $cache_contents['updated'] + $cache_contents['ttl'];
-		$now     = time();
+		$now = time();
 
 		/**
 		 * Filters the result of the database cache entry expiration check.
@@ -234,6 +235,49 @@ class WC_Stripe_Database_Cache {
 		 * @return bool Whether the cache is expired.
 		 */
 		return apply_filters( 'wc_stripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
+	}
+
+	/**
+	 * Get the expiry time for a cache entry. Includes validation for time-related fields in the array.
+	 *
+	 * @param array $cache_contents The cache contents.
+	 *
+	 * @return int|null The expiry time as a timestamp. Null if the expiry time can't be determined.
+	 */
+	private static function get_expiry_time( array $cache_contents ): ?int {
+		// If we don't have updated and ttl keys, expiry time is unknown.
+		if ( ! isset( $cache_contents['updated'], $cache_contents['ttl'] ) ) {
+			return null;
+		}
+
+		// If we don't have integers for updated and ttl, expiry time is unknown.
+		if ( ! is_int( $cache_contents['updated'] ) || ! is_int( $cache_contents['ttl'] ) ) {
+			return null;
+		}
+
+		return $cache_contents['updated'] + $cache_contents['ttl'];
+	}
+
+	/**
+	 * Maybe trigger a cache prefetch.
+	 *
+	 * @param string $key            The unprefixed cache key.
+	 * @param array  $cache_contents The cache contents.
+	 *
+	 * @return void
+	 */
+	private static function maybe_trigger_prefetch( string $key, array $cache_contents ): void {
+		$prefetch = WC_Stripe_Database_Cache_Prefetch::get_instance();
+		if ( ! $prefetch->should_prefetch_cache_key( $key ) ) {
+			return;
+		}
+
+		$expires = self::get_expiry_time( $cache_contents );
+		if ( null === $expires ) {
+			return;
+		}
+
+		$prefetch->maybe_queue_prefetch( $key, $expires );
 	}
 
 	/**
