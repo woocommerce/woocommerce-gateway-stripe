@@ -245,7 +245,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
+			WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;

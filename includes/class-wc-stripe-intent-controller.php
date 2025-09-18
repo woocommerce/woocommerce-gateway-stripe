@@ -484,8 +484,10 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
-		WC_Stripe_Order_Helper::validate_intent_for_order( $order, $intent_id, $selected_payment_type );
+		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
@@ -577,7 +579,7 @@ class WC_Stripe_Intent_Controller {
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			}
 			$order->save();
-			WC_Stripe_Order_Helper::add_payment_intent_to_order( $intent_id, $order );
+			$order_helper->add_payment_intent_to_order( $intent_id, $order );
 		}
 
 		return [

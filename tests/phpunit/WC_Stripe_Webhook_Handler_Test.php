@@ -507,12 +507,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
+
 		if ( $order_locked ) {
-			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
+			WC_Stripe_Order_Helper::get_instance()->lock_order_payment( $order );
 		}
+
 		if ( $order_status_final ) {
 			$order->update_meta_data( '_stripe_status_final', true );
 		}
+
 		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
 		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save_meta_data();

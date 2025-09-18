@@ -63,7 +63,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order_helper->lock_order_refund( $order );
 		$this->assertTrue( $order_helper->get_order_existing_refund_lock( $order ) > 0 );
 		$order_helper->unlock_order_refund( $order );
-		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertEmpty( $order_helper->get_order_existing_refund_lock( $order ) );
 
 		// payment
 		$order_helper->lock_order_payment( $order );
