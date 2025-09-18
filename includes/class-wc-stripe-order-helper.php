@@ -90,7 +90,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @var null|WC_Stripe_Order_Helper
 	 */
-	private static $instance = null;
+	private static ?WC_Stripe_Order_Helper $instance = null;
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -181,7 +181,7 @@ class WC_Stripe_Order_Helper {
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order|null $order
-	 * @param float  $amount
+	 * @param float $amount
 	 */
 	public function update_stripe_fee( ?WC_Order $order = null, float $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -607,7 +607,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
-	public function unlock_order_refund( WC_Order $order ) {
+	public function unlock_order_refund( WC_Order $order ): void {
 		$order->delete_meta_data( '_stripe_lock_refund' );
 		$order->save_meta_data();
 	}

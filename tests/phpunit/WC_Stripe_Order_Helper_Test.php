@@ -25,22 +25,24 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	public function test_properties() {
 		$order = WC_Helper_Order::create_order();
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Tests for `is_payment_awaiting_action`, `set_payment_awaiting_action`, and `remove_payment_awaiting_action`.
-		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
-		$this->assertTrue( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) );
+		$order_helper->set_payment_awaiting_action( $order );
+		$this->assertTrue( $order_helper->is_payment_awaiting_action( $order ) );
 
-		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order );
-		$this->assertFalse( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) );
+		$order_helper->remove_payment_awaiting_action( $order );
+		$this->assertFalse( $order_helper->is_payment_awaiting_action( $order ) );
 
-		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
-		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_net( $order ) );
+		$this->assertEquals( 100, $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( 100, $order_helper->get_stripe_net( $order ) );
 
-		WC_Stripe_Order_Helper::delete_stripe_fee( $order );
-		WC_Stripe_Order_Helper::delete_stripe_net( $order );
+		$order_helper->delete_stripe_fee( $order );
+		$order_helper->delete_stripe_net( $order );
 		$order->save_meta_data();
 
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_stripe_net( $order ) );
+		$this->assertEmpty( $order_helper->get_stripe_fee( $order ) );
+		$this->assertEmpty( $order_helper->get_stripe_net( $order ) );
 	}
 
 	/**
@@ -52,17 +54,19 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		// setup
 		$order = WC_Helper_Order::create_order();
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// refund
-		WC_Stripe_Order_Helper::lock_order_refund( $order );
-		$this->assertTrue( WC_Stripe_Order_Helper::get_order_existing_refund_lock( $order ) > 0 );
-		WC_Stripe_Order_Helper::unlock_order_refund( $order );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) );
+		$order_helper->lock_order_refund( $order );
+		$this->assertTrue( $order_helper->get_order_existing_refund_lock( $order ) > 0 );
+		$order_helper->unlock_order_refund( $order );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
 
 		// payment
-		WC_Stripe_Order_Helper::lock_order_payment( $order );
-		$this->assertTrue( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) > 0 );
-		WC_Stripe_Order_Helper::unlock_order_payment( $order );
-		$this->assertEmpty( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) );
+		$order_helper->lock_order_payment( $order );
+		$this->assertTrue( $order_helper->get_order_existing_payment_lock( $order ) > 0 );
+		$order_helper->unlock_order_payment( $order );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
 	}
 
 	/**
@@ -75,10 +79,12 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// add_payment_intent_to_order
 		$intent_id = 'pi_123';
-		WC_Stripe_Order_Helper::add_payment_intent_to_order( $intent_id, $order );
-		$this->assertEquals( $intent_id, WC_Stripe_Order_Helper::get_intent_id_from_order( $order ) );
+		$order_helper->add_payment_intent_to_order( $intent_id, $order );
+		$this->assertEquals( $intent_id, $order_helper->get_intent_id_from_order( $order ) );
 
 		$note = wc_get_order_notes(
 			[
@@ -103,7 +109,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->expectException( WC_Stripe_Exception::class );
 		$this->expectExceptionMessage( 'Did not meet minimum amount' );
 
-		WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
+		WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
 	}
 
 	/**
@@ -120,7 +126,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order->set_billing_email( 'test@example.com' );
 		$order->save_meta_data();
 
-		$owner_details = WC_Stripe_Order_Helper::get_owner_details( $order );
+		$owner_details = WC_Stripe_Order_Helper::get_instance()->get_owner_details( $order );
 
 		$this->assertEquals( '+1 123 1234', $owner_details->phone );
 		$this->assertEquals( 'John Doe', $owner_details->name );
@@ -134,18 +140,20 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * @throws WC_Data_Exception
 	 */
 	public function test_is_stripe_gateway_order() {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Test with a Stripe order (Klarna).
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( 'stripe_klarna' );
-		$this->assertTrue( WC_Stripe_Order_Helper::is_stripe_gateway_order( $order ) );
+		$this->assertTrue( $order_helper->is_stripe_gateway_order( $order ) );
 
 		// Test with a non-Stripe order.
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( 'cod' );
-		$this->assertFalse( WC_Stripe_Order_Helper::is_stripe_gateway_order( $order ) );
+		$this->assertFalse( $order_helper->is_stripe_gateway_order( $order ) );
 
 		// Test with an empty order.
 		$order = new WC_Order();
-		$this->assertFalse( WC_Stripe_Order_Helper::is_stripe_gateway_order( $order ) );
+		$this->assertFalse( $order_helper->is_stripe_gateway_order( $order ) );
 	}
 }
