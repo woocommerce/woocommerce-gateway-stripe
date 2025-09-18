@@ -442,8 +442,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->complete_free_order( $order, $prepared_source, $force_save_source );
 			}
 
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 			// This will throw exception if not valid.
-			WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
+			$order_helper->validate_minimum_order_amount( $order );
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
@@ -455,7 +457,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Confirm the intent after locking the order to make sure webhooks will not interfere.
 			if ( empty( $intent->error ) ) {
-				WC_Stripe_Order_Helper::lock_order_payment( $order );
+				$order_helper->lock_order_payment( $order );
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
@@ -469,7 +471,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
 				}
 
-				WC_Stripe_Order_Helper::unlock_order_payment( $order );
+				$order_helper->unlock_order_payment( $order );
 				$this->throw_localized_message( $intent, $order );
 			}
 
@@ -483,10 +485,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status ) {
-					WC_Stripe_Order_Helper::unlock_order_payment( $order );
+					$order_helper->unlock_order_payment( $order );
 
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-					WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
+					$order_helper->set_payment_awaiting_action( $order );
 
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
@@ -522,7 +524,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Unlock the order.
-			WC_Stripe_Order_Helper::unlock_order_payment( $order );
+			$order_helper->unlock_order_payment( $order );
 
 			// Return thank you page redirect.
 			return [

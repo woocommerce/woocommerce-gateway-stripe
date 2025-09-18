@@ -621,7 +621,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	protected function is_order_payment_locked( WC_Order $order ): bool {
-		$existing_lock = self::get_order_existing_payment_lock( $order );
+		$existing_lock = $this->get_order_existing_payment_lock( $order );
 		if ( $existing_lock ) {
 			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
 			$expiration = (int) $parts[0];
@@ -644,7 +644,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	protected function is_order_refund_locked( WC_Order $order ): bool {
-		$existing_lock = self::get_order_existing_refund_lock( $order );
+		$existing_lock = $this->get_order_existing_refund_lock( $order );
 		if ( $existing_lock ) {
 			$expiration = (int) $existing_lock;
 
