@@ -112,7 +112,7 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
@@ -130,7 +130,7 @@ class WC_Stripe_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				WC_Stripe_Order_Helper::update_stripe_fee( $order, $amount );
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
 			}
 		}
 
@@ -175,7 +175,7 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
@@ -193,7 +193,7 @@ class WC_Stripe_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				WC_Stripe_Order_Helper::update_stripe_net( $order, $amount );
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
 			}
 		}
 

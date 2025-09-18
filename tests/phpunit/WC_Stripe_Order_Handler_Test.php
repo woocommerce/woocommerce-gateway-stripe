@@ -30,7 +30,7 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 	public function test_prevent_cancelling_orders_awaiting_action() {
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
+		WC_Stripe_Order_Helper::get_instance()->set_payment_awaiting_action( $order );
 
 		// Read in a fresh order object with meta like `date_modified` set.
 		$order = wc_get_order( $order->get_id() );

@@ -22,7 +22,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_properties() {
+	public function test_properties(): void {
 		$order = WC_Helper_Order::create_order();
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -33,6 +33,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		$order_helper->remove_payment_awaiting_action( $order );
 		$this->assertFalse( $order_helper->is_payment_awaiting_action( $order ) );
+
+		$order_helper->update_stripe_fee( $order, 100 );
+		$order_helper->update_stripe_net( $order, 100 );
 
 		$this->assertEquals( 100, $order_helper->get_stripe_fee( $order ) );
 		$this->assertEquals( 100, $order_helper->get_stripe_net( $order ) );
@@ -50,7 +53,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_lockers() {
+	public function test_lockers(): void {
 		// setup
 		$order = WC_Helper_Order::create_order();
 
@@ -74,7 +77,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_add_payment_intent_to_order() {
+	public function test_add_payment_intent_to_order(): void {
 		// setup
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
@@ -101,7 +104,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @throws WC_Data_Exception
 	 */
-	public function test_validate_minimum_order_amount() {
+	public function test_validate_minimum_order_amount(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_total( 0.01 );
 		$order->save();
@@ -118,7 +121,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @throws WC_Data_Exception
 	 */
-	public function test_get_owner_details() {
+	public function test_get_owner_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_billing_phone( '+1 123 1234' );
 		$order->set_billing_first_name( 'John' );
@@ -139,7 +142,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @throws WC_Data_Exception
 	 */
-	public function test_is_stripe_gateway_order() {
+	public function test_is_stripe_gateway_order(): void {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Test with a Stripe order (Klarna).

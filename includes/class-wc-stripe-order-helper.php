@@ -168,7 +168,7 @@ class WC_Stripe_Order_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				self::update_stripe_fee( $order, $amount );
+				$this->update_stripe_fee( $order, $amount );
 			}
 		}
 
@@ -228,7 +228,7 @@ class WC_Stripe_Order_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				self::update_stripe_net( $order, $amount );
+				$this->update_stripe_net( $order, $amount );
 			}
 		}
 
@@ -241,9 +241,9 @@ class WC_Stripe_Order_Helper {
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order|null $order
-	 * @param float  $amount
+	 * @param float $amount
 	 */
-	public function update_stripe_net( ?WC_Order $order = null, $amount = 0.0 ) {
+	public function update_stripe_net( ?WC_Order $order = null, float $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
