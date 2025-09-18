@@ -108,10 +108,10 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Sets the singleton instance of the class.
 	 *
-	 * @param WC_Stripe_Order_Helper $instance
+	 * @param WC_Stripe_Order_Helper|null $instance
 	 * @return void
 	 */
-	public static function set_instance( self $instance ) {
+	public static function set_instance( ?self $instance ) {
 		self::$instance = $instance;
 	}
 
