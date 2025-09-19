@@ -30,7 +30,7 @@
     "@woocommerce/currency": "^3.2.0",
     "@woocommerce/dependency-extraction-webpack-plugin": "^3.1.0",
     "@woocommerce/eslint-plugin": "^2.2.0",
-    "@woocommerce/navigation": "^6.1.0",
+    "@woocommerce/navigation": "^8.2.0",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
     "@wordpress/api-fetch": "^5.2.1",
     "@wordpress/babel-plugin-makepot": "^4.2.0",
