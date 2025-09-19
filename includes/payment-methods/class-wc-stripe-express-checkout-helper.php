@@ -51,7 +51,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
-		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_express_checkout_total_label_suffix', ' (via WooCommerce)' );
 	}
 
 	/**
@@ -60,7 +60,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public static function get_payment_method_title_suffix() {
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
+		$suffix = apply_filters( 'wc_stripe_express_checkout_payment_method_title_suffix', 'Stripe' );
 		if ( ! empty( $suffix ) ) {
 			$suffix = " ($suffix)";
 		}
@@ -108,7 +108,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_type() {
-		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
+		return isset( $this->stripe_settings['express_checkout_button_type'] ) ? $this->stripe_settings['express_checkout_button_type'] : 'default';
 	}
 
 	/**
@@ -117,7 +117,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_theme() {
-		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
+		return isset( $this->stripe_settings['express_checkout_button_theme'] ) ? $this->stripe_settings['express_checkout_button_theme'] : 'dark';
 	}
 
 	/**
@@ -126,7 +126,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '40';
 		}
@@ -144,7 +144,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public function get_button_radius() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '2';
 		}
@@ -286,7 +286,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$data['displayItems'] = $items;
 		$data['total']        = [
-			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
+			'label'   => apply_filters( 'wc_stripe_express_checkout_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
 			'pending' => true,
 		];
@@ -298,7 +298,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		// On product page load, if there's a variation already selected, check if it's supported.
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
-		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
+		return apply_filters( 'wc_stripe_express_checkout_product_data', $data, $product );
 	}
 
 	/**
@@ -425,7 +425,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function supported_product_types() {
 		return apply_filters(
-			'wc_stripe_payment_request_supported_types',
+			'wc_stripe_express_checkout_supported_types',
 			[
 				ProductType::SIMPLE,
 				ProductType::VARIABLE,
@@ -521,7 +521,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				 *
 				 * The main issue is that calling $product->get_price() on a synced subscription does not take into account a mock trial period or prorated price calculations
 				 * until the product is in the cart. This means that the totals passed to express checkout element are incorrect when purchasing from the product page.
-				 * Another part of the problem is because the product is virtual this stops the Stripe PaymentRequest API from triggering the necessary `shippingaddresschange` event
+				 * Another part of the problem is because the product is virtual this stops the Stripe Express Checkout API from triggering the necessary `shippingaddresschange` event
 				 * which is when we call WC()->cart->calculate_totals(); which would fix the totals.
 				 *
 				 * The fix here is to not allow virtual synced subscription products with no upfront costs to be purchased via express checkout buttons on the product page.
@@ -851,7 +851,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_cart_page = in_array( 'cart', $this->get_button_locations(), true );
 
 		return apply_filters(
-			'wc_stripe_show_payment_request_on_cart',
+			'wc_stripe_show_express_checkout_on_cart',
 			$should_show_on_cart_page
 		);
 	}
@@ -868,7 +868,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$should_show_on_checkout_page = in_array( 'checkout', $this->get_button_locations(), true );
 
 		return apply_filters(
-			'wc_stripe_show_payment_request_on_checkout',
+			'wc_stripe_show_express_checkout_on_checkout',
 			$should_show_on_checkout_page,
 			$post
 		);
@@ -887,7 +887,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
 		return ! apply_filters(
-			'wc_stripe_hide_payment_request_on_product_page',
+			'wc_stripe_hide_express_checkout_on_product_page',
 			! $should_show_on_product_page,
 			$post
 		);
@@ -950,7 +950,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 			// Remember current shipping method before resetting.
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
-			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
+			$this->calculate_shipping( apply_filters( 'wc_stripe_express_checkout_shipping_posted_values', $shipping_address ) );
 
 			$packages          = WC()->shipping->get_packages();
 			$shipping_rate_ids = [];
@@ -963,8 +963,8 @@ class WC_Stripe_Express_Checkout_Helper {
 
 					foreach ( $package['rates'] as $rate ) {
 						if ( in_array( $rate->id, $shipping_rate_ids, true ) ) {
-							// The Payment Requests will try to load indefinitely if there are duplicate shipping option IDs.
-							throw new Exception( __( 'Unable to provide shipping options for Payment Requests.', 'woocommerce-gateway-stripe' ) );
+							// Express Checkout will try to load indefinitely if there are duplicate shipping option IDs.
+							throw new Exception( __( 'Unable to provide shipping options for Express Checkout.', 'woocommerce-gateway-stripe' ) );
 						}
 
 						$shipping_rate_ids[]        = $rate->id;
@@ -1134,21 +1134,21 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string Normalized state or original state input value.
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
-		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
-		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
+		// Include Express Checkout API State list for compatibility with WC countries/states.
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
+		$ec_states = WC_Stripe_Express_Checkout_Button_States::STATES;
 
-		if ( ! isset( $pr_states[ $country ] ) ) {
+		if ( ! isset( $ec_states[ $country ] ) ) {
 			return $state;
 		}
 
-		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
+		foreach ( $ec_states[ $country ] as $wc_state_abbr => $ec_state ) {
 			$sanitized_state_string = $this->sanitize_string( $state );
-			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
+			// Checks if input state matches with Express Checkout state code (0), name (1) or localName (2).
 			if (
-				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
-				( ! empty( $pr_state[1] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[1] ) ) ||
-				( ! empty( $pr_state[2] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[2] ) )
+				( ! empty( $ec_state[0] ) && $sanitized_state_string === $this->sanitize_string( $ec_state[0] ) ) ||
+				( ! empty( $ec_state[1] ) && $sanitized_state_string === $this->sanitize_string( $ec_state[1] ) ) ||
+				( ! empty( $ec_state[2] ) && $sanitized_state_string === $this->sanitize_string( $ec_state[2] ) )
 			) {
 				return $wc_state_abbr;
 			}
@@ -1356,7 +1356,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'height' => $this->get_button_height(),
 			'radius' => $this->get_button_radius(),
 			// Default format is en_US.
-			'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
+			'locale' => apply_filters( 'wc_stripe_express_checkout_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
 	}
 
@@ -1412,7 +1412,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$lines         = [];
 		$subtotal      = 0;
 		$discounts     = 0;
-		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
+		$display_items = ! apply_filters( 'wc_stripe_express_checkout_hide_itemization', true ) || $itemized_display_items;
 		$has_deposits  = false;
 
 		if ( $display_items ) {
@@ -1553,18 +1553,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_button_locations() {
 		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( ! isset( $this->stripe_settings['express_checkout_button_locations'] ) ) {
 			return [ 'product', 'cart' ];
 		}
 
 		// If all locations are removed through the settings UI the location config will be set to
 		// an empty string "". If that's the case (and if the settings are not an array for any
 		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( ! is_array( $this->stripe_settings['express_checkout_button_locations'] ) ) {
 			return [];
 		}
 
-		return $this->stripe_settings['payment_request_button_locations'];
+		return $this->stripe_settings['express_checkout_button_locations'];
 	}
 
 	/**
@@ -1573,18 +1573,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
-		return $this->is_payment_request_enabled() ||
+		return $this->gateway->is_express_checkout_enabled() ||
 			$this->is_amazon_pay_enabled() ||
 			$this->is_link_enabled();
-	}
-
-	/**
-	 * Checks if Apple Pay and Google Pay buttons are enabled.
-	 *
-	 * @return boolean
-	 */
-	public function is_payment_request_enabled() {
-		return $this->gateway->is_payment_request_enabled();
 	}
 
 	/**

@@ -63,7 +63,7 @@ const PaymentRequestSection = () => {
 		enabledMethodIds.includes( PAYMENT_METHOD_LINK );
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
-		area: 'payment_requests',
+		area: 'express_checkout',
 	} );
 	const customizeAmazonPayAppearanceURL = addQueryArgs(
 		window.location.href,

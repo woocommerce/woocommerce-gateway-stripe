@@ -14,6 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * WC_Stripe_Payment_Request class.
+ *
+ * @deprecated 10.0.0 Moved to WC_Stripe_Express_Checkout_Element.
  */
 class WC_Stripe_Payment_Request {
 

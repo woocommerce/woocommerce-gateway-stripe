@@ -117,11 +117,11 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'payment_request'                     => [
-			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
+		'express_checkout'                     => [
+			'title'       => __( 'Express Checkout Buttons', 'woocommerce-gateway-stripe' ),
 			'label'       => sprintf(
 				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
-				__( 'Enable Payment Request Buttons. (Apple Pay/Google Pay) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service. (Apple Pay domain verification is performed automatically in live mode; configuration can be found on the %4$sStripe dashboard%5$s.)', 'woocommerce-gateway-stripe' ),
+				__( 'Enable Express Checkout Buttons. (Apple Pay/Google Pay) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service. (Apple Pay domain verification is performed automatically in live mode; configuration can be found on the %4$sStripe dashboard%5$s.)', 'woocommerce-gateway-stripe' ),
 				'<br />',
 				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
 				'<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>',
@@ -133,8 +133,8 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'payment_request_button_type'         => [
-			'title'       => __( 'Payment Request Button Type', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_type'         => [
+			'title'       => __( 'Express Checkout Button Type', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Type', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the button type you would like to show.', 'woocommerce-gateway-stripe' ),
@@ -148,8 +148,8 @@ $stripe_settings = apply_filters(
 				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_theme'        => [
-			'title'       => __( 'Payment Request Button Theme', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_theme'        => [
+			'title'       => __( 'Express Checkout Button Theme', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Theme', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the button theme you would like to show.', 'woocommerce-gateway-stripe' ),
@@ -161,24 +161,24 @@ $stripe_settings = apply_filters(
 				'light-outline' => __( 'Light-Outline', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_height'       => [
-			'title'       => __( 'Payment Request Button Height', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_height'       => [
+			'title'       => __( 'Express Checkout Button Height', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Height', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Enter the height you would like the button to be in pixels. Width will always be 100%.', 'woocommerce-gateway-stripe' ),
 			'default'     => '44',
 			'desc_tip'    => true,
 		],
-		'payment_request_button_label'        => [
-			'title'       => __( 'Payment Request Button Label', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_label'        => [
+			'title'       => __( 'Express Checkout Button Label', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Label', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Enter the custom text you would like the button to have.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Buy now', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
-		'payment_request_button_branded_type' => [
-			'title'       => __( 'Payment Request Branded Button Label Format', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_branded_type' => [
+			'title'       => __( 'Express Checkout Branded Button Label Format', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Branded Button Label Format', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the branded button label format.', 'woocommerce-gateway-stripe' ),
@@ -189,8 +189,8 @@ $stripe_settings = apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_locations'    => [
-			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_locations'    => [
+			'title'             => __( 'Express Checkout Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
 			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
 			'desc_tip'          => true,
@@ -205,8 +205,8 @@ $stripe_settings = apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_size'         => [
-			'title'       => __( 'Payment Request Button Size', 'woocommerce-gateway-stripe' ),
+		'express_checkout_button_size'         => [
+			'title'       => __( 'Express Checkout Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'default',
@@ -293,20 +293,20 @@ $stripe_settings = apply_filters(
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
-	$stripe_settings['payment_request_button_locations']['default'][] = 'checkout';
+	$stripe_settings['express_checkout_button_locations']['default'][] = 'checkout';
 
 	// no longer needed in the new settings.
-	unset( $stripe_settings['payment_request_button_branded_type'] );
-	unset( $stripe_settings['payment_request_button_height'] );
-	unset( $stripe_settings['payment_request_button_label'] );
+	unset( $stripe_settings['express_checkout_button_branded_type'] );
+	unset( $stripe_settings['express_checkout_button_height'] );
+	unset( $stripe_settings['express_checkout_button_label'] );
 	// injecting some of the new options.
-	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
-	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
 	// no longer valid options.
-	unset( $stripe_settings['payment_request_button_type']['options']['branded'] );
-	unset( $stripe_settings['payment_request_button_type']['options']['custom'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['branded'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['custom'] );
 } else {
-	unset( $stripe_settings['payment_request_button_size'] );
+	unset( $stripe_settings['express_checkout_button_size'] );
 }
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {

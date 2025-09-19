@@ -1,10 +1,12 @@
 <?php
 /**
- * Class WC_Stripe_Payment_Request_Button_States
+ * Class WC_Stripe_Express_Checkout_Button_States
  *
  * Provides a map between WC states and Payment Request API states.
  * The list is based on libaddressinput: https://github.com/google/libaddressinput,
  * which is used by Chromium based browsers in the native Payment Request address dialog.
+ *
+ * @since 5.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,12 +31,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    5. The following countries are not listed in WC:
  *        AC (Ascension Island), IC (Canary Islands), EA (Ceuta & Melilla), CP (Clipperton Island), DG (Diego Garcia),
  *        TA (Tristan da Cunha), XK (Kosovo).
- *
- * @since 5.1.0
- *
- * @deprecated 10.0.0 Moved to includes/wc-stripe-express-checkout-button-states.php
  */
-class WC_Stripe_Payment_Request_Button_States {
+class WC_Stripe_Express_Checkout_Button_States {
 	/**
 	 * A list of states which is compatible with Chromium based browsers for the Payment Request API.
 	 * If the input comes from Chrome, we will always match with `code`, but if the request comes from

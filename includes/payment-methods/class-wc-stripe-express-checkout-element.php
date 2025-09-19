@@ -206,7 +206,6 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
-				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
 			],
 			'nonce'                      => [
 				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
@@ -259,7 +258,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$items    = [];
 
 		// Allow third-party plugins to show itemization on the payment request button.
-		if ( apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
+		if ( apply_filters( 'wc_stripe_express_checkout_hide_itemization', true ) ) {
 			$items[] = [
 				'label'  => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_subtotal(), $currency ),

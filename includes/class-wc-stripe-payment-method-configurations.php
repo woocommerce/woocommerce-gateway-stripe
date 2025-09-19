@@ -351,8 +351,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		// Add Google Pay and Apple Pay to the list if payment_request is enabled
-		if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+		// Add Google Pay and Apple Pay to the list if Express Checkout is enabled
+		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
