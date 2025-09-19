@@ -113,8 +113,6 @@ module.exports = {
 	},
 	entry: {
 		index: './client/blocks/index.js',
-		'payment-requests-settings':
-			'./client/entrypoints/payment-request-settings/index.js',
 		'upe-classic': './client/classic/upe/index.js',
 		'upe-blocks': './client/blocks/upe/index.js',
 		'upe-settings': './client/settings/index.js',
