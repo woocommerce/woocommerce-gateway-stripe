@@ -86,7 +86,6 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->token->is_equal_payment_method( $payment_method ) );
 
 		// Different DOB.
-		$this->token->set_type( WC_Stripe_Payment_Methods::KLARNA );
 		$payment_method->id = 'pm_123';
 		$payment_method->klarna->dob->day = 2;
 		$this->assertFalse( $this->token->is_equal_payment_method( $payment_method ) );
