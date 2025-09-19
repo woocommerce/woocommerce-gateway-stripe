@@ -26,7 +26,7 @@
 
 	> * {
 		&:not( :first-child ) {
-			margin-left: variable.$grid-unit-20;
+			margin-left: $grid-unit-20;
 		}
 	}
 }
@@ -36,7 +36,7 @@
 
 	> * {
 		&:not( :last-child ) {
-			margin-right: variable.$grid-unit-20;
+			margin-right: $grid-unit-20;
 		}
 	}
 }

@@ -5,8 +5,7 @@ import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
 // We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
-const realPathToA11yModule =
-	'@wordpress/components/node_modules/@wordpress/a11y';
+const realPathToA11yModule = '@wordpress/a11y';
 
 jest.mock( realPathToA11yModule, () => ( {
 	...jest.requireActual( realPathToA11yModule ),
