@@ -117,7 +117,7 @@ class WC_Stripe_Settings_Controller {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
-		echo $account_data_exists && ! $this->needs_oauth_urls() ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
+		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**
