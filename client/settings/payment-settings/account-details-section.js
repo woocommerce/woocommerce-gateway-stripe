@@ -95,7 +95,9 @@ const AccountSettingsDropdownMenu = ( {
 const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestMode
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
 
 	return (
 		<Card className="account-details">
@@ -110,7 +112,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 							  ) }
 					</h4>
 
-					{ isTestModeEnabled && (
+					{ isTestMode && (
 						<Pill>
 							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
 						</Pill>
@@ -135,10 +137,15 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						setModalType( isTestMode ? 'test' : 'live' )
 					}
 				>
-					{ __(
-						'Configure connection',
-						'woocommerce-gateway-stripe'
-					) }
+					{ oauthConnected
+						? __(
+								'Configure connection',
+								'woocommerce-gateway-stripe'
+						  )
+						: __(
+								'Reconnect to Stripe',
+								'woocommerce-gateway-stripe'
+						  ) }
 				</Button>
 			</CardFooter>
 		</Card>
