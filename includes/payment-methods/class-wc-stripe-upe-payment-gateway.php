@@ -289,14 +289,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Allow the display property in inline styles to hide payment method instructions (see `get_testing_instructions_for_optimized_checkout`)
 		// And to display notices in the admin pages with stylized action buttons
-		if ( $this->oc_enabled ) {
-			add_filter(
-				'safe_style_css',
-				function ( $styles ) {
-					return array_merge( $styles, [ 'display' ] );
-				}
-			);
-		}
+		add_filter(
+			'safe_style_css',
+			function ( $styles ) {
+				return array_merge( $styles, [ 'display' ] );
+			}
+		);
 
 		// Add metadata to Stripe intents for easier debugging of BNPL issues.
 		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
