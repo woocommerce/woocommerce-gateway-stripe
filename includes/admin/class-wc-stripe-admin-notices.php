@@ -41,12 +41,12 @@ class WC_Stripe_Admin_Notices {
 	 * @since 1.0.0
 	 * @version 4.0.0
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $icon_img_url = '' ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
 		$this->notices[ $slug ] = [
-			'class'        => $class,
-			'message'      => $message,
-			'dismissible'  => $dismissible,
-			'icon_img_url' => $icon_img_url,
+			'class'       => $class,
+			'message'     => $message,
+			'dismissible' => $dismissible,
+			'actions'     => $actions,
 		];
 	}
 
@@ -74,17 +74,11 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
+			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative; overflow: auto;">';
 
 			if ( $notice['dismissible'] ) {
 				?>
 				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0px 9px 9px 9px;text-decoration:none;"></a>
-				<?php
-			}
-
-			if ( ! empty( $notice['icon_img_url'] ) ) {
-				?>
-				<img class="info-icon" src="<?php echo esc_url( $notice['icon_img_url'] ); ?>" style="float: left; width: 1.5em; margin: 8px 10px 8px 0;" />
 				<?php
 			}
 
@@ -100,7 +94,23 @@ class WC_Stripe_Admin_Notices {
 					'br'     => [],
 				]
 			);
-			echo '</p></div>';
+			echo '</p>';
+
+			if ( count( $notice['actions'] ) > 0 ) {
+				foreach ( $notice['actions'] as $action ) {
+					echo wp_kses(
+						$action,
+						[
+							'a' => [
+								'href'  => [],
+								'style' => [],
+							],
+						]
+					);
+				}
+			}
+
+			echo '</div>';
 		}
 	}
 
@@ -414,9 +424,14 @@ class WC_Stripe_Admin_Notices {
 
 				$oauth_required = $needs_live_oauth || $needs_test_oauth;
 				if ( $oauth_required ) {
-					$icon_img_url = WC_STRIPE_PLUGIN_URL . '/assets/images/info.svg';
-					$message      = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
-					$this->add_admin_notice( 'oauth_required', 'notice notice-warning', $message, true, $icon_img_url );
+					$message = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
+					$link    = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details' ) );
+					$actions = [
+						'<a href="' . $link . '" style="display: block; padding: 10px; color: #007cba; border: #007cba solid 1px; float: left; text-decoration: none; margin-bottom: 12px; border-radius: 2px;">'
+							. __( 'Reconnect to Stripe', 'woocommerce-gateway-stripe' )
+						. '</a>',
+					];
+					$this->add_admin_notice( 'oauth_required', 'notice notice-error', $message, true, $actions );
 				}
 			}
 		}
