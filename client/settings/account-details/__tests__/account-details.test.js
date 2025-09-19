@@ -93,4 +93,29 @@ describe( 'AccountDetails', () => {
 			screen.queryByText( mockedWarningMessage )
 		).toBeInTheDocument();
 	} );
+
+	it( 'renders the reconnet notice when not connected via oauth', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				testmode: true,
+				oauth_connections: {
+					test: { connected: false },
+				},
+				account: {
+					settings: {
+						payouts: {
+							schedule: { interval: 'daily', delay_days: 2 },
+						},
+					},
+					payouts_enabled: true,
+					charges_enabled: true,
+				},
+			},
+		} );
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByText( /reconnect your Stripe account/i )
+		).toBeInTheDocument();
+	} );
 } );
