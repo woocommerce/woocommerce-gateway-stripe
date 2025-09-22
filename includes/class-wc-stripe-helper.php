@@ -1884,11 +1884,13 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if a given payment gateway plugin is active.
 	 *
-	 * @param string $plugin_id
+	 * @param string $plugin_id The plugin ID to check.
+	 * @param array $available_payment_gateways Optional. The available payment gateways. If not provided, the available payment gateways will be fetched using WC()->payment_gateways->payment_gateways.
+	 *
 	 * @return bool
 	 */
-	public static function has_gateway_plugin_active( $plugin_id ) {
-		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
+	public static function has_gateway_plugin_active( $plugin_id, $available_payment_gateways = null ) {
+		$available_payment_gateways = $available_payment_gateways ?? WC()->payment_gateways->payment_gateways ?? [];
 		foreach ( $available_payment_gateways as $available_payment_gateway ) {
 			if ( $plugin_id === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
 				return true;

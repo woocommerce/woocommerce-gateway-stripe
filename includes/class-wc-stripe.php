@@ -923,16 +923,14 @@ class WC_Stripe {
 	 * @return array The payment method IDs to disable.
 	 */
 	private function maybe_deactivate_bnpls( $available_payment_gateways, $enabled_payment_methods ) {
-		$has_affirm_plugin_active = false;
-		$has_klarna_plugin_active = false;
-		foreach ( $available_payment_gateways as $available_payment_gateway ) {
-			if ( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
-				$has_affirm_plugin_active = true;
-			}
-			if ( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
-				$has_klarna_plugin_active = true;
-			}
-		}
+		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active(
+			WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM,
+			$available_payment_gateways
+		);
+		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active(
+			WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA,
+			$available_payment_gateways
+		);
 
 		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
 			return [];
