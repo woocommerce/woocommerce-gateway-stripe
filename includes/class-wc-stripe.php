@@ -922,7 +922,7 @@ class WC_Stripe {
 	 * @param array $enabled_payment_methods The enabled payment methods.
 	 * @return array The payment method IDs to disable.
 	 */
-	private function maybe_deactivate_bnpls( $available_payment_gateways = [], $enabled_payment_methods ) {
+	private function maybe_deactivate_bnpls( $available_payment_gateways, $enabled_payment_methods ) {
 		$has_affirm_plugin_active = false;
 		$has_klarna_plugin_active = false;
 		foreach ( $available_payment_gateways as $available_payment_gateway ) {
