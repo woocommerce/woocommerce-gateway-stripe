@@ -897,7 +897,7 @@ class WC_Stripe {
 		// Check for BNPLs that should be deactivated.
 		$payment_method_ids_to_disable = array_merge(
 			$payment_method_ids_to_disable,
-			$this->maybe_deactivate_bnpls( $gateways->payment_gateways ?? [], $enabled_payment_methods )
+			$this->maybe_deactivate_bnpls( $gateways->payment_gateways, $enabled_payment_methods )
 		);
 
 		// Check if Amazon Pay should be deactivated.
