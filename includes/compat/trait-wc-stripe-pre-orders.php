@@ -203,7 +203,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
+			WC_Stripe_Order_Helper::validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), true ); // @phpstan-ignore-line (prepare_source is defined in the classes that use this trait)
 

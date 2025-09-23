@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.10.0 - xxxx-xx-xx =
 * Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
+* Dev - Introduces a new helper class to handle Stripe orders
 * Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
 * Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
 * Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
