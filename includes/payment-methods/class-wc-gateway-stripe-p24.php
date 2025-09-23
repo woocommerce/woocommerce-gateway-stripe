@@ -218,7 +218,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
 		$post_data['type']     = WC_Stripe_Payment_Methods::P24;
-		$post_data['owner']    = $this->get_owner_details( $order );
+		$post_data['owner']    = WC_Stripe_Order_Helper::get_instance()->get_owner_details( $order );
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 
 		WC_Stripe_Logger::log( 'Info: Begin creating P24 source' );
@@ -242,7 +242,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;

@@ -5,8 +5,8 @@ namespace WooCommerce\Stripe\Tests;
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Data_Exception;
 use WC_Order;
-use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -54,7 +54,22 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
 		$this->mock_webhook_handler();
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+
+		$order_helper->expects( $this->any() )
+			->method( 'lock_order_payment' )
+			->willReturn( false );
+
+		$order_helper->expects( $this->any() )
+			->method( 'unlock_order_payment' );
+
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
 	}
 
 	/**
@@ -506,6 +521,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
+
+		// Reset WC_Stripe_Order_Helper instance to avoid issues with other tests.
+		WC_Stripe_Order_Helper::set_instance( null );
+
 		if ( $order_locked ) {
 			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
 		}
@@ -580,7 +599,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Order must be previously set to pending and have at least the payment intent set.
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
+		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $notification->data->object->id, $order );
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
@@ -606,7 +625,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertCount( 1, $notes );
 		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
 	}
-
 
 	/**
 	 * Provider for `test_process_payment_intent`.
