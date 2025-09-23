@@ -1,6 +1,7 @@
-import { React, useState } from 'react';
+import { React, useEffect, useRef, useState } from 'react';
 import { moreVertical } from '@wordpress/icons';
 import styled from '@emotion/styled';
+import { getQuery } from '@woocommerce/navigation';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
@@ -93,17 +94,32 @@ const AccountSettingsDropdownMenu = ( {
 
 // @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
+	const headingRef = useRef( null );
 	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
 	const oauthConnected = isTestMode
 		? data?.oauth_connections?.test?.connected
 		: data?.oauth_connections?.live?.connected;
 
+	useEffect( () => {
+		if ( ! headingRef.current ) {
+			return;
+		}
+
+		const { highlight } = getQuery();
+		if ( highlight === 'account-details' ) {
+			headingRef.current.scrollIntoView( {
+				behavior: 'smooth',
+				block: 'start',
+			} );
+		}
+	}, [ headingRef ] );
+
 	return (
 		<Card className="account-details">
 			<CardHeader>
 				<HeaderDetails>
-					<h4>
+					<h4 ref={ headingRef }>
 						{ data.account?.email
 							? data.account.email
 							: __(
