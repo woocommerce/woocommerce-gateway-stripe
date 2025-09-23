@@ -1020,14 +1020,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = $order->get_meta( '_stripe_source_id', true );
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+			$source_id    = $order_helper->get_stripe_source( $order );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
 				$source_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$order->update_meta_data( '_stripe_source_id', $source_id );
+				$order_helper->update_stripe_source( $order, $source_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1084,7 +1085,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $source->source ) {
-			$order->update_meta_data( '_stripe_source_id', $source->source );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $source->source );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {

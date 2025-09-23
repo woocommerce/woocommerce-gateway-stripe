@@ -268,6 +268,51 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Gets the Stripe source for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return array|false|mixed|string
+	 */
+	public function get_stripe_source( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_SOURCE_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe source for order.
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $source_id
+	 * @return false|void
+	 */
+	public function update_stripe_source( ?WC_Order $order = null, string $source_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+	}
+
+	/**
+	 * Deletes the Stripe source for order.
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_source( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+	}
+
+	/**
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @since 10.0.0
