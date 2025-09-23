@@ -1279,7 +1279,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			$order->update_meta_data( '_stripe_refund_id', $response->id );
+			$order_helper->update_stripe_refund( $order, $response->id );
 
 			if ( isset( $response->balance_transaction ) ) {
 				$this->update_fees( $order, $response->balance_transaction );
@@ -1687,8 +1687,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( 'payment_intent' === $intent->object ) {
-			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $intent->id, $order );
+			$order_helper->add_payment_intent_to_order( $intent->id, $order );
 
 			// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
 			// The mandate ID is not available for the intent object, so we need to fetch the charge.
@@ -1701,7 +1702,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+			$order_helper->update_stripe_setup_intent( $order );
 
 			// Add mandate for free trial subscriptions.
 			if ( isset( $intent->mandate ) ) {
@@ -1722,15 +1723,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return obect|bool     Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
-
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$intent_id    = $order_helper->get_stripe_intent( $order );
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );
 		}
 
 		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = $order->get_meta( '_stripe_setup_intent' );
-
+		$intent_id = $order_helper->get_stripe_setup_intent( $order );
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
 		}
@@ -1919,7 +1919,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
-			$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent( $setup_intent->id );
 			$order->save();
 
 			return $setup_intent->client_secret;

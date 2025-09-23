@@ -643,13 +643,14 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
-		WC_Stripe_Order_Helper::get_instance()->delete_stripe_source( $resubscribe_order );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_source( $resubscribe_order );
 
 		$resubscribe_order->delete_meta_data( '_stripe_customer_id' );
 		// For BW compat will remove in future.
 		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
 		// Delete payment intent ID.
-		$resubscribe_order->delete_meta_data( '_stripe_intent_id' );
+		$order_helper->delete_stripe_intent( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -665,7 +666,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_net( $renewal_order );
 
 		// Delete payment intent ID.
-		$renewal_order->delete_meta_data( '_stripe_intent_id' );
+		$order_helper->delete_stripe_intent( $renewal_order );
 
 		return $renewal_order;
 	}
