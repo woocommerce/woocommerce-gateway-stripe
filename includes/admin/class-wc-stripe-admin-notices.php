@@ -74,7 +74,14 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative; overflow: auto;">';
+			$has_actions = count( $notice['actions'] ) > 0;
+			$div_style   = 'position:relative;';
+			if ( $has_actions ) {
+				// If there are actions, we need to make sure the div can contain them.
+				$div_style .= 'overflow: auto;';
+			}
+
+			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="' . esc_attr( $div_style ) . '">';
 
 			if ( $notice['dismissible'] ) {
 				?>
@@ -96,7 +103,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			echo '</p>';
 
-			if ( count( $notice['actions'] ) > 0 ) {
+			if ( $has_actions ) {
 				foreach ( $notice['actions'] as $action ) {
 					echo wp_kses(
 						$action,
