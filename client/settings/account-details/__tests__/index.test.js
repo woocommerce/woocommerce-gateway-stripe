@@ -94,7 +94,7 @@ describe( 'AccountDetails', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'renders the reconnet notice when not connected via oauth', () => {
+	it( 'renders the reconnect notice when not connected via oauth', () => {
 		useAccount.mockReturnValue( {
 			data: {
 				testmode: true,
@@ -115,7 +115,9 @@ describe( 'AccountDetails', () => {
 		render( <AccountDetails /> );
 
 		expect(
-			screen.queryByText( /reconnect your Stripe account/i )
+			screen.queryByText(
+				'Reconnect your Stripe account using the new authentication flow to avoid disruptions on your store.'
+			)
 		).toBeInTheDocument();
 	} );
 } );
