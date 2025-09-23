@@ -3,8 +3,8 @@
 namespace WooCommerce\Stripe\Tests;
 
 use DateTime;
+use WC_Stripe_Order_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
-use WC_Stripe_Helper;
 use WC_Stripe_Order_Handler;
 use WC_Stripe_UPE_Payment_Gateway;
 use WP_UnitTestCase;
@@ -29,7 +29,7 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 	public function test_prevent_cancelling_orders_awaiting_action() {
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Helper::set_payment_awaiting_action( $order );
+		WC_Stripe_Order_Helper::get_instance()->set_payment_awaiting_action( $order );
 
 		// Read in a fresh order object with meta like `date_modified` set.
 		$order = wc_get_order( $order->get_id() );
