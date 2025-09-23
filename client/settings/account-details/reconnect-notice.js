@@ -1,4 +1,4 @@
-import { info } from '@wordpress/icons';
+import { caution } from '@wordpress/icons';
 import React from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
@@ -24,7 +24,7 @@ export const ReconnectNotice = () => {
 	return (
 		<NoticeContainer>
 			<span data-testid="help">
-				<Icon icon={ info } size="18" />
+				<Icon icon={ caution } size="18" />
 			</span>
 			{ __(
 				'Reconnect your Stripe account using the new authentication flow to avoid disruptions on your store.',
