@@ -44,7 +44,7 @@
     "@wordpress/eslint-plugin": "^17.13.0",
     "@wordpress/hooks": "3.2.0",
     "@wordpress/i18n": "^4.2.1",
-    "@wordpress/icons": "^5.0.1",
+    "@wordpress/icons": "^10.31.0",
     "@wordpress/jest-preset-default": "^12.22.0",
     "@wordpress/notices": "2.13.3",
     "@wordpress/prettier-config": "^3.15.0",

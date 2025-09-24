@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use WC_Stripe;
 use WC_Stripe_Admin_Notices;
+use WC_Stripe_Connect;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
@@ -12,6 +13,9 @@ use WC_Subscription;
 use WC_Subscriptions;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
+/**
+ * Tests for the admin notices class.
+ */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * The original value of the HPOS option.
@@ -20,6 +24,18 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	private static $original_hpos_value;
 
+	/**
+	 * The original `WC_Stripe_Connect` instance, to be restored after tests.
+	 *
+	 * @var WC_Stripe_Connect
+	 */
+	private WC_Stripe_Connect $stripe_connect_original;
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @return void
+	 */
 	public function set_up() {
 		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -38,6 +54,31 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test' => 'test',
 			]
 		);
+
+		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
+		$stripe_connect_mock = $this->createPartialMock(
+			WC_Stripe_Connect::class,
+			[ 'is_connected_via_oauth' ]
+		);
+		$stripe_connect_mock
+			->expects( $this->any() )
+			->method( 'is_connected_via_oauth' )
+			->willReturn( true );
+
+		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
+		woocommerce_gateway_stripe()->connect = $stripe_connect_mock;
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @return void
+	 */
+	public function tear_down() {
+		parent::tear_down();
+
+		// Restoring the original `WC_Stripe_Connect` instance.
+		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 	}
 
 	/**
@@ -56,6 +97,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
 	}
 
+	/**
+	 * Test that no notices are shown when the user is not an admin.
+	 *
+	 * @return void
+	 */
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
 		$notices = new WC_Stripe_Admin_Notices();
@@ -65,6 +111,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertCount( 0, $notices->notices );
 	}
 
+	/**
+	 * Test that no notices are shown when Stripe is not enabled.
+	 *
+	 * @return void
+	 */
 	public function test_no_notices_are_shown_when_stripe_is_not_enabled() {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'no' ] );
@@ -76,13 +127,30 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that the correct notices are shown in all scenarios.
+	 *
+	 * @param array $options_to_set         Options to set before running the test.
+	 * @param bool $is_oauth_connected      Optional. Whether the account is connected via OAuth. Default true.
+	 * @param array $expected_notices       Notices expected to be shown.
+	 * @param string|false $expected_output Optional. If set, the output is expected to match this regex.
+	 * @param array $query_params           Optional. Query parameters to set before running the test.
+	 * @return void
+	 *
 	 * @dataProvider options_to_notices_map
 	 */
-	public function test_correct_stripe_notices_are_shown_in_all_scenarios( $options_to_set, $expected_notices = [], $expected_output = false, $query_params = [] ) {
+	public function test_correct_stripe_notices_are_shown_in_all_scenarios(
+		array $options_to_set,
+		bool $is_oauth_connected = true,
+		array $expected_notices = [],
+		$expected_output = false,
+		array $query_params = []
+	) {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		foreach ( $query_params as $param => $value ) {
 			$_GET[ $param ] = $value;
 		}
+
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
@@ -91,9 +159,21 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->mock_payment_method_configurations( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] );
 		}
 
+		if ( ! $is_oauth_connected ) {
+			woocommerce_gateway_stripe()->connect = $this->createPartialMock(
+				WC_Stripe_Connect::class,
+				[ 'is_connected_via_oauth' ]
+			);
+			woocommerce_gateway_stripe()->connect
+				->expects( $this->any() )
+				->method( 'is_connected_via_oauth' )
+				->willReturn( false );
+		}
+
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
+
 		// Displaying the style notice results in an early return.
 		if ( ! in_array( 'style', $expected_notices, true ) ) {
 			if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
@@ -109,13 +189,409 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		if ( $expected_output ) {
 			$this->assertMatchesRegularExpression( $expected_output, ob_get_contents() );
 		}
+
 		ob_end_clean();
+
 		$this->assertCount( count( $expected_notices ), $notices->notices );
 		foreach ( $expected_notices as $expected_notice ) {
 			$this->assertArrayHasKey( $expected_notice, $notices->notices );
 		}
 	}
 
+	/**
+	 * Data provider for `test_correct_stripe_notices_are_shown_in_all_scenarios`.
+	 *
+	 * @return array
+	 */
+	public function options_to_notices_map(): array {
+		return [
+			[
+				[
+					'woocommerce_stripe_settings' => [ 'enabled' => 'yes' ],
+				],
+				'is oauth connected' => true,
+				[
+					'style',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'              => 'yes',
+						'testmode'             => 'yes',
+						'test_publishable_key' => 'pk_test_valid_test_key',
+						'test_secret_key'      => 'sk_test_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'mode',
+				],
+				'/All transactions are simulated. Customers can\'t make real purchases through Stripe./',
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'        => 'yes',
+						'three_d_secure' => 'yes',
+					],
+				],
+				'is oauth connected' => true,
+				[
+					'3ds',
+					'style',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'        => 'yes',
+						'three_d_secure' => 'yes',
+					],
+					'wc_stripe_show_3ds_notice'   => 'no',
+				],
+				'is oauth connected' => true,
+				[
+					'style',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'three_d_secure'  => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'3ds',
+				],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'keys',
+				],
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings'    => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				'is oauth connected' => true,
+				[],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'    => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'keys',
+				],
+				false,
+				[
+					'page' => 'wc-settings',
+				],
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'              => 'yes',
+						'testmode'             => 'yes',
+						'test_publishable_key' => 'invalid test key',
+						'test_secret_key'      => 'invalid test key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'keys',
+				],
+				'/Stripe is in test mode however your API keys may not be valid/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'              => 'yes',
+						'testmode'             => 'yes',
+						'test_publishable_key' => 'pk_test_valid_test_key',
+						'test_secret_key'      => 'sk_test_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'mode',
+				],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'invalid live key',
+						'secret_key'      => 'invalid live key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'keys',
+				],
+				'/Stripe is in live mode however your API keys may not be valid/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+				],
+				'is oauth connected' => true,
+				[
+					'ssl',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'sca',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'        => [
+						'enabled'        => 'yes',
+						'testmode'       => 'no',
+						'three_d_secure' => 'yes',
+					],
+					'wc_stripe_show_style_notice'        => 'no',
+					'wc_stripe_show_changed_keys_notice' => 'yes',
+				],
+				'is oauth connected' => true,
+				[
+					'3ds',
+					'keys',
+					'ssl',
+					'sca',
+					'changed_keys',
+				],
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings'        => [
+						'enabled'  => 'yes',
+						'testmode' => 'no',
+					],
+					'wc_stripe_show_style_notice'        => 'no',
+					'wc_stripe_show_changed_keys_notice' => 'yes',
+				],
+				'is oauth connected' => true,
+				[
+					'keys',
+					'ssl',
+					'sca',
+					'changed_keys',
+				],
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings'        => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice'        => 'no',
+					'wc_stripe_show_changed_keys_notice' => 'yes',
+				],
+				'is oauth connected' => true,
+				[
+					'ssl',
+					'sca',
+					'changed_keys',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'        => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice'        => 'no',
+					'wc_stripe_show_changed_keys_notice' => 'yes',
+					'home'                               => 'https://...',
+				],
+				'is oauth connected' => true,
+				[
+					'sca',
+					'changed_keys',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'        => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice'        => 'no',
+					'wc_stripe_show_changed_keys_notice' => 'yes',
+					'home'                               => 'https://...',
+					'wc_stripe_show_sca_notice'          => 'no',
+				],
+				'is oauth connected' => true,
+				[
+					'changed_keys',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+					'wc_stripe_show_sca_notice'   => 'no',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+					'wc_stripe_show_sca_notice'   => 'no',
+				],
+				'is oauth connected' => true,
+				[
+					'upe_payment_methods',
+				],
+			],
+			'OAuth required notice' => [
+				[
+					'woocommerce_stripe_settings' => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+					'wc_stripe_show_sca_notice'   => 'no',
+				],
+				'is oauth connected' => false,
+				[
+					'oauth_required',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test that the currency notice is shown when UPE methods are enabled.
+	 *
+	 * @return void
+	 */
 	public function test_currency_notice_is_shown_for_upe_methods() {
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
@@ -162,6 +638,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
 	}
 
+	/**
+	 * Test that the invalid keys notice is shown when account data is not valid.
+	 *
+	 * @return void
+	 */
 	public function test_invalid_keys_notice_is_shown_when_account_data_is_not_valid() {
 		// We need to re-create the mock object to override the mocked 'get_cached_account_data' function.
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -202,354 +683,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertArrayHasKey( 'keys', $notices->notices );
 		$this->assertMatchesRegularExpression( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
-	}
-
-	public function options_to_notices_map() {
-		return [
-			[
-				[
-					'woocommerce_stripe_settings' => [ 'enabled' => 'yes' ],
-				],
-				[
-					'style',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'              => 'yes',
-						'testmode'             => 'yes',
-						'test_publishable_key' => 'pk_test_valid_test_key',
-						'test_secret_key'      => 'sk_test_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'mode',
-				],
-				'/All transactions are simulated. Customers can\'t make real purchases through Stripe./',
-				[
-					'page'    => 'wc-settings',
-					'section' => 'stripe',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'        => 'yes',
-						'three_d_secure' => 'yes',
-					],
-				],
-				[
-					'3ds',
-					'style',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'        => 'yes',
-						'three_d_secure' => 'yes',
-					],
-					'wc_stripe_show_3ds_notice'   => 'no',
-				],
-				[
-					'style',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'three_d_secure'  => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'3ds',
-				],
-				false,
-				[
-					'page'    => 'wc-settings',
-					'section' => 'stripe',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled' => 'yes',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'keys',
-				],
-				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings'    => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
-				],
-				[],
-				false,
-				[
-					'page'    => 'wc-settings',
-					'section' => 'stripe',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings'    => [
-						'enabled' => 'yes',
-					],
-					'wc_stripe_show_style_notice'    => 'no',
-					'wc_stripe_show_sca_notice'      => 'no',
-					'_wcstripe_feature_upe_settings' => 'yes',
-					'home'                           => 'https://...',
-				],
-				[
-					'keys',
-				],
-				false,
-				[
-					'page' => 'wc-settings',
-				],
-				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'              => 'yes',
-						'testmode'             => 'yes',
-						'test_publishable_key' => 'invalid test key',
-						'test_secret_key'      => 'invalid test key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'keys',
-				],
-				'/Stripe is in test mode however your API keys may not be valid/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'              => 'yes',
-						'testmode'             => 'yes',
-						'test_publishable_key' => 'pk_test_valid_test_key',
-						'test_secret_key'      => 'sk_test_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'mode',
-				],
-				false,
-				[
-					'page'    => 'wc-settings',
-					'section' => 'stripe',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'invalid live key',
-						'secret_key'      => 'invalid live key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'keys',
-				],
-				'/Stripe is in live mode however your API keys may not be valid/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-				],
-				[
-					'ssl',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'home'                        => 'https://...',
-				],
-				[
-					'sca',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings'        => [
-						'enabled'        => 'yes',
-						'testmode'       => 'no',
-						'three_d_secure' => 'yes',
-					],
-					'wc_stripe_show_style_notice'        => 'no',
-					'wc_stripe_show_changed_keys_notice' => 'yes',
-				],
-				[
-					'3ds',
-					'keys',
-					'ssl',
-					'sca',
-					'changed_keys',
-				],
-				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings'        => [
-						'enabled'  => 'yes',
-						'testmode' => 'no',
-					],
-					'wc_stripe_show_style_notice'        => 'no',
-					'wc_stripe_show_changed_keys_notice' => 'yes',
-				],
-				[
-					'keys',
-					'ssl',
-					'sca',
-					'changed_keys',
-				],
-				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
-			],
-			[
-				[
-					'woocommerce_stripe_settings'        => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice'        => 'no',
-					'wc_stripe_show_changed_keys_notice' => 'yes',
-				],
-				[
-					'ssl',
-					'sca',
-					'changed_keys',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings'        => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice'        => 'no',
-					'wc_stripe_show_changed_keys_notice' => 'yes',
-					'home'                               => 'https://...',
-				],
-				[
-					'sca',
-					'changed_keys',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings'        => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice'        => 'no',
-					'wc_stripe_show_changed_keys_notice' => 'yes',
-					'home'                               => 'https://...',
-					'wc_stripe_show_sca_notice'          => 'no',
-				],
-				[
-					'changed_keys',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'home'                        => 'https://...',
-					'wc_stripe_show_sca_notice'   => 'no',
-				],
-			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
-						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'home'                        => 'https://...',
-					'wc_stripe_show_sca_notice'   => 'no',
-				],
-				[
-					'upe_payment_methods',
-				],
-			],
-		];
 	}
 
 	/**
