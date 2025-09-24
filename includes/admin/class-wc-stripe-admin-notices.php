@@ -75,8 +75,8 @@ class WC_Stripe_Admin_Notices {
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			$actions     = $notice['actions'] ?? [];
-			$has_actions = count( $actions ) > 0;
 			$div_style   = 'position:relative;';
+			$has_actions = count( $actions ) > 0;
 			if ( $has_actions ) {
 				// If there are actions, we need to make sure the div can contain them.
 				$div_style .= 'overflow: auto;';
