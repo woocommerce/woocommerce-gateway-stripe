@@ -90,6 +90,10 @@ describe( 'AccountDetailsSection', () => {
 					live: 'example.com',
 					test: 'example.com',
 				},
+				oauth_connections: {
+					live: { connected: true },
+					test: { connected: true },
+				},
 			},
 		} );
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
@@ -124,6 +128,10 @@ describe( 'AccountDetailsSection', () => {
 				configured_webhook_urls: {
 					live: 'example.com',
 					test: 'example.com',
+				},
+				oauth_connections: {
+					live: { connected: true },
+					test: { connected: true },
 				},
 			},
 		} );
@@ -161,6 +169,10 @@ describe( 'AccountDetailsSection', () => {
 					live: 'example.com',
 					test: 'example.com',
 				},
+				oauth_connections: {
+					live: { connected: true },
+					test: { connected: true },
+				},
 			},
 		} );
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
@@ -197,6 +209,10 @@ describe( 'AccountDetailsSection', () => {
 					configured_webhook_urls: {
 						live: 'example.com',
 						test: 'example.com',
+					},
+					oauth_connections: {
+						live: { connected: true },
+						test: { connected: true },
 					},
 				},
 			} );
@@ -240,6 +256,36 @@ describe( 'AccountDetailsSection', () => {
 			await userEvent.click( refreshButton );
 
 			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'should change the button text when not oauth connected', () => {
+			useAccount.mockReturnValue( {
+				data: {
+					webhook_url: 'example.com',
+					account: {
+						id: 'acct_123',
+						email: 'test@example.com',
+						testmode: false,
+					},
+					configured_webhook_urls: {
+						live: 'example.com',
+						test: 'example.com',
+					},
+					oauth_connections: {
+						live: { connected: false },
+						test: { connected: false },
+					},
+				},
+			} );
+
+			render(
+				<AccountDetailsSection setModalType={ setModalTypeMock } />
+			);
+
+			const editKeysButton = screen.getByRole( 'button', {
+				name: /Reconnect to Stripe/i,
+			} );
+			expect( editKeysButton ).toBeInTheDocument();
 		} );
 	} );
 } );

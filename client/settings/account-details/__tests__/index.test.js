@@ -60,6 +60,10 @@ describe( 'AccountDetails', () => {
 					payouts_enabled: false,
 					charges_enabled: false,
 				},
+				testmode: true,
+				oauth_connections: {
+					test: { connected: true },
+				},
 			},
 		} );
 		render( <AccountDetails /> );
@@ -87,6 +91,33 @@ describe( 'AccountDetails', () => {
 		expect( screen.queryByTestId( 'warning-icon' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( mockedWarningMessage )
+		).toBeInTheDocument();
+	} );
+
+	it( 'renders the reconnect notice when not connected via oauth', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				testmode: true,
+				oauth_connections: {
+					test: { connected: false },
+				},
+				account: {
+					settings: {
+						payouts: {
+							schedule: { interval: 'daily', delay_days: 2 },
+						},
+					},
+					payouts_enabled: true,
+					charges_enabled: true,
+				},
+			},
+		} );
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByText(
+				'Reconnect your Stripe account using the new authentication flow to avoid disruptions on your store.'
+			)
 		).toBeInTheDocument();
 	} );
 } );

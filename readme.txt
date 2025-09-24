@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.0.0 - xxxx-xx-xx =
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
+* Update - Shows the Stripe account connection modal in settings when the merchant did not connect via OAuth along with a new notice
 * Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
 * Dev - Introduces a new helper class to handle Stripe orders
 * Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
