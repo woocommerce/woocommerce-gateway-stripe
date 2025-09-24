@@ -74,7 +74,8 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			$has_actions = count( $notice['actions'] ) > 0;
+			$actions     = $notice['actions'] ?? [];
+			$has_actions = count( $actions ) > 0;
 			$div_style   = 'position:relative;';
 			if ( $has_actions ) {
 				// If there are actions, we need to make sure the div can contain them.
@@ -104,7 +105,7 @@ class WC_Stripe_Admin_Notices {
 			echo '</p>';
 
 			if ( $has_actions ) {
-				foreach ( $notice['actions'] as $action ) {
+				foreach ( $actions as $action ) {
 					echo wp_kses(
 						$action,
 						[
