@@ -110,7 +110,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.10.0 - xxxx-xx-xx =
+= 10.0.0 - xxxx-xx-xx =
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
 * Dev - Introduces a new helper class to handle Stripe orders
 * Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
