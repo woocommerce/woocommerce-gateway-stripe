@@ -70,7 +70,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		'id'       => 'pmc_id_test_non_child_default',
 		'parent'   => null,
 		'name'     => 'Test Non Child Default PMC',
-		'livemode' => true,
+		'livemode' => false,
 		'active'   => true,
 		'default'  => true,
 	];
