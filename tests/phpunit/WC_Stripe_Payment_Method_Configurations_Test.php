@@ -310,228 +310,266 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'only_live_child_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'only_live_child_pmc_returned_after_fallback_pmc_id_is_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'only_live_other_platform_child_no_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_LIVE_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'only_live_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_LIVE_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'only_test_child_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => true,
 			],
 			'only_test_child_pmc_returned_after_fallback_pmc_id_is_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => true,
 			],
 			'only_test_other_platform_child_no_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_TEST_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => true,
 			],
 			'only_test_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_TEST_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => true,
 			],
 			'only_live_non_child_default_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'only_live_non_child_non_default_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'only_live_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'only_live_non_child_non_default_pmc_returned_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'only_live_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'only_live_non_child_non_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'only_test_non_child_default_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => true,
 			],
 			'only_test_non_child_non_default_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => true,
 			],
 			'only_test_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => true,
 			],
 			'only_test_non_child_non_default_pmc_returned_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => true,
 			],
 			'only_test_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
+				'is_test_mode'             => true,
 			],
 			'only_test_non_child_non_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => true,
 			],
 			'live_non_child_default_active_pmc_returned_with_inactive_and_other_child_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'live_non_child_non_default_active_pmc_returned_with_inactive_pmc_and_other_child_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'live_non_child_default_active_pmc_returned_with_inactive_and_other_child_pmc_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'live_non_child_non_default_active_pmc_returned_with_inactive_and_other_child_pmc_after_fallback_pmc_id_is_set_to_other_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'live_non_child_default_active_pmc_returned_with_inactive_and_other_child_pmc_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'live_non_child_non_default_active_pmc_returned_with_inactive_and_other_child_pmc_after_fallback_pmc_id_is_set_to_same_pmc' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'fallback_pmc_ignored_when_live_child_pmc_is_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'default_pmc_ignored_when_live_child_pmc_is_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'fallback_pmc_ignored_when_test_child_pmc_is_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => true,
 			],
 			'default_pmc_ignored_when_test_child_pmc_is_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => true,
 			],
 			'existing_fallback_pmc_returned_when_multiple_non_child_non_default_pmcs_and_other_platform_pmc_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'existing_fallback_pmc_returned_when_multiple_non_child_default_pmcs_returned' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'fallback_pmc_returned_when_multiple_non_child_pmcs_with_one_default_pmc_returned_with_fallback_pmc_id_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
+				'is_test_mode'             => false,
 			],
 			'default_pmc_returned_when_multiple_non_child_pmcs_with_one_default_pmc_returned_without_fallback_pmc_id_set' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'no_pmc_returned_when_multiple_non_child_non_default_pmcs_returned_with_non_matching_fallback_pmc_id' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
+				'is_test_mode'             => false,
 			],
 			'no_pmc_returned_when_multiple_non_child_non_default_pmcs_returned_with_no_existing_fallback_pmc_id' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 			'no_pmc_returned_when_multiple_non_child_default_pmcs_returned_with_no_existing_fallback_pmc_id' => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
+				'is_test_mode'             => false,
 			],
 		];
 	}
@@ -543,10 +581,15 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @param string|null $expected_pmc_id          The expected PMC ID.
 	 * @param string|null $expected_fallback_pmc_id The expected fallback PMC ID to be stored in the fallback option.
 	 * @param string|null $initial_fallback_pmc_id  The initial fallback PMC ID to be stored in the fallback option.
+	 * @param bool $is_test_mode                    Whether the test is running in test mode.
 	 * @return void
 	 * @dataProvider provide_get_payment_method_configuration_from_stripe_tests()
 	 */
-	public function test_get_payment_method_configuration_from_stripe( array $mock_pmc_response, ?string $expected_pmc_id, ?string $expected_fallback_pmc_id, ?string $initial_fallback_pmc_id = null ) {
+	public function test_get_payment_method_configuration_from_stripe( array $mock_pmc_response, ?string $expected_pmc_id, ?string $expected_fallback_pmc_id, ?string $initial_fallback_pmc_id = null, bool $is_test_mode = false ) {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = $is_test_mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
 		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -563,10 +606,12 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 
 		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+
 		if ( null === $initial_fallback_pmc_id ) {
-			delete_option( 'woocommerce_stripe_pmc_fallback_id' );
+			delete_option( $fallback_pmc_key );
 		} else {
-			update_option( 'woocommerce_stripe_pmc_fallback_id', $initial_fallback_pmc_id );
+			update_option( $fallback_pmc_key, $initial_fallback_pmc_id );
 		}
 
 		$reflection = new ReflectionClass( \WC_Stripe_Payment_Method_Configurations::class );
@@ -585,7 +630,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			$this->assertEquals( $expected_pmc_id, $primary_pmc->id );
 		}
 
-		$fallback_pmc_id = get_option( 'woocommerce_stripe_pmc_fallback_id' );
+		$fallback_pmc_id = get_option( $fallback_pmc_key );
 		if ( null === $expected_fallback_pmc_id ) {
 			$this->assertFalse( $fallback_pmc_id );
 		} else {

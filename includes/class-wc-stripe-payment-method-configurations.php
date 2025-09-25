@@ -123,13 +123,15 @@ class WC_Stripe_Payment_Method_Configurations {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
+		$fallback_pmc_key = WC_Stripe_Mode::is_test() ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
 		foreach ( $configurations as $configuration ) {
 			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
 			if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
 				self::set_payment_method_configuration_cache( $configuration );
-				delete_option( 'woocommerce_stripe_pmc_fallback_id' );
+				delete_option( $fallback_pmc_key );
 				return $configuration;
 			}
 		}
@@ -188,8 +190,9 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		);
 
-		$fallback_pmc_id = get_option( 'woocommerce_stripe_pmc_fallback_id' );
-		$fallback_pmc    = null;
+		$fallback_pmc_key = WC_Stripe_Mode::is_test() ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+		$fallback_pmc_id  = get_option( $fallback_pmc_key );
+		$fallback_pmc     = null;
 
 		if ( [] === $active_non_child_payment_method_configurations ) {
 			if ( $fallback_pmc_id ) {
@@ -199,7 +202,7 @@ class WC_Stripe_Payment_Method_Configurations {
 						'fallback_pmc_id' => $fallback_pmc_id,
 					]
 				);
-				delete_option( 'woocommerce_stripe_pmc_fallback_id' );
+				delete_option( $fallback_pmc_key );
 			}
 
 			return [
@@ -225,7 +228,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'fallback_pmc_id' => $fallback_pmc_id,
 				]
 			);
-			delete_option( 'woocommerce_stripe_pmc_fallback_id' );
+			delete_option( $fallback_pmc_key );
 			$fallback_pmc_id = null;
 		}
 
@@ -261,7 +264,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'livemode' => $fallback_pmc->livemode ?? null,
 				]
 			);
-			update_option( 'woocommerce_stripe_pmc_fallback_id', $fallback_pmc->id );
+			update_option( $fallback_pmc_key, $fallback_pmc->id );
 
 			return [
 				'pmc'    => $fallback_pmc,
