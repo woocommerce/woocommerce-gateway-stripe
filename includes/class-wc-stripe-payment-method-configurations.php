@@ -123,7 +123,8 @@ class WC_Stripe_Payment_Method_Configurations {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
-		$fallback_pmc_key = WC_Stripe_Mode::is_test() ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+		$is_test_mode     = WC_Stripe_Mode::is_test();
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
@@ -148,7 +149,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			WC_Stripe_Logger::error(
 				'No usable Payment Method Configuration found; disabling Payment Method Configuration sync',
 				[
-					'reason' => $fallback_reason,
+					'reason'      => $fallback_reason,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
 				]
 			);
 			self::disable_payment_method_configuration_sync();
@@ -158,10 +160,12 @@ class WC_Stripe_Payment_Method_Configurations {
 		WC_Stripe_Logger::debug(
 			'Using fallback Payment Method Configuration',
 			[
-				'pmc_id'   => $fallback_pmc->id,
-				'reason'   => $fallback_reason,
-				'name'     => $fallback_pmc->name ?? null,
-				'livemode' => $fallback_pmc->livemode ?? null,
+				'pmc_id'      => $fallback_pmc->id,
+				'reason'      => $fallback_reason,
+				'name'        => $fallback_pmc->name ?? null,
+				'livemode'    => $fallback_pmc->livemode ?? null,
+				'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				'option_name' => $fallback_pmc_key,
 			]
 		);
 
@@ -190,7 +194,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		);
 
-		$fallback_pmc_key = WC_Stripe_Mode::is_test() ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
+		$is_test_mode     = WC_Stripe_Mode::is_test();
+		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 		$fallback_pmc_id  = get_option( $fallback_pmc_key );
 		$fallback_pmc     = null;
 
@@ -200,6 +205,8 @@ class WC_Stripe_Payment_Method_Configurations {
 					'No eligible Payment Method Configurations returned from Stripe; deleting fallback ID option',
 					[
 						'fallback_pmc_id' => $fallback_pmc_id,
+						'stripe_mode'     => $is_test_mode ? 'test' : 'live',
+						'option_name'     => $fallback_pmc_key,
 					]
 				);
 				delete_option( $fallback_pmc_key );
@@ -226,6 +233,8 @@ class WC_Stripe_Payment_Method_Configurations {
 				'Fallback Payment Method Configuration not returned from Stripe, deleting fallback ID option',
 				[
 					'fallback_pmc_id' => $fallback_pmc_id,
+					'stripe_mode'     => $is_test_mode ? 'test' : 'live',
+					'option_name'     => $fallback_pmc_key,
 				]
 			);
 			delete_option( $fallback_pmc_key );
@@ -258,10 +267,12 @@ class WC_Stripe_Payment_Method_Configurations {
 			WC_Stripe_Logger::debug(
 				'Updating Payment Method Configuration fallback',
 				[
-					'pmc_id'   => $fallback_pmc->id,
-					'reason'   => $fallback_reason,
-					'name'     => $fallback_pmc->name ?? null,
-					'livemode' => $fallback_pmc->livemode ?? null,
+					'pmc_id'      => $fallback_pmc->id,
+					'reason'      => $fallback_reason,
+					'name'        => $fallback_pmc->name ?? null,
+					'livemode'    => $fallback_pmc->livemode ?? null,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+					'option_name' => $fallback_pmc_key,
 				]
 			);
 			update_option( $fallback_pmc_key, $fallback_pmc->id );
