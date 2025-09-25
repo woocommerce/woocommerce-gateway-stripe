@@ -1,5 +1,6 @@
-@forward 'node_modules/@automattic/color-studio/dist/color-variables.scss';
-@forward 'node_modules/@wordpress/base-styles/colors.native.scss' show $light-gray-400, $light-gray-500;
+@forward '@automattic/color-studio/dist/color-variables.scss';
+@forward '@wordpress/base-styles/colors.scss';
+@forward '@wordpress/base-styles/colors.native.scss' show $light-gray-400, $light-gray-500;
 
 // WP-admin colors: https://make.wordpress.org/core/2021/02/23/standardization-of-wp-admin-colors-in-wordpress-5-7/
 $wp-gray-0: #f6f7f7;
