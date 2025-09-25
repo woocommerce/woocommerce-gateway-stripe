@@ -194,7 +194,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		if ( [] === $active_non_child_payment_method_configurations ) {
 			if ( $fallback_pmc_id ) {
 				WC_Stripe_Logger::debug(
-					'No Payment Method Configurations returned from Stripe; deleting fallback ID option',
+					'No eligible Payment Method Configurations returned from Stripe; deleting fallback ID option',
 					[
 						'fallback_pmc_id' => $fallback_pmc_id,
 					]
