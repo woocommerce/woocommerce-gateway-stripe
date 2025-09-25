@@ -22,6 +22,7 @@
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
+* Update - Ensure that we check for settings sync eligibility after every upgrade
 
 = 9.9.1 - 2025-09-16 =
 * Add - Allow Klarna to be used for recurring payments and subscriptions
