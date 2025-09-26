@@ -230,7 +230,7 @@ $stripe_settings = apply_filters(
 			'label'       => __( 'Enable saved iDEAL payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay with iDEAL and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'yes',
+			'default'     => 'no',
 			'desc_tip'    => true,
 		],
 		'sepa_tokens_for_bancontact'       => [
@@ -238,7 +238,7 @@ $stripe_settings = apply_filters(
 			'label'       => __( 'Enable saved Bancontact payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay with Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'yes',
+			'default'     => 'no',
 			'desc_tip'    => true,
 		],
 		'logging'                             => [
