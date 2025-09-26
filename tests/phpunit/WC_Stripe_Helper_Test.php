@@ -218,6 +218,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$intent_id = 'pi_mock';
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $intent_id );
+		$order->save_meta_data();
 
 		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		if ( $success ) {
