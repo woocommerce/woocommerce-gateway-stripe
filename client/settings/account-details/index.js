@@ -8,6 +8,7 @@ import { createInterpolateElement } from '@wordpress/element';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import { WebhookDescription } from 'wcstripe/components/webhook-description';
+import { ReconnectNotice } from 'wcstripe/settings/account-details/reconnect-notice';
 
 const AccountDetailsContainer = styled.div`
 	display: flex;
@@ -124,6 +125,9 @@ const WebhooksSection = () => {
 const AccountDetails = () => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestModeEnabled
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
 
 	const hasAccountError = Object.keys( data.account ?? {} ).length === 0;
 	if ( hasAccountError ) {
@@ -151,6 +155,7 @@ const AccountDetails = () => {
 
 	return (
 		<AccountDetailsContainer>
+			{ ! oauthConnected && <ReconnectNotice /> }
 			<PaymentsSection />
 			<PayoutsSection />
 			<WebhooksSection />
