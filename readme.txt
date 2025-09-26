@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
+* Add - Use 'item' as default unit of measure for CEDP/L3 line item data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
