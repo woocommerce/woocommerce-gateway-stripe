@@ -1515,6 +1515,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					'quantity'            => $quantity, // The number of items of this type sold, as a non-negative integer.
 					'tax_amount'          => $tax_amount, // The amount of tax this item had added to it, in cents, as a non-negative integer.
 					'discount_amount'     => $discount_amount, // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+					'unit_of_measure'     => 'item',
 				];
 			},
 			$order_items
