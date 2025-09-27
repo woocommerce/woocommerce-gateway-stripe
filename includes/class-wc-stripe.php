@@ -372,6 +372,15 @@ class WC_Stripe {
 
 			// Try to schedule the daily async cleanup of the Stripe database cache.
 			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+
+			// If we have previously disabled settings synchronization, remove the flag after the upgrade,
+			// just to make sure we are still ineligible for settings synchronization.
+			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
+				unset( $stripe_settings['pmc_enabled'] );
+				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			}
 		}
 	}
 
