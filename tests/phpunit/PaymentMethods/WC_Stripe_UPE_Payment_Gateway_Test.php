@@ -1034,18 +1034,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
-		$final_order = wc_get_order( $order_id );
-		$note        = wc_get_order_notes(
+		$final_order  = wc_get_order( $order_id );
+		$note         = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
 				'limit'    => 2,
 			]
 		)[1];
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
-		$this->assertEquals( $payment_intent_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $final_order ) );
-		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
@@ -1099,19 +1100,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
 		$success_order = wc_get_order( $order_id );
-
-		$note = wc_get_order_notes(
+		$note          = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
 				'limit'    => 2,
 			]
 		)[1];
+		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 
 		// assert successful order processing
 		$this->assertEquals( OrderStatus::PROCESSING, $success_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $success_order->get_payment_method_title() );
-		$this->assertEquals( $payment_intent_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $success_order ) );
-		$this->assertTrue( (bool) $success_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $success_order ) );
+		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $success_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 
 		// simulate an order getting marked as failed as if from a webhook
@@ -2388,7 +2389,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer( $final_order ) );
 		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
-		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 	}
 
 	/**
@@ -2454,7 +2455,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer( $final_order ) );
-		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 	}
 
 	/**

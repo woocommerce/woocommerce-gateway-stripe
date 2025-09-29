@@ -1649,11 +1649,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
 			return;
 		}
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		try {
 			// First check if the order is already being processed by another request.
@@ -1771,7 +1771,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order_helper->update_stripe_upe_redirect_processed( $order, true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would

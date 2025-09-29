@@ -100,6 +100,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
 
 	/**
+	 * Meta key for Stripe UPE redirect processed.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -550,7 +557,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Updates the Stripe UPE payment type for order.
+	 * Gets the Stripe UPE payment type for order.
 	 *
 	 * @since 10.0.0
 	 *
@@ -583,7 +590,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Updates the Stripe UPE waiting for redirect for order.
+	 * Gets the Stripe UPE waiting for redirect for order.
 	 *
 	 * @since 10.0.0
 	 *
@@ -629,6 +636,55 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->delete_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
+	}
+
+	/**
+	 * Gets the Stripe UPE redirect processed for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool|null
+	 */
+	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_REDIRECT_PROCESSED, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE redirect processed for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param bool $redirect_processed
+	 * @return false|void
+	 */
+	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
+	}
+
+	/**
+	 * Deletes the Stripe UPE redirect processed for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED );
 	}
 
 	/**
