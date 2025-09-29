@@ -473,7 +473,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_intent( $order, $payment_intent_id );
 		$order_helper->update_stripe_upe_payment_type( $order, '' );
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
@@ -2005,7 +2005,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$order_helper->update_stripe_intent( $order, $payment_intent_id );
 		$order_helper->update_stripe_upe_payment_type( $order, '' );
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );

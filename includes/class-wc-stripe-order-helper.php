@@ -93,6 +93,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
 
 	/**
+	 * Meta key for Stripe UPE waiting for redirect.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -576,19 +583,52 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Deletes the Stripe UPE payment type for order.
+	 * Updates the Stripe UPE waiting for redirect for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool|null
+	 */
+	public function get_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE waiting for redirect for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param bool $waiting_for_redirect
+	 * @return false|void
+	 */
+	public function update_stripe_upe_waiting_for_redirect( ?WC_Order $order = null, bool $waiting_for_redirect = false ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, $waiting_for_redirect );
+	}
+
+	/**
+	 * Deletes the Stripe UPE waiting for redirect for order.
 	 *
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_upe_payment_type( ?WC_Order $order = null ) {
+	public function delete_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->delete_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE );
+		$order->delete_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
 	}
 
 	/**

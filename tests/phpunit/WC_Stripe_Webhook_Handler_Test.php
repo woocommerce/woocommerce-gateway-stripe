@@ -533,7 +533,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$order->update_meta_data( '_stripe_status_final', true );
 		}
 		$order_helper->update_stripe_upe_payment_type( $order, $payment_type );
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save_meta_data();
 		$order->save();
 
