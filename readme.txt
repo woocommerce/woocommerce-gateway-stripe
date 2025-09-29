@@ -134,6 +134,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
+* Fix - BACS instruction text appears twice on the Order Confirmation page
+* Update - Allow more situations to enable settings synchronization with Stripe
+* Update - Ensure that we check for settings sync eligibility after every upgrade
 * Fix - Update Ukraine state mappping list
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
