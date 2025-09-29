@@ -86,6 +86,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CARD_ID = '_stripe_card_id';
 
 	/**
+	 * Meta key for Stripe UPE payment type.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -536,6 +543,55 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Updates the Stripe UPE payment type for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_upe_payment_type( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_PAYMENT_TYPE, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE payment type for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $payment_type
+	 * @return false|void
+	 */
+	public function update_stripe_upe_payment_type( ?WC_Order $order = null, string $payment_type = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
+	}
+
+	/**
+	 * Deletes the Stripe UPE payment type for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_upe_payment_type( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE );
+	}
+
+	/**
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @since 10.0.0
@@ -717,7 +773,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.

@@ -470,8 +470,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $payment_intent_id );
-		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_upe_payment_type( $order, '' );
 		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save();
 
@@ -2000,8 +2001,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $payment_intent_id );
-		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_upe_payment_type( $order, '' );
 		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save();
 

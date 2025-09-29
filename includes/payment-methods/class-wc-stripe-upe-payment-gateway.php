@@ -357,7 +357,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = $order->get_meta( '_stripe_upe_payment_type' );
+		$upe_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 
 		if ( ! $upe_payment_type ) {
 			return true;
@@ -978,9 +978,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
-				WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $payment_intent_id, $order );
+				$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+				$order_helper->add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
@@ -2938,7 +2940,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string   $selected_payment_type The selected payment type.
 	 */
 	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
-		$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		$order->save_meta_data();
 	}
 	/**
