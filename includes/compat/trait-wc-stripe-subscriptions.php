@@ -646,7 +646,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_source( $resubscribe_order );
 
-		$resubscribe_order->delete_meta_data( '_stripe_customer_id' );
+		$order_helper->delete_stripe_customer( $resubscribe_order );
 		// For BW compat will remove in future.
 		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
 		// Delete payment intent ID.
@@ -680,8 +680,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-		$subscription->update_meta_data( '_stripe_source_id', WC_Stripe_Order_Helper::get_instance()->get_stripe_source( $renewal_order ) );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$subscription->update_meta_data( '_stripe_customer_id', $order_helper->get_stripe_customer( $renewal_order ) );
+		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source( $renewal_order ) );
 		$subscription->save();
 	}
 
@@ -1010,7 +1011,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
 			$order_helper       = WC_Stripe_Order_Helper::get_instance();
 			$parent_order       = wc_get_order( $subscription->get_parent_id() );
-			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
+			$stripe_customer_id = $order_helper->get_stripe_customer( $parent_order );
 			$stripe_source_id   = $order_helper->get_stripe_source( $parent_order );
 
 			// For BW compat will remove in future.

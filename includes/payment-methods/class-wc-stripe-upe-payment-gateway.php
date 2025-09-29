@@ -1811,12 +1811,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param stdClass $payment_method Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $payment_method->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
+			$order_helper->update_stripe_customer( $order, $payment_method->customer );
 		}
 
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $payment_method->payment_method );
+		$order_helper->update_stripe_source( $order, $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -2913,7 +2914,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer( $order, $customer_id );
 		$order->save_meta_data();
 	}
 

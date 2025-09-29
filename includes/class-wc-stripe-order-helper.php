@@ -72,6 +72,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe customer ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -438,6 +445,55 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $intent_id );
+	}
+
+	/**
+	 * Gets the Stripe customer for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_customer( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_CUSTOMER_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe customer for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $customer_id
+	 * @return false|void
+	 */
+	public function update_stripe_customer( ?WC_Order $order = null, string $customer_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
+	}
+
+	/**
+	 * Deletes the Stripe customer for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_customer( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
