@@ -648,7 +648,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$order_helper->delete_stripe_customer( $resubscribe_order );
 		// For BW compat will remove in future.
-		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
+		$order_helper->delete_stripe_card( $resubscribe_order );
 		// Delete payment intent ID.
 		$order_helper->delete_stripe_intent( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
@@ -1016,7 +1016,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
+				$stripe_source_id = $order_helper->get_stripe_card( $parent_order );
 
 				// Take this opportunity to update the key name.
 				$order_helper->update_stripe_source( $parent_order, $stripe_source_id );

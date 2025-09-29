@@ -79,6 +79,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
 
 	/**
+	 * Meta key for Stripe card ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CARD_ID = '_stripe_card_id';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -494,6 +501,38 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
+	}
+
+	/**
+	 * Gets the Stripe card for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_card( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_CARD_ID, true );
+	}
+
+	/**
+	 * Deletes the Stripe card for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_card( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_CARD_ID );
 	}
 
 	/**

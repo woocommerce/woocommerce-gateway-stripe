@@ -1025,7 +1025,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = $order->get_meta( '_stripe_card_id', true );
+				$source_id = $order_helper->get_stripe_card( $order );
 
 				// Take this opportunity to update the key name.
 				$order_helper->update_stripe_source( $order, $source_id );
