@@ -6,8 +6,8 @@ import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutButtonPreview from './express-checkout-button-preview';
-import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
+import PaymentRequestButtonPreview from './payment-request-button-preview';
+import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
 	Card,
 	RadioControl,
@@ -127,7 +127,7 @@ const buttonThemeOptions = [
 	},
 ];
 
-const ExpressCheckoutSettingsSection = () => {
+const PaymentRequestsSettingsSection = () => {
 	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
 	const [ size, setSize ] = usePaymentRequestButtonSize();
 	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
@@ -292,7 +292,7 @@ const ExpressCheckoutSettingsSection = () => {
 						/>
 					) : (
 						<Elements stripe={ stripePromise }>
-							<ExpressCheckoutButtonPreview />
+							<PaymentRequestButtonPreview />
 						</Elements>
 					) }
 				</LoadableAccountSection>
@@ -301,4 +301,4 @@ const ExpressCheckoutSettingsSection = () => {
 	);
 };
 
-export default ExpressCheckoutSettingsSection;
+export default PaymentRequestsSettingsSection;

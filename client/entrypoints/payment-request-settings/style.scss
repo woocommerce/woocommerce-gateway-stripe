@@ -42,11 +42,13 @@
 	box-sizing: border-box;
 }
 
-.express-checkout-settings {
+.payment-request-settings {
 	&__location {
 		margin-bottom: 26px !important;
 	}
+}
 
+.express-checkout-settings {
 	.components-card-body {
 		padding: calc(16px) calc(24px);
 

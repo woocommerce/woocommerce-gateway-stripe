@@ -49,7 +49,7 @@ const buttonSizeToPxMap = {
 	large: 56,
 };
 
-const ExpressCheckoutButtonPreview = () => {
+const PaymentRequestsButtonPreview = () => {
 	const stripe = useStripe();
 	const [ paymentRequest, setPaymentRequest ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -136,4 +136,4 @@ const ExpressCheckoutButtonPreview = () => {
 	);
 };
 
-export default ExpressCheckoutButtonPreview;
+export default PaymentRequestsButtonPreview;
