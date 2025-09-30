@@ -1,24 +1,26 @@
 import React from 'react';
-import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
-import AmazonPayEnableSection from './amazon-pay-enable-section';
-import AmazonPaySettingsSection from './amazon-pay-settings-section';
+import PaymentRequestIcon from '../../payment-method-icons/payment-request';
+import ExpressCheckoutEnableSection from './express-checkout-enable-section';
+import ExpressCheckoutSettingsSection from './express-checkout-settings-section';
 import { __ } from '@wordpress/i18n';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SaveSettingsSection from 'wcstripe/settings/save-settings-section';
-import '../express-checkout-settings/style.scss';
+import './style.scss';
 
 const EnableDescription = () => (
 	<>
 		<div className="express-checkout-settings__icon">
-			<AmazonPayIcon size="medium" />
+			<PaymentRequestIcon size="medium" />
 		</div>
 		<p>
 			{ __(
-				'Decide how buttons for digital wallets Amazon Pay ' +
-					'is displayed in your store. Depending on ' +
-					'their web browser and their wallet configurations.',
+				'Decide how buttons for digital wallets Apple Pay and ' +
+					'Google Pay are displayed in your store. Depending on ' +
+					'their web browser and their wallet configurations, ' +
+					'your customers will see either Apple Pay or Google Pay, ' +
+					'but not both.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
@@ -30,25 +32,25 @@ const SettingsDescription = () => (
 		<h2>{ __( 'Settings', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Configure the display of Amazon Pay button on your store.',
+				'Configure the display of Apple Pay and Google Pay buttons on your store.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
 	</>
 );
 
-const AmazonPayPage = () => {
+const ExpressCheckoutPage = () => {
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ EnableDescription }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<AmazonPayEnableSection />
+					<ExpressCheckoutEnableSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
 			<SettingsSection Description={ SettingsDescription }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<AmazonPaySettingsSection />
+					<ExpressCheckoutSettingsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
@@ -57,4 +59,4 @@ const AmazonPayPage = () => {
 	);
 };
 
-export default AmazonPayPage;
+export default ExpressCheckoutPage;
