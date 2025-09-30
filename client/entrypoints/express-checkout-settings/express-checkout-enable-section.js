@@ -3,7 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { Card, CheckboxControl } from '@wordpress/components';
 import { usePaymentRequestEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
-const PaymentRequestsEnableSection = () => {
+const ExpressCheckoutEnableSection = () => {
 	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
 		usePaymentRequestEnabledSettings();
 
@@ -28,4 +28,4 @@ const PaymentRequestsEnableSection = () => {
 	);
 };
 
-export default PaymentRequestsEnableSection;
+export default ExpressCheckoutEnableSection;

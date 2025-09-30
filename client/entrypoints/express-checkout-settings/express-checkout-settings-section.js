@@ -127,7 +127,7 @@ const buttonThemeOptions = [
 	},
 ];
 
-const PaymentRequestsSettingsSection = () => {
+const ExpressCheckoutSettingsSection = () => {
 	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
 	const [ size, setSize ] = usePaymentRequestButtonSize();
 	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
@@ -301,4 +301,4 @@ const PaymentRequestsSettingsSection = () => {
 	);
 };
 
-export default PaymentRequestsSettingsSection;
+export default ExpressCheckoutSettingsSection;
