@@ -7,7 +7,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
-import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
+import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
 	RadioControl,
