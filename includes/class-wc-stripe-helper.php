@@ -1318,7 +1318,7 @@ class WC_Stripe_Helper {
 			)
 		);
 
-		$order_helper->update_stripe_intent( $order );
+		$order_helper->update_stripe_intent( $order, $payment_intent_id );
 		$order->save();
 	}
 
