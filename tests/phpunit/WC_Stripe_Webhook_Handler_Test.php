@@ -803,7 +803,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_transaction_id( $charge_id );
 		$order->save();
 
-		$order->update_meta_data( '_stripe_refund_id', $refund_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund( $order, $refund_id );
 		$order->save_meta_data();
 
 		$refund_order = WC_Helper_Order::create_order();
