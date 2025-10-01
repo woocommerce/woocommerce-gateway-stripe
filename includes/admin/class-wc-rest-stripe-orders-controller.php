@@ -128,7 +128,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Set the customer ID if known but not already set.
-		$customer_id = $order_helper->update_stripe_customer( $order );
+		$customer_id = $order_helper->get_stripe_customer( $order );
 		if ( ! $customer->get_id() && $customer_id ) {
 			$customer->set_id( $customer_id );
 		}

@@ -672,22 +672,6 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Deletes the Stripe UPE redirect processed for order.
-	 *
-	 * @since 10.0.0
-	 *
-	 * @param WC_Order|null $order
-	 * @return false|void
-	 */
-	public function delete_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED );
-	}
-
-	/**
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @since 10.0.0
