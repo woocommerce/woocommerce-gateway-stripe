@@ -1,4 +1,4 @@
-@use 'node_modules/@wordpress/base-styles/variables';
+@use '@wordpress/base-styles/variables';
 
 // Rem output with px fallback
 @mixin font-size( $sizeValue: 16, $lineHeight: false ) {
