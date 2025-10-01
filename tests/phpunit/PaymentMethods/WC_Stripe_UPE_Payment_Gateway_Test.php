@@ -1358,6 +1358,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_id                    = $order->get_id();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+
 		$order->set_total( 0 );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -1401,7 +1402,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
-		$this->assertEquals( $customer_id, $order_helper->delete_stripe_customer( $final_order ) );
+		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer( $final_order ) );
 		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source( $final_order ) );
 	}
 
