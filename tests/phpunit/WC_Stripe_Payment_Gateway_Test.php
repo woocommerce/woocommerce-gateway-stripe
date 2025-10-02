@@ -7,6 +7,7 @@ use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
 use WC_Stripe_Exception;
 use WC_Stripe_Helper;
+use WC_Stripe_Order_Helper;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_Error;
@@ -95,7 +96,9 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_success_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
-		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+
 		$expected_intent = (object) [ 'id' => 'pi_123' ];
 		$callback        = function ( $preempt, $request_args, $url ) use ( $expected_intent ) {
 			$response = [
@@ -126,7 +129,9 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_error_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
-		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+
 		$response_error = (object) [
 			'error' => [
 				'code'    => 'resource_missing',
@@ -843,9 +848,10 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_process_refund_voids_pre_auth_on_cancel() {
 		$order = WC_Helper_Order::create_order();
+
 		$order->set_transaction_id( 'ch_123' );
 		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
-		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
 		$order->save();
 		$order_id = $order->get_id();
 

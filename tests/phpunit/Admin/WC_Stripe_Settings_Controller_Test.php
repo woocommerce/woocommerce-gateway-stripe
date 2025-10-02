@@ -6,6 +6,7 @@ use WC_Gateway_Stripe;
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Settings_Controller;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
@@ -93,11 +94,11 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_add_buttons_action_is_called_on_order_admin_page() {
-		$order    = WC_Helper_Order::create_order();
-		$order_id = $order->get_id();
+		$order = WC_Helper_Order::create_order();
 
 		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $intent_id );
+		$order->save_meta_data();
 
 		$intent = (object) [
 			'id'     => 'pi_123',
