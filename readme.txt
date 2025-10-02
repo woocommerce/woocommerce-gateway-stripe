@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.0.0 - xxxx-xx-xx =
-* Dev - Removes frontend code related to Payment Request Buttons in the checkout page
+* Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
