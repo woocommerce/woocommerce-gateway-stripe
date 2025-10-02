@@ -177,9 +177,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
-			// Enable ECE for new connections.
-			$this->enable_ece_in_new_accounts();
-
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
 
@@ -230,17 +227,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			return 'yes';
-		}
-
-		/**
-		 * Enable Stripe express checkout element for new connections.
-		 */
-		private function enable_ece_in_new_accounts() {
-			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-			if ( empty( $existing_stripe_settings ) ) {
-				update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
-			}
 		}
 
 		/**
