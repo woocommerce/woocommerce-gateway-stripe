@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests\Admin;
 
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_REST_Request;
 use WP_UnitTestCase;
@@ -149,7 +150,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'succeeded', $response->get_data()['status'] );
 		$this->assertEquals( 'ch_12345', $response->get_data()['id'] );
-		$this->assertEquals( 'pi_12345', $order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( 'pi_12345', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order ) );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}

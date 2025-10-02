@@ -51,13 +51,6 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SOURCE_ID = '_stripe_source_id';
 
 	/**
-	 * Meta key for Stripe charge ID.
-	 *
-	 * @var string
-	 */
-	private const META_STRIPE_CHARGE_ID = '_stripe_charge_id';
-
-	/**
 	 * Meta key for Stripe refund ID.
 	 *
 	 * @var string
@@ -265,6 +258,186 @@ class WC_Stripe_Order_Helper {
 
 		$order->delete_meta_data( self::META_STRIPE_NET );
 		$order->delete_meta_data( self::LEGACY_META_STRIPE_NET );
+	}
+
+	/**
+	 * Gets the Stripe source for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_source( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_SOURCE_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe source for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $source_id
+	 * @return false|void
+	 */
+	public function update_stripe_source( ?WC_Order $order = null, string $source_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+	}
+
+	/**
+	 * Deletes the Stripe source for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_source( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+	}
+
+	/**
+	 * Updates the Stripe refund for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_refund( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_REFUND_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe refund for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $refund_id
+	 * @return false|void
+	 */
+	public function update_stripe_refund( ?WC_Order $order = null, string $refund_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+	}
+
+	/**
+	 * Deletes the Stripe refund for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_refund( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
+	 * Gets the Stripe intent for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_intent( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_INTENT_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe intent for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $intent_id
+	 * @return false|void
+	 */
+	public function update_stripe_intent( ?WC_Order $order = null, string $intent_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_INTENT_ID, $intent_id );
+	}
+
+	/**
+	 * Deletes the Stripe intent for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_intent( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_INTENT_ID );
+	}
+
+	/**
+	 * Gets the Stripe setup intent for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_setup_intent( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_SETUP_INTENT, true );
+	}
+
+	/**
+	 * Updates the Stripe setup intent for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $intent_id
+	 * @return false|void
+	 */
+	public function update_stripe_setup_intent( ?WC_Order $order = null, string $intent_id = '' ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $intent_id );
 	}
 
 	/**

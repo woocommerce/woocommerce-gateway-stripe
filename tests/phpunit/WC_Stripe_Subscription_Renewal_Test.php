@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
@@ -246,7 +247,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Assert that we saved the payment intent to the order.
 		$order_id   = $renewal_order->get_id();
 		$order      = wc_get_order( $order_id );
-		$order_data = $order->get_meta( '_stripe_intent_id' );
+		$order_data = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order );
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
@@ -366,7 +367,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Assert that we saved the payment intent to the order.
 		$order_id             = $renewal_order->get_id();
 		$order                = wc_get_order( $order_id );
-		$order_data           = $order->get_meta( '_stripe_intent_id' );
+		$order_data           = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order );
 		$order_transaction_id = $order->get_transaction_id();
 
 		// Intent was saved to order even though there was an error in the response body.

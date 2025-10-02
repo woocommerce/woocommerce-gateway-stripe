@@ -7,6 +7,7 @@ use stdClass;
 use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -216,7 +217,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->set_status( $status );
 
 		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $intent_id );
+		$order->save_meta_data();
 
 		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		if ( $success ) {

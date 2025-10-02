@@ -127,7 +127,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// Validate the intent being verified.
-			$order_intent_id = $order->get_meta( '_stripe_intent_id', true );
+			$order_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order );
 			if ( ! $order_intent_id || ! isset( $_GET['intent_id'] ) || $order_intent_id !== $_GET['intent_id'] ) {
 				throw new WC_Stripe_Exception( 'invalid_intent', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
