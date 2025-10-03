@@ -28,7 +28,7 @@
 * Update - Reduce settings Javascript file size by using smaller image
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
 
-= 9.9.2 - xxxx-xx-xx =
+= 9.9.2 - 2025-09-29 =
 * Fix - BACS instruction text appears twice on the Order Confirmation page
 * Update - Allow more situations to enable settings synchronization with Stripe
 * Update - Ensure that we check for settings sync eligibility after every upgrade
