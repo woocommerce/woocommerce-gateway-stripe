@@ -29,6 +29,7 @@
 * Update - Allow more situations to enable settings synchronization with Stripe
 * Update - Ensure that we check for settings sync eligibility after every upgrade
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
+* Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
 
 = 9.9.2 - 2025-09-29 =
 * Fix - BACS instruction text appears twice on the Order Confirmation page
