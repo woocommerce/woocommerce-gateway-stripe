@@ -13,7 +13,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @var string
 	 *
-	 * @deprecated This feature flag will be removed in version 10.0.0. ECE will be permanently enabled.
+	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
 	 */
 	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
 
