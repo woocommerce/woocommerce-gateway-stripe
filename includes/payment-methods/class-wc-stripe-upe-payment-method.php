@@ -154,10 +154,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		if ( in_array( $method, get_class_methods( $upe_gateway_instance ) ) ) {
 			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
-		} else {
-			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
-			throw new \Error( $message . get_class( $this ) . '::' . $method );
 		}
+
+		return false;
 	}
 
 	/**
