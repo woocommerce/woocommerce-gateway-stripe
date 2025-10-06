@@ -156,6 +156,17 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
 		}
 
+		// In development/staging environments, throw errors for undefined methods to help catch bugs.
+		// In production, fail gracefully to prevent third-party plugin compatibility issues.
+		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
+			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
+
+		if ( $is_dev_environment ) {
+			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
+			throw new \Error( $message . get_class( $this ) . '::' . $method );
+		}
+
+		WC_Stripe_Logger::warning( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
 		return false;
 	}
 
