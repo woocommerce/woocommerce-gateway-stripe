@@ -166,7 +166,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			throw new \Error( $message . get_class( $this ) . '::' . $method );
 		}
 
-		WC_Stripe_Logger::warning( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
+		WC_Stripe_Logger::error( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
 		return false;
 	}
 
