@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useStripe } from '@stripe/react-stripe-js';
-import PaymentRequestsButtonPreview from '../payment-request-button-preview';
+import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
 // We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
@@ -30,7 +30,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
 } ) );
 
-describe( 'PaymentRequestsButtonPreview', () => {
+describe( 'ExpressCheckoutButtonPreview', () => {
 	const canMakePaymentMock = jest.fn();
 
 	beforeEach( () => {
@@ -50,7 +50,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 	it( 'displays Google Chrome and Google Pay when page is in Safari', async () => {
 		shouldUseGooglePayBrand.mockReturnValue( false );
 
-		render( <PaymentRequestsButtonPreview /> );
+		render( <ExpressCheckoutButtonPreview /> );
 
 		expect(
 			await screen.findByText(
@@ -63,7 +63,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 	it( 'displays Safari Apple Pay when page is in Google Chrome', async () => {
 		shouldUseGooglePayBrand.mockReturnValue( true );
 
-		render( <PaymentRequestsButtonPreview /> );
+		render( <ExpressCheckoutButtonPreview /> );
 
 		expect(
 			await screen.findByText(
@@ -76,7 +76,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 	it( 'displays an info notice if stripe is falsy', async () => {
 		useStripe.mockReturnValue( null );
 
-		render( <PaymentRequestsButtonPreview /> );
+		render( <ExpressCheckoutButtonPreview /> );
 
 		expect(
 			screen.queryByText( 'Stripe button mock' )
@@ -90,7 +90,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 
 	it( 'displays an info notice if stripe fails to load', async () => {
 		canMakePaymentMock.mockResolvedValue( null );
-		render( <PaymentRequestsButtonPreview /> );
+		render( <ExpressCheckoutButtonPreview /> );
 
 		expect(
 			await screen.findByText(
@@ -103,7 +103,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 	} );
 
 	it( 'displays the payment button when stripe is loaded', async () => {
-		render( <PaymentRequestsButtonPreview /> );
+		render( <ExpressCheckoutButtonPreview /> );
 
 		expect(
 			await screen.findByText( 'Stripe button mock' )
