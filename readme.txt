@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.0.0 - xxxx-xx-xx =
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
+* Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
@@ -136,9 +137,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
-* Fix - BACS instruction text appears twice on the Order Confirmation page
-* Update - Allow more situations to enable settings synchronization with Stripe
-* Update - Ensure that we check for settings sync eligibility after every upgrade
 * Update - Reduce settings Javascript file size by using smaller image
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
 
