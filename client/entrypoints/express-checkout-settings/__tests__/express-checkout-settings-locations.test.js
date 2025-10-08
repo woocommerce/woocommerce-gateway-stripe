@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PaymentRequestsSettingsSection from '../payment-request-settings-section';
-import PaymentRequestButtonPreview from '../payment-request-button-preview';
+import ExpressCheckoutSettingsSection from '../express-checkout-settings-section';
+import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
@@ -24,8 +24,8 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 } ) );
 
-jest.mock( '../payment-request-button-preview' );
-PaymentRequestButtonPreview.mockImplementation( () => '<></>' );
+jest.mock( '../express-checkout-button-preview' );
+ExpressCheckoutButtonPreview.mockImplementation( () => '<></>' );
 
 jest.mock( '../utils/utils', () => ( {
 	getPaymentRequestData: jest.fn().mockReturnValue( {
@@ -55,7 +55,7 @@ const getMockPaymentRequestLocations = (
 	updatePaymentRequestLocationsHandler,
 ];
 
-describe( 'PaymentRequestsSettingsSection', () => {
+describe( 'ExpressCheckoutSettingsSection', () => {
 	const globalValues = global.wc_stripe_payment_request_settings_params;
 
 	beforeEach( () => {
@@ -81,7 +81,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 	} );
 
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
-		render( <PaymentRequestsSettingsSection /> );
+		render( <ExpressCheckoutSettingsSection /> );
 
 		const [ checkoutCheckbox, productPageCheckbox, cartCheckbox ] =
 			screen.getAllByRole( 'checkbox' );
@@ -106,7 +106,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 			)
 		);
 
-		render( <PaymentRequestsSettingsSection /> );
+		render( <ExpressCheckoutSettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
 		await userEvent.click( screen.getByText( 'Product page' ) );
@@ -140,7 +140,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 			)
 		);
 
-		render( <PaymentRequestsSettingsSection /> );
+		render( <ExpressCheckoutSettingsSection /> );
 
 		await userEvent.click( screen.getByText( 'Cart' ) );
 
