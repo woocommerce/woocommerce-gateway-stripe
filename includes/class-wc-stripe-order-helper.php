@@ -532,7 +532,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_card( ?WC_Order $order = null ) {
+	public function get_stripe_card_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -548,7 +548,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_card( ?WC_Order $order = null ) {
+	public function delete_stripe_card_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
