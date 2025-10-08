@@ -13,6 +13,7 @@ import { useDispatch } from '@wordpress/data';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
+import { recordEvent } from 'wcstripe/tracking';
 
 const HeaderDetails = styled.div`
 	display: flex;
@@ -101,6 +102,22 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		? data?.oauth_connections?.test?.connected
 		: data?.oauth_connections?.live?.connected;
 
+	const trackReconnectEvent = ( source, mode ) => {
+		recordEvent( 'wcstripe_reconnect_button_click', {
+			source,
+			mode,
+		} );
+	};
+
+	const handleButtonClick = () => {
+		const mode = isTestMode ? 'test' : 'live';
+		if ( ! oauthConnected ) {
+			trackReconnectEvent( 'account_details_section', mode );
+		}
+
+		setModalType( mode );
+	};
+
 	useEffect( () => {
 		if ( ! headingRef.current ) {
 			return;
@@ -108,12 +125,14 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 
 		const { highlight } = getQuery();
 		if ( highlight === 'account-details' ) {
+			trackReconnectEvent( 'admin_notice', isTestMode ? 'test' : 'live' );
+
 			headingRef.current.scrollIntoView( {
 				behavior: 'smooth',
 				block: 'start',
 			} );
 		}
-	}, [ headingRef ] );
+	}, [ headingRef, isTestMode ] );
 
 	return (
 		<Card className="account-details">
@@ -149,9 +168,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 				<Button
 					variant="secondary"
 					id="btn-configure-connection"
-					onClick={ () =>
-						setModalType( isTestMode ? 'test' : 'live' )
-					}
+					onClick={ handleButtonClick }
 				>
 					{ oauthConnected
 						? __(
