@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.0.0 - xxxx-xx-xx =
+* Dev - Renames previous Order Helper class methods to use the `_id` suffix
 * Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
