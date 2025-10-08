@@ -291,7 +291,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_source( ?WC_Order $order = null ) {
+	public function get_stripe_source_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -308,7 +308,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $source_id
 	 * @return false|void
 	 */
-	public function update_stripe_source( ?WC_Order $order = null, string $source_id = '' ) {
+	public function update_stripe_source_id( ?WC_Order $order = null, string $source_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
@@ -320,7 +320,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_source( ?WC_Order $order = null ) {
+	public function delete_stripe_source_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -336,7 +336,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_refund( ?WC_Order $order = null ) {
+	public function get_stripe_refund_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -353,7 +353,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $refund_id
 	 * @return false|void
 	 */
-	public function update_stripe_refund( ?WC_Order $order = null, string $refund_id = '' ) {
+	public function update_stripe_refund_id( ?WC_Order $order = null, string $refund_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
@@ -365,7 +365,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_refund( ?WC_Order $order = null ) {
+	public function delete_stripe_refund_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -381,7 +381,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_intent( ?WC_Order $order = null ) {
+	public function get_stripe_intent_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -398,7 +398,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $intent_id
 	 * @return false|void
 	 */
-	public function update_stripe_intent( ?WC_Order $order = null, string $intent_id = '' ) {
+	public function update_stripe_intent_id( ?WC_Order $order = null, string $intent_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
@@ -410,7 +410,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_intent( ?WC_Order $order = null ) {
+	public function delete_stripe_intent_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -426,7 +426,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_setup_intent( ?WC_Order $order = null ) {
+	public function get_stripe_setup_intent_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -443,7 +443,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $intent_id
 	 * @return false|void
 	 */
-	public function update_stripe_setup_intent( ?WC_Order $order = null, string $intent_id = '' ) {
+	public function update_stripe_setup_intent_id( ?WC_Order $order = null, string $intent_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_SETUP_INTENT, $intent_id );
 	}
 

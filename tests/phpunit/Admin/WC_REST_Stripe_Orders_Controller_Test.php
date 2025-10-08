@@ -151,7 +151,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'succeeded', $response->get_data()['status'] );
 		$this->assertEquals( 'ch_12345', $response->get_data()['id'] );
-		$this->assertEquals( 'pi_12345', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order ) );
+		$this->assertEquals( 'pi_12345', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order ) );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
