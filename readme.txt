@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.0.0 - xxxx-xx-xx =
+* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
