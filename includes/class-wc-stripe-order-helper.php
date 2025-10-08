@@ -476,14 +476,14 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Gets the Stripe customer for order.
+	 * Gets the Stripe customer ID for an order.
 	 *
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
-	public function get_stripe_customer( ?WC_Order $order = null ) {
+	public function get_stripe_customer_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -492,7 +492,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Updates the Stripe customer for order.
+	 * Updates the Stripe customer ID for an order.
 	 *
 	 * @since 10.0.0
 	 *
@@ -500,7 +500,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $customer_id
 	 * @return false|void
 	 */
-	public function update_stripe_customer( ?WC_Order $order = null, string $customer_id = '' ) {
+	public function update_stripe_customer_id( ?WC_Order $order = null, string $customer_id = '' ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -509,14 +509,14 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Deletes the Stripe customer for order.
+	 * Deletes the Stripe customer ID for an order.
 	 *
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order|null $order
 	 * @return false|void
 	 */
-	public function delete_stripe_customer( ?WC_Order $order = null ) {
+	public function delete_stripe_customer_id( ?WC_Order $order = null ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
