@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.0.0 - xxxx-xx-xx =
+* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
