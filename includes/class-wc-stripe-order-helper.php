@@ -468,7 +468,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_setup_intent( ?WC_Order $order = null, string $intent_id = '' ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -501,7 +501,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_customer_id( ?WC_Order $order = null, string $customer_id = '' ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -517,7 +517,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_customer_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -533,7 +533,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_card_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -549,7 +549,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_card_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -565,7 +565,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_upe_payment_type( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -582,7 +582,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_payment_type( ?WC_Order $order = null, string $payment_type = '' ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -598,7 +598,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -615,7 +615,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_waiting_for_redirect( ?WC_Order $order = null, bool $waiting_for_redirect = false ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -631,7 +631,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -647,7 +647,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
@@ -664,7 +664,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
