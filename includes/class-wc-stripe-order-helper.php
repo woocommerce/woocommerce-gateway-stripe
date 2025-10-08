@@ -168,11 +168,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $currency
 	 */
 	public function update_stripe_currency( WC_Order $order, string $currency ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_CURRENCY, $currency );
+		return $this->update_order_meta( $order, self::META_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -212,11 +208,7 @@ class WC_Stripe_Order_Helper {
 	 * @param float $amount
 	 */
 	public function update_stripe_fee( ?WC_Order $order = null, float $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_FEE, $amount );
+		return $this->update_order_meta( $order, self::META_STRIPE_FEE, $amount );
 	}
 
 	/**
@@ -272,11 +264,7 @@ class WC_Stripe_Order_Helper {
 	 * @param float $amount
 	 */
 	public function update_stripe_net( ?WC_Order $order = null, float $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_NET, $amount );
+		return $this->update_order_meta( $order, self::META_STRIPE_NET, $amount );
 	}
 
 	/**
@@ -321,11 +309,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_source( ?WC_Order $order = null, string $source_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -370,11 +354,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_refund( ?WC_Order $order = null, string $refund_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -419,11 +399,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_intent( ?WC_Order $order = null, string $intent_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_INTENT_ID, $intent_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
 	/**
@@ -468,11 +444,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_setup_intent( ?WC_Order $order = null, string $intent_id = '' ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $intent_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_SETUP_INTENT, $intent_id );
 	}
 
 	/**
@@ -501,11 +473,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_customer_id( ?WC_Order $order = null, string $customer_id = '' ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_CUSTOMER_ID, $customer_id );
 	}
 
 	/**
@@ -582,11 +550,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_payment_type( ?WC_Order $order = null, string $payment_type = '' ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
 	}
 
 	/**
@@ -615,11 +579,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_waiting_for_redirect( ?WC_Order $order = null, bool $waiting_for_redirect = false ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, $waiting_for_redirect );
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, $waiting_for_redirect );
 	}
 
 	/**
@@ -664,11 +624,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
 	}
 
 	/**
@@ -711,6 +667,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public function set_payment_awaiting_action( WC_Order $order, bool $save = true ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_PAYMENT_AWAITING_ACTION, true );
 		$order->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1059,5 +1016,21 @@ class WC_Stripe_Order_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Updates order meta data.
+	 *
+	 * @param WC_Order|null $order The order to update meta for.
+	 * @param string $key The meta key to update.
+	 * @param mixed $value The meta value to set.
+	 * @return false|void
+	 */
+	protected function update_order_meta( ?WC_Order $order, string $key, $value ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		$order->update_meta_data( $key, $value );
 	}
 }
