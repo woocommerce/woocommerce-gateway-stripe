@@ -484,7 +484,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_customer_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
+		if ( null === $order ) {
 			return false;
 		}
 
