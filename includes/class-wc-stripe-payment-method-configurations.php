@@ -120,6 +120,32 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null );
+
+		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+			$error = null;
+			if ( is_wp_error( $configuration ) ) {
+				$error = $configuration;
+			} elseif ( ! empty( $configuration->error ) ) {
+				$error = $configuration->error;
+			}
+
+			if ( null !== $error ) {
+				WC_Stripe_Logger::error(
+					'Error retrieving preselected Payment Method Configuration',
+					[
+						'pmc_id' => $preselected_pmc_id,
+						'error'  => $error,
+					]
+				);
+			} elseif ( ! empty( $configuration ) ) {
+				self::set_payment_method_configuration_cache( $configuration );
+				return $configuration;
+			}
+			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
+		}
+
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
