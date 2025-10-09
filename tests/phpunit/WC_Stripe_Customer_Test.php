@@ -345,6 +345,8 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 			// Reset checkout fields, otherwise they persist across test cases.
 			\WC_Checkout::instance()->checkout_fields = null;
+			// Reset WC Customer, otherwise it also persists across test cases.
+			\WC()->customer = null;
 		}
 
 		if ( null !== $expected_exception_message && ! $was_exception_thrown ) {
@@ -353,6 +355,230 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		if ( null === $expected_exception_message ) {
 			$this->assertFalse( $was_exception_thrown, 'No exception was thrown when no exception was expected' );
+		}
+	}
+
+	public function provide_test_generate_customer_request_cases(): array {
+		return [
+			'all data present in expected user and user meta fields' => [
+				'user_data'      => [
+					'ID'         => 12345,
+					'user_email' => 'test@example.com',
+					'user_login' => 'testuser',
+				],
+				'user_meta_data' => [
+					'billing_first_name' => 'John',
+					'billing_last_name'  => 'Doe',
+					'billing_address_1'  => '123 Main St',
+					'billing_address_2'  => 'Apt 4B',
+					'billing_city'       => 'Anytown',
+					'billing_state'      => 'CA',
+					'billing_postcode'   => '98765',
+					'billing_country'    => 'US',
+				],
+				'wc_customer_data' => null,
+				'billing_data'     => null,
+				'expected' => [
+					'email'             => 'test@example.com',
+					'description'       => 'Name: John Doe, Username: testuser',
+					'name'              => 'John Doe',
+					'metadata'          => [],
+					'preferred_locales' => [ 'en-US' ],
+					'address' => [
+						'line1'       => '123 Main St',
+						'line2'       => 'Apt 4B',
+						'postal_code' => '98765',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'country'     => 'US',
+					],
+				],
+			],
+			'all data present in expected wc customer fields' => [
+				'user_data'      => null,
+				'user_meta_data' => null,
+				'wc_customer_data' => [
+					'get_first_name'        => 'John',
+					'get_last_name'         => 'Doe',
+					'get_email'             => 'test@example.com',
+					'get_username'          => 'testuser',
+					'get_billing_address_1' => '123 Main St',
+					'get_billing_address_2' => 'Apt 4B',
+					'get_billing_city'      => 'Anytown',
+					'get_billing_state'     => 'CA',
+					'get_billing_postcode'  => '98765',
+					'get_billing_country'   => 'US',
+				],
+				'billing_data'     => null,
+				'expected' => [
+					'email'             => 'test@example.com',
+					'description'       => 'Name: John Doe, Username: testuser',
+					'name'              => 'John Doe',
+					'metadata'          => [],
+					'preferred_locales' => [ 'en-US' ],
+					'address' => [
+						'line1'       => '123 Main St',
+						'line2'       => 'Apt 4B',
+						'postal_code' => '98765',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'country'     => 'US',
+					],
+				],
+			],
+			'all data present in expected billing data fields' => [
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => null,
+				'billing_data'     => [
+					'billing_email'      => 'test@example.com',
+					'billing_first_name' => 'John',
+					'billing_last_name'  => 'Doe',
+					'billing_address_1'  => '123 Main St',
+					'billing_address_2'  => 'Apt 4B',
+					'billing_city'       => 'Anytown',
+					'billing_state'      => 'CA',
+					'billing_postcode'   => '98765',
+					'billing_country'    => 'US',
+				],
+				'expected' => [
+					'email'             => 'test@example.com',
+					'description'       => 'Name: John Doe, Guest',
+					'name'              => 'John Doe',
+					'metadata'          => [],
+					'preferred_locales' => [ 'en-US' ],
+					'address' => [
+						'line1'       => '123 Main St',
+						'line2'       => 'Apt 4B',
+						'postal_code' => '98765',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'country'     => 'US',
+					],
+				],
+			],
+			'data present across multiple sources' => [
+				'user_data'      => [
+					'ID'         => 12345,
+					'user_email' => 'test@example.com',
+				],
+				'user_meta_data' => [
+					'billing_last_name'  => 'Doe',
+					'billing_address_1'  => '321 Main St',
+					'billing_postcode'   => '98765',
+				],
+				'wc_customer_data' => [
+					'get_first_name'        => 'Jane',
+					'get_username'          => 'testuser',
+					'get_billing_address_2' => 'Apt 4B',
+					'get_billing_city'      => 'Anytown',
+				],
+				'billing_data'     => [
+					'billing_state'   => 'CA',
+					'billing_country' => 'US',
+				],
+				'expected' => [
+					'email'             => 'test@example.com',
+					'description'       => 'Name: Jane Doe, Username: testuser',
+					'name'              => 'Jane Doe',
+					'metadata'          => [],
+					'preferred_locales' => [ 'en-US' ],
+					'address' => [
+						'line1'       => '321 Main St',
+						'line2'       => 'Apt 4B',
+						'postal_code' => '98765',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'country'     => 'US',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_generate_customer_request_cases
+	 */
+	public function test_generate_customer_request( ?array $user_data, ?array $user_meta_data, ?array $wc_customer_data, ?array $billing_data, array $expected ) {
+
+		$stripe_customer = $this->getMockBuilder( \WC_Stripe_Customer::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'get_user',
+					'get_wc_customer',
+					'get_billing_data_field',
+				]
+			)
+			->getMock();
+
+		$user_return_value = false;
+		if ( is_array( $user_data ) ) {
+			if ( ! isset( $user_data['ID'] ) ) {
+				$user_data['ID'] = 12345;
+			}
+			$user_return_value = new \WP_User( (object) $user_data );
+
+		}
+		$stripe_customer->method( 'get_user' )->willReturn( $user_return_value );
+
+		$user_meta_filter = null;
+		if ( is_array( $user_meta_data ) ) {
+			$user_meta_filter = function ( $user_meta_value, $user_id, $meta_key, $single ) use ( $user_meta_data ) {
+				if ( $single && isset( $user_meta_data[ $meta_key ] ) ) {
+					return $user_meta_data[ $meta_key ];
+				}
+				return $user_meta_value;
+			};
+			add_filter( 'get_user_metadata', $user_meta_filter, 10, 4 );
+		}
+
+		$wc_customer_return_value = null;
+		if ( is_array( $wc_customer_data ) ) {
+			$mock_wc_customer = $this->getMockBuilder( \WC_Customer::class )
+				->disableOriginalConstructor()
+				->onlyMethods( array_keys( $wc_customer_data ) )
+				->getMock();
+
+			foreach ( $wc_customer_data as $key => $value ) {
+				$mock_wc_customer->method( $key )
+					->willReturn( $value );
+			}
+
+			$wc_customer_return_value = $mock_wc_customer;
+		}
+
+		$stripe_customer->method( 'get_wc_customer' )
+			->willReturn( $wc_customer_return_value );
+
+		$billing_data_callback = function ( $field, $args ) use ( $billing_data ) {
+			if ( is_array( $billing_data ) && isset( $billing_data[ $field ] ) ) {
+				return $billing_data[ $field ];
+			}
+			return '';
+		};
+
+		$stripe_customer->method( 'get_billing_data_field' )
+			->will( $this->returnCallback( $billing_data_callback ) );
+
+		$customer_request = $stripe_customer->generate_customer_request( [] );
+
+		if ( null !== $user_meta_filter ) {
+			remove_filter( 'get_user_metadata', $user_meta_filter, 10 );
+		}
+
+		$this->assertCount( count( $expected ), $customer_request );
+		foreach ( $expected as $key => $value ) {
+			$this->assertArrayHasKey( $key, $customer_request );
+			if ( is_array( $value ) ) {
+				$this->assertCount( count( $value ), $customer_request[ $key ] );
+				foreach ( $value as $sub_key => $sub_value ) {
+					$this->assertArrayHasKey( $sub_key, $customer_request[ $key ] );
+					$this->assertEquals( $sub_value, $customer_request[ $key ][ $sub_key ] );
+				}
+			} else {
+				$this->assertEquals( $value, $customer_request[ $key ] );
+			}
 		}
 	}
 }
