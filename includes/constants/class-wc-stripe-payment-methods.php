@@ -9,31 +9,32 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Payment_Methods {
 	// Standard payment method constants
-	const ACH               = 'us_bank_account';
-	const ACSS_DEBIT        = 'acss_debit';
-	const AFFIRM            = 'affirm';
-	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
-	const ALIPAY            = 'alipay';
-	const BACS_DEBIT        = 'bacs_debit';
-	const BECS_DEBIT        = 'au_becs_debit';
-	const BANCONTACT        = 'bancontact';
-	const BLIK              = 'blik';
-	const BOLETO            = 'boleto';
-	const CARD              = 'card';
-	const CARD_PRESENT      = 'card_present';
-	const CASHAPP_PAY       = 'cashapp';
-	const EPS               = 'eps';
-	const GIROPAY           = 'giropay';
-	const IDEAL             = 'ideal';
-	const KLARNA            = 'klarna';
-	const MULTIBANCO        = 'multibanco';
-	const OXXO              = 'oxxo';
-	const P24               = 'p24';
-	const SEPA              = 'sepa';
-	const SEPA_DEBIT        = 'sepa_debit';
-	const SOFORT            = 'sofort';
-	const WECHAT_PAY        = 'wechat_pay';
-	const OC                = 'card'; // This is a special case for the Optimized Checkout
+	const ACH                  = 'us_bank_account';
+	const ACSS_DEBIT           = 'acss_debit';
+	const AFFIRM               = 'affirm';
+	const AFTERPAY_CLEARPAY    = 'afterpay_clearpay';
+	const ALIPAY               = 'alipay';
+	const BACS_DEBIT           = 'bacs_debit';
+	const BECS_DEBIT           = 'au_becs_debit';
+	const BANCONTACT           = 'bancontact';
+	const BLIK                 = 'blik';
+	const BOLETO               = 'boleto';
+	const CARD                 = 'card';
+	const CARD_PRESENT         = 'card_present';
+	const CASHAPP_PAY          = 'cashapp';
+	const EPS                  = 'eps';
+	const GIROPAY              = 'giropay';
+	const IDEAL                = 'ideal';
+	const KLARNA               = 'klarna';
+	const MULTIBANCO           = 'multibanco';
+	const OXXO                 = 'oxxo';
+	const P24                  = 'p24';
+	const SEPA                 = 'sepa';
+	const SEPA_DEBIT           = 'sepa_debit';
+	const SOFORT               = 'sofort';
+	const WECHAT_PAY           = 'wechat_pay';
+	const OC                   = 'card'; // This is a special case for the Optimized Checkout
+	const SHARED_PAYMENT_TOKEN = 'shared_payment_token';
 
 	// Express method constants
 	const AMAZON_PAY = 'amazon_pay';

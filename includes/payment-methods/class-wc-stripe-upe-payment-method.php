@@ -120,19 +120,28 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $oc_enabled;
 
 	/**
+	 * Whether Shared Payment Token is enabled.
+	 *
+	 * @var bool
+	 */
+	protected bool $shared_payment_token_enabled;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->id                       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->has_fields               = true;
-		$this->testmode                 = WC_Stripe_Mode::is_test();
-		$this->supports                 = [ 'products', 'refunds' ];
-		$this->supports_deferred_intent = true;
-		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->enabled                      = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id                           = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->has_fields                   = true;
+		$this->testmode                     = WC_Stripe_Mode::is_test();
+		$this->supports                     = [ 'products', 'refunds' ];
+		$this->supports_deferred_intent     = true;
+		$this->oc_enabled                   = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		// TODO: Add option to enable/disable shared payment token.
+		$this->shared_payment_token_enabled = WC_Stripe_Feature_Flags::is_shared_payment_token_available();
 	}
 
 	/**

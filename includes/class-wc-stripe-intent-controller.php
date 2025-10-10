@@ -818,8 +818,12 @@ class WC_Stripe_Intent_Controller {
 
 		$non_empty_params = [];
 
-		// The payment method is not required if we're using the confirmation token flow.
-		if ( empty( $payment_information['confirmation_token'] ) ) {
+		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN === ( $payment_information['selected_payment_type'] ?? null ) ) {
+			$required_params[] = 'shared_payment_granted_token';
+
+			$non_empty_params[] = 'shared_payment_granted_token';
+		} else if ( empty( $payment_information['confirmation_token'] ) ) {
+			// The payment method is not required if we're using the confirmation token flow.
 			$required_params[] = 'payment_method';
 			$required_params[] = 'capture_method';
 
@@ -832,7 +836,7 @@ class WC_Stripe_Intent_Controller {
 
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		$payment_method_types  = $payment_information['payment_method_types'];
+		$payment_method_types  = $payment_information['payment_method_types'] ?? [];
 		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
@@ -847,9 +851,12 @@ class WC_Stripe_Intent_Controller {
 				/* translators: 1) blog name 2) order number */
 				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				'metadata'             => $payment_information['metadata'],
-				'payment_method_types' => $payment_method_types,
 			]
 		);
+
+		if ( [] !== $payment_method_types ) {
+			$request['payment_method_types'] = $payment_method_types;
+		}
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
@@ -884,8 +891,12 @@ class WC_Stripe_Intent_Controller {
 			$order
 		);
 
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		if ( '' !== $selected_payment_type ) {
+		// TODO: Verify this works as expected.
+		// If we're processing a shared payment token, we need to look at the intent that was actually created.
+		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN === $selected_payment_type ) {
+			$order->update_meta_data( '_stripe_upe_payment_type', $payment_intent->type );
+		} else if ( '' !== $selected_payment_type ) {
+			// Only update the payment_type if we have a reference to the payment type the customer selected.
 			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		}
 
@@ -1053,18 +1064,20 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
+		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN !== $selected_payment_type && $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
 			$selected_payment_type = $payment_information['payment_method_details']->type;
 		}
 
-		$payment_method_types = $payment_information['payment_method_types'];
+		$payment_method_types = $payment_information['payment_method_types'] ?? [];
 
 		$request = [
 			'shipping' => $payment_information['shipping'],
 		];
 
 		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
-		if ( $is_using_confirmation_token ) {
+		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN === $selected_payment_type ) {
+			$request['shared_payment_granted_token'] = $payment_information['shared_payment_granted_token'];
+		} else if ( $is_using_confirmation_token ) {
 			$request['confirmation_token'] = $payment_information['confirmation_token'];
 		} else {
 			$request['payment_method'] = $payment_information['payment_method'];
@@ -1089,7 +1102,7 @@ class WC_Stripe_Intent_Controller {
 		// For confirmations tokens, the setup_future_usage is set within the payment method.
 		$payment_method                 = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $selected_payment_type );
 		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $this->is_manual_renewal_required( $payment_method->is_reusable() );
-		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
+		if ( ! $is_using_confirmation_token && WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN !== $selected_payment_type && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 

@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_Stripe_Feature_Flags {
-	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
-	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-
+	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME    = 'upe_checkout_experience_enabled';
+	const AMAZON_PAY_FEATURE_FLAG_NAME           = '_wcstripe_feature_amazon_pay';
+	const SHARED_PAYMENT_TOKEN_FEATURE_FLAG_NAME = '_wcstripe_feature_shared_payment_token';
 	/**
 	 * Feature flag for Stripe ECE (Express Checkout Element).
 	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
@@ -33,9 +33,10 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
+		'_wcstripe_feature_upe'                      => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME           => 'no',
+		self::OC_FEATURE_FLAG_NAME                   => 'no',
+		self::SHARED_PAYMENT_TOKEN_FEATURE_FLAG_NAME => 'no',
 	];
 
 	/**
@@ -78,6 +79,15 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_stripe_ece_enabled() {
 		return true;
+	}
+
+	/**
+	 * Checks whether Shared Payment Token feature flag is enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_shared_payment_token_available(): bool {
+		return 'yes' === self::get_option_with_default( self::SHARED_PAYMENT_TOKEN_FEATURE_FLAG_NAME );
 	}
 
 	/**
