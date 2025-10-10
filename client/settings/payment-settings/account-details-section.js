@@ -102,17 +102,13 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		? data?.oauth_connections?.test?.connected
 		: data?.oauth_connections?.live?.connected;
 
-	const trackReconnectEvent = ( source, mode ) => {
-		recordEvent( 'wcstripe_reconnect_button_click', {
-			source,
-			mode,
-		} );
-	};
-
 	const handleButtonClick = () => {
 		const mode = isTestMode ? 'test' : 'live';
 		if ( ! oauthConnected ) {
-			trackReconnectEvent( 'account_details_section', mode );
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 'account_details_section',
+				mode,
+			} );
 		}
 
 		setModalType( mode );
@@ -125,8 +121,6 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 
 		const { highlight } = getQuery();
 		if ( highlight === 'account-details' ) {
-			trackReconnectEvent( 'admin_notice', isTestMode ? 'test' : 'live' );
-
 			headingRef.current.scrollIntoView( {
 				behavior: 'smooth',
 				block: 'start',

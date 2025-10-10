@@ -110,8 +110,9 @@ class WC_Stripe_Admin_Notices {
 						$action,
 						[
 							'a' => [
-								'href'  => [],
-								'style' => [],
+								'href'    => [],
+								'style'   => [],
+								'onclick' => [],
 							],
 						]
 					);
@@ -432,10 +433,13 @@ class WC_Stripe_Admin_Notices {
 
 				$oauth_required = $needs_live_oauth || $needs_test_oauth;
 				if ( $oauth_required ) {
-					$message = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
-					$link    = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details' ) );
-					$actions = [
-						'<a href="' . $link . '" style="display: block; padding: 10px; color: #007cba; border: #007cba solid 1px; float: left; text-decoration: none; margin-bottom: 12px; border-radius: 2px;">'
+					$message  = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
+					$style    = 'display: block; padding: 10px; color: #007cba; border: #007cba solid 1px; float: left; text-decoration: none; margin-bottom: 12px; border-radius: 2px;';
+					$onclick  = 'window.wcTracks = window.wcTracks || {}; window.wcTracks.recordEvent = window.wcTracks.recordEvent || function() { };';
+					$onclick .= 'window.wcTracks.recordEvent( \'wcstripe_reconnect_button_click\', { source: \'admin_notice\', mode: ' . ( $testmode ? '\'test\'' : '\'live\'' ) . ' } );';
+					$onclick .= 'window.location = \'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details\'; return false;';
+					$actions  = [
+						'<a href="#" style="' . $style . '" onclick="' . $onclick . '">'
 							. __( 'Reconnect to Stripe', 'woocommerce-gateway-stripe' )
 						. '</a>',
 					];
