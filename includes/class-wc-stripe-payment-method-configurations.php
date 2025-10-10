@@ -121,6 +121,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
 		$is_test_mode       = WC_Stripe_Mode::is_test();
+
 		/**
 		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
 		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
