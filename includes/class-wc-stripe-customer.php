@@ -169,6 +169,10 @@ class WC_Stripe_Customer {
 		$user        = $this->get_user();
 		$wc_customer = $this->get_wc_customer();
 
+		if ( ! is_array( $args ) ) {
+			$args = [];
+		}
+
 		$billing_first_name = '';
 		$billing_last_name  = '';
 		$email              = '';
@@ -253,13 +257,13 @@ class WC_Stripe_Customer {
 	/**
 	 * Helper function to build the address fields for the customer request.
 	 *
-	 * @param array            $args        Additional arguments (optional).
+	 * @param array            $args        Additional arguments.
 	 * @param WP_User|false    $user        The user object or false.
 	 * @param WC_Customer|null $wc_customer The WooCommerce customer object or null.
 	 *
 	 * @return array The address fields.
 	 */
-	private function generate_customer_address_fields( array $args = [], $user, ?WC_Customer $wc_customer ): array {
+	private function generate_customer_address_fields( array $args, $user, ?WC_Customer $wc_customer ): array {
 		$address_field_map = [
 			'line1'       => 'billing_address_1',
 			'line2'       => 'billing_address_2',
