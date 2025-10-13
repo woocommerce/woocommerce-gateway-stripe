@@ -822,7 +822,7 @@ class WC_Stripe_Intent_Controller {
 			$required_params[] = 'shared_payment_granted_token';
 
 			$non_empty_params[] = 'shared_payment_granted_token';
-		} else if ( empty( $payment_information['confirmation_token'] ) ) {
+		} elseif ( empty( $payment_information['confirmation_token'] ) ) {
 			// The payment method is not required if we're using the confirmation token flow.
 			$required_params[] = 'payment_method';
 			$required_params[] = 'capture_method';
@@ -895,7 +895,7 @@ class WC_Stripe_Intent_Controller {
 		// If we're processing a shared payment token, we need to look at the intent that was actually created.
 		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN === $selected_payment_type ) {
 			$order->update_meta_data( '_stripe_upe_payment_type', $payment_intent->type );
-		} else if ( '' !== $selected_payment_type ) {
+		} elseif ( '' !== $selected_payment_type ) {
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
 			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		}
@@ -1077,7 +1077,7 @@ class WC_Stripe_Intent_Controller {
 		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
 		if ( WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN === $selected_payment_type ) {
 			$request['shared_payment_granted_token'] = $payment_information['shared_payment_granted_token'];
-		} else if ( $is_using_confirmation_token ) {
+		} elseif ( $is_using_confirmation_token ) {
 			$request['confirmation_token'] = $payment_information['confirmation_token'];
 		} else {
 			$request['payment_method'] = $payment_information['payment_method'];

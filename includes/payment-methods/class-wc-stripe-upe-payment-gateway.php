@@ -637,7 +637,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $this->shared_payment_token_enabled ) {
 			$enabled_payment_methods[] = WC_Stripe_UPE_Payment_Method_Shared_Payment_Token::STRIPE_ID;
 			$payment_methods[ WC_Stripe_UPE_Payment_Method_Shared_Payment_Token::STRIPE_ID ] = new WC_Stripe_UPE_Payment_Method_Shared_Payment_Token();
-		} else if ( $this->oc_enabled ) {
+		} elseif ( $this->oc_enabled ) {
 			// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
 			// All payment methods are rendered inside the card container.
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
