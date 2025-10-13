@@ -116,7 +116,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
-* Add - Implement cache prefetch for payment method configuration
 
 **Important Fixes and Updates**
 
@@ -124,6 +123,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
+* Add - Implement cache prefetch for payment method configuration
 * Update - Shows the Stripe account connection modal in settings when the merchant did not connect via OAuth along with a new notice
 * Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
 * Update - Reduce settings Javascript file size by using smaller image
