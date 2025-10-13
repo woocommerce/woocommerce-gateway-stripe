@@ -2599,6 +2599,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$payment_information['shared_payment_granted_token'] = $shared_payment_token;
 		} else {
+			$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
+
 			// Override the payment method type with the API value when OC is enabled
 			if ( $this->oc_enabled ) {
 				$selected_payment_type = $payment_method_details->type ?? null;
@@ -2610,8 +2612,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->get_express_payment_type_from_request()
 				);
 			}
-
-			$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
 			$payment_information['payment_method_details'] = $payment_method_details;
 			$payment_information['payment_method_types']   = $payment_method_types;
