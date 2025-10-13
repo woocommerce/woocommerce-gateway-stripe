@@ -42,7 +42,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_EXPIRATION = 10 * MINUTE_IN_SECONDS;
+	const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
