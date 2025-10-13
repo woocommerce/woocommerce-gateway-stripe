@@ -121,6 +121,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
+* Add - Introduce wc_stripe_preselect_payment_method_configuration filter for manual payment method configuration selection
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
 * Add - Implement cache prefetch for payment method configuration
