@@ -121,7 +121,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Introduces a new helper class to handle Stripe orders
 * Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
 * Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
-* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Dev - Renaming the Klarna payment token class to WC_Payment_Token_Klarna
 * Fix - Minor fixes and code improvements for the saved payment methods comparison logic
 * Dev - Upgrades Node to v20
 * Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
