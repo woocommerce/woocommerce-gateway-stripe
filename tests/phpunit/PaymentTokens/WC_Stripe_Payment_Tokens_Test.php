@@ -275,8 +275,8 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_woocommerce_payment_token_class
 	 */
-	public function test_woocommerce_payment_token_class( $class, $expected ) {
-		$actual = $this->stripe_payment_tokens->woocommerce_payment_token_class( $class, '' );
+	public function test_woocommerce_payment_token_class( $class, $expected, string $type = '' ) {
+		$actual = $this->stripe_payment_tokens->woocommerce_payment_token_class( $class, $type );
 		$this->assertSame( $expected, $actual );
 	}
 
@@ -302,6 +302,31 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			WC_Payment_Token_Link::class    => [
 				'class'    => WC_Payment_Token_Link::class,
 				'expected' => WC_Payment_Token_Link::class,
+			],
+			WC_Payment_Token_ACH::class    => [
+				'class'    => 'test',
+				'expected' => WC_Payment_Token_ACH::class,
+				'type'     => WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+			],
+			WC_Payment_Token_ACSS::class    => [
+				'class'    => 'test',
+				'expected' => WC_Payment_Token_ACSS::class,
+				'type'     => WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+			],
+			WC_Payment_Token_Becs_Debit::class    => [
+				'class'    => 'test',
+				'expected' => WC_Payment_Token_Becs_Debit::class,
+				'type'     => WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
+			],
+			'Klarna with overridden class'    => [
+				'class'    => 'test_klarna',
+				'expected' => 'test_klarna',
+				'type'     => \WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
+			],
+			'Klarna with default class'    => [
+				'class'    => 'WC_Payment_Token_klarna',
+				'expected' => \WC_Stripe_Klarna_Payment_Token::class,
+				'type'     => \WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 			],
 		];
 	}
