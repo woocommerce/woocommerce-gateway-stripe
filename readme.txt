@@ -138,6 +138,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Internal Changes and Upcoming Features**
 
+* Tweak - Update PMC cache expiration time from 10 minutes to 20 minutes
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
 * Dev - Introduces a new helper class to handle Stripe orders
