@@ -111,34 +111,46 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.0.0 - xxxx-xx-xx =
-* Update - Removes frontend code related to Payment Request Buttons in the checkout page
-* Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
-* Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
+
+**New Features**
+
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
+* Add - Implement cache prefetch for payment method configuration
+
+**Important Fixes and Updates**
+
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
-* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
+* Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
+* Update - Removes frontend code related to Payment Request Buttons in the checkout page
+* Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
 * Update - Shows the Stripe account connection modal in settings when the merchant did not connect via OAuth along with a new notice
 * Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
+* Update - Reduce settings Javascript file size by using smaller image
+
+**Other Fixes**
+
+* Fix - Minor fixes and code improvements for the saved payment methods comparison logic
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
+
+**Internal Changes and Upcoming Features**
+
+* Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
+* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
 * Dev - Introduces a new helper class to handle Stripe orders
 * Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
 * Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
 * Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
-* Fix - Minor fixes and code improvements for the saved payment methods comparison logic
 * Dev - Upgrades Node to v20
-* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
-* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
-* Update - Changes the background color and spacing for the Woo logo shown in the account modal
 * Dev - Fix live reload issue with Webpack 5
-* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
-* Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
-* Update - Reduce settings Javascript file size by using smaller image
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
-* Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
