@@ -82,9 +82,8 @@ class WC_Stripe_UPE_Payment_Method_Shared_Payment_Token extends WC_Stripe_UPE_Pa
 	 */
 	public function get_title( $payment_details = false ) {
 		// Wallet type
-		$wallet_type = null;
 		if ( $payment_details && ! empty( $payment_details->card->wallet->type ) ) {
-			return $this->get_card_wallet_type_title( $wallet_type );
+			return $this->get_card_wallet_type_title( $payment_details->card->wallet->type );
 		}
 
 		if ( $payment_details && ! empty( $payment_details->type ) ) { // Setting title for the order details page / thank you page.
