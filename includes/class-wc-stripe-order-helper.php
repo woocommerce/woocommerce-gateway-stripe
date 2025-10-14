@@ -1011,7 +1011,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Deletes order meta data.
+	 * Helper function to delete an order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
 	 *
 	 * @param WC_Order|null $order The order to delete meta for.
 	 * @param string $key The meta key to delete.
