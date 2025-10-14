@@ -8,12 +8,12 @@ on:
         description: Branch, Tag or SHA to checkout. Leave empty to use the default branch.
         type: string
       wordpress-version:
-        description: WordPress version number. Leave empty to use the latest version.
+        description: WordPress version number. Defaults to 'latest' (the latest version).
         type: string
         default: 'latest'
         required: true
       woocommerce-version:
-        description: WooCommerce version number. Leave empty to use the latest version.
+        description: WooCommerce version number. Defaults to 'latest' (the latest version).
         type: string
         default: 'latest'
         required: true
