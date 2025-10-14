@@ -321,11 +321,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_source( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -366,11 +362,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_refund( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_REFUND_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -411,11 +403,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_intent( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_INTENT_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_INTENT_ID );
 	}
 
 	/**
@@ -485,11 +473,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_customer_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -517,11 +501,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_card_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_CARD_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_CARD_ID );
 	}
 
 	/**
@@ -591,11 +571,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
+		return $this->delete_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
 	}
 
 	/**
@@ -1032,5 +1008,20 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->update_meta_data( $key, $value );
+	}
+
+	/**
+	 * Deletes order meta data.
+	 *
+	 * @param WC_Order|null $order The order to delete meta for.
+	 * @param string $key The meta key to delete.
+	 * @return false|void
+	 */
+	protected function delete_order_meta( ?WC_Order $order, string $key ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		$order->delete_meta_data( $key );
 	}
 }
