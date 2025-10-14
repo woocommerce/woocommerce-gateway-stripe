@@ -643,8 +643,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public function set_payment_awaiting_action( WC_Order $order, bool $save = true ): void {
-		$this->update_order_meta( $order, self::META_STRIPE_PAYMENT_AWAITING_ACTION, true );
-		$order->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
+		$this->update_order_meta( $order, self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$order->save();
