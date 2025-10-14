@@ -1,7 +1,9 @@
 *** Changelog ***
 
-= 10.0.0 - xxxx-xx-xx =
+= 10.1.0 - xxxx-xx-xx =
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+
+= 10.0.0 - 2025-10-14 =
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
@@ -31,6 +33,9 @@
 * Update - Reduce settings Javascript file size by using smaller image
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
 * Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
+* Add - Introduce wc_stripe_preselect_payment_method_configuration filter for manual payment method configuration selection
+* Fix - Ensure Klarna payment tokens can be deleted and handled correctly
+* Tweak - Update PMC cache expiration time from 10 minutes to 20 minutes
 
 = 9.9.2 - 2025-09-29 =
 * Fix - BACS instruction text appears twice on the Order Confirmation page
