@@ -72,6 +72,41 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe customer ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
+
+	/**
+	 * Meta key for Stripe card ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CARD_ID = '_stripe_card_id';
+
+	/**
+	 * Meta key for Stripe UPE payment type.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
+
+	/**
+	 * Meta key for Stripe UPE waiting for redirect.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
+
+	/**
+	 * Meta key for Stripe UPE redirect processed.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
@@ -133,11 +168,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $currency
 	 */
 	public function update_stripe_currency( WC_Order $order, string $currency ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_CURRENCY, $currency );
+		return $this->update_order_meta( $order, self::META_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -177,11 +208,7 @@ class WC_Stripe_Order_Helper {
 	 * @param float $amount
 	 */
 	public function update_stripe_fee( ?WC_Order $order = null, float $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_FEE, $amount );
+		return $this->update_order_meta( $order, self::META_STRIPE_FEE, $amount );
 	}
 
 	/**
@@ -237,11 +264,7 @@ class WC_Stripe_Order_Helper {
 	 * @param float $amount
 	 */
 	public function update_stripe_net( ?WC_Order $order = null, float $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_NET, $amount );
+		return $this->update_order_meta( $order, self::META_STRIPE_NET, $amount );
 	}
 
 	/**
@@ -286,11 +309,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_source( ?WC_Order $order = null, string $source_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -302,11 +321,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_source( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -335,11 +350,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_refund( ?WC_Order $order = null, string $refund_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -351,11 +362,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_refund( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_REFUND_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -384,11 +391,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_intent( ?WC_Order $order = null, string $intent_id = '' ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_STRIPE_INTENT_ID, $intent_id );
+		return $this->update_order_meta( $order, self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
 	/**
@@ -400,11 +403,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function delete_stripe_intent( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_INTENT_ID );
+		return $this->delete_order_meta( $order, self::META_STRIPE_INTENT_ID );
 	}
 
 	/**
@@ -433,11 +432,175 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_setup_intent( ?WC_Order $order = null, string $intent_id = '' ) {
-		if ( is_null( $order ) ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_SETUP_INTENT, $intent_id );
+	}
+
+	/**
+	 * Gets the Stripe customer ID for an order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_customer_id( ?WC_Order $order = null ) {
+		if ( null === $order ) {
 			return false;
 		}
 
-		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $intent_id );
+		return $order->get_meta( self::META_STRIPE_CUSTOMER_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe customer ID for an order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $customer_id
+	 * @return false|void
+	 */
+	public function update_stripe_customer_id( ?WC_Order $order = null, string $customer_id = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_CUSTOMER_ID, $customer_id );
+	}
+
+	/**
+	 * Deletes the Stripe customer ID for an order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_customer_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_CUSTOMER_ID );
+	}
+
+	/**
+	 * Gets the Stripe card for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_card_id( ?WC_Order $order = null ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_CARD_ID, true );
+	}
+
+	/**
+	 * Deletes the Stripe card for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_card_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_CARD_ID );
+	}
+
+	/**
+	 * Gets the Stripe UPE payment type for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_upe_payment_type( ?WC_Order $order = null ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_PAYMENT_TYPE, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE payment type for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $payment_type
+	 * @return false|void
+	 */
+	public function update_stripe_upe_payment_type( ?WC_Order $order = null, string $payment_type = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
+	}
+
+	/**
+	 * Gets the Stripe UPE waiting for redirect for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool|null
+	 */
+	public function get_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE waiting for redirect for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param bool $waiting_for_redirect
+	 * @return false|void
+	 */
+	public function update_stripe_upe_waiting_for_redirect( ?WC_Order $order = null, bool $waiting_for_redirect = false ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, $waiting_for_redirect );
+	}
+
+	/**
+	 * Deletes the Stripe UPE waiting for redirect for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
+	}
+
+	/**
+	 * Gets the Stripe UPE redirect processed for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool|null
+	 */
+	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_UPE_REDIRECT_PROCESSED, true );
+	}
+
+	/**
+	 * Updates the Stripe UPE redirect processed for order.
+	 *
+	 * @since 10.0.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param bool $redirect_processed
+	 * @return false|void
+	 */
+	public function update_stripe_upe_redirect_processed( ?WC_Order $order = null, bool $redirect_processed = false ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED, $redirect_processed );
 	}
 
 	/**
@@ -480,7 +643,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public function set_payment_awaiting_action( WC_Order $order, bool $save = true ): void {
-		$order->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
+		$this->update_order_meta( $order, self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$order->save();
@@ -622,7 +785,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+			$selected_payment_type = $this->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
@@ -828,5 +991,36 @@ class WC_Stripe_Order_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Helper function to update order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @param WC_Order|null $order The order to update meta for.
+	 * @param string $key The meta key to update.
+	 * @param mixed $value The meta value to set.
+	 * @return false|void
+	 */
+	protected function update_order_meta( ?WC_Order $order, string $key, $value ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		$order->update_meta_data( $key, $value );
+	}
+
+	/**
+	 * Helper function to delete an order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @param WC_Order|null $order The order to delete meta for.
+	 * @param string $key The meta key to delete.
+	 * @return false|void
+	 */
+	protected function delete_order_meta( ?WC_Order $order, string $key ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		$order->delete_meta_data( $key );
 	}
 }

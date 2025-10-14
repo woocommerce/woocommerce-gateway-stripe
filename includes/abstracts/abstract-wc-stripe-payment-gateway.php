@@ -330,7 +330,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		WC_Stripe_Order_Helper::get_instance()->delete_stripe_customer_id( $order );
 		$order->save();
 
 		return true;
@@ -410,7 +410,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order->get_meta( '_stripe_customer_id', true );
+		$customer = WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $order );
 
 		if ( empty( $customer ) ) {
 			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
@@ -1025,7 +1025,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = $order->get_meta( '_stripe_card_id', true );
+				$source_id = $order_helper->get_stripe_card_id( $order );
 
 				// Take this opportunity to update the key name.
 				$order_helper->update_stripe_source( $order, $source_id );
@@ -1079,13 +1079,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $source Source information.
 	 */
 	public function save_source_to_order( $order, $source ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Store source in the order.
 		if ( $source->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order_helper->update_stripe_customer_id( $order, $source->customer );
 		}
 
 		if ( $source->source ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $source->source );
+			$order_helper->update_stripe_source( $order, $source->source );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {

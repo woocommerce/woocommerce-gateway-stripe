@@ -173,8 +173,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 * @param WC_Order $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		WC_Stripe_Order_Helper::get_instance()->delete_stripe_source( $order );
-		$order->delete_meta_data( '_stripe_card_id' );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_source( $order );
+		$order_helper->delete_stripe_card_id( $order );
 		$order->save();
 	}
 

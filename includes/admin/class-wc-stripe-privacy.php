@@ -120,6 +120,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$done           = false;
 		$data_to_export = [];
 		$orders         = $this->get_stripe_orders( $email_address, (int) $page );
+		$order_helper   = WC_Stripe_Order_Helper::get_instance();
 		$done           = true;
 		if ( 0 < count( $orders ) ) {
 			foreach ( $orders as $order ) {
@@ -130,11 +131,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => WC_Stripe_Order_Helper::get_instance()->get_stripe_source( $order ),
+							'value' => $order_helper->get_stripe_source( $order ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_meta( '_stripe_customer_id', true ),
+							'value' => $order_helper->get_stripe_customer_id( $order ),
 						],
 					],
 				];
@@ -368,7 +369,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$order_helper = WC_Stripe_Order_Helper::get_instance();
 			$order_helper->delete_stripe_source( $renewal_order );
 			$order_helper->delete_stripe_refund( $renewal_order );
-			$renewal_order->delete_meta_data( '_stripe_customer_id' );
+			$order_helper->delete_stripe_customer_id( $renewal_order );
 		}
 
 		$subscription->delete_meta_data( '_stripe_source_id' );
@@ -388,7 +389,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$order_helper       = WC_Stripe_Order_Helper::get_instance();
 		$stripe_source_id   = $order_helper->get_stripe_source( $order );
 		$stripe_refund_id   = $order_helper->get_stripe_refund( $order );
-		$stripe_customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$stripe_customer_id = $order_helper->get_stripe_customer_id( $order );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */
@@ -401,7 +402,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$order_helper->delete_stripe_source( $order );
 		$order_helper->delete_stripe_refund( $order );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		$order_helper->delete_stripe_customer_id( $order );
 
 		return [ true, false, [ __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}

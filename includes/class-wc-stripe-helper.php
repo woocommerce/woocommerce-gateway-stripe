@@ -1968,7 +1968,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.

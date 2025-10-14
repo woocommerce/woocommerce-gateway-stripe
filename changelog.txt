@@ -2,6 +2,7 @@
 
 = 10.1.0 - xxxx-xx-xx =
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 
 = 10.0.0 - 2025-10-14 =
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page

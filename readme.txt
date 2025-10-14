@@ -112,5 +112,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.1.0 - xxxx-xx-xx =
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

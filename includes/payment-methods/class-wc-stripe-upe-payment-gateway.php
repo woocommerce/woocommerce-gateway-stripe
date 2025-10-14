@@ -357,7 +357,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = $order->get_meta( '_stripe_upe_payment_type' );
+		$upe_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 
 		if ( ! $upe_payment_type ) {
 			return true;
@@ -978,15 +978,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
-				WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $payment_intent_id, $order );
+				$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+				$order_helper->add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
-				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+				$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 
 				$order->save();
 
@@ -1178,7 +1180,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order_helper->set_payment_awaiting_action( $order, false );
 
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
-				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+				$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 				$order->save();
 
 				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
@@ -1647,11 +1649,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
 			return;
 		}
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		try {
 			// First check if the order is already being processed by another request.
@@ -1769,13 +1771,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order_helper->update_stripe_upe_redirect_processed( $order, true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 		// be better if we removed the need for additional meta data in favor of refactoring
 		// this part of the payment processing.
-		$order->delete_meta_data( '_stripe_upe_waiting_for_redirect' );
+		$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
 
 		/**
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
@@ -1811,12 +1813,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param stdClass $payment_method Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $payment_method->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
+			$order_helper->update_stripe_customer_id( $order, $payment_method->customer );
 		}
 
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $payment_method->payment_method );
+		$order_helper->update_stripe_source( $order, $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -2913,7 +2916,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, $customer_id );
 		$order->save_meta_data();
 	}
 
@@ -2937,7 +2940,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string   $selected_payment_type The selected payment type.
 	 */
 	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
-		$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		$order->save_meta_data();
 	}
 	/**
