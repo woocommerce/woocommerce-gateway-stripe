@@ -140,7 +140,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			// Remove track param from URL.
 			const url = new URL( window.location.href );
 			url.searchParams.delete( 'track' );
-			window.location.replace( url.href );
+			history.replaceState( null, '', url.href );
 		}
 	} );
 
