@@ -105,13 +105,17 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const handleButtonClick = () => {
 		const mode = isTestMode ? 'test' : 'live';
 		if ( ! oauthConnected ) {
-			recordEvent( 'wcstripe_reconnect_button_click', {
-				source: 'account_details_section',
-				mode,
-			} );
+			trackReconnectEvent( 'account_details_section', mode );
 		}
 
 		setModalType( mode );
+	};
+
+	const trackReconnectEvent = ( source, mode ) => {
+		recordEvent( 'wcstripe_reconnect_button_click', {
+			source,
+			mode,
+		} );
 	};
 
 	useEffect( () => {
@@ -127,6 +131,18 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			} );
 		}
 	}, [ headingRef, isTestMode ] );
+
+	useEffect( () => {
+		const { track } = getQuery();
+		if ( track ) {
+			trackReconnectEvent( 'admin_notice', isTestMode ? 'test' : 'live' );
+
+			// Remove track param from URL.
+			const url = new URL( window.location.href );
+			url.searchParams.delete( 'track' );
+			window.location.replace( url.href );
+		}
+	} );
 
 	return (
 		<Card className="account-details">
