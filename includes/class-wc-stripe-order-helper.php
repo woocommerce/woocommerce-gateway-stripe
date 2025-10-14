@@ -995,7 +995,7 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Updates order meta data.
+	 * Helper function to update order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
 	 *
 	 * @param WC_Order|null $order The order to update meta for.
 	 * @param string $key The meta key to update.
