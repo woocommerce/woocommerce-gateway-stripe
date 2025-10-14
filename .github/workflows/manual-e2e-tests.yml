@@ -1,0 +1,130 @@
+
+name: Manual E2E tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch, Tag or SHA to checkout. Leave empty to use the default branch.
+        type: string
+      wordpress-version:
+        description: WordPress version number. Leave empty to use the latest version.
+        type: string
+        default: 'latest'
+        required: true
+      woocommerce-version:
+        description: WooCommerce version number. Leave empty to use the latest version.
+        type: string
+        default: 'latest'
+        required: true
+      php-version:
+        type: choice
+        default: '7.4'
+        required: true
+        options:
+          - '7.4'
+          - '8.1'
+          - '8.2'
+          - '8.3'
+          - '8.4'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        project: [ 'default', 'acss', 'optimized-checkout', 'blik', 'becs' ]
+
+    name: E2e
+    steps:
+      - name: Checkout desired branch/tag/commit
+        uses: actions/checkout@v4
+        with:
+            ref: ${{ inputs.branch }}
+
+      # PHP
+      - name: Set up PHP
+        uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
+        with:
+          php-version: ${{ inputs.php-version }}
+          tools: composer
+          coverage: none
+
+      - name: Cache Composer deps
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: ./vendor
+          key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
+
+      - name: Install composer dependencies
+        if: ${{ steps.composer-cache.outputs.cache-hit == false }}
+        shell: bash
+        run: composer install --no-progress
+
+      # Node
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Cache Node deps
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node_modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install node dependencies
+        if: ${{ steps.node-cache.outputs.cache-hit == false }}
+        shell: bash
+        run: npm ci
+
+      # Build
+
+      - name: Build plugin package
+        shell: bash
+        run: |
+          npm run build
+
+      # E2E test environment
+
+      - name: Prepare test environment
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          WP_VERSION: ${{ inputs.wordpress-version }}
+          WC_VERSION: ${{ inputs.woocommerce-version }}
+        run: npm run test:e2e-setup
+
+      - name: Upload e2e setup logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-setup-logs-${{ matrix.project }}
+          path: tests/e2e/e2e-setup.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Run ${{ matrix.project }} E2E tests
+        shell: bash
+        env:
+          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+
+      - name: Upload ${{ matrix.project }} E2E test results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.project }}
+          path: tests/e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 14
