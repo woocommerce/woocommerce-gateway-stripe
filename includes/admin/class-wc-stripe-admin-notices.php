@@ -433,7 +433,7 @@ class WC_Stripe_Admin_Notices {
 				$oauth_required = $needs_live_oauth || $needs_test_oauth;
 				if ( $oauth_required ) {
 					$message  = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
-					$link     = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details' ) );
+					$link     = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details&track=true' ) );
 					$style    = 'display: block; padding: 10px; color: #007cba; border: #007cba solid 1px; float: left; text-decoration: none; margin-bottom: 12px; border-radius: 2px;';
 					$actions  = [
 						'<a href="' . $link . '" style="' . $style . '">'
