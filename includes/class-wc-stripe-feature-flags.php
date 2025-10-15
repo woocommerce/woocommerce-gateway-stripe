@@ -5,8 +5,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
-	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
+
+	/**
+	 * Feature flag for Stripe ECE (Express Checkout Element).
+	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
+	 *
+	 * @var string
+	 *
+	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
+	 */
+	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
 
 	/**
 	 * Feature flag for Optimized Checkout (OC).
@@ -25,7 +34,6 @@ class WC_Stripe_Feature_Flags {
 	 */
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                => 'yes',
-		self::ECE_FEATURE_FLAG_NAME            => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
 		self::OC_FEATURE_FLAG_NAME             => 'no',
 	];
@@ -65,9 +73,11 @@ class WC_Stripe_Feature_Flags {
 	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 10.0.0 ECE is always enabled. This method will be removed in a future release.
 	 */
 	public static function is_stripe_ece_enabled() {
-		return 'yes' === self::get_option_with_default( self::ECE_FEATURE_FLAG_NAME );
+		return true;
 	}
 
 	/**
@@ -84,16 +94,11 @@ class WC_Stripe_Feature_Flags {
 	 * Checks whether UPE is enabled.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 10.0.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function is_upe_checkout_enabled() {
-		/**
-		 * Temporary filter to allow rollback to legacy checkout experience.
-		 *
-		 * @since 9.6.0
-		 * @deprecated This filter will be removed in version 10.0.0.
-		 * @param bool $enabled Whether new checkout experience is enabled. Default true.
-		 */
-		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
+		return true;
 	}
 
 	/**

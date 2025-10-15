@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PaymentRequestsSettingsSection from '../payment-request-settings-section';
-import PaymentRequestButtonPreview from '../payment-request-button-preview';
+import ExpressCheckoutSettingsSection from '../express-checkout-settings-section';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
@@ -9,6 +8,7 @@ import {
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
 } from 'wcstripe/data';
+import ExpressCheckoutButtonPreview from 'wcstripe/entrypoints/express-checkout-settings/express-checkout-button-preview';
 
 jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
@@ -27,8 +27,8 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
-jest.mock( '../payment-request-button-preview' );
-PaymentRequestButtonPreview.mockImplementation( () => '<></>' );
+jest.mock( '../express-checkout-button-preview' );
+ExpressCheckoutButtonPreview.mockImplementation( () => '<></>' );
 
 jest.mock( '../utils/utils', () => ( {
 	getPaymentRequestData: jest.fn().mockReturnValue( {
@@ -57,7 +57,7 @@ const getMockPaymentRequestLocations = (
 	updatePaymentRequestLocationsHandler,
 ];
 
-describe( 'PaymentRequestsSettingsSection', () => {
+describe( 'ExpressCheckoutSettingsSection', () => {
 	const globalValues = global.wc_stripe_payment_request_settings_params;
 	beforeEach( () => {
 		usePaymentRequestEnabledSettings.mockReturnValue(
@@ -82,7 +82,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 	} );
 
 	it( 'renders settings with defaults', () => {
-		render( <PaymentRequestsSettingsSection /> );
+		render( <ExpressCheckoutSettingsSection /> );
 
 		// confirm settings headings.
 		expect(
@@ -125,7 +125,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		] );
 		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
-		render( <PaymentRequestsSettingsSection /> );
+		render( <ExpressCheckoutSettingsSection /> );
 
 		expect( setButtonTypeMock ).not.toHaveBeenCalled();
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();

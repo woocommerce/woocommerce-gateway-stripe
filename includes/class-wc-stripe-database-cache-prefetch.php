@@ -199,7 +199,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 			return;
 		}
 
-		if ( ! isset( self::PREFETCH_CONFIG[ $key ] ) ) {
+		if ( ! $this->should_prefetch_cache_key( $key ) ) {
 			WC_Stripe_Logger::warning(
 				'Invalid cache prefetch key',
 				[
