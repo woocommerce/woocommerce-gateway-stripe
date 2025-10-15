@@ -97,7 +97,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 
 		$intent_id = 'pi_mock';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
 		$order->save_meta_data();
 
 		$intent = (object) [

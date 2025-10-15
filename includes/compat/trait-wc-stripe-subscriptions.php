@@ -644,13 +644,13 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->delete_stripe_source( $resubscribe_order );
+		$order_helper->delete_stripe_source_id( $resubscribe_order );
 
 		$order_helper->delete_stripe_customer_id( $resubscribe_order );
 		// For BW compat will remove in future.
 		$order_helper->delete_stripe_card_id( $resubscribe_order );
 		// Delete payment intent ID.
-		$order_helper->delete_stripe_intent( $resubscribe_order );
+		$order_helper->delete_stripe_intent_id( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -666,7 +666,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_net( $renewal_order );
 
 		// Delete payment intent ID.
-		$order_helper->delete_stripe_intent( $renewal_order );
+		$order_helper->delete_stripe_intent_id( $renewal_order );
 
 		return $renewal_order;
 	}
@@ -682,7 +682,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$subscription->update_meta_data( '_stripe_customer_id', $order_helper->get_stripe_customer_id( $renewal_order ) );
-		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source( $renewal_order ) );
+		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source_id( $renewal_order ) );
 		$subscription->save();
 	}
 
@@ -848,7 +848,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = WC_Stripe_Order_Helper::get_instance()->get_stripe_source( $renewal_order );
+			$renewal_order_payment_method = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $renewal_order );
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -1012,14 +1012,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			$order_helper       = WC_Stripe_Order_Helper::get_instance();
 			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $order_helper->get_stripe_customer_id( $parent_order );
-			$stripe_source_id   = $order_helper->get_stripe_source( $parent_order );
+			$stripe_source_id   = $order_helper->get_stripe_source_id( $parent_order );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
 				$stripe_source_id = $order_helper->get_stripe_card_id( $parent_order );
 
 				// Take this opportunity to update the key name.
-				$order_helper->update_stripe_source( $parent_order, $stripe_source_id );
+				$order_helper->update_stripe_source_id( $parent_order, $stripe_source_id );
 				$parent_order->save();
 			}
 		}

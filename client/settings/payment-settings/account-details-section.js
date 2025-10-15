@@ -132,18 +132,6 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		}
 	}, [ headingRef, isTestMode ] );
 
-	useEffect( () => {
-		const { track } = getQuery();
-		if ( track ) {
-			trackReconnectEvent( 'admin_notice', isTestMode ? 'test' : 'live' );
-
-			// Remove track param from URL.
-			const url = new URL( window.location.href );
-			url.searchParams.delete( 'track' );
-			history.replaceState( null, '', url.href );
-		}
-	} );
-
 	return (
 		<Card className="account-details">
 			<CardHeader>
@@ -180,15 +168,10 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 					id="btn-configure-connection"
 					onClick={ handleButtonClick }
 				>
-					{ oauthConnected
-						? __(
-								'Configure connection',
-								'woocommerce-gateway-stripe'
-						  )
-						: __(
-								'Reconnect to Stripe',
-								'woocommerce-gateway-stripe'
-						  ) }
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CardFooter>
 		</Card>

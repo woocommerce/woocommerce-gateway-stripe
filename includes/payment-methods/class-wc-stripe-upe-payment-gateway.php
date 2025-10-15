@@ -1819,7 +1819,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		$order_helper->update_stripe_source( $order, $payment_method->payment_method );
+		$order_helper->update_stripe_source_id( $order, $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -2892,7 +2892,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function set_payment_method_id_for_order( WC_Order $order, string $payment_method_id ) {
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $payment_method_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $order, $payment_method_id );
 		$order->save_meta_data();
 	}
 

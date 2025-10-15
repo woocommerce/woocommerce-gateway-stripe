@@ -471,7 +471,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_id          = $order->get_id();
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
 		$order_helper->update_stripe_upe_payment_type( $order, '' );
 		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save();
@@ -1045,7 +1045,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
@@ -1111,7 +1111,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// assert successful order processing
 		$this->assertEquals( OrderStatus::PROCESSING, $success_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $success_order->get_payment_method_title() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $success_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $success_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $success_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 
@@ -1208,7 +1208,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 	}
 
@@ -1271,9 +1271,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 	}
 
 	/**
@@ -1341,9 +1341,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 	}
 
 	/**
@@ -1403,7 +1403,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $generated_payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 	}
 
 	/**
@@ -1648,9 +1648,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
@@ -1732,9 +1732,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( OrderStatus::PENDING, $final_order->get_status() ); // Order status should be pending until 3DS is completed.
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
 	}
 
@@ -1795,8 +1795,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'failure', $response['result'] );
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 	}
 
 	/**
@@ -1897,9 +1897,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
@@ -2005,7 +2005,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
 		$order_helper->update_stripe_upe_payment_type( $order, '' );
 		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save();
@@ -2387,9 +2387,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
-		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent( $final_order ) );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 	}
 
@@ -2454,7 +2454,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$final_order  = wc_get_order( $order_id );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
 	}
@@ -2686,7 +2686,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		];
 
 		// Save the failed intent ID to the order
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $mock_failed_intent->id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $mock_failed_intent->id );
 		$order->save();
 
 		// Mock that we find an existing failed intent on the order
@@ -2823,7 +2823,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		)[0];
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( $payment_method_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_source( $final_order ) );
+		$this->assertEquals( $payment_method_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 

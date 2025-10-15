@@ -1305,7 +1305,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
-		$old_intent_id = $order_helper->get_stripe_intent( $order );
+		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
 			return;
 		}
@@ -1318,7 +1318,7 @@ class WC_Stripe_Helper {
 			)
 		);
 
-		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
 		$order->save();
 	}
 
@@ -1421,9 +1421,9 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_intent_id_from_order( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent( $order );
+		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
-			$intent_id = $order_helper->get_stripe_setup_intent( $order );
+			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
 		}
 
 		return $intent_id ?? false;
