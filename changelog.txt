@@ -1,6 +1,10 @@
 *** Changelog ***
 
-= 10.0.0 - xxxx-xx-xx =
+= 10.1.0 - xxxx-xx-xx =
+* Dev - Renames previous Order Helper class methods to use the `_id` suffix
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
+
+= 10.0.0 - 2025-10-14 =
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
 * Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
