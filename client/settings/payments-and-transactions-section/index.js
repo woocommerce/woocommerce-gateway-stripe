@@ -106,7 +106,7 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'Let customers save iDEAL as a SEPA Direct Debit method for future purchases. Requires iDEAL and SEPA Direct Debit to be enabled.',
+						'Let customers save iDEAL as a SEPA Direct Debit method for future purchases. Requires iDEAL to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
@@ -118,7 +118,7 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'Let customers save Bancontact as a SEPA Direct Debit method for future purchases. Requires Bancontact and SEPA Direct Debit to be enabled.',
+						'Let customers save Bancontact as a SEPA Direct Debit method for future purchases. Requires Bancontact to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>

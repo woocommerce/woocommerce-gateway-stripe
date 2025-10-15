@@ -60,6 +60,10 @@ describe( 'AccountDetails', () => {
 					payouts_enabled: false,
 					charges_enabled: false,
 				},
+				testmode: true,
+				oauth_connections: {
+					test: { connected: true },
+				},
 			},
 		} );
 		render( <AccountDetails /> );

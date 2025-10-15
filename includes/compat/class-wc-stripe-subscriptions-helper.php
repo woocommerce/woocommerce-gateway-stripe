@@ -151,7 +151,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		if ( ! WC_Stripe_Helper::is_stripe_gateway_order( $subscription ) ) {
+		if ( ! WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $subscription ) ) {
 			// If the payment method is not a Stripe method, we don't need to check further.
 			return false;
 		}

@@ -10,7 +10,6 @@ import {
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
-import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
 	expressCheckoutElementAmazonPay,
 	expressCheckoutElementApplePay,
@@ -59,25 +58,19 @@ Object.entries( paymentMethodsConfig )
 		registerPaymentMethod( upeElement( method, api, config ) );
 	} );
 
-if ( getBlocksConfiguration()?.isECEEnabled ) {
-	// Register Express Checkout Elements.
-	if (
-		getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-		getBlocksConfiguration()?.isAmazonPayEnabled
-	) {
-		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
-		registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isLinkEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
-	}
-} else {
-	// Register Stripe Payment Request.
-	// TODO: We can remove this once we're sure everyone on the new checkout (UPE) has been migrated to ECE.
-	registerExpressPaymentMethod( paymentRequestPaymentMethod );
+// Register Express Checkout Elements.
+if (
+	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+	getBlocksConfiguration()?.isAmazonPayEnabled
+) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 }
 
 // Update token labels when the checkout form is loaded.
