@@ -258,7 +258,7 @@ describe( 'AccountDetailsSection', () => {
 			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
 		} );
 
-		it( 'should change the button text when not oauth connected', () => {
+		it( 'should keep the same button text when not oauth connected', () => {
 			useAccount.mockReturnValue( {
 				data: {
 					webhook_url: 'example.com',
@@ -282,10 +282,10 @@ describe( 'AccountDetailsSection', () => {
 				<AccountDetailsSection setModalType={ setModalTypeMock } />
 			);
 
-			const editKeysButton = screen.getByRole( 'button', {
-				name: /Reconnect to Stripe/i,
+			const configureConnectionButton = screen.getByRole( 'button', {
+				name: /Configure connection/i,
 			} );
-			expect( editKeysButton ).toBeInTheDocument();
+			expect( configureConnectionButton ).toBeInTheDocument();
 		} );
 	} );
 } );

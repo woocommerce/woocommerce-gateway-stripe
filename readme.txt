@@ -113,5 +113,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 10.1.0 - xxxx-xx-xx =
 * Dev - Renames previous Order Helper class methods to use the `_id` suffix
 * Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
+* Fix - Remove persistent reconnection notices
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
