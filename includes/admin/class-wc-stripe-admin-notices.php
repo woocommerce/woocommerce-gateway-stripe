@@ -419,29 +419,6 @@ class WC_Stripe_Admin_Notices {
 					$this->add_admin_notice( 'legacy_deprecation', 'notice notice-warning', $message, true );
 				}
 			}
-
-			if ( empty( $oauth_required_notice ) ) {
-				// Show the reconnection notice if the account requires OAuth reconnection.
-				$has_live_keys  = ! empty( $live_pub_key ) && ! empty( $live_secret_key );
-				$has_test_keys  = ! empty( $test_pub_key ) && ! empty( $test_secret_key );
-				$stripe_connect = woocommerce_gateway_stripe()->connect;
-
-				// Check each mode only if it has keys
-				$needs_live_oauth = $has_live_keys && ! $stripe_connect->is_connected_via_oauth( 'live' );
-				$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
-
-				$oauth_required = $needs_live_oauth || $needs_test_oauth;
-				if ( $oauth_required ) {
-					$message = __( 'Please reconnect to continue using Stripe and avoid disruptions on your store.', 'woocommerce-gateway-stripe' );
-					$link    = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=account-details' ) );
-					$actions = [
-						'<a href="' . $link . '" style="display: block; padding: 10px; color: #007cba; border: #007cba solid 1px; float: left; text-decoration: none; margin-bottom: 12px; border-radius: 2px;">'
-							. __( 'Reconnect to Stripe', 'woocommerce-gateway-stripe' )
-						. '</a>',
-					];
-					$this->add_admin_notice( 'oauth_required', 'notice notice-error', $message, true, $actions );
-				}
-			}
 		}
 	}
 
