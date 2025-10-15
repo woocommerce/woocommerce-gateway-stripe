@@ -97,9 +97,6 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const headingRef = useRef( null );
 	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
-	const oauthConnected = isTestMode
-		? data?.oauth_connections?.test?.connected
-		: data?.oauth_connections?.live?.connected;
 
 	useEffect( () => {
 		if ( ! headingRef.current ) {
@@ -153,15 +150,10 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						setModalType( isTestMode ? 'test' : 'live' )
 					}
 				>
-					{ oauthConnected
-						? __(
-								'Configure connection',
-								'woocommerce-gateway-stripe'
-						  )
-						: __(
-								'Reconnect to Stripe',
-								'woocommerce-gateway-stripe'
-						  ) }
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CardFooter>
 		</Card>

@@ -78,11 +78,12 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 	public function test_create_customer_with_existing_id() {
 		wp_set_current_user( 1 );
 
-		$order    = WC_Helper_Order::create_order();
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$endpoint = '/' . strval( $order->get_id() ) . '/create_customer';
-		$order->add_meta_data( '_stripe_customer_id', 'cus_12345', true );
+		$order_helper->update_stripe_customer_id( $order, 'cus_12345' );
 		$order->save();
-		$this->assertEquals( 'cus_12345', $order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( 'cus_12345', $order_helper->get_stripe_customer_id( $order ) );
 
 		// Mock response from Stripe API using request arguments.
 		$test_request = function ( $preempt, $parsed_args, $url ) {
@@ -150,7 +151,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'succeeded', $response->get_data()['status'] );
 		$this->assertEquals( 'ch_12345', $response->get_data()['id'] );
-		$this->assertEquals( 'pi_12345', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order ) );
+		$this->assertEquals( 'pi_12345', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order ) );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}

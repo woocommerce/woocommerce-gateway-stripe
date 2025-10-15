@@ -330,7 +330,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		WC_Stripe_Order_Helper::get_instance()->delete_stripe_customer_id( $order );
 		$order->save();
 
 		return true;
@@ -410,7 +410,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order->get_meta( '_stripe_customer_id', true );
+		$customer = WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $order );
 
 		if ( empty( $customer ) ) {
 			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
@@ -1021,14 +1021,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			$order_helper = WC_Stripe_Order_Helper::get_instance();
-			$source_id    = $order_helper->get_stripe_source( $order );
+			$source_id    = $order_helper->get_stripe_source_id( $order );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = $order->get_meta( '_stripe_card_id', true );
+				$source_id = $order_helper->get_stripe_card_id( $order );
 
 				// Take this opportunity to update the key name.
-				$order_helper->update_stripe_source( $order, $source_id );
+				$order_helper->update_stripe_source_id( $order, $source_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1079,13 +1079,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $source Source information.
 	 */
 	public function save_source_to_order( $order, $source ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Store source in the order.
 		if ( $source->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order_helper->update_stripe_customer_id( $order, $source->customer );
 		}
 
 		if ( $source->source ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_source( $order, $source->source );
+			$order_helper->update_stripe_source_id( $order, $source->source );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1279,7 +1281,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			$order_helper->update_stripe_refund( $order, $response->id );
+			$order_helper->update_stripe_refund_id( $order, $response->id );
 
 			if ( isset( $response->balance_transaction ) ) {
 				$this->update_fees( $order, $response->balance_transaction );
@@ -1702,7 +1704,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order_helper->update_stripe_setup_intent( $order, $intent->id );
+			$order_helper->update_stripe_setup_intent_id( $order, $intent->id );
 
 			// Add mandate for free trial subscriptions.
 			if ( isset( $intent->mandate ) ) {
@@ -1724,13 +1726,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_intent_from_order( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent( $order );
+		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );
 		}
 
 		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = $order_helper->get_stripe_setup_intent( $order );
+		$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
 		}
@@ -1919,7 +1921,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent( $order, $setup_intent->id );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $setup_intent->id );
 			$order->save();
 
 			return $setup_intent->client_secret;

@@ -318,7 +318,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( $this->is_no_such_customer_error( $response->error ) ) {
 					delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-					$order->delete_meta_data( '_stripe_customer_id' );
+					$order_helper->delete_stripe_customer_id( $order );
 					$order->save();
 				}
 
@@ -742,7 +742,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
 			$captured   = $order->get_meta( '_stripe_charge_captured' );
-			$refund_id  = $order_helper->get_stripe_refund( $order );
+			$refund_id  = $order_helper->get_stripe_refund_id( $order );
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
@@ -792,7 +792,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
 
-				$order_helper->update_stripe_refund( $order, $refund_object->id );
+				$order_helper->update_stripe_refund_id( $order, $refund_object->id );
 
 				if ( isset( $refund_object->balance_transaction ) ) {
 					$this->update_fees( $order, $refund_object->balance_transaction );
@@ -827,7 +827,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
-			$refund_id  = $order_helper->get_stripe_refund( $order );
+			$refund_id  = $order_helper->get_stripe_refund_id( $order );
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
@@ -1101,7 +1101,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id           = $order->get_id();
-		$payment_type_meta  = $order->get_meta( '_stripe_upe_payment_type' );
+		$payment_type_meta  = $order_helper->get_stripe_upe_payment_type( $order );
 		$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
 		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 
@@ -1129,7 +1129,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
-				$is_awaiting_action    = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
+				$is_awaiting_action    = $order_helper->get_stripe_upe_waiting_for_redirect( $order ) ?? false;
 
 				// Process the webhook now if it's for a voucher or wallet payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
