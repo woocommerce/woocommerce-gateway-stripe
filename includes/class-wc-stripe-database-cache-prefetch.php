@@ -199,7 +199,8 @@ class WC_Stripe_Database_Cache_Prefetch {
 			return;
 		}
 
-		if ( ! $this->should_prefetch_cache_key( $key ) ) {
+		// We don't use should_prefetch_cache_key(), as that calls get_prefetch_window(), which we're checking below.
+		if ( ! isset( self::PREFETCH_CONFIG[ $key ] ) ) {
 			WC_Stripe_Logger::warning(
 				'Invalid cache prefetch key',
 				[
