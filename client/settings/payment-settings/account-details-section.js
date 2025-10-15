@@ -105,17 +105,13 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const handleButtonClick = () => {
 		const mode = isTestMode ? 'test' : 'live';
 		if ( ! oauthConnected ) {
-			trackReconnectEvent( 'account_details_section', mode );
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 'account_details_section',
+				mode,
+			} );
 		}
 
 		setModalType( mode );
-	};
-
-	const trackReconnectEvent = ( source, mode ) => {
-		recordEvent( 'wcstripe_reconnect_button_click', {
-			source,
-			mode,
-		} );
 	};
 
 	useEffect( () => {
@@ -130,7 +126,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 				block: 'start',
 			} );
 		}
-	}, [ headingRef, isTestMode ] );
+	}, [ headingRef ] );
 
 	return (
 		<Card className="account-details">
