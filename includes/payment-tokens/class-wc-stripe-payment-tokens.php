@@ -805,7 +805,8 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Filters the payment token class to override the credit card class with the extension's version.
+	 * Filters the payment token class to handle token classes that don't match the default
+	 * WooCommerce payment token class name.
 	 *
 	 * @param string $class Payment token class.
 	 * @param string $type Token type.
@@ -824,6 +825,11 @@ class WC_Stripe_Payment_Tokens {
 		if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $type ) {
 			return WC_Payment_Token_Becs_Debit::class;
 		}
+		// Check for Klarna and make sure we don't override other plugins that may use `klarna` as the token ID.
+		if ( WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID === $type && 'WC_Payment_Token_klarna' === $class ) {
+			return WC_Stripe_Klarna_Payment_Token::class;
+		}
+
 		return $class;
 	}
 

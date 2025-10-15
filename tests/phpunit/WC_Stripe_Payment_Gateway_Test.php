@@ -97,7 +97,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_success_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 
 		$expected_intent = (object) [ 'id' => 'pi_123' ];
 		$callback        = function ( $preempt, $request_args, $url ) use ( $expected_intent ) {
@@ -130,7 +130,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_error_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 
 		$response_error = (object) [
 			'error' => [
@@ -851,7 +851,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$order->set_transaction_id( 'ch_123' );
 		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 		$order->save();
 		$order_id = $order->get_id();
 
