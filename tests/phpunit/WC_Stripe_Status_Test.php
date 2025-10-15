@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_Account;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Status;
@@ -22,7 +22,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_render_status_report_section() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -63,7 +63,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_debug_tools() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -128,7 +128,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 			WC_Subscriptions_Helpers::$wcs_get_subscriptions = $mocked_subscriptions;
 		}
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
