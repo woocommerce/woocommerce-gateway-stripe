@@ -863,7 +863,6 @@ class WC_Stripe_Order_Helper {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( WC_Order $order ): bool {
-		return false;
 		if ( $this->is_order_payment_locked( $order ) ) {
 			// If the order is already locked, return true.
 			return true;
