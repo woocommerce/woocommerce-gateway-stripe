@@ -318,7 +318,7 @@ describe( 'AccountDetailsSection', () => {
 			);
 
 			const editKeysButton = screen.getByRole( 'button', {
-				name: /Reconnect to Stripe/i,
+				name: /Configure connection/i,
 			} );
 
 			await userEvent.click( editKeysButton );
