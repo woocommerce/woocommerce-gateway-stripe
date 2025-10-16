@@ -18,7 +18,7 @@ use WC_Stripe_Database_Cache;
  *
  * The responses from HTTP requests are mocked using the WP filter `pre_http_request`.
  *
- * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
+ * There are a few methods that need to be mocked in the class WC_Stripe_UPE_Payment_Gateway, which is
  * why that class is mocked even though the method under test is part of that class.
  *
  * @package     WooCommerce_Stripe/WC_Stripe_Subscription_Renewal
@@ -46,7 +46,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'prepare_order_source', 'has_subscription' ] )
 			->getMock();

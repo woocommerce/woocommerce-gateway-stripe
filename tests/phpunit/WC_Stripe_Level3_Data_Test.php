@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Order;
 use WC_Order_Item_Fee;
@@ -145,7 +145,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		$order->calculate_totals();
 
 		// Act: Call get_level3_data_from_order().
-		$gateway = new WC_Gateway_Stripe();
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$result  = $gateway->get_level3_data_from_order( $order );
 
 		// Assert.
@@ -222,7 +222,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		// Act: Call get_level3_data_from_order().
 		$store_postcode = '1100';
-		$gateway        = new WC_Gateway_Stripe();
+		$gateway        = new WC_Stripe_UPE_Payment_Gateway();
 		$result         = $gateway->get_level3_data_from_order( $order );
 
 		// Assert.
@@ -274,7 +274,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_store_postcode', '94110' );
 
 		$mock_order   = $this->mock_level_3_order( '98012', true );
-		$gateway      = new WC_Gateway_Stripe();
+		$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 		$level_3_data = $gateway->get_level3_data_from_order( $mock_order );
 
 		$this->assertEquals( $expected_data, $level_3_data );

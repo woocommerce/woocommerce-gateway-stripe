@@ -181,7 +181,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			}
 
 			// Update order with payment method and intent details.
-			$order->set_payment_method( WC_Gateway_Stripe::ID );
+			$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 			$order->set_payment_method_title( __( 'WooCommerce Stripe In-Person Payments', 'woocommerce-gateway-stripe' ) );
 			$this->gateway->save_intent_to_order( $order, $intent );
 

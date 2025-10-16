@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 9.9.2
+Stable tag: 10.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,9 +111,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
 * Dev - Renames previous Order Helper class methods to use the `_id` suffix
 * Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 * Add - Fetch account data before account cache expires
-* Fix - Remove persistent reconnection notices
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

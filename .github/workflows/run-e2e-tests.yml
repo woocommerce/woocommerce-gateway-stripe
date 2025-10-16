@@ -12,6 +12,9 @@ on:
       php-version:
         type: string
         default: '7.4'
+      branch:
+        description: Branch, Tag or SHA to checkout. Leave empty to use the default branch.
+        type: string
 
 jobs:
   e2e-tests:
@@ -26,6 +29,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
 
       - name: Setup PHP and Node
         uses: ./.github/actions/setup-env
