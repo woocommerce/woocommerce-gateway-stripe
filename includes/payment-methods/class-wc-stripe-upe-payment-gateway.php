@@ -2463,6 +2463,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		}
 
+		// This error indicates that the saved payment method is no longer valid.
+		// This can happen if the payment method was removed in Stripe dashboard, or if it expired.
+		// In this case, we want to show a specific message to the user.
+		if ( isset( $payment_intent->error->type )
+			&& 'invalid_request_error' === $payment_intent->error->type
+			&& isset( $payment_intent->error->message )
+			&& str_contains( $payment_intent->error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
+		) {
+			return __(
+				'This saved payment method is no longer valid. It might be expired, removed, or broken. Please choose a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
 		return $payment_intent->error->message;
 	}
 

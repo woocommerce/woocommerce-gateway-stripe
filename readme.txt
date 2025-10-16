@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
 * Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
 * Dev - Renames previous Order Helper class methods to use the `_id` suffix
