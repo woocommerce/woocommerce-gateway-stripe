@@ -128,8 +128,6 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 			add_filter( 'wc_stripe_database_cache_prefetch_window', $filter_callback, 10, 2 );
 		}
 
-		$test_args = [ $key, $expiry_time_adjustment, $should_enqueue_action, $option_adjusted_time ];
-
 		$option_name          = 'wcstripe_prefetch_' . $key;
 		$initial_option_value = null;
 
