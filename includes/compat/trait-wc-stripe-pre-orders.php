@@ -38,7 +38,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_pre_order_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
+		if ( self::$has_attached_pre_order_integration_hooks || WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
 			return;
 		}
 

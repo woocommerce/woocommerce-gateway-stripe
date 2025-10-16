@@ -78,7 +78,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( WC_Gateway_Stripe::ID !== $this->id ) {
+		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
 

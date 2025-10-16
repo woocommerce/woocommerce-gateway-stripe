@@ -51,7 +51,7 @@ class WC_Stripe_Intent_Controller {
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
 			$gateways      = WC()->payment_gateways()->payment_gateways();
-			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
+			$this->gateway = $gateways[ WC_Stripe_UPE_Payment_Gateway::ID ];
 		}
 
 		return $this->gateway;

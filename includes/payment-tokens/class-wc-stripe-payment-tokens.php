@@ -122,7 +122,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool
 	 */
 	public static function customer_has_saved_methods( $customer_id ) {
-		$gateways = [ WC_Gateway_Stripe::ID, WC_Gateway_Stripe_Sepa::ID ];
+		$gateways = [ WC_Stripe_UPE_Payment_Gateway::ID, WC_Gateway_Stripe_Sepa::ID ];
 
 		if ( empty( $customer_id ) ) {
 			return false;
@@ -176,7 +176,7 @@ class WC_Stripe_Payment_Tokens {
 					$stored_tokens[ $token->get_token() ] = $token;
 				}
 
-				if ( WC_Gateway_Stripe::ID === $gateway_id ) {
+				if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 					$stripe_customer = new WC_Stripe_Customer( $customer_id );
 					$stripe_sources  = $stripe_customer->get_sources();
 
@@ -185,7 +185,7 @@ class WC_Stripe_Payment_Tokens {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Stripe_Payment_Token_CC();
 								$token->set_token( $source->id );
-								$token->set_gateway_id( WC_Gateway_Stripe::ID );
+								$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 
 								if ( WC_Stripe_Helper::is_card_payment_method( $source ) ) {
 									$token->set_card_type( strtolower( $source->card->brand ) );
@@ -206,7 +206,7 @@ class WC_Stripe_Payment_Tokens {
 						} elseif ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
 							$token = new WC_Payment_Token_CC();
 							$token->set_token( $source->id );
-							$token->set_gateway_id( WC_Gateway_Stripe::ID );
+							$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 							$token->set_card_type( strtolower( $source->brand ) );
 							$token->set_last4( $source->last4 );
 							$token->set_expiry_month( $source->exp_month );
@@ -286,7 +286,7 @@ class WC_Stripe_Payment_Tokens {
 					// - APM tokens from before Split PE was in place.
 					// - Non-credit card tokens using the sources API. Payments using these will fail with the PaymentMethods API.
 					if (
-						( WC_Gateway_Stripe::ID === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
+						( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
 						! $this->is_valid_payment_method_id( $token->get_token(), $this->get_payment_method_type_from_token( $token ) )
 					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
@@ -496,7 +496,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 
 				$stripe_customer->detach_payment_method( $token->get_token() );
-			} elseif ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
+			} elseif ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
 				$stripe_customer->delete_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {

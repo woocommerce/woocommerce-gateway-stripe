@@ -2042,6 +2042,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
-		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 }
