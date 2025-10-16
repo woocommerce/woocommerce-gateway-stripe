@@ -3,7 +3,6 @@
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WC_Gateway_Stripe;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
 use WC_Shipping_Zone;
@@ -13,7 +12,6 @@ use WC_Stripe_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Cart;
 use WC_Subscriptions_Product;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
@@ -125,7 +123,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe' => new WC_Gateway_Stripe(),
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
 
 		if ( $is_pay_for_order ) {
@@ -269,7 +267,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_hides_ece_if_stripe_gateway_unavailable() {
 		$this->set_up_shipping_methods();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -304,7 +302,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe'        => new WC_Gateway_Stripe(),
+			'stripe'        => new WC_Stripe_UPE_Payment_Gateway(),
 			'stripe_alipay' => new WC_Gateway_Stripe_Alipay(),
 		];
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
@@ -351,7 +349,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe' => new WC_Gateway_Stripe(),
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
 
 		update_option( 'woocommerce_calc_taxes', 'no' );
@@ -431,7 +429,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_checkout_data_no_shipping_zones() {
 		// When no shipping zones are set up, the default shipping option should be empty.
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -444,7 +442,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_authentication_required().
 	 */
 	public function test_is_authentication_required() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -476,7 +474,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_account_creation_possible().
 	 */
 	public function test_is_account_creation_possible() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
