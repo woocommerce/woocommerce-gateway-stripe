@@ -817,11 +817,9 @@ class WC_Stripe {
 	 * @return WC_Stripe_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
-		if ( ! is_null( $this->stripe_gateway ) ) {
-			return $this->stripe_gateway;
+		if ( ! $this->stripe_gateway ) {
+			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 		}
-
-		$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 
 		return $this->stripe_gateway;
 	}
