@@ -103,7 +103,7 @@ class WC_Stripe_UPE_Payment_Method_Shared_Payment_Token extends WC_Stripe_UPE_Pa
 
 		// Block checkout and pay for order (checkout) page.
 		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return 'Stripe Agentic Commerce';
+			return __( 'Stripe Agentic Commerce', 'woocommerce-gateway-stripe' );
 		}
 
 		return parent::get_title();
