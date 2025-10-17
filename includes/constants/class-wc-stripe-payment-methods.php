@@ -33,6 +33,8 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT           = 'sepa_debit';
 	const SOFORT               = 'sofort';
 	const WECHAT_PAY           = 'wechat_pay';
+
+	// TODO: We need to move the constants for OC and Shared Payment Token, as they are not true payment methods.
 	const OC                   = 'card'; // This is a special case for the Optimized Checkout
 	const SHARED_PAYMENT_TOKEN = 'shared_payment_token';
 
