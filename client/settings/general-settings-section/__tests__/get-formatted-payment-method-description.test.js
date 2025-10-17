@@ -1,3 +1,4 @@
+import { render, screen } from '@testing-library/react';
 import { getFormattedPaymentMethodDescription } from '../get-formatted-payment-method-description';
 import {
 	PAYMENT_METHOD_AFFIRM,
@@ -30,11 +31,13 @@ describe( 'getFormattedPaymentMethodDescription', () => {
 		const result = getFormattedPaymentMethodDescription(
 			PAYMENT_METHOD_AFTERPAY_CLEARPAY
 		);
-		expect( result ).toEqual(
-			expect.arrayContaining( [
-				'Allow customers to pay over time with Afterpay. ',
-			] )
-		);
+		render( result );
+
+		expect(
+			screen.getByText(
+				/^Allow customers to pay over time with Afterpay\..*/
+			)
+		).toBeInTheDocument();
 	} );
 
 	it( 'should return default description for other payment methods', () => {
