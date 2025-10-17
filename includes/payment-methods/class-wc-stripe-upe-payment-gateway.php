@@ -2880,7 +2880,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return null;
 		}
 
-		if ( 'stripe' !== sanitize_text_field( wp_unslash( $_POST['wc-agentic_commerce-provider'] ) ) ) {
+		if ( WC_Stripe_UPE_Payment_Method_Shared_Payment_Token::STRIPE_AGENTIC_PROVIDER_ID !== sanitize_text_field( wp_unslash( $_POST['wc-agentic_commerce-provider'] ) ) ) {
 			return null;
 		}
 

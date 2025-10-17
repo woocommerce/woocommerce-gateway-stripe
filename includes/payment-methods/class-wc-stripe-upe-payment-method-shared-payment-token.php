@@ -13,6 +13,14 @@ class WC_Stripe_UPE_Payment_Method_Shared_Payment_Token extends WC_Stripe_UPE_Pa
 	const STRIPE_ID = WC_Stripe_Payment_Methods::SHARED_PAYMENT_TOKEN;
 
 	/**
+	 * The Agentic Commerce provider identifier for Stripe.
+	 * While it overlaps with the payment gateway ID, they refer to different concepts.
+	 *
+	 * @var string
+	 */
+	public const STRIPE_AGENTIC_PROVIDER_ID = 'stripe';
+
+	/**
 	 * Constructor for the Shared Payment Token payment method (which renders all methods).
 	 */
 	public function __construct() {
@@ -61,7 +69,7 @@ class WC_Stripe_UPE_Payment_Method_Shared_Payment_Token extends WC_Stripe_UPE_Pa
 	 * @return string Payment provider identifier.
 	 */
 	public function get_agentic_commerce_provider() {
-		return 'stripe';
+		return self::STRIPE_AGENTIC_PROVIDER_ID;
 	}
 
 	/**
