@@ -27,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Shared_Payment_Token extends WC_Stripe_UPE_Pa
 		$this->enabled     = $shared_payment_token_enabled ? 'yes' : 'no';
 		$this->id          = WC_Gateway_Stripe::ID; // Force the ID to be the same as the main payment gateway.
 		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Stripe Agentic Commerce';
+		$this->title       = __( 'Stripe Agentic Commerce', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = false;
 		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
