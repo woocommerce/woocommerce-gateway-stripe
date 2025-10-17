@@ -51,7 +51,7 @@ class WC_Stripe_Intent_Controller {
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
 			$gateways      = WC()->payment_gateways()->payment_gateways();
-			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
+			$this->gateway = $gateways[ WC_Stripe_UPE_Payment_Gateway::ID ];
 		}
 
 		return $this->gateway;
@@ -127,7 +127,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// Validate the intent being verified.
-			$order_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent( $order );
+			$order_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order );
 			if ( ! $order_intent_id || ! isset( $_GET['intent_id'] ) || $order_intent_id !== $_GET['intent_id'] ) {
 				throw new WC_Stripe_Exception( 'invalid_intent', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -525,7 +525,7 @@ class WC_Stripe_Intent_Controller {
 						WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					];
 				}
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
@@ -897,7 +897,7 @@ class WC_Stripe_Intent_Controller {
 			$order->update_meta_data( '_stripe_upe_payment_type', $payment_intent->type );
 		} elseif ( '' !== $selected_payment_type ) {
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		}
 
 		return $payment_intent;

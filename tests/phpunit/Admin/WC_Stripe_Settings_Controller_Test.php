@@ -2,12 +2,12 @@
 
 namespace WooCommerce\Stripe\Tests\Admin;
 
-use WC_Gateway_Stripe;
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_Settings_Controller;
+use WC_Stripe_UPE_Payment_Gateway;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
@@ -30,7 +30,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	private $account;
 
 	/**
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -42,7 +42,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 									->getMock();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
-		$this->gateway    = new WC_Gateway_Stripe();
+		$this->gateway    = new WC_Stripe_UPE_Payment_Gateway();
 		$this->controller = new WC_Stripe_Settings_Controller( $this->account, $this->gateway );
 	}
 
@@ -97,7 +97,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 
 		$intent_id = 'pi_mock';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
 		$order->save_meta_data();
 
 		$intent = (object) [
@@ -105,7 +105,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
 		];
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setMethods( [ 'get_intent_from_order' ] )
 			->getMock();
 

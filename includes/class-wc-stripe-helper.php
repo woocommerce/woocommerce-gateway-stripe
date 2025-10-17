@@ -1305,7 +1305,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
-		$old_intent_id = $order_helper->get_stripe_intent( $order );
+		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
 			return;
 		}
@@ -1318,7 +1318,7 @@ class WC_Stripe_Helper {
 			)
 		);
 
-		$order_helper->update_stripe_intent( $order, $payment_intent_id );
+		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
 		$order->save();
 	}
 
@@ -1421,9 +1421,9 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_intent_id_from_order( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent( $order );
+		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
-			$intent_id = $order_helper->get_stripe_setup_intent( $order );
+			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
 		}
 
 		return $intent_id ?? false;
@@ -1968,7 +1968,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
@@ -2042,6 +2042,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
-		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 }
