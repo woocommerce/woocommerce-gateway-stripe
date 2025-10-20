@@ -21,7 +21,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
 		$this->enabled     = $is_stripe_enabled && $this->oc_enabled ? 'yes' : 'no';
-		$this->id          = WC_Gateway_Stripe::ID; // Force the ID to be the same as the main payment gateway.
+		$this->id          = WC_Stripe_UPE_Payment_Gateway::ID; // Force the ID to be the same as the main payment gateway.
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Stripe';
 		$this->is_reusable = true;

@@ -1,7 +1,7 @@
 import React from 'react';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
-import PaymentRequestsEnableSection from './payment-request-enable-section';
-import PaymentRequestsSettingsSection from './payment-request-settings-section';
+import ExpressCheckoutEnableSection from './express-checkout-enable-section';
+import ExpressCheckoutSettingsSection from './express-checkout-settings-section';
 import { __ } from '@wordpress/i18n';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
@@ -39,18 +39,18 @@ const SettingsDescription = () => (
 	</>
 );
 
-const PaymentRequestsPage = () => {
+const ExpressCheckoutPage = () => {
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ EnableDescription }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<PaymentRequestsEnableSection />
+					<ExpressCheckoutEnableSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
 			<SettingsSection Description={ SettingsDescription }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<PaymentRequestsSettingsSection />
+					<ExpressCheckoutSettingsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
@@ -59,4 +59,4 @@ const PaymentRequestsPage = () => {
 	);
 };
 
-export default PaymentRequestsPage;
+export default ExpressCheckoutPage;

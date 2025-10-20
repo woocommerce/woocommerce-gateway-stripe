@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "9.9.0",
+  "version": "10.0.1",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -18,6 +18,7 @@
     "@emotion/babel-plugin": "11.3.0",
     "@emotion/react": "11.4.1",
     "@emotion/styled": "11.3.0",
+    "@kooneko/livereload-webpack-plugin": "^1.2.1",
     "@playwright/test": "^1.40.1",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^14.3.1",
@@ -27,16 +28,15 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@woocommerce/currency": "^3.2.0",
-    "@woocommerce/data": "^1.4.0",
-    "@woocommerce/dependency-extraction-webpack-plugin": "^1.4.0",
+    "@woocommerce/dependency-extraction-webpack-plugin": "^3.1.0",
     "@woocommerce/eslint-plugin": "^2.2.0",
-    "@woocommerce/navigation": "^6.1.0",
+    "@woocommerce/navigation": "^8.2.0",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
     "@wordpress/api-fetch": "^5.2.1",
     "@wordpress/babel-plugin-makepot": "^4.2.0",
     "@wordpress/babel-preset-default": "^6.3.1",
-    "@wordpress/base-styles": "^3.6.0",
-    "@wordpress/components": "^15.0.0",
+    "@wordpress/base-styles": "^6.7.0",
+    "@wordpress/components": "^25.0.0",
     "@wordpress/data": "^6.0.1",
     "@wordpress/data-controls": "^2.2.3",
     "@wordpress/date": "3.9.0",
@@ -44,15 +44,16 @@
     "@wordpress/eslint-plugin": "^17.13.0",
     "@wordpress/hooks": "3.2.0",
     "@wordpress/i18n": "^4.2.1",
-    "@wordpress/icons": "^5.0.1",
-    "@wordpress/jest-preset-default": "^7.1.0",
-    "@wordpress/notices": "^1.12.0",
+    "@wordpress/icons": "^10.31.0",
+    "@wordpress/jest-preset-default": "^12.22.0",
+    "@wordpress/notices": "2.13.3",
     "@wordpress/prettier-config": "^3.15.0",
     "@wordpress/primitives": "^3.0.0",
-    "@wordpress/scripts": "^13.0.2",
+    "@wordpress/scripts": "^30.24.0",
     "@wordpress/url": "^3.2.1",
     "allure-playwright": "^2.0.0-beta.20",
     "archiver": "^5.0.0",
+    "axios": "^1.12.2",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "classnames": "^2.3.1",
@@ -68,18 +69,21 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "4.3",
     "husky": "^7.0.1",
-    "inquirer": "^8.2.5",
+    "inquirer": "^8.2.7",
     "is-ci": "^3.0.0",
-    "jest": "^27.4.5",
+    "jest": "^29.7.0",
     "jquery": "^3.6.0",
     "lint-staged": "11.1.2",
     "lodash": "4.17.21",
-    "mocha": "^5.2.0",
+    "memize": "2.1.1",
+    "mocha": "^11.7.2",
     "moment-timezone": "^0.6.0",
     "nock": "^13.1.1",
     "node-ssh": "^13.0.0",
     "node-wp-i18n": "~1.2.1",
     "playwright": "^1.40.1",
+    "postcss": "8.5.6",
+    "postcss-loader": "4.3.0",
     "prettier": "npm:wp-prettier@^3.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -171,8 +175,8 @@
     "changelog": "node bin/changelog.js"
   },
   "engines": {
-    "node": ">=16.17.0",
-    "npm": ">=8.15.0"
+    "node": ">=20.18.1",
+    "npm": ">=10.2.3"
   },
   "config": {
     "wp_org_slug": "woocommerce-gateway-stripe",
@@ -191,6 +195,14 @@
         "sass": "assets/css/*.scss",
         "cssfolder": "assets/css/"
       }
+    }
+  },
+  "overrides": {
+    "@wordpress/eslint-plugin": {
+      "eslint-plugin-jsdoc": "^46.0.0"
+    },
+    "@wordpress/i18n": {
+      "memize": "^2.1.1"
     }
   }
 }

@@ -1,9 +1,12 @@
 const path = require( 'path' );
 const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
+const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 const defaultConfigOutput = defaultConfig.output;
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Exclude jsonpFunction as it is not supported by webpack 5+.
 // https://github.com/webpack/webpack.js.org/issues/3942
@@ -37,7 +40,9 @@ module.exports = {
 	plugins: [
 		...defaultConfig.plugins.filter(
 			( plugin ) =>
-				plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
+				plugin.constructor.name !==
+					'DependencyExtractionWebpackPlugin' &&
+				plugin.constructor.name !== 'LiveReloadPlugin'
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
@@ -47,6 +52,10 @@ module.exports = {
 				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
 			),
 		} ),
+		! isProduction &&
+			new LiveReloadWebpackPlugin( {
+				port: process.env.WP_LIVE_RELOAD_PORT || 35729,
+			} ),
 	],
 	module: {
 		...defaultConfig.module,
@@ -104,13 +113,13 @@ module.exports = {
 	},
 	entry: {
 		index: './client/blocks/index.js',
-		'payment-requests-settings':
-			'./client/entrypoints/payment-request-settings/index.js',
 		'upe-classic': './client/classic/upe/index.js',
 		'upe-blocks': './client/blocks/upe/index.js',
 		'upe-settings': './client/settings/index.js',
 		'payment-gateways': './client/entrypoints/payment-gateways/index.js',
 		'express-checkout': './client/entrypoints/express-checkout/index.js',
+		'express-checkout-settings':
+			'./client/entrypoints/express-checkout-settings/index.js',
 		'amazon-pay-settings':
 			'./client/entrypoints/amazon-pay-settings/index.js',
 	},

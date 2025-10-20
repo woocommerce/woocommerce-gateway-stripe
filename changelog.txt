@@ -1,15 +1,64 @@
 *** Changelog ***
 
-= 9.10.0 - xxxx-xx-xx =
-* Update - Reduces the minimum transaction amount for Affirm to 35 USD
-* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+= 10.1.0 - xxxx-xx-xx =
+* Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
+* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
+* Dev - Renames previous Order Helper class methods to use the `_id` suffix
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
+
+= 10.0.1 - 2025-10-15 =
+* Fix - Remove persistent reconnection notices
+
+= 10.0.0 - 2025-10-14 =
+* Update - Removes frontend code related to Payment Request Buttons in the checkout page
+* Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
+* Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
+* Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
+* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
+* Update - Shows the Stripe account connection modal in settings when the merchant did not connect via OAuth along with a new notice
+* Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
+* Dev - Introduces a new helper class to handle Stripe orders
+* Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
+* Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
+* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
+* Fix - Minor fixes and code improvements for the saved payment methods comparison logic
+* Dev - Upgrades Node to v20
+* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
+* Update - Changes the background color and spacing for the Woo logo shown in the account modal
+* Dev - Fix live reload issue with Webpack 5
 * Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
 * Dev - Upgrades the Webpack-related packages
 * Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
 * Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
 * Dev - Upgrades the Babel-related packages
 * Dev - Consolidate component used for unavailable payment methods
+* Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
+* Add - Implement cache prefetch for payment method configuration
+* Dev - Update the @woocommerce/navigation dependency
+* Update - Reduce settings Javascript file size by using smaller image
+* Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
+* Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
+* Add - Introduce wc_stripe_preselect_payment_method_configuration filter for manual payment method configuration selection
+* Fix - Ensure Klarna payment tokens can be deleted and handled correctly
+* Tweak - Update PMC cache expiration time from 10 minutes to 20 minutes
+
+= 9.9.2 - 2025-09-29 =
+* Fix - BACS instruction text appears twice on the Order Confirmation page
+* Update - Allow more situations to enable settings synchronization with Stripe
+* Update - Ensure that we check for settings sync eligibility after every upgrade
+
+= 9.9.1 - 2025-09-16 =
+* Add - Allow Klarna to be used for recurring payments and subscriptions
+* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
+* Update - Reduces the minimum transaction amount for Affirm to 35 USD
 * Fix - Fatal error caused by type mismatch when processing webhooks
+* Fix - Avoid instantiating WC_Payment_Gateways too early when checking for Klarna and Affirm plugins
+* Fix - Fix subscription renewal error caused by passing both mandate ID and mandate data
+* Fix - Prevent type collisions for saved payment methods
+* Fix - Validate order when verifying payment intent
+* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
 
 = 9.9.0 - 2025-09-08 =
 * Dev - Adds PMC setting information to the Payment Intent object metadata

@@ -7,6 +7,7 @@ use stdClass;
 use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -216,7 +217,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->set_status( $status );
 
 		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
+		$order->save_meta_data();
 
 		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		if ( $success ) {
@@ -894,26 +896,5 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'webhook URL with wrong parameter should not match'        => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
 			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
 		];
-	}
-
-	/**
-	 * Tests for `is_stripe_gateway_order`.
-	 *
-	 * @return void
-	 */
-	public function test_is_stripe_gateway_order() {
-		// Test with a Stripe order (Klarna).
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( 'stripe_klarna' );
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
-
-		// Test with a non-Stripe order.
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( 'cod' );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
-
-		// Test with an empty order.
-		$order = new WC_Order();
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
 	}
 }

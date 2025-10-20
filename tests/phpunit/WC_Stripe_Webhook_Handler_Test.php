@@ -5,8 +5,8 @@ namespace WooCommerce\Stripe\Tests;
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Data_Exception;
 use WC_Order;
-use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -54,7 +54,22 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
 		$this->mock_webhook_handler();
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+
+		$order_helper->expects( $this->any() )
+			->method( 'lock_order_payment' )
+			->willReturn( false );
+
+		$order_helper->expects( $this->any() )
+			->method( 'unlock_order_payment' );
+
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
 	}
 
 	/**
@@ -506,14 +521,19 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
+
+		// Reset WC_Stripe_Order_Helper instance to avoid issues with other tests.
+		WC_Stripe_Order_Helper::set_instance( null );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_locked ) {
 			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
 		}
 		if ( $order_status_final ) {
 			$order->update_meta_data( '_stripe_status_final', true );
 		}
-		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order_helper->update_stripe_upe_payment_type( $order, $payment_type );
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save_meta_data();
 		$order->save();
 
@@ -580,7 +600,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Order must be previously set to pending and have at least the payment intent set.
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
+		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $notification->data->object->id, $order );
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
@@ -606,7 +626,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertCount( 1, $notes );
 		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
 	}
-
 
 	/**
 	 * Provider for `test_process_payment_intent`.
@@ -785,7 +804,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_transaction_id( $charge_id );
 		$order->save();
 
-		$order->update_meta_data( '_stripe_refund_id', $refund_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, $refund_id );
 		$order->save_meta_data();
 
 		$refund_order = WC_Helper_Order::create_order();
@@ -823,7 +842,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertCount( 1, $notes );
-		$this->assertSame( $expected_note, $notes[0]->content );
+		if ( '' === $expected_note ) {
+			$this->assertSame( '', $notes[0]->content );
+		} else {
+			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+		}
 	}
 
 	/**
@@ -841,12 +864,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'failed refund'         => [
 				'notification status' => 'failed',
 				'email triggered'     => true,
-				'expected note'       => 'Refund failed for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing.',
+				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol">&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 			'canceled refund'       => [
 				'notification status' => 'canceled',
 				'email triggered'     => true,
-				'expected note'       => 'Refund canceled for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing.',
+				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol">&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 		];
 	}

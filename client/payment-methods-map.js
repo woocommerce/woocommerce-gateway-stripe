@@ -75,10 +75,12 @@ const paymentMethodsMap = {
 			'NOK',
 			'NZD',
 			'PLN',
+			'RON',
 			'SEK',
 			'USD',
 		],
 		allows_manual_capture: true,
+		supportsRecurring: true,
 	},
 	affirm: {
 		id: PAYMENT_METHOD_AFFIRM,

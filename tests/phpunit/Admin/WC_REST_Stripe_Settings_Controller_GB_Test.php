@@ -4,11 +4,9 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use Automattic\WooCommerce\Blocks\RestApi;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
-use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -20,7 +18,6 @@ use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
  * WC_REST_Stripe_Settings_Controller_GB_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
-
 	/**
 	 * Tested REST route.
 	 */
@@ -29,7 +26,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 	/**
 	 * Gateway instance that the controller uses.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
 
@@ -60,7 +57,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ];
 	}
 
 
@@ -102,7 +99,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
-		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ];
 	}
 
 	public function tear_down() {

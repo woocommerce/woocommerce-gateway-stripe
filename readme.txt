@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
-Tested up to: 6.8.2
+Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 9.8.1
+Stable tag: 10.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,15 +110,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.10.0 - xxxx-xx-xx =
-* Update - Reduces the minimum transaction amount for Affirm to 35 USD
-* Add - Adds support for the Romanian Leu (RON) currency when paying with Klarna
-* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
-* Dev - Upgrades the Webpack-related packages
-* Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
-* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
-* Dev - Upgrades the Babel-related packages
-* Dev - Consolidate component used for unavailable payment methods
-* Fix - Fatal error caused by type mismatch when processing webhooks
+= 10.1.0 - xxxx-xx-xx =
+* Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
+* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
+* Dev - Renames previous Order Helper class methods to use the `_id` suffix
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

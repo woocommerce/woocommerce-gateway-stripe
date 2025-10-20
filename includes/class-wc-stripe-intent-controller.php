@@ -51,7 +51,7 @@ class WC_Stripe_Intent_Controller {
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
 			$gateways      = WC()->payment_gateways()->payment_gateways();
-			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
+			$this->gateway = $gateways[ WC_Stripe_UPE_Payment_Gateway::ID ];
 		}
 
 		return $this->gateway;
@@ -80,7 +80,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception An exception if there is no order ID or the order does not exist.
 	 * @return WC_Order
 	 */
-	protected function get_order_from_request() {
+	private function get_order_from_request() {
 		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['nonce'] ), 'wc_stripe_confirm_pi' ) ) {
 			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -114,7 +114,27 @@ class WC_Stripe_Intent_Controller {
 
 		try {
 			$order = $this->get_order_from_request();
+
+			// Validate order status.
+			if ( ! $order->has_status(
+				apply_filters(
+					'wc_stripe_allowed_payment_processing_statuses',
+					[ OrderStatus::PENDING, OrderStatus::FAILED ],
+					$order
+				)
+			) ) {
+				throw new WC_Stripe_Exception( 'invalid_order_status', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Validate the intent being verified.
+			$order_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order );
+			if ( ! $order_intent_id || ! isset( $_GET['intent_id'] ) || $order_intent_id !== $_GET['intent_id'] ) {
+				throw new WC_Stripe_Exception( 'invalid_intent', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
 		} catch ( WC_Stripe_Exception $e ) {
+			// Unset the order.
+			$order = null;
+
 			/* translators: Error message text */
 			$message = sprintf( __( 'Payment verification error: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() );
 			wc_add_notice( esc_html( $message ), 'error' );
@@ -464,8 +484,10 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
-		WC_Stripe_Helper::validate_intent_for_order( $order, $intent_id, $selected_payment_type );
+		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
@@ -503,7 +525,7 @@ class WC_Stripe_Intent_Controller {
 						WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					];
 				}
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
@@ -557,7 +579,7 @@ class WC_Stripe_Intent_Controller {
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			}
 			$order->save();
-			WC_Stripe_Helper::add_payment_intent_to_order( $intent_id, $order );
+			$order_helper->add_payment_intent_to_order( $intent_id, $order );
 		}
 
 		return [
@@ -650,7 +672,9 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_order_status_ajax() {
-		$order = false;
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order        = false;
+
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
@@ -663,7 +687,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$intent_id          = WC_Stripe_Helper::get_intent_id_from_order( $order );
+			$intent_id          = $order_helper->get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				$note = sprintf(
@@ -691,7 +715,7 @@ class WC_Stripe_Intent_Controller {
 			/* translators: error message */
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
-				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
+				$order_helper->remove_payment_awaiting_action( $order, false );
 				$order->update_status( OrderStatus::FAILED );
 			}
 
@@ -862,7 +886,7 @@ class WC_Stripe_Intent_Controller {
 
 		// Only update the payment_type if we have a reference to the payment type the customer selected.
 		if ( '' !== $selected_payment_type ) {
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		}
 
 		return $payment_intent;
@@ -1174,14 +1198,24 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
-
 			if ( ! $is_nonce_valid ) {
 				throw new WC_Stripe_Exception( 'Invalid nonce.', __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			/**
+			 * Filter to validate captcha for create and confirm setup intent requests.
+			 * Can be used by third-party plugins to add captcha validation.
+			 *
+			 * @since 10.1.0
+			 * @param bool $is_captcha_valid True if the captcha is valid, false otherwise. Default is true.
+			 */
+			$is_captcha_valid = apply_filters( 'wc_stripe_is_valid_create_and_confirm_setup_intent_captcha', true );
+			if ( ! $is_captcha_valid ) {
+				throw new WC_Stripe_Exception( 'captcha_invalid', __( 'Captcha verification failed. Please try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
 			$payment_type   = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-type'] ?? WC_Stripe_Payment_Methods::CARD ) );
-
 			if ( ! $payment_method ) {
 				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}

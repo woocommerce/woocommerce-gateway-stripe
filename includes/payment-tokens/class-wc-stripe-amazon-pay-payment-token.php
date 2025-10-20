@@ -79,11 +79,10 @@ class WC_Payment_Token_Amazon_Pay extends WC_Payment_Token implements WC_Stripe_
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $payment_method->type
-			&& ( $payment_method->billing_details->email ?? null ) === $this->get_email() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		return ( $payment_method->billing_details->email ?? null ) === $this->get_email();
 	}
 }

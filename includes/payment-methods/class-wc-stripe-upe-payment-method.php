@@ -127,7 +127,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
 		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->id                       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];
@@ -154,10 +154,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		if ( in_array( $method, get_class_methods( $upe_gateway_instance ) ) ) {
 			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
-		} else {
+		}
+
+		// In development/staging environments, throw errors for undefined methods to help catch bugs.
+		// In production, fail gracefully to prevent third-party plugin compatibility issues.
+		$is_dev_environment = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
+			|| in_array( wp_get_environment_type(), [ 'development', 'staging', 'local' ], true );
+
+		if ( $is_dev_environment ) {
 			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
 			throw new \Error( $message . get_class( $this ) . '::' . $method );
 		}
+
+		WC_Stripe_Logger::error( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
+		return false;
 	}
 
 	/**
