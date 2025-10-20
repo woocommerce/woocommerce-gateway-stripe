@@ -514,7 +514,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
 		// Settings controller with non-UPE gateway.
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->update_option( 'payment_request', $option_value );
+		$gateway->update_option( 'express_checkout', $option_value );
 		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
 
 		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
@@ -555,35 +555,35 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 	public function enum_field_provider() {
 		return [
-			'payment_request_button_theme'     => [
-				'payment_request_button_theme',
-				'payment_request_button_theme',
+			'express_checkout_button_theme'     => [
+				'express_checkout_button_theme',
+				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size'      => [
-				'payment_request_button_size',
-				'payment_request_button_size',
+			'express_checkout_button_size'      => [
+				'express_checkout_button_size',
+				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type'      => [
-				'payment_request_button_type',
-				'payment_request_button_type',
+			'express_checkout_button_type'      => [
+				'express_checkout_button_type',
+				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'payment_request_button_locations' => [
-				'payment_request_button_locations',
-				'payment_request_button_locations',
+			'express_checkout_button_locations' => [
+				'express_checkout_button_locations',
+				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-			'optimized_checkout_layout' => [
+			'optimized_checkout_layout'         => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

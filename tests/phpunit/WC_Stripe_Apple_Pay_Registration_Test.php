@@ -65,7 +65,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		$this->upe_helper->reload_payment_gateways();
 
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
-		$settings['payment_request'] = $payment_request_enabled ? 'yes' : 'no';
+		$settings['express_checkout'] = $payment_request_enabled ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 	}
