@@ -293,20 +293,20 @@ $stripe_settings = apply_filters(
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
-	$stripe_settings['payment_request_button_locations']['default'][] = 'checkout';
+	$stripe_settings['express_checkout_button_locations']['default'][] = 'checkout';
 
 	// no longer needed in the new settings.
-	unset( $stripe_settings['payment_request_button_branded_type'] );
-	unset( $stripe_settings['payment_request_button_height'] );
-	unset( $stripe_settings['payment_request_button_label'] );
+	unset( $stripe_settings['express_checkout_button_branded_type'] );
+	unset( $stripe_settings['express_checkout_button_height'] );
+	unset( $stripe_settings['express_checkout_button_label'] );
 	// injecting some of the new options.
-	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
-	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
 	// no longer valid options.
-	unset( $stripe_settings['payment_request_button_type']['options']['branded'] );
-	unset( $stripe_settings['payment_request_button_type']['options']['custom'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['branded'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['custom'] );
 } else {
-	unset( $stripe_settings['payment_request_button_size'] );
+	unset( $stripe_settings['express_checkout_button_size'] );
 }
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
