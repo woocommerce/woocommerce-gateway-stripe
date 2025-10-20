@@ -41,11 +41,12 @@ class WC_Stripe_Admin_Notices {
 	 * @since 1.0.0
 	 * @version 4.0.0
 	 */
-	public function add_admin_notice( $slug, $class, $message, $dismissible = false ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
 		$this->notices[ $slug ] = [
 			'class'       => $class,
 			'message'     => $message,
 			'dismissible' => $dismissible,
+			'actions'     => $actions,
 		];
 	}
 
@@ -73,7 +74,15 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
+			$actions     = $notice['actions'] ?? [];
+			$div_style   = 'position:relative;';
+			$has_actions = count( $actions ) > 0;
+			if ( $has_actions ) {
+				// If there are actions, we need to make sure the div can contain them.
+				$div_style .= 'overflow: auto;';
+			}
+
+			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="' . esc_attr( $div_style ) . '">';
 
 			if ( $notice['dismissible'] ) {
 				?>
@@ -93,7 +102,23 @@ class WC_Stripe_Admin_Notices {
 					'br'     => [],
 				]
 			);
-			echo '</p></div>';
+			echo '</p>';
+
+			if ( $has_actions ) {
+				foreach ( $actions as $action ) {
+					echo wp_kses(
+						$action,
+						[
+							'a' => [
+								'href'  => [],
+								'style' => [],
+							],
+						]
+					);
+				}
+			}
+
+			echo '</div>';
 		}
 	}
 
@@ -196,6 +221,7 @@ class WC_Stripe_Admin_Notices {
 		$show_sca_notice           = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
+		$oauth_required_notice     = get_option( 'wc_stripe_oauth_required' );
 		$options                   = WC_Stripe_Helper::get_stripe_settings();
 		$testmode                  = WC_Stripe_Mode::is_test();
 		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
@@ -632,6 +658,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'upe_payment_methods':
 					update_option( 'wc_stripe_show_upe_payment_methods_notice', 'no' );
+					break;
+				case 'oauth_required':
+					update_option( 'wc_stripe_show_oauth_required_notice', 'no' );
 					break;
 				case 'subscriptions':
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );

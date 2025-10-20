@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\Helpers;
 
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Sepa;
 use WC_Payment_Token_CC;
 use WC_Payment_Token_SEPA;
@@ -21,9 +21,9 @@ class WC_Helper_Token {
 	 *
 	 * @param string $payment_method Token payment method.
 	 * @param int    $user_id        ID of the token's user, defaults to get_current_user_id().
-	 * @param string $gateway        Token's Gateway ID, default to WC_Gateway_Stripe::ID
+	 * @param string $gateway        Token's Gateway ID, default to WC_Stripe_UPE_Payment_Gateway::ID
 	 */
-	public static function create_token( $payment_method, $user_id = null, $gateway = WC_Gateway_Stripe::ID ) {
+	public static function create_token( $payment_method, $user_id = null, $gateway = WC_Stripe_UPE_Payment_Gateway::ID ) {
 		$token = new WC_Payment_Token_CC();
 		$token->set_token( $payment_method );
 		$token->set_gateway_id( $gateway );

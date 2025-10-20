@@ -62,9 +62,18 @@ describe( 'Reconnect banner', () => {
 		const reconnectButton = getByText( 'Re-authenticate' );
 		await userEvent.click( reconnectButton );
 
-		expect( recordEvent ).toHaveBeenCalledWith(
+		expect( recordEvent ).toHaveBeenNthCalledWith(
+			1,
 			'wcstripe_create_or_connect_test_account_click',
 			{}
+		);
+		expect( recordEvent ).toHaveBeenNthCalledWith(
+			2,
+			'wcstripe_reconnect_button_click',
+			{
+				source: 're-connect-account-banner',
+				mode: 'test',
+			}
 		);
 
 		expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );

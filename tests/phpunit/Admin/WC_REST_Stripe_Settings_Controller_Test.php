@@ -5,7 +5,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 use Automattic\WooCommerce\Blocks\Package;
 use Exception;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_REST_Stripe_Settings_Controller;
 use WC_Stripe;
 use WC_Stripe_Feature_Flags;
@@ -21,7 +21,6 @@ use WP_REST_Response;
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
-
 	/**
 	 * Tested REST route.
 	 */
@@ -44,7 +43,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Gateway instance that the controller uses.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
 	/**
@@ -70,7 +69,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ];
 	}
 
 	/**
@@ -514,7 +513,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
 		// Settings controller with non-UPE gateway.
-		$gateway = new WC_Gateway_Stripe();
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$gateway->update_option( 'payment_request', $option_value );
 		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
 
@@ -637,7 +636,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * @return WC_Gateway_Stripe
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	private function get_gateway() {
 		return self::$gateway;

@@ -38,7 +38,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_pre_order_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
+		if ( self::$has_attached_pre_order_integration_hooks || WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
 			return;
 		}
 
@@ -170,11 +170,12 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Remove order meta.
 	 *
-	 * @param object $order
+	 * @param WC_Order $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		$order->delete_meta_data( '_stripe_source_id' );
-		$order->delete_meta_data( '_stripe_card_id' );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_source_id( $order );
+		$order_helper->delete_stripe_card_id( $order );
 		$order->save();
 	}
 
@@ -203,7 +204,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
+			WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), true ); // @phpstan-ignore-line (prepare_source is defined in the classes that use this trait)
 

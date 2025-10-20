@@ -78,7 +78,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( WC_Gateway_Stripe::ID !== $this->id ) {
+		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
 
@@ -446,6 +446,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 			// If the payment gateway is SEPA, use the charges API.
 			// TODO: Remove when SEPA is migrated to payment intents.
 			if ( 'stripe_sepa' === $this->id ) {
@@ -456,7 +458,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$this->lock_order_payment( $renewal_order );
+				$order_helper->lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -517,7 +519,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			$this->unlock_order_payment( $renewal_order );
+			$order_helper->unlock_order_payment( $renewal_order );
 
 			return;
 		}
@@ -589,7 +591,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$this->unlock_order_payment( $renewal_order );
+		$order_helper->unlock_order_payment( $renewal_order );
 	}
 
 	/**
@@ -638,15 +640,17 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Don't transfer Stripe customer/token meta to resubscribe orders.
 	 *
-	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
+	 * @param WC_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
-		$resubscribe_order->delete_meta_data( '_stripe_customer_id' );
-		$resubscribe_order->delete_meta_data( '_stripe_source_id' );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_source_id( $resubscribe_order );
+
+		$order_helper->delete_stripe_customer_id( $resubscribe_order );
 		// For BW compat will remove in future.
-		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
+		$order_helper->delete_stripe_card_id( $resubscribe_order );
 		// Delete payment intent ID.
-		$resubscribe_order->delete_meta_data( '_stripe_intent_id' );
+		$order_helper->delete_stripe_intent_id( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -657,11 +661,12 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
-		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_fee( $renewal_order );
+		$order_helper->delete_stripe_net( $renewal_order );
 
 		// Delete payment intent ID.
-		$renewal_order->delete_meta_data( '_stripe_intent_id' );
+		$order_helper->delete_stripe_intent_id( $renewal_order );
 
 		return $renewal_order;
 	}
@@ -675,8 +680,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$subscription->update_meta_data( '_stripe_customer_id', $order_helper->get_stripe_customer_id( $renewal_order ) );
+		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source_id( $renewal_order ) );
 		$subscription->save();
 	}
 
@@ -835,7 +841,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	private function get_mandate_for_subscription( $order, $payment_method ) {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
-
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
 			$renewal_order = wc_get_order( $renewal_order_id );
 			if ( ! $renewal_order instanceof WC_Order ) {
@@ -843,7 +848,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
+			$renewal_order_payment_method = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $renewal_order );
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -1004,16 +1009,17 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
+			$order_helper       = WC_Stripe_Order_Helper::get_instance();
 			$parent_order       = wc_get_order( $subscription->get_parent_id() );
-			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
-			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
+			$stripe_customer_id = $order_helper->get_stripe_customer_id( $parent_order );
+			$stripe_source_id   = $order_helper->get_stripe_source_id( $parent_order );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
+				$stripe_source_id = $order_helper->get_stripe_card_id( $parent_order );
 
 				// Take this opportunity to update the key name.
-				$parent_order->update_meta_data( '_stripe_source_id', $stripe_source_id );
+				$order_helper->update_stripe_source_id( $parent_order, $stripe_source_id );
 				$parent_order->save();
 			}
 		}

@@ -125,6 +125,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-exception.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-logger.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
@@ -370,6 +371,15 @@ class WC_Stripe {
 
 			// Try to schedule the daily async cleanup of the Stripe database cache.
 			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+
+			// If we have previously disabled settings synchronization, remove the flag after the upgrade,
+			// just to make sure we are still ineligible for settings synchronization.
+			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
+				unset( $stripe_settings['pmc_enabled'] );
+				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			}
 		}
 	}
 
@@ -572,7 +582,7 @@ class WC_Stripe {
 	 */
 	public function gateway_settings_update( $settings, $old_settings ) {
 		if ( false === $old_settings ) {
-			$gateway      = new WC_Gateway_Stripe();
+			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 			$settings     = array_merge( $old_settings, $settings );
@@ -806,17 +816,9 @@ class WC_Stripe {
 	 * @return WC_Stripe_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
-		if ( ! is_null( $this->stripe_gateway ) ) {
-			return $this->stripe_gateway;
-		}
-
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! $this->stripe_gateway ) {
 			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-
-			return $this->stripe_gateway;
 		}
-
-		$this->stripe_gateway = new WC_Gateway_Stripe();
 
 		return $this->stripe_gateway;
 	}
@@ -880,9 +882,11 @@ class WC_Stripe {
 	 * Toggle payment methods that should be enabled/disabled, e.g. unreleased,
 	 * BNPLs when other official plugins are active, etc.
 	 *
+	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
+	 *
 	 * @return void
 	 */
-	public function maybe_toggle_payment_methods() {
+	public function maybe_toggle_payment_methods( WC_Payment_Gateways $gateways ) {
 		$gateway = $this->get_main_stripe_gateway();
 		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return;
@@ -894,7 +898,7 @@ class WC_Stripe {
 		// Check for BNPLs that should be deactivated.
 		$payment_method_ids_to_disable = array_merge(
 			$payment_method_ids_to_disable,
-			$this->maybe_deactivate_bnpls( $enabled_payment_methods )
+			$this->maybe_deactivate_bnpls( $gateways->payment_gateways, $enabled_payment_methods )
 		);
 
 		// Check if Amazon Pay should be deactivated.
@@ -915,12 +919,20 @@ class WC_Stripe {
 	/**
 	 * Deactivate Affirm or Klarna payment methods if other official plugins are active.
 	 *
+	 * @param array $available_payment_gateways The available payment gateways.
 	 * @param array $enabled_payment_methods The enabled payment methods.
 	 * @return array The payment method IDs to disable.
 	 */
-	private function maybe_deactivate_bnpls( $enabled_payment_methods ) {
-		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
-		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
+	private function maybe_deactivate_bnpls( $available_payment_gateways, $enabled_payment_methods ) {
+		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active(
+			WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM,
+			$available_payment_gateways
+		);
+		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active(
+			WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA,
+			$available_payment_gateways
+		);
+
 		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
 			return [];
 		}
