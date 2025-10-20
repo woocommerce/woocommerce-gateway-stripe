@@ -414,8 +414,8 @@ class WC_Stripe {
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-			? $stripe_settings['payment_request_button_locations']
+		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
+			? $stripe_settings['express_checkout_button_locations']
 			: [];
 		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 			global $post;
@@ -438,7 +438,7 @@ class WC_Stripe {
 				$new_prb_locations[] = 'checkout';
 			}
 
-			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
+			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 	}

@@ -1285,8 +1285,8 @@ class WC_Stripe_Helper {
 	private static function should_load_scripts_for_prb_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
-		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
+		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
 		// The scripts should be loaded when all of the following are true:
 		//   1. The PRBs are enabled; and
