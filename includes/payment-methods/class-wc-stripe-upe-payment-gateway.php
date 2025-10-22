@@ -313,6 +313,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Add metadata to Stripe intents for easier debugging of BNPL issues.
 		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
+
+		// Hook for plugin upgrades.
+		add_action( 'woocommerce_updated', [ $this, 'maybe_onboard_with_transact' ] );
 	}
 
 	/**
@@ -3450,5 +3453,37 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->update_option( 'transact_onboarding_complete', 'yes' );
 		$this->transact_onboarding_complete = true;
+	}
+
+	/**
+	 * Checks whether new keys are being entered when saving options.
+	 *
+	 * @inheritDoc
+	 */
+	public function process_admin_options() {
+		// Trigger Transact onboarding when settings are saved.
+		$saved = parent::process_admin_options();
+		if ( $saved ) {
+			$this->maybe_onboard_with_transact();
+		}
+	}
+
+	/**
+	 * Maybe onboard with the Transact Platform.
+	 *
+	 * @return void
+	 */
+	private function maybe_onboard_with_transact(): void {
+		if ( ! is_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		// Do not run if Stripe is not enabled.
+		if ( 'yes' !== $this->enabled ) {
+			return;
+		}
+
+		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $this );
+		$transact_account_manager->do_onboarding();
 	}
 }

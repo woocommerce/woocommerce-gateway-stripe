@@ -996,6 +996,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Checks whether new keys are being entered when saving options.
+	 *
+	 * @return bool was anything saved?
+	 *
+	 * @todo Move this to the UPE class.
 	 */
 	public function process_admin_options() {
 		// Load all old values before the new settings get saved.
@@ -1004,7 +1008,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$old_test_publishable_key = $this->get_option( 'test_publishable_key' );
 		$old_test_secret_key      = $this->get_option( 'test_secret_key' );
 
-		parent::process_admin_options();
+		// Trigger Transact onboarding when settings are saved.
+		$saved = parent::process_admin_options();
 
 		// Load all old values after the new settings have been saved.
 		$new_publishable_key      = $this->get_option( 'publishable_key' );
@@ -1026,6 +1031,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		) {
 			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
 		}
+
+		return $saved;
 	}
 
 	public function validate_publishable_key_field( $key, $value ) {
