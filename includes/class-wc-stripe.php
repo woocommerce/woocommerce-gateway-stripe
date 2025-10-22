@@ -299,6 +299,9 @@ class WC_Stripe {
 
 		// Handle the async cache prefetch action.
 		add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
+
+		// Hook for plugin upgrades.
+		add_action( 'woocommerce_updated', [ $this, 'maybe_onboard_with_transact' ] );
 	}
 
 	/**
@@ -596,6 +599,8 @@ class WC_Stripe {
 		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			return $settings;
 		}
+
+		$this->maybe_onboard_with_transact();
 
 		return $this->toggle_upe( $settings, $old_settings );
 	}
@@ -972,5 +977,26 @@ class WC_Stripe {
 
 		// Disable Amazon Pay.
 		return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
+	}
+
+	/**
+	 * Maybe onboard with the Transact Platform.
+	 *
+	 * @return void
+	 */
+	private function maybe_onboard_with_transact(): void {
+		if ( ! is_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		$gateway = $this->get_main_stripe_gateway();
+
+		// Do not run if Stripe is not enabled.
+		if ( 'yes' !== $gateway->enabled ) {
+			return;
+		}
+
+		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $gateway );
+		$transact_account_manager->do_onboarding();
 	}
 }

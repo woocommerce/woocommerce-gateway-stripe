@@ -312,9 +312,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Add metadata to Stripe intents for easier debugging of BNPL issues.
 		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
-
-		// Hook for plugin upgrades.
-		add_action( 'woocommerce_updated', [ $this, 'maybe_onboard_with_transact' ] );
 	}
 
 	/**
@@ -3452,66 +3449,5 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->update_option( 'transact_onboarding_complete', 'yes' );
 		$this->transact_onboarding_complete = true;
-	}
-
-	/**
-	 * Checks whether new keys are being entered when saving options.
-	 *
-	 * @inheritDoc
-	 */
-	public function process_admin_options() {
-		// Load all old values before the new settings get saved.
-		$old_publishable_key      = $this->get_option( 'publishable_key' );
-		$old_secret_key           = $this->get_option( 'secret_key' );
-		$old_test_publishable_key = $this->get_option( 'test_publishable_key' );
-		$old_test_secret_key      = $this->get_option( 'test_secret_key' );
-
-		// Trigger Transact onboarding when settings are saved.
-		$saved = parent::process_admin_options();
-		if ( $saved ) {
-			$this->maybe_onboard_with_transact();
-		}
-
-		// Load all old values after the new settings have been saved.
-		$new_publishable_key      = $this->get_option( 'publishable_key' );
-		$new_secret_key           = $this->get_option( 'secret_key' );
-		$new_test_publishable_key = $this->get_option( 'test_publishable_key' );
-		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
-
-		// Checks whether a value has transitioned from a non-empty value to a new one.
-		$has_changed = function ( $old_value, $new_value ) {
-			return ! empty( $old_value ) && ( $old_value !== $new_value );
-		};
-
-		// Look for updates.
-		if (
-			$has_changed( $old_publishable_key, $new_publishable_key )
-			|| $has_changed( $old_secret_key, $new_secret_key )
-			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )
-			|| $has_changed( $old_test_secret_key, $new_test_secret_key )
-		) {
-			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
-		}
-
-		return $saved;
-	}
-
-	/**
-	 * Maybe onboard with the Transact Platform.
-	 *
-	 * @return void
-	 */
-	private function maybe_onboard_with_transact(): void {
-		if ( ! is_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
-			return;
-		}
-
-		// Do not run if Stripe is not enabled.
-		if ( 'yes' !== $this->enabled ) {
-			return;
-		}
-
-		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $this );
-		$transact_account_manager->do_onboarding();
 	}
 }
