@@ -318,11 +318,11 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * Get the transact account (merchant or provider) from the database cache.
 	 *
 	 * @param string $cache_key The cache key to get the account.
-	 * @return bool|null The transact account data, or null if the cache is
+	 * @return array|null The transact account data, or null if the cache is
 	 *                    empty or expired.
 	 */
-	private function get_transact_account_from_cache( $cache_key ): ?bool {
-		$transact_account = get_option( $cache_key, null );
+	private function get_transact_account_from_cache( $cache_key ): ?array {
+		$transact_account = WC_Stripe_Database_Cache::get( $cache_key );
 
 		if ( empty( $transact_account ) || ( isset( $transact_account['expiry'] ) && $transact_account['expiry'] < time() ) ) {
 			return null;
@@ -345,7 +345,7 @@ final class WC_Stripe_Transact_Account_Manager {
 			$endpoint .= '?' . http_build_query( $request_body );
 		}
 
-		$response = Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
+		$response = \Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
 			$endpoint,
 			self::WPCOM_PROXY_ENDPOINT_API_VERSION,
 			[
