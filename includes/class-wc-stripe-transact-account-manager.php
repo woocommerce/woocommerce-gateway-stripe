@@ -342,7 +342,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return array|null The API response body, or null if the request fails.
 	 */
-	private function send_transact_api_request( $method, $endpoint, $request_body ): ?array {
+	private function send_transact_api_request( $method, $endpoint, $request_body ) {
 		if ( 'GET' === $method ) {
 			$endpoint .= '?' . http_build_query( $request_body );
 		}
