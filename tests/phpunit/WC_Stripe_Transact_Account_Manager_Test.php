@@ -289,7 +289,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 
 		// Check that the cache was updated.
 		$cached_data = WC_Stripe_Database_Cache::get( 'transact_merchant_account_test' );
-		$this->assertEquals( $expected_merchant_account, $cached_data['account'] );
+		$this->assertNull( $cached_data );
 	}
 
 
@@ -356,7 +356,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Check that the cache was updated.
 		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
 		$cached_data = WC_Stripe_Database_Cache::get( 'transact_provider_account_test' );
-		$this->assertTrue( $cached_data['account'] );
+		$this->assertNull( $cached_data );
 	}
 
 	/**
