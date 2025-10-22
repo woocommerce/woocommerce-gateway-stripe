@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
 * Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
 * Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code

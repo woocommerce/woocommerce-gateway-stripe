@@ -1,4 +1,4 @@
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import StripeAuthDiagram from './stripe-auth-diagram';
 import StripeAuthActions from './stripe-auth-actions';
 import AccountStatusPanel from './account-status-panel';
