@@ -130,9 +130,9 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * is not in cache or expired.
 	 *
 	 * @param string $account_type The type of account to get (merchant or provider).
-	 * @return array|null Returns null if the transact account cannot be retrieved.
+	 * @return array|bool|null Returns null if the transact account cannot be retrieved.
 	 */
-	public function get_transact_account_data( $account_type ): ?array {
+	public function get_transact_account_data( $account_type ) {
 		$cache_key = $this->get_cache_key( $account_type );
 
 		// Get transact account from cache. If not found, fetch/create it.
@@ -318,10 +318,10 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * Get the transact account (merchant or provider) from the database cache.
 	 *
 	 * @param string $cache_key The cache key to get the account.
-	 * @return array|null The transact account data, or null if the cache is
+	 * @return array|bool|null The transact account data, or null if the cache is
 	 *                    empty or expired.
 	 */
-	private function get_transact_account_from_cache( $cache_key ): ?array {
+	private function get_transact_account_from_cache( $cache_key ) {
 		$transact_account = WC_Stripe_Database_Cache::get( $cache_key );
 
 		if ( empty( $transact_account ) || ( isset( $transact_account['expiry'] ) && $transact_account['expiry'] < time() ) ) {
