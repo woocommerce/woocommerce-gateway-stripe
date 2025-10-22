@@ -924,6 +924,27 @@ class WC_Stripe {
 	}
 
 	/**
+	 * Maybe onboard with the Transact Platform.
+	 *
+	 * @return void
+	 */
+	public function maybe_onboard_with_transact(): void {
+		if ( ! is_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		$gateway = $this->get_main_stripe_gateway();
+
+		// Do not run if Stripe is not enabled.
+		if ( 'yes' !== $gateway->enabled ) {
+			return;
+		}
+
+		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $gateway );
+		$transact_account_manager->do_onboarding();
+	}
+
+	/**
 	 * Deactivate Affirm or Klarna payment methods if other official plugins are active.
 	 *
 	 * @param array $available_payment_gateways The available payment gateways.
@@ -977,26 +998,5 @@ class WC_Stripe {
 
 		// Disable Amazon Pay.
 		return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
-	}
-
-	/**
-	 * Maybe onboard with the Transact Platform.
-	 *
-	 * @return void
-	 */
-	private function maybe_onboard_with_transact(): void {
-		if ( ! is_admin() || ! current_user_can( 'manage_woocommerce' ) ) {
-			return;
-		}
-
-		$gateway = $this->get_main_stripe_gateway();
-
-		// Do not run if Stripe is not enabled.
-		if ( 'yes' !== $gateway->enabled ) {
-			return;
-		}
-
-		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $gateway );
-		$transact_account_manager->do_onboarding();
 	}
 }
