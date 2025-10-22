@@ -3431,11 +3431,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Get the Jetpack Connection Manager instance.
 	 *
-	 * @return Automattic\Jetpack\Connection\Manager
+	 * @return \Automattic\Jetpack\Connection\Manager
 	 */
-	public function get_jetpack_connection_manager(): Automattic\Jetpack\Connection\Manager {
+	public function get_jetpack_connection_manager(): \Automattic\Jetpack\Connection\Manager {
 		if ( ! $this->jetpack_connection_manager ) {
-			$this->jetpack_connection_manager = new Automattic\Jetpack\Connection\Manager( 'woocommerce' );
+			$this->jetpack_connection_manager = new \Automattic\Jetpack\Connection\Manager( 'woocommerce' );
 		}
 		return $this->jetpack_connection_manager;
 	}
