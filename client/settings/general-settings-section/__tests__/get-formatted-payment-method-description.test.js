@@ -32,7 +32,7 @@ describe( 'getFormattedPaymentMethodDescription', () => {
 			PAYMENT_METHOD_AFTERPAY_CLEARPAY
 		);
 		expect( result ).toEqual(
-			// eslint-disable-next-line react/jsx-no-undef
+			// prettier-ignore
 			<React.Fragment>
 				Allow customers to pay over time with Afterpay. <a
 					href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
