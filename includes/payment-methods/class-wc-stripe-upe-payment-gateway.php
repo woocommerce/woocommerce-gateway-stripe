@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\Jetpack\Connection\Manager as Jetpack_Connection_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -180,6 +181,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @var WC_Stripe_UPE_Payment_Method[]
 	 */
 	public $payment_methods = [];
+
+	/**
+	 * Jetpack connection manager.
+	 *
+	 * @var Jetpack_Connection_Manager
+	 */
+	private $jetpack_connection_manager;
+
+	/**
+	 * Whether the Transact onboarding is complete.
+	 *
+	 * @var bool
+	 */
+	private $transact_onboarding_complete;
 
 	/**
 	 * Constructor
@@ -3409,5 +3424,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// considered enabled if either is enabled in Stripe.
 		return in_array( WC_Stripe_Payment_Methods::APPLE_PAY, $enabled_payment_method_ids, true ) ||
 			in_array( WC_Stripe_Payment_Methods::GOOGLE_PAY, $enabled_payment_method_ids, true );
+	}
+
+	/**
+	 * Get the Jetpack Connection Manager instance.
+	 *
+	 * @return Jetpack_Connection_Manager
+	 */
+	public function get_jetpack_connection_manager(): Jetpack_Connection_Manager {
+		if ( ! $this->jetpack_connection_manager ) {
+			$this->jetpack_connection_manager = new Jetpack_Connection_Manager( 'woocommerce' );
+		}
+		return $this->jetpack_connection_manager;
+	}
+
+	/**
+	 * Set the Transact onboarding as complete.
+	 *
+	 * @return void
+	 */
+	public function set_transact_onboarding_complete(): void {
+		if ( $this->transact_onboarding_complete ) {
+			return;
+		}
+
+		$this->update_option( 'transact_onboarding_complete', 'yes' );
+		$this->transact_onboarding_complete = true;
 	}
 }

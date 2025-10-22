@@ -67,7 +67,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return void
 	 */
-	public function do_onboarding() {
+	public function do_onboarding(): void {
 		$stripe_connect  = woocommerce_gateway_stripe()->connect;
 		$mode            = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		$oauth_connected = (bool) $stripe_connect->is_connected_via_oauth( $mode );
@@ -134,7 +134,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * @param string $account_type The type of account to get (merchant or provider).
 	 * @return array|null Returns null if the transact account cannot be retrieved.
 	 */
-	public function get_transact_account_data( $account_type ) {
+	public function get_transact_account_data( $account_type ): ?array {
 		$cache_key = $this->get_cache_key( $account_type );
 
 		// Get transact account from cache. If not found, fetch/create it.
@@ -160,7 +160,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * @param string $account_type The type of account to get (merchant or provider).
 	 * @return string|null The cache key, or null if the account type is invalid.
 	 */
-	private function get_cache_key( $account_type ) {
+	private function get_cache_key( $account_type ): ?string {
 		if ( 'merchant' === $account_type ) {
 			return WC_Stripe_Mode::is_test() ? self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_TEST : self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_LIVE;
 		}
@@ -177,7 +177,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return array|null The API response body, or null if the request fails.
 	 */
-	private function fetch_merchant_account() {
+	private function fetch_merchant_account(): ?array {
 		$site_id = \Jetpack_Options::get_option( 'id' );
 		if ( ! $site_id ) {
 			return null;
@@ -210,7 +210,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return bool True if the provider account exists, false otherwise.
 	 */
-	private function fetch_provider_account() {
+	private function fetch_provider_account(): bool {
 		$site_id = \Jetpack_Options::get_option( 'id' );
 		if ( ! $site_id ) {
 			return false;
@@ -241,7 +241,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return array|null The API response body, or null if the request fails.
 	 */
-	private function create_merchant_account() {
+	private function create_merchant_account(): ?array {
 		$site_id = \Jetpack_Options::get_option( 'id' );
 		if ( ! $site_id ) {
 			return null;
@@ -273,7 +273,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return bool True if the provider account creation was successful, false otherwise.
 	 */
-	private function create_provider_account() {
+	private function create_provider_account(): bool {
 		$site_id = \Jetpack_Options::get_option( 'id' );
 		if ( ! $site_id ) {
 			return false;
@@ -304,7 +304,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * @param string $cache_key The cache key to update.
 	 * @param array  $account_data The transact account data.
 	 */
-	private function update_transact_account_cache( $cache_key, $account_data ) {
+	private function update_transact_account_cache( $cache_key, $account_data ): void {
 		$expires = time() + self::TRANSACT_ACCOUNT_CACHE_EXPIRY;
 		WC_Stripe_Database_Cache::set(
 			$cache_key,
@@ -323,7 +323,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * @return bool|null The transact account data, or null if the cache is
 	 *                    empty or expired.
 	 */
-	private function get_transact_account_from_cache( $cache_key ) {
+	private function get_transact_account_from_cache( $cache_key ): ?bool {
 		$transact_account = get_option( $cache_key, null );
 
 		if ( empty( $transact_account ) || ( isset( $transact_account['expiry'] ) && $transact_account['expiry'] < time() ) ) {
@@ -342,7 +342,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @return array|null The API response body, or null if the request fails.
 	 */
-	private function send_transact_api_request( $method, $endpoint, $request_body ) {
+	private function send_transact_api_request( $method, $endpoint, $request_body ): ?array {
 		if ( 'GET' === $method ) {
 			$endpoint .= '?' . http_build_query( $request_body );
 		}
