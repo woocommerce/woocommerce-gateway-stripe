@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\Jetpack\Connection\Client as Jetpack_Connection_Client;
-
 /**
  * Class WC_Stripe_Transact_Account_Manager.
  *
@@ -347,7 +345,7 @@ final class WC_Stripe_Transact_Account_Manager {
 			$endpoint .= '?' . http_build_query( $request_body );
 		}
 
-		$response = Jetpack_Connection_Client::wpcom_json_api_request_as_blog(
+		$response = Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
 			$endpoint,
 			self::WPCOM_PROXY_ENDPOINT_API_VERSION,
 			[
