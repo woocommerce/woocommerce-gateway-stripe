@@ -1,7 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
-use Automattic\Jetpack\Connection\Manager as Jetpack_Connection_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -185,7 +184,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Jetpack connection manager.
 	 *
-	 * @var Jetpack_Connection_Manager
+	 * @var Automattic\Jetpack\Connection\Manager
 	 */
 	private $jetpack_connection_manager;
 
@@ -3432,11 +3431,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Get the Jetpack Connection Manager instance.
 	 *
-	 * @return Jetpack_Connection_Manager
+	 * @return Automattic\Jetpack\Connection\Manager
 	 */
-	public function get_jetpack_connection_manager(): Jetpack_Connection_Manager {
+	public function get_jetpack_connection_manager(): Automattic\Jetpack\Connection\Manager {
 		if ( ! $this->jetpack_connection_manager ) {
-			$this->jetpack_connection_manager = new Jetpack_Connection_Manager( 'woocommerce' );
+			$this->jetpack_connection_manager = new Automattic\Jetpack\Connection\Manager( 'woocommerce' );
 		}
 		return $this->jetpack_connection_manager;
 	}
