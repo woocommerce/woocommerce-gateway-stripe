@@ -3461,11 +3461,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @inheritDoc
 	 */
 	public function process_admin_options() {
+		// Load all old values before the new settings get saved.
+		$old_publishable_key      = $this->get_option( 'publishable_key' );
+		$old_secret_key           = $this->get_option( 'secret_key' );
+		$old_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$old_test_secret_key      = $this->get_option( 'test_secret_key' );
+
 		// Trigger Transact onboarding when settings are saved.
 		$saved = parent::process_admin_options();
 		if ( $saved ) {
 			$this->maybe_onboard_with_transact();
 		}
+
+		// Load all old values after the new settings have been saved.
+		$new_publishable_key      = $this->get_option( 'publishable_key' );
+		$new_secret_key           = $this->get_option( 'secret_key' );
+		$new_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
+
+		// Checks whether a value has transitioned from a non-empty value to a new one.
+		$has_changed = function ( $old_value, $new_value ) {
+			return ! empty( $old_value ) && ( $old_value !== $new_value );
+		};
+
+		// Look for updates.
+		if (
+			$has_changed( $old_publishable_key, $new_publishable_key )
+			|| $has_changed( $old_secret_key, $new_secret_key )
+			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )
+			|| $has_changed( $old_test_secret_key, $new_test_secret_key )
+		) {
+			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
+		}
+
+		return $saved;
 	}
 
 	/**
