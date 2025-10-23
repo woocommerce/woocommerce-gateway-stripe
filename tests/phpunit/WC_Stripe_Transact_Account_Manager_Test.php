@@ -77,7 +77,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		woocommerce_gateway_stripe()->connect = $stripe_connect_mock;
 
 		// Create account manager instance.
-		$this->account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$this->account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 	}
 
 	/**
@@ -178,7 +178,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
 		// Should do nothing. Should not throw any errors.
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$account_manager->do_onboarding();
 
 		// Clean up the filters.
@@ -214,7 +214,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
 		// Should do nothing. Should not throw any errors.
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$account_manager->do_onboarding();
 
 		// Check that it returns true.
@@ -272,7 +272,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Return a successful response, with the merchant account data.
 		add_filter( 'pre_http_request', [ $this, 'return_merchant_account_api_success' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$result          = $account_manager->get_transact_account_data( 'merchant' );
 
 		// Clean up the filters and cache.
@@ -340,7 +340,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Return a successful response, with the provider account data.
 		add_filter( 'pre_http_request', [ $this, 'return_provider_account_api_success' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$result          = $account_manager->get_transact_account_data( 'provider' );
 
 		// Clean up the filters and cache.
@@ -372,7 +372,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Mock the HTTP request to return an error.
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$reflection      = new \ReflectionClass( $account_manager );
 		$method          = $reflection->getMethod( 'fetch_merchant_account' );
 		$method->setAccessible( true );
@@ -400,7 +400,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Mock the HTTP request to return a successful response.
 		add_filter( 'pre_http_request', [ $this, 'return_merchant_account_api_success' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$reflection      = new \ReflectionClass( $account_manager );
 		$method          = $reflection->getMethod( 'fetch_merchant_account' );
 		$method->setAccessible( true );
@@ -429,7 +429,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
 		// Create a real account manager instance.
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 
 		// Use reflection to access the private fetch_provider_account method.
 		$reflection = new \ReflectionClass( $account_manager );
@@ -458,7 +458,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Mock the HTTP request to return a successful response.
 		add_filter( 'pre_http_request', [ $this, 'return_provider_account_api_success' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$reflection      = new \ReflectionClass( $account_manager );
 		$method          = $reflection->getMethod( 'fetch_provider_account' );
 		$method->setAccessible( true );
@@ -487,7 +487,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
 		// Create a real account manager instance.
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 
 		// Use reflection to access the private create_merchant_account method.
 		$reflection    = new \ReflectionClass( $account_manager );
@@ -519,7 +519,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_merchant_account_api_success' ] );
 
 		// Create a real account manager instance.
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 
 		// Use reflection to access the private create_merchant_account method.
 		$reflection = new \ReflectionClass( $account_manager );
@@ -550,7 +550,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Mock the HTTP request to return an error.
 		add_filter( 'pre_http_request', [ $this, 'return_api_error' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$reflection      = new \ReflectionClass( $account_manager );
 		$method          = $reflection->getMethod( 'create_provider_account' );
 		$method->setAccessible( true );
@@ -578,7 +578,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Mock the HTTP request to return a successful response.
 		add_filter( 'pre_http_request', [ $this, 'return_provider_account_api_success' ] );
 
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$reflection      = new \ReflectionClass( $account_manager );
 		$method          = $reflection->getMethod( 'create_provider_account' );
 		$method->setAccessible( true );
