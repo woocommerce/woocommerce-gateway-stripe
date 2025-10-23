@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Transact_Account_Manager;
 use WC_Stripe_UPE_Payment_Gateway;
 
 /**
@@ -151,6 +152,90 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
 				'update enable payment methods calls' => 1,
+			],
+		];
+	}
+
+	/**
+	 * Tests for `maybe_onboard_with_transact`.
+	 *
+	 * @param bool $can_manage_woocommerce Whether the user can manage WooCommerce.
+	 * @param bool $gateway_enabled        Whether the gateway is enabled.
+	 * @param bool $onboarding_called      Whether onboarding is expected to be called.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_maybe_onboard_with_transact
+	 */
+	public function test_maybe_onboard_with_transact( $can_manage_woocommerce = false, $gateway_enabled = true, $onboarding_called = false ): void {
+		// Mock the GLOBALS to return `true` for `is_admin`
+		$current_screen = $this->getMockBuilder( \stdClass::class )
+			->addMethods( [ 'in_admin' ] )
+			->getMock();
+
+		$current_screen->expects( $this->any() )
+			->method( 'in_admin' )
+			->willReturn( true );
+
+		$GLOBALS['current_screen'] = $current_screen; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+		$user_cap_filter = function ( $allcaps ) use ( $can_manage_woocommerce ) {
+			$allcaps['manage_woocommerce'] = $can_manage_woocommerce;
+			return $allcaps;
+		};
+		add_filter( 'user_has_cap', $user_cap_filter );
+
+		$transact_account_manager = $this->getMockBuilder( WC_Stripe_Transact_Account_Manager::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'do_onboarding' ] )
+			->getMock();
+
+		$transact_account_manager->expects( $onboarding_called ? $this->once() : $this->never() )
+			->method( 'do_onboarding' );
+
+		WC_Stripe_Transact_Account_Manager::set_instance( $transact_account_manager );
+
+		$upe_payment_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$upe_payment_gateway->enabled = $gateway_enabled ? 'yes' : 'no';
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_main_stripe_gateway' ] )
+			->getMock();
+
+		$wc_stripe->method( 'get_main_stripe_gateway' )
+			->willReturn( $upe_payment_gateway );
+
+		$wc_stripe->maybe_onboard_with_transact();
+
+		// Clean up.
+		remove_filter( 'user_has_cap', $user_cap_filter );
+		unset( $GLOBALS['current_screen'] );
+	}
+
+	/**
+	 * Provider for `test_maybe_onboard_with_transact`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_onboard_with_transact(): array {
+		return [
+			'user cannot manage woocommerce' => [
+				'user can manage woocommerce' => false,
+				'gateway is enabled'          => true,
+				'onboarding called'           => false,
+			],
+			'gateway is not enabled'         => [
+				'user can manage woocommerce' => true,
+				'gateway is enabled'          => false,
+				'onboarding called'           => false,
+			],
+			'onboarding called successfully' => [
+				'user can manage woocommerce' => true,
+				'gateway is enabled'          => true,
+				'onboarding called'           => true,
 			],
 		];
 	}
