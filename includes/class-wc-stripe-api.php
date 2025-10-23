@@ -622,8 +622,11 @@ class WC_Stripe_API {
 	 */
 	private static function get_stripe_request_id( $response ) {
 		$headers = wp_remote_retrieve_headers( $response );
-		if ( ! empty( $headers ) ) {
-			return $headers->getAll()['request-id'];
+		if ( is_array( $headers ) ) {
+			return $headers['request-id'] ?? '';
+		}
+		if ( is_object( $headers ) && $headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary ) {
+			return $headers->getAll()['request-id'] ?? '';
 		}
 		return '';
 	}
