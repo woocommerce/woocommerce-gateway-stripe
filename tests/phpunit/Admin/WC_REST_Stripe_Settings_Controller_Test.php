@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use Automattic\WooCommerce\Blocks\Package;
 use Exception;
+use WC_Stripe_Transact_Account_Manager;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_REST_Stripe_Settings_Controller;
@@ -512,7 +513,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * @dataProvider is_payment_request_enabled_legacy_provider
 	 */
 	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
-		// Settings controller with non-UPE gateway.
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$gateway->update_option( 'payment_request', $option_value );
 		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
@@ -590,6 +590,55 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				'tabs',
 				'foo',
 				true, // is_upe_enabled
+			],
+		];
+	}
+
+	/**
+	 * Tests for `maybe_onboard_with_transact`.
+	 *
+	 * @param bool $gateway_enabled     Whether the gateway is enabled.
+	 * @param bool $expected_to_onboard Whether onboarding is expected to occur.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_maybe_onboard_with_transact
+	 */
+	public function test_maybe_onboard_with_transact( bool $gateway_enabled = true, bool $expected_to_onboard = false ): void {
+		$gateway          = $this->get_gateway();
+		$gateway->enabled = $gateway_enabled ? 'yes' : 'no';
+
+		$transact_account_manager = $this->getMockBuilder( WC_Stripe_Transact_Account_Manager::class )
+			->onlyMethods( [ 'do_onboarding' ] )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$transact_account_manager
+			->expects( $expected_to_onboard ? $this->once() : $this->never() )
+			->method( 'do_onboarding' );
+
+		WC_Stripe_Transact_Account_Manager::set_instance( $transact_account_manager );
+
+		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
+		$controller->maybe_onboard_with_transact();
+
+		// Clean up
+		$gateway->enabled = 'yes';
+	}
+
+	/**
+	 * Provider for `test_maybe_onboard_with_transact`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_onboard_with_transact(): array {
+		return [
+			'gateway not enabled' => [
+				'gateway enabled'     => false,
+				'expected to onboard' => false,
+			],
+			'gateway enabled'     => [
+				'gateway enabled'     => true,
+				'expected to onboard' => true,
 			],
 		];
 	}

@@ -5,7 +5,7 @@
  *
  * Handles transact account management for WooCommerce Stripe integration.
  */
-final class WC_Stripe_Transact_Account_Manager {
+class WC_Stripe_Transact_Account_Manager {
 	/**
 	 * The API version for the proxy endpoint.
 	 *
@@ -63,7 +63,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe gateway instance.
 	 */
-	private function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
+	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
 	}
 
