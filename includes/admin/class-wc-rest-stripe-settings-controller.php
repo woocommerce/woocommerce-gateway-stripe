@@ -310,7 +310,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$transact_account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 		$transact_account_manager->do_onboarding();
 	}
 

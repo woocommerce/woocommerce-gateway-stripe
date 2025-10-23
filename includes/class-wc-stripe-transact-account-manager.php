@@ -52,12 +52,43 @@ final class WC_Stripe_Transact_Account_Manager {
 	private $gateway;
 
 	/**
+	 * Singleton instance of the class.
+	 *
+	 * @var null|WC_Stripe_Transact_Account_Manager
+	 */
+	private static ?WC_Stripe_Transact_Account_Manager $instance = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe gateway instance.
 	 */
-	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
+	private function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
+	}
+
+	/**
+	 * Gets the singleton instance of the class.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe gateway instance.
+	 * @return WC_Stripe_Transact_Account_Manager|null
+	 */
+	public static function get_instance( WC_Stripe_UPE_Payment_Gateway $gateway ): ?self {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self( $gateway );
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Sets the singleton instance of the class.
+	 *
+	 * @param WC_Stripe_Transact_Account_Manager|null $instance
+	 * @return void
+	 */
+	public static function set_instance( ?self $instance ) {
+		self::$instance = $instance;
 	}
 
 	/**

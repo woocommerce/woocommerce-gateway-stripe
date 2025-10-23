@@ -938,7 +938,7 @@ class WC_Stripe {
 			return;
 		}
 
-		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $gateway );
+		$transact_account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $gateway );
 		$transact_account_manager->do_onboarding();
 	}
 
