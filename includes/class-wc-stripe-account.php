@@ -277,7 +277,10 @@ class WC_Stripe_Account {
 	/**
 	 * Configures webhooks for the account.
 	 *
+	 * Note: The caller is responsible for setting the appropriate API secret key before calling this method.
+	 *
 	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
+	 * @param string $secret_key The secret key to save in webhook settings.
 	 *
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
@@ -288,12 +291,6 @@ class WC_Stripe_Account {
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
-
-		// If a secret key is provided, use it to configure the webhooks.
-		if ( $secret_key ) {
-			$previous_secret = WC_Stripe_API::get_secret_key();
-			WC_Stripe_API::set_secret_key( $secret_key );
-		}
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
@@ -309,11 +306,6 @@ class WC_Stripe_Account {
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
 
-		// Restore the previous secret key if we changed it.
-		if ( $secret_key && isset( $previous_secret ) ) {
-			WC_Stripe_API::set_secret_key( $previous_secret );
-		}
-
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
@@ -324,7 +316,7 @@ class WC_Stripe_Account {
 		$settings[ $webhook_data_setting ]   = [
 			'id'     => wc_clean( $response->id ),
 			'url'    => wc_clean( $response->url ),
-			'secret' => WC_Stripe_API::get_secret_key(),
+			'secret' => $secret_key,
 		];
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
