@@ -87,6 +87,12 @@ const StripeAuthAccount = ( { testMode } ) => {
 			<p className="woocommerce-stripe-auth__help">
 				{ getHelpText( testMode ) }
 			</p>
+			<p className="woocommerce-stripe-auth__help">
+				{ __(
+					'Some payment methods are automatically enabled when you connect your account. Review your Payment Methods settings for details.',
+					'woocommerce-gateway-stripe'
+				) }
+			</p>
 			<StripeAuthActions
 				testMode={ testMode }
 				displayWebhookConfigure={ displayWebhookConfigure }
