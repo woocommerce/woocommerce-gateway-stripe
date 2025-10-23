@@ -285,7 +285,11 @@ class WC_Stripe_Account {
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+	public function configure_webhooks( $mode = 'live', $secret_key ) {
+		if ( empty( $secret_key ) ) {
+			throw new Exception( __( 'Secret key is required to configure webhooks.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
