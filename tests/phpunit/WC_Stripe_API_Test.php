@@ -209,4 +209,71 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			'body'     => json_encode( [ 'error' => 'invalid_api_key' ] ),
 		];
 	}
+
+	public function provide_test_should_detach_payment_method_from_customer(): array {
+		return [
+			'test mode should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => true,
+				'is_admin_request'       => false,
+				'is_wc_sub_staging_site' => false,
+				'wp_env_type'            => '',
+			],
+			'admin request should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => false,
+				'is_admin_request'       => true,
+				'is_wc_sub_staging_site' => false,
+				'wp_env_type'            => '',
+			],
+			// Ideally, we would test multiple environment types, but wp_get_environment_type() uses a
+			// static variable that can't be modified between tests.
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_should_detach_payment_method_from_customer
+	 */
+	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_wc_sub_staging_site = false, string $wp_env_type = '' ) {
+		$initial_test_mode = \WC_Stripe_Mode::is_test();
+
+		$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $is_test_mode ? 'yes' : 'no';
+		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$initial_current_screen = null;
+		$reset_current_screen   = false;
+
+		if ( $is_admin_request ) {
+			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+			$reset_current_screen   = true;
+
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+		}
+
+		require_once __DIR__ . '/Helpers/WCS_Staging.php';
+		\WCS_Staging::set_is_staging_site( $is_wc_sub_staging_site );
+
+		$initial_wp_env_type = wp_get_environment_type();
+		if ( '' !== $wp_env_type ) {
+			\putenv( 'WP_ENVIRONMENT_TYPE=' . $wp_env_type );
+		}
+
+		$result = \WC_Stripe_API::should_detach_payment_method_from_customer();
+
+		// Reset the environment before running any assertions.
+		if ( $reset_current_screen ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = $initial_current_screen;
+		}
+
+		\WCS_Staging::set_is_staging_site( false );
+
+		if ( '' !== $wp_env_type ) {
+			\putenv( 'WP_ENVIRONMENT_TYPE=' . $initial_wp_env_type );
+		}
+
+		$this->assertEquals( $expected_return, $result );
+	}
 }
