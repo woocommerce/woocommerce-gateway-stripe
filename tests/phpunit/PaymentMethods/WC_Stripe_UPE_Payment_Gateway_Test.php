@@ -3132,4 +3132,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertArrayHasKey( 'pmc_enabled', $result );
 		$this->assertEquals( 'yes', $result['pmc_enabled'] );
 	}
+
+	/**
+	 * Tests for `get_jetpack_connection_manager`.
+	 *
+	 * @return void
+	 */
+	public function test_get_jetpack_connection_manager(): void {
+		$this->assertInstanceOf(
+			\Automattic\Jetpack\Connection\Manager::class,
+			$this->mock_gateway->get_jetpack_connection_manager()
+		);
+	}
+
+	/**
+	 * Tests for `set_transact_onboarding_complete`.
+	 *
+	 * @return void
+	 */
+	public function test_set_transact_onboarding_complete(): void {
+		$this->mock_gateway->set_transact_onboarding_complete();
+		$this->assertEquals( 'yes', $this->mock_gateway->get_option( 'transact_onboarding_complete' ) );
+	}
 }
