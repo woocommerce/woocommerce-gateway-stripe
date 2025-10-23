@@ -600,8 +600,6 @@ class WC_Stripe {
 			return $settings;
 		}
 
-		$this->maybe_onboard_with_transact();
-
 		return $this->toggle_upe( $settings, $old_settings );
 	}
 

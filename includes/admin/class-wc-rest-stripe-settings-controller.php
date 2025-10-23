@@ -293,7 +293,25 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_oc_settings( $request );
 
+		$this->maybe_onboard_with_transact();
+
 		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Maybe onboard with the Transact Platform.
+	 *
+	 * @return void
+	 */
+	public function maybe_onboard_with_transact() {
+		wc_get_logger()->info( 'maybe_onboard_with_transact' );
+		// Do not run if Stripe is not enabled.
+		if ( 'yes' !== $this->gateway->enabled ) {
+			return;
+		}
+
+		$transact_account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$transact_account_manager->do_onboarding();
 	}
 
 	/**

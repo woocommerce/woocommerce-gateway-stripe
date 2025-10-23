@@ -25,7 +25,7 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @var string
 	 */
-	private const TRANSACT_PROVIDER_TYPE = 'stripe';
+	private const TRANSACT_PROVIDER_TYPE = 'wc_stripe';
 
 	/**
 	 * Cache keys for the merchant and provider accounts.
@@ -106,6 +106,8 @@ final class WC_Stripe_Transact_Account_Manager {
 			);
 		}
 
+		wc_get_logger()->info( 'merchant_account_data: ' . wc_print_r( $merchant_account_data, true ) );
+
 		$provider_account_data = $this->get_transact_account_data( 'provider' );
 		if ( empty( $provider_account_data ) ) {
 			$provider_account = $this->create_provider_account();
@@ -120,6 +122,8 @@ final class WC_Stripe_Transact_Account_Manager {
 				$provider_account
 			);
 		}
+
+		wc_get_logger()->info( 'provider_account_data: ' . wc_print_r( $provider_account_data, true ) );
 
 		// Set an extra flag to indicate that we've completed onboarding.
 		$this->gateway->set_transact_onboarding_complete();
