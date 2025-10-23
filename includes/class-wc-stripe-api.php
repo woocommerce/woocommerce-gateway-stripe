@@ -39,6 +39,21 @@ class WC_Stripe_API {
 	protected const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
 
 	/**
+	 * The API version for the proxy endpoint.
+	 *
+	 * @var int
+	 */
+	private const WPCOM_PROXY_ENDPOINT_API_VERSION = 2;
+
+	/**
+	 * The base for the proxy REST endpoint.
+	 *
+	 * @var string
+	 */
+	private const WPCOM_PROXY_REST_BASE = 'transact/stripe/proxy';
+
+
+	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -146,7 +161,7 @@ class WC_Stripe_API {
 		$app_info   = $user_agent['application'];
 
 		$headers = [
-			'Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
@@ -300,16 +315,12 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
+		WC_Stripe_Logger::debug( "Stripe API request proxy: GET {$api}" );
 
-		$response = wp_safe_remote_get(
-			self::ENDPOINT . $api,
-			[
-				'method'  => 'GET',
-				'headers' => self::get_headers(),
-				'timeout' => 70,
-			]
-		);
+		$request_body = [
+			'test_mode' => WC_Stripe_Mode::is_test(),
+		];
+		$response = self::send_wpcom_proxy_request( 'GET', 'v1/' . $api, $request_body );
 
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
@@ -358,9 +369,35 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug( "Stripe API response proxy: GET {$api}", [ 'response' => $response_body ] );
 
 		return $response_body;
+	}
+
+	public static function send_wpcom_proxy_request( $method, $endpoint, $request_body ) {
+		$site_id = \Jetpack_Options::get_option( 'id' );
+		if ( ! $site_id ) {
+			WC_Stripe_Logger::error( sprintf( 'Site ID not found. Cannot send request to %s.', $endpoint ) );
+			throw new Exception( 'Site ID not found. Cannot send proxy request.' );
+		}
+
+		if ( 'GET' === $method ) {
+			$endpoint .= '?' . http_build_query( $request_body );
+		}
+
+		$response = \Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
+			sprintf( '/sites/%d/%s/%s', $site_id, self::WPCOM_PROXY_REST_BASE, $endpoint ),
+			self::WPCOM_PROXY_ENDPOINT_API_VERSION,
+			[
+				'headers' => self::get_headers(),
+				'method'  => $method,
+				'timeout' => 70,
+			],
+			'GET' === $method ? null : wp_json_encode( $request_body ),
+			'wpcom'
+		);
+
+		return $response;
 	}
 
 	/**
