@@ -95,15 +95,18 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	/**
 	 * Test `get_instance` sets gateway.
 	 */
-	public function test_get_instance_sets_gateway() {
+	public function test_get_instance_set_instance() {
 		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
+		$this->assertInstanceOf( WC_Stripe_Transact_Account_Manager::class, $account_manager );
 
-		// Use reflection to access the private gateway property.
-		$reflection       = new \ReflectionClass( $account_manager );
-		$gateway_property = $reflection->getProperty( 'gateway' );
-		$gateway_property->setAccessible( true );
+		// Test setting a custom instance.
+		$custom_transaction_manager = new class( $this->gateway ) extends WC_Stripe_Transact_Account_Manager {
+			public string $test_property = 'foo';
+		};
 
-		$this->assertSame( $this->gateway, $gateway_property->getValue( $account_manager ) );
+		WC_Stripe_Transact_Account_Manager::set_instance( $custom_transaction_manager );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
+		$this->assertEquals( 'foo', $account_manager->test_property );
 	}
 
 	/**
