@@ -96,7 +96,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	 * Test constructor sets gateway.
 	 */
 	public function test_constructor_sets_gateway() {
-		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$account_manager = WC_Stripe_Transact_Account_Manager::get_instance( $this->gateway );
 
 		// Use reflection to access the private gateway property.
 		$reflection       = new \ReflectionClass( $account_manager );
