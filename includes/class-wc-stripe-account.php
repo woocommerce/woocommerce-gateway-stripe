@@ -277,18 +277,12 @@ class WC_Stripe_Account {
 	/**
 	 * Configures webhooks for the account.
 	 *
-	 * Note: The caller is responsible for setting the appropriate API secret key before calling this method.
-	 *
 	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
-	 * @param string $secret_key The secret key to save in webhook settings.
 	 *
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live', $secret_key ) {
-		if ( empty( $secret_key ) ) {
-			throw new Exception( __( 'Secret key is required to configure webhooks.', 'woocommerce-gateway-stripe' ) );
-		}
+	public function configure_webhooks( $mode = 'live' ) {
 
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
@@ -320,7 +314,7 @@ class WC_Stripe_Account {
 		$settings[ $webhook_data_setting ]   = [
 			'id'     => wc_clean( $response->id ),
 			'url'    => wc_clean( $response->url ),
-			'secret' => $secret_key,
+			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
@@ -487,7 +481,7 @@ class WC_Stripe_Account {
 
 				// Events differ, reconfigure webhook
 				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
-				$this->configure_webhooks( $mode, $secret_key );
+				$this->configure_webhooks( $mode );
 				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
 
 			} catch ( Exception $e ) {

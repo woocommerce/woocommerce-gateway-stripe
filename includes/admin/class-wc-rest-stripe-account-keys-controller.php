@@ -399,8 +399,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$secret = $saved_secret;
 		}
 
+		WC_Stripe_API::set_secret_key( $secret );
+
 		try {
-			$response = $this->account->configure_webhooks( $environment, $secret );
+			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
 		}
