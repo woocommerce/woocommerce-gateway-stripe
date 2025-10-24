@@ -8,6 +8,7 @@
 * Dev - Renames previous Order Helper class methods to use the `_id` suffix
 * Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
 * Dev - Improve Payment Method Configuration error logging
+* Fix - Increase limit when listing available payment method configurations from the Stripe API
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
