@@ -196,9 +196,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
-				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
+				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
 			} catch ( Exception $e ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
+			} finally {
+				// Ensure we reset the key before we do anything else.
+				WC_Stripe_API::set_secret_key( '' );
 			}
 
 			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,

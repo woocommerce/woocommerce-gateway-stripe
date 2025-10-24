@@ -110,7 +110,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.0.2 - xxxx-xx-xx
+= 10.0.2 - xxxx-xx-xx =
+* Fix - Remove redundant secret management logic when configuring webhooks
 * Dev - Improve Payment Method Configuration error logging
 
 = 10.0.1 - 2025-10-15 =
