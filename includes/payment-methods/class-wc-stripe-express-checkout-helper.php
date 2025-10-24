@@ -1570,10 +1570,10 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Pages where the express checkout buttons should be displayed.
 	 *
-	 * @param string $express_checkout_type The type of express checkout.
+	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
 	 */
-	public function get_button_locations( $express_checkout_type ) {
+	public function get_button_locations( ?string $express_checkout_type = null ) {
 		switch ( $express_checkout_type ) {
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
