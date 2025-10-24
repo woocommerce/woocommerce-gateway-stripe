@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Fix - Fixes Amazon Pay display inside the Apple Pay/Google Pay container. And location settings for those methods affecting each other
 * Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
 * Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
