@@ -255,9 +255,10 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: {$method} {$api}",
 				[
-					'request'         => $request,
-					'idempotency_key' => $idempotency_key,
-					'response'        => $response,
+					'request'           => $request,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'idempotency_key'   => $idempotency_key,
+					'response'          => $response,
 				]
 			);
 
@@ -266,7 +267,13 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: {$method} {$api}",
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		if ( $with_headers ) {
 			return [
@@ -317,7 +324,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
-					'response' => json_decode( $response['body'] ),
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => json_decode( $response['body'] ),
 				]
 			);
 
@@ -350,7 +358,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
-					'response' => $response,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => $response,
 				]
 			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
@@ -358,7 +367,13 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: GET {$api}",
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		return $response_body;
 	}
@@ -596,5 +611,23 @@ class WC_Stripe_API {
 			'payment_method_configurations/' . $id
 		);
 		return $response;
+	}
+
+	/**
+	 * Returns the Stripe's request_id associated with the response.
+	 *
+	 * @param array|WP_Error $response HTTP response.
+	 *
+	 * @return string The Stripe's request_id associated with the response or null if not present.
+	 */
+	private static function get_stripe_request_id( $response ) {
+		$headers = wp_remote_retrieve_headers( $response );
+		if ( is_array( $headers ) ) {
+			return $headers['request-id'] ?? '';
+		}
+		if ( is_object( $headers ) && $headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary ) {
+			return $headers->getAll()['request-id'] ?? '';
+		}
+		return '';
 	}
 }
