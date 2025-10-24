@@ -390,17 +390,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
-		$settings     = WC_Stripe_Helper::get_stripe_settings();
-		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
-		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
-
-		// If the secret received is masked and it matches the saved secret, use the raw saved secret.
-		if ( $secret === $this->mask_key_value( $saved_secret ) ) {
-			$secret = $saved_secret;
-		}
-
-		WC_Stripe_API::set_secret_key( $secret );
-
 		try {
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
