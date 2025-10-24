@@ -1575,17 +1575,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_button_locations( $express_checkout_type ) {
 		switch ( $express_checkout_type ) {
-			case 'payment_request':
-				$key = 'payment_request_button_locations';
-				break;
-			case 'link':
-				// Link does not yet have its own Customize page. It shares the same location settings
-				// as Apple Pay and Google Pay.
-				$key = 'payment_request_button_locations';
-				break;
 			case 'amazon_pay':
 				$key = 'amazon_pay_button_locations';
 				break;
+			case 'payment_request':
+			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
 				$key = 'payment_request_button_locations';
 				break;
