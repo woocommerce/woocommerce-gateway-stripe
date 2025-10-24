@@ -405,6 +405,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
+		} finally {
+			// Ensure we reset the key before we do anything else.
+			WC_Stripe_API::set_secret_key( '' );
 		}
 
 		return new WP_REST_Response(
