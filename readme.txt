@@ -114,6 +114,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Remove redundant secret management logic when configuring webhooks
 * Dev - Improve Payment Method Configuration error logging
 * Dev - Add Stripe's request-id to API response logs
+* Fix - Increase limit when listing available payment method configurations from the Stripe API
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices

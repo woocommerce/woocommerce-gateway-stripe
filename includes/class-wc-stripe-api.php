@@ -597,7 +597,9 @@ class WC_Stripe_API {
 	 * @return array The response from the API request.
 	 */
 	public function get_payment_method_configurations() {
-		return self::retrieve( 'payment_method_configurations' );
+		// The default limit is 10, so we set it to 100 to get all configurations in a single request.
+		// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
+		return self::retrieve( 'payment_method_configurations?limit=100' );
 	}
 
 	/**
