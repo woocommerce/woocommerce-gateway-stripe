@@ -110,6 +110,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 10.0.2 - xxxx-xx-xx
+* Dev - Improve Payment Method Configuration error logging
+
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
 
