@@ -129,6 +129,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-transact-api.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-mode.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-transact-account-manager.php';
@@ -818,7 +819,7 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {

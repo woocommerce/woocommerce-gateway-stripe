@@ -238,6 +238,10 @@ class WC_Stripe_API {
 		// Log the request after the filters have been applied.
 		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
 
+		$transact_api = WC_Stripe_Transact_API::get_instance();
+		if ( $transact_api->is_transact_api_enabled( $api ) ) {
+			$response = $transact_api->call_transact_api( $api, $method, $headers, $request );
+		}
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			[
@@ -302,11 +306,17 @@ class WC_Stripe_API {
 
 		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
 
+		$headers = self::get_headers();
+		$transact_api = WC_Stripe_Transact_API::get_instance();
+		if ( $transact_api->is_transact_api_enabled( $api ) ) {
+			$response = $transact_api->call_transact_api( $api, 'GET', $headers );
+		}
+
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
 			[
 				'method'  => 'GET',
-				'headers' => self::get_headers(),
+				'headers' => $headers,
 				'timeout' => 70,
 			]
 		);
