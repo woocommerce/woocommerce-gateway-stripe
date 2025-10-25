@@ -29,7 +29,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	/**
 	 * Mock Stripe gateway.
 	 *
-	 * @var WC_Stripe_UPE_Payment_Gateway
+	 * @var \PHPUnit\Framework\MockObject\MockObject|WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -41,13 +41,6 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	private $account_manager;
 
 	/**
-	 * The original `WC_Stripe_Connect` instance, to be restored after tests.
-	 *
-	 * @var WC_Stripe_Connect
-	 */
-	private WC_Stripe_Connect $stripe_connect_original;
-
-	/**
 	 * Set up test fixtures.
 	 */
 	public function setUp(): void {
@@ -56,6 +49,7 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Create mock Stripe gateway.
 		$this->gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_jetpack_connection_manager', 'set_transact_onboarding_complete' ] )
 			->getMock();
 
 		// Set default properties.
@@ -63,21 +57,11 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
-		$stripe_connect_mock = $this->createPartialMock(
-			WC_Stripe_Connect::class,
-			[ 'is_connected_via_oauth' ]
-		);
-		$stripe_connect_mock
-			->expects( $this->any() )
-			->method( 'is_connected_via_oauth' )
-			->willReturn( true );
-
-		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
-		woocommerce_gateway_stripe()->connect = $stripe_connect_mock;
-
 		// Create account manager instance.
-		$this->account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar
+		/** @var WC_Stripe_UPE_Payment_Gateway $gateway */
+		$gateway               = $this->gateway;
+		$this->account_manager = new WC_Stripe_Transact_Account_Manager( $gateway );
 	}
 
 	/**
@@ -87,9 +71,6 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		parent::tear_down();
-
-		// Restoring the original `WC_Stripe_Connect` instance.
-		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 	}
 
 	/**
@@ -104,29 +85,6 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		$gateway_property->setAccessible( true );
 
 		$this->assertSame( $this->gateway, $gateway_property->getValue( $account_manager ) );
-	}
-
-	/**
-	 * Test do_onboarding when not connected via OAuth.
-	 */
-	public function test_do_onboarding_when_not_connected_via_oauth() {
-		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
-		$stripe_connect_mock = $this->createPartialMock(
-			WC_Stripe_Connect::class,
-			[ 'is_connected_via_oauth' ]
-		);
-		$stripe_connect_mock
-			->expects( $this->any() )
-			->method( 'is_connected_via_oauth' )
-			->willReturn( false );
-
-		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
-		woocommerce_gateway_stripe()->connect = $stripe_connect_mock;
-
-		// Should not throw any errors and should return early.
-		$this->account_manager->do_onboarding();
-
-		$this->assertTrue( true );
 	}
 
 	/**
@@ -226,42 +184,31 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_merchant_account_data returns cached data when available.
+	 * Test maybe_create_merchant_account returns cached data when available.
 	 */
-	public function test_get_merchant_account_data_returns_cached_data() {
-		// Return valid cache data.
-		WC_Stripe_Database_Cache::set( 'transact_merchant_account_test', $this->return_valid_merchant_account_cache() );
+	public function test_maybe_create_merchant_account_returns_cached_data() {
+		// Set valid cache data.
+		WC_Stripe_Database_Cache::set( 'transact_merchant_account', [ 'public_id' => 'test_public_id' ] );
 
-		$result = $this->account_manager->get_transact_account_data( 'merchant' );
+		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_merchant_account' );
+		$method->setAccessible( true );
 
-		// Clean up the filter.
-		WC_Stripe_Database_Cache::delete( 'transact_merchant_account_test' );
+		$result = $method->invoke( $account_manager );
 
-		$expected_merchant_account = $this->return_valid_merchant_account_cache();
-		$this->assertEquals( $expected_merchant_account['account'], $result );
+		// Clean up the cache.
+		WC_Stripe_Database_Cache::delete( 'transact_merchant_account' );
+
+		$expected_merchant_account = [ 'public_id' => 'test_public_id' ];
+		$this->assertEquals( $expected_merchant_account, $result );
 	}
 
 	/**
-	 * Test get_merchant_account_data returns null when cache is expired.
+	 * Test maybe_create_merchant_account fetches and caches when cache is empty.
 	 */
-	public function test_get_merchant_account_data_returns_null_when_cache_expired() {
-		// Mock cache to return expired data.
-		WC_Stripe_Database_Cache::set( 'transact_merchant_account_test', $this->return_expired_merchant_account_cache() );
-
-		$result = $this->account_manager->get_transact_account_data( 'merchant' );
-
-		// Clean up the filter.
-		WC_Stripe_Database_Cache::delete( 'transact_merchant_account_test' );
-
-		$this->assertNull( $result );
-	}
-
-	/**
-	 * Test get_merchant_account_data fetches when cache is empty and caches fetched data.
-	 */
-	public function test_get_merchant_account_data_fetches_and_caches_data() {
-		// Return empty cache.
-		WC_Stripe_Database_Cache::set( 'transact_merchant_account_test', $this->return_empty_merchant_account_cache() );
+	public function test_maybe_create_merchant_account_fetches_when_cache_empty() {
+		// Don't set any cache, so it will fetch from API.
 
 		// Return a valid site ID.
 		add_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
@@ -273,63 +220,28 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', [ $this, 'return_merchant_account_api_success' ] );
 
 		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
-		$result          = $account_manager->get_transact_account_data( 'merchant' );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_merchant_account' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $account_manager );
 
 		// Clean up the filters and cache.
-		WC_Stripe_Database_Cache::delete( 'transact_merchant_account_test' );
-
 		remove_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
 		remove_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
 		remove_filter( 'pre_http_request', [ $this, 'return_merchant_account_api_success' ] );
+		WC_Stripe_Database_Cache::delete( 'transact_merchant_account' );
 
-		// Check that it returns the data.
-		$response_data             = json_decode( $this->return_merchant_account_api_success()['body'], true );
-		$expected_merchant_account = [ 'public_id' => $response_data['public_id'] ];
+		// Check that it returns the data and caches it.
+		$expected_merchant_account = [ 'public_id' => 'test_public_id' ];
 		$this->assertEquals( $expected_merchant_account, $result );
-
-		// Check that the cache was updated.
-		$cached_data = WC_Stripe_Database_Cache::get( 'transact_merchant_account_test' );
-		$this->assertNull( $cached_data );
-	}
-
-
-	/**
-	 * Test get_provider_account_data returns cached data when available.
-	 */
-	public function test_get_provider_account_data_returns_cached_data() {
-		// Return valid cache data.
-		WC_Stripe_Database_Cache::set( 'transact_provider_account_test', $this->return_valid_provider_account_cache() );
-
-		$result = $this->account_manager->get_transact_account_data( 'provider' );
-
-		// Clean up the cache.
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
-
-		$expected_provider_account = $this->return_valid_provider_account_cache();
-		$this->assertEquals( $expected_provider_account['account'], $result );
 	}
 
 	/**
-	 * Test get_provider_account_data returns null when cache is expired.
+	 * Test maybe_create_merchant_account creates account when fetch fails.
 	 */
-	public function test_get_provider_account_data_returns_null_when_cache_expired() {
-		// Mock cache to return expired data.
-		WC_Stripe_Database_Cache::set( 'transact_provider_account_test', $this->return_expired_provider_account_cache() );
-
-		$result = $this->account_manager->get_transact_account_data( 'provider' );
-
-		// Clean up the cache.
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
-
-		$this->assertNull( $result );
-	}
-
-	/**
-	 * Test get_provider_account_data fetches when cache is empty and caches fetched data.
-	 */
-	public function test_get_provider_account_data_fetches_and_caches_data() {
-		// Return empty cache.
-		WC_Stripe_Database_Cache::set( 'transact_provider_account_test', $this->return_empty_provider_account_cache() );
+	public function test_maybe_create_merchant_account_creates_when_fetch_fails() {
+		// Don't set any cache, so it will try to fetch from API.
 
 		// Return a valid site ID.
 		add_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
@@ -337,26 +249,112 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 		// Return a Jetpack blog token.
 		add_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
 
-		// Return a successful response, with the provider account data.
+		// Mock the HTTP request to first return 404 (not found), then return success on create.
+		$this->http_request_count = 0;
+		add_filter( 'pre_http_request', [ $this, 'return_fetch_fail_then_create_success_merchant' ] );
+
+		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_merchant_account' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $account_manager );
+
+		// Clean up the filters and cache.
+		remove_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
+		remove_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
+		remove_filter( 'pre_http_request', [ $this, 'return_fetch_fail_then_create_success_merchant' ] );
+		WC_Stripe_Database_Cache::delete( 'transact_merchant_account' );
+
+		// Check that it returns the created account data.
+		$expected_merchant_account = [ 'public_id' => 'test_public_id' ];
+		$this->assertEquals( $expected_merchant_account, $result );
+	}
+
+
+	/**
+	 * Test maybe_create_provider_account returns cached data when available.
+	 */
+	public function test_maybe_create_provider_account_returns_cached_data() {
+		// Set valid cache data.
+		WC_Stripe_Database_Cache::set( 'transact_provider_account', true );
+
+		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_provider_account' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $account_manager );
+
+		// Clean up the cache.
+		WC_Stripe_Database_Cache::delete( 'transact_provider_account' );
+
+		$this->assertTrue( $result );
+	}
+
+	/**
+	 * Test maybe_create_provider_account fetches and caches when cache is empty.
+	 */
+	public function test_maybe_create_provider_account_fetches_when_cache_empty() {
+		// Don't set any cache, so it will fetch from API.
+
+		// Return a valid site ID.
+		add_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
+
+		// Return a Jetpack blog token.
+		add_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
+
+		// Return a successful response for the provider account.
 		add_filter( 'pre_http_request', [ $this, 'return_provider_account_api_success' ] );
 
 		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
-		$result          = $account_manager->get_transact_account_data( 'provider' );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_provider_account' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $account_manager );
 
 		// Clean up the filters and cache.
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
-
 		remove_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
 		remove_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
 		remove_filter( 'pre_http_request', [ $this, 'return_provider_account_api_success' ] );
+		WC_Stripe_Database_Cache::delete( 'transact_provider_account' );
 
-		// Check that it returns the data.
+		// Check that it returns true.
 		$this->assertTrue( $result );
+	}
 
-		// Check that the cache was updated.
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
-		$cached_data = WC_Stripe_Database_Cache::get( 'transact_provider_account_test' );
-		$this->assertNull( $cached_data );
+	/**
+	 * Test maybe_create_provider_account creates account when fetch fails.
+	 */
+	public function test_maybe_create_provider_account_creates_when_fetch_fails() {
+		// Don't set any cache, so it will try to fetch from API.
+
+		// Return a valid site ID.
+		add_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
+
+		// Return a Jetpack blog token.
+		add_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
+
+		// Mock the HTTP request to first return 404 (not found), then return success on create.
+		$this->http_request_count = 0;
+		add_filter( 'pre_http_request', [ $this, 'return_fetch_fail_then_create_success_provider' ] );
+
+		$account_manager = new WC_Stripe_Transact_Account_Manager( $this->gateway );
+		$reflection      = new \ReflectionClass( $account_manager );
+		$method          = $reflection->getMethod( 'maybe_create_provider_account' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $account_manager );
+
+		// Clean up the filters and cache.
+		remove_filter( 'pre_option_jetpack_options', [ $this, 'return_valid_site_id' ] );
+		remove_filter( 'pre_option_jetpack_private_options', [ $this, 'return_blog_token' ] );
+		remove_filter( 'pre_http_request', [ $this, 'return_fetch_fail_then_create_success_provider' ] );
+		WC_Stripe_Database_Cache::delete( 'transact_provider_account' );
+
+		// Check that it returns true.
+		$this->assertTrue( $result );
 	}
 
 	/**
@@ -650,68 +648,57 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Helper method to return empty merchant account cache.
+	 * Helper property to track HTTP request count for testing.
 	 *
-	 * @return false
+	 * @var int
 	 */
-	public function return_empty_merchant_account_cache() {
-		return false;
-	}
+	private $http_request_count = 0;
 
 	/**
-	 * Helper method to return expired merchant account cache.
+	 * Helper method to simulate fetch failure then create success for merchant account.
+	 * First request (GET - fetch) returns 404, second request (POST - create) returns success.
 	 *
-	 * @return array
+	 * @return array|\WP_Error
 	 */
-	public function return_expired_merchant_account_cache() {
+	public function return_fetch_fail_then_create_success_merchant() {
+		$this->http_request_count++;
+
+		// First call is the fetch (GET), return 404.
+		if ( 1 === $this->http_request_count ) {
+			return [
+				'response' => [ 'code' => 404 ],
+				'body'     => wp_json_encode( [ 'error' => 'not_found' ] ),
+			];
+		}
+
+		// Second call is the create (POST), return success.
 		return [
-			'account' => [ 'public_id' => 'test_public_id' ],
-			'expiry'  => time() - 3600, // Expired 1 hour ago.
+			'response' => [ 'code' => 200 ],
+			'body'     => wp_json_encode( [ 'public_id' => 'test_public_id' ] ),
 		];
 	}
 
 	/**
-	 * Helper method to return valid merchant account cache.
+	 * Helper method to simulate fetch failure then create success for provider account.
+	 * First request (GET - fetch) returns 404, second request (POST - create) returns success.
 	 *
-	 * @return array
+	 * @return array|\WP_Error
 	 */
-	public function return_valid_merchant_account_cache() {
-		return [
-			'account' => [ 'public_id' => 'test_public_id' ],
-			'expiry'  => time() + 3600, // Expires in 1 hour.
-		];
-	}
+	public function return_fetch_fail_then_create_success_provider() {
+		$this->http_request_count++;
 
-	/**
-	 * Helper method to return empty provider account cache.
-	 *
-	 * @return false
-	 */
-	public function return_empty_provider_account_cache() {
-		return false;
-	}
+		// First call is the fetch (GET), return 404.
+		if ( 1 === $this->http_request_count ) {
+			return [
+				'response' => [ 'code' => 404 ],
+				'body'     => wp_json_encode( [ 'error' => 'not_found' ] ),
+			];
+		}
 
-	/**
-	 * Helper method to return expired provider account cache.
-	 *
-	 * @return array
-	 */
-	public function return_expired_provider_account_cache() {
+		// Second call is the create (POST), return success.
 		return [
-			'account' => true,
-			'expiry'  => time() - 3600, // Expired 1 hour ago.
-		];
-	}
-
-	/**
-	 * Helper method to return valid provider account cache.
-	 *
-	 * @return array
-	 */
-	public function return_valid_provider_account_cache() {
-		return [
-			'account' => true,
-			'expiry'  => time() + 3600, // Expires in 1 hour.
+			'response' => [ 'code' => 200 ],
+			'body'     => '',
 		];
 	}
 
@@ -731,10 +718,8 @@ class WC_Stripe_Transact_Account_Manager_Test extends WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		// Clean up any options we created.
-		WC_Stripe_Database_Cache::delete( 'transact_merchant_account_live' );
-		WC_Stripe_Database_Cache::delete( 'transact_merchant_account_test' );
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_live' );
-		WC_Stripe_Database_Cache::delete( 'transact_provider_account_test' );
+		WC_Stripe_Database_Cache::delete( 'transact_merchant_account' );
+		WC_Stripe_Database_Cache::delete( 'transact_provider_account' );
 
 		parent::tearDown();
 	}
