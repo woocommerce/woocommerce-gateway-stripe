@@ -32,10 +32,8 @@ final class WC_Stripe_Transact_Account_Manager {
 	 *
 	 * @var string
 	 */
-	private const TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_LIVE = 'transact_merchant_account_live';
-	private const TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_TEST = 'transact_merchant_account_test';
-	private const TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY_LIVE = 'transact_provider_account_live';
-	private const TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY_TEST = 'transact_provider_account_test';
+	private const TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY = 'transact_merchant_account';
+	private const TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY = 'transact_provider_account';
 
 	/**
 	 * The expiry time for the Transact account cache.
@@ -81,88 +79,82 @@ final class WC_Stripe_Transact_Account_Manager {
 			}
 		}
 
-		// Fetch (cached) or create the Transact merchant and provider accounts.
-		$merchant_account_data = $this->get_transact_account_data( 'merchant' );
-		if ( empty( $merchant_account_data ) ) {
-			$merchant_account = $this->create_merchant_account();
-			if ( empty( $merchant_account ) ) {
-				WC_Stripe_Logger::error( 'Transact merchant onboarding failed.' );
-				return;
-			}
-
-			// Cache the merchant account data.
-			$this->update_transact_account_cache(
-				$this->get_cache_key( 'merchant' ),
-				$merchant_account
-			);
-		}
-
+		// Fetch (cached) or create the Transact merchant account.
+		$merchant_account_data = $this->maybe_create_merchant_account();
 		wc_get_logger()->info( 'merchant_account_data: ' . wc_print_r( $merchant_account_data, true ) );
-
-		$provider_account_data = $this->get_transact_account_data( 'provider' );
-		if ( empty( $provider_account_data ) ) {
-			$provider_account = $this->create_provider_account();
-			if ( ! $provider_account ) {
-				WC_Stripe_Logger::error( 'Transact provider onboarding failed.' );
-				return;
-			}
-
-			// Cache the provider account data.
-			$this->update_transact_account_cache(
-				$this->get_cache_key( 'provider' ),
-				$provider_account
-			);
+		if ( empty( $merchant_account_data ) ) {
+			WC_Stripe_Logger::error( 'Transact merchant onboarding failed.' );
+			return;
 		}
 
+		// Fetch (cached) or create the Transact provider account.
+		$provider_account_data = $this->maybe_create_provider_account();
 		wc_get_logger()->info( 'provider_account_data: ' . wc_print_r( $provider_account_data, true ) );
+		if ( empty( $provider_account_data ) ) {
+			WC_Stripe_Logger::error( 'Transact provider onboarding failed.' );
+			return;
+		}
 
 		// Set an extra flag to indicate that we've completed onboarding.
 		$this->gateway->set_transact_onboarding_complete();
 	}
 
 	/**
-	 * Get the Transact account (merchant or provider) data. Performs a fetch if the account
-	 * is not in cache or expired.
+	 * Maybe create the merchant account.
 	 *
-	 * @param string $account_type The type of account to get (merchant or provider).
-	 * @return array|bool|null Returns null if the transact account cannot be retrieved.
+	 * @return array|null The merchant account data, or null if the merchant account cannot be created.
 	 */
-	public function get_transact_account_data( $account_type ) {
-		$cache_key = $this->get_cache_key( $account_type );
-
-		// Get transact account from cache. If not found, fetch/create it.
-		$transact_account = $this->get_transact_account_from_cache( $cache_key );
-		if ( empty( $transact_account ) ) {
-			$transact_account = 'merchant' === $account_type ? $this->fetch_merchant_account() : $this->fetch_provider_account();
-
-			// Fetch failed.
-			if ( empty( $transact_account ) ) {
-				return null;
-			}
-
-			// Update cache.
-			$this->update_transact_account_cache( $cache_key, $transact_account );
+	private function maybe_create_merchant_account(): ?array {
+		// Get the merchant account from cache.
+		$merchant_account = WC_Stripe_Database_Cache::get( self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY );
+		if ( ! empty( $merchant_account ) ) {
+			return $merchant_account;
 		}
 
-		return $transact_account;
+		// Fetch the merchant account from the Transact platform.
+		$merchant_account = $this->fetch_merchant_account();
+		if ( empty( $merchant_account ) ) {
+			// Create the merchant account on the Transact platform.
+			$merchant_account = $this->create_merchant_account();
+		}
+
+		// Cache the merchant account data.
+		WC_Stripe_Database_Cache::set(
+			self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY,
+			$merchant_account,
+			self::TRANSACT_ACCOUNT_CACHE_EXPIRY
+		);
+
+		return $merchant_account;
 	}
 
 	/**
-	 * Get the cache key for the transact account.
+	 * Maybe create the provider account.
 	 *
-	 * @param string $account_type The type of account to get (merchant or provider).
-	 * @return string|null The cache key, or null if the account type is invalid.
+	 * @return bool|null Ture if the provider account is valid. Provider account response only returns an empty onboarding link, so we map it to true.
 	 */
-	private function get_cache_key( $account_type ): ?string {
-		if ( 'merchant' === $account_type ) {
-			return WC_Stripe_Mode::is_test() ? self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_TEST : self::TRANSACT_MERCHANT_ACCOUNT_CACHE_KEY_LIVE;
+	private function maybe_create_provider_account(): ?bool {
+		// Get the provider account from cache.
+		$provider_account = WC_Stripe_Database_Cache::get( self::TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY );
+		if ( ! empty( $provider_account ) ) {
+			return $provider_account;
 		}
 
-		if ( 'provider' === $account_type ) {
-			return WC_Stripe_Mode::is_test() ? self::TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY_TEST : self::TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY_LIVE;
+		// Fetch the provider account from the Transact platform.
+		$provider_account = $this->fetch_provider_account();
+		if ( empty( $provider_account ) ) {
+			// Create the provider account on the Transact platform.
+			$provider_account = $this->create_provider_account();
 		}
 
-		return null;
+		// Cache the merchant account data.
+		WC_Stripe_Database_Cache::set(
+			self::TRANSACT_PROVIDER_ACCOUNT_CACHE_KEY,
+			$provider_account,
+			self::TRANSACT_ACCOUNT_CACHE_EXPIRY
+		);
+
+		return $provider_account;
 	}
 
 	/**
@@ -289,41 +281,6 @@ final class WC_Stripe_Transact_Account_Manager {
 		// Provider account response only returns an empty onboarding link,
 		// which we do not need.
 		return true;
-	}
-
-	/**
-	 * Update the transact account (merchant or provider) cache.
-	 *
-	 * @param string $cache_key The cache key to update.
-	 * @param array  $account_data The transact account data.
-	 */
-	private function update_transact_account_cache( $cache_key, $account_data ): void {
-		$expires = time() + self::TRANSACT_ACCOUNT_CACHE_EXPIRY;
-		WC_Stripe_Database_Cache::set(
-			$cache_key,
-			[
-				'account' => $account_data,
-				'expiry'  => $expires,
-			],
-			self::TRANSACT_ACCOUNT_CACHE_EXPIRY
-		);
-	}
-
-	/**
-	 * Get the transact account (merchant or provider) from the database cache.
-	 *
-	 * @param string $cache_key The cache key to get the account.
-	 * @return array|bool|null The transact account data, or null if the cache is
-	 *                    empty or expired.
-	 */
-	private function get_transact_account_from_cache( $cache_key ) {
-		$transact_account = WC_Stripe_Database_Cache::get( $cache_key );
-
-		if ( empty( $transact_account ) || ( isset( $transact_account['expiry'] ) && $transact_account['expiry'] < time() ) ) {
-			return null;
-		}
-
-		return $transact_account['account'] ?? null;
 	}
 
 	/**
