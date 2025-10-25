@@ -13,8 +13,12 @@ class WC_Stripe_API {
 	/**
 	 * Stripe API Endpoint
 	 */
-	const ENDPOINT           = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION = '2024-06-20';
+	const ENDPOINT = 'https://api.stripe.com/v1/';
+
+	/**
+	 * Stripe API Version
+	 */
+	public const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
 	 * The invalid API key error count cache key.
@@ -37,21 +41,6 @@ class WC_Stripe_API {
 	 * @var int
 	 */
 	protected const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
-
-	/**
-	 * The API version for the proxy endpoint.
-	 *
-	 * @var int
-	 */
-	private const WPCOM_PROXY_ENDPOINT_API_VERSION = 2;
-
-	/**
-	 * The base for the proxy REST endpoint.
-	 *
-	 * @var string
-	 */
-	private const WPCOM_PROXY_REST_BASE = 'transact/stripe/proxy';
-
 
 	/**
 	 * Secret API Key.
@@ -134,19 +123,17 @@ class WC_Stripe_API {
 	 * @version 4.0.0
 	 */
 	public static function get_user_agent() {
-		$app_info = [
-			'name'       => 'WooCommerce Stripe Gateway',
-			'version'    => WC_STRIPE_VERSION,
-			'url'        => 'https://woocommerce.com/products/stripe/',
-			'partner_id' => 'pp_partner_EYuSt9peR0WTMg',
-		];
-
 		return [
 			'lang'         => 'php',
 			'lang_version' => phpversion(),
 			'publisher'    => 'woocommerce',
 			'uname'        => function_exists( 'php_uname' ) ? php_uname() : PHP_OS,
-			'application'  => $app_info,
+			'application'  => [
+				'name'       => 'WooCommerce Stripe Gateway',
+				'version'    => WC_STRIPE_VERSION,
+				'url'        => 'https://woocommerce.com/products/stripe/',
+				'partner_id' => 'pp_partner_EYuSt9peR0WTMg',
+			],
 		];
 	}
 
@@ -161,7 +148,7 @@ class WC_Stripe_API {
 		$app_info   = $user_agent['application'];
 
 		$headers = [
-			'Stripe-Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
@@ -250,18 +237,31 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
-		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
+		$is_transact_api_enabled = WC_Stripe_Transact_API::get_instance()->is_transact_api_enabled();
 
-		$response = wp_safe_remote_post(
-			self::ENDPOINT . $api,
+		// Log the request after the filters have been applied.
+		WC_Stripe_Logger::debug(
+			"Stripe API request: {$method} {$api}",
 			[
-				'method'  => $method,
-				'headers' => $headers,
-				'body'    => $request,
-				'timeout' => 70,
+				'transact_api_enabled' => $is_transact_api_enabled,
+				'request'              => $request,
 			]
 		);
+
+		if ( $is_transact_api_enabled ) {
+			$response = WC_Stripe_Transact_API::get_instance()->send_wpcom_proxy_request( $method, $api, $headers, $request );
+
+		} else {
+			$response = wp_safe_remote_post(
+				self::ENDPOINT . $api,
+				[
+					'method'  => $method,
+					'headers' => $headers,
+					'body'    => $request,
+					'timeout' => 70,
+				]
+			);
+		}
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 
@@ -281,7 +281,13 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: {$method} {$api}",
+			[
+				'transact_api_enabled'  => $is_transact_api_enabled,
+				'response'              => $response_body,
+			]
+		);
 
 		if ( $with_headers ) {
 			return [
@@ -315,12 +321,23 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request proxy: GET {$api}" );
+		$is_transact_api_enabled = WC_Stripe_Transact_API::get_instance()->is_transact_api_enabled();
 
-		$request_body = [
-			'test_mode' => WC_Stripe_Mode::is_test(),
-		];
-		$response = self::send_wpcom_proxy_request( 'GET', 'v1/' . $api, $request_body );
+		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}", [ 'transact_api_enabled' => $is_transact_api_enabled ] );
+
+		if ( $is_transact_api_enabled ) {
+			$response = WC_Stripe_Transact_API::get_instance()->send_wpcom_proxy_request( 'GET', $api, self::get_headers() );
+
+		} else {
+			$response = wp_safe_remote_get(
+				self::ENDPOINT . $api,
+				[
+					'method'  => 'GET',
+					'headers' => self::get_headers(),
+					'timeout' => 70,
+				]
+			);
+		}
 
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
@@ -328,7 +345,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
-					'response' => json_decode( $response['body'] ),
+					'transact_api_enabled' => $is_transact_api_enabled,
+					'response'             => json_decode( $response['body'] ),
 				]
 			);
 
@@ -361,7 +379,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
-					'response' => $response,
+					'transact_api_enabled' => $is_transact_api_enabled,
+					'response'             => $response,
 				]
 			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
@@ -369,35 +388,15 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response proxy: GET {$api}", [ 'response' => $response_body ] );
-
-		return $response_body;
-	}
-
-	public static function send_wpcom_proxy_request( $method, $endpoint, $request_body ) {
-		$site_id = \Jetpack_Options::get_option( 'id' );
-		if ( ! $site_id ) {
-			WC_Stripe_Logger::error( sprintf( 'Site ID not found. Cannot send request to %s.', $endpoint ) );
-			throw new Exception( 'Site ID not found. Cannot send proxy request.' );
-		}
-
-		if ( 'GET' === $method ) {
-			$endpoint .= '?' . http_build_query( $request_body );
-		}
-
-		$response = \Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
-			sprintf( '/sites/%d/%s/%s', $site_id, self::WPCOM_PROXY_REST_BASE, $endpoint ),
-			self::WPCOM_PROXY_ENDPOINT_API_VERSION,
+		WC_Stripe_Logger::debug(
+			"Stripe API response: GET {$api}",
 			[
-				'headers' => self::get_headers(),
-				'method'  => $method,
-				'timeout' => 70,
-			],
-			'GET' === $method ? null : wp_json_encode( $request_body ),
-			'wpcom'
+				'transact_api_enabled' => $is_transact_api_enabled,
+				'response'             => $response_body,
+			]
 		);
 
-		return $response;
+		return $response_body;
 	}
 
 	/**

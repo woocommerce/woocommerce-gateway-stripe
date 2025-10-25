@@ -66,15 +66,6 @@ final class WC_Stripe_Transact_Account_Manager {
 	 * @return void
 	 */
 	public function do_onboarding(): void {
-		$stripe_connect  = woocommerce_gateway_stripe()->connect;
-		$mode            = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		$oauth_connected = (bool) $stripe_connect->is_connected_via_oauth( $mode );
-
-		// Check that the merchant is connected via OAuth. Only begin onboarding if this minimum requirement is met.
-		if ( ! $oauth_connected ) {
-			return;
-		}
-
 		// Register with Jetpack if not already connected.
 		$jetpack_connection_manager = $this->gateway->get_jetpack_connection_manager();
 		if ( ! $jetpack_connection_manager ) {
