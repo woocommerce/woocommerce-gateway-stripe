@@ -6,19 +6,6 @@
  * Handles transact account management for WooCommerce Stripe integration.
  */
 final class WC_Stripe_Transact_Account_Manager {
-	/**
-	 * The API version for the proxy endpoint.
-	 *
-	 * @var int
-	 */
-	private const WPCOM_PROXY_ENDPOINT_API_VERSION = 2;
-
-	/**
-	 * The timeout for requests to the WPCOM proxy endpoint.
-	 *
-	 * @var int
-	 */
-	private const WPCOM_PROXY_REQUEST_TIMEOUT = 60;
 
 	/**
 	 * Transact provider type, for provider onboarding.
@@ -299,11 +286,11 @@ final class WC_Stripe_Transact_Account_Manager {
 
 		$response = \Automattic\Jetpack\Connection\Client::wpcom_json_api_request_as_blog(
 			$endpoint,
-			self::WPCOM_PROXY_ENDPOINT_API_VERSION,
+			WC_Stripe_Transact_API::WPCOM_PROXY_ENDPOINT_API_VERSION,
 			[
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'method'  => $method,
-				'timeout' => self::WPCOM_PROXY_REQUEST_TIMEOUT,
+				'timeout' => WC_Stripe_Transact_API::WPCOM_PROXY_REQUEST_TIMEOUT,
 			],
 			'GET' === $method ? null : wp_json_encode( $request_body ),
 			'wpcom'

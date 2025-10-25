@@ -15,14 +15,14 @@ class WC_Stripe_Transact_API {
 	 *
 	 * @var int
 	 */
-	private const WPCOM_PROXY_ENDPOINT_API_VERSION = 2;
+	public const WPCOM_PROXY_ENDPOINT_API_VERSION = 2;
 
 	/**
 	 * The timeout for requests to the WPCOM proxy endpoint.
 	 *
 	 * @var int
 	 */
-	private const WPCOM_PROXY_REQUEST_TIMEOUT = 60;
+	public const WPCOM_PROXY_REQUEST_TIMEOUT = 70;
 
 	/**
 	 * The base for the proxy REST endpoint.
@@ -101,7 +101,7 @@ class WC_Stripe_Transact_API {
 			[
 				'headers' => $headers,
 				'method'  => $method,
-				'timeout' => 70,
+				'timeout' => self::WPCOM_PROXY_REQUEST_TIMEOUT,
 			],
 			'GET' === $method ? null : wp_json_encode( $request_body ),
 			'wpcom'
