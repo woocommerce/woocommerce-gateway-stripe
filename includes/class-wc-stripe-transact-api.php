@@ -103,7 +103,7 @@ class WC_Stripe_Transact_API {
 				'method'  => $method,
 				'timeout' => self::WPCOM_PROXY_REQUEST_TIMEOUT,
 			],
-			'GET' === $method ? null : wp_json_encode( $request_body ),
+			'GET' === $method ? null : $request_body,
 			'wpcom'
 		);
 
