@@ -112,10 +112,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.1.0 - xxxx-xx-xx =
 * Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
+* Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
 * Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
 * Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
 * Dev - Renames previous Order Helper class methods to use the `_id` suffix
 * Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
+* Fix - Remove redundant secret management logic when configuring webhooks
+* Dev - Improve Payment Method Configuration error logging
+* Dev - Add Stripe's request-id to API response logs
+* Fix - Increase limit when listing available payment method configurations from the Stripe API
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
