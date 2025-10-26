@@ -72,7 +72,6 @@ const PaymentSettingsPanel = ( {
 	promotionalBannerType,
 	isOCEnabled,
 	setIsOCEnabled,
-	setIsUpeEnabled,
 } ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
@@ -102,7 +101,6 @@ const PaymentSettingsPanel = ( {
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
-								setIsUpeEnabled={ setIsUpeEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 								promotionalBannerType={ promotionalBannerType }
 								oauthUrl={

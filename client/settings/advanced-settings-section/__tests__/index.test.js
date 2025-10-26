@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
 import {
 	useDebugLog,
-	useIsUpeEnabled,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
@@ -13,7 +12,6 @@ import {
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
-	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
@@ -29,7 +27,6 @@ describe( 'AdvancedSettings', () => {
 		global.wc_stripe_settings_params = { is_oc_available: false };
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
-		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );

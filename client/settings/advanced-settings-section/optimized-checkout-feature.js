@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from '../../data';
+import { useIsOCEnabled, useOCLayout } from '../../data';
 import {
 	CheckboxControl,
 	ExternalLink,
@@ -23,14 +23,7 @@ const StyledRadioControl = styled( RadioControl )`
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
-	const [ isUpeEnabled ] = useIsUpeEnabled();
 	const headingRef = useRef( null );
-
-	useEffect( () => {
-		if ( ! isUpeEnabled ) {
-			setIsOCEnabled( false );
-		}
-	}, [ isUpeEnabled, setIsOCEnabled ] );
 
 	useEffect( () => {
 		if ( ! headingRef.current ) {
@@ -77,7 +70,6 @@ const OptimizedCheckoutFeature = () => {
 				) }
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
-				disabled={ ! isUpeEnabled }
 			/>
 			{ isOCEnabled && (
 				<StyledRadioControl

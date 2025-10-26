@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ManualCaptureControl from '../manual-capture-control';
 import { useManualCapture } from 'wcstripe/data';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
@@ -18,11 +17,7 @@ describe( 'ManualCaptureControl', () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -40,11 +35,7 @@ describe( 'ManualCaptureControl', () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -69,11 +60,7 @@ describe( 'ManualCaptureControl', () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -98,11 +85,7 @@ describe( 'ManualCaptureControl', () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ true, manualCaptureToggleMock ] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<ManualCaptureControl />
-			</UpeToggleContext.Provider>
-		);
+		render( <ManualCaptureControl /> );
 
 		await userEvent.click(
 			screen.getByLabelText(

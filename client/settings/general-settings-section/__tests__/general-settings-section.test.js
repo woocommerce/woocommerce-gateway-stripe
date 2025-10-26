@@ -3,7 +3,6 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '..';
-import UpeToggleContext from '../../upe-toggle/context';
 import {
 	useIsStripeEnabled,
 	useEnabledPaymentMethodIds,
@@ -121,11 +120,7 @@ describe( 'GeneralSettingsSection', () => {
 			refreshAccount: refreshAccountMock,
 			data: { testmode: false },
 		} );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect( refreshAccountMock ).not.toHaveBeenCalled();
 
@@ -152,11 +147,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render the opt-in banner if UPE is enabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'opt-in-banner' )
@@ -189,11 +180,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const alipayCheckbox = screen.getByRole( 'checkbox', {
 			name: /Alipay/,
@@ -231,11 +218,7 @@ describe( 'GeneralSettingsSection', () => {
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const alipayCheckbox = screen.getByRole( 'checkbox', {
 			name: /Alipay/,
@@ -264,11 +247,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardCheckbox = screen.getByRole( 'checkbox', {
 			name: /Credit card/,
@@ -302,11 +281,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardCheckbox = screen.getByRole( 'checkbox', {
 			name: /Credit card/,
@@ -335,11 +310,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardCheckbox = screen.getByRole( 'checkbox', {
 			name: /Credit card/,
@@ -362,11 +333,7 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 		] );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -386,11 +353,7 @@ describe( 'GeneralSettingsSection', () => {
 			PAYMENT_METHOD_ALIPAY,
 		] );
 		useManualCapture.mockReturnValue( [ true ] );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -418,11 +381,7 @@ describe( 'GeneralSettingsSection', () => {
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -445,11 +404,7 @@ describe( 'GeneralSettingsSection', () => {
 			card_payments: 'active',
 		} );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -473,11 +428,7 @@ describe( 'GeneralSettingsSection', () => {
 			[ PAYMENT_METHOD_CARD ],
 		] );
 		useIsPMCEnabled.mockReturnValue( false );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
@@ -490,11 +441,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should not render the list of missing payment methods if UPE is disabled', () => {
 		useIsPMCEnabled.mockReturnValue( false );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
@@ -503,11 +450,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should not render the list of missing payment methods if PMC is enabled', () => {
 		useIsPMCEnabled.mockReturnValue( true );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
@@ -515,11 +458,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render "early access" pill if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'upe-early-access-pill' )
@@ -527,11 +466,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render the expandable menu if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByTestId( 'upe-expandable-menu' )
@@ -563,11 +498,7 @@ describe( 'GeneralSettingsSection', () => {
 			}
 		);
 		mockCurrencyCode( 'EUR' );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -586,11 +517,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
 		mockCurrencyCode( 'USD' );
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		expect(
 			screen.queryByRole( 'checkbox', {
@@ -634,11 +561,7 @@ describe( 'GeneralSettingsSection', () => {
 		);
 		mockCurrencyCode( 'EUR' );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
+		render( <GeneralSettingsSection /> );
 
 		const cardElement = screen.getByRole( 'checkbox', {
 			name: /Credit card/,

@@ -11,13 +11,11 @@ import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
  *
  * @param {Object}      context
  * @param {string}      context.paymentMethodId   The payment method ID.
- * @param {boolean}     context.isUpeEnabled      Whether UPE is enabled. If false, the payment method is available.
  * @param {string|null} context.storeCurrencyCode The store currency code. If null, the payment method is available.
  * @return {string|null} The reason why the payment method is unavailable, or null if it is available. See `PAYMENT_METHOD_UNAVAILABLE_REASONS` for possible values.
  */
 const getPaymentMethodUnavailableReason = ( {
 	paymentMethodId,
-	isUpeEnabled = true,
 	storeCurrencyCode,
 } ) => {
 	if (
@@ -32,10 +30,6 @@ const getPaymentMethodUnavailableReason = ( {
 		window?.wc_stripe_settings_params?.has_affirm_gateway_plugin
 	) {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT;
-	}
-
-	if ( ! storeCurrencyCode || ! isUpeEnabled ) {
-		return null;
 	}
 
 	const paymentMethodCurrencies = getPaymentMethodCurrencies(

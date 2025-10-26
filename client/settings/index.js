@@ -5,7 +5,6 @@ import ConnectStripeAccount from './connect-stripe-account';
 import StripeAccountConnectedNotice from './stripe-account-connected-notice';
 import SettingsManager from './settings-manager';
 import PaymentGatewayManager from './payment-gateway-manager';
-import UpeToggleContextProvider from './upe-toggle/provider';
 import './styles.scss';
 import OCToggleContextProvider from 'wcstripe/settings/oc-toggle/provider';
 
@@ -23,42 +22,28 @@ const newAccountContainer = document.getElementById(
 
 if ( settingsContainer ) {
 	createRoot( settingsContainer ).render(
-		<UpeToggleContextProvider
-			defaultIsUpeEnabled={
+		<OCToggleContextProvider
+			defaultIsOCEnabled={
 				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
+				wc_stripe_settings_params.is_oc_enabled === '1'
 			}
 		>
-			<OCToggleContextProvider
-				defaultIsOCEnabled={
-					// eslint-disable-next-line camelcase
-					wc_stripe_settings_params.is_oc_enabled === '1'
-				}
-			>
-				<StripeAccountConnectedNotice />
-				<SettingsManager />
-			</OCToggleContextProvider>
-		</UpeToggleContextProvider>
+			<StripeAccountConnectedNotice />
+			<SettingsManager />
+		</OCToggleContextProvider>
 	);
 }
 
 if ( paymentGatewayContainer ) {
 	createRoot( paymentGatewayContainer ).render(
-		<UpeToggleContextProvider
-			defaultIsUpeEnabled={
+		<OCToggleContextProvider
+			defaultIsOCEnabled={
 				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
+				wc_stripe_settings_params.is_oc_enabled === '1'
 			}
 		>
-			<OCToggleContextProvider
-				defaultIsOCEnabled={
-					// eslint-disable-next-line camelcase
-					wc_stripe_settings_params.is_oc_enabled === '1'
-				}
-			>
-				<PaymentGatewayManager />
-			</OCToggleContextProvider>
-		</UpeToggleContextProvider>
+			<PaymentGatewayManager />
+		</OCToggleContextProvider>
 	);
 }
 
