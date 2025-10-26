@@ -186,17 +186,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-eps.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-ideal.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-p24.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-multibanco.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-boleto.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-gateway-stripe-oxxo.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
