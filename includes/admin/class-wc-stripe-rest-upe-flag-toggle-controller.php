@@ -55,7 +55,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	public function get_flag() {
 		return new WP_REST_Response(
 			[
-				'is_upe_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+				'is_upe_enabled' => true,
 			]
 		);
 	}

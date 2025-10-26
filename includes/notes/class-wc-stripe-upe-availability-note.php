@@ -82,10 +82,6 @@ class WC_Stripe_UPE_Availability_Note {
 			return;
 		}
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return;
-		}
-
 		if ( WC_Stripe_Feature_Flags::did_merchant_disable_upe() ) {
 			return;
 		}

@@ -72,7 +72,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	public function maybe_update() {
 		if (
 			! class_exists( 'WC_Subscriptions' ) ||
-			! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ||
 			'yes' === get_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' )
 		) {
 			return;
@@ -166,7 +165,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * @param int $subscription_id The subscription ID which is about to renew.
 	 */
 	public function maybe_migrate_before_renewal( $subscription_id ) {
-		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			return;
 		}
 
@@ -205,8 +204,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * What % of the repair is complete, or when the next scheduled action is expected to run.
 	 */
 	public function display_admin_notice() {
-
-		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			return;
 		}
 
@@ -332,7 +330,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 */
 	public function add_debug_tool( $tools ) {
 		// We don't need to show the tool if the WooCommerce Subscriptions extension isn't active or the UPE checkout isn't enabled
-		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			return $tools;
 		}
 

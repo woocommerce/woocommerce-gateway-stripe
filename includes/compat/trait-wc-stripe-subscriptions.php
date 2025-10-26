@@ -381,40 +381,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		try {
 			$order_id = $renewal_order->get_id();
 
-			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			// This makes the SCA authorization popup show up for the "Renew early" modal (Subscriptions settings > Accept Early Renewal Payments via a Modal).
-			// Note: Currently available for non-UPE credit card only.
-			if ( isset( $_REQUEST['process_early_renewal'] ) && 'stripe' === $this->id && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) { // phpcs:ignore WordPress.Security.NonceVerification
-				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
-
-				if ( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
-					$verification_url = add_query_arg(
-						[
-							'order'         => $order_id,
-							'nonce'         => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-							'redirect_to'   => esc_url_raw( remove_query_arg( [ 'process_early_renewal', 'subscription_id', 'wcs_nonce' ] ) ),
-							'early_renewal' => true,
-						],
-						WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-					);
-
-					echo wp_json_encode(
-						[
-							'stripe_sca_required' => true,
-							'intent_secret'       => $response['payment_intent_secret'],
-							'redirect_url'        => wp_sanitize_redirect( esc_url_raw( $verification_url ) ),
-						]
-					);
-
-					exit;
-				}
-
-				// Hijack all other redirects in order to do the redirection in JavaScript.
-				add_action( 'wp_redirect', [ $this, 'redirect_after_early_renewal' ], 100 );
-
-				return;
-			}
-
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
 				return;

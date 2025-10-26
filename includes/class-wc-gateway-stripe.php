@@ -138,26 +138,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Gets the payment gateway's Title.
-	 *
-	 * On payment settings page the default title includes the number of legacy payment methods enabled.
-	 *
-	 * @return string The payment gateway's title.
-	 */
-	public function get_title() {
-		// Change the title on the payment methods settings page to include the number of enabled payment methods.
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
-			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
-			$this->title                   = $enabled_payment_methods_count ?
-				/* translators: $1. Count of enabled payment methods. */
-				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
-				: $this->method_title;
-		}
-
-		return parent::get_title();
-	}
-
-	/**
 	 * Checks if gateway should be available to use.
 	 *
 	 * @since 4.0.2
