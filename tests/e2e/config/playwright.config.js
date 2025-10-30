@@ -18,12 +18,14 @@ const config = {
 	testDir: '../tests',
 
 	// Maximum time one test can run for
-	timeout: TIMEOUT ? Number( TIMEOUT ) : 90 * 1000,
+	// Increased from 90s to 120s to reduce flakiness with Stripe iframe/modal flow.
+	timeout: TIMEOUT ? Number( TIMEOUT ) : 120 * 1000,
 
 	expect: {
 		// Maximum time expect() should wait for the condition to be met
 		// For example in `await expect(locator).toHaveText();`
-		timeout: 20 * 1000,
+		// Increased from 20s to 30s to reduce flakiness with Stripe iframe/modal interactions.
+		timeout: 30 * 1000,
 	},
 
 	// Folder for test artifacts such as screenshots, videos, traces, etc
