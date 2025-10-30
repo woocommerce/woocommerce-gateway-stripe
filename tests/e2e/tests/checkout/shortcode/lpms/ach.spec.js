@@ -8,9 +8,7 @@ const {
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
-	fillACHBankDetails,
 	setupACHCheckout,
-	waitForPaymentFormStable,
 } = payments;
 
 test.describe( 'ACH payment tests @shortcode', () => {
@@ -47,11 +45,37 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
+		// Customer not logged-in
 		await setupACHCheckout( page, 'shortcode' );
-		await fillACHBankDetails( page );
 
-		// Wait for payment form to be stable before placing order
-		await waitForPaymentFormStable( page );
+		const frame = page
+			.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+			.first();
+
+		// Click Agree and Continue button
+		let button = frame.getByTestId( 'agree-button' );
+		await expect( button ).toBeVisible();
+		await button.click();
+
+		// Click "Success ••••" account
+		button = frame.getByRole( 'button', { name: 'Success ••••' } );
+		await expect( button ).toBeVisible();
+		await button.click();
+
+		// Click Connect account button
+		button = frame.getByTestId( 'select-button' );
+		await expect( button ).toBeVisible();
+		await button.click();
+
+		// Click Not now button
+		button = frame.getByTestId( 'link-not-now-button' );
+		await expect( button ).toBeVisible();
+		await button.click();
+
+		// Click the done button with retry logic
+		button = frame.getByTestId( 'done-button' );
+		await expect( button ).toBeVisible();
+		await button.click();
 
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
@@ -71,15 +95,41 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				config.get( 'users.customer.password' )
 			);
 			await setupACHCheckout( page, 'shortcode' );
-			await fillACHBankDetails( page );
+
+			const frame = page
+				.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+				.first();
+
+			// Click Agree and Continue button
+			let button = frame.getByTestId( 'agree-button' );
+			await expect( button ).toBeVisible();
+			await button.click();
+
+			// Click Not now button
+			button = frame.getByTestId( 'link-not-now-button' );
+			await expect( button ).toBeVisible();
+			await button.click();
+
+			// Click "Success ••••" account
+			button = frame.getByRole( 'button', { name: 'Success ••••' } );
+			await expect( button ).toBeVisible();
+			await button.click();
+
+			// Click Connect account button
+			button = frame.getByTestId( 'select-button' );
+			await expect( button ).toBeVisible();
+			await button.click();
+
+			// Click the done button with retry logic
+			button = frame.getByTestId( 'done-button' );
+			await expect( button ).toBeVisible();
+			await button.click();
+
 			await page
 				.getByRole( 'checkbox', {
 					name: 'Save payment information to',
 				} )
 				.click();
-
-			// Wait for payment form to be stable before placing order
-			await waitForPaymentFormStable( page );
 
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
@@ -106,9 +156,6 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				.locator( '.woocommerce-SavedPaymentMethods-token' )
 				.first()
 				.click();
-
-			// Wait for payment form to be stable before placing order
-			await waitForPaymentFormStable( page );
 
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
