@@ -143,100 +143,6 @@ export async function waitForStripeReady(
 }
 
 /**
- * Wait for the payment form to be stable and ready for interaction.
- * This prevents issues with payment forms that are still initializing or re-rendering.
- *
- * @param {Page} page Playwright page fixture.
- * @param {number} stabilityDuration Time in milliseconds the form should remain stable (default: 500).
- * @param {number} timeout Maximum time to wait in milliseconds (default: 10000).
- */
-export async function waitForPaymentFormStable(
-	page,
-	stabilityDuration = 500,
-	timeout = 10000
-) {
-	const startTime = Date.now();
-	let lastChangeTime = startTime;
-
-	// Common selectors that indicate form changes
-	const formSelectors = [
-		'.wc-block-components-payment-methods',
-		'.payment_method_stripe',
-		'#wc-stripe-upe-form',
-		'.wc-stripe-upe-element',
-	];
-
-	// Wait for at least one form element to be present
-	let formFound = false;
-	for ( const selector of formSelectors ) {
-		if (
-			await page
-				.locator( selector )
-				.isVisible()
-				.catch( () => false )
-		) {
-			formFound = true;
-			break;
-		}
-	}
-
-	if ( ! formFound ) {
-		throw new Error( 'No payment form found on the page' );
-	}
-
-	// Monitor the DOM for changes using MutationObserver
-	await page.evaluate(
-		( { selectors, duration, maxTimeout } ) => {
-			return new Promise( ( resolve, reject ) => {
-				const startTime = Date.now();
-				let lastChangeTime = startTime;
-				let timeoutId;
-
-				const checkStability = () => {
-					const now = Date.now();
-					if ( now - lastChangeTime >= duration ) {
-						observer.disconnect();
-						clearTimeout( timeoutId );
-						resolve();
-					} else if ( now - startTime >= maxTimeout ) {
-						observer.disconnect();
-						clearTimeout( timeoutId );
-						reject(
-							new Error( 'Timeout waiting for form stability' )
-						);
-					} else {
-						timeoutId = setTimeout( checkStability, 100 );
-					}
-				};
-
-				const observer = new MutationObserver( () => {
-					lastChangeTime = Date.now();
-				} );
-
-				// Observe all form elements
-				for ( const selector of selectors ) {
-					const element = document.querySelector( selector );
-					if ( element ) {
-						observer.observe( element, {
-							childList: true,
-							subtree: true,
-							attributes: true,
-						} );
-					}
-				}
-
-				checkStability();
-			} );
-		},
-		{
-			selectors: formSelectors,
-			duration: stabilityDuration,
-			maxTimeout: timeout,
-		}
-	);
-}
-
-/**
  * Retry an async function with exponential backoff.
  * Useful for flaky operations like iframe interactions or API calls.
  *
@@ -618,8 +524,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.filter( { hasText: 'ACH Direct Debit' } )
 			.click();
 
-		// Wait for payment form to be stable after selecting ACH
-		await waitForPaymentFormStable( page );
+		// Wait for the iframe to be ready
+		const frameHandle = await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
+		);
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Wait for the iframe to be ready using the new helper
 		const iframeSelector =
@@ -650,8 +560,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await achLabel.waitFor( { state: 'visible' } );
 		await achLabel.click();
 
-		// Wait for payment form to be stable after selecting ACH
-		await waitForPaymentFormStable( page );
+		// Wait for the iframe to be ready
+		const frameHandle = await page.waitForSelector(
+			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
+		);
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Wait for the iframe to be ready using the new helper
 		const iframeSelector =
@@ -683,61 +597,30 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Agree and Continue with retry logic
-	await retryWithBackoff( async () => {
-		const agreeButton = frame.getByTestId( 'agree-button' );
-		await expect( agreeButton ).toBeVisible( { timeout: 10000 } );
-		await agreeButton.click();
-	} );
+	// Click Agree and Continue button
+	let button = frame.getByTestId( 'agree-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 
-	// Wait for next screen to load
-	await page.waitForTimeout( 500 );
+	// Click Not now button
+	button = frame.getByTestId( 'link-not-now-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 
-	// Click "Success ••••" button with retry logic
-	await retryWithBackoff( async () => {
-		const successButton = frame.getByRole( 'button', {
-			name: 'Success ••••',
-		} );
-		await expect( successButton ).toBeVisible( { timeout: 10000 } );
-		await successButton.click();
-	} );
+	// Click "Success ••••" account
+	button = frame.getByRole( 'button', { name: 'Success ••••' } );
+	await expect( button ).toBeVisible();
+	await button.click();
 
-	// Wait for next screen to load
-	await page.waitForTimeout( 500 );
-
-	// Click "Connect Account" button with retry logic
-	await retryWithBackoff( async () => {
-		const selectButton = frame.getByTestId( 'select-button' );
-		await expect( selectButton ).toBeVisible( { timeout: 10000 } );
-		await selectButton.click();
-	} );
-
-	// Wait for Link dialog or Done button
-	// Link registration button may or may not appear
-	// Check for both buttons with proper timeout handling
-	const linkNotNowButton = frame.getByTestId( 'link-not-now-button' );
-	const doneButton = frame.getByTestId( 'done-button' );
-
-	try {
-		// Try to find the Link registration "Not now" button first
-		await linkNotNowButton.waitFor( { state: 'visible', timeout: 5000 } );
-		await linkNotNowButton.click();
-
-		// After clicking "Not now", wait for the done button
-		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
-	} catch ( error ) {
-		// Link dialog didn't appear, done button should already be visible
-		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
-	}
+	// Click Connect account button
+	button = frame.getByTestId( 'select-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 
 	// Click the done button with retry logic
-	await retryWithBackoff( async () => {
-		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
-		await doneButton.click();
-	} );
-
-	// Wait for the ACH setup to complete
-	await page.waitForTimeout( 500 );
+	button = frame.getByTestId( 'done-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 };
 
 /**

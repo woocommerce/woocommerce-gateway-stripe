@@ -9,6 +9,7 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	setupACHCheckout,
+	fillACHBankDetails,
 } = payments;
 
 test.describe( 'ACH payment tests @shortcode', () => {
@@ -45,9 +46,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
-		// Customer not logged-in
 		await setupACHCheckout( page, 'shortcode' );
-
 		const frame = page
 			.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 			.first();
@@ -95,35 +94,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				config.get( 'users.customer.password' )
 			);
 			await setupACHCheckout( page, 'shortcode' );
-
-			const frame = page
-				.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
-				.first();
-
-			// Click Agree and Continue button
-			let button = frame.getByTestId( 'agree-button' );
-			await expect( button ).toBeVisible();
-			await button.click();
-
-			// Click Not now button
-			button = frame.getByTestId( 'link-not-now-button' );
-			await expect( button ).toBeVisible();
-			await button.click();
-
-			// Click "Success ••••" account
-			button = frame.getByRole( 'button', { name: 'Success ••••' } );
-			await expect( button ).toBeVisible();
-			await button.click();
-
-			// Click Connect account button
-			button = frame.getByTestId( 'select-button' );
-			await expect( button ).toBeVisible();
-			await button.click();
-
-			// Click the done button with retry logic
-			button = frame.getByTestId( 'done-button' );
-			await expect( button ).toBeVisible();
-			await button.click();
+			await fillACHBankDetails( page );
 
 			await page
 				.getByRole( 'checkbox', {
