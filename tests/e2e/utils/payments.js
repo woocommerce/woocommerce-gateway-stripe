@@ -91,6 +91,197 @@ export async function setupCart(
 }
 
 /**
+ * Wait for Stripe iframe to be fully loaded and ready for interaction.
+ * This helper addresses common race conditions with Stripe Elements.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} iframeSelector The selector for the Stripe iframe.
+ * @param {number} timeout Maximum time to wait in milliseconds (default: 15000).
+ * @returns {Promise<Frame>} The loaded Stripe frame.
+ */
+export async function waitForStripeReady(
+	page,
+	iframeSelector,
+	timeout = 15000
+) {
+	// Wait for iframe to be present and visible
+	await page.waitForSelector( iframeSelector, {
+		state: 'visible',
+		timeout,
+	} );
+
+	// Get the frame handle and content frame
+	const frameHandle = await page.waitForSelector( iframeSelector, {
+		timeout,
+	} );
+	const stripeFrame = await frameHandle.contentFrame();
+
+	if ( ! stripeFrame ) {
+		throw new Error(
+			`Could not get content frame for: ${ iframeSelector }`
+		);
+	}
+
+	// Wait for the frame to be fully loaded
+	await stripeFrame.waitForLoadState( 'networkidle', { timeout } );
+
+	// Additional wait for any loading indicators to disappear
+	const loadingIndicators = [
+		'.__PrivateStripeElementLoader',
+		'.LightboxModalLoadingIndicator',
+		'[data-testid="loading"]',
+	];
+
+	for ( const indicator of loadingIndicators ) {
+		const loader = stripeFrame.locator( indicator );
+		if ( await loader.isVisible().catch( () => false ) ) {
+			await expect( loader ).toBeHidden( { timeout: 10000 } );
+		}
+	}
+
+	return stripeFrame;
+}
+
+/**
+ * Wait for the payment form to be stable and ready for interaction.
+ * This prevents issues with payment forms that are still initializing or re-rendering.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {number} stabilityDuration Time in milliseconds the form should remain stable (default: 500).
+ * @param {number} timeout Maximum time to wait in milliseconds (default: 10000).
+ */
+export async function waitForPaymentFormStable(
+	page,
+	stabilityDuration = 500,
+	timeout = 10000
+) {
+	const startTime = Date.now();
+	let lastChangeTime = startTime;
+
+	// Common selectors that indicate form changes
+	const formSelectors = [
+		'.wc-block-components-payment-methods',
+		'.payment_method_stripe',
+		'#wc-stripe-upe-form',
+		'.wc-stripe-upe-element',
+	];
+
+	// Wait for at least one form element to be present
+	let formFound = false;
+	for ( const selector of formSelectors ) {
+		if (
+			await page
+				.locator( selector )
+				.isVisible()
+				.catch( () => false )
+		) {
+			formFound = true;
+			break;
+		}
+	}
+
+	if ( ! formFound ) {
+		throw new Error( 'No payment form found on the page' );
+	}
+
+	// Monitor the DOM for changes using MutationObserver
+	await page.evaluate(
+		( { selectors, duration, maxTimeout } ) => {
+			return new Promise( ( resolve, reject ) => {
+				const startTime = Date.now();
+				let lastChangeTime = startTime;
+				let timeoutId;
+
+				const checkStability = () => {
+					const now = Date.now();
+					if ( now - lastChangeTime >= duration ) {
+						observer.disconnect();
+						clearTimeout( timeoutId );
+						resolve();
+					} else if ( now - startTime >= maxTimeout ) {
+						observer.disconnect();
+						clearTimeout( timeoutId );
+						reject(
+							new Error( 'Timeout waiting for form stability' )
+						);
+					} else {
+						timeoutId = setTimeout( checkStability, 100 );
+					}
+				};
+
+				const observer = new MutationObserver( () => {
+					lastChangeTime = Date.now();
+				} );
+
+				// Observe all form elements
+				for ( const selector of selectors ) {
+					const element = document.querySelector( selector );
+					if ( element ) {
+						observer.observe( element, {
+							childList: true,
+							subtree: true,
+							attributes: true,
+						} );
+					}
+				}
+
+				checkStability();
+			} );
+		},
+		{
+			selectors: formSelectors,
+			duration: stabilityDuration,
+			maxTimeout: timeout,
+		}
+	);
+}
+
+/**
+ * Retry an async function with exponential backoff.
+ * Useful for flaky operations like iframe interactions or API calls.
+ *
+ * @param {Function} fn The async function to retry.
+ * @param {Object} options Retry configuration.
+ * @param {number} options.maxRetries Maximum number of retries (default: 3).
+ * @param {number} options.initialDelay Initial delay in milliseconds (default: 500).
+ * @param {number} options.maxDelay Maximum delay in milliseconds (default: 5000).
+ * @param {Function} options.shouldRetry Optional function to determine if error should trigger retry.
+ * @returns {Promise<any>} The result of the function call.
+ */
+export async function retryWithBackoff( fn, options = {} ) {
+	const {
+		maxRetries = 3,
+		initialDelay = 500,
+		maxDelay = 5000,
+		shouldRetry = () => true,
+	} = options;
+
+	let lastError;
+	let delay = initialDelay;
+
+	for ( let attempt = 0; attempt <= maxRetries; attempt++ ) {
+		try {
+			return await fn();
+		} catch ( error ) {
+			lastError = error;
+
+			// Don't retry if we've exhausted attempts or if shouldRetry returns false
+			if ( attempt === maxRetries || ! shouldRetry( error ) ) {
+				break;
+			}
+
+			// Wait before retrying
+			await new Promise( ( resolve ) => setTimeout( resolve, delay ) );
+
+			// Exponential backoff with max delay cap
+			delay = Math.min( delay * 2, maxDelay );
+		}
+	}
+
+	throw lastError;
+}
+
+/**
  * Fills in the credit card details on the default (blocks) checkout page.
  * @param {Page} page Playwright page fixture.
  * @param {Object} card The CC info in the format provided on the test-data.
