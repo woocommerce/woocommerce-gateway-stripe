@@ -123,6 +123,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Improve Payment Method Configuration error logging
 * Dev - Add Stripe's request-id to API response logs
 * Fix - Increase limit when listing available payment method configurations from the Stripe API
+* Fix - Klarna not processing recurring payments
 * Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
