@@ -602,10 +602,18 @@ export const fillACHBankDetails = async ( page ) => {
 	await expect( button ).toBeVisible();
 	await button.click();
 
-	// Click Not now button
-	button = frame.getByTestId( 'link-not-now-button' );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Link registration button may or may not appear.
+	await Promise.race( [
+		frame
+			.getByTestId( 'link-not-now-button' )
+			.waitFor( { state: 'visible', timeout: 5000 } )
+			.then( async () => {
+				await frame.getByTestId( 'link-not-now-button' ).click();
+			} ),
+		frame
+			.getByRole( 'button', { name: 'Success ••••' } )
+			.waitFor( { state: 'visible', timeout: 5000 } ),
+	] );
 
 	// Click "Success ••••" account
 	button = frame.getByRole( 'button', { name: 'Success ••••' } );
@@ -616,6 +624,19 @@ export const fillACHBankDetails = async ( page ) => {
 	button = frame.getByTestId( 'select-button' );
 	await expect( button ).toBeVisible();
 	await button.click();
+
+	// If link registration did not load when starting the flow, it will appear here.
+	await Promise.race( [
+		frame
+			.getByTestId( 'link-not-now-button' )
+			.waitFor( { state: 'visible', timeout: 5000 } )
+			.then( async () => {
+				await frame.getByTestId( 'link-not-now-button' ).click();
+			} ),
+		frame
+			.getByTestId( 'done-button' )
+			.waitFor( { state: 'visible', timeout: 5000 } ),
+	] );
 
 	// Click the done button with retry logic
 	button = frame.getByTestId( 'done-button' );
