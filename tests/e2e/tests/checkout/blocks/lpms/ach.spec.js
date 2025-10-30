@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	fillACHBankDetails,
 	setupACHCheckout,
+	waitForPaymentFormStable,
 } = payments;
 
 test.describe( 'ACH payment tests @blocks', () => {
@@ -47,6 +48,10 @@ test.describe( 'ACH payment tests @blocks', () => {
 	} ) => {
 		await setupACHCheckout( page, 'blocks' );
 		await fillACHBankDetails( page );
+
+		// Wait for payment form to be stable before placing order
+		await waitForPaymentFormStable( page );
+
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -71,6 +76,10 @@ test.describe( 'ACH payment tests @blocks', () => {
 					'.wc-block-components-payment-methods__save-card-info'
 				)
 				.click();
+
+			// Wait for payment form to be stable before placing order
+			await waitForPaymentFormStable( page );
+
 			await page.locator( 'text=Place order' ).click();
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -90,6 +99,10 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.locator( 'label' )
 				.filter( { hasText: 'Checking account ending in' } )
 				.click();
+
+			// Wait for payment form to be stable before placing order
+			await waitForPaymentFormStable( page );
+
 			await page.locator( 'text=Place order' ).click();
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

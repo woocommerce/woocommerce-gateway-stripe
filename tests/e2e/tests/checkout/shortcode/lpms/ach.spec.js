@@ -10,6 +10,7 @@ const {
 	setupShortcodeCheckout,
 	fillACHBankDetails,
 	setupACHCheckout,
+	waitForPaymentFormStable,
 } = payments;
 
 test.describe( 'ACH payment tests @shortcode', () => {
@@ -48,6 +49,10 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	} ) => {
 		await setupACHCheckout( page, 'shortcode' );
 		await fillACHBankDetails( page );
+
+		// Wait for payment form to be stable before placing order
+		await waitForPaymentFormStable( page );
+
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -72,6 +77,10 @@ test.describe( 'ACH payment tests @shortcode', () => {
 					name: 'Save payment information to',
 				} )
 				.click();
+
+			// Wait for payment form to be stable before placing order
+			await waitForPaymentFormStable( page );
+
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -97,6 +106,10 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				.locator( '.woocommerce-SavedPaymentMethods-token' )
 				.first()
 				.click();
+
+			// Wait for payment form to be stable before placing order
+			await waitForPaymentFormStable( page );
+
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

@@ -616,22 +616,29 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await page
 			.locator( 'label' )
 			.filter( { hasText: 'ACH Direct Debit' } )
-			.dispatchEvent( 'click' );
+			.click();
 
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
+		// Wait for payment form to be stable after selecting ACH
+		await waitForPaymentFormStable( page );
 
-		// Click "Test Institution"
-		await page
-			.frameLocator(
-				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
-			)
-			.getByText( 'Test Institution' )
-			.dispatchEvent( 'click' );
+		// Wait for the iframe to be ready using the new helper
+		const iframeSelector =
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]';
+		await waitForStripeReady( page, iframeSelector );
+
+		// Click "Test Institution" with retry logic
+		await retryWithBackoff( async () => {
+			const testInstitutionButton = page
+				.frameLocator(
+					'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+				)
+				.getByText( 'Test Institution' );
+
+			await expect( testInstitutionButton ).toBeVisible( {
+				timeout: 10000,
+			} );
+			await testInstitutionButton.click();
+		} );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -641,22 +648,29 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		// Select ACH in shortcode checkout
 		const achLabel = page.getByText( 'ACH Direct Debit' );
 		await achLabel.waitFor( { state: 'visible' } );
-		await achLabel.dispatchEvent( 'click' );
+		await achLabel.click();
 
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
+		// Wait for payment form to be stable after selecting ACH
+		await waitForPaymentFormStable( page );
 
-		// Click "Test Institution"
-		await page
-			.frameLocator(
-				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
-			)
-			.getByTestId( 'featured-institution-default' )
-			.dispatchEvent( 'click' );
+		// Wait for the iframe to be ready using the new helper
+		const iframeSelector =
+			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]';
+		await waitForStripeReady( page, iframeSelector );
+
+		// Click "Test Institution" with retry logic
+		await retryWithBackoff( async () => {
+			const testInstitutionButton = page
+				.frameLocator(
+					'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+				)
+				.getByTestId( 'featured-institution-default' );
+
+			await expect( testInstitutionButton ).toBeVisible( {
+				timeout: 10000,
+			} );
+			await testInstitutionButton.click();
+		} );
 	}
 };
 
@@ -669,34 +683,61 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Agree and Continue
-	await frame.getByTestId( 'agree-button' ).click();
+	// Agree and Continue with retry logic
+	await retryWithBackoff( async () => {
+		const agreeButton = frame.getByTestId( 'agree-button' );
+		await expect( agreeButton ).toBeVisible( { timeout: 10000 } );
+		await agreeButton.click();
+	} );
 
-	// Click "Success ••••" button
-	await frame.getByRole( 'button', { name: 'Success ••••' } ).click();
+	// Wait for next screen to load
+	await page.waitForTimeout( 500 );
 
-	// Click "Connect Account" button.
-	await frame.getByTestId( 'select-button' ).click();
+	// Click "Success ••••" button with retry logic
+	await retryWithBackoff( async () => {
+		const successButton = frame.getByRole( 'button', {
+			name: 'Success ••••',
+		} );
+		await expect( successButton ).toBeVisible( { timeout: 10000 } );
+		await successButton.click();
+	} );
 
-	// Link registration button may or may not appear.
-	await Promise.race( [
-		frame
-			.getByTestId( 'link-not-now-button' )
-			.waitFor( {
-				state: 'visible',
-				timeout: 5000,
-			} )
-			.then( async () => {
-				await frame.getByTestId( 'link-not-now-button' ).click();
-			} ),
+	// Wait for next screen to load
+	await page.waitForTimeout( 500 );
 
-		frame.getByTestId( 'done-button' ).waitFor( {
-			state: 'visible',
-			timeout: 5000,
-		} ),
-	] );
+	// Click "Connect Account" button with retry logic
+	await retryWithBackoff( async () => {
+		const selectButton = frame.getByTestId( 'select-button' );
+		await expect( selectButton ).toBeVisible( { timeout: 10000 } );
+		await selectButton.click();
+	} );
 
-	await frame.getByTestId( 'done-button' ).click();
+	// Wait for Link dialog or Done button
+	// Link registration button may or may not appear
+	// Check for both buttons with proper timeout handling
+	const linkNotNowButton = frame.getByTestId( 'link-not-now-button' );
+	const doneButton = frame.getByTestId( 'done-button' );
+
+	try {
+		// Try to find the Link registration "Not now" button first
+		await linkNotNowButton.waitFor( { state: 'visible', timeout: 5000 } );
+		await linkNotNowButton.click();
+
+		// After clicking "Not now", wait for the done button
+		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
+	} catch ( error ) {
+		// Link dialog didn't appear, done button should already be visible
+		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
+	}
+
+	// Click the done button with retry logic
+	await retryWithBackoff( async () => {
+		await expect( doneButton ).toBeVisible( { timeout: 10000 } );
+		await doneButton.click();
+	} );
+
+	// Wait for the ACH setup to complete
+	await page.waitForTimeout( 500 );
 };
 
 /**
