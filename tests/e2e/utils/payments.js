@@ -513,43 +513,24 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await emptyCart( page );
 	await setupCart( page );
 
+	let iframeSelector = 'iframe[src*="elements-inner-payment"]';
+
 	if ( checkoutType === 'blocks' ) {
+		iframeSelector = `#radio-control-wc-payment-method-options-stripe_us_bank_account__content ${ iframeSelector }`;
+
 		await setupBlocksCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
+
 		// Select ACH in blocks checkout
 		await page
 			.locator( 'label' )
 			.filter( { hasText: 'ACH Direct Debit' } )
 			.click();
-
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
-
-		// Wait for the iframe to be ready using the new helper
-		const iframeSelector =
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]';
-		await waitForStripeReady( page, iframeSelector );
-
-		// Click "Test Institution" with retry logic
-		await retryWithBackoff( async () => {
-			const testInstitutionButton = page
-				.frameLocator(
-					'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
-				)
-				.getByText( 'Test Institution' );
-
-			await expect( testInstitutionButton ).toBeVisible( {
-				timeout: 10000,
-			} );
-			await testInstitutionButton.click();
-		} );
 	} else {
+		iframeSelector = `.wc_payment_method.payment_method_stripe_us_bank_account ${ iframeSelector }`;
+
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
@@ -559,33 +540,20 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const achLabel = page.getByText( 'ACH Direct Debit' );
 		await achLabel.waitFor( { state: 'visible' } );
 		await achLabel.click();
-
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
-
-		// Wait for the iframe to be ready using the new helper
-		const iframeSelector =
-			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]';
-		await waitForStripeReady( page, iframeSelector );
-
-		// Click "Test Institution" with retry logic
-		await retryWithBackoff( async () => {
-			const testInstitutionButton = page
-				.frameLocator(
-					'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
-				)
-				.getByTestId( 'featured-institution-default' );
-
-			await expect( testInstitutionButton ).toBeVisible( {
-				timeout: 10000,
-			} );
-			await testInstitutionButton.click();
-		} );
 	}
+
+	await waitForStripeReady( page, iframeSelector );
+
+	// Click "Test Institution" with retry logic
+	await retryWithBackoff( async () => {
+		const testInstitutionButton = page
+			.frameLocator( iframeSelector )
+			.getByText( 'Test Institution' )
+			.first();
+
+		await expect( testInstitutionButton ).toBeVisible();
+		await testInstitutionButton.click();
+	} );
 };
 
 /**
