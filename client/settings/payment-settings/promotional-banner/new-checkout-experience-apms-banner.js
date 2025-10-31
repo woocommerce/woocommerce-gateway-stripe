@@ -1,6 +1,6 @@
 /* global wc_stripe_settings_params */
 import { React } from 'react';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { ExternalLink } from '@wordpress/components';
