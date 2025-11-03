@@ -157,7 +157,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			(
 				'payment_intent_mandate_invalid' === $error->code || // Don't retry payments when a 3DS mandate is invalid.
 				'charge_exceeds_transaction_limit' === $error->code || // Don't retry payments when the charge exceeds the transaction limit.
-				'amount_too_small' === $error->code
+				'amount_too_small' === $error->code ||
+				'card_declined' === $error->code ||
+				'payment_method_provider_decline' === $error->code
 			)
 		) {
 			return false;
