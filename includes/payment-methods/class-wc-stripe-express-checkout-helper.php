@@ -682,8 +682,12 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		// Detect One Page Checkout pages for special handling.
+		$is_one_page_checkout = function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout();
+
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it.
+		if ( ( is_checkout() || $is_one_page_checkout ) && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
@@ -691,8 +695,16 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_product = $this->is_product();
 
 		// Don't show if product page ECE is disabled.
-		if ( $is_product && ! $this->should_show_ece_on_product_pages() ) {
+		// Skip this check for One Page Checkout pages since they should be treated as checkout pages, not product pages.
+		if ( $is_product && ! $is_one_page_checkout && ! $this->should_show_ece_on_product_pages() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
+			return false;
+		}
+
+		// On One Page Checkout pages, if we're in the product section and checkout buttons are enabled,
+		// skip rendering here because the button will render in the checkout section instead.
+		if ( $is_one_page_checkout && $is_product && doing_action( 'woocommerce_after_add_to_cart_form' ) && $this->should_show_ece_on_checkout_page() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons on One Page Checkout will be displayed in checkout section, not product section.' );
 			return false;
 		}
 
