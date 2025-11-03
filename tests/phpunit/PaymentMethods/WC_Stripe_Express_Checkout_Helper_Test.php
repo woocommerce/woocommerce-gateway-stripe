@@ -21,6 +21,7 @@ use WP_UnitTestCase;
  * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Helper
  *
  * WC_Stripe_Express_Checkout_Helper_Test class.
+ * @group helper
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	private $shipping_zone;
@@ -982,6 +983,48 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'cart contains free trial' => true,
 				'expected'                 => true,
 			],
+		];
+	}
+
+	/**
+	 * Test that OPC detection logic works correctly.
+	 *
+	 * @dataProvider provide_opc_detection_scenarios
+	 *
+	 * @param bool  $is_opc Whether OPC function returns true.
+	 * @param array $button_locations Button location settings.
+	 * @param bool  $should_allow_checkout Expected result for checkout location check.
+	 *
+	 * @return void
+	 */
+	public function test_opc_detection_logic( $is_opc, $button_locations, $should_allow_checkout ) {
+		$stripe_settings                                           = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['payment_request_button_locations']       = $button_locations;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
+
+		// The actual test: Check if should_show_ece_on_checkout_page returns the expected value.
+		$result = $helper->should_show_ece_on_checkout_page();
+
+		$this->assertEquals( in_array( 'checkout', $button_locations, true ), $result );
+	}
+
+	/**
+	 * Data provider for OPC detection scenarios.
+	 *
+	 * @return array
+	 */
+	public function provide_opc_detection_scenarios() {
+		return [
+			'OPC with checkout enabled'     => [ true, [ 'checkout' ], true ],
+			'OPC with checkout disabled'    => [ true, [ 'product' ], false ],
+			'OPC with both enabled'         => [ true, [ 'checkout', 'product' ], true ],
+			'Non-OPC with checkout enabled' => [ false, [ 'checkout' ], true ],
 		];
 	}
 }
