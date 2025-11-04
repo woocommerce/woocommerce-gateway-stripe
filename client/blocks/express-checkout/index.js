@@ -84,6 +84,11 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 	);
 	const edit = getEditorElement( expressPaymentMethod );
 	const canMakePayment = ( { cart } ) => {
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
 		if (
 			parseFloat( cart.cartTotals.total_price ) === 0.0 &&
 			! getExpressCheckoutData( 'has_free_trial' )
@@ -92,11 +97,6 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 		}
 
 		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
-			return false;
-		}
-
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
 		}
 
