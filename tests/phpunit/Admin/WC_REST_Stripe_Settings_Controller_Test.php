@@ -183,6 +183,15 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests for enum fields.
+	 *
+	 * @param string       $rest_key             REST API key.
+	 * @param string       $option_name          Option name.
+	 * @param string|array $original_valid_value Original valid value.
+	 * @param string|array $new_valid_value      New valid value.
+	 * @param string|array $new_invalid_value    New invalid value.
+	 * @param bool         $is_upe_enabled       Whether UPE is enabled.
+	 *
 	 * @dataProvider enum_field_provider
 	 */
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
@@ -508,28 +517,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		];
 	}
 
-	/**
-	 * @dataProvider is_payment_request_enabled_legacy_provider
-	 */
-	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
-		// Settings controller with non-UPE gateway.
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->update_option( 'payment_request', $option_value );
-		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
-
-		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
-		$response = $controller->get_settings( $request );
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
-	}
-
-	public function is_payment_request_enabled_legacy_provider() {
-		return [
-			[ true, 'yes' ],
-			[ false, 'no' ],
-		];
-	}
-
 	public function boolean_field_provider() {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
@@ -553,32 +540,37 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		];
 	}
 
+	/**
+	 * Data provider for `test_enum_fields`.
+	 *
+	 * @return array
+	 */
 	public function enum_field_provider() {
 		return [
 			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
-				'payment_request_button_theme',
+				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
 			'payment_request_button_size'      => [
 				'payment_request_button_size',
-				'payment_request_button_size',
+				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
 			'payment_request_button_type'      => [
 				'payment_request_button_type',
-				'payment_request_button_type',
+				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
 			'payment_request_button_locations' => [
 				'payment_request_button_locations',
-				'payment_request_button_locations',
+				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],

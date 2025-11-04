@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
 * Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
 * Add - Includes a notice to inform merchants about methods that are automatically enabled upon account connection
 * Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
