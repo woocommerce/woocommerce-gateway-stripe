@@ -217,8 +217,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
 		new Allowed_Payment_Request_Button_Types_Update();
-		// TODO: Temporary disabling the migration as it has a conflict with the new UPE checkout.
-		// new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
 		$this->api                           = new WC_Stripe_Connect_API();
@@ -415,8 +414,8 @@ class WC_Stripe {
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-			? $stripe_settings['payment_request_button_locations']
+		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
+			? $stripe_settings['express_checkout_button_locations']
 			: [];
 		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 			global $post;
@@ -439,7 +438,7 @@ class WC_Stripe {
 				$new_prb_locations[] = 'checkout';
 			}
 
-			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
+			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 	}

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import React, { useContext, useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
