@@ -9,7 +9,6 @@ use WC_Stripe_Order_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
-use WP_UnitTestCase;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Method_CC;
 
@@ -815,6 +814,61 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter'                     => $mocked_filter,
 				'expected'                   => [],
 			],
+		];
+	}
+
+	/**
+	 * Test that non-retryable error codes return false
+	 *
+	 * @dataProvider non_retryable_error_codes_provider
+	 */
+	public function test_non_retryable_error_codes_return_false( $error_code ) {
+		$error       = new \stdClass();
+		$error->code = $error_code;
+		$error->type = 'invalid_request_error';
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertFalse( $result, "Error code '{$error_code}' should not be retryable" );
+	}
+
+	/**
+	 * Data provider for non-retryable error codes
+	 */
+	public function non_retryable_error_codes_provider() {
+		return [
+			'payment_intent_mandate_invalid'   => [ 'payment_intent_mandate_invalid' ],
+			'charge_exceeds_transaction_limit' => [ 'charge_exceeds_transaction_limit' ],
+			'amount_too_small'                 => [ 'amount_too_small' ],
+			'card_declined'                    => [ 'card_declined' ],
+			'payment_method_provider_decline'  => [ 'payment_method_provider_decline' ],
+		];
+	}
+
+	/**
+	 * Test that retryable error types return true
+	 *
+	 * @dataProvider retryable_error_types_provider
+	 */
+	public function test_retryable_error_types_return_true( $error_type ) {
+		$error       = new \stdClass();
+		$error->type = $error_type;
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertTrue( $result, "Error type '{$error_type}' should be retryable" );
+	}
+
+	/**
+	 * Data provider for retryable error types
+	 */
+	public function retryable_error_types_provider() {
+		return [
+			'invalid_request_error' => [ 'invalid_request_error' ],
+			'idempotency_error'     => [ 'idempotency_error' ],
+			'rate_limit_error'      => [ 'rate_limit_error' ],
+			'api_connection_error'  => [ 'api_connection_error' ],
+			'api_error'             => [ 'api_error' ],
 		];
 	}
 }
