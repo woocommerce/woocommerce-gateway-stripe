@@ -117,7 +117,7 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'payment_request'                     => [
+		'express_checkout'                     => [
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
 			'label'       => sprintf(
 				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
@@ -133,7 +133,7 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'payment_request_button_type'         => [
+		'express_checkout_button_type'         => [
 			'title'       => __( 'Payment Request Button Type', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Type', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
@@ -148,7 +148,7 @@ $stripe_settings = apply_filters(
 				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_theme'        => [
+		'express_checkout_button_theme'        => [
 			'title'       => __( 'Payment Request Button Theme', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Theme', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
@@ -189,7 +189,7 @@ $stripe_settings = apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_locations'    => [
+		'express_checkout_button_locations'    => [
 			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
 			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
@@ -205,7 +205,7 @@ $stripe_settings = apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_size'         => [
+		'express_checkout_button_size'         => [
 			'title'       => __( 'Payment Request Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
@@ -293,20 +293,20 @@ $stripe_settings = apply_filters(
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
-	$stripe_settings['payment_request_button_locations']['default'][] = 'checkout';
+	$stripe_settings['express_checkout_button_locations']['default'][] = 'checkout';
 
 	// no longer needed in the new settings.
-	unset( $stripe_settings['payment_request_button_branded_type'] );
-	unset( $stripe_settings['payment_request_button_height'] );
-	unset( $stripe_settings['payment_request_button_label'] );
+	unset( $stripe_settings['express_checkout_button_branded_type'] );
+	unset( $stripe_settings['express_checkout_button_height'] );
+	unset( $stripe_settings['express_checkout_button_label'] );
 	// injecting some of the new options.
-	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
-	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
+	$stripe_settings['express_checkout_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
 	// no longer valid options.
-	unset( $stripe_settings['payment_request_button_type']['options']['branded'] );
-	unset( $stripe_settings['payment_request_button_type']['options']['custom'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['branded'] );
+	unset( $stripe_settings['express_checkout_button_type']['options']['custom'] );
 } else {
-	unset( $stripe_settings['payment_request_button_size'] );
+	unset( $stripe_settings['express_checkout_button_size'] );
 }
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {

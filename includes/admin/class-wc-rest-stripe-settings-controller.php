@@ -109,20 +109,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'payment_request_button_type'      => [
 						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['payment_request_button_type']['options'] ),
+						'enum'              => array_keys( $form_fields['express_checkout_button_type']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_theme'     => [
 						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['payment_request_button_theme']['options'] ),
+						'enum'              => array_keys( $form_fields['express_checkout_button_theme']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_size'      => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						// it can happen that `$form_fields['payment_request_button_size']` is empty (in tests) - fixing temporarily.
-						'enum'              => array_keys( isset( $form_fields['payment_request_button_size']['options'] ) ? $form_fields['payment_request_button_size']['options'] : [] ),
+						// it can happen that `$form_fields['express_checkout_button_size']` is empty (in tests) - fixing temporarily.
+						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_locations' => [
@@ -130,7 +130,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_keys( $form_fields['payment_request_button_locations']['options'] ),
+							'enum' => array_keys( $form_fields['express_checkout_button_locations']['options'] ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -237,10 +237,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
 				'is_payment_request_enabled'               => $this->gateway->is_payment_request_enabled(),
-				'payment_request_button_type'              => $this->gateway->get_validated_option( 'payment_request_button_type' ),
-				'payment_request_button_theme'             => $this->gateway->get_validated_option( 'payment_request_button_theme' ),
-				'payment_request_button_size'              => $this->gateway->get_validated_option( 'payment_request_button_size' ),
-				'payment_request_button_locations'         => $this->gateway->get_validated_option( 'payment_request_button_locations' ),
+				'payment_request_button_type'              => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
+				'payment_request_button_theme'             => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
+				'payment_request_button_size'              => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'payment_request_button_locations'         => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'                => ! $this->gateway->is_automatic_capture_enabled(),
@@ -540,10 +540,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_payment_request_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'payment_request_button_type'      => 'payment_request_button_type',
-			'payment_request_button_size'      => 'payment_request_button_size',
-			'payment_request_button_theme'     => 'payment_request_button_theme',
-			'payment_request_button_locations' => 'payment_request_button_locations',
+			'payment_request_button_type'      => 'express_checkout_button_type',
+			'payment_request_button_size'      => 'express_checkout_button_size',
+			'payment_request_button_theme'     => 'express_checkout_button_theme',
+			'payment_request_button_locations' => 'express_checkout_button_locations',
 		];
 
 		foreach ( $attributes as $request_key => $attribute ) {
