@@ -12,6 +12,7 @@ import {
 	useAccountKeysTestWebhookSecret,
 } from 'wcstripe/data/account-keys/hooks';
 import { useAccount } from 'wcstripe/data/account';
+import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -34,6 +35,10 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/tracking', () => ( {
+	recordEvent: jest.fn(),
 } ) );
 
 jest.mock( '@stripe/stripe-js', () => ( {
@@ -286,6 +291,42 @@ describe( 'AccountDetailsSection', () => {
 				name: /Configure connection/i,
 			} );
 			expect( configureConnectionButton ).toBeInTheDocument();
+		} );
+
+		it( 'should record event when the reconnect button is clicked', async () => {
+			useAccount.mockReturnValue( {
+				data: {
+					webhook_url: 'example.com',
+					account: {
+						id: 'acct_123',
+						email: 'test@example.com',
+						testmode: false,
+					},
+					configured_webhook_urls: {
+						live: 'example.com',
+						test: 'example.com',
+					},
+					oauth_connections: {
+						live: { connected: false },
+						test: { connected: false },
+					},
+				},
+			} );
+
+			render(
+				<AccountDetailsSection setModalType={ setModalTypeMock } />
+			);
+
+			const editKeysButton = screen.getByRole( 'button', {
+				name: /Configure connection/i,
+			} );
+
+			await userEvent.click( editKeysButton );
+
+			expect( recordEvent ).toHaveBeenCalledWith(
+				'wcstripe_reconnect_button_click',
+				{ source: 'account_details_section', mode: 'live' }
+			);
 		} );
 	} );
 } );

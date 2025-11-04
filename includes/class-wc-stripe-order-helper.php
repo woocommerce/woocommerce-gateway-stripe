@@ -837,7 +837,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	public function is_stripe_gateway_order( WC_Order $order ): bool {
-		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
 	/**

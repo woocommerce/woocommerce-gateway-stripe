@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Payment_Gateway;
 use WC_Stripe_Express_Checkout_Ajax_Handler;
 use WC_Stripe_Express_Checkout_Element;
@@ -36,7 +36,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -74,7 +74,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -105,7 +105,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 

@@ -403,7 +403,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$newly_disabled_methods               = [];
 
 		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
+			WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
 			return;
 		}
 
@@ -430,7 +430,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			$updated_payment_method_configuration
 		);
 		if ( ! empty( $response->error ) ) {
-			WC_Stripe_Logger::log( 'Error: ' . $response->error->message . ': ' . $response->error->request_log_url );
+			WC_Stripe_Logger::error(
+				'Unable to update Payment Method Configuration',
+				[
+					'pmc_id'        => $payment_method_configuration->id,
+					'configuration' => $updated_payment_method_configuration,
+					'response'      => $response,
+				]
+			);
 		}
 
 		self::clear_payment_method_configuration_cache();
@@ -538,7 +545,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Add Google Pay and Apple Pay to the list if payment_request is enabled
-		if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]

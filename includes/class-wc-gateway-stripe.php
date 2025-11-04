@@ -10,9 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Gateway_Stripe class.
  *
  * @extends WC_Payment_Gateway
+ *
+ * @deprecated Deprecated in favor of WC_Stripe_UPE_Payment_Gateway. To be removed in a future version.
  */
 class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
-
 	const ID = 'stripe';
 
 	/**
@@ -115,7 +116,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
 		$this->secret_key           = $this->testmode ? $this->get_validated_option( 'test_secret_key' ) : $this->get_validated_option( 'secret_key' );
 		$this->publishable_key      = $this->testmode ? $this->get_validated_option( 'test_publishable_key' ) : $this->get_validated_option( 'publishable_key' );
-		$this->payment_request      = 'yes' === $this->get_option( 'payment_request', 'yes' );
+		$this->payment_request      = 'yes' === $this->get_option( 'express_checkout', 'yes' );
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
@@ -1235,7 +1236,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_payment_request_enabled() {
-		return 'yes' === $this->get_option( 'payment_request' );
+		return 'yes' === $this->get_option( 'express_checkout' );
 	}
 
 	/**
