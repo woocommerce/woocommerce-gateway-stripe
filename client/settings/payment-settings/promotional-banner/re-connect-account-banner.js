@@ -21,9 +21,17 @@ export const ReConnectAccountBanner = ( { testOauthUrl, oauthUrl } ) => {
 	const handleButtonClick = () => {
 		if ( isTestModeEnabled && testOauthUrl ) {
 			recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 're-connect-account-banner',
+				mode: 'test',
+			} );
 			window.location.assign( testOauthUrl );
 		} else if ( ! isTestModeEnabled && oauthUrl ) {
 			recordEvent( 'wcstripe_create_or_connect_account_click', {} );
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 're-connect-account-banner',
+				mode: 'live',
+			} );
 			window.location.assign( oauthUrl );
 		} else {
 			createErrorNotice(

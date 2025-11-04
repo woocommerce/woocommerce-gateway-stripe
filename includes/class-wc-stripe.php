@@ -583,7 +583,7 @@ class WC_Stripe {
 	 */
 	public function gateway_settings_update( $settings, $old_settings ) {
 		if ( false === $old_settings ) {
-			$gateway      = new WC_Gateway_Stripe();
+			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 			$settings     = array_merge( $old_settings, $settings );
@@ -817,17 +817,9 @@ class WC_Stripe {
 	 * @return WC_Stripe_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
-		if ( ! is_null( $this->stripe_gateway ) ) {
-			return $this->stripe_gateway;
-		}
-
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! $this->stripe_gateway ) {
 			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-
-			return $this->stripe_gateway;
 		}
-
-		$this->stripe_gateway = new WC_Gateway_Stripe();
 
 		return $this->stripe_gateway;
 	}
