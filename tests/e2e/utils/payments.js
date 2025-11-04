@@ -125,19 +125,21 @@ export async function waitForStripeReady(
 	// Wait for the frame to be fully loaded
 	await stripeFrame.waitForLoadState( 'networkidle', { timeout } );
 
-	// Additional wait for any loading indicators to disappear
+	// Additional wait for any loading indicators to disappear in parallel
 	const loadingIndicators = [
 		'.__PrivateStripeElementLoader',
 		'.LightboxModalLoadingIndicator',
 		'[data-testid="loading"]',
 	];
 
-	for ( const indicator of loadingIndicators ) {
-		const loader = stripeFrame.locator( indicator );
-		if ( await loader.isVisible().catch( () => false ) ) {
-			await expect( loader ).toBeHidden( { timeout: 10000 } );
-		}
-	}
+	await Promise.all(
+		loadingIndicators.map( ( indicator ) =>
+			stripeFrame
+				.locator( indicator )
+				.waitFor( { state: 'hidden', timeout } )
+				.catch( () => {} )
+		)
+	);
 
 	return stripeFrame;
 }
@@ -513,10 +515,11 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await emptyCart( page );
 	await setupCart( page );
 
-	let iframeSelector = 'iframe[src*="elements-inner-payment"]';
+	const rawIframeSelector = 'iframe[src*="elements-inner-payment"]';
+	let iframeSelector;
 
 	if ( checkoutType === 'blocks' ) {
-		iframeSelector = `#radio-control-wc-payment-method-options-stripe_us_bank_account__content ${ iframeSelector }`;
+		iframeSelector = `#radio-control-wc-payment-method-options-stripe_us_bank_account__content ${ rawIframeSelector }`;
 
 		await setupBlocksCheckout(
 			page,
@@ -529,7 +532,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.filter( { hasText: 'ACH Direct Debit' } )
 			.click();
 	} else {
-		iframeSelector = `.wc_payment_method.payment_method_stripe_us_bank_account ${ iframeSelector }`;
+		iframeSelector = `.wc_payment_method.payment_method_stripe_us_bank_account ${ rawIframeSelector }`;
 
 		await setupShortcodeCheckout(
 			page,
@@ -574,13 +577,13 @@ export const fillACHBankDetails = async ( page ) => {
 	await Promise.race( [
 		frame
 			.getByTestId( 'link-not-now-button' )
-			.waitFor( { state: 'visible', timeout: 5000 } )
+			.waitFor( { state: 'visible' } )
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
 		frame
 			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible', timeout: 5000 } ),
+			.waitFor( { state: 'visible' } ),
 	] );
 
 	// Click "Success ••••" account
@@ -597,13 +600,11 @@ export const fillACHBankDetails = async ( page ) => {
 	await Promise.race( [
 		frame
 			.getByTestId( 'link-not-now-button' )
-			.waitFor( { state: 'visible', timeout: 5000 } )
+			.waitFor( { state: 'visible' } )
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-		frame
-			.getByTestId( 'done-button' )
-			.waitFor( { state: 'visible', timeout: 5000 } ),
+		frame.getByTestId( 'done-button' ).waitFor( { state: 'visible' } ),
 	] );
 
 	// Click the done button with retry logic
