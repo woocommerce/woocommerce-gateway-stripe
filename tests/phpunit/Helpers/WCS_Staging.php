@@ -6,21 +6,29 @@
  */
 class WCS_Staging {
 
-	private static bool $is_staging_site = false;
+	/**
+	 * Local flag to indicate whether the site is a duplicate site.
+	 *
+	 * @var bool
+	 */
+	private static bool $is_duplicate_site = false;
 
 	/**
-	 * Helper function to set the value of $is_staging_site for tests.
+	 * Helper function to set the value of $is_duplicate_site for tests.
+	 *
+	 * @param bool $is_duplicate_site Whether the site is a duplicate site.
+	 * @return void
 	 */
-	public static function set_is_staging_site( bool $is_staging_site ): void {
-		self::$is_staging_site = $is_staging_site;
+	public static function set_is_duplicate_site( bool $is_duplicate_site ): void {
+		self::$is_duplicate_site = $is_duplicate_site;
 	}
 
 	/**
-	 * Mimic WCS_Staging::is_staging_site().
+	 * Mimic WCS_Staging::is_duplicate_site().
 	 *
 	 * @return bool
 	 */
-	public static function is_staging_site(): bool {
-		return self::$is_staging_site;
+	public static function is_duplicate_site(): bool {
+		return self::$is_duplicate_site;
 	}
 }

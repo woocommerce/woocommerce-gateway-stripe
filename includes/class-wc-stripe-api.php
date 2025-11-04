@@ -604,8 +604,8 @@ class WC_Stripe_API {
 		}
 
 		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
-		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_staging_site' ) ) {
-			return WCS_Staging::is_staging_site();
+		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_duplicate_site' ) ) {
+			return WCS_Staging::is_duplicate_site();
 		}
 
 		// Check if WooCommerce Subscriptions < 4.0.0 is active

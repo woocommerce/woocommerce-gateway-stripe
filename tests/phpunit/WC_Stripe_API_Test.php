@@ -269,7 +269,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		}
 
 		require_once __DIR__ . '/Helpers/WCS_Staging.php';
-		\WCS_Staging::set_is_staging_site( $is_wc_sub_staging_site );
+		\WCS_Staging::set_is_duplicate_site( $is_wc_sub_staging_site );
 
 		$result = \WC_Stripe_API::should_detach_payment_method_from_customer();
 
@@ -279,7 +279,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$GLOBALS['current_screen'] = $initial_current_screen;
 		}
 
-		\WCS_Staging::set_is_staging_site( false );
+		\WCS_Staging::set_is_duplicate_site( false );
 
 		$this->assertEquals( $expected_return, $result );
 	}
