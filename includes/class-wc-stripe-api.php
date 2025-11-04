@@ -599,18 +599,21 @@ class WC_Stripe_API {
 	 * @return bool True if the site has WooCommerce Subscriptions active and staging mode enabled, false otherwise.
 	 */
 	private static function is_woocommerce_subscriptions_staging_mode() {
-		// Check if WooCommerce Subscriptions < 4.0.0 is active
-		// and if it is, check if the site is in staging mode.
-		if ( class_exists( 'WC_Subscriptions' )
-			&& version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
-			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
-		) {
-			return WC_Subscriptions::is_duplicate_site();
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return false;
 		}
 
 		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
 		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_staging_site' ) ) {
 			return WCS_Staging::is_staging_site();
+		}
+
+		// Check if WooCommerce Subscriptions < 4.0.0 is active
+		// and if it is, check if the site is in staging mode via is_duplicate_site().
+		if ( version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
+			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
+		) {
+			return WC_Subscriptions::is_duplicate_site();
 		}
 
 		return false;
