@@ -468,8 +468,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->account->expects( $this->once() )
 			->method( 'configure_webhooks' )
 			->with(
-				$this->equalTo( 'test' ),
-				$this->equalTo( 'sk_test_key' )
+				$this->equalTo( 'test' )
 			);
 
 		// Run the update

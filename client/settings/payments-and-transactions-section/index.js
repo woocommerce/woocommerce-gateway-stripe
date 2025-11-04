@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';

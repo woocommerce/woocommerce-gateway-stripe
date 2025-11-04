@@ -1198,14 +1198,24 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
-
 			if ( ! $is_nonce_valid ) {
 				throw new WC_Stripe_Exception( 'Invalid nonce.', __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			/**
+			 * Filter to validate captcha for create and confirm setup intent requests.
+			 * Can be used by third-party plugins to add captcha validation.
+			 *
+			 * @since 10.1.0
+			 * @param bool $is_captcha_valid True if the captcha is valid, false otherwise. Default is true.
+			 */
+			$is_captcha_valid = apply_filters( 'wc_stripe_is_valid_create_and_confirm_setup_intent_captcha', true );
+			if ( ! $is_captcha_valid ) {
+				throw new WC_Stripe_Exception( 'captcha_invalid', __( 'Captcha verification failed. Please try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
 			$payment_type   = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-type'] ?? WC_Stripe_Payment_Methods::CARD ) );
-
 			if ( ! $payment_method ) {
 				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
