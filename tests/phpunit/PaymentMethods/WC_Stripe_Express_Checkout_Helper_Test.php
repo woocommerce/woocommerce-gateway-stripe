@@ -1006,6 +1006,14 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
+		// Ensure we're not on a checkout page for these tests.
+		add_filter(
+			'woocommerce_is_checkout',
+			function () {
+				return false;
+			}
+		);
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
@@ -1042,8 +1050,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( $expected, $result );
 
-		// Restore original gateways.
+		// Restore original gateways and remove filter.
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+		remove_all_filters( 'woocommerce_is_checkout' );
 	}
 
 	/**
