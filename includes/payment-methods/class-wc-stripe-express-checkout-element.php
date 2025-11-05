@@ -259,8 +259,7 @@ class WC_Stripe_Express_Checkout_Element {
 
 		// OPC renders checkout on product pages; if ECE is shown on checkout, use cart pricing.
 		if (
-			function_exists( 'is_wcopc_checkout' )
-			&& is_wcopc_checkout()
+			$this->express_checkout_helper->is_one_page_checkout()
 			&& $this->express_checkout_helper->should_show_ece_on_checkout_page()
 		) {
 			return false;
