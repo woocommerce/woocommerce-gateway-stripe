@@ -21,6 +21,7 @@ use WP_UnitTestCase;
  * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Helper
  *
  * WC_Stripe_Express_Checkout_Helper_Test class.
+ * @group helper
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	private $shipping_zone;
@@ -1006,19 +1007,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		// Ensure we're not on a checkout page for these tests.
-		add_filter(
-			'woocommerce_is_checkout',
-			function () {
-				return false;
-			}
-		);
-
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
 				'is_one_page_checkout',
 				'is_product',
+				'is_checkout',
 				'allowed_items_in_cart',
 				'get_product',
 			],
@@ -1032,6 +1026,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Mock the methods.
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_one_page_checkout' )->willReturn( $is_opc );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( $is_product_page );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_checkout' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'get_product' )->willReturn( $is_product_page ? $product : false );
 
@@ -1050,9 +1045,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( $expected, $result );
 
-		// Restore original gateways and remove filter.
+		// Restore original gateways.
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
-		remove_all_filters( 'woocommerce_is_checkout' );
 	}
 
 	/**
