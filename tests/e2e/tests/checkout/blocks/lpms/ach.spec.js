@@ -47,6 +47,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 	} ) => {
 		await setupACHCheckout( page, 'blocks' );
 		await fillACHBankDetails( page );
+
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -71,6 +72,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 					'.wc-block-components-payment-methods__save-card-info'
 				)
 				.click();
+
 			await page.locator( 'text=Place order' ).click();
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -90,6 +92,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.locator( 'label' )
 				.filter( { hasText: 'Checking account ending in' } )
 				.click();
+
 			await page.locator( 'text=Place order' ).click();
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
