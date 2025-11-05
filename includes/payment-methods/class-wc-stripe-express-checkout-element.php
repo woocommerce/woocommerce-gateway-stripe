@@ -233,7 +233,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
-			'is_product_page'            => $this->get_is_product_page_for_ece(),
+			'is_product_page'            => $this->is_product_page_for_ece(),
 			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
 			'product'                    => $this->express_checkout_helper->get_product_data(),
 			'is_cart_page'               => is_cart(),
@@ -252,7 +252,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @return bool True to use product pricing; false to use cart totals.
 	 */
-	private function get_is_product_page_for_ece() {
+	private function is_product_page_for_ece() {
 		if ( ! $this->express_checkout_helper->is_product() ) {
 			return false;
 		}
