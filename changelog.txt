@@ -15,7 +15,7 @@
 * Fix - Increase limit when listing available payment method configurations from the Stripe API
 * Fix - Klarna not processing recurring payments
 * Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
-* Fix - Improve ECE compatibility with One Page Checkout
+* Fix - Improve Express Checkout compatibility with One Page Checkout
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
