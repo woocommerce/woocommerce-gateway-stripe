@@ -422,7 +422,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			}
 		}
 
-		// List of countries where postcode is optional in payment providers (Google Pay, Apple Pay).
+		// List of countries where postcode is optional in express checkouts (Google Pay, Apple Pay).
 		// These countries allow addresses without postal codes, but WooCommerce requires them by default.
 		$countries_with_optional_postcode = apply_filters(
 			'wc_stripe_express_checkout_countries_with_optional_postcode',
