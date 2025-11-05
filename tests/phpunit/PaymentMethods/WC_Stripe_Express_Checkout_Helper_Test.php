@@ -21,7 +21,6 @@ use WP_UnitTestCase;
  * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Helper
  *
  * WC_Stripe_Express_Checkout_Helper_Test class.
- * @group helper
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	private $shipping_zone;
