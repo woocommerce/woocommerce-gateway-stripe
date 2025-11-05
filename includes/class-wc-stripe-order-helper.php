@@ -667,6 +667,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Gets whether charge was captured for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order The order to get the meta from.
+	 * @return false|string|null
+	 */
+	public function get_stripe_charge_captured( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED );
+	}
+
+	/**
 	 * Checks if charge was captured for order.
 	 *
 	 * @since 10.1.0
@@ -674,8 +686,8 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return bool
 	 */
-	public function is_stripe_charge_captured( ?WC_Order $order = null ) {
-		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED ) );
+	public function is_stripe_charge_captured( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_stripe_charge_captured( $order ) );
 	}
 
 	/**
@@ -700,7 +712,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return bool
 	 */
-	public function is_stripe_status_final( ?WC_Order $order = null ) {
+	public function is_stripe_status_final( ?WC_Order $order = null ): bool {
 		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_STATUS_FINAL ) );
 	}
 

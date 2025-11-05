@@ -297,10 +297,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
-			$captured           = $order_helper->is_stripe_charge_captured( $order );
 			$is_stripe_captured = false;
 
-			if ( $charge && ! $captured ) {
+			if ( $charge && 'no' === $order_helper->get_stripe_charge_captured( $order ) ) { // Strictly checking for 'no' value.
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
