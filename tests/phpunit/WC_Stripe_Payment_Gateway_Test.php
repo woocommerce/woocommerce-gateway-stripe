@@ -871,4 +871,20 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'api_error'             => [ 'api_error' ],
 		];
 	}
+
+	/**
+	 * Test that invalid_request_error with non-blocked error codes returns true
+	 *
+	 * This explicitly tests the case where we have an invalid_request_error type
+	 * with an error code that is NOT in the non-retryable codes list.
+	 */
+	public function test_invalid_request_error_with_non_blocked_code_is_retryable() {
+		$error       = new \stdClass();
+		$error->type = 'invalid_request_error';
+		$error->code = 'non_existent_code';
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertTrue( $result, 'invalid_request_error with non-blocked code should be retryable' );
+	}
 }
