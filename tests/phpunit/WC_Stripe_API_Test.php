@@ -279,6 +279,12 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$GLOBALS['current_screen'] = $initial_current_screen;
 		}
 
+		if ( $initial_test_mode !== $is_test_mode ) {
+			$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
+			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
 		\WCS_Staging::set_is_duplicate_site( false );
 
 		$this->assertEquals( $expected_return, $result );
