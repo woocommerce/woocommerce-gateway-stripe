@@ -252,7 +252,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @return bool True to use product pricing; false to use cart totals.
 	 */
-	private function is_product_page_for_ece() {
+	public function is_product_page_for_ece() {
 		if ( ! $this->express_checkout_helper->is_product() ) {
 			return false;
 		}
