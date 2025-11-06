@@ -171,13 +171,27 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				'timeout'     => $http_timeout,
 			];
 
-			$args          = apply_filters_deprecated(
+			$args = apply_filters_deprecated(
 				'wc_connect_request_args',
 				[ $args ],
 				'9.6.0',
 				'',
 				'The wc_connect_request_args filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
 			);
+
+			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				// Log the request after the filters have been applied.
+				WC_Stripe_Logger::info(
+					"WCC API request: {$method} {$path}",
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'url'                    => $url,
+						'headers'                => $headers,
+						'body'                   => json_decode( $body ),
+					]
+				);
+			}
+
 			$response      = wp_remote_request( $url, $args );
 			$response_code = wp_remote_retrieve_response_code( $response );
 			$content_type  = wp_remote_retrieve_header( $response, 'content-type' );
@@ -235,6 +249,16 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 						$response_code
 					),
 					$data
+				);
+			}
+
+			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				WC_Stripe_Logger::info(
+					"WCC API response: {$method} {$path}",
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'response'               => $response_body,
+					]
 				);
 			}
 
