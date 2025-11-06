@@ -204,7 +204,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 							'response_code'          => $response_code,
 							'response_content_type'  => $content_type,
-							'response'               => $response,
+							'response'               => WC_Stripe_Connect::redact_sensitive_data( $response ),
 						]
 					);
 				}
@@ -243,7 +243,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 							'response_code'          => $response_code,
 							'response_content_type'  => $content_type,
-							'response_body'          => $response_body,
+							'response_body'          => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
 						]
 					);
 				}

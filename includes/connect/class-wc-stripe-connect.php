@@ -73,7 +73,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'connect_mode'           => $mode,
 						'connect_type'           => $result->type,
-						'connect_url'            => self::redact_sensitive_data( $result->oauthUrl ), // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+						'wcc_response'           => self::redact_sensitive_data( $result ),
 					]
 				);
 			}
@@ -150,9 +150,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
+				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
 				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
-				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 				$type  = isset( $_GET['wcs_stripe_type'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_type'] ) ) : 'connect';
 				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
 
@@ -199,6 +199,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 						'OAuth: Account connected successfully, reloading the page to clear URL parameters',
 						[
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'connect_response'       => self::redact_sensitive_data( $response ),
 							'redirect_url'           => self::redact_sensitive_data( $redirect_url ),
 						]
 					);
@@ -528,6 +531,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( is_string( $data ) ) {
+				// Handle a form-urlencoded string (like an URI or form payload).
 				foreach ( $sensitive_keys as $key ) {
 					$data = preg_replace_callback(
 						'/([?&]' . preg_quote( $key, '/' ) . '=)([^&#]*)/i',
