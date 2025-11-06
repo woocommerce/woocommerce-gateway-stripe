@@ -181,13 +181,13 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 
 			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
 				// Log the request after the filters have been applied.
-				WC_Stripe_Logger::info(
+				WC_Stripe_Logger::debug(
 					"WCC API request: {$method} {$path}",
 					[
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'url'                    => $url,
 						'headers'                => $headers,
-						'body'                   => json_decode( $body ),
+						'body'                   => WC_Stripe_Connect::redact_sensitive_data( json_decode( $body ) ),
 					]
 				);
 			}
@@ -197,6 +197,18 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$content_type  = wp_remote_retrieve_header( $response, 'content-type' );
 
 			if ( false === strpos( $content_type, 'application/json' ) ) {
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						"WCC API unexpected response: {$method} {$path}",
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'response_code'          => $response_code,
+							'response_content_type'  => $content_type,
+							'response'               => $response,
+						]
+					);
+				}
+
 				if ( 200 !== $response_code ) {
 					return new WP_Error(
 						'wcc_server_error',
@@ -224,6 +236,18 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			if ( 200 !== $response_code ) {
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						"WCC API invalid response: {$method} {$path}",
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'response_code'          => $response_code,
+							'response_content_type'  => $content_type,
+							'response_body'          => $response_body,
+						]
+					);
+				}
+
 				if ( empty( $response_body ) ) {
 					return new WP_Error(
 						'wcc_server_empty_response',
@@ -253,11 +277,11 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
-				WC_Stripe_Logger::info(
+				WC_Stripe_Logger::debug(
 					"WCC API response: {$method} {$path}",
 					[
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-						'response'               => $response_body,
+						'response'               => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
 					]
 				);
 			}

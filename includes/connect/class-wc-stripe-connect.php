@@ -66,6 +66,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
+			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug(
+					"OAuth: Generated {$mode} connect URL",
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'connect_mode'           => $mode,
+						'connect_type'           => $result->type,
+						'connect_url'            => self::redact_sensitive_data( $result->oauthUrl ), // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+					]
+				);
+			}
+
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
 
@@ -84,12 +96,38 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
 			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
-				return new WP_Error( 'Invalid state received from Stripe server' );
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						'OAuth: Invalid state received from the WCC server',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'state'                  => self::redact_string( $state ),
+							'code'                   => self::redact_string( $code ),
+						]
+					);
+				}
+				return new WP_Error( 'Invalid state received from the WCC server' );
 			}
 
 			$response = $this->api->get_stripe_oauth_keys( $code, $type, $mode );
 
 			if ( is_wp_error( $response ) ) {
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						'OAuth: Unable to exchange OAuth code for account keys',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'state'                  => self::redact_string( $state ),
+							'code'                   => self::redact_string( $code ),
+							'response'               => self::redact_sensitive_data( $response ),
+						]
+					);
+				}
+
 				return $response;
 			}
 
@@ -112,16 +150,40 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
-				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
-
-				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
-					return new WP_Error( 'Invalid nonce received from Stripe server' );
-				}
-
 				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
 				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
+				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 				$type  = isset( $_GET['wcs_stripe_type'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_type'] ) ) : 'connect';
 				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
+
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::debug(
+						'OAuth: Processing redirect back from Stripe/WCC',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'connect_mode'           => $mode,
+							'connect_type'           => $type,
+							'state'                  => self::redact_string( $state ),
+							'code'                   => self::redact_string( $code ),
+							'nonce'                  => self::redact_string( $nonce ),
+						]
+					);
+				}
+
+				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
+					if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+						WC_Stripe_Logger::error(
+							'OAuth: Invalid nonce received from the WCC server',
+							[
+								'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+								'connect_mode'           => $mode,
+								'connect_type'           => $type,
+								'nonce'                  => self::redact_string( $nonce ),
+							]
+						);
+					}
+					return new WP_Error( 'Invalid nonce received from the WCC server' );
+				}
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
@@ -131,6 +193,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				if ( ! is_wp_error( $response ) ) {
 					$redirect_url = add_query_arg( [ 'wc_stripe_connected' => 'true' ], $redirect_url );
 				}
+
+				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					WC_Stripe_Logger::debug(
+						'OAuth: Account connected successfully, reloading the page to clear URL parameters',
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'redirect_url'           => $redirect_url,
+						]
+					);
+				}
+
 				wp_safe_redirect( esc_url_raw( $redirect_url ) );
 				exit;
 			}
@@ -146,6 +219,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
+			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug(
+					'OAuth: Saving account keys',
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'connect_mode'           => $mode,
+						'connect_type'           => $type,
+						'result'                 => self::redact_sensitive_data( $result ),
+					]
+				);
+			}
+
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
@@ -395,6 +480,71 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// save_stripe_keys() schedules a connection_refresh after saving the keys,
 			// we don't need to do it explicitly here.
+		}
+
+		/**
+		 * Redacts sensitive information from strings, arrays, or objects.
+		 *
+		 * @param string|array|object $data The string, array, or object to redact sensitive information from.
+		 * @return string|array
+		 */
+		public static function redact_sensitive_data( $data ) {
+			$sensitive_keys = [
+				'_wpnonce',
+				'state',
+				'code',
+			];
+
+			if ( is_object( $data ) ) {
+				// Handle objects (stdClass) by converting to array, processing, and returning as array
+				return self::redact_sensitive_data( (array) $data );
+			}
+
+			if ( is_array( $data ) ) {
+				// Handle arrays recursively
+				$redacted = [];
+				foreach ( $data as $key => $value ) {
+					if ( in_array( $key, $sensitive_keys, true ) && is_string( $value ) && ! empty( $value ) ) {
+						$redacted[ $key ] = self::redact_string( $value );
+					} else {
+						$redacted[ $key ] = self::redact_sensitive_data( $value );
+					}
+				}
+				return $redacted;
+			}
+
+			if ( is_string( $data ) ) {
+				foreach ( $sensitive_keys as $key ) {
+					$data = preg_replace_callback(
+						'/([?&]' . preg_quote( $key, '/' ) . '=)([^&#]*)/i',
+						function ( $matches ) {
+							$value = $matches[2];
+							if ( strlen( $value ) > 0 ) {
+								return $matches[1] . self::redact_string( $value );
+							}
+							return $matches[0];
+						},
+						$data
+					);
+				}
+			}
+
+			return $data;
+		}
+
+		/**
+		 * Redacts a string to: 3 periods and the last 4 characters in square brackets.
+		 *
+		 * @param string $string The string to redact.
+		 * @return string
+		 */
+		public static function redact_string( $string ) {
+			$len = strlen( $string );
+			if ( $len > 4 ) {
+				return '[...' . substr( $string, -4 ) . ']';
+			} else {
+				return '[...]';
+			}
 		}
 	}
 }
