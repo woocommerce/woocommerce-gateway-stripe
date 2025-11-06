@@ -576,19 +576,47 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
-		// and return false when the site is a staging/local/development site.
-		// This is to avoid detaching the payment method from the live production site.
-		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-			if ( 'production' === wp_get_environment_type() ) {
-				return true;
-			} else {
-				return false;
-			}
+		// Requests coming from the customer account page i.e delete payment method, should always be allowed, and should return true.
+		$is_admin_request = is_admin() || ( defined( 'WP_CLI' ) && WP_CLI );
+		if ( ! $is_admin_request ) {
+			return true;
 		}
 
+		// If we are not in a production site, we should not detach the payment method,
+		// as we don't want to detach the payment method from the live production site.
+		$is_staging_site = self::is_woocommerce_subscriptions_staging_mode() || 'production' !== wp_get_environment_type();
+		if ( $is_staging_site ) {
+			return false;
+		}
+
+		// Otherwise, we are in a production site, and we should detach the payment method.
 		return true;
+	}
+
+	/**
+	 * Checks if the site has WooCommerce Subscriptions staging mode enabled.
+	 *
+	 * @return bool True if the site has WooCommerce Subscriptions active and staging mode enabled, false otherwise.
+	 */
+	private static function is_woocommerce_subscriptions_staging_mode() {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return false;
+		}
+
+		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
+		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_duplicate_site' ) ) {
+			return WCS_Staging::is_duplicate_site();
+		}
+
+		// Check if WooCommerce Subscriptions < 4.0.0 is active
+		// and if it is, check if the site is in staging mode via is_duplicate_site().
+		if ( version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
+			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
+		) {
+			return WC_Subscriptions::is_duplicate_site();
+		}
+
+		return false;
 	}
 
 	/**

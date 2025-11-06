@@ -128,5 +128,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
 * Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
 * Fix - Prevent retrying requests that errored out due to declined payment methods
+* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
