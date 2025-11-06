@@ -17,6 +17,7 @@
 * Fix - Klarna not processing recurring payments
 * Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
 * Fix - Prevent retrying requests that errored out due to declined payment methods
+* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Dev - Add Stripe's masked API key to API request/response logs
 
 = 10.0.1 - 2025-10-15 =
