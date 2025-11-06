@@ -2044,4 +2044,8 @@ class WC_Stripe_Helper {
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
+
+	public static function is_enhanced_debug_mode_enabled() {
+		return apply_filters( 'wc_stripe_enhanced_debug_mode_enabled', false );
+	}
 }
