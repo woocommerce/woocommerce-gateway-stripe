@@ -517,8 +517,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			];
 
 			if ( is_object( $data ) ) {
-				// Handle objects (stdClass) by converting to array, processing, and returning as array
-				return self::redact_sensitive_data( (array) $data );
+				// Handle objects (stdClass) by converting to array, processing, and returning as array.
+				$data = (array) $data;
 			}
 
 			if ( is_array( $data ) ) {
