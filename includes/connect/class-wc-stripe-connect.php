@@ -510,6 +510,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'code',
 				'secretKey',
 				'refreshToken',
+				'secret_key',
+				'test_secret_key',
+				'webhook_secret',
+				'test_webhook_secret',
 			];
 
 			if ( is_object( $data ) ) {
