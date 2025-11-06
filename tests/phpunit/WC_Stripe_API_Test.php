@@ -246,6 +246,16 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$expected_data_keys[] = 'request';
 		}
 
+		if (
+			is_wp_error( $response ) &&
+			'http_request_failed' === $response->get_error_code() &&
+			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+			'A valid URL was not provided.' === $response->get_error_message()
+		) {
+			$expected_data_keys[] = 'resolved_ip_address';
+			$expected_data_keys[] = 'validation_details';
+		}
+
 		$expected_data_keys_callback = function ( $context ) use ( $expected_data_keys ) {
 			$this->assertLessThanOrEqual( count( $context ), count( $expected_data_keys ) );
 			foreach ( $expected_data_keys as $key ) {
