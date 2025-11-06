@@ -433,7 +433,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		// Make postcode optional for countries where payment providers don't require it.
 		foreach ( $countries_with_optional_postcode as $country_code ) {
-			$locale[ $country_code ]['postcode']['required'] = false;
+			if ( isset( $locale[ $country_code ] ) ) {
+				$locale[ $country_code ]['postcode']['required'] = false;
+			}
 		}
 
 		return $locale;
