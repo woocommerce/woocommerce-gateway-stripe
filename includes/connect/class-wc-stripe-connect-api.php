@@ -182,7 +182,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
 				// Log the request after the filters have been applied.
 				WC_Stripe_Logger::debug(
-					"WCC API request: {$method} {$path}",
+					"OAuth: WCC API request: {$method} {$path}",
 					[
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'url'                    => $url,
@@ -199,7 +199,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			if ( false === strpos( $content_type, 'application/json' ) ) {
 				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
-						"WCC API unexpected response: {$method} {$path}",
+						"OAuth: WCC API unexpected response: {$method} {$path}",
 						[
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 							'response_code'          => $response_code,
@@ -238,7 +238,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			if ( 200 !== $response_code ) {
 				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
-						"WCC API invalid response: {$method} {$path}",
+						"OAuth: WCC API invalid response: {$method} {$path}",
 						[
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 							'response_code'          => $response_code,
@@ -278,7 +278,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 
 			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug(
-					"WCC API response: {$method} {$path}",
+					"OAuth: WCC API response: {$method} {$path}",
 					[
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'response'               => WC_Stripe_Connect::redact_sensitive_data( $response_body ),

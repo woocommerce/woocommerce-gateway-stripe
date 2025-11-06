@@ -199,7 +199,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 						'OAuth: Account connected successfully, reloading the page to clear URL parameters',
 						[
 							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-							'redirect_url'           => $redirect_url,
+							'redirect_url'           => self::redact_sensitive_data( $redirect_url ),
 						]
 					);
 				}
@@ -269,6 +269,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
+
+			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug(
+					'OAuth: Plugin settings udpated',
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'connect_mode'           => $mode,
+						'connect_type'           => $type,
+						'options'                => self::redact_sensitive_data( $options ),
+					]
+				);
+			}
 
 			if ( 'app' === $type ) {
 				// Stripe App OAuth access_tokens expire after 1 hour:
@@ -493,6 +505,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'_wpnonce',
 				'state',
 				'code',
+				'secretKey',
+				'refreshToken',
 			];
 
 			if ( is_object( $data ) ) {
@@ -540,11 +554,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		public static function redact_string( $string ) {
 			$len = strlen( $string );
-			if ( $len > 4 ) {
-				return '[...' . substr( $string, -4 ) . ']';
-			} else {
-				return '[...]';
+			if ( $len > 15 ) {
+				return substr( $string, 0, 8 ) . '...' . substr( $string, -6 );
 			}
+			if ( $len > 9 ) {
+				// This applies only to wponces.
+				return substr( $string, 0, 3 ) . '...' . substr( $string, -3 );
+			}
+
+			// This should never be the case, as the shortest strings are 10 chars long (wponces).
+			return '[REDACTED]';
 		}
 	}
 }
