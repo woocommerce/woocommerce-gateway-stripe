@@ -1030,12 +1030,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		return [
 			'payment request, settings exists' => [
 				'express checkout type' => 'payment_request',
-				'settings'              => [ 'payment_request_button_locations' => [ 'checkout', 'cart' ] ],
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
 			'payment request, settings exists, but not a valid array' => [
 				'express checkout type' => 'payment_request',
-				'settings'              => [ 'payment_request_button_locations' => 'invalid_value' ],
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
 			'payment request, settings do not exist' => [
@@ -1045,12 +1045,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			'link, settings exists' => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'payment_request_button_locations' => [ 'cart' ] ],
+				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
 			'link, settings exists, but not a valid array' => [
 				'express checkout type' => 'link',
-				'settings'              => [ 'payment_request_button_locations' => 'invalid_value' ],
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
 			'link, settings do not exist' => [
@@ -1075,12 +1075,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			'default, settings exists' => [
 				'express checkout type' => 'default',
-				'settings'              => [ 'payment_request_button_locations' => [ 'checkout', 'cart' ] ],
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
 			'default, settings exists, but not a valid array' => [
 				'express checkout type' => 'default',
-				'settings'              => [ 'payment_request_button_locations' => 'invalid_value' ],
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
 			'default, settings do not exist' => [
