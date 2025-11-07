@@ -21,7 +21,6 @@ use WP_UnitTestCase;
  * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Helper
  *
  * WC_Stripe_Express_Checkout_Helper_Test class.
- * @group helper
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	private $shipping_zone;
@@ -988,7 +987,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @param bool  $is_opc Whether the page is detected as One Page Checkout.
 	 * @param array $button_locations Button location settings.
 	 * @param bool  $expected Expected result for should_show_express_checkout_button.
-	 * @group opc
 	 *
 	 * @return void
 	 */
