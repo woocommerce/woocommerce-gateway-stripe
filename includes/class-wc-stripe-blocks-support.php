@@ -459,7 +459,19 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		 * When using UPE on the block checkout and a saved token is being used, we need to set a flag
 		 * to indicate that deferred intent should be used.
 		 */
-		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
+		$is_using_saved_token = isset( $data['issavedtoken'] ) && $data['issavedtoken'];
+
+		// For split UPE gateways (e.g., stripe_us_bank_account), WooCommerce Blocks doesn't set the isSavedToken flag.
+		// Check if a payment token is being used by looking for the wc-{gateway_id}-payment-token field.
+		if ( ! $is_using_saved_token && ! empty( $data['token'] ) ) {
+			// Payment data keys use underscores, not hyphens (e.g., wc-stripe_us_bank_account-payment-token).
+			$token_key = 'wc-' . $context->payment_method . '-payment-token';
+			if ( isset( $data[ $token_key ] ) && ! empty( $data[ $token_key ] ) ) {
+				$is_using_saved_token = true;
+			}
+		}
+
+		if ( $is_upe && $is_using_saved_token ) {
 			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
 		}
 
