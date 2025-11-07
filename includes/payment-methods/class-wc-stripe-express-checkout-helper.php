@@ -92,7 +92,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_signup_on_checkout_allowed =
 			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) ||
 			( $this->has_subscription_product() &&
-			  'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
+				'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
 		// Account creation is not possible for express checkout if we cannot automatically generate the username and password.
 		$username_password_generation_enabled =
@@ -583,8 +583,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				return false;
 			}
 			if ( class_exists( 'WC_Subscriptions_Product' )
-			     && WC_Subscriptions_Product::is_subscription( $product )
-			     && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
@@ -636,8 +636,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_page_supported() {
 		return $this->is_product()
-		       || WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-		       || is_wc_endpoint_url( 'order-pay' );
+				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+				|| is_wc_endpoint_url( 'order-pay' );
 	}
 
 	/**
@@ -829,8 +829,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				return false;
 			}
 			return wc_shipping_enabled() &&
-			       0 !== wc_get_shipping_method_count( true ) &&
-			       $product->needs_shipping();
+					0 !== wc_get_shipping_method_count( true ) &&
+					$product->needs_shipping();
 		}
 
 		// Cart or checkout page.
@@ -902,7 +902,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_page( $page ) {
 		return $this->is_enabled_for_location( 'payment_request', $page ) ||
-		       $this->is_enabled_for_location( 'amazon_pay', $page );
+				$this->is_enabled_for_location( 'amazon_pay', $page );
 	}
 
 	/**
@@ -1619,8 +1619,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_express_checkout_enabled() {
 		return $this->is_payment_request_enabled() ||
-		       $this->is_amazon_pay_enabled() ||
-		       $this->is_link_enabled();
+				$this->is_amazon_pay_enabled() ||
+				$this->is_link_enabled();
 	}
 
 	/**
