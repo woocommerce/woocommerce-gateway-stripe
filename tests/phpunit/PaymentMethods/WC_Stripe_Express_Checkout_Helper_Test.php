@@ -1008,7 +1008,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Teats for `get_button_locations`.
+	 * Tests for `get_button_locations`.
 	 *
 	 * @param string $express_checkout_type Express checkout type.
 	 * @param array  $settings              Settings array.
