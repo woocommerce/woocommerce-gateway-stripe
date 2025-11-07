@@ -209,4 +209,84 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			'body'     => json_encode( [ 'error' => 'invalid_api_key' ] ),
 		];
 	}
+
+	public function provide_test_should_detach_payment_method_from_customer(): array {
+		return [
+			'test mode from non-admin context should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => true,
+				'is_admin_request'       => false,
+				'is_wc_sub_staging_site' => false,
+			],
+			'live mode from non-admin context should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => false,
+				'is_admin_request'       => false,
+				'is_wc_sub_staging_site' => false,
+			],
+			'test mode from admin context should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => true,
+				'is_admin_request'       => true,
+				'is_wc_sub_staging_site' => false,
+			],
+			'live mode from admin context with no subscription staging site should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => false,
+				'is_admin_request'       => true,
+				'is_wc_sub_staging_site' => false,
+			],
+			'live mode from admin context with subscription staging site should not detach' => [
+				'expected_return'        => false,
+				'is_test_mode'           => false,
+				'is_admin_request'       => true,
+				'is_wc_sub_staging_site' => true,
+			],
+			// Ideally, we would test multiple environment types, but wp_get_environment_type() uses a
+			// static variable that can't be modified between tests.
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_should_detach_payment_method_from_customer
+	 */
+	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_wc_sub_staging_site = false ) {
+		$initial_test_mode = \WC_Stripe_Mode::is_test();
+
+		$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $is_test_mode ? 'yes' : 'no';
+		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$initial_current_screen = null;
+		$reset_current_screen   = false;
+
+		if ( $is_admin_request ) {
+			$initial_current_screen = $GLOBALS['current_screen'] ?? null;
+			$reset_current_screen   = true;
+
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
+		}
+
+		require_once __DIR__ . '/Helpers/WCS_Staging.php';
+		\WCS_Staging::set_is_duplicate_site( $is_wc_sub_staging_site );
+
+		$result = \WC_Stripe_API::should_detach_payment_method_from_customer();
+
+		// Reset the environment before running any assertions.
+		if ( $reset_current_screen ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['current_screen'] = $initial_current_screen;
+		}
+
+		if ( $initial_test_mode !== $is_test_mode ) {
+			$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
+			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
+		\WCS_Staging::set_is_duplicate_site( false );
+
+		$this->assertEquals( $expected_return, $result );
+	}
 }

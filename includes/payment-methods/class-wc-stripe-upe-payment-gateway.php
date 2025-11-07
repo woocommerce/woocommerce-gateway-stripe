@@ -1380,8 +1380,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
-					$request['confirm']        = 'true';
+					// Only set capture_method for payment methods that support it (e.g., cards).
+					// Payment methods like ACH don't support capture_method and will have it omitted from $request_details.
+					if ( isset( $request_details['capture'] ) ) {
+						$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					}
+					$request['confirm'] = 'true';
 				}
 
 				// If order requires shipping, add the shipping address details to the payment intent request.
