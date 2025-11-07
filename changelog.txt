@@ -19,6 +19,7 @@
 * Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
 * Fix - Prevent retrying requests that errored out due to declined payment methods
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
+* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
