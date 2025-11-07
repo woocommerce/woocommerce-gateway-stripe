@@ -292,7 +292,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_filter(
 			'safe_style_css',
 			function ( $styles ) {
-				return array_merge( $styles, [ 'display' ] );
+				return is_array( $styles ) ? array_merge( $styles, [ 'display' ] ) : [ 'display' ];
 			}
 		);
 
