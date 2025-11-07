@@ -114,12 +114,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'is_page_supported' )
+		$helper->method( 'is_page_supported' )
 			->willReturn( $page_supported );
 
-		$helper->expects( $this->any() )
-			->method( 'should_show_express_checkout_button' )
+		$helper->method( 'should_show_express_checkout_button' )
 			->willReturn( $should_show );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -262,12 +260,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'is_page_supported' )
+		$helper->method( 'is_page_supported' )
 			->willReturn( $page_supported );
 
-		$helper->expects( $this->any() )
-			->method( 'should_show_express_checkout_button' )
+		$helper->method( 'should_show_express_checkout_button' )
 			->willReturn( $should_show );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -360,8 +356,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'get_button_locations' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'get_button_locations' )
+		$helper->method( 'get_button_locations' )
 			->willReturn( [ $button_location ] );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -457,16 +452,13 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'is_product', 'is_one_page_checkout', 'should_show_ece_on_checkout_page' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'is_product' )
+		$helper->method( 'is_product' )
 			->willReturn( $is_product );
 
-		$helper->expects( $this->any() )
-			->method( 'is_one_page_checkout' )
+		$helper->method( 'is_one_page_checkout' )
 			->willReturn( $is_opc );
 
-		$helper->expects( $this->any() )
-			->method( 'should_show_ece_on_checkout_page' )
+		$helper->method( 'should_show_ece_on_checkout_page' )
 			->willReturn( $show_ece_on_checkout );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );

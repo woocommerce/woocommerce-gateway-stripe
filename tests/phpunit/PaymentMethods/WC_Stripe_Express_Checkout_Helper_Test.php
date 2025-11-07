@@ -112,10 +112,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			[ $gateway ]
 		);
 
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
@@ -282,10 +282,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
@@ -337,10 +337,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 		);
 
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
@@ -367,7 +367,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
 		$wc_stripe_ece_helper_mock
-			->expects( $this->any() )
 			->method( 'get_product' )
 			->willReturn( $virtual_product );
 
@@ -384,7 +383,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$wc_stripe_ece_helper_mock
-			->expects( $this->any() )
 			->method( 'get_product' )
 			->willReturn( $shippable_product );
 
@@ -454,8 +452,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )
-			->method( 'is_account_creation_possible' )
+		$wc_stripe_ece_helper_mock->method( 'is_account_creation_possible' )
 			->willReturnOnConsecutiveCalls( true, false );
 
 		// Guest checkout is enabled.
@@ -486,8 +483,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )
-			->method( 'has_subscription_product' )
+		$wc_stripe_ece_helper_mock->method( 'has_subscription_product' )
 			->willReturn( false );
 
 		// Account creation on checkout is enabled.
@@ -510,8 +506,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock2->expects( $this->any() )
-			->method( 'has_subscription_product' )
+		$wc_stripe_ece_helper_mock2->method( 'has_subscription_product' )
 			->willReturn( true );
 
 		// Account creation on checkout is disabled.
@@ -591,8 +586,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			[ 'is_request_to_store_api' ]
 		);
 
-		$helper->expects( $this->any() )
-			->method( 'is_request_to_store_api' )
+		$helper->method( 'is_request_to_store_api' )
 			->willReturn( $is_store_api );
 
 		// Set up $_SERVER superglobal for headers
@@ -1024,11 +1018,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$is_product_page = $is_opc || in_array( 'product', $button_locations, true );
 
 		// Mock the methods.
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_one_page_checkout' )->willReturn( $is_opc );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( $is_product_page );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_checkout' )->willReturn( false );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'get_product' )->willReturn( $is_product_page ? $product : false );
+		$wc_stripe_ece_helper_mock->method( 'is_one_page_checkout' )->willReturn( $is_opc );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( $is_product_page );
+		$wc_stripe_ece_helper_mock->method( 'is_checkout' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'get_product' )->willReturn( $is_product_page ? $product : false );
 
 		// Manually set the properties that would be set in the constructor.
 		$wc_stripe_ece_helper_mock->stripe_settings = $stripe_settings;
