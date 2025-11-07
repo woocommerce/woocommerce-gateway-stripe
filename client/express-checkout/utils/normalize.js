@@ -346,7 +346,7 @@ export const normalizeShippingAddress = ( shippingAddress ) => {
  *
  * @return {Object} The billing address data.
  */
-const getBillingAddressData = ( event ) => {
+export const getBillingAddressData = ( event ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};

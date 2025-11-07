@@ -2,6 +2,7 @@
 import jQuery from 'jquery';
 import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
+import { transformPrice } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
@@ -402,5 +403,19 @@ export const isManualPaymentMethodCreation = (
 			EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 			PAYMENT_METHOD_AMAZON_PAY,
 		].includes( expressPaymentType ) || hasFreeTrial
+	);
+};
+
+/**
+ * Get the total price from a cart response.
+ *
+ * @param {Object} cart The cart response from the server.
+ * @return {number} The total price.
+ */
+export const getTotalPriceFromCart = ( cart ) => {
+	return transformPrice(
+		parseInt( cart.totals.total_price, 10 ) -
+			parseInt( cart.totals.total_refund || 0, 10 ),
+		cart.totals
 	);
 };

@@ -8,10 +8,12 @@ import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
+	getBillingAddressData,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
+	getTotalPriceFromCart,
 	isManualPaymentMethodCreation,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
@@ -35,11 +37,11 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 import {
 	transformCartDataForDisplayItems,
 	transformLabeledDisplayItems,
-	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 jQuery( function ( $ ) {
@@ -456,6 +458,43 @@ jQuery( function ( $ ) {
 					}
 				}
 
+				// When taxes are based on the billing address and Amazon Pay is used, we need to update the cart customer data and recompute taxes
+				// before we can finalise the payment.
+				if (
+					getExpressCheckoutData( 'taxes_based_on_billing' ) &&
+					event?.expressPaymentType === PAYMENT_METHOD_AMAZON_PAY
+				) {
+					const initialBillingAddress =
+						getBillingAddressData( event );
+
+					// Pass the billing address through our standard express checkout address normalization process.
+					const normalizedBillingData =
+						await api.expressCheckoutNormalizeAddress(
+							initialBillingAddress,
+							{}
+						);
+
+					// Update the cart customer data with the normalized billing address, with the initial address as a fallback.
+					const customerData = {
+						billing_address:
+							normalizedBillingData.billing_address ||
+							initialBillingAddress,
+					};
+					const customerUpdateResult =
+						await api.expressCheckoutUpdateCartCustomer(
+							customerData
+						);
+
+					if ( customerUpdateResult?.totals ) {
+						const updatedPrice =
+							getTotalPriceFromCart( customerUpdateResult );
+
+						await elements.update( {
+							amount: updatedPrice,
+						} );
+					}
+				}
+
 				const order = options.order ? options.order : 0;
 				const orderDetails = options.orderDetails ?? {};
 				return await onConfirmHandler( {
@@ -560,11 +599,7 @@ jQuery( function ( $ ) {
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					const total = transformPrice(
-						parseInt( cart.totals.total_price, 10 ) -
-							parseInt( cart.totals.total_refund || 0, 10 ),
-						cart.totals
-					);
+					const total = getTotalPriceFromCart( cart );
 
 					if (
 						total === 0 &&

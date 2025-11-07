@@ -537,6 +537,19 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Update cart customer data.
+	 *
+	 * @param {Object} customerData Customer data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutUpdateCartCustomer( customerData ) {
+		return this.postToBlocksAPI(
+			'/wc/store/v1/cart/update-customer',
+			customerData
+		);
+	}
+
+	/**
 	 * Add product to cart from product page.
 	 *
 	 * @param {Object} productData Product data.
