@@ -128,5 +128,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
 * Fix - Prevent retrying requests that errored out due to declined payment methods
 * Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
+* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
