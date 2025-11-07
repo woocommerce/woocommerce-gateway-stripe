@@ -255,9 +255,10 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: {$method} {$api}",
 				[
-					'request'         => $request,
-					'idempotency_key' => $idempotency_key,
-					'response'        => $response,
+					'request'           => $request,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'idempotency_key'   => $idempotency_key,
+					'response'          => $response,
 				]
 			);
 
@@ -266,7 +267,13 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: {$method} {$api}",
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		if ( $with_headers ) {
 			return [
@@ -317,7 +324,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
-					'response' => json_decode( $response['body'] ),
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => json_decode( $response['body'] ),
 				]
 			);
 
@@ -350,7 +358,8 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
-					'response' => $response,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => $response,
 				]
 			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
@@ -358,7 +367,13 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: GET {$api}",
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		return $response_body;
 	}
@@ -561,19 +576,47 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
-		// and return false when the site is a staging/local/development site.
-		// This is to avoid detaching the payment method from the live production site.
-		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-			if ( 'production' === wp_get_environment_type() ) {
-				return true;
-			} else {
-				return false;
-			}
+		// Requests coming from the customer account page i.e delete payment method, should always be allowed, and should return true.
+		$is_admin_request = is_admin() || ( defined( 'WP_CLI' ) && WP_CLI );
+		if ( ! $is_admin_request ) {
+			return true;
 		}
 
+		// If we are not in a production site, we should not detach the payment method,
+		// as we don't want to detach the payment method from the live production site.
+		$is_staging_site = self::is_woocommerce_subscriptions_staging_mode() || 'production' !== wp_get_environment_type();
+		if ( $is_staging_site ) {
+			return false;
+		}
+
+		// Otherwise, we are in a production site, and we should detach the payment method.
 		return true;
+	}
+
+	/**
+	 * Checks if the site has WooCommerce Subscriptions staging mode enabled.
+	 *
+	 * @return bool True if the site has WooCommerce Subscriptions active and staging mode enabled, false otherwise.
+	 */
+	private static function is_woocommerce_subscriptions_staging_mode() {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return false;
+		}
+
+		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
+		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_duplicate_site' ) ) {
+			return WCS_Staging::is_duplicate_site();
+		}
+
+		// Check if WooCommerce Subscriptions < 4.0.0 is active
+		// and if it is, check if the site is in staging mode via is_duplicate_site().
+		if ( version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
+			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
+		) {
+			return WC_Subscriptions::is_duplicate_site();
+		}
+
+		return false;
 	}
 
 	/**
@@ -582,7 +625,9 @@ class WC_Stripe_API {
 	 * @return array The response from the API request.
 	 */
 	public function get_payment_method_configurations() {
-		return self::retrieve( 'payment_method_configurations' );
+		// The default limit is 10, so we set it to 100 to get all configurations in a single request.
+		// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
+		return self::retrieve( 'payment_method_configurations?limit=100' );
 	}
 
 	/**
@@ -596,5 +641,23 @@ class WC_Stripe_API {
 			'payment_method_configurations/' . $id
 		);
 		return $response;
+	}
+
+	/**
+	 * Returns the Stripe's request_id associated with the response.
+	 *
+	 * @param array|WP_Error $response HTTP response.
+	 *
+	 * @return string The Stripe's request_id associated with the response or null if not present.
+	 */
+	private static function get_stripe_request_id( $response ) {
+		$headers = wp_remote_retrieve_headers( $response );
+		if ( is_array( $headers ) ) {
+			return $headers['request-id'] ?? '';
+		}
+		if ( is_object( $headers ) && $headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary ) {
+			return $headers->getAll()['request-id'] ?? '';
+		}
+		return '';
 	}
 }

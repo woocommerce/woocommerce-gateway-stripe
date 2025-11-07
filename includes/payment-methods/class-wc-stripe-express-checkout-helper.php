@@ -92,7 +92,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_signup_on_checkout_allowed =
 			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) ||
 			( $this->has_subscription_product() &&
-				'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
+			  'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
 		// Account creation is not possible for express checkout if we cannot automatically generate the username and password.
 		$username_password_generation_enabled =
@@ -108,7 +108,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_type() {
-		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
+		return isset( $this->stripe_settings['express_checkout_button_type'] ) ? $this->stripe_settings['express_checkout_button_type'] : 'default';
 	}
 
 	/**
@@ -117,7 +117,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_theme() {
-		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
+		return isset( $this->stripe_settings['express_checkout_button_theme'] ) ? $this->stripe_settings['express_checkout_button_theme'] : 'dark';
 	}
 
 	/**
@@ -126,7 +126,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '40';
 		}
@@ -144,7 +144,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public function get_button_radius() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '2';
 		}
@@ -583,8 +583,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				return false;
 			}
 			if ( class_exists( 'WC_Subscriptions_Product' )
-				&& WC_Subscriptions_Product::is_subscription( $product )
-				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+			     && WC_Subscriptions_Product::is_subscription( $product )
+			     && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
@@ -636,8 +636,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_page_supported() {
 		return $this->is_product()
-			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			|| is_wc_endpoint_url( 'order-pay' );
+		       || WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+		       || is_wc_endpoint_url( 'order-pay' );
 	}
 
 	/**
@@ -683,7 +683,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Don't show on checkout if disabled.
-		if ( $this->is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
@@ -829,8 +829,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				return false;
 			}
 			return wc_shipping_enabled() &&
-				0 !== wc_get_shipping_method_count( true ) &&
-				$product->needs_shipping();
+			       0 !== wc_get_shipping_method_count( true ) &&
+			       $product->needs_shipping();
 		}
 
 		// Cart or checkout page.
@@ -845,7 +845,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns true if any express checkout buttons are enabled on the cart page, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if any express checkout buttons are enabled on the cart page, false otherwise.
+	 * @return  boolean  True if any express checkout buttons are enabled on the cart page, false otherwise
 	 */
 	public function should_show_ece_on_cart_page() {
 		$should_show_on_cart_page = $this->should_show_ece_on_page( 'cart' );
@@ -857,10 +857,10 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on the checkout page, false
+	 * Returns true if any express checkout buttons are enabled on the checkout page, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on the checkout page, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on the checkout page, false otherwise
 	 */
 	public function should_show_ece_on_checkout_page() {
 		global $post;
@@ -902,7 +902,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function should_show_ece_on_page( $page ) {
 		return $this->is_enabled_for_location( 'payment_request', $page ) ||
-			$this->is_enabled_for_location( 'amazon_pay', $page );
+		       $this->is_enabled_for_location( 'amazon_pay', $page );
 	}
 
 	/**
@@ -1246,7 +1246,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( ! $is_supported ) {
 			wc_add_notice(
 				sprintf(
-					/* translators: 1) country. */
+				/* translators: 1) country. */
 					__( 'The Express Checkout button is not supported in %1$s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
 					isset( $countries[ $posted_data['billing_country'] ] ) ? $countries[ $posted_data['billing_country'] ] : $posted_data['billing_country']
 				),
@@ -1400,7 +1400,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Builds the shippings methods to pass to express checkout elements.
+	 * Builds the shipping methods to pass to express checkout elements.
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
 		if ( empty( $shipping_methods ) ) {
@@ -1581,7 +1581,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			case 'payment_request':
 			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
 			default:
-				$key = 'payment_request_button_locations';
+				$key = 'express_checkout_button_locations';
 				break;
 		}
 
@@ -1619,8 +1619,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_express_checkout_enabled() {
 		return $this->is_payment_request_enabled() ||
-			$this->is_amazon_pay_enabled() ||
-			$this->is_link_enabled();
+		       $this->is_amazon_pay_enabled() ||
+		       $this->is_link_enabled();
 	}
 
 	/**
@@ -1632,7 +1632,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = $this->gateway->is_payment_request_enabled();
 		if ( is_product() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'product' );
-		} elseif ( is_cart() ) {
+		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'cart' );
 		}
 
@@ -1648,7 +1648,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
 		if ( is_product() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'product' );
-		} elseif ( is_cart() ) {
+		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'cart' );
 		}
 
@@ -1664,7 +1664,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 		if ( is_product() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'link', 'product' );
-		} elseif ( is_cart() ) {
+		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'link', 'cart' );
 		}
 
@@ -1744,11 +1744,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	* Whether tax should be displayed on separate line in cart.
-	* returns true if tax is disabled or display of tax in checkout is set to inclusive.
-	*
-	* @return boolean
-	*/
+	 * Whether tax should be displayed on separate line in cart.
+	 * returns true if tax is disabled or display of tax in checkout is set to inclusive.
+	 *
+	 * @return boolean
+	 */
 	public function cart_prices_include_tax() {
 		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
 	}

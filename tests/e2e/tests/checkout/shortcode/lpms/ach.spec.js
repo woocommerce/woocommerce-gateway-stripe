@@ -8,8 +8,8 @@ const {
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
-	fillACHBankDetails,
 	setupACHCheckout,
+	fillACHBankDetails,
 } = payments;
 
 test.describe( 'ACH payment tests @shortcode', () => {
@@ -48,6 +48,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	} ) => {
 		await setupACHCheckout( page, 'shortcode' );
 		await fillACHBankDetails( page );
+
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -67,11 +68,13 @@ test.describe( 'ACH payment tests @shortcode', () => {
 			);
 			await setupACHCheckout( page, 'shortcode' );
 			await fillACHBankDetails( page );
+
 			await page
 				.getByRole( 'checkbox', {
 					name: 'Save payment information to',
 				} )
 				.click();
+
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -97,6 +100,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				.locator( '.woocommerce-SavedPaymentMethods-token' )
 				.first()
 				.click();
+
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
 			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
