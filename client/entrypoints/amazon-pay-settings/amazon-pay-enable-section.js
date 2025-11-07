@@ -7,7 +7,12 @@ import { Card, CheckboxControl, Notice } from '@wordpress/components';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 
-const AmazonPayTaxesBasedOnBillingAddressNotice = () => {
+const AmazonPayTaxesBasedOnBillingAddressNotice = ( {
+	isAmazonPayEnabled,
+} ) => {
+	if ( ! isAmazonPayEnabled ) {
+		return null;
+	}
 	// eslint-disable-next-line camelcase
 	if ( ! wc_stripe_amazon_pay_settings_params?.taxes_based_on_billing ) {
 		return null;
@@ -56,7 +61,9 @@ const AmazonPayEnableSection = () => {
 					) }
 				/>
 
-				<AmazonPayTaxesBasedOnBillingAddressNotice />
+				<AmazonPayTaxesBasedOnBillingAddressNotice
+					isAmazonPayEnabled={ isAmazonPayEnabled }
+				/>
 			</CardBody>
 		</Card>
 	);
