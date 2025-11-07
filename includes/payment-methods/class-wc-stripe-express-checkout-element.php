@@ -544,11 +544,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! $this->express_checkout_helper->is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
-		if ( is_checkout() && ! $this->express_checkout_helper->should_show_ece_on_checkout_page() ) {
+		if ( $this->express_checkout_helper->is_checkout() && ! $this->express_checkout_helper->should_show_ece_on_checkout_page() ) {
 			return;
 		}
 
