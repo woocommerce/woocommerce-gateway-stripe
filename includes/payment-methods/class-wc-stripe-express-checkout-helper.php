@@ -888,7 +888,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean True if on a One Page Checkout page, false otherwise.
 	 */
-	public function is_one_page_checkout() {
+	public function is_one_page_checkout(): bool {
 		return function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout();
 	}
 
