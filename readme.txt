@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent retrying requests that errored out due to declined payment methods
 * Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
+* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

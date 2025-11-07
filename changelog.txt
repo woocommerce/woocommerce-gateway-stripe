@@ -19,6 +19,7 @@
 * Fix - Prevent retrying requests that errored out due to declined payment methods
 * Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
+* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
