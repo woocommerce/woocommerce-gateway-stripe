@@ -683,7 +683,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		if ( $this->is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
@@ -1634,6 +1634,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'product' );
 		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'cart' );
+		} elseif ( $this->is_checkout() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'checkout' );
 		}
 
 		return $is_enabled;
@@ -1650,6 +1652,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'product' );
 		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'cart' );
+		} elseif ( $this->is_checkout() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'checkout' );
 		}
 
 		return $is_enabled;
@@ -1666,6 +1670,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $is_enabled && $this->is_enabled_for_location( 'link', 'product' );
 		} elseif ( $this->is_cart() ) {
 			return $is_enabled && $this->is_enabled_for_location( 'link', 'cart' );
+		} elseif ( $this->is_checkout() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'link', 'checkout' );
 		}
 
 		return $is_enabled;

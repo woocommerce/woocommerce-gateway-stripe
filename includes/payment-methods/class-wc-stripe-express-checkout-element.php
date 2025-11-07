@@ -236,7 +236,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_product_page'            => $this->express_checkout_helper->is_product(),
 			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
 			'product'                    => $this->express_checkout_helper->get_product_data(),
-			'is_cart_page'               => is_cart(),
+			'is_cart_page'               => $this->express_checkout_helper->is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
