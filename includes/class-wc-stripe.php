@@ -540,7 +540,6 @@ class WC_Stripe {
 	 */
 	public function filter_gateway_order_admin( $sections ) {
 		unset( $sections['stripe'] );
-		unset( $sections['stripe_upe'] );
 		unset( $sections['stripe_bancontact'] );
 		unset( $sections['stripe_sofort'] );
 		unset( $sections['stripe_giropay'] );
