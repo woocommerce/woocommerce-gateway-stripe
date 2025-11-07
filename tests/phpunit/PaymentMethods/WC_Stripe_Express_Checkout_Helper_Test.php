@@ -1052,6 +1052,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		return [
 			'OPC with checkout enabled'     => [ true, [ 'checkout' ], true ],
 			'Non-OPC with checkout enabled' => [ false, [ 'checkout' ], true ],
+			'OPC with checkout disabled'    => [ true, [ 'product' ], false ],
+			'OPC with both enabled'         => [ true, [ 'checkout', 'product' ], true ],
 		];
 	}
 }
