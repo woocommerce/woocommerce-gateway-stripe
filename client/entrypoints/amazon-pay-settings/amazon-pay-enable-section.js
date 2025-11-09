@@ -1,7 +1,7 @@
 /* global wc_stripe_amazon_pay_settings_params */
 
 import React from 'react';
-import AmazonPayTaxesBillingAddressNotice from '../../components/amazon-pay-taxes-billing-address-notice';
+import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
 import { __ } from '@wordpress/i18n';
 import { Card, CheckboxControl } from '@wordpress/components';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
