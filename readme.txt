@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
-* Update - Remove `redirect_url` parameter from ECE payment flow
+* Fix - Remove `redirect_url` parameter from Express Checkout payment flow
 * Fix - Adjust UI spacing of help text on express checkout theme settings page
 * Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
 * Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
