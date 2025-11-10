@@ -235,8 +235,16 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
+		$masked_secret_key = self::get_masked_secret_key();
+
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API request: {$method} {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+				'request'        => $request,
+			]
+		);
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -255,9 +263,10 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: {$method} {$api}",
 				[
-					'request'           => $request,
+					'stripe_api_key'    => $masked_secret_key,
 					'stripe_request_id' => self::get_stripe_request_id( $response ),
 					'idempotency_key'   => $idempotency_key,
+					'request'           => $request,
 					'response'          => $response,
 				]
 			);
@@ -270,6 +279,7 @@ class WC_Stripe_API {
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
 			[
+				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
 				'response'          => $response_body,
 			]
@@ -307,7 +317,14 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
+		$masked_secret_key = self::get_masked_secret_key();
+
+		WC_Stripe_Logger::debug(
+			"Stripe API request: GET {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+			]
+		);
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -324,6 +341,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
+					'stripe_api_key'    => $masked_secret_key,
 					'stripe_request_id' => self::get_stripe_request_id( $response ),
 					'response'          => json_decode( $response['body'] ),
 				]
@@ -336,8 +354,9 @@ class WC_Stripe_API {
 				WC_Stripe_Logger::error(
 					'Invalid API keys request rate limit exceeded',
 					[
-						'count'      => $invalid_api_key_error_count,
-						'next_retry' => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
+						'stripe_api_key' => $masked_secret_key,
+						'count'          => $invalid_api_key_error_count,
+						'next_retry'     => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
 					]
 				);
 
@@ -358,6 +377,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
+					'stripe_api_key'    => $masked_secret_key,
 					'stripe_request_id' => self::get_stripe_request_id( $response ),
 					'response'          => $response,
 				]
@@ -370,6 +390,7 @@ class WC_Stripe_API {
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
 			[
+				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
 				'response'          => $response_body,
 			]
@@ -659,5 +680,19 @@ class WC_Stripe_API {
 			return $headers->getAll()['request-id'] ?? '';
 		}
 		return '';
+	}
+
+	/**
+	 * Get the masked secret key.
+	 * It uses the same pattern as the Stripe dashboard: sk_live_...JLWaeq.
+	 *
+	 * @return string The masked secret key.
+	 */
+	private static function get_masked_secret_key(): string {
+		$key = self::get_secret_key();
+		if ( empty( $key ) ) {
+			return 'secret_key_not_configured';
+		}
+		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
 	}
 }
