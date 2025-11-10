@@ -449,7 +449,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_product', 'is_one_page_checkout', 'should_show_ece_on_checkout_page' ] )
+			->onlyMethods( [ 'is_product', 'is_one_page_checkout', 'should_show_ece_on_checkout_page' ] )
 			->getMock();
 
 		$helper->method( 'is_product' )
