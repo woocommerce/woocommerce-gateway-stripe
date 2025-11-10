@@ -189,7 +189,7 @@ class WC_Stripe_Customer {
 		 */
 		$preferred_customer_source = apply_filters( 'wc_stripe_customer_data_preferred_source', 'user_meta', $user, $wc_customer );
 
-		// Validate $preferred source.
+		// Validate $preferred_customer_source.
 		if ( ! in_array( $preferred_customer_source, [ 'user_meta', 'wc_customer' ], true ) ) {
 			// Default to 'user_meta' if we don't have a valid value.
 			$preferred_customer_source = 'user_meta';

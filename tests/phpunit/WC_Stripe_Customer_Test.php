@@ -359,9 +359,9 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Data provider for {@see test_generate_customer_request()}.
+	 * Data provider for {@see test_generate_customer_request_via_create_customer()}.
 	 */
-	public function provide_test_generate_customer_request_cases(): array {
+	public function provide_test_generate_customer_request_via_create_customer_cases(): array {
 		$jane_doe_user_data = [
 			'ID'         => 12345,
 			'user_email' => 'test-user@example.com',
@@ -509,9 +509,9 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test the generate_customer_request() method.
+	 * Test the generate_customer_request() method via create_customer().
 	 *
-	 * @dataProvider provide_test_generate_customer_request_cases
+	 * @dataProvider provide_test_generate_customer_request_via_create_customer_cases
 	 *
 	 * @param string           $preferred_customer_source The preferred source of customer data.
 	 * @param array|null       $user_data                 The user data.
