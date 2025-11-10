@@ -22,6 +22,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
+	 * Error string returned by Stripe when a PaymentMethod is detached.
+	 *
+	 * @var string
+	 */
+	protected const DETACHED_PAYMENT_METHOD_ERROR_STRING = 'The provided PaymentMethod was previously used with a PaymentIntent without Customer attachment';
+
+	/**
 	 * The delay between retries.
 	 *
 	 * @var int
@@ -161,6 +168,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		if ( isset( $error->code ) && in_array( $error->code, $non_retryable_codes, true ) ) {
+			return false;
+		}
+
+		// Don't retry if the error indicates that a PaymentMethod is detached.
+		if ( isset( $error->type )
+			&& 'invalid_request_error' == $error->type
+			&& isset( $error->message )
+			&& str_contains( $error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
+		) {
 			return false;
 		}
 
