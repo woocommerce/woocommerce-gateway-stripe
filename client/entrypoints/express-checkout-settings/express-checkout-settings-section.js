@@ -87,41 +87,28 @@ const buttonActionOptions = [
 	},
 ];
 
-const makeButtonThemeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			br: <br />,
-			helpText: (
-				<span className="payment-method-settings__option-help-text" />
-			),
-		},
-	} );
 const buttonThemeOptions = [
 	{
-		label: makeButtonThemeText(
-			__(
-				'Dark {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Dark', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for white or light-colored backgrounds with high contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'dark',
 	},
 	{
-		label: makeButtonThemeText(
-			__(
-				'Light {{br/}}{{helpText}}Recommended for dark or colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Light', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for dark or colored backgrounds with high contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'light',
 	},
 	{
-		label: makeButtonThemeText(
-			__(
-				'Outline {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with insufficient contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Outline', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for white or light-colored backgrounds with insufficient contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'light-outline',
 	},

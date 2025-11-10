@@ -292,7 +292,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_filter(
 			'safe_style_css',
 			function ( $styles ) {
-				return array_merge( $styles, [ 'display' ] );
+				return is_array( $styles ) ? array_merge( $styles, [ 'display' ] ) : [ 'display' ];
 			}
 		);
 
@@ -1380,8 +1380,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
-					$request['confirm']        = 'true';
+					// Only set capture_method for payment methods that support it (e.g., cards).
+					// Payment methods like ACH don't support capture_method and will have it omitted from $request_details.
+					if ( isset( $request_details['capture'] ) ) {
+						$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					}
+					$request['confirm'] = 'true';
 				}
 
 				// If order requires shipping, add the shipping address details to the payment intent request.
@@ -2459,6 +2463,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		) {
 			return __(
 				'Amazon Pay is not compatible for this order. Please try a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
+		// This error indicates that the saved payment method is no longer valid.
+		// This can happen if the payment method was removed in Stripe dashboard, or if it expired.
+		// In this case, we want to show a specific message to the user.
+		if ( isset( $payment_intent->error->type )
+			&& 'invalid_request_error' === $payment_intent->error->type
+			&& isset( $payment_intent->error->message )
+			&& str_contains( $payment_intent->error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
+		) {
+			return __(
+				'This saved payment method is no longer valid. It might be expired, removed, or broken. Please choose a different payment method.',
 				'woocommerce-gateway-stripe'
 			);
 		}
