@@ -143,6 +143,12 @@ export const EXPRESS_PAYMENT_METHODS = [
 ];
 
 /**
+ * This constant defines the max number of shipping options that can be handled by the Express Checkout Element (ECE).
+ * More than 9 options will prevent the UI from behaving correctly and cause an IntegrationError.
+ */
+export const SHIPPING_RATES_UPPER_LIMIT_COUNT = 9;
+
+/**
  * List of payment methods that are not recurring
  */
 export const NON_REUSABLE_METHODS = [
