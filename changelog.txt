@@ -21,6 +21,7 @@
 * Fix - Improve Express Checkout compatibility with One Page Checkout
 * Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
 * Fix - Prevent retrying requests that errored out due to declined payment methods
+* Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
