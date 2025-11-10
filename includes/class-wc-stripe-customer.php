@@ -142,9 +142,12 @@ class WC_Stripe_Customer {
 
 	/**
 	 * Get the current WooCommerce customer object.
+	 *
+	 * @return WC_Customer|null
 	 */
 	protected function get_wc_customer(): ?WC_Customer {
 		$wc_customer = WC()->customer;
+
 		if ( $wc_customer instanceof WC_Customer ) {
 			return $wc_customer;
 		}
@@ -165,7 +168,7 @@ class WC_Stripe_Customer {
 	 * @param  array $args Additional arguments (optional).
 	 * @return array
 	 */
-	public function generate_customer_request( $args = [] ) {
+	protected function generate_customer_request( $args = [] ) {
 		$user        = $this->get_user();
 		$wc_customer = $this->get_wc_customer();
 
@@ -173,12 +176,33 @@ class WC_Stripe_Customer {
 			$args = [];
 		}
 
+		/**
+		 * Filter to control the preferred source of customer data between user meta fields
+		 * and the WC_Customer object. Defaults to 'user_meta' for backwards compatibility,
+		 * but 'wc_customer' can be used to get data from the WC_Customer object.
+		 * The 'wc_customer' option may be most useful for sites that create customers during checkout.
+		 *
+		 * @since 10.1.0
+		 * @param string           $preferred_source The preferred source of customer data.
+		 * @param WP_User|false    $user             The user object or false.
+		 * @param WC_Customer|null $wc_customer      The WooCommerce customer object or null.
+		 */
+		$preferred_customer_source = apply_filters( 'wc_stripe_customer_data_preferred_source', 'user_meta', $user, $wc_customer );
+
+		// Validate $preferred source.
+		if ( ! in_array( $preferred_customer_source, [ 'user_meta', 'wc_customer' ], true ) ) {
+			// Default to 'user_meta' if we don't have a valid value.
+			$preferred_customer_source = 'user_meta';
+		}
+
 		$billing_first_name = '';
 		$billing_last_name  = '';
 		$email              = '';
 		$username           = '';
+		$user_or_customer   = null;
 
-		if ( $user ) {
+		if ( $user && 'user_meta' === $preferred_customer_source ) {
+			$user_or_customer   = $user;
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
 
@@ -194,37 +218,16 @@ class WC_Stripe_Customer {
 
 			$email    = $user->user_email;
 			$username = $user->user_login;
-		}
-
-		if ( $wc_customer ) {
-			if ( empty( $billing_first_name ) ) {
-				$billing_first_name = $wc_customer->get_first_name();
-			}
-
-			if ( empty( $billing_last_name ) ) {
-				$billing_last_name = $wc_customer->get_last_name();
-			}
-
-			if ( empty( $email ) ) {
-				$email = $wc_customer->get_email();
-			}
-
-			if ( empty( $username ) ) {
-				$username = $wc_customer->get_username();
-			}
-		}
-
-		// If the fields are not set yet, try getting the data directly from the incoming POST data or order context.
-		if ( empty( $email ) ) {
-			$email = $this->get_billing_data_field( 'billing_email', $args );
-		}
-
-		if ( empty( $billing_first_name ) ) {
+		} elseif ( $wc_customer && 'wc_customer' === $preferred_customer_source ) {
+			$user_or_customer   = $wc_customer;
+			$billing_first_name = $wc_customer->get_first_name();
+			$billing_last_name  = $wc_customer->get_last_name();
+			$email              = $wc_customer->get_email();
+			$username           = $wc_customer->get_username();
+		} else {
 			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $args );
-		}
-
-		if ( empty( $billing_last_name ) ) {
-			$billing_last_name = $this->get_billing_data_field( 'billing_last_name', $args );
+			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $args );
+			$email              = $this->get_billing_data_field( 'billing_email', $args );
 		}
 
 		if ( empty( $username ) ) {
@@ -249,7 +252,7 @@ class WC_Stripe_Customer {
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
-		$defaults['address'] = $this->generate_customer_address_fields( $args, $user, $wc_customer );
+		$defaults['address'] = $this->generate_customer_address_fields( $args, $user_or_customer );
 
 		return wp_parse_args( $args, $defaults );
 	}
@@ -257,13 +260,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Helper function to build the address fields for the customer request.
 	 *
-	 * @param array            $args        Additional arguments.
-	 * @param WP_User|false    $user        The user object or false.
-	 * @param WC_Customer|null $wc_customer The WooCommerce customer object or null.
+	 * @param array                    $args             Additional arguments.
+	 * @param WP_User|WC_Customer|null $user_or_customer The user object, WC_Customer object, or null.
 	 *
 	 * @return array The address fields.
 	 */
-	private function generate_customer_address_fields( array $args, $user, ?WC_Customer $wc_customer ): array {
+	private function generate_customer_address_fields( array $args, $user_or_customer ): array {
 		$address_field_map = [
 			'line1'       => 'billing_address_1',
 			'line2'       => 'billing_address_2',
@@ -275,21 +277,24 @@ class WC_Stripe_Customer {
 
 		$address_fields = [];
 
+		$source = 'billing';
+		if ( $user_or_customer instanceof WC_Customer ) {
+			$source = 'wc_customer';
+		} elseif ( $user_or_customer instanceof WP_User ) {
+			$source = 'user_meta';
+		}
+
 		foreach ( $address_field_map as $key => $field ) {
 			$value = '';
 
-			if ( $user ) {
-				$value = get_user_meta( $user->ID, $field, true );
-				if ( null === $value ) {
+			if ( 'user_meta' === $source ) {
+				$value = get_user_meta( $user_or_customer->ID, $field, true );
+				if ( empty( $value ) ) {
 					$value = '';
 				}
-			}
-
-			if ( '' === $value && $wc_customer && method_exists( $wc_customer, 'get_' . $field ) ) {
-				$value = $wc_customer->{ 'get_' . $field }();
-			}
-
-			if ( '' === $value ) {
+			} elseif ( 'wc_customer' === $source && method_exists( $user_or_customer, 'get_' . $field ) ) {
+				$value = $user_or_customer->{ 'get_' . $field }();
+			} elseif ( 'billing' === $source ) {
 				$value = $this->get_billing_data_field( $field, $args );
 			}
 
