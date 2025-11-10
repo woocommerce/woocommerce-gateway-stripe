@@ -86,7 +86,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @return bool
 	 *
-	 * @deprecated 10.0.0 UPE is always enabled. This method will be removed in a future release.
+	 * @deprecated 10.1.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function is_upe_preview_enabled() {
 		return true;
