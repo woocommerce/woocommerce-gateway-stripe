@@ -1,3 +1,4 @@
+import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from '../stripe-utils/constants';
 import {
 	normalizeShippingAddress,
 	normalizeLineItems,
@@ -19,7 +20,10 @@ export const shippingAddressChangeHandler = async ( api, event, elements ) => {
 				amount: response.total.amount,
 			} );
 			event.resolve( {
-				shippingRates: response.shipping_options,
+				shippingRates: response.shipping_options?.slice(
+					0,
+					SHIPPING_RATES_UPPER_LIMIT_COUNT
+				),
 				lineItems: normalizeLineItems( response.displayItems ),
 			} );
 		} else {
