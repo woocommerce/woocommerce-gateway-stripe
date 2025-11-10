@@ -13,6 +13,7 @@ import { useDispatch } from '@wordpress/data';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
+import { recordEvent } from 'wcstripe/tracking';
 
 const HeaderDetails = styled.div`
 	display: flex;
@@ -101,6 +102,18 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		? data?.oauth_connections?.test?.connected
 		: data?.oauth_connections?.live?.connected;
 
+	const handleButtonClick = () => {
+		const mode = isTestMode ? 'test' : 'live';
+		if ( ! oauthConnected ) {
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 'account_details_section',
+				mode,
+			} );
+		}
+
+		setModalType( mode );
+	};
+
 	useEffect( () => {
 		if ( ! headingRef.current ) {
 			return;
@@ -149,19 +162,12 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 				<Button
 					variant="secondary"
 					id="btn-configure-connection"
-					onClick={ () =>
-						setModalType( isTestMode ? 'test' : 'live' )
-					}
+					onClick={ handleButtonClick }
 				>
-					{ oauthConnected
-						? __(
-								'Configure connection',
-								'woocommerce-gateway-stripe'
-						  )
-						: __(
-								'Reconnect to Stripe',
-								'woocommerce-gateway-stripe'
-						  ) }
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CardFooter>
 		</Card>

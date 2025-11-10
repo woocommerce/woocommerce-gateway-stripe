@@ -282,18 +282,13 @@ class WC_Stripe_Account {
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+	public function configure_webhooks( $mode = 'live' ) {
+
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
-
-		// If a secret key is provided, use it to configure the webhooks.
-		if ( $secret_key ) {
-			$previous_secret = WC_Stripe_API::get_secret_key();
-			WC_Stripe_API::set_secret_key( $secret_key );
-		}
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
@@ -308,11 +303,6 @@ class WC_Stripe_Account {
 
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
-
-		// Restore the previous secret key if we changed it.
-		if ( $secret_key && isset( $previous_secret ) ) {
-			WC_Stripe_API::set_secret_key( $previous_secret );
-		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -491,7 +481,7 @@ class WC_Stripe_Account {
 
 				// Events differ, reconfigure webhook
 				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
-				$this->configure_webhooks( $mode, $secret_key );
+				$this->configure_webhooks( $mode );
 				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
 
 			} catch ( Exception $e ) {

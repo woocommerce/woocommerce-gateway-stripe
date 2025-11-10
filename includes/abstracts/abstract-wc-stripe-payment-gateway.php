@@ -152,24 +152,27 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function is_retryable_error( $error ) {
 		// Note that this check is required since the error type is 'invalid_request_error' which
 		// would otherwise return true.
-		if (
-			isset( $error->code ) &&
-			(
-				'payment_intent_mandate_invalid' === $error->code || // Don't retry payments when a 3DS mandate is invalid.
-				'charge_exceeds_transaction_limit' === $error->code || // Don't retry payments when the charge exceeds the transaction limit.
-				'amount_too_small' === $error->code
-			)
-		) {
+		$non_retryable_codes = [
+			'payment_intent_mandate_invalid',     // Don't retry payments when a 3DS mandate is invalid.
+			'charge_exceeds_transaction_limit',   // Don't retry payments when the charge exceeds the transaction limit.
+			'amount_too_small',
+			'card_declined',
+			'payment_method_provider_decline',
+		];
+
+		if ( isset( $error->code ) && in_array( $error->code, $non_retryable_codes, true ) ) {
 			return false;
 		}
 
-		return (
-			'invalid_request_error' === $error->type ||
-			'idempotency_error' === $error->type ||
-			'rate_limit_error' === $error->type ||
-			'api_connection_error' === $error->type ||
-			'api_error' === $error->type
-		);
+		$retryable_types = [
+			'invalid_request_error',
+			'idempotency_error',
+			'rate_limit_error',
+			'api_connection_error',
+			'api_error',
+		];
+
+		return in_array( $error->type, $retryable_types, true );
 	}
 
 	/**

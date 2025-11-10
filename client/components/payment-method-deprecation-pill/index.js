@@ -1,5 +1,5 @@
 import React from 'react';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
 import PaymentMethodUnavailablePill, {
 	PaymentMethodPopoverLink,
