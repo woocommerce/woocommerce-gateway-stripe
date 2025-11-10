@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.1.0 - xxxx-xx-xx =
 * Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
+* Update - Remove `redirect_url` parameter from ECE payment flow
+* Fix - Adjust UI spacing of help text on express checkout theme settings page
 * Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
 * Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
 * Add - Includes a notice to inform merchants about methods that are automatically enabled upon account connection
@@ -130,5 +132,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent retrying requests that errored out due to declined payment methods
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
+* Dev - Add Stripe's masked API key to API request/response logs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
