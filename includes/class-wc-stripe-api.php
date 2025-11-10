@@ -235,8 +235,16 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
+		$masked_secret_key = self::get_masked_secret_key();
+
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API request: {$method} {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+				'request'        => $request,
+			]
+		);
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -252,6 +260,7 @@ class WC_Stripe_API {
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			$error_data = [
+				'stripe_api_key'    => $masked_secret_key,
 				'request'           => $request,
 				'idempotency_key'   => $idempotency_key,
 			];
@@ -265,6 +274,7 @@ class WC_Stripe_API {
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
 			[
+				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
 				'response'          => $response_body,
 			]
@@ -302,7 +312,14 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
+		$masked_secret_key = self::get_masked_secret_key();
+
+		WC_Stripe_Logger::debug(
+			"Stripe API request: GET {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+			]
+		);
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -319,6 +336,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
+					'stripe_api_key'    => $masked_secret_key,
 					'stripe_request_id' => self::get_stripe_request_id( $response ),
 					'response'          => json_decode( $response['body'] ),
 				]
@@ -331,8 +349,9 @@ class WC_Stripe_API {
 				WC_Stripe_Logger::error(
 					'Invalid API keys request rate limit exceeded',
 					[
-						'count'      => $invalid_api_key_error_count,
-						'next_retry' => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
+						'stripe_api_key' => $masked_secret_key,
+						'count'          => $invalid_api_key_error_count,
+						'next_retry'     => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
 					]
 				);
 
@@ -350,7 +369,10 @@ class WC_Stripe_API {
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			self::log_error_response( $response, $api, 'GET' );
+			$error_data = [
+				'stripe_api_key' => $masked_secret_key,
+			];
+			self::log_error_response( $response, $api, 'GET', $error_data );
 
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -360,6 +382,7 @@ class WC_Stripe_API {
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
 			[
+				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
 				'response'          => $response_body,
 			]
@@ -566,19 +589,47 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
-		// and return false when the site is a staging/local/development site.
-		// This is to avoid detaching the payment method from the live production site.
-		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-			if ( 'production' === wp_get_environment_type() ) {
-				return true;
-			} else {
-				return false;
-			}
+		// Requests coming from the customer account page i.e delete payment method, should always be allowed, and should return true.
+		$is_admin_request = is_admin() || ( defined( 'WP_CLI' ) && WP_CLI );
+		if ( ! $is_admin_request ) {
+			return true;
 		}
 
+		// If we are not in a production site, we should not detach the payment method,
+		// as we don't want to detach the payment method from the live production site.
+		$is_staging_site = self::is_woocommerce_subscriptions_staging_mode() || 'production' !== wp_get_environment_type();
+		if ( $is_staging_site ) {
+			return false;
+		}
+
+		// Otherwise, we are in a production site, and we should detach the payment method.
 		return true;
+	}
+
+	/**
+	 * Checks if the site has WooCommerce Subscriptions staging mode enabled.
+	 *
+	 * @return bool True if the site has WooCommerce Subscriptions active and staging mode enabled, false otherwise.
+	 */
+	private static function is_woocommerce_subscriptions_staging_mode() {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return false;
+		}
+
+		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
+		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_duplicate_site' ) ) {
+			return WCS_Staging::is_duplicate_site();
+		}
+
+		// Check if WooCommerce Subscriptions < 4.0.0 is active
+		// and if it is, check if the site is in staging mode via is_duplicate_site().
+		if ( version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
+			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
+		) {
+			return WC_Subscriptions::is_duplicate_site();
+		}
+
+		return false;
 	}
 
 	/**
@@ -663,5 +714,19 @@ class WC_Stripe_API {
 			return $headers->getAll()['request-id'] ?? '';
 		}
 		return '';
+	}
+
+	/**
+	 * Get the masked secret key.
+	 * It uses the same pattern as the Stripe dashboard: sk_live_...JLWaeq.
+	 *
+	 * @return string The masked secret key.
+	 */
+	private static function get_masked_secret_key(): string {
+		$key = self::get_secret_key();
+		if ( empty( $key ) ) {
+			return 'secret_key_not_configured';
+		}
+		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
 	}
 }

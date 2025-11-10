@@ -9,15 +9,6 @@
 		color: styles.$gray-700;
 	}
 
-	&__option-help-text {
-		color: styles.$gray-700;
-		padding-left: 30px;
-
-		@media ( min-width: 600px ) {
-			padding-left: 26px;
-		}
-	}
-
 	&__cta-selection {
 		.components-base-control__label {
 			// hack until the `hideLabelFromVision` is fixed for radio controls in Gutenberg
