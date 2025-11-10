@@ -155,11 +155,6 @@ export const handleConfirmationTokenFlow = async ( {
 	// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
 	const { error, confirmationToken } = await stripe.createConfirmationToken( {
 		elements,
-		params: {
-			// Required by Amazon Pay, but is not used by express checkout
-			// as it uses a payment modal instead of redirection.
-			return_url: window.location.href,
-		},
 	} );
 
 	if ( error ) {
