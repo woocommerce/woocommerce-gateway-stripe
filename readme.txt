@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
+* Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
 * Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
 * Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
 * Fix - Remove `redirect_url` parameter from Express Checkout payment flow
