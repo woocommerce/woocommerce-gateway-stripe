@@ -205,7 +205,9 @@ jQuery( function ( $ ) {
 					.map( ( i ) => ( {
 						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: useLegacyCartEndpoints ? i.label : i.name,
+						displayName: useLegacyCartEndpoints
+							? i.label ?? i.name
+							: i.name,
 					} ) );
 			};
 
