@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
 * Dev - Add logging for URL validation issues when calling Stripe API
+* Dev - Add logging when we detect a URL validation issue
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
