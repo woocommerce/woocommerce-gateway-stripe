@@ -244,7 +244,7 @@ class WC_Stripe_Logger {
 	 * @return boolean
 	 */
 	public static function can_log(): bool {
-		if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+		if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 			return true;
 		}
 

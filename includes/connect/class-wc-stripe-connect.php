@@ -66,7 +66,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
-			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug(
 					"OAuth: Generated {$mode} connect URL",
 					[
@@ -96,7 +96,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
 			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
-				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
 						'OAuth: Invalid state received from the WCC server',
 						[
@@ -114,7 +114,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$response = $this->api->get_stripe_oauth_keys( $code, $type, $mode );
 
 			if ( is_wp_error( $response ) ) {
-				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
 						'OAuth: Unable to exchange OAuth code for account keys',
 						[
@@ -156,7 +156,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$type  = isset( $_GET['wcs_stripe_type'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_type'] ) ) : 'connect';
 				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
 
-				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug(
 						'OAuth: Processing redirect back from Stripe/WCC',
 						[
@@ -171,7 +171,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
-					if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+					if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 						WC_Stripe_Logger::error(
 							'OAuth: Invalid nonce received from the WCC server',
 							[
@@ -194,7 +194,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					$redirect_url = add_query_arg( [ 'wc_stripe_connected' => 'true' ], $redirect_url );
 				}
 
-				if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug(
 						'OAuth: Account connected successfully, reloading the page to clear URL parameters',
 						[
@@ -222,7 +222,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
-			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug(
 					'OAuth: Saving account keys',
 					[
@@ -273,9 +273,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
-			if ( WC_Stripe_Helper::is_enhanced_debug_mode_enabled() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug(
-					'OAuth: Plugin settings udpated',
+					'OAuth: Plugin settings updated',
 					[
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'connect_mode'           => $mode,

@@ -2046,13 +2046,13 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if the enhanced debug mode is enabled.
+	 * Checks if the verbose debug mode is enabled.
 	 *
 	 * @return bool True if enabled, false otherwise.
 	 */
-	public static function is_enhanced_debug_mode_enabled(): bool {
+	public static function is_verbose_debug_mode_enabled(): bool {
 		/**
-		 * Filters the flag that decides if the enhanced debug mode is enabled.
+		 * Filters the flag that decides if the verbose debug mode is enabled.
 		 *
 		 * @since 10.1.0
 		 *
@@ -2060,6 +2060,6 @@ class WC_Stripe_Helper {
 		 *
 		 * @return bool True if enabled, false otherwise.
 		*/
-		return apply_filters( 'wc_stripe_enhanced_debug_mode_enabled', false );
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 }
