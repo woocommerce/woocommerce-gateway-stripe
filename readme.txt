@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
+* Fix - Ensure we have a fallback for shipping rate names in classic checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
