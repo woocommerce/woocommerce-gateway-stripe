@@ -73,7 +73,6 @@ class WC_Stripe_UPE_Availability_Note {
 	public static function init() {
 		/**
 		 * No need to display the admin inbox note when
-		 * - UPE preview is disabled
 		 * - UPE is already enabled
 		 * - UPE has been manually disabled
 		 * - Stripe is not enabled
