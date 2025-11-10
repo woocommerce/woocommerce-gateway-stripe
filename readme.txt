@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.1.0 - xxxx-xx-xx =
-* Dev - Remove `shouldShowPaymentRequestButton` parameter and calculations from backend
+* Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
 * Fix - Remove `redirect_url` parameter from Express Checkout payment flow
 * Fix - Adjust UI spacing of help text on express checkout theme settings page
 * Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
