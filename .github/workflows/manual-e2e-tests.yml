@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: Branch, Tag or SHA to checkout. Leave empty to use the default branch.
+        description: Branch, Tag or SHA to checkout. Leave empty to use the same commit/branch as the workflow branch.
         type: string
       wordpress-version:
         description: WordPress version number. Defaults to 'latest' (the latest version).
