@@ -188,6 +188,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 						'url'                    => $url,
 						'headers'                => $headers,
 						'body'                   => WC_Stripe_Connect::redact_sensitive_data( json_decode( $body ) ),
+						'is_args_filtered'       => has_filter( 'wc_connect_request_args' ),
 					]
 				);
 			}

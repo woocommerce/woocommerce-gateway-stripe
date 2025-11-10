@@ -566,11 +566,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return substr( $string, 0, 8 ) . '...' . substr( $string, -6 );
 			}
 			if ( $len > 9 ) {
-				// This applies only to wponces.
+				// This applies only to wp nonces.
 				return substr( $string, 0, 3 ) . '...' . substr( $string, -3 );
 			}
 
-			// This should never be the case, as the shortest strings are 10 chars long (wponces).
+			// This should never be the case, as the shortest strings are 10 chars long (wp nonces).
 			return '[REDACTED]';
 		}
 	}
