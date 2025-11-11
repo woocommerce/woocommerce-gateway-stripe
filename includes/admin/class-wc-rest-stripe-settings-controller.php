@@ -20,16 +20,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Stripe payment gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe payment gateway.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway ) {
+	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
 	}
 
@@ -209,14 +209,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
-		$is_upe_enabled = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
 		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
 		// The available payment methods are also fetched from the payment method configurations API under similar conditions,
 		// but we do not force a refresh for available methods, since calling get_upe_enabled_payment_method_ids first already ensures the list is up to date.
-		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
+		$enabled_payment_method_ids   = $this->gateway->get_upe_enabled_payment_method_ids( true );
+		$available_payment_method_ids = $this->gateway->get_upe_available_payment_methods();
+		$ordered_payment_method_ids   = WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway );
 
 		return new WP_REST_Response(
 			[
@@ -252,7 +251,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_upe_enabled'                           => $is_upe_enabled,
+				'is_upe_enabled'                           => true, // UPE is always enabled.
 				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'oc_layout'                                => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
 				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
@@ -272,9 +271,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
 		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+		$this->update_enabled_payment_methods( $payment_method_ids_to_enable );
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
@@ -305,12 +303,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
-		if ( $is_upe_enabled &&
-			 $is_payment_request_enabled &&
+		if ( $is_payment_request_enabled &&
 			 in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -330,28 +326,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_payment_methods_order( WP_REST_Request $request ) {
-		$is_upe_enabled             = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
 
 		if ( empty( $ordered_payment_method_ids ) ) {
 			return new WP_REST_Response( [], 403 );
 		}
 
-		if ( $is_upe_enabled ) {
-			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
-		} else {
-			$ordered_payment_method_ids = array_map(
-				function ( $id ) {
-					if ( WC_Stripe_Payment_Methods::CARD === $id ) {
-						return 'stripe';
-					}
-					return 'stripe_' . $id;
-				},
-				$ordered_payment_method_ids
-			);
-
-			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
-		}
+		$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
 
 		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
 
@@ -594,34 +575,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates the list of enabled payment methods.
 	 *
 	 * @param array $payment_method_ids_to_enable The list of payment method ids to enable.
-	 * @param bool $is_upe_enabled Whether UPE is enabled.
 	 */
-	private function update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled ) {
-		if ( null === $is_upe_enabled ) {
-			return;
-		}
-
-		if ( null === $payment_method_ids_to_enable ) {
-			return;
-		}
-
-		if ( ! $is_upe_enabled ) {
-			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
-
-			foreach ( $payment_gateways as $gateway ) {
-				$gateway_id = str_replace( 'stripe_', '', $gateway->id );
-				if ( ! in_array( $gateway_id, $payment_method_ids_to_enable, true ) && in_array( $gateway_id, $currently_enabled_payment_method_ids, true ) ) {
-					$gateway->update_option( 'enabled', 'no' );
-				} elseif ( in_array( $gateway_id, $payment_method_ids_to_enable, true ) ) {
-					$gateway->update_option( 'enabled', 'yes' );
-				}
-			}
-
-			return;
-		}
-
-		if ( $this->gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+	private function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
+		if ( is_array( $payment_method_ids_to_enable ) ) {
 			$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 		}
 	}
