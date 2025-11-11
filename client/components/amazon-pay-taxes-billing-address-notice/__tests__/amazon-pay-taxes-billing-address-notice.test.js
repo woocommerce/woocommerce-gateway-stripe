@@ -16,10 +16,6 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 		jest.clearAllMocks();
 	} );
 
-	const verifyNoticeText = ( text ) => {
-		expect( screen.getByText( text, { exact: true } ) ).toBeInTheDocument();
-	};
-
 	it( 'should not render when Amazon Pay is disabled', () => {
 		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 
@@ -53,9 +49,12 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 			/>
 		);
 
-		verifyNoticeText(
-			'Amazon Pay does not support taxes based on the billing address. The checkout button will not be visible to shoppers with this setting in effect.'
-		);
+		expect(
+			screen.getByText(
+				'Amazon Pay does not support taxes based on the billing address. The checkout button will not be visible to shoppers with this setting in effect.',
+				{ exact: true }
+			)
+		).toBeInTheDocument();
 
 		expect(
 			container.querySelector(
