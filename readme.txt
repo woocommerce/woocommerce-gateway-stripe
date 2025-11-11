@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
+* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
