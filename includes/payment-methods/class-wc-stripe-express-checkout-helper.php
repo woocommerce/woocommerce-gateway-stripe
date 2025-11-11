@@ -1630,6 +1630,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_enabled_for_location( string $express_checkout_type = 'payment_request', string $location = '' ): bool {
 		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+
 		return in_array( $location, $enabled_locations, true );
 	}
 
@@ -1645,25 +1646,37 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Checks if the given express checkout type is enabled for the current page context.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 *
+	 * @return boolean
+	 */
+	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		if ( $this->is_product() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'product' );
+		}
+
+		if ( $this->is_cart() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'cart' );
+		}
+
+		if ( $this->is_checkout() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Checks if Apple Pay and Google Pay buttons are enabled.
 	 *
 	 * @return boolean
 	 */
 	public function is_payment_request_enabled() {
 		$is_enabled = $this->gateway->is_payment_request_enabled();
-		if ( $this->is_product() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'product' );
-		}
 
-		if ( $this->is_cart() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'cart' );
-		}
-
-		if ( $this->is_checkout() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'checkout' );
-		}
-
-		return $is_enabled;
+		return $is_enabled && $this->is_enabled_for_current_context( 'payment_request' );
 	}
 
 	/**
@@ -1673,19 +1686,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_amazon_pay_enabled() {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
-		if ( $this->is_product() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'product' );
-		}
 
-		if ( $this->is_cart() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'cart' );
-		}
-
-		if ( $this->is_checkout() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'checkout' );
-		}
-
-		return $is_enabled;
+		return $is_enabled && $this->is_enabled_for_current_context( 'amazon_pay' );
 	}
 
 	/**
@@ -1695,19 +1697,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_link_enabled() {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
-		if ( $this->is_product() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'link', 'product' );
-		}
 
-		if ( $this->is_cart() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'link', 'cart' );
-		}
-
-		if ( $this->is_checkout() ) {
-			return $is_enabled && $this->is_enabled_for_location( 'link', 'checkout' );
-		}
-
-		return $is_enabled;
+		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
 	}
 
 	/**
