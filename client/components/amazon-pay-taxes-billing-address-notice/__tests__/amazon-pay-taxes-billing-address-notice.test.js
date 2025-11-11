@@ -17,13 +17,7 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 	} );
 
 	const verifyNoticeText = ( text ) => {
-		// Expect the notice text to appear twice:
-		//  - Once in the div for spoken content, and
-		//  - Once in the actual notice.
-		const noticeTextElements = screen.getAllByText( text, { exact: true } );
-		expect( noticeTextElements?.length ).toBe( 2 );
-		expect( noticeTextElements[ 0 ] ).toBeInTheDocument();
-		expect( noticeTextElements[ 1 ] ).toBeInTheDocument();
+		expect( screen.getByText( text, { exact: true } ) ).toBeInTheDocument();
 	};
 
 	it( 'should not render when Amazon Pay is disabled', () => {
