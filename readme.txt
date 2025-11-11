@@ -141,5 +141,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
 * Dev - Add verbose debug logging mode to the OAuth connect flow
 * Fix - Disable Amazon Pay when taxes are based on billing address and add notices with details
+* Fix - Fix express checkout error for a Saudi Arabian address without state and postal code
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
