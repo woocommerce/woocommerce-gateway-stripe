@@ -219,6 +219,9 @@ jQuery( function ( $ ) {
 					?.is_amazon_pay_enabled;
 			const isLinkEnabled =
 				wc_stripe_express_checkout_params?.stripe?.is_link_enabled; // eslint-disable-line camelcase
+			const areTaxesBasedOnBillingAddress = getExpressCheckoutData(
+				'taxes_based_on_billing'
+			);
 
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
@@ -229,7 +232,9 @@ jQuery( function ( $ ) {
 					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 				isPaymentRequestEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-				isAmazonPayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				isAmazonPayEnabled &&
+					! areTaxesBasedOnBillingAddress &&
+					EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
