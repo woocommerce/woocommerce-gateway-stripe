@@ -49,9 +49,26 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 			/>
 		);
 
+		// Check for the consolidated content for text to speech.
 		expect(
 			screen.getByText(
 				'Amazon Pay does not support taxes based on the billing address. The checkout button will not be visible to shoppers with this setting in effect.',
+				{ exact: true }
+			)
+		).toBeInTheDocument();
+
+		// Check for the content within the <strong> element.
+		expect(
+			screen.getByText(
+				'Amazon Pay does not support taxes based on the billing address.',
+				{ exact: true }
+			)
+		).toBeInTheDocument();
+
+		// Check for the content from the trailing sentence.
+		expect(
+			screen.getByText(
+				'The checkout button will not be visible to shoppers with this setting in effect.',
 				{ exact: true }
 			)
 		).toBeInTheDocument();
