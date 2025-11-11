@@ -64,19 +64,10 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 		);
 
 		expect(
-			container.querySelector( '.components-notice.is-error' )
+			container.querySelector(
+				'.wc-stripe-amazon-pay-taxes-billing-address-notice'
+			)
 		).toBeTruthy();
-	} );
-
-	it( 'should show the action link when showUpdateSettingsLink is true', () => {
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		render(
-			<AmazonPayTaxesBillingAddressNotice
-				areTaxesBasedOnBillingAddress={ true }
-				showUpdateSettingsLink={ true }
-			/>
-		);
 
 		const actionLink = screen.getByRole( 'link', {
 			name: 'Update tax settings',
@@ -86,60 +77,5 @@ describe( 'AmazonPayTaxesBillingAddressNotice', () => {
 			'href',
 			'/wp-admin/admin.php?page=wc-settings&tab=tax'
 		);
-	} );
-
-	it( 'should not show the action link when showUpdateSettingsLink is false', () => {
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		render(
-			<AmazonPayTaxesBillingAddressNotice
-				areTaxesBasedOnBillingAddress={ true }
-				showUpdateSettingsLink={ false }
-			/>
-		);
-
-		expect(
-			screen.queryByRole( 'link', {
-				name: 'Update tax settings',
-			} )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'should show the action link when showUpdateSettingsLink is not specified', () => {
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		render(
-			<AmazonPayTaxesBillingAddressNotice
-				areTaxesBasedOnBillingAddress={ true }
-			/>
-		);
-
-		const actionLink = screen.getByRole( 'link', {
-			name: 'Update tax settings',
-		} );
-		expect( actionLink ).toBeInTheDocument();
-		expect( actionLink ).toHaveAttribute(
-			'href',
-			'/wp-admin/admin.php?page=wc-settings&tab=tax'
-		);
-	} );
-
-	it( 'should respect the noticeStatus prop', () => {
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		const { container } = render(
-			<AmazonPayTaxesBillingAddressNotice
-				areTaxesBasedOnBillingAddress={ true }
-				noticeStatus="warning"
-			/>
-		);
-
-		verifyNoticeText(
-			'Amazon Pay does not support taxes based on the billing address. The checkout button will not be visible to shoppers with this setting in effect.'
-		);
-
-		expect(
-			container.querySelector( '.components-notice.is-warning' )
-		).toBeTruthy();
 	} );
 } );

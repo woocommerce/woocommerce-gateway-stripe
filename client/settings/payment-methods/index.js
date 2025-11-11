@@ -57,7 +57,6 @@ const AmazonPayTaxesBasedOnBillingAddressSection = () => {
 		<SettingsSection>
 			<AmazonPayTaxesBillingAddressNotice
 				areTaxesBasedOnBillingAddress={ areTaxesBasedOnBillingAddress }
-				showUpdateSettingsLink={ false }
 			/>
 		</SettingsSection>
 	);

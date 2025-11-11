@@ -1,13 +1,14 @@
 import { getAdminLink } from '@woocommerce/settings';
 import React from 'react';
+import interpolateComponents from '@automattic/interpolate-components';
 import { Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useAmazonPayEnabledSettings } from 'wcstripe/data';
 
+import './style.scss';
+
 const AmazonPayTaxesBillingAddressNotice = ( {
 	areTaxesBasedOnBillingAddress = false,
-	noticeStatus = 'error',
-	showUpdateSettingsLink = true,
 } ) => {
 	const [ isAmazonPayEnabled ] = useAmazonPayEnabledSettings();
 
@@ -18,33 +19,30 @@ const AmazonPayTaxesBillingAddressNotice = ( {
 		return null;
 	}
 
-	const actions = showUpdateSettingsLink
-		? [
-				{
-					label: __(
-						'Update tax settings',
-						'woocommerce-gateway-stripe'
-					),
-					url: getAdminLink( 'admin.php?page=wc-settings&tab=tax' ),
-					variant: 'secondary',
-				},
-		  ]
-		: [];
+	const actions = [
+		{
+			label: __( 'Update tax settings', 'woocommerce-gateway-stripe' ),
+			url: getAdminLink( 'admin.php?page=wc-settings&tab=tax' ),
+			variant: 'secondary',
+		},
+	];
 
 	return (
 		<Notice
-			status={ noticeStatus }
+			className="wc-stripe-amazon-pay-taxes-billing-address-notice"
+			status="error"
 			isDismissible={ false }
 			actions={ actions }
 		>
-			<p>
-				<strong>
-					{ __(
-						'Amazon Pay does not support taxes based on the billing address. The checkout button will not be visible to shoppers with this setting in effect.',
-						'woocommerce-gateway-stripe'
-					) }
-				</strong>
-			</p>
+			{ interpolateComponents( {
+				mixedString: __(
+					'{{strong}}Amazon Pay does not support taxes based on the billing address.{{/strong}} The checkout button will not be visible to shoppers with this setting in effect.',
+					'woocommerce-gateway-stripe'
+				),
+				components: {
+					strong: <strong />,
+				},
+			} ) }
 		</Notice>
 	);
 };
