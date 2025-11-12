@@ -134,7 +134,7 @@ describe( 'PaymentMethod', () => {
 	it( 'SEPA payment method should be enabled when payment method is enabled and not available', () => {
 		const data = {
 			account: {
-				default_currency: 'EUR',
+				default_currency: 'USD',
 			},
 		};
 
