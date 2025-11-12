@@ -1,7 +1,10 @@
 *** Changelog ***
 
-= 10.1.0 - xxxx-xx-xx =
+= 10.2.0 - xxxx-xx-xx =
+* Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
 * Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+
+= 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
 * Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
 * Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
@@ -29,6 +32,11 @@
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
+* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
+* Dev - Add verbose debug logging mode to the OAuth connect flow
+* Fix - Disable Amazon Pay when taxes are based on billing address and add notices with details
+* Fix - Fix express checkout error for a Saudi Arabian address without state and postal code
+* Fix - Ensure we have a fallback for shipping rate names in classic checkout
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices

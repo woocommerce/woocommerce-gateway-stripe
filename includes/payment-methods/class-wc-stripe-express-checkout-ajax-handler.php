@@ -428,6 +428,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			'wc_stripe_express_checkout_countries_with_optional_postcode',
 			[
 				'IL', // Israel
+				'SA', // Saudi Arabia
 			]
 		);
 

@@ -65,7 +65,15 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_amazon_pay_available() {
-		return 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+		$enable_amazon_pay = 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter to control the availability of the Amazon Pay feature.
+		 *
+		 * @since 10.1.0
+		 * @param bool $enable_amazon_pay Whether Amazon Pay should be enabled.
+		 */
+		return (bool) apply_filters( 'wc_stripe_is_amazon_pay_available', $enable_amazon_pay );
 	}
 
 	/**

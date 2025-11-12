@@ -210,6 +210,163 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
+	 *
+	 * @param array|WP_Error $response     The mock response.
+	 * @param string         $api          The API endpoint.
+	 * @param string         $method       The HTTP method used for the request.
+	 * @param array|null     $request_data The mock request data. Only used for POST requests.
+	 * @dataProvider provide_test_log_error_response_tests
+	 */
+	public function test_log_error_response( $response, string $api, string $method, ?array $request_data = null ) {
+		$expected_url = WC_Stripe_API::ENDPOINT . $api;
+
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $response, $method, $expected_url ) {
+			if ( $url !== $expected_url ) {
+				return $return_value;
+			}
+			if ( ( $parsed_args['method'] ?? null ) !== $method ) {
+				return $return_value;
+			}
+
+			return $response;
+		};
+
+		$mock_logger = $this->createMock( \WC_Logger::class );
+		\WC_Stripe_Logger::$logger = $mock_logger;
+
+		$expected_data_keys = [
+			'stripe_request_id',
+			'response',
+		];
+
+		if ( 'POST' === $method ) {
+			$expected_data_keys[] = 'idempotency_key';
+			$expected_data_keys[] = 'request';
+		}
+
+		if (
+			is_wp_error( $response ) &&
+			'http_request_failed' === $response->get_error_code() &&
+			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+			__( 'A valid URL was not provided.' ) === $response->get_error_message()
+		) {
+			$expected_data_keys[] = 'resolved_ip_address';
+			$expected_data_keys[] = 'validation_details';
+		}
+
+		$expected_data_keys_callback = function ( $context ) use ( $expected_data_keys ) {
+			$this->assertLessThanOrEqual( count( $context ), count( $expected_data_keys ) );
+			foreach ( $expected_data_keys as $key ) {
+				$this->assertArrayHasKey( $key, $context );
+			}
+			return true;
+		};
+
+		$mock_logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				$this->stringStartsWith( "Stripe API error: $method $api" ),
+				$this->callback( $expected_data_keys_callback )
+			);
+
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		if ( 'GET' === $method ) {
+			$result = WC_Stripe_API::retrieve( $api );
+		} else {
+			$caught_exception = null;
+			try {
+				$result = WC_Stripe_API::request( $request_data, $api, $method, false );
+			} catch ( \WC_Stripe_Exception $stripe_exception ) {
+				$caught_exception = $stripe_exception;
+			}
+		}
+
+		// Clean up before we perform any assertions.
+		remove_filter( 'pre_http_request', $pre_http_filter );
+		\WC_Stripe_Logger::$logger = null;
+
+		if ( 'GET' === $method ) {
+			$this->assertInstanceof( \WP_Error::class, $result );
+			$this->assertEquals( 'stripe_error', $result->get_error_code() );
+			$this->assertEquals( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
+		} else {
+			$this->assertInstanceof( \WC_Stripe_Exception::class, $caught_exception );
+			$this->assertEquals( print_r( $response, true ), $caught_exception->getMessage() );
+			$this->assertEquals( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_log_error_response()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_log_error_response_tests(): array {
+		return [
+			'generic error for GET account' => [
+				'response' => new \WP_Error( 'mock_error', 'Mock Error' ),
+				'api' => 'account',
+				'method' => 'GET',
+			],
+			'generic error for POST account' => [
+				'response' => new \WP_Error( 'mock_error', 'Mock Error' ),
+				'api' => 'account',
+				'method' => 'POST',
+				'request_data' => [ 'test' => 'test' ],
+			],
+			'general http_request_failed error for GET account' => [
+				'response' => new \WP_Error( 'http_request_failed', 'Mock Error' ),
+				'api' => 'account',
+				'method' => 'GET',
+			],
+			'general http_request_failed error for POST account' => [
+				'response' => new \WP_Error( 'http_request_failed', 'Mock Error' ),
+				'api' => 'account',
+				'method' => 'POST',
+				'request_data' => [ 'test' => 'test' ],
+			],
+			'URL validation http_request_failed error for GET account' => [
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
+				'api' => 'account',
+				'method' => 'GET',
+			],
+			'URL validation http_request_failed error for POST account' => [
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
+				'api' => 'account',
+				'method' => 'POST',
+				'request_data' => [ 'test' => 'test' ],
+			],
+			'empty response body for GET account' => [
+				'response' => [
+					'response' => [
+						'code' => 200,
+						'message' => 'OK',
+					],
+					'body' => '',
+				],
+				'api' => 'account',
+				'method' => 'GET',
+			],
+			'empty response body for POST account' => [
+				'response' => [
+					'response' => [
+						'code' => 200,
+						'message' => 'OK',
+					],
+					'body' => '',
+				],
+				'api' => 'account',
+				'method' => 'POST',
+				'request_data' => [ 'test' => 'test' ],
+			],
+		];
+	}
+
 	public function provide_test_should_detach_payment_method_from_customer(): array {
 		return [
 			'test mode from non-admin context should detach' => [
