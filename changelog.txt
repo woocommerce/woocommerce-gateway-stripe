@@ -2,6 +2,7 @@
 
 = 10.2.0 - xxxx-xx-xx =
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Dev - Removes legacy checkout payment method classes
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
