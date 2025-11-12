@@ -2,7 +2,7 @@
 
 = 10.2.0 - xxxx-xx-xx =
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
-* Fix - Fixes some incorrect subscriptions support implementations for payment methods. And implements the new constants for payment gateway features
+* Fix - Fixes some incorrect subscriptions support implementations for payment methods
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend

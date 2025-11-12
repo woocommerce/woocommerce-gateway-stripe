@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -29,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Stripe';
 		$this->is_reusable = true;
-		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]  = 'tokenization';
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

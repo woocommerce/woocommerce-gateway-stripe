@@ -5,8 +5,6 @@
  * @package WooCommerce_Stripe\Payment_Methods
  */
 
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -32,7 +30,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
-		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]                   = 'tokenization';
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',

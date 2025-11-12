@@ -1,7 +1,4 @@
 <?php
-
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -22,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]           = 'tokenization';
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,

@@ -1,7 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,16 +35,16 @@ trait WC_Stripe_Subscriptions_Trait {
 		$this->supports = array_merge(
 			$this->supports,
 			[
-				PaymentGatewayFeature::SUBSCRIPTIONS,
-				PaymentGatewayFeature::SUBSCRIPTION_CANCELLATION,
-				PaymentGatewayFeature::SUBSCRIPTION_SUSPENSION,
-				PaymentGatewayFeature::SUBSCRIPTION_REACTIVATION,
-				PaymentGatewayFeature::SUBSCRIPTION_AMOUNT_CHANGES,
-				PaymentGatewayFeature::SUBSCRIPTION_DATE_CHANGES,
-				PaymentGatewayFeature::SUBSCRIPTION_PAYMENT_METHOD_CHANGE,
-				PaymentGatewayFeature::SUBSCRIPTION_PAYMENT_METHOD_CHANGE_CUSTOMER,
-				PaymentGatewayFeature::SUBSCRIPTION_PAYMENT_METHOD_CHANGE_ADMIN,
-				PaymentGatewayFeature::MULTIPLE_SUBSCRIPTIONS,
+				'subscriptions',
+				'subscription_cancellation',
+				'subscription_suspension',
+				'subscription_reactivation',
+				'subscription_amount_changes',
+				'subscription_date_changes',
+				'subscription_payment_method_change',
+				'subscription_payment_method_change_customer',
+				'subscription_payment_method_change_admin',
+				'multiple_subscriptions',
 			]
 		);
 

@@ -2,7 +2,6 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Method_OC;
 use WP_UnitTestCase;
@@ -20,8 +19,8 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
 
 		$this->assertSame( 'Stripe', $payment_method->title );
-		$this->assertContains( PaymentGatewayFeature::SUBSCRIPTIONS, $payment_method->supports );
-		$this->assertContains( PaymentGatewayFeature::TOKENIZATION, $payment_method->supports );
+		$this->assertContains( 'subscriptions', $payment_method->supports );
+		$this->assertContains( 'tokenization', $payment_method->supports );
 	}
 
 	/**

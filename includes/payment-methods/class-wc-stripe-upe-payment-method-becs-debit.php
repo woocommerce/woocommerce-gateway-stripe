@@ -1,7 +1,4 @@
 <?php
-
-use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -32,7 +29,7 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->description          = __( 'Pay directly from your Australian bank account via BECS.', 'woocommerce-gateway-stripe' );
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR ];
 		$this->supported_countries  = [ 'AU' ];
-		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
+		$this->supports[]           = 'tokenization';
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
