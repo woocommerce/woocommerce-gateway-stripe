@@ -114,12 +114,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'is_page_supported' )
+		$helper->method( 'is_page_supported' )
 			->willReturn( $page_supported );
 
-		$helper->expects( $this->any() )
-			->method( 'should_show_express_checkout_button' )
+		$helper->method( 'should_show_express_checkout_button' )
 			->willReturn( $should_show );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -262,12 +260,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'is_page_supported' )
+		$helper->method( 'is_page_supported' )
 			->willReturn( $page_supported );
 
-		$helper->expects( $this->any() )
-			->method( 'should_show_express_checkout_button' )
+		$helper->method( 'should_show_express_checkout_button' )
 			->willReturn( $should_show );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -360,8 +356,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->setMethods( [ 'get_button_locations' ] )
 			->getMock();
 
-		$helper->expects( $this->any() )
-			->method( 'get_button_locations' )
+		$helper->method( 'get_button_locations' )
 			->willReturn( [ $button_location ] );
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -430,5 +425,85 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$element->add_order_attribution_inputs();
 		$output = ob_get_clean();
 		$this->assertStringMatchesFormat( '%aid="wc-stripe-express-checkout__order-attribution-inputs"%a', $output );
+	}
+
+	/**
+	 * Test for `is_product_page_for_ece`.
+	 *
+	 * The is_product_page_for_ece method determines whether ECE should use product
+	 * pricing vs cart pricing. It returns false when:
+	 * - Not on a product page
+	 * - On a One Page Checkout page with ECE enabled on checkout (should use cart pricing)
+	 *
+	 * @param bool $is_product               Whether we're on a product page.
+	 * @param bool $is_opc                   Whether One Page Checkout is active.
+	 * @param bool $show_ece_on_checkout     Whether ECE is enabled on checkout pages.
+	 * @param bool $expected_result          Expected return value from is_product_page_for_ece.
+	 * @return void
+	 * @dataProvider provide_test_is_product_page_for_ece
+	 */
+	public function test_is_product_page_for_ece( $is_product, $is_opc, $show_ece_on_checkout, $expected_result ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_product', 'is_one_page_checkout', 'should_show_ece_on_checkout_page' ] )
+			->getMock();
+
+		$helper->method( 'is_product' )
+			->willReturn( $is_product );
+
+		$helper->method( 'is_one_page_checkout' )
+			->willReturn( $is_opc );
+
+		$helper->method( 'should_show_ece_on_checkout_page' )
+			->willReturn( $show_ece_on_checkout );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+		$result  = $element->is_product_page_for_ece();
+
+		$this->assertSame( $expected_result, $result );
+	}
+
+	/**
+	 * Data provider for test_is_product_page_for_ece.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_product_page_for_ece() {
+		return [
+			'not on product page'                                => [
+				'is_product'            => false,
+				'is_opc'                => false,
+				'show_ece_on_checkout'  => false,
+				'expected_result'       => false,
+			],
+			'product page, not OPC'                              => [
+				'is_product'            => true,
+				'is_opc'                => false,
+				'show_ece_on_checkout'  => false,
+				'expected_result'       => true,
+			],
+			'product page, not OPC, ECE on checkout enabled'     => [
+				'is_product'            => true,
+				'is_opc'                => false,
+				'show_ece_on_checkout'  => true,
+				'expected_result'       => true,
+			],
+			'product page, OPC active, ECE on checkout disabled' => [
+				'is_product'            => true,
+				'is_opc'                => true,
+				'show_ece_on_checkout'  => false,
+				'expected_result'       => true,
+			],
+			'product page, OPC active, ECE on checkout enabled'  => [
+				'is_product'            => true,
+				'is_opc'                => true,
+				'show_ece_on_checkout'  => true,
+				'expected_result'       => false,
+			],
+		];
 	}
 }

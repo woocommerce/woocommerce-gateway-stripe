@@ -53,7 +53,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		// Set pmc_enabled to '' to trigger migration
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['test_connection_type']                      = 'connect';
-		$stripe_settings['payment_request']                           = 'yes';
+		$stripe_settings['express_checkout']                          = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'link', 'sepa_debit' ];
 		$stripe_settings['pmc_enabled']                               = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );

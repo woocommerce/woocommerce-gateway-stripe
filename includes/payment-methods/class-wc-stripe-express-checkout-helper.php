@@ -108,7 +108,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_type() {
-		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
+		return isset( $this->stripe_settings['express_checkout_button_type'] ) ? $this->stripe_settings['express_checkout_button_type'] : 'default';
 	}
 
 	/**
@@ -117,7 +117,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_theme() {
-		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
+		return isset( $this->stripe_settings['express_checkout_button_theme'] ) ? $this->stripe_settings['express_checkout_button_theme'] : 'dark';
 	}
 
 	/**
@@ -126,7 +126,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '40';
 		}
@@ -144,7 +144,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string
 	 */
 	public function get_button_radius() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '2';
 		}
@@ -683,7 +683,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it.
+		$is_one_page_checkout = $this->is_one_page_checkout();
+
+		if ( ( is_checkout() || $is_one_page_checkout ) && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
@@ -691,8 +694,16 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_product = $this->is_product();
 
 		// Don't show if product page ECE is disabled.
-		if ( $is_product && ! $this->should_show_ece_on_product_pages() ) {
+		// Skip this check for One Page Checkout pages since they should be treated as checkout pages, not product pages.
+		if ( $is_product && ! $is_one_page_checkout && ! $this->should_show_ece_on_product_pages() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
+			return false;
+		}
+
+		// On One Page Checkout pages, if we're in the product section and checkout buttons are enabled,
+		// skip rendering here because the button will render in the checkout section instead.
+		if ( $is_one_page_checkout && $is_product && doing_action( 'woocommerce_after_add_to_cart_form' ) && $this->should_show_ece_on_checkout_page() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons on One Page Checkout will be displayed in checkout section, not product section.' );
 			return false;
 		}
 
@@ -872,6 +883,15 @@ class WC_Stripe_Express_Checkout_Helper {
 			$should_show_on_checkout_page,
 			$post
 		);
+	}
+
+	/**
+	 * Detects if the current page is a One Page Checkout page.
+	 *
+	 * @return boolean True if on a One Page Checkout page, false otherwise.
+	 */
+	public function is_one_page_checkout(): bool {
+		return function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout();
 	}
 
 	/**
@@ -1553,18 +1573,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_button_locations() {
 		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( ! isset( $this->stripe_settings['express_checkout_button_locations'] ) ) {
 			return [ 'product', 'cart' ];
 		}
 
 		// If all locations are removed through the settings UI the location config will be set to
 		// an empty string "". If that's the case (and if the settings are not an array for any
 		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( ! is_array( $this->stripe_settings['express_checkout_button_locations'] ) ) {
 			return [];
 		}
 
-		return $this->stripe_settings['payment_request_button_locations'];
+		return $this->stripe_settings['express_checkout_button_locations'];
 	}
 
 	/**
