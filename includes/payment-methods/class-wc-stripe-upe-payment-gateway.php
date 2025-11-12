@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -191,10 +192,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as SEPA, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
-			'products',
-			'refunds',
-			'tokenization',
-			'add_payment_method',
+			PaymentGatewayFeature::PRODUCTS,
+			PaymentGatewayFeature::REFUNDS,
+			PaymentGatewayFeature::TOKENIZATION,
+			PaymentGatewayFeature::ADD_PAYMENT_METHOD,
 		];
 
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
@@ -785,7 +786,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$display_tokenization = $this->supports( PaymentGatewayFeature::TOKENIZATION ) && is_checkout() && $this->saved_cards;
 
 			// Output the form HTML.
 			?>
