@@ -11,8 +11,6 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Sepa::class;
-
 	/**
 	 * Constructor for SEPA payment method
 	 *

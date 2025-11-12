@@ -13,8 +13,6 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Oxxo::class;
-
 	/**
 	 * Constructor for OXXO payment method
 	 *

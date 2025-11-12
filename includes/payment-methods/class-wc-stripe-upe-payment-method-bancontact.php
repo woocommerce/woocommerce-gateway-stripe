@@ -10,8 +10,6 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Bancontact::class;
-
 	/**
 	 * Constructor for Bancontact payment method
 	 */
