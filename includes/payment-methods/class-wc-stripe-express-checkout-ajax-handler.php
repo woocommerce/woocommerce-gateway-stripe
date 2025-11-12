@@ -402,6 +402,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Modify country locale for express checkout.
 	 * Countries that don't have state fields, make the state field optional.
+	 * Make postcode optional for specific countries during express checkout.
 	 *
 	 * @param array $locale The country locale.
 	 * @return array Modified country locale.
@@ -418,6 +419,23 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		foreach ( WC_Stripe_Payment_Request_Button_States::STATES as $country_code => $states ) {
 			if ( empty( $states ) ) {
 				$locale[ $country_code ]['state']['required'] = false;
+			}
+		}
+
+		// List of countries where postcode is optional in express checkouts (Google Pay, Apple Pay).
+		// These countries allow addresses without postal codes, but WooCommerce requires them by default.
+		$countries_with_optional_postcode = apply_filters(
+			'wc_stripe_express_checkout_countries_with_optional_postcode',
+			[
+				'IL', // Israel
+				'SA', // Saudi Arabia
+			]
+		);
+
+		// Make postcode optional for countries where payment providers don't require it.
+		foreach ( $countries_with_optional_postcode as $country_code ) {
+			if ( isset( $locale[ $country_code ] ) ) {
+				$locale[ $country_code ]['postcode']['required'] = false;
 			}
 		}
 

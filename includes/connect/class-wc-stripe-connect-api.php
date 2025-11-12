@@ -171,18 +171,45 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				'timeout'     => $http_timeout,
 			];
 
-			$args          = apply_filters_deprecated(
+			$args = apply_filters_deprecated(
 				'wc_connect_request_args',
 				[ $args ],
 				'9.6.0',
 				'',
 				'The wc_connect_request_args filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
 			);
+
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				// Log the request after the filters have been applied.
+				WC_Stripe_Logger::debug(
+					"OAuth: WCC API request: {$method} {$path}",
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'url'                    => $url,
+						'headers'                => $headers,
+						'body'                   => WC_Stripe_Connect::redact_sensitive_data( json_decode( $body ) ),
+						'is_args_filtered'       => has_filter( 'wc_connect_request_args' ),
+					]
+				);
+			}
+
 			$response      = wp_remote_request( $url, $args );
 			$response_code = wp_remote_retrieve_response_code( $response );
 			$content_type  = wp_remote_retrieve_header( $response, 'content-type' );
 
 			if ( false === strpos( $content_type, 'application/json' ) ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						"OAuth: WCC API unexpected response: {$method} {$path}",
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'response_code'          => $response_code,
+							'response_content_type'  => $content_type,
+							'response'               => WC_Stripe_Connect::redact_sensitive_data( $response ),
+						]
+					);
+				}
+
 				if ( 200 !== $response_code ) {
 					return new WP_Error(
 						'wcc_server_error',
@@ -210,6 +237,18 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			if ( 200 !== $response_code ) {
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+					WC_Stripe_Logger::error(
+						"OAuth: WCC API invalid response: {$method} {$path}",
+						[
+							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+							'response_code'          => $response_code,
+							'response_content_type'  => $content_type,
+							'response_body'          => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
+						]
+					);
+				}
+
 				if ( empty( $response_body ) ) {
 					return new WP_Error(
 						'wcc_server_empty_response',
@@ -235,6 +274,16 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 						$response_code
 					),
 					$data
+				);
+			}
+
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug(
+					"OAuth: WCC API response: {$method} {$path}",
+					[
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'response'               => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
+					]
 				);
 			}
 
