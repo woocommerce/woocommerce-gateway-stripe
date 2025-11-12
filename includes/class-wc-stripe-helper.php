@@ -454,25 +454,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.1.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_methods() {
-		if ( ! empty( self::$stripe_legacy_gateways ) ) {
-			return self::$stripe_legacy_gateways;
-		}
-
-		$payment_gateways        = WC()->payment_gateways()->payment_gateways();
-		$payment_gateway_classes = array_map( 'get_class', $payment_gateways );
-
-		foreach ( self::get_legacy_payment_method_classes() as $payment_method_class ) {
-			// If the payment method is already registered, use it, otherwise create a new instance.
-			if ( in_array( $payment_method_class, $payment_gateway_classes, true ) ) {
-				$gateway_id     = array_search( $payment_method_class, $payment_gateway_classes, true );
-				$payment_method = $payment_gateways[ $gateway_id ];
-			} else {
-				$payment_method = new $payment_method_class();
-			}
-
-			self::$stripe_legacy_gateways[ $payment_method->id ] = $payment_method;
-		}
-
 		return self::$stripe_legacy_gateways;
 	}
 
@@ -484,13 +465,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.1.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_method( $id ) {
-		$payment_methods = self::get_legacy_payment_methods();
-
-		if ( ! isset( $payment_methods[ $id ] ) ) {
-			return null;
-		}
-
-		return $payment_methods[ $id ];
+		return null;
 	}
 
 	/**
@@ -505,48 +480,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.1.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_available_payment_method_ids() {
-		$stripe_settings            = self::get_stripe_settings();
-		$payment_method_classes     = self::get_legacy_payment_method_classes();
-		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
-
-		// If the legacy method order is not set, return the default order.
-		if ( ! empty( $ordered_payment_method_ids ) ) {
-			$payment_method_ids = array_map(
-				function ( $payment_method_id ) {
-					if ( 'stripe' === $payment_method_id ) {
-						return WC_Stripe_Payment_Methods::CARD;
-					} else {
-						return str_replace( 'stripe_', '', $payment_method_id );
-					}
-				},
-				$ordered_payment_method_ids
-			);
-
-			// Cover the edge case when new Stripe payment methods are added to the plugin which do not exist in
-			// the `stripe_legacy_method_order` option.
-			if ( count( $payment_method_ids ) - 1 !== count( $payment_method_classes ) ) {
-				foreach ( $payment_method_classes as $payment_method_class ) {
-					$id = str_replace( 'stripe_', '', $payment_method_class::ID );
-					if ( ! in_array( $id, $payment_method_ids, true ) ) {
-						$payment_method_ids[] = $id;
-					}
-				}
-
-				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
-				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
-				self::update_main_stripe_settings( $stripe_settings );
-			}
-		} else {
-			$payment_method_ids = array_map(
-				function ( $payment_method_class ) {
-					return str_replace( 'stripe_', '', $payment_method_class::ID );
-				},
-				$payment_method_classes
-			);
-			$payment_method_ids = array_merge( [ WC_Stripe_Payment_Methods::CARD ], $payment_method_ids );
-		}
-
-		return $payment_method_ids;
+		return [];
 	}
 
 	/**
@@ -557,18 +491,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.1.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_enabled_payment_methods() {
-		$payment_methods = self::get_legacy_payment_methods();
-
-		$enabled_payment_methods = [];
-
-		foreach ( $payment_methods as $payment_method ) {
-			if ( ! $payment_method->is_enabled() ) {
-				continue;
-			}
-			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
-		}
-
-		return $enabled_payment_methods;
+		return [];
 	}
 
 	/**
@@ -579,24 +502,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.1.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_enabled_payment_method_ids() {
-		$is_stripe_enabled = self::get_settings( null, 'enabled' );
-
-		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ WC_Stripe_Payment_Methods::CARD ] : [];
-
-		$payment_methods                   = self::get_legacy_payment_methods();
-		$mapped_enabled_payment_method_ids = [];
-
-		foreach ( $payment_methods as $payment_method ) {
-			if ( ! $payment_method->is_enabled() ) {
-				continue;
-			}
-			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
-
-			$mapped_enabled_payment_method_ids[] = $payment_method_id;
-		}
-
-		return array_merge( $enabled_payment_method_ids, $mapped_enabled_payment_method_ids );
+		return [];
 	}
 
 	/**
