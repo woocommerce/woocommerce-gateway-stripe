@@ -474,39 +474,11 @@ class WC_Stripe {
 		$main_gateway = $this->get_main_stripe_gateway();
 		$methods[]    = $main_gateway;
 
-		// These payment gateways will be visible in the main settings page, if UPE enabled.
-		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
-			$upe_payment_methods = $main_gateway->payment_methods;
-			unset( $upe_payment_methods['card'] );
+		// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+		$upe_payment_methods = $main_gateway->payment_methods;
+		unset( $upe_payment_methods['card'] );
 
-			$methods = array_merge( $methods, $upe_payment_methods );
-		} else {
-			// APMs are deprecated as of Oct, 29th 2024 for the legacy checkout.
-			if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
-				return $methods;
-			}
-
-			// These payment gateways will not be included in the gateway list when UPE is enabled:
-			$methods[] = WC_Gateway_Stripe_Alipay::class;
-			$methods[] = WC_Gateway_Stripe_Sepa::class;
-			$methods[] = WC_Gateway_Stripe_Giropay::class;
-			$methods[] = WC_Gateway_Stripe_Ideal::class;
-			$methods[] = WC_Gateway_Stripe_Bancontact::class;
-			$methods[] = WC_Gateway_Stripe_Eps::class;
-			$methods[] = WC_Gateway_Stripe_P24::class;
-			$methods[] = WC_Gateway_Stripe_Boleto::class;
-			$methods[] = WC_Gateway_Stripe_Oxxo::class;
-			$methods[] = WC_Gateway_Stripe_Multibanco::class;
-
-			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-			 */
-			$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
-			if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
-				$methods[] = WC_Gateway_Stripe_Sofort::class;
-			}
-		}
+		$methods = array_merge( $methods, $upe_payment_methods );
 
 		// Don't include Link as an enabled method if we're in the admin so it doesn't show up in the checkout editor page.
 		if ( is_admin() ) {
