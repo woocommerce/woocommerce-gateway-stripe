@@ -688,7 +688,7 @@ class WC_Stripe_API {
 	 *
 	 * @return string The masked secret key.
 	 */
-	private static function get_masked_secret_key(): string {
+	public static function get_masked_secret_key(): string {
 		$key = self::get_secret_key();
 		if ( empty( $key ) ) {
 			return 'secret_key_not_configured';

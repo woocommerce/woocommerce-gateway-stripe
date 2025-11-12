@@ -2044,4 +2044,22 @@ class WC_Stripe_Helper {
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
+
+	/**
+	 * Checks if the verbose debug mode is enabled.
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_verbose_debug_mode_enabled(): bool {
+		/**
+		 * Filters the flag that decides if the verbose debug mode is enabled.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param bool $enabled True if enabled, false otherwise.
+		 *
+		 * @return bool True if enabled, false otherwise.
+		*/
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
+	}
 }

@@ -110,35 +110,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.1.0 - xxxx-xx-xx =
-* Fix - Fixes Amazon Pay display inside the Apple Pay/Google Pay container. And location settings for those methods affecting each other
-* Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
-* Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
-* Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
-* Fix - Remove `redirect_url` parameter from Express Checkout payment flow
-* Fix - Adjust UI spacing of help text on express checkout theme settings page
-* Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
-* Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
-* Add - Includes a notice to inform merchants about methods that are automatically enabled upon account connection
-* Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
-* Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
-* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
-* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
-* Dev - Renames previous Order Helper class methods to use the `_id` suffix
-* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
-* Fix - Remove redundant secret management logic when configuring webhooks
-* Dev - Improve Payment Method Configuration error logging
-* Dev - Add Stripe's request-id to API response logs
-* Fix - Increase limit when listing available payment method configurations from the Stripe API
-* Fix - Klarna not processing recurring payments
-* Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
-* Fix - Improve Express Checkout compatibility with One Page Checkout
-* Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
-* Fix - Prevent retrying requests that errored out due to declined payment methods
-* Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
-* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
-* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
-* Dev - Add Stripe's masked API key to API request/response logs
-* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
+= 10.2.0 - xxxx-xx-xx =
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
