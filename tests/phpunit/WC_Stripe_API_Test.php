@@ -250,7 +250,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			is_wp_error( $response ) &&
 			'http_request_failed' === $response->get_error_code() &&
 			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
-			'A valid URL was not provided.' === $response->get_error_message()
+			__( 'A valid URL was not provided.' ) === $response->get_error_message()
 		) {
 			$expected_data_keys[] = 'resolved_ip_address';
 			$expected_data_keys[] = 'validation_details';
@@ -329,12 +329,14 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				'request_data' => [ 'test' => 'test' ],
 			],
 			'URL validation http_request_failed error for GET account' => [
-				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.', 'woocommerce-gateway-stripe' ) ),
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
 				'api' => 'account',
 				'method' => 'GET',
 			],
 			'URL validation http_request_failed error for POST account' => [
-				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.', 'woocommerce-gateway-stripe' ) ),
+				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
 				'api' => 'account',
 				'method' => 'POST',
 				'request_data' => [ 'test' => 'test' ],
