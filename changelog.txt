@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.2.0 - xxxx-xx-xx =
+* Fix - Allow payment methods to be disabled when they are not available
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
