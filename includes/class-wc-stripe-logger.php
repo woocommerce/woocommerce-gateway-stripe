@@ -244,6 +244,10 @@ class WC_Stripe_Logger {
 	 * @return boolean
 	 */
 	public static function can_log(): bool {
+		if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+			return true;
+		}
+
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		if ( empty( $settings ) || ( isset( $settings['logging'] ) && 'yes' !== $settings['logging'] ) ) {

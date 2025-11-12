@@ -7,6 +7,7 @@ import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
 import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import OptimizedCheckoutNotice from 'wcstripe/settings/optimized-checkout-notice';
@@ -48,6 +49,19 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
+const AmazonPayTaxesBasedOnBillingAddressSection = () => {
+	const areTaxesBasedOnBillingAddress =
+		!! wc_stripe_settings_params?.taxes_based_on_billing; // eslint-disable-line camelcase
+
+	return (
+		<SettingsSection>
+			<AmazonPayTaxesBillingAddressNotice
+				areTaxesBasedOnBillingAddress={ areTaxesBasedOnBillingAddress }
+			/>
+		</SettingsSection>
+	);
+};
+
 const PaymentMethodsPanel = ( {
 	onSaveChanges,
 	setShowPromotionalBanner,
@@ -59,6 +73,7 @@ const PaymentMethodsPanel = ( {
 } ) => {
 	return (
 		<>
+			<AmazonPayTaxesBasedOnBillingAddressSection />
 			{ showPromotionalBanner && (
 				<SettingsSection>
 					<PromotionalBanner
