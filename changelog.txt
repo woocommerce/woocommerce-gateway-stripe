@@ -1,7 +1,9 @@
 *** Changelog ***
 
 = 10.2.0 - xxxx-xx-xx =
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
 * Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
 
 = 10.1.0 - 2025-11-11 =
