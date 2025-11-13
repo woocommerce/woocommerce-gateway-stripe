@@ -1,4 +1,4 @@
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import {
 	PAYMENT_METHOD_AFFIRM,

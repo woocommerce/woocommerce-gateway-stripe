@@ -906,6 +906,8 @@ class WC_Stripe_Payment_Request_Button_States {
 		'RO' => [],
 		// Serbia.
 		'RS' => [],
+		// Saudi Arabia.
+		'SA' => [],
 		// Sweden.
 		'SE' => [],
 		// Singapore.

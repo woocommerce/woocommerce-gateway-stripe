@@ -1,6 +1,6 @@
 import { React } from 'react';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
 import { Button, Card, ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -95,6 +95,12 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 								},
 							} ) }
 						</TermsOfServiceText>
+						<p className="woocommerce-stripe-auth__help">
+							{ __(
+								'Some payment methods are automatically enabled when you connect your account. Review your Payment Methods settings for details.',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
 						<ButtonWrapper>
 							{ oauthUrl && (
 								<Button
