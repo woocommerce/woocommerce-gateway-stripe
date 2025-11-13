@@ -18,6 +18,7 @@ import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/pro
 import {
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
+	STRIPE_TAX_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 
 const StyledTabPanel = styled( TabPanel )`
@@ -56,6 +57,13 @@ const SettingsManager = () => {
 		promotionalBannerType === BNPL_PROMOTION_BANNER &&
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
+	if (
+		promotionalBannerType === STRIPE_TAX_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_stripe_tax_banner === '1'
 	) {
 		initialBannerState = true;
 	}
