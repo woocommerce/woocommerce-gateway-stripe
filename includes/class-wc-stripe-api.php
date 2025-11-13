@@ -259,17 +259,12 @@ class WC_Stripe_API {
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			// Stripe redacts API keys in the response.
-			WC_Stripe_Logger::error(
-				"Stripe API error: {$method} {$api}",
-				[
-					'stripe_api_key'    => $masked_secret_key,
-					'stripe_request_id' => self::get_stripe_request_id( $response ),
-					'idempotency_key'   => $idempotency_key,
-					'request'           => $request,
-					'response'          => $response,
-				]
-			);
+			$error_data = [
+				'stripe_api_key'    => $masked_secret_key,
+				'request'           => $request,
+				'idempotency_key'   => $idempotency_key,
+			];
+			self::log_error_response( $response, $api, $method, $error_data );
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -374,14 +369,11 @@ class WC_Stripe_API {
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::error(
-				"Stripe API error: GET {$api}",
-				[
-					'stripe_api_key'    => $masked_secret_key,
-					'stripe_request_id' => self::get_stripe_request_id( $response ),
-					'response'          => $response,
-				]
-			);
+			$error_data = [
+				'stripe_api_key' => $masked_secret_key,
+			];
+			self::log_error_response( $response, $api, 'GET', $error_data );
+
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -662,6 +654,48 @@ class WC_Stripe_API {
 			'payment_method_configurations/' . $id
 		);
 		return $response;
+	}
+
+	/**
+	 * Log an error response from the Stripe API.
+	 *
+	 * @param array|WP_Error $response HTTP response or error.
+	 * @param string         $api      The API endpoint.
+	 * @param string         $method   The HTTP method used for the request.
+	 * @param array          $data     Additional data to add to the log.
+	 * @return void
+	 */
+	private static function log_error_response( $response, string $api, string $method, array $data = [] ): void {
+		$error_message = "Stripe API error: {$method} {$api}";
+		$error_data = array_merge(
+			$data,
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response,
+			]
+		);
+
+		// Add logging for URL validation errors.
+		if (
+			is_wp_error( $response ) &&
+			'http_request_failed' === $response->get_error_code() &&
+			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+			__( 'A valid URL was not provided.' ) === $response->get_error_message()
+		) {
+			$stripe_api_host     = 'api.stripe.com';
+			$resolved_ip_address = gethostbyname( $stripe_api_host );
+
+			$error_data['resolved_ip_address'] = $resolved_ip_address;
+
+			if ( $resolved_ip_address === $stripe_api_host ) {
+				$error_data['validation_details'] = "$stripe_api_host could not be resolved to an IP address";
+			} else {
+				$error_message .= "; Possible DNS resolution problem for $stripe_api_host";
+				$error_data['validation_details'] = "$stripe_api_host resolved to $resolved_ip_address";
+			}
+		}
+
+		WC_Stripe_Logger::error( $error_message, $error_data );
 	}
 
 	/**
