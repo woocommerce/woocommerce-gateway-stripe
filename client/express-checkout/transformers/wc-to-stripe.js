@@ -22,7 +22,7 @@ export const transformPrice = ( price, priceObject ) => {
 
 /**
  * Stripe expects prices to be in the whole numbers, while WooCommerce allows prices to be specified with
- * a configurable number of decimal places. This functions converts an internal WooCommerce price to a Stripe amount
+ * a configurable number of decimal places. This function converts an internal WooCommerce price to a Stripe amount
  * based on the Stripe and WooCommerce currency configuration.
  *
  * @param {number} price         The price to transform.

@@ -114,6 +114,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
 * Fix - Allow payment methods to be disabled when they are not available
-* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration"
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -4,7 +4,7 @@
 * Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
 * Fix - Allow payment methods to be disabled when they are not available
-* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration"
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
