@@ -604,9 +604,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		if ( $this->gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-			$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
-		}
+		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**
