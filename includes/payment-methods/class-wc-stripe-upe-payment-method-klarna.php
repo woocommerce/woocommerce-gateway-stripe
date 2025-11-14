@@ -12,16 +12,14 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
-	 * Constructor for giropay payment method
+	 * Constructor for Klarna payment method
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'tokenization';
-		$this->supports[]           = 'multiple_subscriptions';
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,

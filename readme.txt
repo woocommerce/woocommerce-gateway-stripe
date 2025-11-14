@@ -112,8 +112,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.2.0 - xxxx-xx-xx =
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
 * Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
 * Fix - Allow payment methods to be disabled when they are not available
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
