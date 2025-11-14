@@ -4,7 +4,7 @@ import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
-import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/stripe-tax.svg';
 import {
 	BannerIllustration,
 	ButtonsRow,
@@ -14,13 +14,16 @@ import {
 	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 
-const BannerIllustrationBNPL = styled( BannerIllustration )`
+const BannerIllustrationStripeTax = styled( BannerIllustration )`
+	width: 80px;
+	margin: 10px;
+
 	@media ( min-width: 600px ) {
-		margin: 0 0 -40px 24px;
+		margin-bottom: -30px;
 	}
 `;
 
-const ButtonsRowBNPL = styled( ButtonsRow )`
+const ButtonsRowStripeTax = styled( ButtonsRow )`
 	@media ( min-width: 600px ) {
 		margin-bottom: 0.7em;
 	}
@@ -32,7 +35,7 @@ const ColumnIllustration = styled( CardColumn )`
 	}
 `;
 
-const TitleBNPL = styled.h4`
+const TitleStripeTax = styled.h4`
 	margin-top: 0.6em !important;
 	font-weight: 500;
 `;
@@ -59,14 +62,13 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 		<CardBody>
 			<CardInner>
 				<CardColumn>
-					<TitleBNPL>
+					<TitleStripeTax>
 						{ __(
 							'Automate tax compliance with Stripe Tax',
 							'woocommerce-gateway-stripe'
 						) }
-					</TitleBNPL>
+					</TitleStripeTax>
 					<p>
-						{ __( '', 'woocommerce-gateway-stripe' ) }
 						{ interpolateComponents( {
 							mixedString: __(
 								'Automatically calculate and collect sales tax, VAT, and GST wherever you sell. {{docLink}}Learn more{{/docLink}} about how Stripe Tax keeps you compliant.',
@@ -86,7 +88,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 					</p>
 				</CardColumn>
 				<ColumnIllustration>
-					<BannerIllustrationBNPL
+					<BannerIllustrationStripeTax
 						src={ illustration }
 						alt={ __(
 							'Get Stripe Tax',
@@ -95,7 +97,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 					/>
 				</ColumnIllustration>
 			</CardInner>
-			<ButtonsRowBNPL>
+			<ButtonsRowStripeTax>
 				<MainCTALink variant="secondary" onClick={ handleButtonClick }>
 					{ __( 'Get Stripe Tax', 'woocommerce-gateway-stripe' ) }
 				</MainCTALink>
@@ -106,7 +108,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 				>
 					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
 				</DismissButton>
-			</ButtonsRowBNPL>
+			</ButtonsRowStripeTax>
 		</CardBody>
 	);
 };
