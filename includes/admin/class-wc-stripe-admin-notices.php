@@ -187,7 +187,7 @@ class WC_Stripe_Admin_Notices {
 	 * @since 4.1.0
 	 * @return array
 	 *
-	 * @deprecated 10.1.0 This method will be removed in a future release.
+	 * @deprecated 10.2.0 This method will be removed in a future release.
 	 */
 	public function get_payment_methods() {
 		return [];
