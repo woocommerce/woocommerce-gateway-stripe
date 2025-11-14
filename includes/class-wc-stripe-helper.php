@@ -440,7 +440,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.1.0 This method will be removed in future versions.
+	 * @deprecated 10.2.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_method_classes() {
 		return [];
