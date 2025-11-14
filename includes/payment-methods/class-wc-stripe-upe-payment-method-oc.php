@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -9,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * This class represents the Stripe UPE payment method for the Optimized Checkout (OC) flow.
  */
 class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OC;
 
@@ -25,8 +27,10 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Stripe';
 		$this->is_reusable = true;
-		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**
