@@ -454,7 +454,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.2.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_methods() {
-		return self::$stripe_legacy_gateways;
+		return [];
 	}
 
 	/**
