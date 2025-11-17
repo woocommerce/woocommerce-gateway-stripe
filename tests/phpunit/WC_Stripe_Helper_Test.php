@@ -799,22 +799,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
-
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-	}
-
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled() {
 		update_option( 'woocommerce_currency', 'EUR' );
 		$this->upe_helper->enable_upe_feature_flag();
