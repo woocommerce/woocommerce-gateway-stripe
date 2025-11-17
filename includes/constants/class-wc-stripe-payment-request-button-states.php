@@ -46,6 +46,8 @@ class WC_Stripe_Payment_Request_Button_States {
 	const STATES = [
 		// Afghanistan.
 		'AF' => [],
+		// United Arab Emirates.
+		'AE' => [],
 		// Angola.
 		'AO' => [],
 		// Argentina.
@@ -776,6 +778,8 @@ class WC_Stripe_Payment_Request_Button_States {
 		'NP' => [],
 		// New Zealand.
 		'NZ' => [],
+		// Oman.
+		'OM' => [],
 		// Peru.
 		'PE' => [
 			'CAL' => [ 'Callao', 'Callao', NULL ],
@@ -900,6 +904,8 @@ class WC_Stripe_Payment_Request_Button_States {
 		'PT' => [],
 		// Paraguay.
 		'PY' => [],
+		// Qatar.
+		'QA' => [],
 		// Reunion.
 		'RE' => [],
 		// Romania.
