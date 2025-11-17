@@ -791,15 +791,17 @@ class WC_Stripe_Payment_Request {
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
 			$needs_shipping = 'yes';
 		}
+		$apple_pay_and_google_pay_enabled = $this->gateway->are_apple_pay_and_google_pay_enabled();
 
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
-				'key'                        => $this->publishable_key,
-				'allow_prepaid_card'         => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'is_link_enabled'            => false, // Link is not available for PRB.
-				'is_payment_request_enabled' => $this->is_payment_request_enabled(),
+				'key'                              => $this->publishable_key,
+				'allow_prepaid_card'               => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'                           => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'is_link_enabled'                  => false, // Link is not available for PRB.
+				'is_payment_request_enabled'       => $apple_pay_and_google_pay_enabled,
+				'are_apple_pay_google_pay_enabled' => $apple_pay_and_google_pay_enabled,
 			],
 			'nonce'              => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),

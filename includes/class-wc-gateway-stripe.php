@@ -1231,11 +1231,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Returns whether Google Pay and Apple Pay (PRBs) are enabled,
 	 * for the legacy checkout.
 	 *
+	 * @deprecated 10.2.0 Use {@see are_apple_pay_and_google_pay_enabled()} instead.
+	 * @return bool
+	 */
+	public function is_payment_request_enabled() {
+		return $this->are_apple_pay_and_google_pay_enabled();
+	}
+
+	/**
+	 * Returns whether Google Pay and Apple Pay express checkout methods are enabled
+	 *
 	 * WC_Stripe_UPE_Payment_Gateway overrides this method.
 	 *
 	 * @return bool
 	 */
-	public function is_payment_request_enabled() {
+	public function are_apple_pay_and_google_pay_enabled(): bool {
 		return 'yes' === $this->get_option( 'express_checkout' );
 	}
 

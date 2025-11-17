@@ -73,7 +73,7 @@ class WC_Stripe {
 	/**
 	 * The main Stripe gateway instance. Use get_main_stripe_gateway() to access it.
 	 *
-	 * @var null|WC_Stripe_Payment_Gateway
+	 * @var null|WC_Stripe_UPE_Payment_Gateway
 	 */
 	protected $stripe_gateway = null;
 
@@ -803,7 +803,7 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {

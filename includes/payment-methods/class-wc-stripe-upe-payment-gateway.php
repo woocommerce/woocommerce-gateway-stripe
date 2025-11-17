@@ -494,6 +494,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_signup_on_checkout_allowed = 'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' )
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
+		$apple_pay_and_google_pay_enabled = $express_checkout_helper->are_apple_pay_and_google_pay_enabled();
+
 		$stripe_params['isLoggedIn']                        = is_user_logged_in();
 		$stripe_params['isSignupOnCheckoutAllowed']         = $is_signup_on_checkout_allowed;
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
@@ -518,7 +520,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['subscriptionManualRenewalEnabled']  = WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		$stripe_params['forceSavePaymentMethod']            = WC_Stripe_Helper::should_force_save_payment_method();
 		$stripe_params['accountCountry']                    = WC_Stripe::get_instance()->account->get_account_country();
-		$stripe_params['isPaymentRequestEnabled']           = $express_checkout_helper->is_payment_request_enabled();
+		$stripe_params['isPaymentRequestEnabled']           = $apple_pay_and_google_pay_enabled;
+		$stripe_params['areApplePayAndGooglePayEnabled']    = $apple_pay_and_google_pay_enabled;
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
@@ -3407,16 +3410,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Checks if Google Pay and Apple Pay (ECE) are enabled.
+	 * Checks if Google Pay and Apple Pay express checkout methods are enabled.
 	 *
-	 * Overrides WC_Gateway_Stripe::is_payment_request_enabled().
+	 * Overrides WC_Gateway_Stripe::are_apple_pay_and_google_pay_enabled().
 	 *
 	 * @return bool
 	 */
-	public function is_payment_request_enabled() {
+	public function are_apple_pay_and_google_pay_enabled(): bool {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
-			return parent::is_payment_request_enabled();
+			return parent::are_apple_pay_and_google_pay_enabled();
 		}
 
 		$enabled_payment_method_ids = $this->get_upe_enabled_payment_method_ids();

@@ -236,7 +236,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Express checkouts */
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'is_payment_request_enabled'               => $this->gateway->is_payment_request_enabled(),
+				'is_payment_request_enabled'               => $this->gateway->are_apple_pay_and_google_pay_enabled(),
 				'payment_request_button_type'              => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
 				'payment_request_button_theme'             => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
 				'payment_request_button_size'              => $this->gateway->get_validated_option( 'express_checkout_button_size' ),

@@ -197,16 +197,19 @@ class WC_Stripe_Express_Checkout_Element {
 			? ( $this->stripe_settings['test_publishable_key'] ?? '' )
 			: ( $this->stripe_settings['publishable_key'] ?? '' );
 
+		$apple_pay_and_google_pay_enabled = $this->express_checkout_helper->are_apple_pay_and_google_pay_enabled();
+
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
-				'publishable_key'             => $publishable_key,
-				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
-				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
-				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
-				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
+				'publishable_key'                  => $publishable_key,
+				'allow_prepaid_card'               => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'                           => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'is_link_enabled'                  => $this->express_checkout_helper->is_link_enabled(),
+				'is_express_checkout_enabled'      => $this->express_checkout_helper->is_express_checkout_enabled(),
+				'is_amazon_pay_enabled'            => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				'is_payment_request_enabled'       => $apple_pay_and_google_pay_enabled,
+				'are_apple_pay_google_pay_enabled' => $apple_pay_and_google_pay_enabled,
 			],
 			'nonce'                      => [
 				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),

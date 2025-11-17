@@ -1640,7 +1640,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
-		return $this->is_payment_request_enabled() ||
+		return $this->are_apple_pay_and_google_pay_enabled() ||
 				$this->is_amazon_pay_enabled() ||
 				$this->is_link_enabled();
 	}
@@ -1669,12 +1669,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Returns whether Apple Pay and Google Pay are enabled.
+	 *
+	 * @deprecated 10.2.0 Use {@see are_apple_pay_and_google_pay_enabled()} instead.
+	 * @return boolean
+	 */
+	public function is_payment_request_enabled(): bool {
+		return $this->are_apple_pay_and_google_pay_enabled();
+	}
+
+	/**
 	 * Checks if Apple Pay and Google Pay buttons are enabled.
 	 *
 	 * @return boolean
 	 */
-	public function is_payment_request_enabled() {
-		$is_enabled = $this->gateway->is_payment_request_enabled();
+	public function are_apple_pay_and_google_pay_enabled(): bool {
+		$is_enabled = $this->gateway->are_apple_pay_and_google_pay_enabled();
 
 		return $is_enabled && $this->is_enabled_for_current_context( 'payment_request' );
 	}
