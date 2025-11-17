@@ -6,7 +6,6 @@ use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WC_Gateway_Stripe_Sepa;
 use WC_Logger;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
