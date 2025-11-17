@@ -2,8 +2,13 @@ import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StripeTaxBanner } from '../stripe-tax-banner';
 import apiFetch from '@wordpress/api-fetch';
+import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch' );
+
+jest.mock( 'wcstripe/tracking', () => ( {
+	recordEvent: jest.fn(),
+} ) );
 
 describe( 'Stripe Tax banner', () => {
 	const setShowPromotionalBanner = jest.fn();
@@ -71,6 +76,11 @@ describe( 'Stripe Tax banner', () => {
 		await act( async () => {
 			await userEvent.click( activateButton );
 		} );
+
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_stripe_tax_banner_button_click',
+			{}
+		);
 
 		expect( window.location.assign ).toHaveBeenCalledWith(
 			'https://woocommerce.com/products/stripe-tax/'

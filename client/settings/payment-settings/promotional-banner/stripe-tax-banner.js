@@ -13,6 +13,7 @@ import {
 	DismissButton,
 	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
+import { recordEvent } from 'wcstripe/tracking';
 
 const BannerIllustrationStripeTax = styled( BannerIllustration )`
 	width: 80px;
@@ -52,7 +53,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 	};
 
 	const handleButtonClick = () => {
-		// TODO: track clicks
+		recordEvent( 'wcstripe_stripe_tax_banner_button_click', {} );
 		window.location.assign(
 			'https://woocommerce.com/products/stripe-tax/'
 		);
