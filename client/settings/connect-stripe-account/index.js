@@ -70,7 +70,7 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 				</h2>
 				<InformationText>
 					{ __(
-						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
+						'Connect or create a Stripe account to accept all major debit and credit cards, digital wallets (including Apple Pay and Google Pay), buy now, pay later options (such as Klarna and Affirm), and a wide range of local and international payment methods.',
 						'woocommerce-gateway-stripe'
 					) }
 				</InformationText>

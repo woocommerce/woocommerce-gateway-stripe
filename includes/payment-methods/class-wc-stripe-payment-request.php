@@ -283,10 +283,6 @@ class WC_Stripe_Payment_Request {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return isset( $this->stripe_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->stripe_settings['payment_request_button_height'] ) : '64';
-		}
-
 		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
 		if ( 'small' === $height ) {
 			return '40';
@@ -330,12 +326,7 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean
 	 */
 	public function is_custom_button() {
-		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return false;
-		}
-
-		return 'custom' === $this->get_button_type();
+		return false;
 	}
 
 	/**
@@ -357,12 +348,7 @@ class WC_Stripe_Payment_Request {
 	 * @return  string
 	 */
 	public function get_button_label() {
-		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return '';
-		}
-
-		return isset( $this->stripe_settings['payment_request_button_label'] ) ? $this->stripe_settings['payment_request_button_label'] : 'Buy now';
+		return '';
 	}
 
 	/**
@@ -1824,32 +1810,18 @@ class WC_Stripe_Payment_Request {
 		// it would be DRYer to use `array_merge`,
 		// but I thought that this approach might be more straightforward to clean up when we remove the feature flag code.
 		$button_type = $this->get_button_type();
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return [
-				'type'         => $button_type,
-				'theme'        => $this->get_button_theme(),
-				'height'       => $this->get_button_height(),
-				// Default format is en_US.
-				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
-				'branded_type' => 'default' === $button_type ? 'short' : 'long',
-				// these values are no longer applicable - all the JS relying on them can be removed.
-				'css_selector' => '',
-				'label'        => '',
-				'is_custom'    => false,
-				'is_branded'   => false,
-			];
-		}
-
 		return [
 			'type'         => $button_type,
 			'theme'        => $this->get_button_theme(),
 			'height'       => $this->get_button_height(),
-			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 			// Default format is en_US.
-			'is_custom'    => $this->is_custom_button(),
-			'is_branded'   => $this->is_branded_button(),
-			'css_selector' => $this->custom_button_selector(),
-			'branded_type' => $this->get_button_branded_type(),
+			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
+			'branded_type' => 'default' === $button_type ? 'short' : 'long',
+			// these values are no longer applicable - all the JS relying on them can be removed.
+			'css_selector' => '',
+			'label'        => '',
+			'is_custom'    => false,
+			'is_branded'   => false,
 		];
 	}
 
