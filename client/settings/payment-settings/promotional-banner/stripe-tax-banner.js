@@ -69,9 +69,15 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 						) }
 					</TitleStripeTax>
 					<p>
+						{ __(
+							'Automatically calculate and collect sales tax, value-added tax (VAT), and goods and services tax (GST) wherever you sell.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+					<p>
 						{ interpolateComponents( {
 							mixedString: __(
-								'Automatically calculate and collect sales tax, VAT, and GST wherever you sell. {{docLink}}Learn more{{/docLink}} about how Stripe Tax keeps you compliant.',
+								'{{docLink}}Learn more{{/docLink}} about how Stripe Tax keeps you compliant.',
 								'woocommerce-gateway-stripe'
 							),
 							components: {
