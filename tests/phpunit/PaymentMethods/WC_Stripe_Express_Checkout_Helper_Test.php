@@ -980,6 +980,112 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `is_cart`.
+	 *
+	 * @return void
+	 */
+	public function test_is_cart(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$actual = $helper->is_cart();
+
+		// Clean up.
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$this->assertTrue( $actual );
+
+		$actual = $helper->is_cart();
+
+		$this->assertFalse( $actual );
+	}
+
+	/**
+	 * Tests for `get_button_locations`.
+	 *
+	 * @param string $express_checkout_type Express checkout type.
+	 * @param array  $settings              Settings array.
+	 * @param array  $expected              Expected locations.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_button_locations
+	 */
+	public function test_get_button_locations( string $express_checkout_type, array $settings = [], $expected = [] ): void {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_button_locations( $express_checkout_type );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_test_get_button_locations(): array {
+		return [
+			'payment request, settings exists' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'payment request, settings exists, but not a valid array' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'payment request, settings do not exist' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'link, settings exists' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
+				'expected'              => [ 'cart' ],
+			],
+			'link, settings exists, but not a valid array' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'link, settings do not exist' => [
+				'express checkout type' => 'link',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'amazon pay, settings exists' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
+				'expected'              => [ 'checkout' ],
+			],
+			'amazon pay, settings exists, but not a valid array' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'amazon pay, settings do not exist' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'default, settings exists' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'default, settings exists, but not a valid array' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'default, settings do not exist' => [
+				'express checkout type' => 'default',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+		];
+	}
+
+	/**
 	 * Test that OPC detection logic works correctly.
 	 *
 	 * @dataProvider provide_opc_detection_scenarios
