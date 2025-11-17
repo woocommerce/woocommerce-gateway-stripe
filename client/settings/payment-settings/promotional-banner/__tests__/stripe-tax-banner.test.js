@@ -29,7 +29,7 @@ describe( 'Stripe Tax banner', () => {
 		).toBeInTheDocument();
 		expect(
 			getByText(
-				/Automatically calculate and collect sales tax, VAT, and GST wherever you sell./
+				/Automatically calculate and collect sales tax, value-added tax \(VAT\), and goods and services tax \(GST\) wherever you sell./
 			)
 		).toBeInTheDocument();
 	} );
