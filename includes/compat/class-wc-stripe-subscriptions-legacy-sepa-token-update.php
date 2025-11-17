@@ -158,13 +158,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 */
 	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
 		// The subscription is not using the legacy SEPA gateway ID.
-		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
+		if ( WC_Stripe_Payment_Methods::LEGACY_SEPA !== $subscription->get_payment_method() ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription->get_id() ) );
 		}
 
 		// Add a meta to the subscription to flag that its token got updated.
-		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
+		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Stripe_Payment_Methods::LEGACY_SEPA );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
 
 		$subscription->save();
