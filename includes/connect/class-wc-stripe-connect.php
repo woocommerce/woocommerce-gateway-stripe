@@ -64,7 +64,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $result;
 			}
 
-			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug(
@@ -95,7 +95,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
+			if ( WC_Stripe_Database_Cache::get( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
 						'OAuth: Invalid state received from the WCC server',
@@ -131,7 +131,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $response;
 			}
 
-			delete_transient( 'wcs_stripe_connect_state_' . $mode );
+			WC_Stripe_Database_Cache::delete( 'wcs_stripe_connect_state_' . $mode );
 
 			return $this->save_stripe_keys( $response, $type, $mode );
 		}
