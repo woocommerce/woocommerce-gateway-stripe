@@ -612,7 +612,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $status
 	 * @return false|void
 	 */
-	public function update_stripe_refund_status( ?WC_Order $order = null, string $status ) {
+	public function update_stripe_refund_status( ?WC_Order $order = null, string $status = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_STATUS, $status );
 	}
 
@@ -625,7 +625,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $brand
 	 * @return false|void
 	 */
-	public function update_stripe_card_brand( ?WC_Order $order = null, string $brand ) {
+	public function update_stripe_card_brand( ?WC_Order $order = null, string $brand = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_CARD_BRAND, $brand );
 	}
 
