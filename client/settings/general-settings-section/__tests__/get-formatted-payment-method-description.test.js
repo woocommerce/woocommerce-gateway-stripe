@@ -1,3 +1,4 @@
+import React from 'react';
 import { getFormattedPaymentMethodDescription } from '../get-formatted-payment-method-description';
 import {
 	PAYMENT_METHOD_AFFIRM,
@@ -31,9 +32,17 @@ describe( 'getFormattedPaymentMethodDescription', () => {
 			PAYMENT_METHOD_AFTERPAY_CLEARPAY
 		);
 		expect( result ).toEqual(
-			expect.arrayContaining( [
-				'Allow customers to pay over time with Afterpay. ',
-			] )
+			// prettier-ignore
+			<React.Fragment>
+				Allow customers to pay over time with Afterpay. <a
+					href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
+					rel="noreferrer"
+					target="_blank"
+				>
+					Transaction limits vary by country
+				</a>
+				.
+			</React.Fragment>
 		);
 	} );
 

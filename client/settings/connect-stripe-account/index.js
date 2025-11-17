@@ -1,6 +1,6 @@
 import { React } from 'react';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
 import { Button, Card, ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -70,7 +70,7 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 				</h2>
 				<InformationText>
 					{ __(
-						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
+						'Connect or create a Stripe account to accept all major debit and credit cards, digital wallets (including Apple Pay and Google Pay), buy now, pay later options (such as Klarna and Affirm), and a wide range of local and international payment methods.',
 						'woocommerce-gateway-stripe'
 					) }
 				</InformationText>
@@ -95,6 +95,12 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 								},
 							} ) }
 						</TermsOfServiceText>
+						<p className="woocommerce-stripe-auth__help">
+							{ __(
+								'Some payment methods are automatically enabled when you connect your account. Review your Payment Methods settings for details.',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
 						<ButtonWrapper>
 							{ oauthUrl && (
 								<Button

@@ -44,6 +44,10 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 		paymentMethods: {
 			amazonPay: 'auto',
+			link: 'never',
+			googlePay: 'never',
+			applePay: 'never',
+			klarna: 'never',
 		},
 		layout: { overflow: 'never' },
 	};

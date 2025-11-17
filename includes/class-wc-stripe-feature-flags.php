@@ -65,7 +65,15 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_amazon_pay_available() {
-		return 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+		$enable_amazon_pay = 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter to control the availability of the Amazon Pay feature.
+		 *
+		 * @since 10.1.0
+		 * @param bool $enable_amazon_pay Whether Amazon Pay should be enabled.
+		 */
+		return (bool) apply_filters( 'wc_stripe_is_amazon_pay_available', $enable_amazon_pay );
 	}
 
 	/**
@@ -85,9 +93,11 @@ class WC_Stripe_Feature_Flags {
 	 * This allows the merchant to enable/disable UPE checkout.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 10.1.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function is_upe_preview_enabled() {
-		return 'yes' === self::get_option_with_default( '_wcstripe_feature_upe' );
+		return true;
 	}
 
 	/**

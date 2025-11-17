@@ -1,6 +1,26 @@
 *** Changelog ***
 
-= 10.1.0 - xxxx-xx-xx =
+= 10.2.0 - xxxx-xx-xx =
+* Dev - Remove the merchant email address from the System Status Report
+* Dev - Replace the constant reference for the legacy SEPA payment method
+* Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
+
+= 10.1.0 - 2025-11-11 =
+* Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
+* Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
+* Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
+* Fix - Remove `redirect_url` parameter from Express Checkout payment flow
+* Fix - Adjust UI spacing of help text on express checkout theme settings page
+* Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
+* Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
+* Add - Includes a notice to inform merchants about methods that are automatically enabled upon account connection
 * Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
 * Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
 * Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
@@ -11,6 +31,20 @@
 * Dev - Improve Payment Method Configuration error logging
 * Dev - Add Stripe's request-id to API response logs
 * Fix - Increase limit when listing available payment method configurations from the Stripe API
+* Fix - Klarna not processing recurring payments
+* Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
+* Fix - Improve Express Checkout compatibility with One Page Checkout
+* Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
+* Fix - Prevent retrying requests that errored out due to declined payment methods
+* Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
+* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
+* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
+* Dev - Add Stripe's masked API key to API request/response logs
+* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
+* Dev - Add verbose debug logging mode to the OAuth connect flow
+* Fix - Disable Amazon Pay when taxes are based on billing address and add notices with details
+* Fix - Fix express checkout error for a Saudi Arabian address without state and postal code
+* Fix - Ensure we have a fallback for shipping rate names in classic checkout
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices

@@ -124,6 +124,37 @@ describe( 'Express checkout event handlers', () => {
 			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( event.reject ).toHaveBeenCalled();
 		} );
+
+		test( 'should truncate shipping options to 9 items when more than 9 are returned', async () => {
+			const shippingOptions = Array.from( { length: 15 }, ( _, i ) => ( {
+				id: `option_${ i + 1 }`,
+				label: `Shipping Option ${ i + 1 }`,
+			} ) );
+
+			const response = {
+				result: 'success',
+				total: { amount: 1000 },
+				shipping_options: shippingOptions,
+				displayItems: [ { label: 'Sample Item', amount: 500 } ],
+			};
+
+			api.expressCheckoutECECalculateShippingOptions.mockResolvedValue(
+				response
+			);
+
+			await shippingAddressChangeHandler( api, event, elements );
+
+			expect( event.resolve ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					shippingRates: expect.arrayContaining( [
+						expect.objectContaining( { id: 'option_1' } ),
+					] ),
+				} )
+			);
+
+			const resolveCall = event.resolve.mock.calls[ 0 ][ 0 ];
+			expect( resolveCall.shippingRates ).toHaveLength( 9 );
+		} );
 	} );
 
 	describe( 'shippingRateChangeHandler', () => {

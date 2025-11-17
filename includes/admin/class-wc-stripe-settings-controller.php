@@ -288,6 +288,7 @@ class WC_Stripe_Settings_Controller {
 			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
 			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
+			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

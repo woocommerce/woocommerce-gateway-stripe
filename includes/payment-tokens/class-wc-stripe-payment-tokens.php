@@ -122,7 +122,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool
 	 */
 	public static function customer_has_saved_methods( $customer_id ) {
-		$gateways = [ WC_Stripe_UPE_Payment_Gateway::ID, WC_Gateway_Stripe_Sepa::ID ];
+		$gateways = [ WC_Stripe_UPE_Payment_Gateway::ID, WC_Stripe_Payment_Methods::LEGACY_SEPA ];
 
 		if ( empty( $customer_id ) ) {
 			return false;
@@ -216,7 +216,7 @@ class WC_Stripe_Payment_Tokens {
 					}
 				}
 
-				if ( WC_Gateway_Stripe_Sepa::ID === $gateway_id ) {
+				if ( WC_Stripe_Payment_Methods::LEGACY_SEPA === $gateway_id ) {
 					$stripe_customer = new WC_Stripe_Customer( $customer_id );
 					$stripe_sources  = $stripe_customer->get_sources();
 
@@ -225,7 +225,7 @@ class WC_Stripe_Payment_Tokens {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Payment_Token_SEPA();
 								$token->set_token( $source->id );
-								$token->set_gateway_id( WC_Gateway_Stripe_Sepa::ID );
+								$token->set_gateway_id( WC_Stripe_Payment_Methods::LEGACY_SEPA );
 								$token->set_last4( $source->sepa_debit->last4 );
 								$token->set_user_id( $customer_id );
 								if ( isset( $source->sepa_debit->fingerprint ) ) {
