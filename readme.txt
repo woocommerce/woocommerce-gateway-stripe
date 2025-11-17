@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
-* Dev - Replacing the constant reference for the SEPA payment method in the legacy checkout
+* Dev - Replace the constant reference for the legacy SEPA payment method
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
 * Update - Changes labels related to saved payment methods from "cards" to "payment methods"
 * Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
