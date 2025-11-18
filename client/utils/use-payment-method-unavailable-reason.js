@@ -1,5 +1,5 @@
 import { getSetting } from '@woocommerce/settings';
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 
@@ -14,11 +14,13 @@ const usePaymentMethodUnavailableReason = ( paymentMethodId ) => {
 
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
-	return getPaymentMethodUnavailableReason( {
-		paymentMethodId,
-		isUpeEnabled,
-		storeCurrencyCode,
-	} );
+	return useMemo( () => {
+		return getPaymentMethodUnavailableReason( {
+			paymentMethodId,
+			isUpeEnabled,
+			storeCurrencyCode,
+		} );
+	}, [ paymentMethodId, isUpeEnabled, storeCurrencyCode ] );
 };
 
 export default usePaymentMethodUnavailableReason;

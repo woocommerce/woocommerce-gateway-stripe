@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
 import { useContext } from '@wordpress/element';
@@ -273,7 +274,9 @@ export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	return getPaymentMethodCurrencies( paymentMethodId, isUpeEnabled );
+	return useMemo( () => {
+		return getPaymentMethodCurrencies( paymentMethodId, isUpeEnabled );
+	}, [ paymentMethodId, isUpeEnabled ] );
 };
 
 export default usePaymentMethodCurrencies;
