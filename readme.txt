@@ -124,5 +124,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
 * Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

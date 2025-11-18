@@ -14,6 +14,7 @@
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
 * Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
