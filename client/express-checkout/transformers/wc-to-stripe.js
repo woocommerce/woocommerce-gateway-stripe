@@ -4,22 +4,41 @@ import { decodeEntities } from '@wordpress/html-entities';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /**
- * GooglePay/ApplePay expect the prices to be formatted in cents.
- * But WooCommerce has a setting to define the number of decimals for amounts.
- * Using this function to ensure the prices provided to GooglePay/ApplePay
- * are always provided accurately, regardless of the number of decimals.
+ * Stripe expects the prices to be formatted in whole numbers.
+ * But WooCommerce has a setting to define the number of decimals for amounts, so we
+ * need to transform the WooCommerce price to the correct format.
  *
  * @param {number}                          price       the price to format.
  * @param {{currency_minor_unit: {number}}} priceObject the price object returned by the Store API
  *
- * @return {number} the price amount for GooglePay/ApplePay, always expressed in cents.
+ * @return {number} The price amount for Stripe.
  */
 export const transformPrice = ( price, priceObject ) => {
+	return transformPriceWithMinorUnits(
+		price,
+		priceObject.currency_minor_unit
+	);
+};
+
+/**
+ * Stripe expects prices to be in the whole numbers, while WooCommerce allows prices to be specified with
+ * a configurable number of decimal places. This function converts an internal WooCommerce price to a Stripe amount
+ * based on the Stripe and WooCommerce currency configuration.
+ *
+ * @param {number} price         The price to transform.
+ * @param {number} wooMinorUnits The number of minor units for the currency as configured in WooCommerce.
+ * @return {number} The transformed price.
+ */
+export const transformPriceWithMinorUnits = ( price, wooMinorUnits ) => {
 	const currencyDecimals =
 		getExpressCheckoutData( 'checkout' )?.currency_decimals ?? 2;
 
-	// making sure the decimals are always correctly represented for GooglePay/ApplePay, since they don't allow us to specify the decimals.
-	return price * 10 ** ( currencyDecimals - priceObject.currency_minor_unit );
+	// No need to convert if the number of decimals is the same.
+	if ( currencyDecimals === wooMinorUnits ) {
+		return price;
+	}
+
+	return price * 10 ** ( currencyDecimals - wooMinorUnits );
 };
 
 /**
