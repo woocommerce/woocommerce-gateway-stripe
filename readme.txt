@@ -122,5 +122,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
 * Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

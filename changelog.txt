@@ -12,6 +12,7 @@
 * Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
 * Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
