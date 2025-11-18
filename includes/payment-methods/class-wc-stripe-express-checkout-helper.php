@@ -735,6 +735,15 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
+		// Check if Amazon Pay is the only enabled method, but not available due to the tax configuration.
+		if ( $this->is_amazon_pay_enabled() &&
+			! ( $this->is_payment_request_enabled() || $this->is_link_enabled() ) &&
+			( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ) )
+		) {
+			WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to Amazon Pay being the only enabled method, but not available due to taxes being based on billing address.' );
+			return false;
+		}
+
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		$hide_based_on_tax          = $this->should_hide_ece_based_on_tax_setup();
 		$hide_based_on_tax_filtered = apply_filters( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', $hide_based_on_tax );

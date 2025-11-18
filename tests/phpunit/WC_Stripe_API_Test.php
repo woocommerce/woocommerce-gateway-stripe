@@ -373,30 +373,56 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				'expected_return'        => true,
 				'is_test_mode'           => true,
 				'is_admin_request'       => false,
+				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
 			'live mode from non-admin context should detach' => [
 				'expected_return'        => true,
 				'is_test_mode'           => false,
 				'is_admin_request'       => false,
+				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
 			'test mode from admin context should detach' => [
 				'expected_return'        => true,
 				'is_test_mode'           => true,
 				'is_admin_request'       => true,
+				'is_cron_request'        => false,
+				'is_wc_sub_staging_site' => false,
+			],
+			'test mode from wp cron context should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => true,
+				'is_admin_request'       => false,
+				'is_cron_request'        => true,
 				'is_wc_sub_staging_site' => false,
 			],
 			'live mode from admin context with no subscription staging site should detach' => [
 				'expected_return'        => true,
 				'is_test_mode'           => false,
 				'is_admin_request'       => true,
+				'is_cron_request'        => false,
+				'is_wc_sub_staging_site' => false,
+			],
+			'live mode from wp cron context with no subscription staging site should detach' => [
+				'expected_return'        => true,
+				'is_test_mode'           => false,
+				'is_admin_request'       => false,
+				'is_cron_request'        => true,
 				'is_wc_sub_staging_site' => false,
 			],
 			'live mode from admin context with subscription staging site should not detach' => [
 				'expected_return'        => false,
 				'is_test_mode'           => false,
 				'is_admin_request'       => true,
+				'is_cron_request'        => false,
+				'is_wc_sub_staging_site' => true,
+			],
+			'live mode from wp cron context with subscription staging site should not detach' => [
+				'expected_return'        => false,
+				'is_test_mode'           => false,
+				'is_admin_request'       => false,
+				'is_cron_request'        => true,
 				'is_wc_sub_staging_site' => true,
 			],
 			// Ideally, we would test multiple environment types, but wp_get_environment_type() uses a
@@ -407,7 +433,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_test_should_detach_payment_method_from_customer
 	 */
-	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_wc_sub_staging_site = false ) {
+	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_cron_request, bool $is_wc_sub_staging_site = false ) {
 		$initial_test_mode = \WC_Stripe_Mode::is_test();
 
 		$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
@@ -425,6 +451,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
 		}
 
+		$cron_filter_return = $is_cron_request ? '__return_true' : '__return_false';
+		add_filter( 'wp_doing_cron', $cron_filter_return, 10, 1 );
+
 		require_once __DIR__ . '/Helpers/WCS_Staging.php';
 		\WCS_Staging::set_is_duplicate_site( $is_wc_sub_staging_site );
 
@@ -441,6 +470,8 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
 			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
+
+		remove_filter( 'wp_doing_cron', $cron_filter_return, 10 );
 
 		\WCS_Staging::set_is_duplicate_site( false );
 
