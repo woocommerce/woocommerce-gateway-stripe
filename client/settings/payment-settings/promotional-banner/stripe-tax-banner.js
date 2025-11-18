@@ -14,6 +14,7 @@ import {
 	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 import { recordEvent } from 'wcstripe/tracking';
+import { ExternalLink } from '@wordpress/components';
 
 const BannerIllustrationStripeTax = styled( BannerIllustration )`
 	width: 80px;
@@ -54,9 +55,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 
 	const handleButtonClick = () => {
 		recordEvent( 'wcstripe_stripe_tax_banner_button_click', {} );
-		window.location.assign(
-			'https://woocommerce.com/products/stripe-tax/'
-		);
+		window.open( 'https://woocommerce.com/products/stripe-tax/', '_blank' );
 	};
 
 	return (
@@ -77,12 +76,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 							),
 							components: {
 								docLink: (
-									// eslint-disable-next-line jsx-a11y/anchor-has-content
-									<a
-										target="_blank"
-										rel="noreferrer"
-										href="https://stripe.com/tax"
-									/>
+									<ExternalLink href="https://stripe.com/tax" />
 								),
 							},
 						} ) }

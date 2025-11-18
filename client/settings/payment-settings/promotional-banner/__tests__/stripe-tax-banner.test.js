@@ -60,10 +60,10 @@ describe( 'Stripe Tax banner', () => {
 
 	it( 'should open the main page when clicking the "Get Stripe Tax" button', async () => {
 		// Keep the original function at hand.
-		const assign = window.location.assign;
+		const open = window.open;
 
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
+		Object.defineProperty( window, 'open', {
+			value: jest.fn(),
 		} );
 
 		const { getByText } = render(
@@ -82,13 +82,14 @@ describe( 'Stripe Tax banner', () => {
 			{}
 		);
 
-		expect( window.location.assign ).toHaveBeenCalledWith(
-			'https://woocommerce.com/products/stripe-tax/'
+		expect( window.open ).toHaveBeenCalledWith(
+			'https://woocommerce.com/products/stripe-tax/',
+			'_blank'
 		);
 
 		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
+		Object.defineProperty( window, 'open', {
+			value: open,
 		} );
 	} );
 } );
