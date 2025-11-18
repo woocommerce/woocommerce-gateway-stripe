@@ -7,6 +7,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * REST controller for UPE feature flag.
+ *
+ * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
  */
 class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
@@ -51,6 +53,8 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	 * Retrieve flag status.
 	 *
 	 * @return WP_REST_Response
+	 *
+	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
 	 */
 	public function get_flag() {
 		return new WP_REST_Response(
@@ -64,16 +68,12 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	 * Update the data.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
 	 */
 	public function set_flag( WP_REST_Request $request ) {
-		$is_upe_enabled = $request->get_param( 'is_upe_enabled' );
-
-		if ( null === $is_upe_enabled ) {
-			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
-		}
-
 		$settings = WC_Stripe_Helper::get_stripe_settings();
-		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
+		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
