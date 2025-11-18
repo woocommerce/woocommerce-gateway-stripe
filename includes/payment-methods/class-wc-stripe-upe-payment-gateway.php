@@ -2528,6 +2528,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	protected function prepare_payment_information_from_request( WC_Order $order ) {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
+		$express_payment_type  = $this->get_express_payment_type_from_request();
 		$capture_method        = $this->is_automatic_capture_enabled() ? 'automatic' : 'manual'; // automatic | manual.
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -2569,7 +2570,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Override the payment method type with the API value when OC is enabled
 		if ( $this->oc_enabled ) {
-			$selected_payment_type = $payment_method_details->type ?? null;
+			// Make sure we're not handling an express payment type like Amazon Pay, which wasn't directly triggered via Optimized Checkout.
+			if ( empty( $express_payment_type ) || $selected_payment_type !== $express_payment_type ) {
+				$selected_payment_type = $payment_method_details->type ?? null;
+			}
 			$payment_method_types  = [ $selected_payment_type ];
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
