@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
 * Dev - Remove the merchant email address from the System Status Report
 * Dev - Replace the constant reference for the legacy SEPA payment method
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
