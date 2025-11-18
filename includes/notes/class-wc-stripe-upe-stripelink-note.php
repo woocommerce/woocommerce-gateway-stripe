@@ -80,10 +80,6 @@ class WC_Stripe_UPE_StripeLink_Note {
 			return;
 		}
 
-		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			return;
-		}
-
 		// If store currency is not USD, skip
 		if ( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR !== get_woocommerce_currency() ) {
 			return;
