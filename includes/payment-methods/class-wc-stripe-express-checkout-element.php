@@ -229,16 +229,42 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
-			'is_product_page'            => $this->express_checkout_helper->is_product(),
+			'is_product_page'            => $this->is_product_page_for_ece(),
 			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
 			'product'                    => $this->express_checkout_helper->get_product_data(),
-			'is_cart_page'               => is_cart(),
+			'is_cart_page'               => $this->express_checkout_helper->is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 		];
 	}
+
+	/**
+	 * Should ECE use product pricing (vs. cart pricing) in the current context.
+	 *
+	 * For One Page Checkout (OPC), when checkout buttons are enabled, always use cart
+	 * context so discounts/coupons are reflected.
+	 *
+	 * @return bool True to use product pricing; false to use cart totals.
+	 */
+	public function is_product_page_for_ece() {
+		if ( ! $this->express_checkout_helper->is_product() ) {
+			return false;
+		}
+
+		// OPC renders checkout on product pages; if ECE is shown on checkout, use cart pricing.
+		if (
+			$this->express_checkout_helper->is_one_page_checkout()
+			&& $this->express_checkout_helper->should_show_ece_on_checkout_page()
+		) {
+			return false;
+		}
+
+		// Otherwise, product context is valid for ECE.
+		return true;
+	}
+
 
 	/**
 	 * Localizes additional parameters necessary for the Pay for Order page.
@@ -540,11 +566,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! $this->express_checkout_helper->is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
-		if ( is_checkout() && ! in_array( 'checkout', $this->express_checkout_helper->get_button_locations(), true ) ) {
+		if ( $this->express_checkout_helper->is_checkout() && ! $this->express_checkout_helper->should_show_ece_on_checkout_page() ) {
 			return;
 		}
 

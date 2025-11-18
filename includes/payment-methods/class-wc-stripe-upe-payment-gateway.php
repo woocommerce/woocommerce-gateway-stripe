@@ -248,7 +248,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
 			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
@@ -292,7 +292,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_filter(
 			'safe_style_css',
 			function ( $styles ) {
-				return array_merge( $styles, [ 'display' ] );
+				return is_array( $styles ) ? array_merge( $styles, [ 'display' ] ) : [ 'display' ];
 			}
 		);
 
@@ -1380,8 +1380,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
-					$request['confirm']        = 'true';
+					// Only set capture_method for payment methods that support it (e.g., cards).
+					// Payment methods like ACH don't support capture_method and will have it omitted from $request_details.
+					if ( isset( $request_details['capture'] ) ) {
+						$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					}
+					$request['confirm'] = 'true';
 				}
 
 				// If order requires shipping, add the shipping address details to the payment intent request.
@@ -2463,6 +2467,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		}
 
+		// This error indicates that the saved payment method is no longer valid.
+		// This can happen if the payment method was removed in Stripe dashboard, or if it expired.
+		// In this case, we want to show a specific message to the user.
+		if ( isset( $payment_intent->error->type )
+			&& 'invalid_request_error' === $payment_intent->error->type
+			&& isset( $payment_intent->error->message )
+			&& str_contains( $payment_intent->error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
+		) {
+			return __(
+				'This saved payment method is no longer valid. It might be expired, removed, or broken. Please choose a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
 		return $payment_intent->error->message;
 	}
 
@@ -2724,7 +2742,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 
-			$order->update_meta_data( '_stripe_card_brand', $preferred_brand );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_card_brand( $order, $preferred_brand );
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {

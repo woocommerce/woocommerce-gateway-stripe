@@ -28,7 +28,6 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 		);
 		$this->supports_deferred_intent = false;
 		$this->supports[]               = 'tokenization';
-		$this->supports[]               = 'subscriptions';
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

@@ -431,7 +431,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = __( 'A dispute was created for this order.', 'woocommerce-gateway-stripe' );
 		}
 
-		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -474,7 +474,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
 			// Mark final so that order status is not overridden by out-of-sequence events.
-			$order->update_meta_data( '_stripe_status_final', true );
+			WC_Stripe_Order_Helper::get_instance()->set_stripe_status_final( $order, true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? OrderStatus::FAILED : $this->get_stripe_order_status_before_hold( $order );
@@ -506,7 +506,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_capture( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order        = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
@@ -518,10 +519,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge   = $order->get_transaction_id();
-			$captured = $order->get_meta( '_stripe_charge_captured', true );
+			$captured = $order_helper->is_stripe_charge_captured( $order );
 
-			if ( $charge && 'no' === $captured ) {
-				$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+			if ( $charge && ! $captured ) {
+				$order_helper->set_stripe_charge_captured( $order, true );
 
 				// Store other data such as fees
 				$order->set_transaction_id( $notification->data->object->id );
@@ -662,7 +663,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} else {
 			$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
 		}
-		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::FAILED, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -702,7 +703,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
-		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::CANCELLED, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -741,7 +742,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
-			$captured   = $order->get_meta( '_stripe_charge_captured' );
+			$captured   = $order_helper->is_stripe_charge_captured( $order );
 			$refund_id  = $order_helper->get_stripe_refund_id( $order );
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
@@ -753,7 +754,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
 			// If charge wasn't captured, skip creating a refund.
-			if ( 'yes' !== $captured ) {
+			if ( ! $captured ) {
 				// If the process was initiated from wp-admin,
 				// the order was already cancelled, so we don't need a new note.
 				if ( OrderStatus::CANCELLED !== $order->get_status() ) {
@@ -864,7 +865,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$refund->delete( true );
 					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
 
-					$order->update_meta_data( '_stripe_refund_status', $refund_object->status );
+					$order_helper->update_stripe_refund_status( $order, $refund_object->status );
 
 					$friendly_failure_reason = WC_Stripe_Helper::get_refund_reason_description( $refund_object->failure_reason );
 					if ( 'failed' === $refund_object->status ) {
@@ -877,9 +878,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					// Store the raw failure reason
 					if ( isset( $refund_object->failure_reason ) ) {
-						$order->update_meta_data( '_stripe_refund_failure_reason', $refund_object->failure_reason );
+						$order_helper->update_stripe_refund_failure_reason( $order, $refund_object->failure_reason );
 					} else {
-						$order->delete_meta_data( '_stripe_refund_failure_reason' );
+						$order_helper->delete_stripe_refund_failure_reason( $order );
 					}
 
 					// Revert to previous status
@@ -939,7 +940,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			esc_html( $notification->data->object->reason )
 		);
 
-		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -973,12 +974,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		/* translators: 1) The reason type. */
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
 		// Only change the status if the charge was captured, status is not final, the order is on-hold and the review was approved.
-		if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) &&
-			! $order->get_meta( '_stripe_status_final', false ) &&
+		if ( $order_helper->is_stripe_charge_captured( $order ) &&
+			! $order_helper->is_stripe_status_final( $order ) &&
 			$order->has_status( OrderStatus::ON_HOLD ) &&
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
@@ -1177,7 +1180,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 				$status_update = [];
-				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+				if ( ! $order_helper->is_stripe_status_final( $order ) ) {
 					$status_update['from'] = $order->get_status();
 					$status_update['to']   = OrderStatus::FAILED;
 					$order->update_status( OrderStatus::FAILED, $message );
@@ -1255,7 +1258,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 			$status_update = [];
-			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+			if ( ! $order_helper->is_stripe_status_final( $order ) ) {
 				$status_update['from'] = $order->get_status();
 				$status_update['to']   = OrderStatus::FAILED;
 				$order->update_status( OrderStatus::FAILED, $message );

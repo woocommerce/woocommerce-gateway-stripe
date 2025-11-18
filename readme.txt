@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.3
 Requires PHP: 7.4
-Stable tag: 10.0.1
+Stable tag: 10.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,16 +110,19 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.1.0 - xxxx-xx-xx =
-* Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
-* Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
-* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
-* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
-* Dev - Renames previous Order Helper class methods to use the `_id` suffix
-* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
-* Fix - Remove redundant secret management logic when configuring webhooks
-* Dev - Improve Payment Method Configuration error logging
-* Dev - Add Stripe's request-id to API response logs
-* Fix - Increase limit when listing available payment method configurations from the Stripe API
+= 10.2.0 - xxxx-xx-xx =
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
+* Dev - Remove the merchant email address from the System Status Report
+* Dev - Replace the constant reference for the legacy SEPA payment method
+* Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
+* Fix - Disable express checkout when Amazon Pay is disabled and the only method
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -22,6 +22,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
+	 * Error string returned by Stripe when a PaymentMethod is detached.
+	 *
+	 * @var string
+	 */
+	protected const DETACHED_PAYMENT_METHOD_ERROR_STRING = 'The provided PaymentMethod was previously used with a PaymentIntent without Customer attachment';
+
+	/**
 	 * The delay between retries.
 	 *
 	 * @var int
@@ -152,24 +159,36 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function is_retryable_error( $error ) {
 		// Note that this check is required since the error type is 'invalid_request_error' which
 		// would otherwise return true.
-		if (
-			isset( $error->code ) &&
-			(
-				'payment_intent_mandate_invalid' === $error->code || // Don't retry payments when a 3DS mandate is invalid.
-				'charge_exceeds_transaction_limit' === $error->code || // Don't retry payments when the charge exceeds the transaction limit.
-				'amount_too_small' === $error->code
-			)
+		$non_retryable_codes = [
+			'payment_intent_mandate_invalid',     // Don't retry payments when a 3DS mandate is invalid.
+			'charge_exceeds_transaction_limit',   // Don't retry payments when the charge exceeds the transaction limit.
+			'amount_too_small',
+			'card_declined',
+			'payment_method_provider_decline',
+		];
+
+		if ( isset( $error->code ) && in_array( $error->code, $non_retryable_codes, true ) ) {
+			return false;
+		}
+
+		// Don't retry if the error indicates that a PaymentMethod is detached.
+		if ( isset( $error->type )
+			&& 'invalid_request_error' == $error->type
+			&& isset( $error->message )
+			&& str_contains( $error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
 		) {
 			return false;
 		}
 
-		return (
-			'invalid_request_error' === $error->type ||
-			'idempotency_error' === $error->type ||
-			'rate_limit_error' === $error->type ||
-			'api_connection_error' === $error->type ||
-			'api_error' === $error->type
-		);
+		$retryable_types = [
+			'invalid_request_error',
+			'idempotency_error',
+			'rate_limit_error',
+			'api_connection_error',
+			'api_error',
+		];
+
+		return in_array( $error->type, $retryable_types, true );
 	}
 
 	/**
@@ -563,11 +582,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 */
 		do_action( 'wc_gateway_stripe_process_payment_charge', $response, $order );
 
-		$order_id = $order->get_id();
-		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
+		$order_id     = $order->get_id();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$captured     = isset( $response->captured ) && $response->captured;
 
 		// Store charge data.
-		$order->update_meta_data( '_stripe_charge_captured', $captured );
+		$order_helper->set_stripe_charge_captured( $order, $captured );
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -577,16 +597,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The mandate ID is not available for the intent object, so we need to fetch the charge.
 		// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+			$order_helper->update_stripe_mandate_id( $order, $response->payment_method_details->card->mandate );
 		} elseif ( isset( $response->payment_method_details->acss_debit->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->acss_debit->mandate );
+			$order_helper->update_stripe_mandate_id( $order, $response->payment_method_details->acss_debit->mandate );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
 			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
 		}
 
-		if ( 'yes' === $captured ) {
+		if ( $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
 			 * that are asynchronous may take couple days to clear. Webhook will
@@ -1160,8 +1180,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = [];
 
+		$order_helper   = WC_Stripe_Order_Helper::get_instance();
 		$order_currency = $order->get_currency();
-		$captured       = $order->get_meta( '_stripe_charge_captured', true );
+		$captured       = $order_helper->is_stripe_charge_captured( $order );
 		$charge_id      = $order->get_transaction_id();
 
 		if ( ! $charge_id ) {
@@ -1173,7 +1194,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// If order is only authorized, don't pass amount.
-		if ( 'yes' !== $captured ) {
+		if ( ! $captured ) {
 			unset( $request['amount'] );
 		}
 
@@ -1191,11 +1212,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Only treat zero-amount as a no-op for captured charges (real refunds), not for voiding pre-auths.
-		if ( 'yes' === $captured && '0.00' === sprintf( '%0.2f', $amount ?? 0 ) ) {
+		if ( $captured && '0.00' === sprintf( '%0.2f', $amount ?? 0 ) ) {
 			return true;
 		}
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
@@ -1229,7 +1248,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			if ( ! $intent_cancelled && 'yes' === $captured ) {
+			if ( ! $intent_cancelled && $captured ) {
 				$order_helper->lock_order_refund( $order );
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
@@ -1267,7 +1286,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			// If charge wasn't captured, skip creating a refund and cancel order.
-			if ( 'yes' !== $captured ) {
+			if ( ! $captured ) {
 				/* translators: amount (including currency symbol) */
 				$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided.', 'woocommerce-gateway-stripe' ), $formatted_amount ) );
 				$order->update_status( OrderStatus::CANCELLED );
@@ -1699,16 +1718,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
+				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->card->mandate );
 			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->acss_debit->mandate );
+				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order_helper->update_stripe_setup_intent_id( $order, $intent->id );
 
 			// Add mandate for free trial subscriptions.
 			if ( isset( $intent->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $intent->mandate );
+				$order_helper->update_stripe_mandate_id( $order, $intent->mandate );
 			}
 		}
 
@@ -1971,7 +1990,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Add mandate if it exists.
-		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		$mandate = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $order );
 		if ( ! empty( $mandate ) ) {
 			$request['mandate'] = $mandate;
 		}

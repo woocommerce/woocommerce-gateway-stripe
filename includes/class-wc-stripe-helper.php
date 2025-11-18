@@ -1251,7 +1251,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_product_page() {
-		if ( self::should_load_scripts_for_prb_location( 'product' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'product' ) ) {
 			return true;
 		}
 
@@ -1268,7 +1268,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_cart_page() {
-		if ( self::should_load_scripts_for_prb_location( 'cart' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'cart' ) ) {
 			return true;
 		}
 
@@ -1282,11 +1282,11 @@ class WC_Stripe_Helper {
 	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
 	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
 	 */
-	private static function should_load_scripts_for_prb_location( $location ) {
+	private static function should_load_scripts_for_ece_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
-		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
+		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
 		// The scripts should be loaded when all of the following are true:
 		//   1. The PRBs are enabled; and
@@ -2043,5 +2043,23 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
+
+	/**
+	 * Checks if the verbose debug mode is enabled.
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_verbose_debug_mode_enabled(): bool {
+		/**
+		 * Filters the flag that decides if the verbose debug mode is enabled.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param bool $enabled True if enabled, false otherwise.
+		 *
+		 * @return bool True if enabled, false otherwise.
+		*/
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 }
