@@ -590,7 +590,14 @@ class WC_Stripe_API {
 		}
 
 		// Requests coming from the customer account page i.e delete payment method, should always be allowed, and should return true.
-		$is_admin_request = is_admin() || ( defined( 'WP_CLI' ) && WP_CLI );
+		// We thus treat the following requests as admin requests:
+		// - Requests where is_admin() is true
+		// - Actions via WP CLI
+		// - WP Cron requests
+		$is_admin_request = is_admin() ||
+			( defined( 'WP_CLI' ) && WP_CLI ) ||
+			wp_doing_cron();
+
 		if ( ! $is_admin_request ) {
 			return true;
 		}
