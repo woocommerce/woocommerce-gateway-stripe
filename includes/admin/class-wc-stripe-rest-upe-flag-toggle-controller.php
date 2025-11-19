@@ -72,11 +72,6 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 	 * @deprecated 10.2.0 UPE is generally available and this endpoint will be removed in a future release.
 	 */
 	public function set_flag( WP_REST_Request $request ) {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
