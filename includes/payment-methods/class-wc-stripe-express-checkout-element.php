@@ -64,10 +64,6 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function init() {
 		// Check if ECE feature flag is enabled.
-		if ( ! WC_Stripe_Feature_Flags::is_stripe_ece_enabled() ) {
-			return;
-		}
-
 		// ECE is only available when UPE checkout is enabled.
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
