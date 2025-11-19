@@ -17,6 +17,7 @@
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
