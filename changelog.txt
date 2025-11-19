@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
 * Dev - Remove the merchant email address from the System Status Report
 * Dev - Replace the constant reference for the legacy SEPA payment method
