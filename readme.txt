@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Add - Includes support for free trial subscription products that require shipping when using express checkout payment methods
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
 * Dev - Remove the merchant email address from the System Status Report

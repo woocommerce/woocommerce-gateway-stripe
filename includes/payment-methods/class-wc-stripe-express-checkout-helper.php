@@ -720,12 +720,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show in the product page if the product price is 0 and the product requires shipping.
-		if ( $is_product && $product && 0.0 === (float) $product->get_price() && $this->product_or_cart_needs_shipping() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products that requires shipping.' );
-			return false;
-		}
-
 		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
