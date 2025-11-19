@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
 use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
+use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Logger;
 use WC_Stripe_API;
@@ -67,7 +68,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	 *
 	 * @var string
 	 */
-	private $legacy_sepa_gateway_id = 'stripe_sepa';
+	private $legacy_sepa_gateway_id = WC_Stripe_Payment_Methods::LEGACY_SEPA;
 
 	public function set_up() {
 		parent::set_up();
