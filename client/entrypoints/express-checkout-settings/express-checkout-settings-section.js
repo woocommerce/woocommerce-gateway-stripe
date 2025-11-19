@@ -1,12 +1,8 @@
-/* global wc_stripe_payment_request_settings_params */
-
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutButtonPreview from './express-checkout-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
@@ -121,8 +117,6 @@ const ExpressCheckoutSettingsSection = () => {
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const isECEEnabled =
-		wc_stripe_payment_request_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -270,18 +264,12 @@ const ExpressCheckoutSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					{ isECEEnabled ? (
-						<ExpressCheckoutPreviewComponent
-							stripe={ stripePromise }
-							buttonType={ buttonType }
-							theme={ theme }
-							size={ size }
-						/>
-					) : (
-						<Elements stripe={ stripePromise }>
-							<ExpressCheckoutButtonPreview />
-						</Elements>
-					) }
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						buttonType={ buttonType }
+						theme={ theme }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>

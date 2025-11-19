@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
 * Dev - Remove the merchant email address from the System Status Report
 * Dev - Replace the constant reference for the legacy SEPA payment method
@@ -124,5 +125,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
+* Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
