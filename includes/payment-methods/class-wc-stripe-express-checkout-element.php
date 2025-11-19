@@ -63,11 +63,6 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return  void
 	 */
 	public function init() {
-		// Check if ECE feature flag is enabled.
-		if ( ! WC_Stripe_Feature_Flags::is_stripe_ece_enabled() ) {
-			return;
-		}
-
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
 			return;

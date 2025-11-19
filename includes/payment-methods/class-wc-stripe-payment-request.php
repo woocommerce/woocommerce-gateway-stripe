@@ -6,6 +6,8 @@
  *
  * @package WooCommerce_Stripe/Classes/Payment_Request
  * @since   4.0.0
+ *
+ * @deprecated 10.2.0 This class is now deprecated in favor of ECE and will be removed in future versions.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -68,6 +70,8 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
+		return;
+
 		self::$_this           = $this;
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode        = WC_Stripe_Mode::is_test();
@@ -83,11 +87,6 @@ class WC_Stripe_Payment_Request {
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 
 		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
-
-		// Check if ECE feature flag is enabled.
-		if ( WC_Stripe_Feature_Flags::is_stripe_ece_enabled() ) {
-			return;
-		}
 
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
