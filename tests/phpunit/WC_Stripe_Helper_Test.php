@@ -881,4 +881,51 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
 		];
 	}
+
+	/**
+	 * Data provider for {@see test_get_minimum_amount()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_minimum_amount(): array {
+		return [
+			'USD'              => [ 'USD', 50 ],
+			'EUR'              => [ 'EUR', 50 ],
+			'GBP'              => [ 'GBP', 30 ],
+			'CAD'              => [ 'CAD', 50 ],
+			'CHF'              => [ 'CHF', 50 ],
+			'CZK'              => [ 'CZK', 1500 ],
+			'DKK'              => [ 'DKK', 250 ],
+			'HUF'              => [ 'HUF', 17500 ],
+			'INR'              => [ 'INR', 50 ],
+			'MXN'              => [ 'MXN', 1000 ],
+			'MYR'              => [ 'MYR', 200 ],
+			'NOK'              => [ 'NOK', 300 ],
+			'NZD'              => [ 'NZD', 50 ],
+			'PLN'              => [ 'PLN', 200 ],
+			'RON'              => [ 'RON', 200 ],
+			'SEK'              => [ 'SEK', 300 ],
+			'SGD'              => [ 'SGD', 50 ],
+			'THB'              => [ 'THB', 1000 ],
+			'JPY'              => [ 'JPY', 5000 ],
+			'UNKNOWN_CURRENCY' => [ 'UNKNOWN_CURRENCY', 50 ],
+			'ZMW - not known'  => [ 'ZMW', 50 ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_get_minimum_amount
+	 */
+	public function test_get_minimum_amount( string $currency, int $expected ): void {
+		$currency_filter = function () use ( $currency ) {
+			return $currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+
+		$minimum_amount = WC_Stripe_Helper::get_minimum_amount();
+
+		remove_filter( 'woocommerce_currency', $currency_filter );
+
+		$this->assertEquals( $expected, $minimum_amount );
+	}
 }
