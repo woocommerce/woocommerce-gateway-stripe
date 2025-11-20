@@ -111,7 +111,24 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
+* Dev - Remove the merchant email address from the System Status Report
+* Dev - Replace the constant reference for the legacy SEPA payment method
+* Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
 * Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
+* Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
+* Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
+* Fix - Make token detachment checks use shared logic for detaching payment methods
 * Add - Implement cache prefetch for account data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

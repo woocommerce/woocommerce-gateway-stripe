@@ -784,7 +784,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       when creating the intent? It's called in process_subscription_payment though
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
-			$mandate = $order->get_meta( '_stripe_mandate_id', true );
+			$mandate = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $order );
 			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 
@@ -847,8 +847,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				continue;
 			}
 
-			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $renewal_order );
+			$order_helper                 = WC_Stripe_Order_Helper::get_instance();
+			$mandate                      = $order_helper->get_stripe_mandate_id( $renewal_order );
+			$renewal_order_payment_method = $order_helper->get_stripe_source_id( $renewal_order );
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -1258,7 +1259,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
 			&& $this->is_subscription( $order )
 			&& $parent_order
-			&& ! empty( $parent_order->get_meta( '_stripe_mandate_id', true ) ) ) {
+			&& ! empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
 			$editable = false;
 		}
 

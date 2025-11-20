@@ -427,7 +427,12 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$countries_with_optional_postcode = apply_filters(
 			'wc_stripe_express_checkout_countries_with_optional_postcode',
 			[
+				'AE', // United Arab Emirates
+				'BH', // Bahrain
 				'IL', // Israel
+				'KW', // Kuwait
+				'OM', // Oman
+				'QA', // Qatar
 				'SA', // Saudi Arabia
 			]
 		);

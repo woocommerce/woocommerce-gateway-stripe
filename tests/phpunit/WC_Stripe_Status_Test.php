@@ -41,7 +41,6 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 			->willReturn(
 				[
 					'id'    => 'acct_123',
-					'email' => 'john.doe@example.com',
 				]
 			);
 
@@ -53,7 +52,6 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'WooCommerce Stripe Payment Gateway', $output );
 		$this->assertStringContainsString( 'acct_123', $output );
-		$this->assertStringContainsString( 'john.doe@example.com', $output );
 		$this->assertStringContainsString( 'card', $output );
 	}
 

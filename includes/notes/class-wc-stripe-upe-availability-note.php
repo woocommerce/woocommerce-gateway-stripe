@@ -73,15 +73,10 @@ class WC_Stripe_UPE_Availability_Note {
 	public static function init() {
 		/**
 		 * No need to display the admin inbox note when
-		 * - UPE preview is disabled
 		 * - UPE is already enabled
 		 * - UPE has been manually disabled
 		 * - Stripe is not enabled
 		 */
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return;
-		}
-
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}

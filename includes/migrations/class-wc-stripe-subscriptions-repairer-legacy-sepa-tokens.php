@@ -145,7 +145,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 				'posts_per_page' => 20,
 				'status'         => 'any',
 				'paged'          => $page,
-				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
+				'payment_method' => WC_Stripe_Payment_Methods::LEGACY_SEPA,
 				'order'          => 'ASC',
 				'orderby'        => 'ID',
 			]
@@ -177,7 +177,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 		}
 
 		// Run the full repair if the subscription is using the Legacy SEPA gateway ID.
-		if ( $subscription->get_payment_method() === WC_Gateway_Stripe_Sepa::ID ) {
+		if ( $subscription->get_payment_method() === WC_Stripe_Payment_Methods::LEGACY_SEPA ) {
 			$this->repair_item( $subscription_id );
 
 			// Unschedule the repair action as it's no longer needed.
@@ -369,7 +369,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 				'type'           => 'shop_subscription',
 				'status'         => 'any',
 				'posts_per_page' => 1,
-				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
+				'payment_method' => WC_Stripe_Payment_Methods::LEGACY_SEPA,
 			]
 		);
 		$subscriptions_count = count( $subscriptions );
