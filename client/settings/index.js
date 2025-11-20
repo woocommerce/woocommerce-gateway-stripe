@@ -63,16 +63,5 @@ if ( paymentGatewayContainer ) {
 }
 
 if ( newAccountContainer ) {
-	createRoot( newAccountContainer ).render(
-		<ConnectStripeAccount
-			oauthUrl={
-				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.stripe_oauth_url
-			}
-			testOauthUrl={
-				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.stripe_test_oauth_url
-			}
-		/>
-	);
+	createRoot( newAccountContainer ).render( <ConnectStripeAccount /> );
 }
