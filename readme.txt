@@ -128,5 +128,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
 * Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
+* Fix - Make token detachment checks use shared logic for detaching payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
