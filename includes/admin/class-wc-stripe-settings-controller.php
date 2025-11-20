@@ -212,10 +212,6 @@ class WC_Stripe_Settings_Controller {
 			$script_asset['version']
 		);
 
-		// OAuth URLs are generated on-demand when the user clicks the connect button
-		$oauth_url      = '';
-		$test_oauth_url = '';
-
 		$message = sprintf(
 		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
 			esc_html__( '%1$sWarning:%2$s your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
@@ -238,8 +234,6 @@ class WC_Stripe_Settings_Controller {
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
 			'is_upe_checkout_enabled'               => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-			'stripe_oauth_url'                      => $oauth_url,
-			'stripe_test_oauth_url'                 => $test_oauth_url,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,

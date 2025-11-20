@@ -18,18 +18,11 @@ const PromotionalBanner = ( {
 	promotionalBannerType,
 	setIsUpeEnabled,
 	setIsOCEnabled,
-	oauthUrl,
-	testOauthUrl,
 } ) => {
 	let BannerContent = null;
 	switch ( promotionalBannerType ) {
 		case RECONNECT_BANNER:
-			BannerContent = (
-				<ReConnectAccountBanner
-					testOauthUrl={ testOauthUrl }
-					oauthUrl={ oauthUrl }
-				/>
-			);
+			BannerContent = <ReConnectAccountBanner />;
 			break;
 		case OC_PROMOTION_BANNER:
 			BannerContent = (
