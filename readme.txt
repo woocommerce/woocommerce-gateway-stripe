@@ -128,5 +128,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
 * Fix - Use the built-in Database Cache for the Connect flow data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
+
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
