@@ -12,6 +12,15 @@ namespace WooCommerce\Stripe\Tests;
 class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 
 	/**
+	 * Ensure we clean up the pending prefetch data after each test.
+	 */
+	public function tearDown(): void {
+		\WC_Stripe_Database_Cache_Prefetch::get_instance()->reset_pending_prefetches();
+
+		parent::tearDown();
+	}
+
+	/**
 	 * Provide test cases for {@see test_handle_prefetch_action()}.
 	 *
 	 * @return array

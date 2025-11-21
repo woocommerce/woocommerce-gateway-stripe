@@ -121,6 +121,15 @@ class WC_Stripe_Database_Cache_Prefetch {
 	}
 
 	/**
+	 * Reset the pending prefetches.
+	 *
+	 * @return void
+	 */
+	public function reset_pending_prefetches(): void {
+		self::$pending_prefetches = [];
+	}
+
+	/**
 	 * Check if a prefetch is already queued up.
 	 *
 	 * @param string $key The unprefixed cache key to check.
