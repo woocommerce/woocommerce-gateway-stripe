@@ -1540,6 +1540,10 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		// Allow 3rd parties to hook into state normalization process.
+		$billing_state  = apply_filters( 'wc_stripe_normalize_billing_state', $billing_state, $billing_country, $data );
+		$shipping_state = apply_filters( 'wc_stripe_normalize_shipping_state', $shipping_state, $shipping_country, $data );
+
 		// Finally we normalize the state value we want to process.
 		if ( $billing_state && $billing_country ) {
 			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
