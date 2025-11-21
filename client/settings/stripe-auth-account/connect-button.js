@@ -12,7 +12,7 @@ import { recordEvent } from 'wcstripe/tracking';
  *
  * @param {Object}  props               The component props.
  * @param {boolean} props.testMode      Indicates whether this is for test mode.
- * @param {boolean} props.buttonVariant Indicates the variant of the button.
+ * @param {string} props.buttonVariant  Indicates the variant of the button.
  *
  * @return {JSX.Element} The rendered ConnectButton component.
  */
