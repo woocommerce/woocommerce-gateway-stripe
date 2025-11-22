@@ -17,6 +17,13 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 	use WC_Stripe_Agentic_Authentication;
 
 	/**
+	 * Decline reason for rejected orders.
+	 *
+	 * @var string|null
+	 */
+	private $decline_reason = null;
+
+	/**
 	 * Endpoint namespace.
 	 *
 	 * @var string
@@ -188,9 +195,84 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 	 * @return bool True if approved, false if declined.
 	 */
 	private function validate_order( $line_items ) {
-		// For now, approve all orders.
-		// TODO: Add product stock checks in next task.
+		$items = $line_items['data'] ?? [];
+
+		foreach ( $items as $item ) {
+			$sku      = $item['price']['lookup_key'] ?? '';
+			$quantity = $item['quantity'] ?? 1;
+
+			// Look up product by SKU.
+			$product = $this->get_product_by_sku( $sku );
+
+			if ( ! $product ) {
+				$this->decline_reason = 'product_not_found';
+				WC_Stripe_Logger::log(
+					'Agentic approval declined: product not found',
+					[ 'sku' => $sku ]
+				);
+				return false;
+			}
+
+			// Check if product is purchasable.
+			if ( ! $product->is_purchasable() ) {
+				$this->decline_reason = 'product_not_purchasable';
+				WC_Stripe_Logger::log(
+					'Agentic approval declined: product not purchasable',
+					[ 'sku' => $sku, 'product_id' => $product->get_id() ]
+				);
+				return false;
+			}
+
+			// Check stock.
+			if ( ! $product->is_in_stock() ) {
+				$this->decline_reason = 'low_inventory';
+				WC_Stripe_Logger::log(
+					'Agentic approval declined: product out of stock',
+					[ 'sku' => $sku, 'product_id' => $product->get_id() ]
+				);
+				return false;
+			}
+
+			// Check stock quantity if managing stock.
+			if ( $product->managing_stock() ) {
+				$stock_quantity = $product->get_stock_quantity();
+				if ( $stock_quantity < $quantity ) {
+					$this->decline_reason = 'low_inventory';
+					WC_Stripe_Logger::log(
+						'Agentic approval declined: insufficient stock',
+						[
+							'sku'            => $sku,
+							'product_id'     => $product->get_id(),
+							'requested'      => $quantity,
+							'available'      => $stock_quantity,
+						]
+					);
+					return false;
+				}
+			}
+		}
+
 		return true;
+	}
+
+	/**
+	 * Get product by SKU.
+	 *
+	 * @param string $sku Product SKU.
+	 * @return WC_Product|null
+	 */
+	private function get_product_by_sku( $sku ) {
+		$product_id = wc_get_product_id_by_sku( $sku );
+		$product    = $product_id ? wc_get_product( $product_id ) : null;
+
+		/**
+		 * Filter product lookup by SKU for agentic checkout.
+		 *
+		 * @since 8.9.0
+		 * @param WC_Product|null $product Product object or null if not found.
+		 * @param string          $sku     Product SKU.
+		 */
+		return apply_filters( 'wc_stripe_agentic_product_by_sku', $product, $sku );
 	}
 
 	/**
@@ -200,7 +282,7 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 	 * @return string
 	 */
 	private function get_decline_reason( $line_items ) {
-		return 'validation_failed';
+		return $this->decline_reason ?? 'validation_failed';
 	}
 
 	/**
