@@ -103,6 +103,7 @@ class WC_Stripe {
 		$this->init();
 
 		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
+		add_action( 'rest_api_init', [ $this, 'register_agentic_rest_controllers' ] );
 	}
 
 	/**
@@ -795,6 +796,32 @@ class WC_Stripe {
 
 		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
 		$oc_setting_toggle_controller->register_routes();
+	}
+
+	/**
+	 * Register Agentic Checkout REST API controllers.
+	 *
+	 * @since 8.9.0
+	 */
+	public function register_agentic_rest_controllers() {
+		// Only register if feature is enabled.
+		if ( ! apply_filters( 'wc_stripe_agentic_checkout_enabled', false ) ) {
+			return;
+		}
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/trait-wc-stripe-agentic-authentication.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-agentic-approval-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-agentic-tax-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-agentic-shipping-controller.php';
+
+		$approval_controller = new WC_Stripe_REST_Agentic_Approval_Controller();
+		$approval_controller->register_routes();
+
+		$tax_controller = new WC_Stripe_REST_Agentic_Tax_Controller();
+		$tax_controller->register_routes();
+
+		$shipping_controller = new WC_Stripe_REST_Agentic_Shipping_Controller();
+		$shipping_controller->register_routes();
 	}
 
 	/**
