@@ -48,6 +48,15 @@ class WC_Stripe_REST_Agentic_Shipping_Controller_Test extends TestCase {
 
 		$this->assertArrayHasKey( 'fulfillment_options', $data );
 
+		// Verify each shipping option has required fields including 'id'
+		if ( ! empty( $data['fulfillment_options'] ) ) {
+			foreach ( $data['fulfillment_options'] as $option ) {
+				$this->assertArrayHasKey( 'id', $option, 'Shipping option must have an id field' );
+				$this->assertArrayHasKey( 'display_name', $option );
+				$this->assertArrayHasKey( 'shipping_amount', $option );
+			}
+		}
+
 		remove_filter( 'wc_stripe_agentic_checkout_enabled', '__return_true' );
 	}
 }

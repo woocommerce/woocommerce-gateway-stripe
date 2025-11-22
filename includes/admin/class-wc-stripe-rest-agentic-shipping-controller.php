@@ -200,6 +200,7 @@ class WC_Stripe_REST_Agentic_Shipping_Controller extends WP_REST_Controller {
 		$options = [];
 		foreach ( $shipping_methods as $method ) {
 			$options[] = [
+				'id'                      => $method['id'],
 				'display_name'            => $method['label'],
 				'description'             => $method['description'] ?? '',
 				'shipping_amount'         => (int) ( $method['cost'] * 100 ), // Convert to cents
