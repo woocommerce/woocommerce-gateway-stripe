@@ -51,11 +51,16 @@ trait WC_Stripe_Agentic_Authentication {
 		$headers = $this->get_request_headers();
 		$body    = file_get_contents( 'php://input' );
 
-		if ( empty( $headers ) ) {
+		// Check for file_get_contents failure.
+		if ( false === $body ) {
+			return new WP_Error( 'read_failure', 'Failed to read request body' );
+		}
+
+		if ( empty( $headers ) || ! is_array( $headers ) ) {
 			return new WP_Error( 'empty_headers', 'No request headers found' );
 		}
 
-		if ( empty( $body ) ) {
+		if ( '' === $body || is_null( $body ) ) {
 			return new WP_Error( 'empty_body', 'No request body found' );
 		}
 
