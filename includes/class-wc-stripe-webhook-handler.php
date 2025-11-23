@@ -1462,6 +1462,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.succeeded':
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
+				break;
+
+			case 'checkout.session.completed':
+				// Check if this is an agentic checkout session.
+				if ( $this->is_agentic_checkout( $notification->data->object ) ) {
+					$order = $this->create_order_from_checkout_session( $notification->data->object );
+					if ( $order instanceof WC_Order ) {
+						$this->resolved_order = $order;
+					}
+				}
+				break;
 
 		}
 
@@ -1569,6 +1580,230 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Check if checkout session is from agentic checkout.
+	 *
+	 * @since 8.9.0
+	 * @param object $checkout_session Checkout session object.
+	 * @return bool
+	 */
+	public function is_agentic_checkout( $checkout_session ) {
+		// Check metadata for agentic flag.
+		if ( isset( $checkout_session->metadata->agentic ) && 'true' === $checkout_session->metadata->agentic ) {
+			return true;
+		}
+
+		// Check origin_context if available (Stripe may add this).
+		if ( isset( $checkout_session->origin_context ) && ! empty( $checkout_session->origin_context ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Create WooCommerce order from agentic checkout session.
+	 *
+	 * @since 8.9.0
+	 * @param object $checkout_session Checkout session object.
+	 * @return WC_Order|WP_Error Order object or error.
+	 */
+	public function create_order_from_checkout_session( $checkout_session ) {
+		try {
+			// Check for duplicate processing.
+			$existing_orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_key'   => '_wc_stripe_checkout_session_id',
+					'meta_value' => $checkout_session->id,
+				]
+			);
+
+			if ( ! empty( $existing_orders ) ) {
+				WC_Stripe_Logger::log(
+					'Agentic order already exists for session',
+					[
+						'checkout_session_id' => $checkout_session->id,
+						'order_id'            => $existing_orders[0]->get_id(),
+					]
+				);
+				return $existing_orders[0];
+			}
+
+			// Create order.
+			$order = wc_create_order();
+
+			// Add metadata.
+			$order->update_meta_data( '_wc_stripe_agentic_order', 'true' );
+			$order->update_meta_data( '_wc_stripe_checkout_session_id', $checkout_session->id );
+
+			// Set customer details.
+			$customer = $checkout_session->customer_details ?? null;
+			if ( $customer ) {
+				$order->set_billing_first_name( $customer->name ?? '' );
+				$order->set_billing_email( $customer->email ?? '' );
+				$order->set_billing_phone( $customer->phone ?? '' );
+
+				if ( isset( $customer->address ) ) {
+					$address = $customer->address;
+					$order->set_billing_address_1( $address->line1 ?? '' );
+					$order->set_billing_address_2( $address->line2 ?? '' );
+					$order->set_billing_city( $address->city ?? '' );
+					$order->set_billing_state( $address->state ?? '' );
+					$order->set_billing_postcode( $address->postal_code ?? '' );
+					$order->set_billing_country( $address->country ?? '' );
+				}
+			}
+
+			// Set shipping details if present.
+			$shipping_details = $checkout_session->shipping_details ?? null;
+			if ( $shipping_details && isset( $shipping_details->address ) ) {
+				$shipping_address = $shipping_details->address;
+				$order->set_shipping_first_name( $shipping_details->name ?? '' );
+				$order->set_shipping_address_1( $shipping_address->line1 ?? '' );
+				$order->set_shipping_address_2( $shipping_address->line2 ?? '' );
+				$order->set_shipping_city( $shipping_address->city ?? '' );
+				$order->set_shipping_state( $shipping_address->state ?? '' );
+				$order->set_shipping_postcode( $shipping_address->postal_code ?? '' );
+				$order->set_shipping_country( $shipping_address->country ?? '' );
+			}
+
+			// Add line items.
+			$line_items = $checkout_session->line_items->data ?? [];
+			foreach ( $line_items as $item ) {
+				$sku      = $item->price->lookup_key ?? '';
+				$quantity = $item->quantity ?? 1;
+				$total    = ( $item->amount_total ?? 0 ) / 100; // Convert from cents.
+
+				// Get product by SKU.
+				$product_id = wc_get_product_id_by_sku( $sku );
+				$product    = $product_id ? wc_get_product( $product_id ) : null;
+
+				/**
+				 * Filter to allow custom product lookup by SKU.
+				 *
+				 * @since 8.9.0
+				 * @param WC_Product|null $product The product object or null if not found.
+				 * @param string          $sku     The SKU to lookup.
+				 */
+				$product = apply_filters( 'wc_stripe_agentic_product_by_sku', $product, $sku );
+
+				if ( ! $product ) {
+					throw new Exception( sprintf( 'Product not found for SKU: %s', $sku ) );
+				}
+
+				$order->add_product( $product, $quantity, [ 'subtotal' => $total, 'total' => $total ] );
+			}
+
+			// Add shipping if present.
+			$shipping_cost = $checkout_session->shipping_cost ?? null;
+			if ( $shipping_cost && isset( $shipping_cost->amount_total ) ) {
+				$shipping = new WC_Order_Item_Shipping();
+				$shipping->set_method_title( $shipping_cost->shipping_rate->display_name ?? 'Shipping' );
+				$shipping->set_total( ( $shipping_cost->amount_total ?? 0 ) / 100 );
+				$order->add_item( $shipping );
+			}
+
+			// Set payment method.
+			$order->set_payment_method( 'stripe' );
+			$order->set_payment_method_title( 'Stripe (Agentic Checkout)' );
+
+			// Set transaction ID from payment intent.
+			$payment_intent    = $checkout_session->payment_intent ?? null;
+			$payment_intent_id = is_object( $payment_intent ) ? $payment_intent->id : $payment_intent;
+
+			if ( $payment_intent_id ) {
+				$order->set_transaction_id( $payment_intent_id );
+			}
+
+			// Check if manual capture is required.
+			$capture_method    = is_object( $payment_intent ) && isset( $payment_intent->capture_method ) ? $payment_intent->capture_method : null;
+			$is_manual_capture = 'manual' === $capture_method;
+
+			if ( $is_manual_capture ) {
+				// Store payment intent ID for later capture.
+				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+				$order->update_meta_data( '_stripe_manual_capture', 'yes' );
+				$order->update_meta_data( '_stripe_charge_captured', 'no' );
+
+				// Set order to on-hold status.
+				$order->update_status( OrderStatus::ON_HOLD, __( 'Payment authorized, awaiting capture.', 'woocommerce-gateway-stripe' ) );
+
+				WC_Stripe_Logger::log(
+					'Agentic order created with manual capture',
+					[
+						'order_id'  => $order->get_id(),
+						'intent_id' => $payment_intent_id,
+					]
+				);
+			} else {
+				// Set order status based on payment status.
+				$payment_status = $checkout_session->payment_status ?? 'unpaid';
+				if ( 'paid' === $payment_status ) {
+					$order->payment_complete( $payment_intent_id );
+				} else {
+					$order->update_status( OrderStatus::PENDING );
+				}
+			}
+
+			// Add order note.
+			$agent_name = $checkout_session->metadata->agent ?? 'Unknown';
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Agent name */
+					__( 'Order created via AI agent checkout (%s)', 'woocommerce-gateway-stripe' ),
+					$agent_name
+				)
+			);
+
+			$order->save();
+
+			/**
+			 * Action fired when agentic order is created.
+			 *
+			 * @since 8.9.0
+			 * @param WC_Order $order            Created order.
+			 * @param object   $checkout_session Checkout session object.
+			 */
+			do_action( 'wc_stripe_agentic_order_created', $order, $checkout_session );
+
+			WC_Stripe_Logger::log(
+				'Agentic order created',
+				[
+					'order_id'            => $order->get_id(),
+					'checkout_session_id' => $checkout_session->id,
+					'agent'               => $agent_name,
+				]
+			);
+
+			return $order;
+
+		} catch ( Exception $e ) {
+			/**
+			 * Action fired when agentic order creation fails.
+			 *
+			 * @since 8.9.0
+			 * @param WP_Error $error            Error object.
+			 * @param object   $checkout_session Checkout session object.
+			 */
+			do_action(
+				'wc_stripe_agentic_order_failed',
+				new WP_Error( 'order_creation_failed', $e->getMessage() ),
+				$checkout_session
+			);
+
+			WC_Stripe_Logger::log(
+				'Agentic order creation failed',
+				[
+					'error'               => $e->getMessage(),
+					'checkout_session_id' => $checkout_session->id ?? 'unknown',
+				]
+			);
+
+			return new WP_Error( 'order_creation_failed', $e->getMessage() );
+		}
 	}
 }
 
