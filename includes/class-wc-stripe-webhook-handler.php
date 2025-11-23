@@ -1670,12 +1670,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->set_shipping_country( $shipping_address->country ?? '' );
 			}
 
+			// Get currency and determine divisor for zero-decimal currencies.
+			$currency = strtolower( $checkout_session->currency ?? 'usd' );
+			$divisor  = in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ? 1 : 100;
+
+			// Set order currency.
+			$order->set_currency( strtoupper( $currency ) );
+
 			// Add line items.
 			$line_items = $checkout_session->line_items->data ?? [];
 			foreach ( $line_items as $item ) {
 				$sku      = $item->price->lookup_key ?? '';
 				$quantity = $item->quantity ?? 1;
-				$total    = ( $item->amount_total ?? 0 ) / 100; // Convert from cents.
+				$total    = ( $item->amount_total ?? 0 ) / $divisor;
 
 				// Get product by SKU.
 				$product_id = wc_get_product_id_by_sku( $sku );
@@ -1702,7 +1709,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $shipping_cost && isset( $shipping_cost->amount_total ) ) {
 				$shipping = new WC_Order_Item_Shipping();
 				$shipping->set_method_title( $shipping_cost->shipping_rate->display_name ?? 'Shipping' );
-				$shipping->set_total( ( $shipping_cost->amount_total ?? 0 ) / 100 );
+				$shipping->set_total( ( $shipping_cost->amount_total ?? 0 ) / $divisor );
 				$order->add_item( $shipping );
 			}
 
@@ -1757,6 +1764,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$agent_name
 				)
 			);
+
+			/**
+			 * Filter order data before saving agentic order.
+			 *
+			 * Allows modification of the order object before it's saved to the database.
+			 *
+			 * @since 8.9.0
+			 * @param WC_Order $order            Order object.
+			 * @param object   $checkout_session Checkout session data.
+			 */
+			$order = apply_filters( 'wc_stripe_agentic_order_data', $order, $checkout_session );
 
 			$order->save();
 
