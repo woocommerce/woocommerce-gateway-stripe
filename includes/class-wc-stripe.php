@@ -235,6 +235,10 @@ class WC_Stripe {
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-agentic-admin-capture.php';
+
+			// Initialize agentic admin capture handler.
+			new WC_Stripe_Agentic_Admin_Capture();
 
 			if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
