@@ -44,6 +44,13 @@ trait WC_Stripe_Agentic_Authentication {
 		$secret          = $stripe_settings[ $secret_key ] ?? false;
 
 		if ( empty( $secret ) ) {
+			WC_Stripe_Logger::log(
+				'Agentic: Authentication failed - webhook secret not configured',
+				array(
+					'context' => 'agentic_authentication',
+					'testmode' => $testmode,
+				)
+			);
 			return new WP_Error( 'no_secret', 'Webhook secret not configured' );
 		}
 
@@ -53,14 +60,29 @@ trait WC_Stripe_Agentic_Authentication {
 
 		// Check for file_get_contents failure.
 		if ( false === $body ) {
+			WC_Stripe_Logger::log(
+				'Agentic: Authentication failed - could not read request body',
+				array( 'context' => 'agentic_authentication' )
+			);
 			return new WP_Error( 'read_failure', 'Failed to read request body' );
 		}
 
 		if ( empty( $headers ) || ! is_array( $headers ) ) {
+			WC_Stripe_Logger::log(
+				'Agentic: Authentication failed - no request headers found',
+				array(
+					'context' => 'agentic_authentication',
+					'headers_type' => gettype( $headers ),
+				)
+			);
 			return new WP_Error( 'empty_headers', 'No request headers found' );
 		}
 
 		if ( '' === $body || is_null( $body ) ) {
+			WC_Stripe_Logger::log(
+				'Agentic: Authentication failed - empty request body',
+				array( 'context' => 'agentic_authentication' )
+			);
 			return new WP_Error( 'empty_body', 'No request body found' );
 		}
 
@@ -69,8 +91,20 @@ trait WC_Stripe_Agentic_Authentication {
 		$result          = $webhook_handler->validate_request( $headers, $body );
 
 		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED !== $result ) {
+			WC_Stripe_Logger::log(
+				'Agentic: Authentication failed - invalid signature',
+				array(
+					'context' => 'agentic_authentication',
+					'validation_result' => $result,
+				)
+			);
 			return new WP_Error( 'invalid_signature', $result );
 		}
+
+		WC_Stripe_Logger::log(
+			'Agentic: Authentication succeeded',
+			array( 'context' => 'agentic_authentication' )
+		);
 
 		return true;
 	}
