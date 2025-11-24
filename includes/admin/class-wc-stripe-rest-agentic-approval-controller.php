@@ -218,7 +218,10 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 				$this->decline_reason = 'product_not_purchasable';
 				WC_Stripe_Logger::log(
 					'Agentic approval declined: product not purchasable',
-					[ 'sku' => $sku, 'product_id' => $product->get_id() ]
+				[
+					'sku'        => $sku,
+					'product_id' => $product->get_id(),
+				]
 				);
 				return false;
 			}
@@ -228,7 +231,10 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 				$this->decline_reason = 'low_inventory';
 				WC_Stripe_Logger::log(
 					'Agentic approval declined: product out of stock',
-					[ 'sku' => $sku, 'product_id' => $product->get_id() ]
+				[
+					'sku'        => $sku,
+					'product_id' => $product->get_id(),
+				]
 				);
 				return false;
 			}
