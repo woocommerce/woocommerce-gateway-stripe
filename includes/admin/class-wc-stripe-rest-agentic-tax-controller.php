@@ -28,7 +28,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 	 *
 	 * @var string
 	 */
-	protected $rest_base = 'stripe/agentic/tax';
+	protected $rest_base = 'stripe/agentic/compute_tax';
 
 	/**
 	 * Register routes.
