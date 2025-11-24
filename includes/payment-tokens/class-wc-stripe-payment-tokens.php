@@ -480,18 +480,8 @@ class WC_Stripe_Payment_Tokens {
 					return;
 				}
 
-				/**
-				 * 1. Check if it's live mode.
-				 * 2. Check if it's admin.
-				 * 3. Check if it's not production environment.
-				 * When all conditions are met, we don't want to delete the payment method from Stripe.
-				 * This is to avoid detaching the payment method from the live stripe account on non production environments.
-				 */
-				if (
-					WC_Stripe_Mode::is_live() &&
-					is_admin() &&
-					'production' !== wp_get_environment_type()
-				) {
+				// Check if we should detach the payment method from the customer.
+				if ( ! WC_Stripe_API::should_detach_payment_method_from_customer() ) {
 					return;
 				}
 
