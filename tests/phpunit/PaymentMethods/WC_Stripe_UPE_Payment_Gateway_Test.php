@@ -182,7 +182,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->setMethods(
+			->onlyMethods(
 				[
 					'create_and_confirm_intent_for_off_session',
 					'generate_payment_request',
@@ -208,19 +208,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			)
 			->getMock();
 
-		$this->mock_gateway->expects( $this->any() )
+		$this->mock_gateway
 			->method( 'get_return_url' )
 			->will(
 				$this->returnValue( self::MOCK_RETURN_URL )
 			);
 
 		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
-			->setMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent', 'create_and_confirm_setup_intent' ] )
+			->onlyMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent', 'create_and_confirm_setup_intent' ] )
 			->getMock();
 
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'create_customer',
 					'update_customer',
@@ -228,12 +228,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			)
 			->getMock();
 
-		$this->mock_stripe_customer->expects( $this->any() )
+		$this->mock_stripe_customer
 			->method( 'create_customer' )
 			->will(
 				$this->returnValue( 'cus_mock' )
 			);
-		$this->mock_stripe_customer->expects( $this->any() )
+		$this->mock_stripe_customer
 			->method( 'update_customer' )
 			->will(
 				$this->returnValue( 'cus_mock' )
@@ -244,14 +244,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			[ 'lock_order_payment', 'unlock_order_payment' ]
 		);
 
-		$order_helper->expects( $this->any() )
+		$order_helper
 			->method( 'lock_order_payment' )
 			->will(
 				$this->returnValue( false )
 			);
 
-		$order_helper->expects( $this->any() )
-			->method( 'unlock_order_payment' );
+		$order_helper->method( 'unlock_order_payment' );
 
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 	}
