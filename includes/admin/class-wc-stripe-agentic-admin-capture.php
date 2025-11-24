@@ -22,8 +22,8 @@ class WC_Stripe_Agentic_Admin_Capture {
 	 * @since 10.2.0
 	 */
 	public function __construct() {
-		add_filter( 'woocommerce_order_actions', array( $this, 'add_capture_action' ), 10, 2 );
-		add_action( 'woocommerce_order_action_wc_stripe_capture_agentic_payment', array( $this, 'process_capture_action' ) );
+		add_filter( 'woocommerce_order_actions', [ $this, 'add_capture_action' ], 10, 2 );
+		add_action( 'woocommerce_order_action_wc_stripe_capture_agentic_payment', [ $this, 'process_capture_action' ] );
 	}
 
 	/**
@@ -78,7 +78,7 @@ class WC_Stripe_Agentic_Admin_Capture {
 			);
 			WC_Stripe_Logger::log(
 				'Agentic capture failed: No intent ID',
-				array( 'order_id' => $order->get_id() )
+				[ 'order_id' => $order->get_id() ]
 			);
 			return;
 		}
@@ -94,10 +94,10 @@ class WC_Stripe_Agentic_Admin_Capture {
 
 		WC_Stripe_Logger::log(
 			'Attempting to capture agentic order payment',
-			array(
+			[
 				'order_id'  => $order->get_id(),
 				'intent_id' => $intent_id,
-			)
+			]
 		);
 
 		try {
@@ -138,10 +138,10 @@ class WC_Stripe_Agentic_Admin_Capture {
 
 					WC_Stripe_Logger::log(
 						'Agentic order payment already captured',
-						array(
+						[
 							'order_id'  => $order->get_id(),
 							'intent_id' => $intent_id,
-						)
+						]
 					);
 
 					return;
@@ -159,10 +159,10 @@ class WC_Stripe_Agentic_Admin_Capture {
 			// Capture the payment intent.
 			$level3_data = $order_handler->get_level3_data_from_order( $order );
 			$result      = WC_Stripe_API::request_with_level3_data(
-				array(
+				[
 					'amount'   => WC_Stripe_Helper::get_stripe_amount( $capture_amount ),
 					'expand[]' => 'charges.data.balance_transaction',
-				),
+				],
 				'payment_intents/' . $intent_id . '/capture',
 				$level3_data,
 				$order
@@ -181,7 +181,7 @@ class WC_Stripe_Agentic_Admin_Capture {
 				sprintf(
 					/* translators: %s: captured amount */
 					__( 'Stripe payment manually captured: %s', 'woocommerce-gateway-stripe' ),
-					wc_price( $capture_amount, array( 'currency' => $order->get_currency() ) )
+					wc_price( $capture_amount, [ 'currency' => $order->get_currency() ] )
 				)
 			);
 
@@ -192,11 +192,11 @@ class WC_Stripe_Agentic_Admin_Capture {
 
 			WC_Stripe_Logger::log(
 				'Agentic order payment captured successfully',
-				array(
+				[
 					'order_id'        => $order->get_id(),
 					'intent_id'       => $intent_id,
 					'captured_amount' => $capture_amount,
-				)
+				]
 			);
 
 			// Fire action for custom handling.
@@ -215,11 +215,11 @@ class WC_Stripe_Agentic_Admin_Capture {
 
 			WC_Stripe_Logger::log(
 				'Agentic capture failed',
-				array(
+				[
 					'order_id'  => $order->get_id(),
 					'intent_id' => $intent_id,
 					'error'     => $error_message,
-				)
+				]
 			);
 
 			// Fire action for error handling.

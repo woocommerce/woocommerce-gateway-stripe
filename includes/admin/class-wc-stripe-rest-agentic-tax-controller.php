@@ -37,13 +37,13 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base,
-			array(
-				array(
+			[
+				[
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'compute_tax' ),
+					'callback'            => [ $this, 'compute_tax' ],
 					'permission_callback' => '__return_true', // Auth handled via signature.
-				),
-			)
+				],
+			]
 		);
 	}
 
@@ -53,14 +53,14 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 	 * @return array
 	 */
 	public function get_routes() {
-		$routes = array();
-		$routes[ '/' . $this->namespace . '/' . $this->rest_base ] = array(
-			array(
+		$routes = [];
+		$routes[ '/' . $this->namespace . '/' . $this->rest_base ] = [
+			[
 				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'compute_tax' ),
+				'callback'            => [ $this, 'compute_tax' ],
 				'permission_callback' => '__return_true',
-			),
-		);
+			],
+		];
 		return $routes;
 	}
 
@@ -77,7 +77,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 			return new WP_Error(
 				'feature_disabled',
 				'Agentic Checkout is not enabled',
-				array( 'status' => 403 )
+				[ 'status' => 403 ]
 			);
 		}
 
@@ -86,7 +86,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 		if ( is_wp_error( $verification ) ) {
 			WC_Stripe_Logger::log(
 				'Agentic tax calculation request rejected: invalid signature',
-				array( 'error' => $verification->get_error_message() )
+				[ 'error' => $verification->get_error_message() ]
 			);
 			return $verification;
 		}
@@ -94,31 +94,31 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 		// Parse request body.
 		$body                = json_decode( $request->get_body(), true );
 		$checkout_session_id = $body['id'] ?? '';
-		$line_items          = $body['line_items_details'] ?? array();
-		$fulfillment         = $body['fulfillment_details'] ?? array();
-		$billing             = $body['billing_details'] ?? array();
+		$line_items          = $body['line_items_details'] ?? [];
+		$fulfillment         = $body['fulfillment_details'] ?? [];
+		$billing             = $body['billing_details'] ?? [];
 		$currency            = $body['currency'] ?? 'usd';
 
 		// Validate JSON parsing.
 		if ( null === $body && json_last_error() !== JSON_ERROR_NONE ) {
 			WC_Stripe_Logger::log(
 				'Agentic tax calculation request failed: invalid JSON',
-				array( 'error' => json_last_error_msg() )
+				[ 'error' => json_last_error_msg() ]
 			);
 			return new WP_Error(
 				'invalid_json',
 				'Invalid JSON in request body',
-				array( 'status' => 400 )
+				[ 'status' => 400 ]
 			);
 		}
 
 		WC_Stripe_Logger::log(
 			'Agentic tax calculation request received',
-			array(
+			[
 				'checkout_session_id' => $checkout_session_id,
 				'line_items_count'    => count( $line_items ),
 				'currency'            => $currency,
-			)
+			]
 		);
 
 		try {
@@ -137,10 +137,10 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 				'wc_stripe_agentic_tax_breakdown',
 				$tax_breakdown,
 				$line_items,
-				array(
+				[
 					'fulfillment' => $fulfillment,
 					'billing'     => $billing,
-				)
+				]
 			);
 
 			// Calculate total tax from breakdown.
@@ -148,37 +148,37 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 
 			WC_Stripe_Logger::log(
 				'Agentic tax calculated',
-				array(
+				[
 					'checkout_session_id' => $checkout_session_id,
 					'total_tax'           => $total_tax,
 					'tax_count'           => count( $tax_breakdown ),
-				)
+				]
 			);
 
 			// Format response according to Stripe protocol.
 			return new WP_REST_Response(
-				array(
+				[
 					'id'     => $checkout_session_id,
-					'result' => array(
+					'result' => [
 						'type'       => 'calculated',
-						'calculated' => array(
+						'calculated' => [
 							'taxes' => $tax_breakdown,
-						),
-					),
-				),
+						],
+					],
+				],
 				200
 			);
 
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log(
 				'Agentic tax calculation failed',
-				array( 'error' => $e->getMessage() )
+				[ 'error' => $e->getMessage() ]
 			);
 
 			return new WP_Error(
 				'tax_calculation_failed',
 				$e->getMessage(),
-				array( 'status' => 500 )
+				[ 'status' => 500 ]
 			);
 		}
 	}
@@ -194,7 +194,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 	 */
 	private function calculate_taxes( $line_items, $fulfillment, $billing ) {
 		// Use shipping address for tax calculation (or billing if no shipping).
-		$tax_address = $fulfillment['address'] ?? $billing['address'] ?? array();
+		$tax_address = $fulfillment['address'] ?? $billing['address'] ?? [];
 
 		if ( empty( $tax_address ) ) {
 			throw new Exception( 'No address provided for tax calculation' );
@@ -207,7 +207,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 		$city     = $tax_address['city'] ?? '';
 
 		// Track taxes by rate ID to aggregate across items.
-		$tax_totals = array();
+		$tax_totals = [];
 
 		// Calculate tax for each line item.
 		foreach ( $line_items as $item ) {
@@ -225,7 +225,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 			$tax_class = $product->get_tax_class();
 
 			// Get tax rates for this product and location.
-			$tax_rates = WC_Tax::get_rates( $tax_class, array( $country, $state, $postcode, $city ) );
+			$tax_rates = WC_Tax::get_rates( $tax_class, [ $country, $state, $postcode, $city ] );
 
 			// Handle empty tax rates (no taxes apply).
 			if ( empty( $tax_rates ) ) {
@@ -244,10 +244,10 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 						continue;
 					}
 
-					$tax_totals[ $rate_id ] = array(
+					$tax_totals[ $rate_id ] = [
 						'amount'       => 0,
 						'display_name' => $rate_details['label'] ?? 'Tax',
-					);
+					];
 				}
 
 				$tax_totals[ $rate_id ]['amount'] += $tax_amount;
@@ -267,7 +267,7 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 			}
 
 			// Get tax rates for shipping.
-			$shipping_tax_rates = WC_Tax::get_rates( $shipping_tax_class, array( $country, $state, $postcode, $city ) );
+			$shipping_tax_rates = WC_Tax::get_rates( $shipping_tax_class, [ $country, $state, $postcode, $city ] );
 
 			if ( ! empty( $shipping_tax_rates ) ) {
 				// Calculate shipping taxes.
@@ -281,10 +281,10 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 							continue;
 						}
 
-						$tax_totals[ $rate_id ] = array(
+						$tax_totals[ $rate_id ] = [
 							'amount'       => 0,
 							'display_name' => $rate_details['label'] ?? 'Tax',
-						);
+						];
 					}
 
 					$tax_totals[ $rate_id ]['amount'] += $tax_amount;
@@ -293,17 +293,17 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 		}
 
 		// Convert to array of taxes with amounts in cents.
-		$tax_breakdown = array();
+		$tax_breakdown = [];
 		foreach ( $tax_totals as $tax ) {
-			$tax_breakdown[] = array(
+			$tax_breakdown[] = [
 				'amount'       => (int) round( $tax['amount'] * 100 ), // Convert dollars to cents.
 				'display_name' => $tax['display_name'],
-			);
+			];
 		}
 
 		// Handle case where no taxes apply.
 		if ( empty( $tax_breakdown ) ) {
-			return array();
+			return [];
 		}
 
 		return $tax_breakdown;
@@ -330,6 +330,6 @@ class WC_Stripe_REST_Agentic_Tax_Controller extends WP_REST_Controller {
 	 */
 	protected function get_request_headers() {
 		$headers = getallheaders();
-		return $headers ? $headers : array();
+		return $headers ? $headers : [];
 	}
 }

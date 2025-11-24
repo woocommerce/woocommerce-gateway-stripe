@@ -291,6 +291,7 @@ class WC_Stripe_REST_Agentic_Approval_Controller extends WP_REST_Controller {
 	 * @return array
 	 */
 	protected function get_request_headers() {
-		return getallheaders() ?: [];
+		$headers = getallheaders();
+		return $headers ? $headers : [];
 	}
 }
