@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Amazon Pay Payment Method class extending UPE base class.
  * Note that Amazon Pay only supports USD for US accounts.
  * Furthermore, Amazon Pay supports multiple currencies without supporting accounts from those
- * countries, including AUD, HKD, JPY, NOK, NZD and ZAR.
+ * countries, including AUD, HKD, JPY, NOK, NZD, and ZAR.
  * In addition, Amazon Pay supports EUR transactions, but does not support accounts from all EU countries.
  *
  * @see https://docs.stripe.com/payments/amazon-pay
