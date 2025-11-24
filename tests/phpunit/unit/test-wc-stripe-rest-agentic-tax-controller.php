@@ -29,26 +29,26 @@ class WC_Stripe_REST_Agentic_Tax_Controller_Test extends TestCase {
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/tax' );
 		$request->set_body(
 			json_encode(
-				array(
+				[
 					'id'                  => 'cs_test_123',
 					'livemode'            => false,
 					'currency'            => 'usd',
-					'line_items_details'  => array(
-						array(
+					'line_items_details'  => [
+						[
 							'sku_id'      => 'test_sku',
 							'unit_amount' => 1000,
 							'quantity'    => 2,
-						),
-					),
-					'fulfillment_details' => array(
-						'address' => array(
+						],
+					],
+					'fulfillment_details' => [
+						'address' => [
 							'city'        => 'San Francisco',
 							'state'       => 'CA',
 							'postal_code' => '94107',
 							'country'     => 'US',
-						),
-					),
-				)
+						],
+					],
+				]
 			)
 		);
 
@@ -98,26 +98,26 @@ class WC_Stripe_REST_Agentic_Tax_Controller_Test extends TestCase {
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/tax' );
 		$request->set_body(
 			json_encode(
-				array(
+				[
 					'id'                  => 'cs_test_456',
 					'livemode'            => false,
 					'currency'            => 'usd',
-					'line_items_details'  => array(
-						array(
+					'line_items_details'  => [
+						[
 							'sku_id'      => 'test_sku',
 							'unit_amount' => 1000,
 							'quantity'    => 1,
-						),
-					),
-					'fulfillment_details' => array(
-						'address' => array(
+						],
+					],
+					'fulfillment_details' => [
+						'address' => [
 							'city'        => 'London',
 							'state'       => '',
 							'postal_code' => 'SW1A 1AA',
 							'country'     => 'GB',
-						),
-					),
-				)
+						],
+					],
+				]
 			)
 		);
 
@@ -139,27 +139,27 @@ class WC_Stripe_REST_Agentic_Tax_Controller_Test extends TestCase {
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/tax' );
 		$request->set_body(
 			json_encode(
-				array(
+				[
 					'id'                  => 'cs_test_789',
 					'livemode'            => false,
 					'currency'            => 'usd',
-					'line_items_details'  => array(
-						array(
+					'line_items_details'  => [
+						[
 							'sku_id'      => 'test_sku',
 							'unit_amount' => 1000,
 							'quantity'    => 1,
-						),
-					),
-					'fulfillment_details' => array(
+						],
+					],
+					'fulfillment_details' => [
 						'shipping_amount' => 500, // $5.00 shipping in cents.
-						'address'         => array(
+						'address'         => [
 							'city'        => 'San Francisco',
 							'state'       => 'CA',
 							'postal_code' => '94107',
 							'country'     => 'US',
-						),
-					),
-				)
+						],
+					],
+				]
 			)
 		);
 
