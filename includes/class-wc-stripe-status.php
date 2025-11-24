@@ -131,21 +131,6 @@ class WC_Stripe_Status {
 				</td>
 			</tr>
 			<tr>
-				<td data-export-label="Legacy Checkout Experience"><?php esc_html_e( 'Legacy Checkout Experience Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment gateway has the legacy checkout experience enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
-				<td>
-					<?php
-					$legacy_checkout_enabled = ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-					$class                   = $legacy_checkout_enabled ? 'no' : 'yes';
-					?>
-					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
-					<?php
-					WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ? esc_html_e( 'No', 'woocommerce-gateway-stripe' ) : esc_html_e( 'Yes', 'woocommerce-gateway-stripe' );
-					?>
-					</mark>
-				</td>
-			</tr>
-			<tr>
 				<td data-export-label="Optimized Checkout Enabled"><?php esc_html_e( 'Optimized Checkout Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Optimized Checkout Suite is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
