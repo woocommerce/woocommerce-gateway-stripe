@@ -35,11 +35,15 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		add_filter( 'wc_stripe_agentic_checkout_enabled', '__return_true' );
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'          => 'cs_test_123',
-			'line_items'  => [],
-			'amount_total' => 1000,
-		] ) );
+		$request->set_body(
+			json_encode(
+				[
+					'id'          => 'cs_test_123',
+					'line_items'  => [],
+					'amount_total' => 1000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -54,18 +58,22 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		add_filter( 'wc_stripe_agentic_checkout_enabled', '__return_true' );
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'invalid_sku' ],
-						'quantity' => 1,
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'invalid_sku' ],
+								'quantity' => 1,
+							],
+						],
 					],
-				],
-			],
-			'amount_total' => 1000,
-		] ) );
+					'amount_total' => 1000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -85,23 +93,30 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		$product->method( 'is_in_stock' )->willReturn( true );
 		$product->method( 'get_sku' )->willReturn( 'test_sku' );
 
-		add_filter( 'wc_stripe_agentic_product_by_sku', function() use ( $product ) {
-			return $product;
-		} );
+		add_filter(
+			'wc_stripe_agentic_product_by_sku',
+			function () use ( $product ) {
+				return $product;
+			}
+		);
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'test_sku' ],
-						'quantity' => 1,
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'test_sku' ],
+								'quantity' => 1,
+							],
+						],
 					],
-				],
-			],
-			'amount_total' => 1000,
-		] ) );
+					'amount_total' => 1000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -122,23 +137,30 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		$product->method( 'is_in_stock' )->willReturn( false );
 		$product->method( 'get_sku' )->willReturn( 'test_sku' );
 
-		add_filter( 'wc_stripe_agentic_product_by_sku', function() use ( $product ) {
-			return $product;
-		} );
+		add_filter(
+			'wc_stripe_agentic_product_by_sku',
+			function () use ( $product ) {
+				return $product;
+			}
+		);
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'test_sku' ],
-						'quantity' => 1,
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'test_sku' ],
+								'quantity' => 1,
+							],
+						],
 					],
-				],
-			],
-			'amount_total' => 1000,
-		] ) );
+					'amount_total' => 1000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -161,23 +183,30 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		$product->method( 'get_stock_quantity' )->willReturn( 2 );
 		$product->method( 'get_sku' )->willReturn( 'test_sku' );
 
-		add_filter( 'wc_stripe_agentic_product_by_sku', function() use ( $product ) {
-			return $product;
-		} );
+		add_filter(
+			'wc_stripe_agentic_product_by_sku',
+			function () use ( $product ) {
+				return $product;
+			}
+		);
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'test_sku' ],
-						'quantity' => 5, // Request 5, but only 2 available
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'test_sku' ],
+								'quantity' => 5, // Request 5, but only 2 available
+							],
+						],
 					],
-				],
-			],
-			'amount_total' => 5000,
-		] ) );
+					'amount_total' => 5000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -200,23 +229,30 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		$product->method( 'get_stock_quantity' )->willReturn( 10 );
 		$product->method( 'get_sku' )->willReturn( 'test_sku' );
 
-		add_filter( 'wc_stripe_agentic_product_by_sku', function() use ( $product ) {
-			return $product;
-		} );
+		add_filter(
+			'wc_stripe_agentic_product_by_sku',
+			function () use ( $product ) {
+				return $product;
+			}
+		);
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'test_sku' ],
-						'quantity' => 5,
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'test_sku' ],
+								'quantity' => 5,
+							],
+						],
 					],
-				],
-			],
-			'amount_total' => 5000,
-		] ) );
+					'amount_total' => 5000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
@@ -237,31 +273,40 @@ class WC_Stripe_REST_Agentic_Approval_Controller_Test extends WP_UnitTestCase {
 		$product1->method( 'managing_stock' )->willReturn( false );
 		$product1->method( 'get_sku' )->willReturn( 'valid_sku' );
 
-		add_filter( 'wc_stripe_agentic_product_by_sku', function( $product, $sku ) use ( $product1 ) {
-			if ( $sku === 'valid_sku' ) {
-				return $product1;
-			}
-			// Second product not found
-			return null;
-		}, 10, 2 );
+		add_filter(
+			'wc_stripe_agentic_product_by_sku',
+			function ( $product, $sku ) use ( $product1 ) {
+				if ( 'valid_sku' === $sku ) {
+					return $product1;
+				}
+				// Second product not found
+				return null;
+			},
+			10,
+			2
+		);
 
 		$request = new WP_REST_Request( 'POST', '/wc/v3/stripe/agentic/approve' );
-		$request->set_body( json_encode( [
-			'id'         => 'cs_test_123',
-			'line_items' => [
-				'data' => [
-					[
-						'price'    => [ 'lookup_key' => 'valid_sku' ],
-						'quantity' => 1,
+		$request->set_body(
+			json_encode(
+				[
+					'id'         => 'cs_test_123',
+					'line_items' => [
+						'data' => [
+							[
+								'price'    => [ 'lookup_key' => 'valid_sku' ],
+								'quantity' => 1,
+							],
+							[
+								'price'    => [ 'lookup_key' => 'invalid_sku' ],
+								'quantity' => 1,
+							],
+						],
 					],
-					[
-						'price'    => [ 'lookup_key' => 'invalid_sku' ],
-						'quantity' => 1,
-					],
-				],
-			],
-			'amount_total' => 2000,
-		] ) );
+					'amount_total' => 2000,
+				]
+			)
+		);
 
 		$response = $this->controller->approve( $request );
 		$data     = $response->get_data();
