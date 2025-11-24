@@ -83,7 +83,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$checkout_session = (object) [
 			'id'               => 'cs_test_123',
-			'metadata'         => (object) [ 'agentic' => 'true', 'agent' => 'TestAgent' ],
+			'metadata'         => (object) [
+				'agentic' => 'true',
+				'agent'   => 'TestAgent',
+			],
 			'customer_details' => (object) [
 				'name'    => 'John Doe',
 				'email'   => 'john@example.com',
@@ -254,7 +257,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'data' => (object) [
 				'object' => (object) [
 					'id'               => 'cs_webhook_test',
-					'metadata'         => (object) [ 'agentic' => 'true', 'agent' => 'WebhookAgent' ],
+					'metadata'         => (object) [
+						'agentic' => 'true',
+						'agent'   => 'WebhookAgent',
+					],
 					'customer_details' => (object) [
 						'name'  => 'Webhook Test',
 						'email' => 'webhook@example.com',

@@ -1701,7 +1701,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					throw new Exception( sprintf( 'Product not found for SKU: %s', $sku ) );
 				}
 
-				$order->add_product( $product, $quantity, [ 'subtotal' => $total, 'total' => $total ] );
+				$order->add_product(
+					$product,
+					$quantity,
+					[
+						'subtotal' => $total,
+						'total'    => $total,
+					]
+				);
 			}
 
 			// Add shipping if present.
