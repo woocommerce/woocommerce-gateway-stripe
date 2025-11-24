@@ -20,6 +20,7 @@
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
 * Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
 * Fix - Make token detachment checks use shared logic for detaching payment methods
+* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
