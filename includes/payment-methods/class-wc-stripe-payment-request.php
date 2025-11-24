@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * WC_Stripe_Payment_Request class.
+ *
+ * @deprecated 10.2.0 This class is now deprecated in favor of ECE and will be removed in future versions.
  */
 class WC_Stripe_Payment_Request {
 
@@ -70,7 +72,6 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
-		return;
 
 		self::$_this           = $this;
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -87,6 +88,9 @@ class WC_Stripe_Payment_Request {
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 
 		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
+
+		// Don't initiate this class as it is deprecated.
+		return;
 
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
