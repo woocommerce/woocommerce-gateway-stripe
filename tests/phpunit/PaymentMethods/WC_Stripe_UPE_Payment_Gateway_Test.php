@@ -2991,7 +2991,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				$this->callback(
 					function ( $payment_information ) use ( $payment_method_id, $express_payment_method, $confirmation_token_id, $order_id ) {
 						if ( '' === $confirmation_token_id ) {
-								$this->assertArrayNotHasKey( 'confirmation_token', $payment_information );
+							$this->assertArrayNotHasKey( 'confirmation_token', $payment_information );
 						} else {
 							$this->assertArrayHasKey( 'confirmation_token', $payment_information );
 							$this->assertEquals( $confirmation_token_id, $payment_information['confirmation_token'] );
