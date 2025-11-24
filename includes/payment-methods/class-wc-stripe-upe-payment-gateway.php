@@ -2565,11 +2565,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
-		// Override the payment method type with the API value when OC is enabled
+		// When Optimized Checkout is enabled, check which payment method we need to use.
 		if ( $this->oc_enabled ) {
-			// Make sure we're not handling an express payment type like Amazon Pay, which wasn't directly triggered via Optimized Checkout.
-			if ( empty( $express_payment_type ) || $selected_payment_type !== $express_payment_type ) {
-				$selected_payment_type = $payment_method_details->type ?? null;
+			// Check if we are handling an express payment type, where we should not expect a payment method to have been created, and
+			// need to rely on either $selected_payment_type or $express_payment_type.
+			if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
+				if ( '' === $selected_payment_type && null !== $express_payment_type ) {
+					$selected_payment_type = $express_payment_type;
+				}
+				// Otherwise keep using $selected_payment_type.
+			} else {
+				// Otherwise use the payment method type from the API.
+				$selected_payment_type = $payment_method_details->type;
 			}
 			$payment_method_types  = [ $selected_payment_type ];
 		} else {
