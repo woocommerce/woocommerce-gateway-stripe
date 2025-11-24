@@ -103,11 +103,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			true
 		);
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$this->register_upe_payment_method_script_handles();
-		} else {
-			$this->register_legacy_payment_method_script_handles();
-		}
+		$this->register_upe_payment_method_script_handles();
 
 		return [ 'wc-stripe-blocks-integration' ];
 	}
@@ -184,14 +180,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		$js_params = WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
-			? $this->get_express_checkout_javascript_params()
-			: $this->get_payment_request_javascript_params();
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
 		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
-			$js_params,
+			$this->get_express_checkout_javascript_params(),
 			// Blocks-specific options
 			[
 				'icons'                           => $this->get_icons(),
