@@ -829,14 +829,9 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = self::get_stripe_settings();
 
-			if ( $is_upe_enabled ) {
-				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
-			} else {
-				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
-			}
+			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
 
 			if ( empty( $ordered_payment_method_ids ) ) {
 				return;

@@ -2,6 +2,7 @@
 
 = 10.2.0 - xxxx-xx-xx =
 * Update - Makes the Optimized Checkout Suite feature enabled by default for all new installations
+* Dev - Remove all references to the UPE-enabled feature flag
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
 * Dev - Remove the merchant email address from the System Status Report
@@ -18,6 +19,11 @@
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
+* Fix - Make token detachment checks use shared logic for detaching payment methods
+* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
+* Update - Include customer data in wc_stripe_create_customer_required_fields filter
+* Fix - Fix error handling when processing subscription renewals
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend

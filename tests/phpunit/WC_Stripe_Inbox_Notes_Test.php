@@ -78,16 +78,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
 
-	public function test_create_upe_notes_does_not_create_note_when_upe_preview_is_disabled() {
-		update_option( '_wcstripe_feature_upe', 'no' );
-
-		WC_Stripe_Inbox_Notes::create_upe_notes();
-
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
-	}
-
-	public function test_create_upe_notes_does_not_create_availability_note_when_upe_is_enbled() {
+	public function test_create_upe_notes_does_not_create_availability_note_when_upe_is_enabled() {
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
@@ -105,7 +96,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
 
@@ -120,22 +110,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
-	}
-
-	public function test_create_upe_notes_does_not_create_note_when_upe_has_been_manually_disabled() {
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'disabled',
-			]
-		);
-
-		WC_Stripe_Inbox_Notes::create_upe_notes();
-
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
 		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
 

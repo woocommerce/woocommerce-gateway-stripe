@@ -95,7 +95,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
+			$stored_state = get_transient( 'wcs_stripe_connect_state_' . $mode );
+			if ( $stored_state !== $state ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::error(
 						'OAuth: Invalid state received from the WCC server',
@@ -105,6 +106,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 							'connect_type'           => $type,
 							'state'                  => self::redact_string( $state ),
 							'code'                   => self::redact_string( $code ),
+							'stored_state'           => false === $stored_state ? 'false' : self::redact_string( $stored_state ),
 						]
 					);
 				}
@@ -196,16 +198,22 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				if ( $is_verbose_debug_mode_enabled ) {
-					WC_Stripe_Logger::debug(
-						'OAuth: Account connected successfully, reloading the page to clear URL parameters',
-						[
-							'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
-							'connect_mode'           => $mode,
-							'connect_type'           => $type,
-							'connect_response'       => self::redact_sensitive_data( $response ),
-							'redirect_url'           => self::redact_sensitive_data( $redirect_url ),
-						]
-					);
+					$log_data = [
+						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
+						'connect_mode'           => $mode,
+						'connect_type'           => $type,
+						'state'                  => self::redact_string( $state ),
+						'code'                   => self::redact_string( $code ),
+						'nonce'                  => self::redact_string( $nonce ),
+						'connect_response'       => self::redact_sensitive_data( $response ),
+						'redirect_url'           => self::redact_sensitive_data( $redirect_url ),
+					];
+
+					if ( ! is_wp_error( $response ) ) {
+						WC_Stripe_Logger::debug( 'OAuth: Account connected successfully', $log_data );
+					} else {
+						WC_Stripe_Logger::error( 'OAuth: Account connection failed', $log_data );
+					}
 				}
 
 				wp_safe_redirect( esc_url_raw( $redirect_url ) );
