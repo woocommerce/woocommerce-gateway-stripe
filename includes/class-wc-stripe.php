@@ -370,13 +370,22 @@ class WC_Stripe {
 			// Try to schedule the daily async cleanup of the Stripe database cache.
 			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
 
-			// If we have previously disabled settings synchronization, remove the flag after the upgrade,
-			// just to make sure we are still ineligible for settings synchronization.
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
-				unset( $stripe_settings['pmc_enabled'] );
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			if ( isset( $stripe_settings['pmc_enabled'] ) ) {
+				// If we have previously disabled settings synchronization, remove the flag after the upgrade,
+				// just to make sure we are still ineligible for settings synchronization.
+				if ( 'no' === $stripe_settings['pmc_enabled'] ) {
+					unset( $stripe_settings['pmc_enabled'] );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+					WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+				} else if ( 'yes' === $stripe_settings['pmc_enabled'] ) {
+					// Enable the Optimized Checkout feature by default if not set.
+					// It requires PMC to be enabled.
+					if ( ! isset( $stripe_settings['optimized_checkout_element'] ) ) {
+						$stripe_settings['optimized_checkout_element'] = 'yes';
+						WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+					}
+				}
 			}
 		}
 	}

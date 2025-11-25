@@ -263,7 +263,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options['optimized_checkout_element']      = $this->get_optimized_checkout_element_default_value();
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
@@ -340,17 +339,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			return 'yes';
-		}
-
-		/**
-		 * If user is reconnecting and there are existing settings data, return the value from the settings.
-		 * Otherwise for new connections return 'yes' for `optimized_checkout_element` field.
-		 *
-		 * @return string 'yes' or 'no'
-		 */
-		private function get_optimized_checkout_element_default_value(): string {
-			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			return $existing_stripe_settings['optimized_checkout_element'] ?? 'yes';
 		}
 
 		/**
