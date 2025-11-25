@@ -378,6 +378,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param object $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
+		$order_locked = false;
+
 		try {
 			$order_id = $renewal_order->get_id();
 
@@ -397,7 +399,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 			}
 
-			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+			WC_Stripe_Logger::debug(
+				"Begin processing subscription payment for order {$order_id} for the amount of {$amount}",
+				[
+					'order_id' => $order_id,
+					'amount'   => $amount,
+				]
+			);
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -425,6 +433,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$is_authentication_required = false;
 			} else {
 				$order_helper->lock_order_payment( $renewal_order );
+				$order_locked               = true;
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -479,13 +488,24 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error(
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
+				[
+					'order_id'          => $renewal_order->get_id(),
+					'amount'            => $amount,
+					'error_message'     => $e->getMessage(),
+					'localized_message' => $e->getLocalizedMessage(),
+				]
+			);
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
-			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			$order_helper->unlock_order_payment( $renewal_order );
+
+			if ( $order_locked && isset( $order_helper ) ) {
+				$order_helper->unlock_order_payment( $renewal_order );
+				$order_locked = false;
+			}
 
 			return;
 		}
@@ -552,12 +572,22 @@ trait WC_Stripe_Subscriptions_Trait {
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error(
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
+				[
+					'order_id'          => $renewal_order->get_id(),
+					'amount'            => $amount,
+					'error_message'     => $e->getMessage(),
+					'localized_message' => $e->getLocalizedMessage(),
+				]
+			);
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$order_helper->unlock_order_payment( $renewal_order );
+		if ( $order_locked && isset( $order_helper ) ) {
+			$order_helper->unlock_order_payment( $renewal_order );
+		}
 	}
 
 	/**
