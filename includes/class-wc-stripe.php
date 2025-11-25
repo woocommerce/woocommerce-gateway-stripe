@@ -245,10 +245,8 @@ class WC_Stripe {
 				new WC_Stripe_Settings_Controller( $this->account );
 			}
 
-			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
-				new WC_Stripe_Payment_Gateways_Controller();
-			}
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
+			new WC_Stripe_Payment_Gateways_Controller();
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
