@@ -437,7 +437,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$source        = 'src_123abc';
 		$customer      = 'cus_123abc';
 
-		// Mock prepare_order_source() to return a missing customer.
+		// Mock prepare_order_source() to return a valid customer.
 		$this->wc_gateway_stripe
 			->method( 'prepare_order_source' )
 			->willReturn(

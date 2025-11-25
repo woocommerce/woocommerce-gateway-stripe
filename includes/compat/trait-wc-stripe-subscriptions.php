@@ -523,7 +523,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
-				'Error processing subscription payment: ' . $e->getMessage(),
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
 				[
 					'order_id'          => $renewal_order->get_id(),
 					'amount'            => $amount,
@@ -607,7 +607,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
-				'Error processing subscription payment: ' . $e->getMessage(),
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
 				[
 					'order_id'          => $renewal_order->get_id(),
 					'amount'            => $amount,
