@@ -120,7 +120,8 @@ const PaymentElements = ( {
 	}
 
 	const stripe = api.getStripe();
-	const amount = Number( getBlocksConfiguration()?.cartTotal );
+	const stripeServerData = getBlocksConfiguration();
+	const amount = Number( stripeServerData?.cartTotal );
 
 	// Build options object.
 	let options = {
@@ -135,17 +136,17 @@ const PaymentElements = ( {
 			...{
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
-				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				currency: stripeServerData?.currency.toLowerCase(),
 			},
 		};
 
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.isOCEnabled ) {
 			options = {
 				...options,
 				...{
 					paymentMethodConfiguration:
-						getBlocksConfiguration()
-							?.paymentMethodConfigurationParentId,
+						stripeServerData?.paymentMethodConfigurationId ??
+						stripeServerData?.paymentMethodConfigurationParentId,
 				},
 			};
 		} else {
