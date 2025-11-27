@@ -329,7 +329,13 @@ class WC_Stripe_Database_Cache {
 	 * @return string The key with the prefix.
 	 */
 	private static function add_key_prefix( string $key, ?string $mode = null ): string {
-		$mode = $mode ?? ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+		if ( null === $mode ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		} elseif ( 'live' !== $mode && 'test' !== $mode ) {
+			// Don't allow other values for $mode
+			$mode = 'test';
+		}
+		// Otherwise $mode is either 'live' or 'test'
 		return self::CACHE_KEY_PREFIX . $mode . '_' . $key;
 	}
 
