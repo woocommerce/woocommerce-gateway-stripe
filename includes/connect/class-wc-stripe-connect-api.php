@@ -64,7 +64,35 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-init' : '/stripe/oauth-init';
 
-			return $this->request( 'POST', $path, $request );
+			$cache_hash_data = [
+				'request'    => $business_data,
+				'path'       => $path,
+				'user_login' => $current_user->user_login,
+			];
+			$cache_hash = md5( json_encode( $cache_hash_data ) );
+			$cache_key  = 'oauth_init_' . $cache_hash;
+
+			$cached_response = WC_Stripe_Database_Cache::get_with_mode( $cache_key, $mode );
+
+			if ( ! empty( $cached_response ) ) {
+				WC_Stripe_Logger::debug(
+					'OAuth: Returning cached response for oauth_init',
+					[
+						'mode' => $mode,
+					]
+				);
+				return $cached_response;
+			}
+
+			$result = $this->request( 'POST', $path, $request );
+
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			WC_Stripe_Database_Cache::set_with_mode( $cache_key, $result, 5 * MINUTE_IN_SECONDS, $mode );
+
+			return $result;
 		}
 
 		/**
