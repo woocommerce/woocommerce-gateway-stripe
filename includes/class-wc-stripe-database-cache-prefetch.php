@@ -120,6 +120,15 @@ class WC_Stripe_Database_Cache_Prefetch {
 	}
 
 	/**
+	 * Reset the pending prefetches.
+	 *
+	 * @return void
+	 */
+	public function reset_pending_prefetches(): void {
+		self::$pending_prefetches = [];
+	}
+
+	/**
 	 * Get the prefetch window for a given cache key.
 	 *
 	 * @param string $key The unprefixed cache key to get the prefetch window for.
@@ -150,15 +159,6 @@ class WC_Stripe_Database_Cache_Prefetch {
 		}
 
 		return $prefetch_window;
-	}
-
-	/**
-	 * Reset the pending prefetches.
-	 *
-	 * @return void
-	 */
-	public function reset_pending_prefetches(): void {
-		self::$pending_prefetches = [];
 	}
 
 	/**
