@@ -167,8 +167,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			options = {
 				...options,
 				paymentMethodConfiguration:
-					stripeServerData?.paymentMethodConfigurationId ??
-					stripeServerData?.paymentMethodConfigurationParentId,
+					stripeServerData?.paymentMethodConfigurationId,
 			};
 
 			const setupFutureUsage =

@@ -145,8 +145,7 @@ const PaymentElements = ( {
 				...options,
 				...{
 					paymentMethodConfiguration:
-						stripeServerData?.paymentMethodConfigurationId ??
-						stripeServerData?.paymentMethodConfigurationParentId,
+						stripeServerData?.paymentMethodConfigurationId,
 				},
 			};
 		} else {
