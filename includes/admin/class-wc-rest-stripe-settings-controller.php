@@ -273,7 +273,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
@@ -329,28 +329,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_payment_methods_order( WP_REST_Request $request ) {
-		$is_upe_enabled             = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
 
 		if ( empty( $ordered_payment_method_ids ) ) {
 			return new WP_REST_Response( [], 403 );
 		}
 
-		if ( $is_upe_enabled ) {
-			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
-		} else {
-			$ordered_payment_method_ids = array_map(
-				function ( $id ) {
-					if ( WC_Stripe_Payment_Methods::CARD === $id ) {
-						return 'stripe';
-					}
-					return 'stripe_' . $id;
-				},
-				$ordered_payment_method_ids
-			);
-
-			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
-		}
+		$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
 
 		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
 
