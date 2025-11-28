@@ -21,7 +21,8 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * @var int[]
 	 */
 	protected const PREFETCH_CONFIG = [
-		WC_Stripe_Account::ACCOUNT_CACHE_KEY                             => 10,
+		// Note that prefetching for account data is off by default.
+		WC_Stripe_Account::ACCOUNT_CACHE_KEY                             => 0,
 		WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY => 10,
 	];
 
