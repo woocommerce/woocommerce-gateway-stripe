@@ -22,7 +22,13 @@ const RecurringPaymentIcon = () => {
 				'woocommerce-gateway-stripe'
 			) }
 		>
-			<Icon src={ icon } alt="" />
+			<Icon
+				src={ icon }
+				alt={ __(
+					'Supports recurring payments',
+					'woocommerce-gateway-stripe'
+				) }
+			/>
 		</StyledTooltip>
 	);
 };

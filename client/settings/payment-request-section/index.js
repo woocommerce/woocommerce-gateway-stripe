@@ -23,6 +23,7 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import RecurringPaymentIcon from 'wcstripe/components/recurring-payment-icon';
 
 const PaymentRequestSection = () => {
 	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
@@ -115,10 +116,13 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__label-container">
 								<div className="express-checkout__label">
-									{ __(
-										'Apple Pay / Google Pay',
-										'woocommerce-gateway-stripe'
-									) }
+									<span>
+										{ __(
+											'Apple Pay / Google Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									</span>
+									<RecurringPaymentIcon />
 								</div>
 								<div className="express-checkout__description">
 									{
@@ -185,10 +189,13 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__label-container">
 								<div className="express-checkout__label">
-									{ __(
-										'Link by Stripe',
-										'woocommerce-gateway-stripe'
-									) }
+									<span>
+										{ __(
+											'Link by Stripe',
+											'woocommerce-gateway-stripe'
+										) }
+									</span>
+									<RecurringPaymentIcon />
 								</div>
 								<div className="express-checkout__description">
 									{
@@ -263,10 +270,13 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__label-container">
 								<div className="express-checkout__label">
-									{ __(
-										'Amazon Pay',
-										'woocommerce-gateway-stripe'
-									) }
+									<span>
+										{ __(
+											'Amazon Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									</span>
+									<RecurringPaymentIcon />
 									<PaymentMethodMissingCurrencyPill
 										id="amazon_pay"
 										label={ __(
