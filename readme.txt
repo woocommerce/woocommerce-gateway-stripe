@@ -137,5 +137,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use the built-in Database Cache for the Connect flow data
 * Add - Implement cache prefetch for account data
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Fix - Always use the current payment method configuration in Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
