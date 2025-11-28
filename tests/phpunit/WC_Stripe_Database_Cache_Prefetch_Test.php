@@ -87,28 +87,28 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 	 */
 	public function provide_maybe_queue_prefetch_test_cases(): array {
 		return [
-			'invalid_key_should_not_prefetch'                                            => [ 'invalid_test_key', 5, false ],
-			'pmc_key_expires_in_60_seconds_should_not_prefetch'                          => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 60, false ],
-			'pmc_key_expires_in_5_seconds_should_prefetch'                               => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true ],
-			'pmc_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'        => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, 2 ],
-			'pmc_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch'       => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, -2 ],
-			'pmc_key_expires_in_5_seconds_with_option_set_-11s_should_prefetch'          => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, -11 ],
-			'pmc_key_expires_in_5_seconds_with_invalid_option_should_prefetch'           => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, 'invalid' ],
-			'pmc_key_expires_in_5_seconds_with_20_filter_should_prefetch'                => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, null, 20 ],
-			'pmc_key_expires_in_5_seconds_with_20_filter_option_-11_should_not_prefetch' => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, -11, 20 ],
-			'pmc_key_expires_in_5_seconds_with_0_filter_should_not_prefetch'             => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, 0 ],
-			'pmc_key_expires_in_5_seconds_with_negative_filter_should_not_prefetch'      => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, -3 ],
-			'pmc_key_expires_in_5_seconds_with_invalid_filter_should_prefetch'           => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, null, 'invalid' ],
-			'account_key_expires_in_60_seconds_should_not_prefetch'                      => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 60, false ],
-			'account_key_expires_in_5_seconds_should_not_prefetch'                       => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false ],
-			'account_key_expires_in_5_seconds_with_20_filter_should_prefetch'            => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, true, null, 20 ],
+			'invalid_key_should_not_prefetch'                                                => [ 'invalid_test_key', 5, false ],
+			'pmc_key_expires_in_60_seconds_should_not_prefetch'                              => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 60, false ],
+			'pmc_key_expires_in_5_seconds_should_prefetch'                                   => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true ],
+			'pmc_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'            => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, 2 ],
+			'pmc_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch'           => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, -2 ],
+			'pmc_key_expires_in_5_seconds_with_option_set_-11s_should_prefetch'              => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, -11 ],
+			'pmc_key_expires_in_5_seconds_with_invalid_option_should_prefetch'               => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, 'invalid' ],
+			'pmc_key_expires_in_5_seconds_with_20_filter_should_prefetch'                    => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, null, 20 ],
+			'pmc_key_expires_in_5_seconds_with_20_filter_option_-11_should_not_prefetch'     => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, -11, 20 ],
+			'pmc_key_expires_in_5_seconds_with_0_filter_should_not_prefetch'                 => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, 0 ],
+			'pmc_key_expires_in_5_seconds_with_negative_filter_should_not_prefetch'          => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, -3 ],
+			'pmc_key_expires_in_5_seconds_with_invalid_filter_should_prefetch'               => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, null, 'invalid' ],
+			'account_key_expires_in_60_seconds_should_not_prefetch'                          => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 60, false ],
+			'account_key_expires_in_5_seconds_should_not_prefetch'                           => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false ],
+			'account_key_expires_in_5_seconds_with_20_filter_should_prefetch'                => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, true, null, 20 ],
 			'account_key_expires_in_5_seconds_with_20_filter_option_-11_should_not_prefetch' => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -11, 20 ],
 			'account_key_expires_in_5_seconds_with_0_filter_should_not_prefetch'             => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, null, 0 ],
 			'account_key_expires_in_5_seconds_with_negative_filter_should_not_prefetch'      => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, null, -3 ],
 			'account_key_expires_in_5_seconds_with_invalid_filter_should_not_prefetch'       => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, null, 'invalid' ],
-			'account_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'    => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, 2 ],
-			'account_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch'   => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -2 ],
-			'account_key_expires_in_5_seconds_with_option_set_-11s_should_not_prefetch'  => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -11 ],
+			'account_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'        => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, 2 ],
+			'account_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch'       => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -2 ],
+			'account_key_expires_in_5_seconds_with_option_set_-11s_should_not_prefetch'      => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -11 ],
 		];
 	}
 
@@ -153,7 +153,7 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 		$start_time  = time();
 		$expiry_time = $start_time + $expiry_time_adjustment;
 
-		if ( null == $option_adjusted_time ) {
+		if ( null === $option_adjusted_time ) {
 			delete_option( $option_name );
 		} elseif ( is_int( $option_adjusted_time ) ) {
 			$initial_option_value = $start_time + $option_adjusted_time;
