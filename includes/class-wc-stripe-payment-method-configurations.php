@@ -334,6 +334,24 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the current payment method configuration ID.
+	 *
+	 * @return string|null The payment method configuration ID when settings sync is enabled and we have a PMC. Null otherwise.
+	 */
+	public static function get_configuration_id(): ?string {
+		if ( ! self::is_enabled() ) {
+			return null;
+		}
+
+		$primary_configuration = self::get_primary_configuration();
+		if ( ! $primary_configuration || empty( $primary_configuration->id ) ) {
+			return null;
+		}
+
+		return (string) $primary_configuration->id;
+	}
+
+	/**
 	 * Get the UPE available payment method IDs.
 	 *
 	 * @return array
