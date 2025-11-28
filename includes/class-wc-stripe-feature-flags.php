@@ -128,7 +128,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool Whether the APMs are deprecated.
 	 */
 	public static function are_apms_deprecated() {
-		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-28' && ! self::is_upe_checkout_enabled();
+		return false;
 	}
 
 	/**

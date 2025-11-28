@@ -18,6 +18,7 @@ import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 /**
@@ -120,7 +121,8 @@ const PaymentElements = ( {
 	}
 
 	const stripe = api.getStripe();
-	const amount = Number( getBlocksConfiguration()?.cartTotal );
+	const stripeServerData = getBlocksConfiguration();
+	const amount = Number( stripeServerData?.cartTotal );
 
 	// Build options object.
 	let options = {
@@ -135,17 +137,18 @@ const PaymentElements = ( {
 			...{
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
-				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				currency: stripeServerData?.currency.toLowerCase(),
 			},
 		};
 
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.isOCEnabled ) {
 			options = {
 				...options,
 				...{
 					paymentMethodConfiguration:
-						getBlocksConfiguration()
-							?.paymentMethodConfigurationParentId,
+						stripeServerData?.paymentMethodConfigurationId,
+					// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
+					excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
 				},
 			};
 		} else {

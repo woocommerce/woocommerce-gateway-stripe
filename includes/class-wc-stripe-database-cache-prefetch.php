@@ -21,6 +21,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * @var int[]
 	 */
 	protected const PREFETCH_CONFIG = [
+		WC_Stripe_Account::ACCOUNT_CACHE_KEY                             => 10,
 		WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY => 10,
 	];
 
@@ -35,6 +36,13 @@ class WC_Stripe_Database_Cache_Prefetch {
 	 * The singleton instance.
 	 */
 	private static ?WC_Stripe_Database_Cache_Prefetch $instance = null;
+
+	/**
+	 * Static array to track pending prefetches which we have already queued up in the current request.
+	 *
+	 * @var bool[]
+	 */
+	private static array $pending_prefetches = [];
 
 	/**
 	 * Protected constructor to support singleton pattern.
@@ -86,8 +94,12 @@ class WC_Stripe_Database_Cache_Prefetch {
 			'expiry_time' => $expiry_time,
 		];
 
-		if ( $this->is_prefetch_queued( $key ) ) {
-			WC_Stripe_Logger::debug( 'Cache prefetch already pending', $logging_context );
+		if ( $this->is_prefetch_queued( $key ) || isset( self::$pending_prefetches[ $key ] ) ) {
+			// Only log a message once per key per request.
+			if ( ! isset( self::$pending_prefetches[ $key ] ) ) {
+				WC_Stripe_Logger::debug( 'Cache prefetch already pending', $logging_context );
+				self::$pending_prefetches[ $key ] = true;
+			}
 			return;
 		}
 
@@ -103,8 +115,18 @@ class WC_Stripe_Database_Cache_Prefetch {
 			WC_Stripe_Logger::warning( 'Failed to enqueue cache prefetch', $logging_context );
 		} else {
 			update_option( $prefetch_option_key, time() );
+			self::$pending_prefetches[ $key ] = true;
 			WC_Stripe_Logger::debug( 'Enqueued cache prefetch', $logging_context );
 		}
+	}
+
+	/**
+	 * Reset the pending prefetches.
+	 *
+	 * @return void
+	 */
+	public function reset_pending_prefetches(): void {
+		self::$pending_prefetches = [];
 	}
 
 	/**
@@ -194,6 +216,10 @@ class WC_Stripe_Database_Cache_Prefetch {
 		$prefetched = null;
 
 		switch ( $key ) {
+			case WC_Stripe_Account::ACCOUNT_CACHE_KEY:
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( null, true );
+				$prefetched = ! empty( $account_data );
+				break;
 			case WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY:
 				if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 					WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( true );
