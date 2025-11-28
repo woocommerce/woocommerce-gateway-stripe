@@ -207,37 +207,64 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for get_cached_account_data() with test mode parameter.
+	 * Provide test cases for {@see test_get_cached_account_data()}.
+	 *
+	 * @return array Array of test cases.
 	 */
-	public function test_get_cached_account_data_test_mode() {
-		$this->mock_connect->method( 'is_connected' )->with( 'test' )->willReturn( true );
-
-		// Test mode account data.
-		$account = [
-			'id'      => 'acct_1234',
-			'email'   => 'test@example.com',
-			'country' => 'US',
+	public function provide_get_cached_account_data_test_cases(): array {
+		return [
+			'test mode with force_refresh enabled'       => [ 'test', true ],
+			'test mode with force_refresh disabled'      => [ 'test', false ],
+			'test mode with force_refresh not specified' => [ 'test', null ],
+			'live mode with force_refresh enabled'       => [ 'live', true ],
+			'live mode with force_refresh disabled'      => [ 'live', false ],
+			'live mode with force_refresh not specified' => [ 'live', null ],
 		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-
-		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
 	}
 
 	/**
-	 * Test for get_cached_account_data() with live mode parameter.
+	 * Test for get_cached_account_data() with force refresh parameter.
+	 *
+	 * @param string $mode             The mode to get the account data for.
+	 * @param bool|null $force_refresh Whether to force refresh the account data. Null will use the default behavior.
+	 *
+	 * @dataProvider provide_get_cached_account_data_test_cases
 	 */
-	public function test_get_cached_account_data_live_mode() {
-		$this->mock_connect->method( 'is_connected' )->with( 'live' )->willReturn( true );
+	public function test_get_cached_account_data( string $mode, ?bool $force_refresh = null ) {
+		$this->mock_connect->method( 'is_connected' )
+			->with( $mode )
+			->willReturn( true );
 
-		// Live mode account data.
-		$account = [
-			'id'      => 'acct_1234',
-			'email'   => 'live@example.com',
-			'country' => 'US',
-		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+		$email_prefix = 'test' === $mode ? 'test' : 'live';
 
-		$this->assertSame( $this->account->get_cached_account_data( 'live' ), $account );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+
+		if ( true === $force_refresh ) {
+			$account_data = [
+				'id'      => '4321',
+				'email'   => "$email_prefix-fetched@example.com",
+				'country' => 'US',
+			];
+
+			WC_Helper_Stripe_Api::$retrieve_response = $account_data;
+		} else {
+			$account_data = [
+				'id'      => '1234',
+				'email'   => "$email_prefix-cached@example.com",
+				'country' => 'US',
+			];
+
+			WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account_data );
+		}
+
+		if ( null === $force_refresh ) {
+			$result = $this->account->get_cached_account_data( $mode );
+		} else {
+			$result = $this->account->get_cached_account_data( $mode, $force_refresh );
+		}
+
+		// Assert that the account data is as expected.
+		$this->assertSame( $account_data, $result );
 	}
 
 	/**
