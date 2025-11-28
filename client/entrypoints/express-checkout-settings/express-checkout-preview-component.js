@@ -84,6 +84,8 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 			link: 'never',
 			googlePay: 'always',
 			applePay: 'always',
+			amazonPay: 'never',
+			klarna: 'never',
 		},
 		layout: { overflow: 'never' },
 	};

@@ -3,7 +3,6 @@
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WC_Gateway_Stripe;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
 use WC_Shipping_Zone;
@@ -13,7 +12,6 @@ use WC_Stripe_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Cart;
 use WC_Subscriptions_Product;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
@@ -45,6 +43,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			delete_option( $this->shipping_method->get_instance_option_key() );
 			$this->shipping_zone->delete();
 		}
+
+		delete_option( 'woocommerce_calc_taxes' );
+		delete_option( 'woocommerce_tax_based_on' );
 
 		parent::tear_down();
 	}
@@ -102,21 +103,15 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			remove_filter( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', '__return_true' );
 		}
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-			[ $gateway ]
-		);
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
 
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
@@ -125,7 +120,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe' => new WC_Gateway_Stripe(),
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
 
 		if ( $is_pay_for_order ) {
@@ -269,24 +264,19 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_hides_ece_if_stripe_gateway_unavailable() {
 		$this->set_up_shipping_methods();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-			[ $gateway ]
-		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->onlyMethods( [ 'is_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->getMock();
+
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
@@ -304,7 +294,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe'        => new WC_Gateway_Stripe(),
+			'stripe'        => new WC_Stripe_UPE_Payment_Gateway(),
 			'stripe_alipay' => new WC_Gateway_Stripe_Alipay(),
 		];
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
@@ -327,21 +317,19 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_hides_ece_if_free_trial_requires_shipping() {
 		$this->set_up_shipping_methods();
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'get_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-		);
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
 
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $mock_gateway ] )
+			->onlyMethods( [ 'is_product', 'get_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->getMock();
+
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
@@ -351,7 +339,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
-			'stripe' => new WC_Gateway_Stripe(),
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
 
 		update_option( 'woocommerce_calc_taxes', 'no' );
@@ -368,7 +356,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
 		$wc_stripe_ece_helper_mock
-			->expects( $this->any() )
 			->method( 'get_product' )
 			->willReturn( $virtual_product );
 
@@ -385,7 +372,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$wc_stripe_ece_helper_mock
-			->expects( $this->any() )
 			->method( 'get_product' )
 			->willReturn( $shippable_product );
 
@@ -431,7 +417,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_checkout_data_no_shipping_zones() {
 		// When no shipping zones are set up, the default shipping option should be empty.
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -444,7 +430,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_authentication_required().
 	 */
 	public function test_is_authentication_required() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -455,8 +441,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )
-			->method( 'is_account_creation_possible' )
+		$wc_stripe_ece_helper_mock->method( 'is_account_creation_possible' )
 			->willReturnOnConsecutiveCalls( true, false );
 
 		// Guest checkout is enabled.
@@ -476,7 +461,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_account_creation_possible().
 	 */
 	public function test_is_account_creation_possible() {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -487,8 +472,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock->expects( $this->any() )
-			->method( 'has_subscription_product' )
+		$wc_stripe_ece_helper_mock->method( 'has_subscription_product' )
 			->willReturn( false );
 
 		// Account creation on checkout is enabled.
@@ -511,8 +495,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 			[ $gateway ]
 		);
-		$wc_stripe_ece_helper_mock2->expects( $this->any() )
-			->method( 'has_subscription_product' )
+		$wc_stripe_ece_helper_mock2->method( 'has_subscription_product' )
 			->willReturn( true );
 
 		// Account creation on checkout is disabled.
@@ -592,8 +575,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			[ 'is_request_to_store_api' ]
 		);
 
-		$helper->expects( $this->any() )
-			->method( 'is_request_to_store_api' )
+		$helper->method( 'is_request_to_store_api' )
 			->willReturn( $is_store_api );
 
 		// Set up $_SERVER superglobal for headers
@@ -984,6 +966,230 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'cart contains free trial' => true,
 				'expected'                 => true,
 			],
+		];
+	}
+
+	/**
+	 * Tests for `is_cart`.
+	 *
+	 * @return void
+	 */
+	public function test_is_cart(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$actual = $helper->is_cart();
+
+		// Clean up.
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$this->assertTrue( $actual );
+
+		$actual = $helper->is_cart();
+
+		$this->assertFalse( $actual );
+	}
+
+	/**
+	 * Tests for `get_button_locations`.
+	 *
+	 * @param string $express_checkout_type Express checkout type.
+	 * @param array  $settings              Settings array.
+	 * @param array  $expected              Expected locations.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_button_locations
+	 */
+	public function test_get_button_locations( string $express_checkout_type, array $settings = [], $expected = [] ): void {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_button_locations( $express_checkout_type );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_test_get_button_locations(): array {
+		return [
+			'payment request, settings exists' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'payment request, settings exists, but not a valid array' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'payment request, settings do not exist' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'link, settings exists' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
+				'expected'              => [ 'cart' ],
+			],
+			'link, settings exists, but not a valid array' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'link, settings do not exist' => [
+				'express checkout type' => 'link',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'amazon pay, settings exists' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
+				'expected'              => [ 'checkout' ],
+			],
+			'amazon pay, settings exists, but not a valid array' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'amazon pay, settings do not exist' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'default, settings exists' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'default, settings exists, but not a valid array' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'default, settings do not exist' => [
+				'express checkout type' => 'default',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+		];
+	}
+
+	/**
+	 * Test that OPC detection logic works correctly.
+	 *
+	 * @dataProvider provide_opc_detection_scenarios
+	 *
+	 * @param bool  $is_opc Whether the page is detected as One Page Checkout.
+	 * @param array $button_locations Button location settings.
+	 * @param bool  $expected Expected result for should_show_express_checkout_button.
+	 *
+	 * @return void
+	 */
+	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ) {
+		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['express_checkout_button_locations'] = $button_locations;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->onlyMethods( [ 'is_one_page_checkout', 'is_product', 'is_checkout', 'allowed_items_in_cart', 'get_product' ] )
+			->getMock();
+
+		// Create a mock product.
+		$product = WC_Helper_Product::create_simple_product();
+		$is_product_page = $is_opc || in_array( 'product', $button_locations, true );
+
+		// Mock the methods.
+		$wc_stripe_ece_helper_mock->method( 'is_one_page_checkout' )->willReturn( $is_opc );
+		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( $is_product_page );
+		$wc_stripe_ece_helper_mock->method( 'is_checkout' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->method( 'get_product' )->willReturn( $is_product_page ? $product : false );
+
+		// Manually set the properties that would be set in the constructor.
+		$wc_stripe_ece_helper_mock->stripe_settings = $stripe_settings;
+		$wc_stripe_ece_helper_mock->testmode        = true;
+
+		// Ensure that the 'stripe' gateway is available.
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
+		];
+
+		// Test the actual OPC logic in should_show_express_checkout_button.
+		$result = $wc_stripe_ece_helper_mock->should_show_express_checkout_button();
+
+		$this->assertEquals( $expected, $result );
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+	}
+
+	/**
+	 * Data provider for OPC detection scenarios.
+	 *
+	 * @return array
+	 */
+	public function provide_opc_detection_scenarios() {
+		return [
+			'OPC with checkout enabled'     => [ true, [ 'checkout' ], true ],
+			'Non-OPC with checkout enabled' => [ false, [ 'checkout' ], true ],
+			'OPC with checkout disabled'    => [ true, [ 'product' ], false ],
+			'OPC with both enabled'         => [ true, [ 'checkout', 'product' ], true ],
+		];
+	}
+
+	/**
+	 * Test that the express checkout button is shown or hidden when Amazon Pay is the only enabled method.
+	 *
+	 * @param bool   $taxes_enabled Whether taxes are enabled.
+	 * @param string $tax_based_on  The tax based on option.
+	 * @param bool   $expected      Expected result.
+	 * @return void
+	 * @dataProvider provide_test_should_show_express_checkout_button_with_amazon_pay_only
+	 */
+	public function test_should_show_express_checkout_button_with_amazon_pay_only( bool $taxes_enabled, string $tax_based_on, bool $expected ): void {
+		update_option( 'woocommerce_calc_taxes', $taxes_enabled ? 'yes' : 'no' );
+		update_option( 'woocommerce_tax_based_on', $tax_based_on );
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_amazon_pay_enabled', 'is_payment_request_enabled', 'is_link_enabled' ] )
+			->getMock();
+
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_payment_request_enabled' )->willReturn( false );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->testmode = true;
+
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
+		];
+
+		$result = $helper->should_show_express_checkout_button();
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		$this->assertEquals( $expected, $result );
+	}
+
+	/**
+	 * Data provider for {@see test_should_show_express_checkout_button_with_amazon_pay_only()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_express_checkout_button_with_amazon_pay_only(): array {
+		return [
+			'taxes enabled, billing address' => [ true, 'billing', false ],
+			'taxes disabled, billing address' => [ false, 'billing', true ],
+			'taxes enabled, shipping address' => [ true, 'shipping', true ],
+			'taxes disabled, shipping address' => [ false, 'shipping', true ],
 		];
 	}
 }

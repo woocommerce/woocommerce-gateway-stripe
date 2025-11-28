@@ -70,11 +70,6 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 			return false;
 		}
 
-		// Amazon Pay is disabled if UPE is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return false;
-		}
-
 		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );

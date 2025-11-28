@@ -127,7 +127,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
 		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->id                       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];

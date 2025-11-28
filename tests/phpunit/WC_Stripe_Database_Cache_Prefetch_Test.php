@@ -12,6 +12,15 @@ namespace WooCommerce\Stripe\Tests;
 class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 
 	/**
+	 * Ensure we clean up the pending prefetch data after each test.
+	 */
+	public function tearDown(): void {
+		\WC_Stripe_Database_Cache_Prefetch::get_instance()->reset_pending_prefetches();
+
+		parent::tearDown();
+	}
+
+	/**
 	 * Provide test cases for {@see test_handle_prefetch_action()}.
 	 *
 	 * @return array
@@ -90,6 +99,12 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 			'pmc_key_expires_in_5_seconds_with_0_filter_should_not_prefetch'             => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, 0 ],
 			'pmc_key_expires_in_5_seconds_with_negative_filter_should_not_prefetch'      => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, false, null, -3 ],
 			'pmc_key_expires_in_5_seconds_with_invalid_filter_should_prefetch'           => [ \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 5, true, null, 'invalid' ],
+			'account_key_expires_in_60_seconds_should_not_prefetch'                      => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 60, false ],
+			'account_key_expires_in_5_seconds_should_prefetch'                           => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, true ],
+			'account_key_expires_in_5_seconds_with_option_set_2s_should_not_prefetch'    => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, 2 ],
+			'account_key_expires_in_5_seconds_with_option_set_-2s_should_not_prefetch'   => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, false, -2 ],
+			'account_key_expires_in_5_seconds_with_option_set_-11s_should_prefetch'      => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, true, -11 ],
+			'account_key_expires_in_5_seconds_with_invalid_option_should_prefetch'       => [ \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 5, true, 'invalid' ],
 		];
 	}
 

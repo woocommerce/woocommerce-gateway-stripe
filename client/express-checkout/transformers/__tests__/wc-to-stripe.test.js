@@ -1,5 +1,6 @@
 import {
 	transformPrice,
+	transformPriceWithMinorUnits,
 	transformCartDataForDisplayItems,
 } from '../wc-to-stripe';
 
@@ -356,6 +357,124 @@ describe( 'wc-to-stripe transformers', () => {
 			expect( transformPrice( 180, { currency_minor_unit: 1 } ) ).toBe(
 				18
 			);
+		} );
+	} );
+
+	describe( 'transformPriceWithMinorUnits', () => {
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params.checkout
+				.currency_decimals;
+		} );
+
+		const testCases = {
+			'minor units of 3 with Woo default (2)': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 1800,
+			},
+			'minor units of 2 with Woo default (2)': {
+				price: 180,
+				minorUnits: 2,
+				expected: 180,
+			},
+			'minor units of 1 with Woo default (2)': {
+				price: 180,
+				minorUnits: 1,
+				expected: 1800,
+			},
+			'minor units of 0 with Woo default (2)': {
+				price: 180,
+				minorUnits: 0,
+				expected: 18000,
+			},
+			'minor units of 3 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 3,
+				expected: 180,
+				currencyDecimals: 2,
+			},
+			'minor units of 2 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 1800,
+				currencyDecimals: 2,
+			},
+			'minor units of 1 with explicit currency decimals 2': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 18000,
+				currencyDecimals: 2,
+			},
+			'minor units of 0 with explicit currency decimals 2': {
+				price: 180,
+				minorUnits: 0,
+				expected: 18000,
+				currencyDecimals: 2,
+			},
+			'minor units of 3 with explicit currency decimals 1': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 180,
+				currencyDecimals: 1,
+			},
+			'minor units of 2 with explicit currency decimals 1': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 180,
+				currencyDecimals: 1,
+			},
+			'minor units of 1 with explicit currency decimals 1': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 1800,
+				currencyDecimals: 1,
+			},
+			'minor units of 0 with explicit currency decimals 1': {
+				price: 180,
+				minorUnits: 0,
+				expected: 1800,
+				currencyDecimals: 1,
+			},
+			'minor units of 3 with explicit currency decimals 0': {
+				price: 18000,
+				minorUnits: 3,
+				expected: 18,
+				currencyDecimals: 0,
+			},
+			'minor units of 2 with explicit currency decimals 0': {
+				price: 1800,
+				minorUnits: 2,
+				expected: 18,
+				currencyDecimals: 0,
+			},
+			'minor units of 1 with explicit currency decimals 0': {
+				price: 1800,
+				minorUnits: 1,
+				expected: 180,
+				currencyDecimals: 0,
+			},
+			'minor units of 0 with explicit currency decimals 0': {
+				price: 180,
+				minorUnits: 0,
+				expected: 180,
+				currencyDecimals: 0,
+			},
+		};
+
+		Object.entries( testCases ).forEach( ( [ description, testCase ] ) => {
+			// eslint-disable-next-line jest/valid-title
+			it( description, () => {
+				if ( undefined !== testCase.currencyDecimals ) {
+					global.wc_stripe_express_checkout_params.checkout.currency_decimals =
+						testCase.currencyDecimals;
+				}
+				expect(
+					transformPriceWithMinorUnits(
+						testCase.price,
+						testCase.minorUnits
+					)
+				).toBe( testCase.expected );
+			} );
 		} );
 	} );
 } );

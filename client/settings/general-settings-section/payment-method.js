@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useManualCapture } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
@@ -65,6 +65,7 @@ const PaymentMethod = ( { method, data } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const paymentMethodUnavailableReason =
 		usePaymentMethodUnavailableReason( method );
+	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 
 	const {
 		Icon,
@@ -84,7 +85,10 @@ const PaymentMethod = ( { method, data } ) => {
 		wc_stripe_settings_params.are_apms_deprecated &&
 		method !== PAYMENT_METHOD_CARD;
 
-	const isDisabled = paymentMethodUnavailableReason !== null;
+	// If the payment method is unavailable and enabled, we should not disable so it can be unchecked.
+	const isDisabled =
+		paymentMethodUnavailableReason !== null &&
+		! enabledPaymentMethods.includes( method );
 
 	return (
 		<div key={ method }>

@@ -4,7 +4,6 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Method_OC;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WP_UnitTestCase;
 
 /**

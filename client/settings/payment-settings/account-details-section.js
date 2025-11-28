@@ -13,6 +13,7 @@ import { useDispatch } from '@wordpress/data';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
+import { recordEvent } from 'wcstripe/tracking';
 
 const HeaderDetails = styled.div`
 	display: flex;
@@ -97,6 +98,21 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const headingRef = useRef( null );
 	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
+	const oauthConnected = isTestMode
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
+
+	const handleButtonClick = () => {
+		const mode = isTestMode ? 'test' : 'live';
+		if ( ! oauthConnected ) {
+			recordEvent( 'wcstripe_reconnect_button_click', {
+				source: 'account_details_section',
+				mode,
+			} );
+		}
+
+		setModalType( mode );
+	};
 
 	useEffect( () => {
 		if ( ! headingRef.current ) {
@@ -146,9 +162,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 				<Button
 					variant="secondary"
 					id="btn-configure-connection"
-					onClick={ () =>
-						setModalType( isTestMode ? 'test' : 'live' )
-					}
+					onClick={ handleButtonClick }
 				>
 					{ __(
 						'Configure connection',

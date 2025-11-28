@@ -1,5 +1,5 @@
 import React from 'react';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';

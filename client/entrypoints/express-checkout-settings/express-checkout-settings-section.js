@@ -1,12 +1,8 @@
-/* global wc_stripe_payment_request_settings_params */
-
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
-import interpolateComponents from 'interpolate-components';
-import { Elements } from '@stripe/react-stripe-js';
+import interpolateComponents from '@automattic/interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutButtonPreview from './express-checkout-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
@@ -87,41 +83,28 @@ const buttonActionOptions = [
 	},
 ];
 
-const makeButtonThemeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			br: <br />,
-			helpText: (
-				<span className="payment-method-settings__option-help-text" />
-			),
-		},
-	} );
 const buttonThemeOptions = [
 	{
-		label: makeButtonThemeText(
-			__(
-				'Dark {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Dark', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for white or light-colored backgrounds with high contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'dark',
 	},
 	{
-		label: makeButtonThemeText(
-			__(
-				'Light {{br/}}{{helpText}}Recommended for dark or colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Light', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for dark or colored backgrounds with high contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'light',
 	},
 	{
-		label: makeButtonThemeText(
-			__(
-				'Outline {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with insufficient contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
+		label: __( 'Outline', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Recommended for white or light-colored backgrounds with insufficient contrast.',
+			'woocommerce-gateway-stripe'
 		),
 		value: 'light-outline',
 	},
@@ -134,8 +117,6 @@ const ExpressCheckoutSettingsSection = () => {
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const isECEEnabled =
-		wc_stripe_payment_request_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -283,18 +264,12 @@ const ExpressCheckoutSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					{ isECEEnabled ? (
-						<ExpressCheckoutPreviewComponent
-							stripe={ stripePromise }
-							buttonType={ buttonType }
-							theme={ theme }
-							size={ size }
-						/>
-					) : (
-						<Elements stripe={ stripePromise }>
-							<ExpressCheckoutButtonPreview />
-						</Elements>
-					) }
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						buttonType={ buttonType }
+						theme={ theme }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>
