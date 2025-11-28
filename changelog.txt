@@ -25,6 +25,8 @@
 * Fix - Fix error handling when processing subscription renewals
 * Fix - Use the built-in Database Cache for the Connect flow data
 * Add - Implement cache prefetch for account data
+* Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
@@ -62,7 +64,6 @@
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices
-* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
 
 = 10.0.0 - 2025-10-14 =
 * Update - Removes frontend code related to Payment Request Buttons in the checkout page
