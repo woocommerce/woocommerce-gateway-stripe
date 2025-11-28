@@ -152,11 +152,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return $this->woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id );
-		} else {
-			return $this->woocommerce_get_customer_payment_tokens_legacy( $tokens, $user_id, $gateway_id );
-		}
+		return $this->woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id );
 	}
 
 	/**
@@ -474,31 +470,17 @@ class WC_Stripe_Payment_Tokens {
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
 		try {
-			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-				// If it's not reusable payment method, we don't need to perform any additional checks.
-				if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
-					return;
-				}
-
-				/**
-				 * 1. Check if it's live mode.
-				 * 2. Check if it's admin.
-				 * 3. Check if it's not production environment.
-				 * When all conditions are met, we don't want to delete the payment method from Stripe.
-				 * This is to avoid detaching the payment method from the live stripe account on non production environments.
-				 */
-				if (
-					WC_Stripe_Mode::is_live() &&
-					is_admin() &&
-					'production' !== wp_get_environment_type()
-				) {
-					return;
-				}
-
-				$stripe_customer->detach_payment_method( $token->get_token() );
-			} elseif ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() || WC_Stripe_Payment_Methods::LEGACY_SEPA === $token->get_gateway_id() ) {
-				$stripe_customer->delete_source( $token->get_token() );
+			// If it's not reusable payment method, we don't need to perform any additional checks.
+			if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+				return;
 			}
+
+			// Check if we should detach the payment method from the customer.
+			if ( ! WC_Stripe_API::should_detach_payment_method_from_customer() ) {
+				return;
+			}
+
+			$stripe_customer->detach_payment_method( $token->get_token() );
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}

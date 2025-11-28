@@ -244,9 +244,12 @@ class WC_Stripe_Customer {
 		 * Filters the required customer fields when creating a customer in Stripe.
 		 *
 		 * @since 9.7.0
-		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout. In some contexts, like adding a payment method, we allow minimal details to be provided.
+		 * @since 10.2.0 Added the $create_customer_request parameter.
+		 *
+		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout. In some contexts, like adding a payment method, we allow minimal details to be provided.
+		 * @param array $create_customer_request The initial data to build the customer request. This can be used to provide country-specific conditions.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context ) );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context ), $create_customer_request );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {

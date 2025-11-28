@@ -80,7 +80,21 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	public static function set( $key, $data, $ttl = HOUR_IN_SECONDS ) {
-		$prefixed_key = self::add_key_prefix( $key );
+		self::set_with_mode( $key, $data, $ttl, null );
+	}
+
+	/**
+	 * Stores a value in the cache for the specified mode.
+	 *
+	 * @param string $key The key to store the value under.
+	 * @param mixed  $data The value to store.
+	 * @param int    $ttl  The TTL of the cache. Dafault 1 hour.
+	 * @param string|null $mode The mode to use as prefix for the key. Default is null, which means the current plugin mode.
+	 *
+	 * @return void
+	 */
+	public static function set_with_mode( $key, $data, $ttl = HOUR_IN_SECONDS, ?string $mode = null ) {
+		$prefixed_key = self::add_key_prefix( $key, $mode );
 		self::write_to_cache( $prefixed_key, $data, $ttl );
 	}
 
@@ -94,7 +108,21 @@ class WC_Stripe_Database_Cache {
 	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get( $key ) {
-		$prefixed_key = self::add_key_prefix( $key );
+		return self::get_with_mode( $key, null );
+	}
+
+	/**
+	 * Gets a value from the cache for the specified mode.
+	 *
+	 * The key is automatically prefixed with "wcstripe_cache_[mode]_".
+	 *
+	 * @param string $key       The key to look for.
+	 * @param string|null $mode The mode to use as prefix for the key. Default is null, which means the current plugin mode.
+	 *
+	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
+	 */
+	public static function get_with_mode( $key, ?string $mode = null ) {
+		$prefixed_key = self::add_key_prefix( $key, $mode );
 		$cache_contents = self::get_from_cache( $prefixed_key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
 			if ( self::is_expired( $prefixed_key, $cache_contents ) ) {
@@ -119,8 +147,19 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	public static function delete( $key ) {
-		$prefixed_key = self::add_key_prefix( $key );
+		self::delete_with_mode( $key, null );
+	}
 
+	/**
+	 * Deletes a value from the cache for the specified mode.
+	 *
+	 * @param string $key  The key to delete.
+	 * @param string $mode The mode to use as prefix for the key. Default is null, which means the current plugin mode.
+	 *
+	 * @return void
+	 */
+	public static function delete_with_mode( $key, ?string $mode = null ): void {
+		$prefixed_key = self::add_key_prefix( $key, $mode );
 		self::delete_from_cache( $prefixed_key );
 	}
 
@@ -284,13 +323,20 @@ class WC_Stripe_Database_Cache {
 	 * Adds the CACHE_KEY_PREFIX + plugin mode prefix to the key.
 	 * Ex: "wcstripe_cache_[mode]_[key].
 	 *
-	 * @param string $key The key to add the prefix to.
+	 * @param string $key       The key to add the prefix to.
+	 * @param string|null $mode The mode to use as prefix for the key. Default is null, which means the current plugin mode.
 	 *
 	 * @return string The key with the prefix.
 	 */
-	private static function add_key_prefix( $key ) {
-		$mode = WC_Stripe_Mode::is_test() ? 'test_' : 'live_';
-		return self::CACHE_KEY_PREFIX . $mode . $key;
+	private static function add_key_prefix( string $key, ?string $mode = null ): string {
+		if ( null === $mode ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		} elseif ( 'live' !== $mode && 'test' !== $mode ) {
+			// Don't allow other values for $mode
+			$mode = 'test';
+		}
+		// Otherwise $mode is either 'live' or 'test'
+		return self::CACHE_KEY_PREFIX . $mode . '_' . $key;
 	}
 
 	/**
