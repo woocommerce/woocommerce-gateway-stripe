@@ -167,6 +167,143 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for {@see test_set_with_mode()}, {@see test_get_with_mode()}, and {@see test_delete_with_mode()}.
+	 *
+	 * @return array Array of test cases.
+	 */
+	public function provide_mode_test_cases() {
+		return [
+			'test_mode' => [
+				'mode' => 'test',
+				'key'  => 'mode_test_key',
+				'data' => 'mode_test_data',
+			],
+			'live_mode' => [
+				'mode' => 'live',
+				'key'  => 'mode_live_key',
+				'data' => 'mode_live_data',
+			],
+			'null_mode' => [
+				'mode' => null,
+				'key'  => 'mode_null_key',
+				'data' => 'mode_null_data',
+			],
+		];
+	}
+
+	/**
+	 * Test set_with_mode with different modes.
+	 *
+	 * @dataProvider provide_mode_test_cases
+	 * @param string|null $mode The mode to test.
+	 * @param string      $key  The cache key.
+	 * @param mixed       $data The data to cache.
+	 */
+	public function test_set_with_mode( ?string $mode, string $key, $data ) {
+		WC_Stripe_Database_Cache::set_with_mode( $key, $data, HOUR_IN_SECONDS, $mode );
+		$result = WC_Stripe_Database_Cache::get_with_mode( $key, $mode );
+
+		$this->assertEquals( $data, $result );
+
+		// For null mode, verify it's stored with the current mode prefix.
+		if ( null === $mode ) {
+			$current_mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$prefixed_key = 'wcstripe_cache_' . $current_mode . '_' . $key;
+			$cache_contents = get_option( $prefixed_key );
+			$this->assertNotFalse( $cache_contents );
+			$this->assertEquals( $data, $cache_contents['data'] );
+		}
+	}
+
+	/**
+	 * Test get_with_mode with different modes.
+	 *
+	 * @dataProvider provide_mode_test_cases
+	 * @param string|null $mode The mode to test.
+	 * @param string      $key  The cache key.
+	 * @param mixed       $data The data to cache.
+	 */
+	public function test_get_with_mode( ?string $mode, string $key, $data ) {
+		WC_Stripe_Database_Cache::set_with_mode( $key, $data, HOUR_IN_SECONDS, $mode );
+		$result = WC_Stripe_Database_Cache::get_with_mode( $key, $mode );
+
+		$this->assertEquals( $data, $result );
+	}
+
+	/**
+	 * Data provider for {@see test_get_with_mode_non_existent_key()}.
+	 *
+	 * @return array Array of test cases.
+	 */
+	public function provide_get_with_mode_non_existent_key_test_cases() {
+		return [
+			'test_mode' => [ 'test' ],
+			'live_mode' => [ 'live' ],
+			'null_mode' => [ null ],
+		];
+	}
+
+	/**
+	 * Test get_with_mode returns null for non-existent key in specific mode.
+	 *
+	 * @dataProvider provide_get_with_mode_non_existent_key_test_cases
+	 * @param string|null $mode The mode to test.
+	 */
+	public function test_get_with_mode_non_existent_key( ?string $mode ) {
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( 'non_existent_key', $mode ) );
+	}
+
+	/**
+	 * Test delete_with_mode with different modes.
+	 *
+	 * @dataProvider provide_mode_test_cases
+	 * @param string|null $mode The mode to test.
+	 * @param string      $key  The cache key.
+	 * @param mixed       $data The data to cache.
+	 */
+	public function test_delete_with_mode( ?string $mode, string $key, $data ) {
+		// Set data in the specified mode.
+		WC_Stripe_Database_Cache::set_with_mode( $key, $data, HOUR_IN_SECONDS, $mode );
+		$this->assertEquals( $data, WC_Stripe_Database_Cache::get_with_mode( $key, $mode ) );
+
+		// Delete from the specified mode.
+		WC_Stripe_Database_Cache::delete_with_mode( $key, $mode );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( $key, $mode ) );
+	}
+
+	/**
+	 * Test cross-mode isolation - data stored in different modes are isolated.
+	 */
+	public function test_cross_mode_isolation() {
+		$key        = 'cross_mode_key';
+		$test_data  = 'test_mode_data';
+		$live_data  = 'live_mode_data';
+
+		// Set data in test mode.
+		WC_Stripe_Database_Cache::set_with_mode( $key, $test_data, HOUR_IN_SECONDS, 'test' );
+
+		// Set different data in live mode.
+		WC_Stripe_Database_Cache::set_with_mode( $key, $live_data, HOUR_IN_SECONDS, 'live' );
+
+		// Verify test mode returns test data.
+		$test_result = WC_Stripe_Database_Cache::get_with_mode( $key, 'test' );
+		$this->assertEquals( $test_data, $test_result );
+
+		// Verify live mode returns live data.
+		$live_result = WC_Stripe_Database_Cache::get_with_mode( $key, 'live' );
+		$this->assertEquals( $live_data, $live_result );
+
+		// Delete only from test mode.
+		WC_Stripe_Database_Cache::delete_with_mode( $key, 'test' );
+
+		// Verify test mode data is deleted.
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( $key, 'test' ) );
+
+		// Verify live mode data still exists.
+		$this->assertEquals( $live_data, WC_Stripe_Database_Cache::get_with_mode( $key, 'live' ) );
+	}
+
+	/**
 	 * Data provider for {@see test_delete_stale_entries()}.
 	 *
 	 * @return array Array of test cases.
