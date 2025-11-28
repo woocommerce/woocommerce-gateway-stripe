@@ -145,6 +145,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 		/**
 		 * Filters the cache prefetch window for a given cache key. Return 0 or less to disable prefetching for the key.
 		 *
+		 * @since 10.2.0
 		 * @param int    $prefetch_window The prefetch window for the cache key.
 		 * @param string $cache_key       The unprefixed cache key.
 		 */
