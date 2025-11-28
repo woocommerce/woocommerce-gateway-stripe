@@ -26,6 +26,7 @@
 * Fix - Use the built-in Database Cache for the Connect flow data
 * Add - Implement cache prefetch for account data
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
