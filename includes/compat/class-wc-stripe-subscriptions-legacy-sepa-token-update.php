@@ -89,11 +89,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * @throws \Exception When the subscription can't be updated.
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) );
-		}
-
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The WooCommerce Subscriptions extension is not active.', $subscription_id ) );

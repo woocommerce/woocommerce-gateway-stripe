@@ -18,6 +18,7 @@ import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 /**
@@ -146,6 +147,8 @@ const PaymentElements = ( {
 					paymentMethodConfiguration:
 						getBlocksConfiguration()
 							?.paymentMethodConfigurationParentId,
+					// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
+					excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
 				},
 			};
 		} else {
