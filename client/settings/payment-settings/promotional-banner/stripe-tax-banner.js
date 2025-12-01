@@ -1,6 +1,7 @@
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
+import { external } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -55,7 +56,6 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 
 	const handleButtonClick = () => {
 		recordEvent( 'wcstripe_stripe_tax_banner_button_click', {} );
-		window.open( 'https://woocommerce.com/products/stripe-tax/', '_blank' );
 	};
 
 	return (
@@ -93,7 +93,14 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 				</ColumnIllustration>
 			</CardInner>
 			<ButtonsRowStripeTax>
-				<MainCTALink variant="secondary" onClick={ handleButtonClick } href="https://woocommerce.com/products/stripe-tax/" target="_blank">
+				<MainCTALink
+					variant="secondary"
+					onClick={ handleButtonClick }
+					href="https://woocommerce.com/products/stripe-tax/"
+					target="_blank"
+					icon={ external }
+					iconPosition="right"
+				>
 					{ __( 'Get Stripe Tax', 'woocommerce-gateway-stripe' ) }
 				</MainCTALink>
 				<DismissButton

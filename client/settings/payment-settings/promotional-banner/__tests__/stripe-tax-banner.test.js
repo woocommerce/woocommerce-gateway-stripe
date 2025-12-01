@@ -59,19 +59,17 @@ describe( 'Stripe Tax banner', () => {
 	} );
 
 	it( 'should open the main page when clicking the "Get Stripe Tax" button', async () => {
-		// Keep the original function at hand.
-		const open = window.open;
-
-		Object.defineProperty( window, 'open', {
-			value: jest.fn(),
-		} );
-
 		const { getByText } = render(
 			<StripeTaxBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
 		const activateButton = getByText( 'Get Stripe Tax' );
+
+		expect( activateButton ).toHaveAttribute(
+			'href',
+			'https://woocommerce.com/products/stripe-tax/'
+		);
 
 		await act( async () => {
 			await userEvent.click( activateButton );
@@ -81,15 +79,5 @@ describe( 'Stripe Tax banner', () => {
 			'wcstripe_stripe_tax_banner_button_click',
 			{}
 		);
-
-		expect( window.open ).toHaveBeenCalledWith(
-			'https://woocommerce.com/products/stripe-tax/',
-			'_blank'
-		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'open', {
-			value: open,
-		} );
 	} );
 } );
