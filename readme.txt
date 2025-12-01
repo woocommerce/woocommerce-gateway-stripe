@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
