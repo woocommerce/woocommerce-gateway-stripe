@@ -480,7 +480,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Get legacy payment method by id.
 	 *
-	 * @return object|null
+	 * @return null
 	 *
 	 * @deprecated 10.2.0 This method will be removed in future versions.
 	 */
