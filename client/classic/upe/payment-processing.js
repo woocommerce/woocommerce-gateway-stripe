@@ -114,13 +114,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		fonts: getFontRulesFromPage(),
 	};
 
+	const stripeServerData = getStripeServerData();
+
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
 		try {
 			const isSetupIntent =
 				document.getElementById( 'add_payment_method' ) ||
-				! getStripeServerData()?.isPaymentNeeded ||
-				getStripeServerData()?.isChangingPayment;
+				! stripeServerData?.isPaymentNeeded ||
+				stripeServerData?.isChangingPayment;
 
 			if ( isSetupIntent ) {
 				intent = await api.initSetupIntent( paymentMethodType );
@@ -152,29 +154,28 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			clientSecret: intent.client_secret,
 		};
 	} else {
-		const amount = Number( getStripeServerData()?.cartTotal );
+		const amount = Number( stripeServerData?.cartTotal );
 		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 
 		options = {
 			...options,
 			mode: amount < 1 ? 'setup' : 'payment',
-			currency: getStripeServerData()?.currency.toLowerCase(),
+			currency: stripeServerData?.currency.toLowerCase(),
 			amount,
 		};
 
-		if ( getStripeServerData()?.isOCEnabled ) {
+		if ( stripeServerData?.isOCEnabled ) {
 			options = {
 				...options,
 				paymentMethodConfiguration:
-					getStripeServerData()?.paymentMethodConfigurationParentId,
+					stripeServerData?.paymentMethodConfigurationId,
 				// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
 				excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
 			};
 
 			const setupFutureUsage =
 				document.getElementById( 'wc-stripe-new-payment-method' )
-					?.checked ||
-				getStripeServerData()?.cartContainsSubscription;
+					?.checked || stripeServerData?.cartContainsSubscription;
 			if ( setupFutureUsage ) {
 				options = {
 					...options,
@@ -209,11 +210,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	};
 
 	// Set the layout to accordion if OC is enabled.
-	if ( getStripeServerData()?.isOCEnabled ) {
+	if ( stripeServerData?.isOCEnabled ) {
 		const layout = {
 			type:
-				getStripeServerData()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;
@@ -236,7 +236,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
 	if (
-		getStripeServerData()?.isCheckout &&
+		stripeServerData?.isCheckout &&
 		isLinkEnabled() &&
 		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
