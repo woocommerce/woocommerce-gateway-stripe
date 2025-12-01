@@ -1,8 +1,9 @@
 import { React } from 'react';
-import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
-import { __ } from '@wordpress/i18n';
+import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
+import { ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/stripe-tax.svg';
 import {
@@ -14,7 +15,6 @@ import {
 	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 import { recordEvent } from 'wcstripe/tracking';
-import { ExternalLink } from '@wordpress/components';
 
 const BannerIllustrationStripeTax = styled( BannerIllustration )`
 	width: 80px;
