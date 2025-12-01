@@ -93,7 +93,7 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 				</ColumnIllustration>
 			</CardInner>
 			<ButtonsRowStripeTax>
-				<MainCTALink variant="secondary" onClick={ handleButtonClick }>
+				<MainCTALink variant="secondary" onClick={ handleButtonClick } href="https://woocommerce.com/products/stripe-tax/" target="_blank">
 					{ __( 'Get Stripe Tax', 'woocommerce-gateway-stripe' ) }
 				</MainCTALink>
 				<DismissButton
