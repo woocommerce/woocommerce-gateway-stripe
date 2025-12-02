@@ -43,7 +43,8 @@ const getPaymentMethodUnavailableReason = ( {
 	}
 
 	if (
-		paymentMethodId === 'apple_pay_google_pay' &&
+		( paymentMethodId === 'apple_pay_google_pay' ||
+			paymentMethodId === 'link' ) &&
 		! window?.wc_stripe_settings_params?.is_card_method_enabled
 	) {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
