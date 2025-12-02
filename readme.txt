@@ -112,9 +112,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.2.0 - xxxx-xx-xx =
 * Update - Makes the Optimized Checkout Suite feature enabled by default for all new installations
+* Dev - Deprecates all the legacy checkout payment method classes
+* Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
-* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
 * Dev - Remove the merchant email address from the System Status Report
 * Dev - Replace the constant reference for the legacy SEPA payment method
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
@@ -137,5 +139,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use the built-in Database Cache for the Connect flow data
 * Add - Implement cache prefetch for account data
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Fix - Always use the current payment method configuration in Optimized Checkout
+* Fix - Fix revoked secret_key error during the OAuth account connection flow
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
