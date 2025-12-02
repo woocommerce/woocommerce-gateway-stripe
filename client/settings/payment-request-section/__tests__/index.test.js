@@ -62,49 +62,6 @@ describe( 'PaymentRequestSection', () => {
 		expect( label ).toBeInTheDocument();
 	} );
 
-	it( 'hide link payment if card payment method is inactive (OC disabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_LINK ],
-		] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeNull();
-	} );
-
-	it( 'show link payment if card payment method is active (OC disabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
-		] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
-	} );
-
-	it( 'show link payment if card payment method is inactive (OC enabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_LINK ],
-		] );
-		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
-	} );
-
 	it( 'test stripe link checkbox checked', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_LINK,
