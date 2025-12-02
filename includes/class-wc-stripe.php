@@ -344,6 +344,11 @@ class WC_Stripe {
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
 
+			// Mark as fresh install if no version is set.
+			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_fresh_install' ) ) {
+				update_option( 'wc_stripe_fresh_install', true );
+			}
+
 			add_woocommerce_inbox_variant();
 			$this->update_plugin_version();
 
@@ -378,13 +383,6 @@ class WC_Stripe {
 					unset( $stripe_settings['pmc_enabled'] );
 					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 					WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
-				} else if ( 'yes' === $stripe_settings['pmc_enabled'] ) {
-					// Enable the Optimized Checkout feature by default if not set.
-					// It requires PMC to be enabled.
-					if ( ! isset( $stripe_settings['optimized_checkout_element'] ) ) {
-						$stripe_settings['optimized_checkout_element'] = 'yes';
-						WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-					}
 				}
 			}
 		}
