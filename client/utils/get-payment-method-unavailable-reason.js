@@ -1,7 +1,9 @@
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
 	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
@@ -43,8 +45,8 @@ const getPaymentMethodUnavailableReason = ( {
 	}
 
 	if (
-		( paymentMethodId === 'apple_pay_google_pay' ||
-			paymentMethodId === 'link' ) &&
+		( paymentMethodId === PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY ||
+			paymentMethodId === PAYMENT_METHOD_LINK ) &&
 		! window?.wc_stripe_settings_params?.is_card_method_enabled
 	) {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;

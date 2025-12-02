@@ -1,6 +1,7 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import PaymentMethodRequiresCardMethodPill from '..';
+import { PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY } from 'wcstripe/stripe-utils/constants';
 
 describe( 'PaymentMethodRequiresCardMethodPill', () => {
 	beforeEach( () => {
@@ -12,7 +13,7 @@ describe( 'PaymentMethodRequiresCardMethodPill', () => {
 
 		render(
 			<PaymentMethodRequiresCardMethodPill
-				id="apple_pay_google_pay"
+				id={ PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY }
 				label="Apple Pay / Google Pay"
 			/>
 		);
@@ -25,7 +26,7 @@ describe( 'PaymentMethodRequiresCardMethodPill', () => {
 	it( 'should not render when card is enabled', () => {
 		const { container } = render(
 			<PaymentMethodRequiresCardMethodPill
-				id="apple_pay_google_pay"
+				id={ PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY }
 				label="Apple Pay / Google Pay"
 			/>
 		);

@@ -20,6 +20,7 @@ import { addQueryArgs } from '@wordpress/url';
 import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodUnavailableDueTaxSetupPill from 'wcstripe/components/payment-method-unavailable-due-tax-setup-pill';
 import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
@@ -42,9 +43,12 @@ const PaymentRequestSection = () => {
 	);
 
 	const applePayGooglePayUnavailableReason =
-		usePaymentMethodUnavailableReason( 'apple_pay_google_pay' );
+		usePaymentMethodUnavailableReason(
+			PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY
+		);
 
-	const linkUnavailableReason = usePaymentMethodUnavailableReason( 'link' );
+	const linkUnavailableReason =
+		usePaymentMethodUnavailableReason( PAYMENT_METHOD_LINK );
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
@@ -116,7 +120,7 @@ const PaymentRequestSection = () => {
 									'woocommerce-gateway-stripe'
 								) }
 								<PaymentMethodRequiresCardMethodPill
-									id="apple_pay_google_pay"
+									id={ PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY }
 									label={ __(
 										'Apple Pay / Google Pay',
 										'woocommerce-gateway-stripe'
@@ -192,7 +196,7 @@ const PaymentRequestSection = () => {
 									'woocommerce-gateway-stripe'
 								) }
 								<PaymentMethodRequiresCardMethodPill
-									id="link"
+									id={ PAYMENT_METHOD_LINK }
 									label={ __(
 										'Link by Stripe',
 										'woocommerce-gateway-stripe'
@@ -277,14 +281,14 @@ const PaymentRequestSection = () => {
 										'woocommerce-gateway-stripe'
 									) }
 									<PaymentMethodMissingCurrencyPill
-										id="amazon_pay"
+										id={ PAYMENT_METHOD_AMAZON_PAY }
 										label={ __(
 											'Amazon Pay',
 											'woocommerce-gateway-stripe'
 										) }
 									/>
 									<PaymentMethodUnavailableDueTaxSetupPill
-										id="amazon_pay"
+										id={ PAYMENT_METHOD_AMAZON_PAY }
 										label={ __(
 											'Amazon Pay',
 											'woocommerce-gateway-stripe'

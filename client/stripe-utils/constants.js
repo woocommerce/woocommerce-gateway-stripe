@@ -27,6 +27,7 @@ export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
+export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 
 /**
  * Payment method names constants with the `stripe` prefix

@@ -1,6 +1,7 @@
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_SEPA,
@@ -132,7 +133,7 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		global.wc_stripe_settings_params.is_card_method_enabled = false;
 		expect(
 			getPaymentMethodUnavailableReason( {
-				paymentMethodId: 'apple_pay_google_pay',
+				paymentMethodId: PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
 				storeCurrencyCode: 'USD',
 			} )
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD );
