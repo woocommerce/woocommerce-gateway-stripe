@@ -42,6 +42,13 @@ const getPaymentMethodUnavailableReason = ( {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS;
 	}
 
+	if (
+		paymentMethodId === 'apple_pay_google_pay' &&
+		! window?.wc_stripe_settings_params?.is_card_method_enabled
+	) {
+		return PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
+	}
+
 	if ( ! storeCurrencyCode || ! isUpeEnabled ) {
 		return null;
 	}

@@ -25,6 +25,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodUnavailableDueTaxSetupPill from 'wcstripe/components/payment-method-unavailable-due-tax-setup-pill';
 import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
+import PaymentMethodRequiresCardMethodPill from 'wcstripe/components/payment-method-requires-card-method-pill';
 
 const PaymentRequestSection = () => {
 	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
@@ -129,6 +130,13 @@ const PaymentRequestSection = () => {
 										'Apple Pay / Google Pay',
 										'woocommerce-gateway-stripe'
 									) }
+									<PaymentMethodRequiresCardMethodPill
+										id="apple_pay_google_pay"
+										label={ __(
+											'Apple Pay / Google Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
 								</div>
 								<div className="express-checkout__description">
 									{

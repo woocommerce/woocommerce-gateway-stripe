@@ -19,6 +19,7 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 			has_klarna_gateway_plugin: false,
 			has_affirm_gateway_plugin: false,
 			taxes_based_on_billing: false,
+			is_card_method_enabled: true,
 		};
 		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
 			if ( paymentMethodId === PAYMENT_METHOD_CARD ) {
@@ -125,5 +126,15 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		).toBe(
 			PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS
 		);
+	} );
+
+	it( 'should return REQUIRES_CARD_METHOD when ECE are unavailable due to the card method being disabled', () => {
+		global.wc_stripe_settings_params.is_card_method_enabled = false;
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: 'apple_pay_google_pay',
+				storeCurrencyCode: 'USD',
+			} )
+		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD );
 	} );
 } );
