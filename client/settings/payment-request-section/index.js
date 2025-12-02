@@ -23,6 +23,8 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import PaymentMethodUnavailableDueTaxSetupPill from 'wcstripe/components/payment-method-unavailable-due-tax-setup-pill';
+import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
 
 const PaymentRequestSection = () => {
 	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
@@ -35,6 +37,10 @@ const PaymentRequestSection = () => {
 
 	const [ enabledMethodIds, updateEnabledMethodIds ] =
 		useEnabledPaymentMethodIds();
+
+	const amazonPayUnavailableReason = usePaymentMethodUnavailableReason(
+		PAYMENT_METHOD_AMAZON_PAY
+	);
 
 	const [ isOCEnabled ] = useIsOCEnabled();
 
@@ -75,6 +81,10 @@ const PaymentRequestSection = () => {
 	const isAmazonPayAvailable =
 		wc_stripe_settings_params.is_amazon_pay_available && // eslint-disable-line camelcase
 		availablePaymentMethodIds.includes( PAYMENT_METHOD_AMAZON_PAY );
+
+	const isAmazonPayDisabled =
+		amazonPayUnavailableReason !== null &&
+		! enabledMethodIds.includes( PAYMENT_METHOD_AMAZON_PAY );
 
 	return (
 		<Card className="express-checkouts">
@@ -256,6 +266,7 @@ const PaymentRequestSection = () => {
 									) }
 									checked={ isAmazonPayEnabled }
 									onChange={ updateIsAmazonPayEnabled }
+									disabled={ isAmazonPayDisabled }
 								/>
 							</div>
 							<div className="express-checkout__icon">
@@ -268,6 +279,13 @@ const PaymentRequestSection = () => {
 										'woocommerce-gateway-stripe'
 									) }
 									<PaymentMethodMissingCurrencyPill
+										id="amazon_pay"
+										label={ __(
+											'Amazon Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
+									<PaymentMethodUnavailableDueTaxSetupPill
 										id="amazon_pay"
 										label={ __(
 											'Amazon Pay',

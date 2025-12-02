@@ -1,5 +1,6 @@
 import {
 	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_SEPA,
@@ -17,6 +18,7 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		global.wc_stripe_settings_params = {
 			has_klarna_gateway_plugin: false,
 			has_affirm_gateway_plugin: false,
+			taxes_based_on_billing: false,
 		};
 		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
 			if ( paymentMethodId === PAYMENT_METHOD_CARD ) {
@@ -111,5 +113,17 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 				storeCurrencyCode: 'EUR',
 			} )
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY );
+	} );
+
+	it( 'should return TAX_BASED_ON_BILLING_ADDRESS when Amazon Pay is unavailable due to taxes being based on billing address', () => {
+		global.wc_stripe_settings_params.taxes_based_on_billing = true;
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: PAYMENT_METHOD_AMAZON_PAY,
+				storeCurrencyCode: 'USD',
+			} )
+		).toBe(
+			PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS
+		);
 	} );
 } );

@@ -1,5 +1,6 @@
 import {
 	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
@@ -32,6 +33,13 @@ const getPaymentMethodUnavailableReason = ( {
 		window?.wc_stripe_settings_params?.has_affirm_gateway_plugin
 	) {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT;
+	}
+
+	if (
+		paymentMethodId === PAYMENT_METHOD_AMAZON_PAY &&
+		window?.wc_stripe_settings_params?.taxes_based_on_billing
+	) {
+		return PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS;
 	}
 
 	if ( ! storeCurrencyCode || ! isUpeEnabled ) {

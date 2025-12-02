@@ -177,6 +177,8 @@ export const BNPL_METHODS = [
 export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
 	UNSUPPORTED_CURRENCY: 'unsupported_currency',
 	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
+	TAX_BASED_ON_BILLING_ADDRESS: 'tax_based_on_billing_address',
+	REQUIRES_CARD_METHOD: 'requires_card_method',
 };
 
 /**
