@@ -175,7 +175,7 @@ class WC_Stripe_Customer {
 
 			// If the user email is not set, use the billing email.
 			if ( empty( $email ) ) {
-				$email = $this->get_billing_data_field( 'billing_email', $args );
+				$email = $this->get_billing_data_field( 'billing_email', $order );
 			}
 
 			// translators: %1$s First name, %2$s Second name, %3$s Username.
@@ -191,9 +191,9 @@ class WC_Stripe_Customer {
 				$defaults['name'] = $billing_full_name;
 			}
 		} else {
-			$billing_email      = $this->get_billing_data_field( 'billing_email', $args );
-			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $args );
-			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $args );
+			$billing_email      = $this->get_billing_data_field( 'billing_email', $order );
+			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $order );
 
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
@@ -226,7 +226,7 @@ class WC_Stripe_Customer {
 			if ( $user ) {
 				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
 			} else {
-				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $args );
+				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $order );
 			}
 		}
 

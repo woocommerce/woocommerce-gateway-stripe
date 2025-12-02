@@ -269,9 +269,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$mock_order->method( 'get_billing_postcode' )->willReturn( $billing_data['postcode'] );
 		$mock_order->method( 'get_billing_state' )->willReturn( $billing_data['state'] );
 
-		$args     = [
-			'order' => $mock_order,
-		];
+		$args = [];
 		$customer = new \WC_Stripe_Customer();
 
 		$was_exception_thrown = false;
@@ -318,7 +316,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args, $current_context );
+			$customer->create_customer( $args, $current_context, $mock_order );
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 
