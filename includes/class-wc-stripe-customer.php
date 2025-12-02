@@ -150,10 +150,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Generates the customer request, used for both creating and updating customers.
 	 *
-	 * @param  array $args Additional arguments (optional).
+	 * @param  array        $args  Additional arguments for the request (optional).
+	 * @param WC_Order|null $order The order object (optional). If provided, billing details will be retrieved from the order.
+	 *
 	 * @return array
 	 */
-	protected function generate_customer_request( $args = [] ) {
+	protected function generate_customer_request( $args = [], $order = null ) {
 		$user = $this->get_user();
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
@@ -341,12 +343,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Get value of billing data field, either from POST or order object.
 	 *
-	 * @param string $field Field name.
-	 * @param array  $args  Additional arguments (optional).
+	 * @param string        $field Field name.
+	 * @param WC_Order|null $order The order object (optional).
 	 *
 	 * @return string
 	 */
-	private function get_billing_data_field( $field, $args = [] ) {
+	private function get_billing_data_field( $field, $order = null ) {
 		$valid_fields = [
 			'billing_email',
 			'billing_first_name',
@@ -366,31 +368,30 @@ class WC_Stripe_Customer {
 
 		// Prioritize POST data, if available.
 		if ( isset( $_POST[ $field ] ) ) {
-			if ( 'billing_email' === $field ) {
-				return filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_EMAIL ); // phpcs:ignore WordPress.Security.NonceVerification
-			}
+			$filter = 'billing_email' === $field ? FILTER_SANITIZE_EMAIL : FILTER_SANITIZE_SPECIAL_CHARS;
+			return filter_var( wp_unslash( $_POST[ $field ] ), $filter ); // phpcs:ignore WordPress.Security.NonceVerification
+		}
 
-			return filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_SPECIAL_CHARS ); // phpcs:ignore WordPress.Security.NonceVerification
-		} elseif ( isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
+		if ( $order instanceof WC_Order ) {
 			switch ( $field ) {
 				case 'billing_email':
-					return $args['order']->get_billing_email();
+					return $order->get_billing_email();
 				case 'billing_first_name':
-					return $args['order']->get_billing_first_name();
+					return $order->get_billing_first_name();
 				case 'billing_last_name':
-					return $args['order']->get_billing_last_name();
+					return $order->get_billing_last_name();
 				case 'billing_address_1':
-					return $args['order']->get_billing_address_1();
+					return $order->get_billing_address_1();
 				case 'billing_address_2':
-					return $args['order']->get_billing_address_2();
+					return $order->get_billing_address_2();
 				case 'billing_postcode':
-					return $args['order']->get_billing_postcode();
+					return $order->get_billing_postcode();
 				case 'billing_city':
-					return $args['order']->get_billing_city();
+					return $order->get_billing_city();
 				case 'billing_state':
-					return $args['order']->get_billing_state();
+					return $order->get_billing_state();
 				case 'billing_country':
-					return $args['order']->get_billing_country();
+					return $order->get_billing_country();
 				default:
 					return '';
 			}
@@ -448,14 +449,16 @@ class WC_Stripe_Customer {
 	/**
 	 * Create a customer via API.
 	 *
-	 * @param array $args
-	 * @param string|null $current_context The context we are creating the customer in.
+	 * @param array         $args            Additional arguments for the request (optional).
+	 * @param string|null   $current_context The context we are creating the customer in (optional).
+	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
+	 *
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function create_customer( $args = [], $current_context = null ) {
-		$args = $this->generate_customer_request( $args );
+	public function create_customer( $args = [], $current_context = null, $order = null ) {
+		$args = $this->generate_customer_request( $args, $order );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
 		if ( ! $this->get_id() && 0 === $this->get_user_id() && ! empty( $args['email'] ) && ! empty( $args['name'] ) ) {
@@ -506,14 +509,15 @@ class WC_Stripe_Customer {
 	/**
 	 * Updates the Stripe customer through the API.
 	 *
-	 * @param array $args     Additional arguments for the request (optional).
-	 * @param bool  $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
+	 * @param array         $args     Additional arguments for the request (optional).
+	 * @param bool          $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
+	 * @param WC_Order|null $order    The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_customer( $args = [], $is_retry = false ) {
+	public function update_customer( $args = [], $is_retry = false, $order = null ) {
 		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -552,21 +556,22 @@ class WC_Stripe_Customer {
 	/**
 	 * Updates existing Stripe customer or creates new customer for User through API.
 	 *
-	 * @param array $args     Additional arguments for the request (optional).
-	 * @param string|null $current_context The context we are creating the customer in.
+	 * @param array         $args            Additional arguments for the request (optional).
+	 * @param string|null   $current_context The context we are creating the customer in (optional).
+	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_or_create_customer( $args = [], $current_context = null ) {
+	public function update_or_create_customer( $args = [], $current_context = null, $order = null ) {
 		if ( empty( $this->get_id() ) ) {
 			// $current_context was initially introduced as a boolean flag, so check for old callers.
 			$current_context = $this->normalize_current_context( $current_context );
 
-			return $this->recreate_customer( $args, $current_context );
+			return $this->recreate_customer( $args, $current_context, $order );
 		} else {
-			return $this->update_customer( $args );
+			return $this->update_customer( $args, $order );
 		}
 	}
 
@@ -1033,14 +1038,15 @@ class WC_Stripe_Customer {
 	/**
 	 * Recreates the customer for this user.
 	 *
-	 * @param array $args Additional arguments for the request (optional).
-	 * @param string|null $current_context The context we are creating the customer in.
+	 * @param array         $args            Additional arguments for the request (optional).
+	 * @param string|null   $current_context The context we are creating the customer in (optional).
+	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [], ?string $current_context = null ) {
+	private function recreate_customer( $args = [], ?string $current_context = null, $order = null ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer( $args, $current_context );
+		return $this->create_customer( $args, $current_context, $order );
 	}
 
 	/**
