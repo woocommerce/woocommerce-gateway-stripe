@@ -97,6 +97,10 @@ const PaymentRequestSection = () => {
 					<li className="express-checkout has-icon-border">
 						<div className="express-checkout__checkbox">
 							<CheckboxControl
+								label={ __(
+									'Apple Pay / Google Pay Input',
+									'woocommerce-gateway-stripe'
+								) }
 								checked={ isPaymentRequestEnabled }
 								onChange={ updateIsPaymentRequestEnabled }
 								disabled={ isApplePayGooglePayDisabled }
