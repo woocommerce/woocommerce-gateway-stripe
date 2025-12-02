@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Fix - Always use the current payment method configuration in Optimized Checkout
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Fix - Exclude order parameter from customer creation request arguments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
