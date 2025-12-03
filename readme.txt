@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
-* Add - Includes support for free trial subscription products that require shipping when using express checkout payment methods
+* Add - Support express checkout for free trial subscription products that require shipping
 * Dev - Deprecates all the legacy checkout payment method classes
 * Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
