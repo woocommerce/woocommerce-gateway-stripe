@@ -223,4 +223,31 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Tests that the 'install' method sets the fresh install flag.
+	 *
+	 * @return void
+	 */
+	public function test_install_sets_fresh_install_flag(): void {
+		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+
+		// Ensure the flag is not set.
+		delete_option( 'wc_stripe_fresh_install' );
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'update_plugin_version',
+					'update_prb_location_settings',
+					'migrate_to_new_checkout_experience',
+				]
+			)
+			->getMock();
+
+		$wc_stripe->install();
+
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_fresh_install' ) );
+	}
 }
