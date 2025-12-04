@@ -21,6 +21,7 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodUnavailableDueTaxSetupPill from 'wcstripe/components/payment-method-unavailable-due-tax-setup-pill';
 import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
@@ -42,13 +43,25 @@ const PaymentRequestSection = () => {
 		PAYMENT_METHOD_AMAZON_PAY
 	);
 
+	const showUnavailableDueTaxSetupPillForAmazonPay =
+		amazonPayUnavailableReason ===
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS;
+
 	const applePayGooglePayUnavailableReason =
 		usePaymentMethodUnavailableReason(
 			PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY
 		);
 
+	const showRequiresCardMethodPillForApplePayGooglePay =
+		applePayGooglePayUnavailableReason ===
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
+
 	const linkUnavailableReason =
 		usePaymentMethodUnavailableReason( PAYMENT_METHOD_LINK );
+
+	const showRequiresCardMethodPillForLink =
+		linkUnavailableReason ===
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
@@ -119,13 +132,17 @@ const PaymentRequestSection = () => {
 									'Apple Pay / Google Pay',
 									'woocommerce-gateway-stripe'
 								) }
-								<PaymentMethodRequiresCardMethodPill
-									id={ PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY }
-									label={ __(
-										'Apple Pay / Google Pay',
-										'woocommerce-gateway-stripe'
-									) }
-								/>
+								{ showRequiresCardMethodPillForApplePayGooglePay && (
+									<PaymentMethodRequiresCardMethodPill
+										id={
+											PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY
+										}
+										label={ __(
+											'Apple Pay / Google Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
+								) }
 							</div>
 							<div className="express-checkout__description">
 								{
@@ -195,13 +212,15 @@ const PaymentRequestSection = () => {
 									'Link by Stripe',
 									'woocommerce-gateway-stripe'
 								) }
-								<PaymentMethodRequiresCardMethodPill
-									id={ PAYMENT_METHOD_LINK }
-									label={ __(
-										'Link by Stripe',
-										'woocommerce-gateway-stripe'
-									) }
-								/>
+								{ showRequiresCardMethodPillForLink && (
+									<PaymentMethodRequiresCardMethodPill
+										id={ PAYMENT_METHOD_LINK }
+										label={ __(
+											'Link by Stripe',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
+								) }
 							</div>
 							<div className="express-checkout__description">
 								{
@@ -287,13 +306,15 @@ const PaymentRequestSection = () => {
 											'woocommerce-gateway-stripe'
 										) }
 									/>
-									<PaymentMethodUnavailableDueTaxSetupPill
-										id={ PAYMENT_METHOD_AMAZON_PAY }
-										label={ __(
-											'Amazon Pay',
-											'woocommerce-gateway-stripe'
-										) }
-									/>
+									{ showUnavailableDueTaxSetupPillForAmazonPay && (
+										<PaymentMethodUnavailableDueTaxSetupPill
+											id={ PAYMENT_METHOD_AMAZON_PAY }
+											label={ __(
+												'Amazon Pay',
+												'woocommerce-gateway-stripe'
+											) }
+										/>
+									) }
 								</div>
 								<div className="express-checkout__description">
 									{

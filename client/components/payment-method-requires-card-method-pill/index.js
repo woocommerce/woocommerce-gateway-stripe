@@ -1,19 +1,8 @@
 import React from 'react';
 import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodUnavailablePill from 'wcstripe/components/payment-method-unavailable-pill';
-import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
-import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
-const PaymentMethodRequiresCardMethodPill = ( { id, label } ) => {
-	const unavailableReason = usePaymentMethodUnavailableReason( id );
-
-	if (
-		unavailableReason !==
-		PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD
-	) {
-		return null;
-	}
-
+const PaymentMethodRequiresCardMethodPill = ( { label } ) => {
 	return (
 		<PaymentMethodUnavailablePill
 			title={ __(
