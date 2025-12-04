@@ -46,8 +46,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
 
 		if ( null === $express_checkout_configuration ) {
-			$helper = new WC_Stripe_Express_Checkout_Helper();
-			$ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
+			$helper                         = new WC_Stripe_Express_Checkout_Helper();
+			$ajax_handler                   = new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
 			$express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
 		}
 		$this->express_checkout_configuration = $express_checkout_configuration;
@@ -103,11 +103,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			true
 		);
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$this->register_upe_payment_method_script_handles();
-		} else {
-			$this->register_legacy_payment_method_script_handles();
-		}
+		$this->register_upe_payment_method_script_handles();
 
 		return [ 'wc-stripe-blocks-integration' ];
 	}
@@ -184,14 +180,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		$js_params = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_stripe_ece_enabled()
-			? $this->get_express_checkout_javascript_params()
-			: $this->get_payment_request_javascript_params();
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
 		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
-			$js_params,
+			$this->get_express_checkout_javascript_params(),
 			// Blocks-specific options
 			[
 				'icons'                           => $this->get_icons(),
@@ -200,7 +193,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSavedCards'                  => $this->get_show_saved_cards(),
 				'showSaveOption'                  => $this->get_show_save_option(),
 				'isAdmin'                         => is_admin(),
-				'shouldShowPaymentRequestButton'  => $this->should_show_payment_request_button(),
 				'shouldShowExpressCheckoutButton' => $this->should_show_express_checkout_button(),
 				'button'                          => [
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
@@ -209,54 +201,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'baseLocation'                    => wc_get_base_location(),
 			]
 		);
-	}
-
-	/**
-	 * Returns true if the PRB should be shown on the current page, false otherwise.
-	 *
-	 * Note: We use `has_block()` in this function, which isn't supported until WP 5.0. However,
-	 * WooCommerce Blocks hasn't supported a WP version lower than 5.0 since 2019. Since this
-	 * function is only called when the WooCommerce Blocks extension is available, it should be
-	 * safe to call `has_block()` here.
-	 * That said, we only run those checks if the `has_block()` function exists, just in case.
-	 *
-	 * @return boolean  True if PRBs should be displayed, false otherwise
-	 */
-	private function should_show_payment_request_button() {
-		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
-		//       to version 5.0.
-		if ( function_exists( 'has_block' ) ) {
-			// Don't show if PRBs are turned off entirely.
-			if ( ! $this->payment_request_configuration->is_at_least_one_payment_request_button_enabled() ) {
-				return false;
-			}
-
-			// Don't show if PRBs are supposed to be hidden on the cart page.
-			if (
-				has_block( 'woocommerce/cart' )
-				&& ! $this->payment_request_configuration->should_show_prb_on_cart_page()
-			) {
-				return false;
-			}
-
-			// Don't show if PRBs are supposed to be hidden on the checkout page.
-			if (
-				has_block( 'woocommerce/checkout' )
-				&& ! $this->payment_request_configuration->should_show_prb_on_checkout_page()
-			) {
-				return false;
-			}
-
-			// Don't show PRB if there are unsupported products in the cart.
-			if (
-				( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
-				&& ! $this->payment_request_configuration->allowed_items_in_cart()
-			) {
-				return false;
-			}
-		}
-
-		return $this->payment_request_configuration->should_show_payment_request_button();
 	}
 
 	/**
@@ -278,35 +222,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return boolean True if ECEs should be displayed, false otherwise.
 	 */
 	private function should_show_express_checkout_button() {
-		// Don't show if ECEs are turned off in settings.
-		if ( ! $this->express_checkout_configuration->express_checkout_helper->is_express_checkout_enabled() ) {
-			return false;
-		}
-
-		// Don't show if ECEs are supposed to be hidden on the cart page.
-		if (
-			has_block( 'woocommerce/cart' )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_cart_page()
-		) {
-			return false;
-		}
-
-		// Don't show if ECEs are supposed to be hidden on the checkout page.
-		if (
-			has_block( 'woocommerce/checkout' )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_checkout_page()
-		) {
-			return false;
-		}
-
-		// Don't show ECEs if there are unsupported products in the cart.
-		if (
-			( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->allowed_items_in_cart()
-		) {
-			return false;
-		}
-
 		return $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button();
 	}
 
@@ -459,7 +374,19 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		 * When using UPE on the block checkout and a saved token is being used, we need to set a flag
 		 * to indicate that deferred intent should be used.
 		 */
-		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
+		$is_using_saved_token = isset( $data['issavedtoken'] ) && $data['issavedtoken'];
+
+		// For split UPE gateways (e.g., stripe_us_bank_account), WooCommerce Blocks doesn't set the isSavedToken flag.
+		// Check if a payment token is being used by looking for the wc-{gateway_id}-payment-token field.
+		if ( ! $is_using_saved_token && ! empty( $data['token'] ) ) {
+			// Payment data keys use underscores, not hyphens (e.g., wc-stripe_us_bank_account-payment-token).
+			$token_key = 'wc-' . $context->payment_method . '-payment-token';
+			if ( isset( $data[ $token_key ] ) && ! empty( $data[ $token_key ] ) ) {
+				$is_using_saved_token = true;
+			}
+		}
+
+		if ( $is_upe && $is_using_saved_token ) {
 			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
 		}
 

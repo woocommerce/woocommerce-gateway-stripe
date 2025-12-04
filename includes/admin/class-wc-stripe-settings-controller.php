@@ -266,7 +266,7 @@ class WC_Stripe_Settings_Controller {
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
-			'is_upe_checkout_enabled'               => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'is_upe_checkout_enabled'               => true,
 			'stripe_oauth_url'                      => $oauth_url,
 			'stripe_test_oauth_url'                 => $test_oauth_url,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
@@ -278,7 +278,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
@@ -288,6 +288,7 @@ class WC_Stripe_Settings_Controller {
 			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
 			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
+			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

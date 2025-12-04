@@ -377,8 +377,12 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks Stripe minimum order value authorized per currency
+	 *
+	 * @see https://docs.stripe.com/currencies#minimum-and-maximum-charge-amounts
+	 *
+	 * @return int The minimum amount in the smallest currency unit.
 	 */
-	public static function get_minimum_amount() {
+	public static function get_minimum_amount(): int {
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
 			case WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR:
@@ -387,6 +391,9 @@ class WC_Stripe_Helper {
 			case WC_Stripe_Currency_Code::SWISS_FRANC:
 			case WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR:
 			case WC_Stripe_Currency_Code::SINGAPORE_DOLLAR:
+			case WC_Stripe_Currency_Code::BRAZILIAN_REAL:
+			case WC_Stripe_Currency_Code::INDIAN_RUPEE:
+			case WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR:
 				$minimum_amount = 50;
 				break;
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -403,10 +410,23 @@ class WC_Stripe_Helper {
 				$minimum_amount = 5000;
 				break;
 			case WC_Stripe_Currency_Code::MEXICAN_PESO:
+			case WC_Stripe_Currency_Code::THAI_BAHT:
 				$minimum_amount = 1000;
+				break;
+			case WC_Stripe_Currency_Code::CZECH_KORUNA:
+				$minimum_amount = 1500;
 				break;
 			case WC_Stripe_Currency_Code::HONG_KONG_DOLLAR:
 				$minimum_amount = 400;
+				break;
+			case WC_Stripe_Currency_Code::HUNGARIAN_FORINT:
+				$minimum_amount = 17500;
+				break;
+			case WC_Stripe_Currency_Code::UNITED_ARAB_EMIRATES_DIRHAM:
+			case WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT:
+			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				$minimum_amount = 200;
 				break;
 			default:
 				$minimum_amount = 50;
@@ -809,14 +829,9 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = self::get_stripe_settings();
 
-			if ( $is_upe_enabled ) {
-				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
-			} else {
-				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
-			}
+			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
 
 			if ( empty( $ordered_payment_method_ids ) ) {
 				return;
@@ -1251,7 +1266,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_product_page() {
-		if ( self::should_load_scripts_for_prb_location( 'product' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'product' ) ) {
 			return true;
 		}
 
@@ -1268,7 +1283,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_cart_page() {
-		if ( self::should_load_scripts_for_prb_location( 'cart' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'cart' ) ) {
 			return true;
 		}
 
@@ -1282,11 +1297,11 @@ class WC_Stripe_Helper {
 	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
 	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
 	 */
-	private static function should_load_scripts_for_prb_location( $location ) {
+	private static function should_load_scripts_for_ece_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
-		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
+		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
 		// The scripts should be loaded when all of the following are true:
 		//   1. The PRBs are enabled; and
@@ -2043,5 +2058,23 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
+
+	/**
+	 * Checks if the verbose debug mode is enabled.
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_verbose_debug_mode_enabled(): bool {
+		/**
+		 * Filters the flag that decides if the verbose debug mode is enabled.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param bool $enabled True if enabled, false otherwise.
+		 *
+		 * @return bool True if enabled, false otherwise.
+		*/
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 }

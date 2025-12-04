@@ -7,9 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The iDEAL Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::IDEAL;
 
+	/**
+	 * Legacy payment method class reference.
+	 *
+	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
+	 */
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Ideal::class;
 
 	/**
@@ -28,9 +34,10 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 		if ( $is_sepa_tokens_for_ideal_enabled ) {
-			$this->supports[] = 'subscriptions';
-			$this->supports[] = 'multiple_subscriptions';
 			$this->supports[] = 'tokenization';
+
+			// Check if subscriptions are enabled and add support for them.
+			$this->maybe_init_subscriptions();
 		}
 
 		// Add support for pre-orders.

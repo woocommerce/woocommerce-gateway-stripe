@@ -378,42 +378,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param object $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
+		$order_locked = false;
+
 		try {
 			$order_id = $renewal_order->get_id();
-
-			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			// This makes the SCA authorization popup show up for the "Renew early" modal (Subscriptions settings > Accept Early Renewal Payments via a Modal).
-			// Note: Currently available for non-UPE credit card only.
-			if ( isset( $_REQUEST['process_early_renewal'] ) && 'stripe' === $this->id && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) { // phpcs:ignore WordPress.Security.NonceVerification
-				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
-
-				if ( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
-					$verification_url = add_query_arg(
-						[
-							'order'         => $order_id,
-							'nonce'         => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-							'redirect_to'   => esc_url_raw( remove_query_arg( [ 'process_early_renewal', 'subscription_id', 'wcs_nonce' ] ) ),
-							'early_renewal' => true,
-						],
-						WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-					);
-
-					echo wp_json_encode(
-						[
-							'stripe_sca_required' => true,
-							'intent_secret'       => $response['payment_intent_secret'],
-							'redirect_url'        => wp_sanitize_redirect( esc_url_raw( $verification_url ) ),
-						]
-					);
-
-					exit;
-				}
-
-				// Hijack all other redirects in order to do the redirection in JavaScript.
-				add_action( 'wp_redirect', [ $this, 'redirect_after_early_renewal' ], 100 );
-
-				return;
-			}
 
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
@@ -431,7 +399,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 			}
 
-			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+			WC_Stripe_Logger::debug(
+				"Begin processing subscription payment for order {$order_id} for the amount of {$amount}",
+				[
+					'order_id' => $order_id,
+					'amount'   => $amount,
+				]
+			);
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -459,6 +433,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$is_authentication_required = false;
 			} else {
 				$order_helper->lock_order_payment( $renewal_order );
+				$order_locked               = true;
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -513,13 +488,24 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error(
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
+				[
+					'order_id'          => $renewal_order->get_id(),
+					'amount'            => $amount,
+					'error_message'     => $e->getMessage(),
+					'localized_message' => $e->getLocalizedMessage(),
+				]
+			);
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
-			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			$order_helper->unlock_order_payment( $renewal_order );
+
+			if ( $order_locked && isset( $order_helper ) ) {
+				$order_helper->unlock_order_payment( $renewal_order );
+				$order_locked = false;
+			}
 
 			return;
 		}
@@ -586,12 +572,22 @@ trait WC_Stripe_Subscriptions_Trait {
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error(
+				'Error processing subscription renewal payment: ' . $e->getMessage(),
+				[
+					'order_id'          => $renewal_order->get_id(),
+					'amount'            => $amount,
+					'error_message'     => $e->getMessage(),
+					'localized_message' => $e->getLocalizedMessage(),
+				]
+			);
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$order_helper->unlock_order_payment( $renewal_order );
+		if ( $order_locked && isset( $order_helper ) ) {
+			$order_helper->unlock_order_payment( $renewal_order );
+		}
 	}
 
 	/**
@@ -784,7 +780,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       when creating the intent? It's called in process_subscription_payment though
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
-			$mandate = $order->get_meta( '_stripe_mandate_id', true );
+			$mandate = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $order );
 			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 
@@ -847,8 +843,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				continue;
 			}
 
-			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $renewal_order );
+			$order_helper                 = WC_Stripe_Order_Helper::get_instance();
+			$mandate                      = $order_helper->get_stripe_mandate_id( $renewal_order );
+			$renewal_order_payment_method = $order_helper->get_stripe_source_id( $renewal_order );
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -1258,7 +1255,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
 			&& $this->is_subscription( $order )
 			&& $parent_order
-			&& ! empty( $parent_order->get_meta( '_stripe_mandate_id', true ) ) ) {
+			&& ! empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
 			$editable = false;
 		}
 

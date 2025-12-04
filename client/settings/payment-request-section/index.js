@@ -1,7 +1,7 @@
 /* global wc_stripe_settings_params */
 
 import React from 'react';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';

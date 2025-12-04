@@ -247,8 +247,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
 		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
-		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
+		// Title shows the count of enabled payment methods in settings page only.
+		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
 			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
@@ -292,7 +292,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_filter(
 			'safe_style_css',
 			function ( $styles ) {
-				return array_merge( $styles, [ 'display' ] );
+				return is_array( $styles ) ? array_merge( $styles, [ 'display' ] ) : [ 'display' ];
 			}
 		);
 
@@ -527,18 +527,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
 		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
 
-		// ECE feature flag
-		$stripe_params['isECEEnabled'] = WC_Stripe_Feature_Flags::is_stripe_ece_enabled();
-
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
 		// Optimized Checkout feature flag + setting.
 		$stripe_params['isOCEnabled'] = $this->oc_enabled;
-		$stripe_params['OCLayout']    = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 
-		// Single Payment Element payment method parent configuration ID
-		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
+		if ( $this->oc_enabled ) {
+			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
+			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+		}
 
 		// Checking for other BNPL extensions.
 		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
@@ -1380,8 +1378,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
-					$request['confirm']        = 'true';
+					// Only set capture_method for payment methods that support it (e.g., cards).
+					// Payment methods like ACH don't support capture_method and will have it omitted from $request_details.
+					if ( isset( $request_details['capture'] ) ) {
+						$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					}
+					$request['confirm'] = 'true';
 				}
 
 				// If order requires shipping, add the shipping address details to the payment intent request.
@@ -2238,7 +2240,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		return array_merge(
 			$metadata,
 			[
-				'is_legacy_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ? 'no' : 'yes',
+				'is_legacy_checkout_enabled' => 'no',
 				'is_oc_enabled'              => $this->is_oc_enabled() ? 'yes' : 'no',
 				'pmc_enabled'                => $pmc_enabled,
 			]
@@ -2463,6 +2465,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		}
 
+		// This error indicates that the saved payment method is no longer valid.
+		// This can happen if the payment method was removed in Stripe dashboard, or if it expired.
+		// In this case, we want to show a specific message to the user.
+		if ( isset( $payment_intent->error->type )
+			&& 'invalid_request_error' === $payment_intent->error->type
+			&& isset( $payment_intent->error->message )
+			&& str_contains( $payment_intent->error->message, self::DETACHED_PAYMENT_METHOD_ERROR_STRING )
+		) {
+			return __(
+				'This saved payment method is no longer valid. It might be expired, removed, or broken. Please choose a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
 		return $payment_intent->error->message;
 	}
 
@@ -2510,6 +2526,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	protected function prepare_payment_information_from_request( WC_Order $order ) {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
+		$express_payment_type  = $this->get_express_payment_type_from_request();
 		$capture_method        = $this->is_automatic_capture_enabled() ? 'automatic' : 'manual'; // automatic | manual.
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -2549,9 +2566,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
-		// Override the payment method type with the API value when OC is enabled
+		// When Optimized Checkout is enabled, check which payment method we need to use.
 		if ( $this->oc_enabled ) {
-			$selected_payment_type = $payment_method_details->type ?? null;
+			// Check if we are handling an express payment type, where we should not expect a payment method to have been created, and
+			// need to rely on either $selected_payment_type or $express_payment_type.
+			if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
+				if ( '' === $selected_payment_type && null !== $express_payment_type ) {
+					$selected_payment_type = $express_payment_type;
+				}
+				// Otherwise keep using $selected_payment_type.
+			} else {
+				// Otherwise use the payment method type from the API.
+				$selected_payment_type = $payment_method_details->type;
+			}
 			$payment_method_types  = [ $selected_payment_type ];
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
@@ -2724,7 +2751,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 
-			$order->update_meta_data( '_stripe_card_brand', $preferred_brand );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_card_brand( $order, $preferred_brand );
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {

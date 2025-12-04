@@ -11,9 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Credit card Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::CARD;
 
+	/**
+	 * Legacy payment method class reference.
+	 *
+	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
+	 */
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe::class;
 
 	/**
@@ -25,12 +31,14 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**

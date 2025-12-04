@@ -7,20 +7,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The Klarna Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
-	 * Constructor for giropay payment method
+	 * Constructor for Klarna payment method
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'tokenization';
-		$this->supports[]           = 'multiple_subscriptions';
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -45,6 +44,12 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// Klarna has complex rules around currencies and technically allows cross border transactions (like France to Norway). Currency and location rules will be enforced via checkout billing country validation.
 		$this->accept_only_domestic_payment = false;
+
+		// Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 
 	/**
