@@ -162,6 +162,20 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$normalized_data = $this->express_checkout_helper->normalize_state( $data );
 		$normalized_data = $this->express_checkout_helper->fix_address_fields_mapping( $normalized_data );
 
+		/**
+		 * Filters the address data for express checkout after the standard normalization logic has been applied.
+		 *
+		 * NOTE: This data is immediately returned to the client, so be careful with the filter implementation,
+		 * as it can cause issues for express checkout flows. Also ensure that data is correctly sanitized and checked
+		 * as it will be visible to shoppers.
+		 *
+		 * @since 10.2.0
+		 *
+		 * @param array $normalized_data The normalized address data.
+		 * @param array $data            The original address data sent from the client before normalization.
+		 */
+		$normalized_data = apply_filters( 'wc_stripe_express_checkout_normalize_address', $normalized_data, $data );
+
 		wp_send_json( $normalized_data );
 	}
 
