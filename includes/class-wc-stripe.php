@@ -345,8 +345,8 @@ class WC_Stripe {
 			}
 
 			// Mark as fresh install if no version is set.
-			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_fresh_install' ) ) {
-				update_option( 'wc_stripe_fresh_install', true );
+			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
+				update_option( 'wc_stripe_optimized_checkout_default_on', true );
 			}
 
 			add_woocommerce_inbox_variant();
