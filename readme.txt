@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Removes all references to the UPE-enabled feature flag, as well as deprecated promotional banners
 * Dev - Deprecates all the legacy checkout payment method classes
 * Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
