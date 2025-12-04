@@ -3403,9 +3403,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_customer_id( $order );
 
-		// Create a real gateway instance to test the actual behavior.
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-
 		// Mock the API request to verify billing details are used.
 		$api_called = false;
 		$captured_args = null;
@@ -3440,15 +3437,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			3
 		);
 
-		// Use reflection to access the private method.
-		$reflection = new \ReflectionClass( $gateway );
-		$method     = $reflection->getMethod( 'get_customer_id_for_order' );
-		$method->setAccessible( true );
-
-		// Mock get_stripe_customer_id to return empty (no existing customer).
+		// Create a mock gateway instance with specific methods mocked.
+		// The mock inherits all methods from WC_Stripe_UPE_Payment_Gateway, including the private method we'll test.
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->onlyMethods( [ 'get_stripe_customer_id', 'get_user_from_order', 'is_valid_pay_for_order_endpoint' ] )
 			->getMock();
+
+		// Use reflection to access the private method on the mock instance.
+		// The mock inherits the method from the parent class, so reflection works correctly.
+		$reflection = new \ReflectionClass( $gateway );
+		$method     = $reflection->getMethod( 'get_customer_id_for_order' );
+		$method->setAccessible( true );
 
 		$gateway->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
@@ -3484,6 +3483,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$request_body = $captured_args['body'];
 			// Ensure we have an array (wp_safe_remote_post receives body as array).
 			$this->assertIsArray( $request_body, 'Request body should be an array.' );
+
+			// Verify that the order object is NOT included in the API request (main purpose of this PR).
+			$this->assertArrayNotHasKey( 'order', $request_body, 'Order object should not be included in the API request.' );
 
 			// Verify billing details from the order are used in the customer creation/update request.
 			$this->assertEquals( $expected_customer_data['email'], $request_body['email'] ?? '', 'Billing email should match order billing email.' );
