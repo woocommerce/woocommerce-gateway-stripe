@@ -1324,6 +1324,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			$data['billing_address']['address_1'] = wc_clean( wp_unslash( $data['billing_address']['address_2'] ) );
 			$data['billing_address']['address_2'] = '';
 		}
+		if ( empty( $data['shipping_address']['address_1'] ) && ! empty( $data['shipping_address']['address_2'] ) ) {
+			$data['shipping_address']['address_1'] = wc_clean( wp_unslash( $data['shipping_address']['address_2'] ) );
+			$data['shipping_address']['address_2'] = '';
+		}
 
 		return $data;
 	}
