@@ -702,6 +702,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( is_callable( [ $payment_method, 'is_available_for_account_country' ] ) && ! $payment_method->is_available_for_account_country() ) {
 					continue;
 				}
+				// Amazon Pay is not available when taxes are based on the customer billing address.
+				if ( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' )
+					&& WC_Stripe_Payment_Methods::AMAZON_PAY === $payment_method->get_id() ) {
+					continue;
+				}
 				$available_payment_methods[] = $payment_method->get_id();
 			}
 			return $available_payment_methods;

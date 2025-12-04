@@ -111,6 +111,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Update - Block Amazon Pay from being enabled when taxes are based on the billing address. Adds new pills to indicate why it is disabled, and another pill to indicate when a express method is disabled due card being disabled
+* Update - Enable the Optimized Checkout Suite feature for all new installations
+* Dev - Deprecates all the legacy checkout payment method classes
+* Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
 * Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
@@ -138,6 +142,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Fix - Always use the current payment method configuration in Optimized Checkout
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 * Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
