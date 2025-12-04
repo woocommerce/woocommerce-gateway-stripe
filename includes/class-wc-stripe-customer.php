@@ -522,7 +522,7 @@ class WC_Stripe_Customer {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$args = $this->generate_customer_request( $args );
+		$args = $this->generate_customer_request( $args, $order );
 
 		/**
 		 * Filters the arguments used to update a customer.
@@ -571,7 +571,7 @@ class WC_Stripe_Customer {
 
 			return $this->recreate_customer( $args, $current_context, $order );
 		} else {
-			return $this->update_customer( $args, $order );
+			return $this->update_customer( $args, false, $order );
 		}
 	}
 
