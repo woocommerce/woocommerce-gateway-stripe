@@ -344,7 +344,7 @@ class WC_Stripe {
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
 
-			// Mark as fresh install if no version is set.
+			// Mark optimized checkout as default on for new installs.
 			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
 				update_option( 'wc_stripe_optimized_checkout_default_on', true );
 			}
