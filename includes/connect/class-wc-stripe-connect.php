@@ -267,6 +267,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
 			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
+			$should_default_optimized_checkout_on = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			// Clean up the option.
+			delete_option( 'wc_stripe_optimized_checkout_default_on' );
+			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+				$options['optimized_checkout_element'] = 'yes';
+			}
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
