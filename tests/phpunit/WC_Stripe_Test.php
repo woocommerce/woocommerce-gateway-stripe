@@ -233,7 +233,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Ensure the flag is not set.
-		delete_option( 'wc_stripe_fresh_install' );
+		delete_option( 'wc_stripe_optimized_checkout_default_on' );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -248,6 +248,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$this->assertEquals( 'yes', get_option( 'wc_stripe_fresh_install' ) );
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 	}
 }
