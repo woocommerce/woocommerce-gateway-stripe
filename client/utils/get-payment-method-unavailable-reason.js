@@ -32,6 +32,10 @@ const getPaymentMethodUnavailableReason = ( {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT;
 	}
 
+	if ( ! storeCurrencyCode ) {
+		return null;
+	}
+
 	const paymentMethodCurrencies = getPaymentMethodCurrencies(
 		paymentMethodId,
 		true
