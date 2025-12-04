@@ -164,8 +164,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		/**
 		 * Filters the address data for express checkout after the standard normalization logic has been applied.
+		 *
 		 * NOTE: This data is immediately returned to the client, so be careful with the filter implementation,
-		 * as it can cause issues for express checkout flows.
+		 * as it can cause issues for express checkout flows. Also ensure that data is correctly sanitized and checked
+		 * as it will be visible to shoppers.
 		 *
 		 * @since 10.2.0
 		 *
