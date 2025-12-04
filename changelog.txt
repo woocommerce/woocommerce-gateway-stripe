@@ -30,6 +30,7 @@
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Fix - Always use the current payment method configuration in Optimized Checkout
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 * Fix - Exclude order parameter from customer creation request arguments
 
 = 10.1.0 - 2025-11-11 =
