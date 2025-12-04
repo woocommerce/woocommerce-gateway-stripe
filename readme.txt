@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Fix - Always use the current payment method configuration in Optimized Checkout
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 * Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
