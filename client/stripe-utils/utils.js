@@ -466,7 +466,7 @@ export const getDefaultValues = () => {
 	const isChangingPayment = stripeServerData?.isChangingPayment;
 	const isAddPaymentMethod = stripeServerData?.isAddPaymentMethod;
 
-	// On order pay and change payment method pages, use billing data from order/subscription
+	// On order pay, change payment method, and add payment method pages, use billing data from customer.
 	if ( isOrderPay || isChangingPayment || isAddPaymentMethod ) {
 		const billingData = stripeServerData?.customerBillingData;
 
