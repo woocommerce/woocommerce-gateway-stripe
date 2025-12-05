@@ -289,6 +289,7 @@ class WC_Stripe_Settings_Controller {
 			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
