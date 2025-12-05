@@ -1,9 +1,14 @@
 *** Changelog ***
 
 = 10.2.0 - xxxx-xx-xx =
+* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
+* Update - Block Amazon Pay from being enabled when taxes are based on the billing address. Adds new pills to indicate why it is disabled, and another pill to indicate when a express method is disabled due card being disabled
+* Update - Enable the Optimized Checkout Suite feature for all new installations
+* Dev - Deprecates all the legacy checkout payment method classes
+* Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
 * Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
-* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason 
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
 * Dev - Remove the merchant email address from the System Status Report
 * Dev - Replace the constant reference for the legacy SEPA payment method
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
@@ -26,6 +31,10 @@
 * Fix - Use the built-in Database Cache for the Connect flow data
 * Add - Implement cache prefetch for account data
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Fix - Always use the current payment method configuration in Optimized Checkout
+* Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
+* Update - Expand Amazon Pay support for all permitted currencies and countries
 * Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
 
 = 10.1.0 - 2025-11-11 =

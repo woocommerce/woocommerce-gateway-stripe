@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Gateway_Stripe
  *
  * @since 5.8.0
+ *
+ * @deprecated 10.2.0 This class is now deprecated along with the legacy checkout and will be removed in a future release.
  */
 class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 
