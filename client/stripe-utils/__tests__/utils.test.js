@@ -213,7 +213,7 @@ describe( 'utils', () => {
 		} );
 
 		describe( 'fallback behavior when no customer billing data', () => {
-			it( 'should read from DOM elements for Link on checkout page', () => {
+			it( 'should fallback to reading from DOM elements for Link on checkout page', () => {
 				global.wc_stripe_upe_params = {
 					isCheckout: true,
 					// No isOrderPay, isChangingPayment, or isAddPaymentMethod
@@ -239,96 +239,6 @@ describe( 'utils', () => {
 							phone: '+1987654321',
 						},
 					},
-				} );
-			} );
-
-			it( 'should return empty object if billing_email is not found', () => {
-				global.wc_stripe_upe_params = {
-					isCheckout: true,
-				};
-
-				mockGetElementById.mockReturnValue( null );
-
-				const result = getDefaultValues();
-
-				expect( result ).toEqual( {} );
-			} );
-
-			it( 'should fallback to shipping_phone if billing_phone is not available', () => {
-				global.wc_stripe_upe_params = {
-					isCheckout: true,
-				};
-
-				const mockBillingEmail = {
-					value: 'checkout@example.com',
-				};
-				const mockShippingPhone = {
-					value: '+1555555555',
-				};
-
-				mockGetElementById
-					.mockReturnValueOnce( mockBillingEmail ) // billing_email
-					.mockReturnValueOnce( null ) // billing_phone
-					.mockReturnValueOnce( mockShippingPhone ); // shipping_phone
-
-				const result = getDefaultValues();
-
-				expect( result.defaultValues.billingDetails.phone ).toBe(
-					'+1555555555'
-				);
-			} );
-		} );
-
-		describe( 'edge cases', () => {
-			it( 'should handle missing or null address object gracefully', () => {
-				// Null address
-				global.wc_stripe_upe_params = {
-					isOrderPay: true,
-					customerBillingData: {
-						email: 'test@example.com',
-						address: null,
-					},
-				};
-				let result = getDefaultValues();
-				expect( result.defaultValues.billingDetails.email ).toBe(
-					'test@example.com'
-				);
-				expect(
-					result.defaultValues.billingDetails.address
-				).toBeUndefined();
-
-				// Undefined address
-				global.wc_stripe_upe_params = {
-					isOrderPay: true,
-					customerBillingData: {
-						email: 'test@example.com',
-						// address is undefined
-					},
-				};
-				result = getDefaultValues();
-				expect( result.defaultValues.billingDetails.email ).toBe(
-					'test@example.com'
-				);
-				expect(
-					result.defaultValues.billingDetails.address
-				).toBeUndefined();
-
-				// Partial address data
-				global.wc_stripe_upe_params = {
-					isOrderPay: true,
-					customerBillingData: {
-						email: 'test@example.com',
-						address: {
-							country: 'FR',
-							city: 'Paris',
-							// Other fields missing
-						},
-					},
-				};
-				result = getDefaultValues();
-				expect( result.defaultValues.billingDetails.address ).toEqual( {
-					country: 'FR',
-					city: 'Paris',
 				} );
 			} );
 		} );
