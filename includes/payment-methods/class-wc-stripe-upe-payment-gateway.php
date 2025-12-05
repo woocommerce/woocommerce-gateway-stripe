@@ -548,6 +548,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
 		$stripe_params['currency']  = $currency;
 
+		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order and Change Payment Method pages.
+		if ( is_wc_endpoint_url( 'add-payment-method' ) || parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+			// Get billing details from the current user's customer data instead of the order.
+			$customer = WC()->customer;
+			if ( $customer ) {
+				$stripe_params['customerBillingData'] = [
+					'name'    => trim( $customer->get_billing_first_name() . ' ' . $customer->get_billing_last_name() ),
+					'email'   => $customer->get_billing_email(),
+					'phone'   => $customer->get_billing_phone(),
+					'address' => [
+						'country'     => $customer->get_billing_country(),
+						'line1'       => $customer->get_billing_address_1(),
+						'line2'       => $customer->get_billing_address_2(),
+						'city'        => $customer->get_billing_city(),
+						'state'       => $customer->get_billing_state(),
+						'postal_code' => $customer->get_billing_postcode(),
+					],
+				];
+			}
+		}
+
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
@@ -590,6 +611,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			$stripe_params['isAddPaymentMethod'] = true;
 			$stripe_params['cartTotal']    = 0;
 			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
