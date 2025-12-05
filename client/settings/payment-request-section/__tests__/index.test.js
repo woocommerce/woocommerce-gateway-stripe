@@ -47,6 +47,8 @@ describe( 'PaymentRequestSection', () => {
 		global.wc_stripe_settings_params = {
 			...globalValues,
 			is_amazon_pay_available: true,
+			taxes_based_on_billing: false,
+			is_card_method_enabled: true,
 		};
 	} );
 
@@ -60,49 +62,6 @@ describe( 'PaymentRequestSection', () => {
 
 		const label = screen.queryByText( 'Apple Pay / Google Pay' );
 		expect( label ).toBeInTheDocument();
-	} );
-
-	it( 'hide link payment if card payment method is inactive (OC disabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_LINK ],
-		] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeNull();
-	} );
-
-	it( 'show link payment if card payment method is active (OC disabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
-		] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
-	} );
-
-	it( 'show link payment if card payment method is inactive (OC enabled)', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_LINK,
-			PAYMENT_METHOD_CARD,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_LINK ],
-		] );
-		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
 	} );
 
 	it( 'test stripe link checkbox checked', () => {
@@ -187,5 +146,52 @@ describe( 'PaymentRequestSection', () => {
 			name: /Amazon Pay Input/i,
 		} );
 		expect( amazonPayCheckbox ).toBeChecked();
+	} );
+
+	it( 'Amazon Pay checkbox disabled', () => {
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_amazon_pay_available: true,
+			taxes_based_on_billing: true,
+		};
+
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).toBeDisabled();
+	} );
+
+	it( 'Apple Pay / Google Pay checkbox disabled', () => {
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( false, jest.fn() )
+		);
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_card_method_enabled: false,
+		};
+
+		const container = render( <PaymentRequestSection /> );
+		const eceCheckbox = container.getByRole( 'checkbox', {
+			name: /Apple Pay \/ Google Pay Input/i,
+		} );
+		expect( eceCheckbox ).toBeDisabled();
+	} );
+
+	it( 'Link checkbox disabled', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+			jest.fn(),
+		] );
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_card_method_enabled: false,
+		};
+
+		const container = render( <PaymentRequestSection /> );
+		const linkCheckbox = container.getByRole( 'checkbox', {
+			name: /Link by Stripe Input/i,
+		} );
+		expect( linkCheckbox ).toBeDisabled();
 	} );
 } );
