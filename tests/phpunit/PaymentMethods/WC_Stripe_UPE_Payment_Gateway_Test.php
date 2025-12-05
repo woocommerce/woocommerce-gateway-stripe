@@ -371,7 +371,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods(), "Available payment methods are not the same for $country" );
 	}
 
-	public function get_upe_available_payment_methods_provider() {
+	/**
+	 * Data provider for {@see test_get_upe_available_payment_methods()}.
+	 *
+	 * @return array[]
+	 */
+	public function get_upe_available_payment_methods_provider(): array {
 		return [
 			[
 				'US',
@@ -402,7 +407,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
@@ -418,7 +422,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
