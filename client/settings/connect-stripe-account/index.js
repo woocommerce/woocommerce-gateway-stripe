@@ -39,10 +39,7 @@ const ButtonWrapper = styled.div`
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
-
-	> :first-child {
-		margin-right: 8px;
-	}
+	column-gap: 12px;
 
 	> :last-child {
 		box-shadow: none;
