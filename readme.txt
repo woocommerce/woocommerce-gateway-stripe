@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Expand Amazon Pay support for all permitted currencies and countries
 * Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
 * Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
 * Fix - Exclude order parameter from customer creation request arguments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
