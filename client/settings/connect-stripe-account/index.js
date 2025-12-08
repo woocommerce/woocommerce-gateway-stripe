@@ -1,12 +1,12 @@
-import { React, useState } from 'react';
+import { React, useState, useCallback } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
-import { Card, ExternalLink } from '@wordpress/components';
+import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import ConnectButton from 'wcstripe/settings/stripe-auth-account/connect-button';
-import InlineNotice from 'wcstripe/components/inline-notice';
+import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -55,9 +55,9 @@ const ButtonWrapper = styled.div`
 const ConnectStripeAccount = () => {
 	const [ hasError, setHasError ] = useState( false );
 
-	const handleErrorChange = ( error ) => {
+	const handleErrorChange = useCallback( ( error ) => {
 		setHasError( !! error );
-	};
+	}, [] );
 
 	return (
 		<CardWrapper>
@@ -101,20 +101,7 @@ const ConnectStripeAccount = () => {
 				</p>
 				{ hasError && (
 					<ErrorContainer>
-						<InlineNotice isDismissible={ false } status="error">
-							{ interpolateComponents( {
-								mixedString: __(
-									'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
-									'woocommerce-gateway-stripe'
-								),
-								components: {
-									br: <br />,
-									Link: (
-										<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
-									),
-								},
-							} ) }
-						</InlineNotice>
+						<ConnectionErrorNotice />
 					</ErrorContainer>
 				) }
 				<ButtonWrapper>
