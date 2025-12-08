@@ -54,6 +54,7 @@ const ButtonWrapper = styled.div`
 
 const ConnectStripeAccount = () => {
 	const [ hasError, setHasError ] = useState( false );
+	const isSSL = window.location.protocol === 'https:';
 
 	const handleErrorChange = useCallback( ( error ) => {
 		setHasError( !! error );
@@ -105,11 +106,13 @@ const ConnectStripeAccount = () => {
 					</ErrorContainer>
 				) }
 				<ButtonWrapper>
-					<ConnectButton
-						testMode={ false }
-						buttonVariant="primary"
-						onErrorChange={ handleErrorChange }
-					/>
+					{ isSSL && (
+						<ConnectButton
+							testMode={ false }
+							buttonVariant="primary"
+							onErrorChange={ handleErrorChange }
+						/>
+					) }
 					<ConnectButton
 						testMode={ true }
 						buttonVariant="secondary"
