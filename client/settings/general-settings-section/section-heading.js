@@ -106,7 +106,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								},
 							] }
 						/>
-						)
 					</>
 				) : (
 					<>
