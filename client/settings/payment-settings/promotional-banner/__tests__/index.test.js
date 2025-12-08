@@ -3,21 +3,21 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromotionalBanner from '..';
 import { useDispatch } from '@wordpress/data';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import apiFetch from '@wordpress/api-fetch';
 import {
-	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_IDEAL,
-} from 'wcstripe/stripe-utils/constants';
-import { RECONNECT_BANNER } from 'wcstripe/settings/payment-settings/constants';
+	OC_PROMOTION_BANNER,
+	RECONNECT_BANNER,
+} from 'wcstripe/settings/payment-settings/constants';
 
 jest.mock( '@wordpress/data' );
+
+jest.mock( '@wordpress/api-fetch' );
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/data', () => ( {
-	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [ 'card' ] ] ),
 	useTestMode: jest.fn().mockReturnValue( [ false ] ),
 } ) );
 
@@ -44,6 +44,9 @@ describe( 'PromotionalBanner', () => {
 			value: { reload: jest.fn() },
 		} );
 		global.wc_stripe_settings_params = { are_apms_deprecated: false };
+		apiFetch.mockImplementation(
+			jest.fn( () => Promise.resolve( { data: {} } ) )
+		);
 	} );
 
 	afterEach( () => {
@@ -55,11 +58,16 @@ describe( 'PromotionalBanner', () => {
 	} );
 
 	it( 'dismiss function should be called', async () => {
+		const dismissBannerMock = jest.fn( () =>
+			Promise.resolve( { data: {} } )
+		);
+		apiFetch.mockImplementation( dismissBannerMock );
+
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				isConnectedViaOAuth={ true }
-				promotionalBannerType={ RECONNECT_BANNER }
+				promotionalBannerType={ OC_PROMOTION_BANNER }
 			/>
 		);
 
@@ -80,24 +88,6 @@ describe( 'PromotionalBanner', () => {
 		);
 		expect(
 			screen.queryByTestId( 're-connect-account-banner' )
-		).toBeInTheDocument();
-	} );
-
-	it( 'Display the APM version of the new checkout experience promotional surface when any APM is enabled', () => {
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_IDEAL ],
-		] );
-
-		render(
-			<PromotionalBanner
-				setShowPromotionalBanner={ setShowPromotionalBanner }
-				isConnectedViaOAuth={ true }
-				promotionalBannerType={ RECONNECT_BANNER }
-			/>
-		);
-
-		expect(
-			screen.queryByTestId( 'new-checkout-apms-banner' )
 		).toBeInTheDocument();
 	} );
 } );

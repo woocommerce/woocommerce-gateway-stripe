@@ -159,7 +159,7 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should allow to enable a payment method when UPE is enabled', async () => {
+	it( 'should allow to enable a payment method', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -179,44 +179,6 @@ describe( 'GeneralSettingsSection', () => {
 			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
-
-		render( <GeneralSettingsSection /> );
-
-		const alipayCheckbox = screen.getByRole( 'checkbox', {
-			name: /Alipay/,
-		} );
-
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( alipayCheckbox ).not.toBeChecked();
-
-		await userEvent.click( alipayCheckbox );
-
-		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-		] );
-	} );
-
-	it( 'should allow to enable a payment method when UPE is disabled', async () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-			PAYMENT_METHOD_SEPA,
-		] );
-		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-			updateEnabledMethodsMock,
-		] );
-		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [
-				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_ALIPAY,
-				PAYMENT_METHOD_SEPA,
-			],
-			setOrderedPaymentMethodIds: jest.fn(),
-			saveOrderedPaymentMethodIds: jest.fn(),
-		} );
 
 		render( <GeneralSettingsSection /> );
 
@@ -439,15 +401,6 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should not render the list of missing payment methods if UPE is disabled', () => {
-		useIsPMCEnabled.mockReturnValue( false );
-		render( <GeneralSettingsSection /> );
-
-		expect(
-			screen.queryByTestId( 'unavailable-payment-methods-list' )
-		).not.toBeInTheDocument();
-	} );
-
 	it( 'should not render the list of missing payment methods if PMC is enabled', () => {
 		useIsPMCEnabled.mockReturnValue( true );
 		render( <GeneralSettingsSection /> );
@@ -462,14 +415,6 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByTestId( 'upe-early-access-pill' )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'should not render the expandable menu if UPE is disabled', () => {
-		render( <GeneralSettingsSection /> );
-
-		expect(
-			screen.queryByTestId( 'upe-expandable-menu' )
 		).not.toBeInTheDocument();
 	} );
 
