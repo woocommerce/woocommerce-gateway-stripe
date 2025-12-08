@@ -2,23 +2,12 @@ import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
-import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import PaymentMethodUnavailablePill, {
 	PaymentMethodPopoverLink,
 } from 'wcstripe/components/payment-method-unavailable-pill';
-import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( id );
-	const unavailableReason = usePaymentMethodUnavailableReason( id );
-
-	if (
-		unavailableReason !==
-		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY
-	) {
-		return null;
-	}
-
 	return (
 		<PaymentMethodUnavailablePill
 			title={ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }

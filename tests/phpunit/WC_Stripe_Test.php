@@ -154,4 +154,100 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Tests for the 'install' method when it updates the main Stripe settings.
+	 *
+	 * @param array $stripe_settings   The initial Stripe settings.
+	 * @param array $expected_settings The expected Stripe settings after installation.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_install_settings
+	 */
+	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [] ): void {
+		// Activate the Stripe plugin.
+		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+
+		// Set initial settings.
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'update_plugin_version',
+					'update_prb_location_settings',
+					'migrate_to_new_checkout_experience',
+				]
+			)
+			->getMock();
+
+		$wc_stripe->install();
+
+		$actual_settings = WC_Stripe_Helper::get_stripe_settings();
+		foreach ( $expected_settings as $key => $value ) {
+			if ( null == $value ) {
+				$this->assertArrayNotHasKey( $key, $actual_settings );
+			} else {
+				$this->assertArrayHasKey( $key, $actual_settings );
+				$this->assertSame( $value, $actual_settings[ $key ] );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for `test_install_settings`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_install_settings(): array {
+		return [
+			'will not enable OCS by default due to PMC being disabled' => [
+				'stripe settings' => [
+					'pmc_enabled' => 'no',
+				],
+				'expected settings' => [
+					'pmc_enabled'                => null,
+					'optimized_checkout_element' => null,
+				],
+			],
+			'will not enable OCS by default due to OCS being set'  => [
+				'stripe settings' => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expected settings' => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Tests that the 'install' method sets the fresh install flag.
+	 *
+	 * @return void
+	 */
+	public function test_install_sets_fresh_install_flag(): void {
+		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+
+		// Ensure the flag is not set.
+		delete_option( 'wc_stripe_optimized_checkout_default_on' );
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'update_plugin_version',
+					'update_prb_location_settings',
+					'migrate_to_new_checkout_experience',
+				]
+			)
+			->getMock();
+
+		$wc_stripe->install();
+
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+	}
 }

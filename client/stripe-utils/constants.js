@@ -27,6 +27,7 @@ export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
+export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 
 /**
  * Payment method names constants with the `stripe` prefix
@@ -177,6 +178,8 @@ export const BNPL_METHODS = [
 export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
 	UNSUPPORTED_CURRENCY: 'unsupported_currency',
 	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
+	TAX_BASED_ON_BILLING_ADDRESS: 'tax_based_on_billing_address',
+	REQUIRES_CARD_METHOD: 'requires_card_method',
 };
 
 /**
