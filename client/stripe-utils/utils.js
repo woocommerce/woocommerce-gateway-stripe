@@ -505,7 +505,9 @@ export const getDefaultValues = () => {
 						name: billingData.name?.trim() || undefined,
 						email: billingData.email.trim(),
 						phone: billingData.phone?.trim() || undefined,
-						...( Object.keys( address ).length > 0 ? { address } : {} ),
+						...( Object.keys( address ).length > 0
+							? { address }
+							: {} ),
 					},
 				},
 			};
