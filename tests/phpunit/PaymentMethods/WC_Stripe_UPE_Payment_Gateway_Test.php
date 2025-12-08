@@ -3363,7 +3363,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @return void
 	 */
-	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( $scenario_name, $is_guest, $existing_stripe_customer_id, $expected_customer_id, $api_url_pattern, $billing_data, $expected_customer_data ) {
+	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( string $scenario_name, bool $is_guest, string $existing_stripe_customer_id, string $expected_customer_id, string $api_url_pattern, array $billing_data, array $expected_customer_data ) {
 		// Create user if needed.
 		$user_id = 0;
 		$customer_id = 0;

@@ -156,6 +156,12 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	protected function generate_customer_request( $args = [], $order = null ) {
+		// The $order parameter was added in 10.2.0, so check for `$args['order'] for backwards compatibility.
+		if ( null === $order && isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
+			$order = $args['order'];
+		}
+		// Always ensure the old 'order' key is unset
+		unset( $args['order'] );
 		$user = $this->get_user();
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
