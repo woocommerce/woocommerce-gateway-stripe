@@ -548,8 +548,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
 		$stripe_params['currency']  = $currency;
 
+		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
+
 		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order, Change Payment Method, and Add Payment Method pages.
-		if ( is_wc_endpoint_url( 'add-payment-method' ) || parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
 			// Get billing details from the current user's customer data instead of the order.
 			$customer = WC()->customer;
 			if ( $customer ) {
@@ -569,7 +571,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+		if ( $is_pay_for_order || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
