@@ -3499,7 +3499,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertEquals( $expected_customer_data['address']['line1'], $request_body['address']['line1'] ?? '', 'Billing address line1 should match order.' );
 			if ( ! empty( $expected_customer_data['address']['line2'] ) ) {
 				$this->assertEquals( $expected_customer_data['address']['line2'], $request_body['address']['line2'] ?? '', 'Billing address line2 should match order.' );
+			} else {
+				// When line2 is empty, verify it's either not present or empty in the request body.
+				$this->assertTrue(
+					null === $request_body['address']['line2'] || '' === $request_body['address']['line2'],
+					'Billing address line2 should be empty or not present when order has no line2.'
+				);
 			}
+
 			$this->assertEquals( $expected_customer_data['address']['city'], $request_body['address']['city'] ?? '', 'Billing city should match order.' );
 			$this->assertEquals( $expected_customer_data['address']['state'], $request_body['address']['state'] ?? '', 'Billing state should match order.' );
 			$this->assertEquals( $expected_customer_data['address']['postal_code'], $request_body['address']['postal_code'] ?? '', 'Billing postal code should match order.' );
