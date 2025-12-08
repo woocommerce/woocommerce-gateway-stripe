@@ -55,9 +55,12 @@ const ButtonWrapper = styled.div`
 const ConnectStripeAccount = () => {
 	const [ hasError, setHasError ] = useState( false );
 
-	const handleErrorChange = useCallback( ( error ) => {
-		setHasError( !! error );
-	}, [ setHasError ] );
+	const handleErrorChange = useCallback(
+		( error ) => {
+			setHasError( !! error );
+		},
+		[ setHasError ]
+	);
 
 	return (
 		<CardWrapper>
