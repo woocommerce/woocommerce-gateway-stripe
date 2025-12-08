@@ -111,7 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
-* Dev - Removes all references to the UPE-enabled feature flag, as well as deprecated promotional banners
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
 * Dev - Refactor display logic for payment method issue pills
 * Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
 * Update - Better notices and interactions for disabled express checkout methods
