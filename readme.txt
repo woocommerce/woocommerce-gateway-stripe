@@ -114,41 +114,42 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 
-* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 * Update - Enable the Optimized Checkout Suite feature for all new installations
 * Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
 
 **Important Fixes and Updates**
 
 * Add - Implement cache prefetch for account data
-* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filte
-* Fix - Fix error handling when processing subscription renewals
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
+* Update - Include customer data in wc_stripe_create_customer_required_fields filter
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
 * Fix - Always use the current payment method configuration in Optimized Checkout
 
 **Other Fixes**
 
-* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
-* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
-* Update - Better notices and interactions for disabled express checkout methods
 * Update - Changes the list of payment methods shown in the Stripe account connection modal
-* Update - Include customer data in wc_stripe_create_customer_required_fields filter
-* Fix - Fix revoked secret_key error during the OAuth account connection flow
-* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
-* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Update - Better notices and interactions for disabled express checkout methods
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
 * Fix - Allow payment methods to be disabled when they are not available
-* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
-* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
-* Fix - Make token detachment checks use shared logic for detaching payment methods
-* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
+* Fix - Fix error handling when processing subscription renewals
 * Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
+* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Fix revoked secret_key error during the OAuth account connection flow
 * Fix - Exclude order parameter from customer creation request arguments
-* Fix - Use the built-in Database Cache for the Connect flow data
 
 **Internal Changes and Upcoming Features**
 
+* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
 * Update - Expand Amazon Pay support for all permitted currencies and countries
+* Fix - Make token detachment checks use shared logic for detaching payment methods
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Use the built-in Database Cache for the Connect flow data
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Dev - Refactor display logic for payment method issue pills
 * Dev - Deprecates all the legacy checkout payment method classes
