@@ -150,9 +150,9 @@ class WC_Stripe_Settings_Controller {
 			return;
 		}
 
-		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'live';
+		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'test';
 		if ( ! in_array( $mode, [ 'live', 'test' ], true ) ) {
-			$mode = 'live';
+			$mode = 'test';
 		}
 
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
