@@ -3343,4 +3343,253 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertArrayHasKey( 'pmc_enabled', $result );
 		$this->assertEquals( 'yes', $result['pmc_enabled'] );
 	}
+
+	/**
+	 * Test that get_customer_id_for_order() correctly creates or updates customers with billing details.
+	 *
+	 * For guest users, billing details are retrieved from the order object.
+	 * For logged-in users, billing details come from user meta (user email and user meta fields),
+	 * with the order parameter available as a fallback when user data is missing.
+	 *
+	 * @dataProvider provide_get_customer_id_for_order_billing_details_test_cases
+	 *
+	 * @param string $scenario_name Description of the test scenario.
+	 * @param bool   $is_guest Whether the order is for a guest user.
+	 * @param string $existing_stripe_customer_id Existing Stripe customer ID for the user (empty for new customer).
+	 * @param string $expected_customer_id Expected Stripe customer ID to be returned.
+	 * @param string $api_url_pattern Pattern to match the API URL.
+	 * @param array  $billing_data Billing data to set on the order (and user meta for logged-in users).
+	 * @param array  $expected_customer_data Expected customer data in the API request.
+	 *
+	 * @return void
+	 */
+	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( string $scenario_name, bool $is_guest, string $existing_stripe_customer_id, string $expected_customer_id, string $api_url_pattern, array $billing_data, array $expected_customer_data ) {
+		// Create user if needed.
+		$user_id = 0;
+		$customer_id = 0;
+		$user_email = '';
+		if ( ! $is_guest ) {
+			// For logged-in users, the code uses user email and user meta, not order data.
+			// Set user email to match expected data, and set user meta to match order billing data.
+			$user_email = $billing_data['email'];
+			$user_id = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
+			$customer_id = $user_id;
+			if ( ! empty( $existing_stripe_customer_id ) ) {
+				update_user_option( $user_id, '_stripe_customer_id', $existing_stripe_customer_id );
+			}
+			// Set user meta to match the order billing data.
+			// For logged-in users, user meta takes precedence over order data.
+			update_user_meta( $user_id, 'billing_first_name', $billing_data['first_name'] );
+			update_user_meta( $user_id, 'billing_last_name', $billing_data['last_name'] );
+			update_user_meta( $user_id, 'billing_address_1', $billing_data['address_1'] );
+			update_user_meta( $user_id, 'billing_address_2', $billing_data['address_2'] ?? '' );
+			update_user_meta( $user_id, 'billing_city', $billing_data['city'] );
+			update_user_meta( $user_id, 'billing_state', $billing_data['state'] );
+			update_user_meta( $user_id, 'billing_postcode', $billing_data['postcode'] );
+			update_user_meta( $user_id, 'billing_country', $billing_data['country'] );
+		}
+
+		// Create an order with specific billing details.
+		$order = WC_Helper_Order::create_order( $customer_id );
+		$order->set_billing_email( $billing_data['email'] );
+		$order->set_billing_first_name( $billing_data['first_name'] );
+		$order->set_billing_last_name( $billing_data['last_name'] );
+		$order->set_billing_address_1( $billing_data['address_1'] );
+		$order->set_billing_address_2( $billing_data['address_2'] ?? '' );
+		$order->set_billing_city( $billing_data['city'] );
+		$order->set_billing_state( $billing_data['state'] );
+		$order->set_billing_postcode( $billing_data['postcode'] );
+		$order->set_billing_country( $billing_data['country'] );
+		$order->save();
+
+		// Ensure no customer ID is set on the order.
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_customer_id( $order );
+
+		// Mock the API request to verify billing details are used.
+		$api_called = false;
+		$captured_args = null;
+
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
+				if ( preg_match( $api_url_pattern, $url ) ) {
+					$api_called = true;
+					$captured_args = $parsed_args;
+
+					// Return a mock successful response.
+					return [
+						'response' => [
+							'code'    => 200,
+							'message' => 'OK',
+						],
+						'headers'  => [ 'Content-Type' => 'application/json' ],
+						'body'     => wp_json_encode(
+							[
+								'id'    => $expected_customer_id,
+								'email' => $expected_customer_data['email'],
+								'name'  => $expected_customer_data['name'],
+							]
+						),
+					];
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		// Create a mock gateway instance with specific methods mocked.
+		// The mock inherits all methods from WC_Stripe_UPE_Payment_Gateway, including the private method we'll test.
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'get_stripe_customer_id', 'get_user_from_order', 'is_valid_pay_for_order_endpoint' ] )
+			->getMock();
+
+		// Use reflection to access the private method on the mock instance.
+		// The mock inherits the method from the parent class, so reflection works correctly.
+		$reflection = new \ReflectionClass( $gateway );
+		$method     = $reflection->getMethod( 'get_customer_id_for_order' );
+		$method->setAccessible( true );
+
+		$gateway->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->with( $order )
+			->willReturn( '' ); // No customer ID on order.
+
+		if ( ! $is_guest ) {
+			$user = get_user_by( 'id', $user_id );
+		} else {
+			$user = new \WP_User();
+			$user->ID = 0;
+		}
+
+		$gateway->expects( $this->once() )
+			->method( 'get_user_from_order' )
+			->with( $order )
+			->willReturn( $user );
+
+		$gateway->expects( $this->any() )
+			->method( 'is_valid_pay_for_order_endpoint' )
+			->willReturn( false );
+
+		// Call the method.
+		$result_customer_id = $method->invoke( $gateway, $order );
+
+		// Verify the API was called and billing details were used.
+		$this->assertTrue( $api_called, "Stripe API should have been called to {$scenario_name}." );
+		$this->assertEquals( $expected_customer_id, $result_customer_id );
+
+		// Verify the request body contains the expected billing details.
+		// The body is passed as an array to wp_safe_remote_post, so we check it directly.
+		if ( $captured_args && isset( $captured_args['body'] ) ) {
+			$request_body = $captured_args['body'];
+			// Ensure we have an array (wp_safe_remote_post receives body as array).
+			$this->assertIsArray( $request_body, 'Request body should be an array.' );
+
+			// Verify that the order object is NOT included in the API request (main purpose of this PR).
+			$this->assertArrayNotHasKey( 'order', $request_body, 'Order object should not be included in the API request.' );
+
+			// Verify billing details from the order are used in the customer creation/update request.
+			$this->assertEquals( $expected_customer_data['email'], $request_body['email'] ?? '', 'Billing email should match order billing email.' );
+			$this->assertEquals( $expected_customer_data['name'], $request_body['name'] ?? '', 'Billing name should match order billing name.' );
+
+			// Verify address details are present and match the order.
+			$this->assertArrayHasKey( 'address', $request_body, 'Request should include address data.' );
+			$this->assertEquals( $expected_customer_data['address']['line1'], $request_body['address']['line1'] ?? '', 'Billing address line1 should match order.' );
+			if ( ! empty( $expected_customer_data['address']['line2'] ) ) {
+				$this->assertEquals( $expected_customer_data['address']['line2'], $request_body['address']['line2'] ?? '', 'Billing address line2 should match order.' );
+			} else {
+				// When line2 is empty, verify it's either not present or empty in the request body.
+				$this->assertTrue(
+					null === $request_body['address']['line2'] || '' === $request_body['address']['line2'],
+					'Billing address line2 should be empty or not present when order has no line2.'
+				);
+			}
+
+			$this->assertEquals( $expected_customer_data['address']['city'], $request_body['address']['city'] ?? '', 'Billing city should match order.' );
+			$this->assertEquals( $expected_customer_data['address']['state'], $request_body['address']['state'] ?? '', 'Billing state should match order.' );
+			$this->assertEquals( $expected_customer_data['address']['postal_code'], $request_body['address']['postal_code'] ?? '', 'Billing postal code should match order.' );
+			$this->assertEquals( $expected_customer_data['address']['country'], $request_body['address']['country'] ?? '', 'Billing country should match order.' );
+		}
+
+		// Cleanup.
+		if ( $user_id > 0 ) {
+			wp_delete_user( $user_id );
+		}
+		remove_all_filters( 'pre_http_request' );
+	}
+
+	/**
+	 * Data provider for test_get_customer_id_for_order_retrieves_billing_details_from_order.
+	 *
+	 * @return array Test cases.
+	 */
+	public function provide_get_customer_id_for_order_billing_details_test_cases() {
+		return [
+			'creating customer for guest user' => [
+				'scenario_name'            => 'create customer',
+				'is_guest'                 => true,
+				'existing_stripe_customer_id' => '',
+				'expected_customer_id'     => 'cus_test123',
+				'api_url_pattern'          => '#/v1/customers$#',
+				'billing_data'             => [
+					'email'      => 'test-billing@example.com',
+					'first_name' => 'TestFirstName',
+					'last_name'  => 'TestLastName',
+					'address_1'  => '123 Test Street',
+					'address_2'  => 'Apt 4B',
+					'city'       => 'TestCity',
+					'state'      => 'CA',
+					'postcode'   => '90210',
+					'country'    => 'US',
+				],
+				'expected_customer_data'   => [
+					'email'       => 'test-billing@example.com',
+					'name'        => 'TestFirstName TestLastName',
+					'description' => 'Name: TestFirstName TestLastName, Guest',
+					'address'     => [
+						'line1'       => '123 Test Street',
+						'line2'       => 'Apt 4B',
+						'city'        => 'TestCity',
+						'state'       => 'CA',
+						'postal_code' => '90210',
+						'country'     => 'US',
+					],
+				],
+			],
+			'updating customer for logged-in user' => [
+				'scenario_name'            => 'update customer',
+				'is_guest'                 => false,
+				'existing_stripe_customer_id' => 'cus_existing123',
+				'expected_customer_id'     => 'cus_existing123',
+				'api_url_pattern'          => '#/v1/customers/cus_existing123$#',
+				'billing_data'             => [
+					'email'      => 'updated-billing@example.com',
+					'first_name' => 'UpdatedFirstName',
+					'last_name'  => 'UpdatedLastName',
+					'address_1'  => '456 Updated Street',
+					'address_2'  => '',
+					'city'       => 'UpdatedCity',
+					'state'      => 'NY',
+					'postcode'   => '10001',
+					'country'    => 'US',
+				],
+				// For logged-in users, user email and user meta are used (not order data).
+				// The expected data should match what will be in user meta (set in the test).
+				'expected_customer_data'   => [
+					'email'       => 'updated-billing@example.com', // User email matches order email (set in test)
+					'name'        => 'UpdatedFirstName UpdatedLastName',
+					'address'     => [
+						'line1'       => '456 Updated Street',
+						'line2'       => '',
+						'city'        => 'UpdatedCity',
+						'state'       => 'NY',
+						'postal_code' => '10001',
+						'country'     => 'US',
+					],
+				],
+			],
+		];
+	}
 }
