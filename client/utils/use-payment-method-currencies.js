@@ -219,7 +219,20 @@ const getAmazonPayCurrencies = () => {
 		case 'US':
 			return [ 'USD' ];
 		default:
-			return [ 'USD' ];
+			return [
+				'AUD',
+				'CHF',
+				'DKK',
+				'EUR',
+				'GBP',
+				'HKD',
+				'JPY',
+				'NOK',
+				'NZD',
+				'SEK',
+				'USD',
+				'ZAR',
+			];
 	}
 };
 

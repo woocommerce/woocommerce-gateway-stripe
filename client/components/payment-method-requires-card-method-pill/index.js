@@ -2,15 +2,18 @@ import React from 'react';
 import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodUnavailablePill from 'wcstripe/components/payment-method-unavailable-pill';
 
-const PaymentMethodUnavailableDueConflictPill = ( { label } ) => {
+const PaymentMethodRequiresCardMethodPill = ( { label } ) => {
 	return (
 		<PaymentMethodUnavailablePill
-			title={ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
+			title={ __(
+				'Enable credit card / debit card',
+				'woocommerce-gateway-stripe'
+			) }
 		>
 			{ sprintf(
 				/* translators: $1: a payment method name */
 				__(
-					'%1$s is unavailable due to another official plugin being active.',
+					'Credit card / debit card payment method must be enabled in order to use %1$s.',
 					'woocommerce-gateway-stripe'
 				),
 				label
@@ -19,4 +22,4 @@ const PaymentMethodUnavailableDueConflictPill = ( { label } ) => {
 	);
 };
 
-export default PaymentMethodUnavailableDueConflictPill;
+export default PaymentMethodRequiresCardMethodPill;
