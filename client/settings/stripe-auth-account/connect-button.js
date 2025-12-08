@@ -1,24 +1,31 @@
 /* global wc_stripe_settings_params, ajaxurl */
 
-import { React, useState } from 'react';
+import { React, useState, useEffect } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
-import InlineNotice from 'wcstripe/components/inline-notice';
 import { Button, ExternalLink } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
+import InlineNotice from 'wcstripe/components/inline-notice';
 
 /**
  * ConnectButton component.
  *
- * @param {Object}  props               The component props.
- * @param {boolean} props.testMode      Indicates whether this is for test mode.
- * @param {string}  props.buttonVariant Indicates the variant of the button.
+ * @param {Object}   props               The component props.
+ * @param {boolean}  props.testMode      Indicates whether this is for test mode.
+ * @param {string}   props.buttonVariant Indicates the variant of the button.
+ * @param {Function} props.onErrorChange Callback when error state changes.
  *
  * @return {JSX.Element} The rendered ConnectButton component.
  */
-const ConnectButton = ( { testMode, buttonVariant } ) => {
+const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ error, setError ] = useState( null );
+
+	useEffect( () => {
+		if ( onErrorChange ) {
+			onErrorChange( error );
+		}
+	}, [ error, onErrorChange ] );
 
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
@@ -57,22 +64,28 @@ const ConnectButton = ( { testMode, buttonVariant } ) => {
 		}
 	};
 
-	return error ? (
-		<InlineNotice isDismissible={ false } status="error">
-			{ interpolateComponents( {
-				mixedString: __(
-					'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					br: <br />,
-					Link: (
-						<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
+	// If onErrorChange is provided, parent handles error display
+	// Otherwise, show error inline for backward compatibility
+	if ( ! onErrorChange && error ) {
+		return (
+			<InlineNotice isDismissible={ false } status="error">
+				{ interpolateComponents( {
+					mixedString: __(
+						'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
+						'woocommerce-gateway-stripe'
 					),
-				},
-			} ) }
-		</InlineNotice>
-	) : (
+					components: {
+						br: <br />,
+						Link: (
+							<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
+						),
+					},
+				} ) }
+			</InlineNotice>
+		);
+	}
+
+	return (
 		<Button
 			variant={ buttonVariant }
 			onClick={ handleClick }

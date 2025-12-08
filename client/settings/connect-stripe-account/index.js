@@ -1,11 +1,12 @@
-import { React } from 'react';
+import { React, useState } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
 import CardBody from '../card-body';
-import { Card } from '@wordpress/components';
+import { Card, ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import ConnectButton from 'wcstripe/settings/stripe-auth-account/connect-button';
+import InlineNotice from 'wcstripe/components/inline-notice';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -30,6 +31,10 @@ const TermsOfServiceText = styled.p`
 	margin: 22px 0px 16px;
 `;
 
+const ErrorContainer = styled.div`
+	margin-bottom: 12px;
+`;
+
 const ButtonWrapper = styled.div`
 	align-items: center;
 	display: flex;
@@ -51,6 +56,12 @@ const ButtonWrapper = styled.div`
 `;
 
 const ConnectStripeAccount = () => {
+	const [ hasError, setHasError ] = useState( false );
+
+	const handleErrorChange = ( error ) => {
+		setHasError( !! error );
+	};
+
 	return (
 		<CardWrapper>
 			<StripeBanner />
@@ -91,11 +102,34 @@ const ConnectStripeAccount = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
+				{ hasError && (
+					<ErrorContainer>
+						<InlineNotice isDismissible={ false } status="error">
+							{ interpolateComponents( {
+								mixedString: __(
+									'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
+									'woocommerce-gateway-stripe'
+								),
+								components: {
+									br: <br />,
+									Link: (
+										<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
+									),
+								},
+							} ) }
+						</InlineNotice>
+					</ErrorContainer>
+				) }
 				<ButtonWrapper>
-					<ConnectButton testMode={ false } buttonVariant="primary" />
+					<ConnectButton
+						testMode={ false }
+						buttonVariant="primary"
+						onErrorChange={ handleErrorChange }
+					/>
 					<ConnectButton
 						testMode={ true }
 						buttonVariant="secondary"
+						onErrorChange={ handleErrorChange }
 					/>
 				</ButtonWrapper>
 			</CardBody>
