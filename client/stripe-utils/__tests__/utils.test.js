@@ -111,7 +111,7 @@ describe( 'utils', () => {
 							line1: '  123 Main St  ',
 							line2: '', // empty, should be filtered out
 							city: '  New York  ',
-							state: '', // empty, should be filtered out
+							state: '    ', // only whitespace, should be filtered out
 							postal_code: '  10001  ',
 						},
 					},

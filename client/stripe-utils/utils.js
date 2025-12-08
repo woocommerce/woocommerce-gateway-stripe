@@ -470,7 +470,7 @@ export const getDefaultValues = () => {
 	if ( isOrderPay || isChangingPayment || isAddPaymentMethod ) {
 		const billingData = stripeServerData?.customerBillingData;
 
-		if ( billingData && billingData.email ) {
+		if ( billingData && billingData.email?.trim() ) {
 			// Build address object, only including non-empty values
 			const address = {};
 			const country = billingData.address?.country?.trim();
@@ -505,7 +505,7 @@ export const getDefaultValues = () => {
 						name: billingData.name?.trim() || undefined,
 						email: billingData.email.trim(),
 						phone: billingData.phone?.trim() || undefined,
-						...( Object.keys( address ).length > 0 && { address } ),
+						...( Object.keys( address ).length > 0 ? { address } : {} ),
 					},
 				},
 			};
