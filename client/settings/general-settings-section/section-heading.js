@@ -88,7 +88,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								</Button>
 							)
 						}
-						(
 						<DropdownMenu
 							data-testid="upe-expandable-menu"
 							icon={ moreVertical }
@@ -106,7 +105,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								},
 							] }
 						/>
-						)
 					</>
 				) : (
 					<>
