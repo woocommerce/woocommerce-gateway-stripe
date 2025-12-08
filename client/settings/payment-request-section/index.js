@@ -47,6 +47,10 @@ const PaymentRequestSection = () => {
 		amazonPayUnavailableReason ===
 		PAYMENT_METHOD_UNAVAILABLE_REASONS.TAX_BASED_ON_BILLING_ADDRESS;
 
+	const showMissingCurrencyPillForAmazonPay =
+		amazonPayUnavailableReason ===
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY;
+
 	const applePayGooglePayUnavailableReason =
 		usePaymentMethodUnavailableReason(
 			PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY
@@ -299,13 +303,15 @@ const PaymentRequestSection = () => {
 										'Amazon Pay',
 										'woocommerce-gateway-stripe'
 									) }
-									<PaymentMethodMissingCurrencyPill
-										id={ PAYMENT_METHOD_AMAZON_PAY }
-										label={ __(
-											'Amazon Pay',
-											'woocommerce-gateway-stripe'
-										) }
-									/>
+									{ showMissingCurrencyPillForAmazonPay && (
+										<PaymentMethodMissingCurrencyPill
+											id={ PAYMENT_METHOD_AMAZON_PAY }
+											label={ __(
+												'Amazon Pay',
+												'woocommerce-gateway-stripe'
+											) }
+										/>
+									) }
 									{ showUnavailableDueTaxSetupPillForAmazonPay && (
 										<PaymentMethodUnavailableDueTaxSetupPill
 											id={ PAYMENT_METHOD_AMAZON_PAY }

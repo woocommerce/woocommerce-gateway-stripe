@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.2.0 - xxxx-xx-xx =
+* Dev - Refactor display logic for payment method issue pills
 * Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
 * Update - Better notices and interactions for disabled express checkout methods
 * Update - Enable the Optimized Checkout Suite feature for all new installations
@@ -145,5 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
 * Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
 * Update - Expand Amazon Pay support for all permitted currencies and countries
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
+* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
