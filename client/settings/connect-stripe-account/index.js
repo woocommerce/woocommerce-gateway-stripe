@@ -7,7 +7,6 @@ import { __ } from '@wordpress/i18n';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import ConnectButton from 'wcstripe/settings/stripe-auth-account/connect-button';
 import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';
-import Tooltip from 'wcstripe/components/tooltip';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -55,7 +54,6 @@ const ButtonWrapper = styled.div`
 
 const ConnectStripeAccount = () => {
 	const [ hasError, setHasError ] = useState( false );
-	const isSSL = window.location.protocol === 'https:';
 
 	const handleErrorChange = useCallback( ( error ) => {
 		setHasError( !! error );
@@ -107,29 +105,11 @@ const ConnectStripeAccount = () => {
 					</ErrorContainer>
 				) }
 				<ButtonWrapper>
-					{ isSSL ? (
-						<ConnectButton
-							testMode={ false }
-							buttonVariant="primary"
-							onErrorChange={ handleErrorChange }
-						/>
-					) : (
-						<Tooltip
-							content={ __(
-								'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
-								'woocommerce-gateway-stripe'
-							) }
-						>
-							<span style={ { display: 'inline-block' } }>
-								<ConnectButton
-									testMode={ false }
-									buttonVariant="primary"
-									onErrorChange={ handleErrorChange }
-									disabled={ true }
-								/>
-							</span>
-						</Tooltip>
-					) }
+					<ConnectButton
+						testMode={ false }
+						buttonVariant="primary"
+						onErrorChange={ handleErrorChange }
+					/>
 					<ConnectButton
 						testMode={ true }
 						buttonVariant="secondary"

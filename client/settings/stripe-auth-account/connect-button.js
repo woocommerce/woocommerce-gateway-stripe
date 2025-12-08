@@ -5,6 +5,7 @@ import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
 import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';
+import Tooltip from 'wcstripe/components/tooltip';
 
 /**
  * ConnectButton component.
@@ -25,6 +26,8 @@ const ConnectButton = ( {
 } ) => {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ error, setError ] = useState( null );
+	const isSSL = window.location.protocol === 'https:';
+	const isLiveModeWithoutSSL = ! testMode && ! isSSL;
 
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
@@ -79,15 +82,31 @@ const ConnectButton = ( {
 		return <ConnectionErrorNotice />;
 	}
 
-	return (
+	const button = (
 		<Button
 			variant={ buttonVariant }
 			onClick={ handleClick }
 			text={ buttonText }
-			disabled={ isLoading || disabled }
+			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
 			isBusy={ isLoading }
 		/>
 	);
+
+	// Wrap in tooltip if live mode without SSL
+	if ( isLiveModeWithoutSSL ) {
+		return (
+			<Tooltip
+				content={ __(
+					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
+					'woocommerce-gateway-stripe'
+				) }
+			>
+				<span style={ { display: 'inline-block' } }>{ button }</span>
+			</Tooltip>
+		);
+	}
+
+	return button;
 };
 
 export default ConnectButton;
