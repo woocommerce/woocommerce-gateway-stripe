@@ -40,6 +40,7 @@
 * Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
 * Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
 * Fix - Exclude order parameter from customer request data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
