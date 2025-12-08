@@ -13,10 +13,16 @@ import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connect
  * @param {boolean}  props.testMode      Indicates whether this is for test mode.
  * @param {string}   props.buttonVariant Indicates the variant of the button.
  * @param {Function} props.onErrorChange Callback when error state changes.
+ * @param {boolean}  props.disabled      Whether the button should be disabled.
  *
  * @return {JSX.Element} The rendered ConnectButton component.
  */
-const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
+const ConnectButton = ( {
+	testMode,
+	buttonVariant,
+	onErrorChange,
+	disabled = false,
+} ) => {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ error, setError ] = useState( null );
 
@@ -78,7 +84,7 @@ const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
 			variant={ buttonVariant }
 			onClick={ handleClick }
 			text={ buttonText }
-			disabled={ isLoading }
+			disabled={ isLoading || disabled }
 			isBusy={ isLoading }
 		/>
 	);
