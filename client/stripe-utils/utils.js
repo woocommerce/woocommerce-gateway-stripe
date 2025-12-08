@@ -455,10 +455,66 @@ export const getUpeSettings = () => {
 /**
  * Craft the defaultValues parameter, used to pre-fill
  * user email and phone number for Link in the Payment Element.
+ * On order pay and change payment method pages, also preloads all billing details
+ * from the customer billing data passed from the server.
  *
  * @return {Object} The defaultValues object for the Payment Element.
  */
 export const getDefaultValues = () => {
+	const stripeServerData = getStripeServerData();
+	const isOrderPay = stripeServerData?.isOrderPay;
+	const isChangingPayment = stripeServerData?.isChangingPayment;
+	const isAddPaymentMethod = stripeServerData?.isAddPaymentMethod;
+
+	// On order pay, change payment method, and add payment method pages, use billing data from customer.
+	if ( isOrderPay || isChangingPayment || isAddPaymentMethod ) {
+		const billingData = stripeServerData?.customerBillingData;
+
+		if ( billingData && billingData.email?.trim() ) {
+			// Build address object, only including non-empty values
+			const address = {};
+			const country = billingData.address?.country?.trim();
+			if ( country ) {
+				// Country must be uppercase ISO 3166-1 alpha-2 code for Stripe
+				address.country = country.toUpperCase();
+			}
+			const line1 = billingData.address?.line1?.trim();
+			if ( line1 ) {
+				address.line1 = line1;
+			}
+			const line2 = billingData.address?.line2?.trim();
+			if ( line2 ) {
+				address.line2 = line2;
+			}
+			const city = billingData.address?.city?.trim();
+			if ( city ) {
+				address.city = city;
+			}
+			const state = billingData.address?.state?.trim();
+			if ( state ) {
+				address.state = state;
+			}
+			const postalCode = billingData.address?.postal_code?.trim();
+			if ( postalCode ) {
+				address.postal_code = postalCode;
+			}
+
+			return {
+				defaultValues: {
+					billingDetails: {
+						name: billingData.name?.trim() || undefined,
+						email: billingData.email.trim(),
+						phone: billingData.phone?.trim() || undefined,
+						...( Object.keys( address ).length > 0
+							? { address }
+							: {} ),
+					},
+				},
+			};
+		}
+	}
+
+	// On checkout and other pages, read from form fields for Link
 	const userEmail = document.getElementById( 'billing_email' )?.value;
 	if ( ! userEmail ) {
 		return {};

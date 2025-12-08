@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useDispatch } from '@wordpress/data';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
@@ -18,6 +18,12 @@ jest.mock( 'wcstripe/data', () => ( {
 jest.mock( 'wcstripe/tracking', () => ( {
 	recordEvent: jest.fn(),
 } ) );
+
+// Mock global variables
+global.wc_stripe_settings_params = {
+	oauth_nonce: 'test-nonce',
+};
+global.ajaxurl = '/wp-admin/admin-ajax.php';
 
 describe( 'Reconnect banner', () => {
 	beforeEach( () => {
@@ -47,7 +53,8 @@ describe( 'Reconnect banner', () => {
 		).toBeInTheDocument();
 		expect( getByText( 'Re-authenticate' ) ).toBeInTheDocument();
 	} );
-	it( 'should record event on button click', async () => {
+
+	it( 'should fetch OAuth URL and redirect on button click in test mode', async () => {
 		// Keep the original function at hand.
 		const assign = window.location.assign;
 
@@ -56,9 +63,16 @@ describe( 'Reconnect banner', () => {
 		} );
 
 		const oauthUrl = 'http://example.com/test-oauth';
-		const { getByText } = render(
-			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
-		);
+
+		// Mock jQuery.ajax
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: true,
+				data: { oauth_url: oauthUrl },
+			} ),
+		};
+
+		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
 		await userEvent.click( reconnectButton );
 
@@ -76,54 +90,116 @@ describe( 'Reconnect banner', () => {
 			}
 		);
 
-		expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+		await waitFor( () => {
+			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+		} );
+
+		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				data: expect.objectContaining( {
+					action: 'wc_stripe_get_oauth_url',
+					mode: 'test',
+				} ),
+			} )
+		);
 
 		// Set the original function back to keep further tests working as expected.
 		Object.defineProperty( window, 'location', {
 			value: { assign },
 		} );
 	} );
-	it( 'should create error notice when test oauth URL is invalid, and test mode is enabled', async () => {
-		const oauthUrl = 'http://example.com/test-oauth';
-		const { getByText } = render(
-			<ReConnectAccountBanner
-				testOauthUrl={ null }
-				oauthUrl={ oauthUrl }
-			/>
-		);
-		const reconnectButton = getByText( 'Re-authenticate' );
-		await userEvent.click( reconnectButton );
 
-		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-			'There was an error. Please reload the page and try again.'
-		);
-	} );
-	it( 'should create error notice when live oauth URL is invalid, and test mode is disabled', async () => {
+	it( 'should fetch OAuth URL and redirect on button click in live mode', async () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
 
-		const oauthUrl = 'http://example.com/test-oauth';
-		const { getByText } = render(
-			<ReConnectAccountBanner
-				testOauthUrl={ oauthUrl }
-				oauthUrl={ null }
-			/>
-		);
+		// Keep the original function at hand.
+		const assign = window.location.assign;
+
+		Object.defineProperty( window, 'location', {
+			value: { assign: jest.fn() },
+		} );
+
+		const oauthUrl = 'http://example.com/live-oauth';
+
+		// Mock jQuery.ajax
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: true,
+				data: { oauth_url: oauthUrl },
+			} ),
+		};
+
+		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
 		await userEvent.click( reconnectButton );
 
-		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-			'There was an error. Please reload the page and try again.'
+		expect( recordEvent ).toHaveBeenNthCalledWith(
+			1,
+			'wcstripe_create_or_connect_account_click',
+			{}
 		);
+		expect( recordEvent ).toHaveBeenNthCalledWith(
+			2,
+			'wcstripe_reconnect_button_click',
+			{
+				source: 're-connect-account-banner',
+				mode: 'live',
+			}
+		);
+
+		await waitFor( () => {
+			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+		} );
+
+		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				data: expect.objectContaining( {
+					action: 'wc_stripe_get_oauth_url',
+					mode: 'live',
+				} ),
+			} )
+		);
+
+		// Set the original function back to keep further tests working as expected.
+		Object.defineProperty( window, 'location', {
+			value: { assign },
+		} );
 	} );
-	it( 'should create error notice when both oauth URLs are invalid', async () => {
-		const { getByText } = render(
-			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
-		);
+
+	it( 'should create error notice when AJAX request fails', async () => {
+		// Mock jQuery.ajax to fail
+		global.jQuery = {
+			ajax: jest.fn().mockRejectedValue( new Error( 'Network error' ) ),
+		};
+
+		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
 		await userEvent.click( reconnectButton );
 
-		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-			'There was an error. Please reload the page and try again.'
-		);
+		await waitFor( () => {
+			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+				'There was an error. Please reload the page and try again.'
+			);
+		} );
+	} );
+
+	it( 'should create error notice when AJAX returns error response', async () => {
+		// Mock jQuery.ajax to return error
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { message: 'Server error' },
+			} ),
+		};
+
+		const { getByText } = render( <ReConnectAccountBanner /> );
+		const reconnectButton = getByText( 'Re-authenticate' );
+		await userEvent.click( reconnectButton );
+
+		await waitFor( () => {
+			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+				'There was an error. Please reload the page and try again.'
+			);
+		} );
 	} );
 } );
