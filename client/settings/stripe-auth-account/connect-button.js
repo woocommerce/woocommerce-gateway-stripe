@@ -1,11 +1,10 @@
 /* global wc_stripe_settings_params, ajaxurl */
 
-import { React, useState, useEffect } from 'react';
-import interpolateComponents from '@automattic/interpolate-components';
+import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
-import { Button, ExternalLink } from '@wordpress/components';
+import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
-import InlineNotice from 'wcstripe/components/inline-notice';
+import ConnectionErrorNotice from 'wcstripe/settings/stripe-auth-account/connection-error-notice';
 
 /**
  * ConnectButton component.
@@ -21,12 +20,6 @@ const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ error, setError ] = useState( null );
 
-	useEffect( () => {
-		if ( onErrorChange ) {
-			onErrorChange( error );
-		}
-	}, [ error, onErrorChange ] );
-
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
 		: __( 'Create or connect an account', 'woocommerce-gateway-stripe' );
@@ -34,6 +27,10 @@ const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
 	const handleClick = async () => {
 		setIsLoading( true );
 		setError( null );
+		// Clear parent error when any button is clicked
+		if ( onErrorChange ) {
+			onErrorChange( null );
+		}
 
 		if ( testMode ) {
 			recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
@@ -57,32 +54,23 @@ const ConnectButton = ( { testMode, buttonVariant, onErrorChange } ) => {
 			} else {
 				setError( true );
 				setIsLoading( false );
+				if ( onErrorChange ) {
+					onErrorChange( true );
+				}
 			}
 		} catch ( err ) {
 			setError( true );
 			setIsLoading( false );
+			if ( onErrorChange ) {
+				onErrorChange( true );
+			}
 		}
 	};
 
 	// If onErrorChange is provided, parent handles error display
 	// Otherwise, show error inline for backward compatibility
 	if ( ! onErrorChange && error ) {
-		return (
-			<InlineNotice isDismissible={ false } status="error">
-				{ interpolateComponents( {
-					mixedString: __(
-						'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
-						'woocommerce-gateway-stripe'
-					),
-					components: {
-						br: <br />,
-						Link: (
-							<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
-						),
-					},
-				} ) }
-			</InlineNotice>
-		);
+		return <ConnectionErrorNotice />;
 	}
 
 	return (
