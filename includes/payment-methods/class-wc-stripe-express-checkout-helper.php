@@ -1324,6 +1324,16 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
+		// Amazon Pay may allow address data in address_2 instead of address_1.
+		if ( empty( $data['billing_address']['address_1'] ) && ! empty( $data['billing_address']['address_2'] ) ) {
+			$data['billing_address']['address_1'] = wc_clean( wp_unslash( $data['billing_address']['address_2'] ) );
+			$data['billing_address']['address_2'] = '';
+		}
+		if ( empty( $data['shipping_address']['address_1'] ) && ! empty( $data['shipping_address']['address_2'] ) ) {
+			$data['shipping_address']['address_1'] = wc_clean( wp_unslash( $data['shipping_address']['address_2'] ) );
+			$data['shipping_address']['address_2'] = '';
+		}
+
 		return $data;
 	}
 
@@ -1701,7 +1711,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function is_amazon_pay_enabled() {
 		$is_enabled = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
 
-		return $is_enabled && $this->is_enabled_for_current_context( 'amazon_pay' );
+		if ( ! $is_enabled || ! $this->is_enabled_for_current_context( 'amazon_pay' ) ) {
+			return false;
+		}
+		$amazon_pay_instance = new WC_Stripe_UPE_Payment_Method_Amazon_Pay();
+
+		if ( ! $amazon_pay_instance->is_available_for_account_country() ) {
+			return false;
+		}
+
+		$store_currency = get_woocommerce_currency();
+
+		return in_array( $store_currency, $amazon_pay_instance->get_supported_currencies(), true );
 	}
 
 	/**
