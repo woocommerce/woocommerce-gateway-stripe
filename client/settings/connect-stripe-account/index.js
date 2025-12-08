@@ -57,7 +57,7 @@ const ConnectStripeAccount = () => {
 
 	const handleErrorChange = useCallback( ( error ) => {
 		setHasError( !! error );
-	}, [] );
+	}, [ setHasError ] );
 
 	return (
 		<CardWrapper>
