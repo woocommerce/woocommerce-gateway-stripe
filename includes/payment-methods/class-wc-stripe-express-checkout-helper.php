@@ -1334,7 +1334,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			$data['shipping_address']['address_2'] = '';
 		}
 
-		// Puerto Rico: Apple Pay and Google Pay send PR as a US state (country=US, state=PR),
+		// Puerto Rico: Apple Pay send PR as a US state (country=US, state=PR),
 		// but WooCommerce expects it as a separate country. Convert to country code.
 		if ( 'US' === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
