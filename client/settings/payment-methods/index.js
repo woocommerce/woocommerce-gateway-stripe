@@ -4,6 +4,7 @@ import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
+import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
@@ -89,6 +90,7 @@ const PaymentMethodsPanel = ( {
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
+				<DisplayOrderCustomizationNotice />
 				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 			</SettingsSection>
