@@ -53,10 +53,11 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		// Set up environment with pmc_enabled = 'yes'
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->mock_payment_method_configurations( [ 'card' ], [] );
-		$this->expect_payment_method_configurations_update( [] );
+		$this->mock_payment_method_configurations( [], [ 'card', 'link' ] );
+		$this->expect_payment_method_configurations_update( [ 'card' ], [ 'link' ] );
 
 		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc( true );
 
