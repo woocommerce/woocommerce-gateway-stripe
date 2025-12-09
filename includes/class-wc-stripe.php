@@ -337,16 +337,28 @@ class WC_Stripe {
 			return;
 		}
 
-		if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
+		if ( defined( 'IFRAME_REQUEST' ) ) {
+			return;
+		}
+
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		if ( WC_STRIPE_VERSION !== $previous_version ) {
 			do_action( 'woocommerce_stripe_updated' );
 
 			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
 
+			$is_new_install = false === $previous_version;
+
 			// Mark optimized checkout as default on for new installs.
-			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
+			if ( $is_new_install && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
 				update_option( 'wc_stripe_optimized_checkout_default_on', true );
+			}
+
+			if ( $is_new_install ) {
+				update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
 			}
 
 			add_woocommerce_inbox_variant();
