@@ -90,7 +90,7 @@ const PaymentMethodsPanel = ( {
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
-				<DisplayOrderCustomizationNotice />
+				<DisplayOrderCustomizationNotice isOCEnabled={ isOCEnabled } />
 				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 			</SettingsSection>
