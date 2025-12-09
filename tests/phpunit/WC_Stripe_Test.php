@@ -150,7 +150,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
-				'update enable payment methods calls' => 1,
+				'update enable payment methods calls' => 0,
 			],
 		];
 	}
