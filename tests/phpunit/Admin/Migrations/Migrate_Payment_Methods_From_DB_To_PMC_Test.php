@@ -75,18 +75,11 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$stripe_settings['pmc_enabled']                               = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$set_currency_usd = function () {
-			return 'USD';
-		};
-		add_filter( 'woocommerce_currency', $set_currency_usd );
-
 		$this->mock_payment_method_configurations( [], [ 'link', 'sepa_debit', 'google_pay', 'apple_pay' ] );
 		$this->expect_payment_method_configurations_update( [ 'link', 'sepa_debit', 'google_pay', 'apple_pay' ], [] );
 
 		// Execute migration
 		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
-
-		remove_filter( 'woocommerce_currency', $set_currency_usd );
 
 		// Verify pmc_enabled is set to 'yes'
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
