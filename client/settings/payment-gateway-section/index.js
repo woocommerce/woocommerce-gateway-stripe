@@ -20,6 +20,8 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
+import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -39,7 +41,11 @@ const PaymentGatewaySection = () => {
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
 	const [ gatewayDescription, setGatewayDescription ] =
 		usePaymentGatewayDescription();
+	const unavailableReason = usePaymentMethodUnavailableReason( info.id );
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
+	const showMissingCurrencyPill =
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY ===
+		unavailableReason;
 
 	return (
 		<StyledCard>
@@ -63,10 +69,12 @@ const PaymentGatewaySection = () => {
 									id={ info.id }
 									label={ info.title }
 								/>
-								<PaymentMethodMissingCurrencyPill
-									id={ info.id }
-									label={ info.title }
-								/>
+								{ showMissingCurrencyPill && (
+									<PaymentMethodMissingCurrencyPill
+										id={ info.id }
+										label={ info.title }
+									/>
+								) }
 							</StyledCheckboxLabel>
 						}
 						help={ sprintf(
