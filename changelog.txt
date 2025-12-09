@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.3.0 - xxxx-xx-xx =
+* Add - Enable Amazon Pay for eligible new installs
 
 
 = 10.2.0 - 2025-12-08 =
