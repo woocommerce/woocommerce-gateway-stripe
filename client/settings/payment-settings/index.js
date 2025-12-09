@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { React, useState } from 'react';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
@@ -103,14 +102,6 @@ const PaymentSettingsPanel = ( {
 								}
 								setIsOCEnabled={ setIsOCEnabled }
 								promotionalBannerType={ promotionalBannerType }
-								oauthUrl={
-									// eslint-disable-next-line camelcase
-									wc_stripe_settings_params.stripe_oauth_url
-								}
-								testOauthUrl={
-									// eslint-disable-next-line camelcase
-									wc_stripe_settings_params.stripe_test_oauth_url
-								}
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
