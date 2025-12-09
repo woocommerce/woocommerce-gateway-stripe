@@ -1,6 +1,9 @@
 *** Changelog ***
 
-= 10.2.0 - xxxx-xx-xx =
+= 10.3.0 - xxxx-xx-xx =
+
+
+= 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
 * Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
 * Update - Better notices and interactions for disabled express checkout methods
@@ -41,6 +44,7 @@
 * Fix - Error when using Puerto Rico addresses with express checkouts
 * Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
 * Fix - Exclude order parameter from customer request data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend

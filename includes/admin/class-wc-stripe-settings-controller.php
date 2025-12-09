@@ -45,8 +45,8 @@ class WC_Stripe_Settings_Controller {
 
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
-		// Add AJAX handler for OAuth URLs
-		add_action( 'wp_ajax_wc_stripe_get_oauth_urls', [ $this, 'ajax_get_oauth_urls' ] );
+		// Add AJAX handler for OAuth URL generation
+		add_action( 'wp_ajax_wc_stripe_get_oauth_url', [ $this, 'ajax_get_oauth_url' ] );
 	}
 
 	/**
@@ -140,50 +140,29 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	 * AJAX handler to get OAuth URLs for the configuration modal
+	 * AJAX handler to generate OAuth URL on-demand
 	 */
-	public function ajax_get_oauth_urls() {
+	public function ajax_get_oauth_url() {
 		// Check nonce and capabilities
-		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_urls', 'nonce', false ) ||
+		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_url', 'nonce', false ) ||
 			! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to do this.', 'woocommerce-gateway-stripe' ) ] );
 			return;
 		}
 
-		$oauth_url      = woocommerce_gateway_stripe()->connect->get_oauth_url();
-		$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
-
-		wp_send_json_success(
-			[
-				'oauth_url'      => is_wp_error( $oauth_url ) ? '' : $oauth_url,
-				'test_oauth_url' => is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url,
-			]
-		);
-	}
-
-	/**
-	 * Determines if OAuth URLs need to be generated.
-	 * URLs are needed for new accounts or accounts not connected via OAuth.
-	 *
-	 * @return bool True if OAuth URLs are needed
-	 */
-	public function needs_oauth_urls() {
-		$settings      = WC_Stripe_Helper::get_stripe_settings();
-		$has_live_keys = ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] );
-		$has_test_keys = ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] );
-
-		// If no keys at all, we need OAuth URLs for new account setup
-		if ( ! $has_live_keys && ! $has_test_keys ) {
-			return true;
+		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'test';
+		if ( ! in_array( $mode, [ 'live', 'test' ], true ) ) {
+			$mode = 'test';
 		}
 
-		$stripe_connect = woocommerce_gateway_stripe()->connect;
+		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
 
-		// Check each mode only if it has keys
-		$needs_live_oauth = $has_live_keys && ! $stripe_connect->is_connected_via_oauth( 'live' );
-		$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
+		if ( is_wp_error( $oauth_url ) ) {
+			wp_send_json_error( [ 'message' => $oauth_url->get_error_message() ] );
+			return;
+		}
 
-		return $needs_live_oauth || $needs_test_oauth;
+		wp_send_json_success( [ 'oauth_url' => $oauth_url ] );
 	}
 
 	/**
@@ -233,18 +212,6 @@ class WC_Stripe_Settings_Controller {
 			$script_asset['version']
 		);
 
-		$oauth_url      = '';
-		$test_oauth_url = '';
-
-		// Get URLs at page load only if account doesn't exist or if account exists but not connected via OAuth
-		if ( $this->needs_oauth_urls() ) {
-			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-			$oauth_url = is_wp_error( $oauth_url ) ? '' : $oauth_url;
-
-			$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
-			$test_oauth_url = is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url;
-		}
-
 		$message = sprintf(
 		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
 			esc_html__( '%1$sWarning:%2$s your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
@@ -267,8 +234,6 @@ class WC_Stripe_Settings_Controller {
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
 			'is_upe_checkout_enabled'               => true,
-			'stripe_oauth_url'                      => $oauth_url,
-			'stripe_test_oauth_url'                 => $test_oauth_url,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
@@ -281,7 +246,7 @@ class WC_Stripe_Settings_Controller {
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
-			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
+			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
 			'is_sepa_tokens_for_bancontact_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact', 'no' ),
 			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
