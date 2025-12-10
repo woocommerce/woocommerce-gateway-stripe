@@ -8,7 +8,6 @@ import DisplayOrderCustomizationNotice from '../display-order-customization-noti
 import { ExternalLink } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import AmazonPayTaxesBillingAddressNotice from 'wcstripe/components/amazon-pay-taxes-billing-address-notice';
-import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import OptimizedCheckoutNotice from 'wcstripe/settings/optimized-checkout-notice';
 
@@ -69,7 +68,6 @@ const PaymentMethodsPanel = ( {
 	promotionalBannerType,
 	isOCEnabled,
 	setIsOCEnabled,
-	setIsUpeEnabled,
 } ) => {
 	return (
 		<>
@@ -78,21 +76,15 @@ const PaymentMethodsPanel = ( {
 				<SettingsSection>
 					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
-						setIsUpeEnabled={ setIsUpeEnabled }
 						setIsOCEnabled={ setIsOCEnabled }
 						promotionalBannerType={ promotionalBannerType }
 					/>
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
-				<DisplayOrderCustomizationNotice />
+				<DisplayOrderCustomizationNotice isOCEnabled={ isOCEnabled } />
 				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
-				<GeneralSettingsSection
-					onSaveChanges={ onSaveChanges }
-					showLegacyExperienceTransitionNotice={
-						promotionalBannerType !== NEW_CHECKOUT_EXPERIENCE_BANNER
-					}
-				/>
+				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
