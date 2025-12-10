@@ -1,12 +1,11 @@
 /* global wc_stripe_settings_params */
 import { getSetting } from '@woocommerce/settings';
-import React, { useContext, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import PaymentMethodsMap from '../../payment-methods-map';
-import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
@@ -135,8 +134,6 @@ const StyledFees = styled( PaymentMethodFeesPill )`
  * @return {string[]} Sorted payment method IDs.
  */
 const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
 	const sortedPaymentMethodIds = useMemo( () => {
@@ -147,7 +144,6 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 		orderedPaymentMethodIds.forEach( ( paymentMethodId ) => {
 			const unavailableReason = getPaymentMethodUnavailableReason( {
 				paymentMethodId,
-				isUpeEnabled,
 				storeCurrencyCode,
 			} );
 			if ( unavailableReason === null ) {
@@ -167,7 +163,7 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 			...pluginConflictPaymentMethodIds,
 			...unavailablePaymentMethodIds,
 		];
-	}, [ orderedPaymentMethodIds, storeCurrencyCode, isUpeEnabled ] );
+	}, [ orderedPaymentMethodIds, storeCurrencyCode ] );
 
 	return sortedPaymentMethodIds;
 };

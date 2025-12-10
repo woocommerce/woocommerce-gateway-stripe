@@ -2,7 +2,6 @@ import React, { act } from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisplayOrderCustomizationNotice from '..';
-import UpeToggleContext from '../../upe-toggle/context';
 import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
@@ -24,12 +23,8 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 		global.wc_stripe_settings_params = globalValues;
 	} );
 
-	it( 'should render the notice when UPE is disabled and `show_customization_notice` is true', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<DisplayOrderCustomizationNotice />
-			</UpeToggleContext.Provider>
-		);
+	it( 'should render the notice when OC is disabled and `show_customization_notice` is true', () => {
+		render( <DisplayOrderCustomizationNotice isOCEnabled={ false } /> );
 
 		const noticeText = screen.queryAllByText(
 			"Customize the display order of Stripe payment methods for customers at checkout. This customization occurs within the plugin and won't affect the order in relation to other installed payment providers."
@@ -43,11 +38,7 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 		);
 		apiFetch.mockImplementation( dismissNoticeMock );
 
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<DisplayOrderCustomizationNotice />
-			</UpeToggleContext.Provider>
-		);
+		render( <DisplayOrderCustomizationNotice isOCEnabled={ false } /> );
 
 		const dismissButton = screen.queryByRole( 'button', {
 			'aria-label': 'Dismiss the notice',
@@ -59,11 +50,9 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should not render the notice when UPE is enabled', () => {
+	it( 'should not render the notice when OC is enabled', () => {
 		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<DisplayOrderCustomizationNotice />
-			</UpeToggleContext.Provider>
+			<DisplayOrderCustomizationNotice isOCEnabled={ true } />
 		);
 
 		expect( container.firstChild ).toBeNull();
@@ -75,11 +64,7 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 			show_customization_notice: false,
 		};
 
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<DisplayOrderCustomizationNotice />
-			</UpeToggleContext.Provider>
-		);
+		const { container } = render( <DisplayOrderCustomizationNotice /> );
 
 		expect( container.firstChild ).toBeNull();
 	} );
