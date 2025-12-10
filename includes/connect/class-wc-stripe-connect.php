@@ -301,7 +301,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
-			$this->clear_caches_after_key_update( true );
+			$this->clear_caches_after_key_update();
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
