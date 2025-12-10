@@ -118,18 +118,6 @@ describe( 'PaymentRequestSection', () => {
 		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
 	} );
 
-	it( 'hide Amazon Pay if legacy checkout is enabled', () => {
-		// Amazon Pay is only available as a UPE payment method.
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-		] );
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
-	} );
-
 	it( 'test Amazon Pay checkbox not checked', () => {
 		const container = render( <PaymentRequestSection /> );
 		const amazonPayCheckbox = container.getByRole( 'checkbox', {

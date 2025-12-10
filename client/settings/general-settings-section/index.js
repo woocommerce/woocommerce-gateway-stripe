@@ -1,14 +1,12 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import LoadableSettingsSection from '../loadable-settings-section';
-import LegacyExperienceTransitionNotice from '../notices/legacy-experience-transition';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
 import { useGetOrderedPaymentMethodIds, useIsPMCEnabled } from 'wcstripe/data';
 import './styles.scss';
@@ -31,13 +29,9 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = ( {
-	onSaveChanges,
-	showLegacyExperienceTransitionNotice,
-} ) => {
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] =
 		useState( false );
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
 		useGetOrderedPaymentMethodIds();
@@ -66,12 +60,6 @@ const GeneralSettingsSection = ( {
 
 	return (
 		<>
-			{ showLegacyExperienceTransitionNotice && (
-				<LegacyExperienceTransitionNotice
-					isUpeEnabled={ isUpeEnabled }
-					setIsUpeEnabled={ setIsUpeEnabled }
-				/>
-			) }
 			<Card>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
@@ -97,7 +85,7 @@ const GeneralSettingsSection = ( {
 							onCancel={ () => onChangeDisplayOrder( false ) }
 						/>
 					</AccountRefreshingOverlay>
-					{ isUpeEnabled && ! isPMCEnabled && <SectionFooter /> }
+					{ ! isPMCEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
 			</Card>
 		</>

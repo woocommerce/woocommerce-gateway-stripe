@@ -1,6 +1,4 @@
-import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
-import { useContext } from '@wordpress/element';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,
@@ -14,22 +12,7 @@ const accountCountry =
 // When UPE is disabled returns the list of all the currencies supported by AliPay.
 // When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
 // Documentation: https://docs.stripe.com/payments/alipay#supported-currencies.
-const getAliPayCurrencies = ( isUpeEnabled ) => {
-	if ( ! isUpeEnabled ) {
-		return [
-			'AUD',
-			'CAD',
-			'CNY',
-			'EUR',
-			'GBP',
-			'HKD',
-			'JPY',
-			'MYR',
-			'NZD',
-			'USD',
-		];
-	}
-
+const getAliPayCurrencies = () => {
 	let upeCurrencies = [];
 	switch ( accountCountry ) {
 		case 'AU':
@@ -257,14 +240,13 @@ const getAmazonPayCurrencies = () => {
  * Returns the currencies supported by a payment method.
  * Note that [] is returned for payment methods that support all currencies.
  *
- * @param {string}  paymentMethodId
- * @param {boolean} isUpeEnabled
+ * @param {string} paymentMethodId
  * @return {string[]} Array of currencies supported by that payment method.
  */
-export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
+export const getPaymentMethodCurrencies = ( paymentMethodId ) => {
 	switch ( paymentMethodId ) {
 		case PAYMENT_METHOD_ALIPAY:
-			return getAliPayCurrencies( isUpeEnabled );
+			return getAliPayCurrencies();
 		case PAYMENT_METHOD_WECHAT_PAY:
 			return getWechatPayCurrencies();
 		case PAYMENT_METHOD_KLARNA:
@@ -284,9 +266,7 @@ export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
  * @return {string[]} Array of currencies supported by that payment method.
  */
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	return getPaymentMethodCurrencies( paymentMethodId, isUpeEnabled );
+	return getPaymentMethodCurrencies( paymentMethodId );
 };
 
 export default usePaymentMethodCurrencies;

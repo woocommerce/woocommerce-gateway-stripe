@@ -14,13 +14,11 @@ import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
  *
  * @param {Object}      context
  * @param {string}      context.paymentMethodId   The payment method ID.
- * @param {boolean}     context.isUpeEnabled      Whether UPE is enabled. If false, the payment method is available.
  * @param {string|null} context.storeCurrencyCode The store currency code. If null, the payment method is available.
  * @return {string|null} The reason why the payment method is unavailable, or null if it is available. See `PAYMENT_METHOD_UNAVAILABLE_REASONS` for possible values.
  */
 const getPaymentMethodUnavailableReason = ( {
 	paymentMethodId,
-	isUpeEnabled = true,
 	storeCurrencyCode,
 } ) => {
 	if (
@@ -52,7 +50,7 @@ const getPaymentMethodUnavailableReason = ( {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
 	}
 
-	if ( ! storeCurrencyCode || ! isUpeEnabled ) {
+	if ( ! storeCurrencyCode ) {
 		return null;
 	}
 

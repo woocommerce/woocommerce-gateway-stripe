@@ -33,30 +33,10 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		} );
 	} );
 
-	it( 'should return null if UPE is disabled', () => {
-		expect(
-			getPaymentMethodUnavailableReason( {
-				paymentMethodId: PAYMENT_METHOD_CARD,
-				isUpeEnabled: false,
-				storeCurrencyCode: 'USD',
-			} )
-		).toBeNull();
-	} );
-
 	it( 'should return null if the store currency is not set', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {
 				paymentMethodId: PAYMENT_METHOD_CARD,
-				storeCurrencyCode: null,
-			} )
-		).toBeNull();
-	} );
-
-	it( 'should return null when UPE is disabled and the store currency is not set', () => {
-		expect(
-			getPaymentMethodUnavailableReason( {
-				paymentMethodId: PAYMENT_METHOD_CARD,
-				isUpeEnabled: false,
 				storeCurrencyCode: null,
 			} )
 		).toBeNull();

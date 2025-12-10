@@ -1334,6 +1334,24 @@ class WC_Stripe_Express_Checkout_Helper {
 			$data['shipping_address']['address_2'] = '';
 		}
 
+		// Puerto Rico: Apple Pay send PR as a US state (country=US, state=PR),
+		// but WooCommerce expects it as a separate country. Convert to country code.
+		if ( 'US' === $billing_country ) {
+			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
+			if ( 'PR' === $billing_state ) {
+				$data['billing_address']['country'] = 'PR';
+				$data['billing_address']['state']   = '';
+			}
+		}
+
+		if ( 'US' === $shipping_country ) {
+			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
+			if ( 'PR' === $shipping_state ) {
+				$data['shipping_address']['country'] = 'PR';
+				$data['shipping_address']['state']   = '';
+			}
+		}
+
 		return $data;
 	}
 

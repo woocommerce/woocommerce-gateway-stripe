@@ -140,7 +140,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.3.0 - xxxx-xx-xx =
+* Fix - Error when using Puerto Rico addresses with express checkouts
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
+* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
 * Add - Support Amazon Pay as an express checkout method
-
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
