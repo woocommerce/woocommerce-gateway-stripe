@@ -38,7 +38,7 @@ describe( 'ManualCaptureControl', () => {
 		expect( manualCaptureToggleMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'should toggle the flag', async () => {
+	it( 'should toggle the manual capture setting', async () => {
 		const manualCaptureToggleMock = jest.fn();
 		useManualCapture.mockReturnValue( [ false, manualCaptureToggleMock ] );
 
