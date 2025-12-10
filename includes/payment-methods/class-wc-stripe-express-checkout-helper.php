@@ -585,7 +585,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
-			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+			if ( $this->cart_contains_free_trial() ) {
 				return true;
 			}
 		}
@@ -1386,7 +1386,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Remove subscription shipping package filter if there is free trial in the cart to allow the calculation of shipping costs.
-		if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+		if ( $this->cart_contains_free_trial() ) {
 			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10, 1 );
 		}
 
@@ -1760,7 +1760,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param array $previous_chosen_methods The previously chosen shipping methods.
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
-		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
+		if (
+			empty( WC()->cart->recurring_carts )
+			|| ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' )
+			|| $this->cart_contains_free_trial()
+		) {
 			return;
 		}
 
@@ -1888,5 +1892,14 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+	}
+
+	/**
+	 * Check if the cart contains a free trial subscription.
+	 *
+	 * @return bool
+	 */
+	private function cart_contains_free_trial(): bool {
+		return class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial();
 	}
 }
