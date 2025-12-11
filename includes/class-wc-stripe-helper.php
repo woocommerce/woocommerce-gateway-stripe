@@ -80,6 +80,8 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $currency
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -95,6 +97,8 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param string $currency
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
@@ -108,8 +112,10 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -124,7 +130,7 @@ class WC_Stripe_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				self::update_stripe_fee( $order, $amount );
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
 			}
 		}
 
@@ -137,6 +143,8 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -151,6 +159,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -165,8 +175,10 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -181,7 +193,7 @@ class WC_Stripe_Helper {
 
 			// If found update to new name.
 			if ( $amount ) {
-				self::update_stripe_net( $order, $amount );
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
 			}
 		}
 
@@ -194,6 +206,8 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -208,6 +222,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -361,8 +377,12 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks Stripe minimum order value authorized per currency
+	 *
+	 * @see https://docs.stripe.com/currencies#minimum-and-maximum-charge-amounts
+	 *
+	 * @return int The minimum amount in the smallest currency unit.
 	 */
-	public static function get_minimum_amount() {
+	public static function get_minimum_amount(): int {
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
 			case WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR:
@@ -371,6 +391,9 @@ class WC_Stripe_Helper {
 			case WC_Stripe_Currency_Code::SWISS_FRANC:
 			case WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR:
 			case WC_Stripe_Currency_Code::SINGAPORE_DOLLAR:
+			case WC_Stripe_Currency_Code::BRAZILIAN_REAL:
+			case WC_Stripe_Currency_Code::INDIAN_RUPEE:
+			case WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR:
 				$minimum_amount = 50;
 				break;
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -387,10 +410,23 @@ class WC_Stripe_Helper {
 				$minimum_amount = 5000;
 				break;
 			case WC_Stripe_Currency_Code::MEXICAN_PESO:
+			case WC_Stripe_Currency_Code::THAI_BAHT:
 				$minimum_amount = 1000;
+				break;
+			case WC_Stripe_Currency_Code::CZECH_KORUNA:
+				$minimum_amount = 1500;
 				break;
 			case WC_Stripe_Currency_Code::HONG_KONG_DOLLAR:
 				$minimum_amount = 400;
+				break;
+			case WC_Stripe_Currency_Code::HUNGARIAN_FORINT:
+				$minimum_amount = 17500;
+				break;
+			case WC_Stripe_Currency_Code::UNITED_ARAB_EMIRATES_DIRHAM:
+			case WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT:
+			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				$minimum_amount = 200;
 				break;
 			default:
 				$minimum_amount = 50;
@@ -793,14 +829,9 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = self::get_stripe_settings();
 
-			if ( $is_upe_enabled ) {
-				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
-			} else {
-				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
-			}
+			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
 
 			if ( empty( $ordered_payment_method_ids ) ) {
 				return;
@@ -1235,7 +1266,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_product_page() {
-		if ( self::should_load_scripts_for_prb_location( 'product' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'product' ) ) {
 			return true;
 		}
 
@@ -1252,7 +1283,7 @@ class WC_Stripe_Helper {
 	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
 	 */
 	public static function should_load_scripts_on_cart_page() {
-		if ( self::should_load_scripts_for_prb_location( 'cart' ) ) {
+		if ( self::should_load_scripts_for_ece_location( 'cart' ) ) {
 			return true;
 		}
 
@@ -1266,11 +1297,11 @@ class WC_Stripe_Helper {
 	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
 	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
 	 */
-	private static function should_load_scripts_for_prb_location( $location ) {
+	private static function should_load_scripts_for_ece_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
-		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
+		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
 		// The scripts should be loaded when all of the following are true:
 		//   1. The PRBs are enabled; and
@@ -1284,11 +1315,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $payment_intent_id
 	 * @param $order
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-
-		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
-
+		$order_helper  = WC_Stripe_Order_Helper::get_instance();
+		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
 			return;
 		}
@@ -1301,7 +1333,7 @@ class WC_Stripe_Helper {
 			)
 		);
 
-		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
 		$order->save();
 	}
 
@@ -1399,12 +1431,14 @@ class WC_Stripe_Helper {
 	 * @param WC_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
-
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
-			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
 		}
 
 		return $intent_id ?? false;
@@ -1437,6 +1471,8 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
@@ -1453,6 +1489,8 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
@@ -1884,11 +1922,13 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if a given payment gateway plugin is active.
 	 *
-	 * @param string $plugin_id
+	 * @param string $plugin_id The plugin ID to check.
+	 * @param array $available_payment_gateways Optional. The available payment gateways. If not provided, the available payment gateways will be fetched using WC()->payment_gateways->payment_gateways.
+	 *
 	 * @return bool
 	 */
-	public static function has_gateway_plugin_active( $plugin_id ) {
-		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
+	public static function has_gateway_plugin_active( $plugin_id, $available_payment_gateways = null ) {
+		$available_payment_gateways = $available_payment_gateways ?? WC()->payment_gateways->payment_gateways ?? [];
 		foreach ( $available_payment_gateways as $available_payment_gateway ) {
 			if ( $plugin_id === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
 				return true;
@@ -1907,6 +1947,8 @@ class WC_Stripe_Helper {
 	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
@@ -1941,7 +1983,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
@@ -2011,8 +2053,28 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $order WC_Order The order to check.
 	 * @return bool
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
-		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
+
+	/**
+	 * Checks if the verbose debug mode is enabled.
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_verbose_debug_mode_enabled(): bool {
+		/**
+		 * Filters the flag that decides if the verbose debug mode is enabled.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param bool $enabled True if enabled, false otherwise.
+		 *
+		 * @return bool True if enabled, false otherwise.
+		*/
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 }

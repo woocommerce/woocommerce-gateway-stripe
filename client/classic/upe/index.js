@@ -20,7 +20,6 @@ import {
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
-	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -295,7 +294,7 @@ jQuery( function ( $ ) {
 	$( 'form.checkout' )
 		.on( 'checkout_place_order_stripe', function () {
 			if ( ! isUsingSavedPaymentMethod() ) {
-				if ( isUPEEnabled && paymentIntentId ) {
+				if ( paymentIntentId ) {
 					handleUPECheckout( $( this ) );
 					return false;
 				}
@@ -329,7 +328,7 @@ jQuery( function ( $ ) {
 		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
 			? 'always'
 			: 'never';
-		if ( isUPEEnabled && upeElement ) {
+		if ( upeElement ) {
 			upeElement.update( {
 				terms: getUPETerms( value ),
 			} );

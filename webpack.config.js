@@ -118,6 +118,8 @@ module.exports = {
 		'upe-settings': './client/settings/index.js',
 		'payment-gateways': './client/entrypoints/payment-gateways/index.js',
 		'express-checkout': './client/entrypoints/express-checkout/index.js',
+		'express-checkout-settings':
+			'./client/entrypoints/express-checkout-settings/index.js',
 		'amazon-pay-settings':
 			'./client/entrypoints/amazon-pay-settings/index.js',
 	},

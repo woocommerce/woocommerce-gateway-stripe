@@ -7,6 +7,7 @@ use stdClass;
 use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -216,7 +217,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->set_status( $status );
 
 		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, $intent_id );
+		$order->save_meta_data();
 
 		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		if ( $success ) {
@@ -797,22 +799,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
-
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-	}
-
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled() {
 		update_option( 'woocommerce_currency', 'EUR' );
 		$this->upe_helper->enable_upe_feature_flag();
@@ -897,23 +883,49 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests for `is_stripe_gateway_order`.
+	 * Data provider for {@see test_get_minimum_amount()}.
 	 *
-	 * @return void
+	 * @return array
 	 */
-	public function test_is_stripe_gateway_order() {
-		// Test with a Stripe order (Klarna).
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( 'stripe_klarna' );
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
+	public function provide_test_get_minimum_amount(): array {
+		return [
+			'USD'              => [ 'USD', 50 ],
+			'EUR'              => [ 'EUR', 50 ],
+			'GBP'              => [ 'GBP', 30 ],
+			'CAD'              => [ 'CAD', 50 ],
+			'CHF'              => [ 'CHF', 50 ],
+			'CZK'              => [ 'CZK', 1500 ],
+			'DKK'              => [ 'DKK', 250 ],
+			'HUF'              => [ 'HUF', 17500 ],
+			'INR'              => [ 'INR', 50 ],
+			'MXN'              => [ 'MXN', 1000 ],
+			'MYR'              => [ 'MYR', 200 ],
+			'NOK'              => [ 'NOK', 300 ],
+			'NZD'              => [ 'NZD', 50 ],
+			'PLN'              => [ 'PLN', 200 ],
+			'RON'              => [ 'RON', 200 ],
+			'SEK'              => [ 'SEK', 300 ],
+			'SGD'              => [ 'SGD', 50 ],
+			'THB'              => [ 'THB', 1000 ],
+			'JPY'              => [ 'JPY', 5000 ],
+			'UNKNOWN_CURRENCY' => [ 'UNKNOWN_CURRENCY', 50 ],
+			'ZMW - not known'  => [ 'ZMW', 50 ],
+		];
+	}
 
-		// Test with a non-Stripe order.
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( 'cod' );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
+	/**
+	 * @dataProvider provide_test_get_minimum_amount
+	 */
+	public function test_get_minimum_amount( string $currency, int $expected ): void {
+		$currency_filter = function () use ( $currency ) {
+			return $currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
 
-		// Test with an empty order.
-		$order = new WC_Order();
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_order( $order ) );
+		$minimum_amount = WC_Stripe_Helper::get_minimum_amount();
+
+		remove_filter( 'woocommerce_currency', $currency_filter );
+
+		$this->assertEquals( $expected, $minimum_amount );
 	}
 }

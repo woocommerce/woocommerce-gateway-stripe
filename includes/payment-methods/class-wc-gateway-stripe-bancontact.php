@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
+ *
+ * @deprecated 10.2.0 This class is now deprecated along with the legacy checkout and will be removed in a future release.
  */
 class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
@@ -207,7 +209,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
@@ -217,7 +219,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']     = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']   = strtolower( $currency );
 		$post_data['type']       = WC_Stripe_Payment_Methods::BANCONTACT;
-		$post_data['owner']      = $this->get_owner_details( $order );
+		$post_data['owner']      = WC_Stripe_Order_Helper::get_instance()->get_owner_details( $order );
 		$post_data['redirect']   = [ 'return_url' => $return_url ];
 		$post_data['bancontact'] = [ 'preferred_language' => $this->get_locale() ];
 
@@ -246,7 +248,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;

@@ -162,6 +162,20 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$normalized_data = $this->express_checkout_helper->normalize_state( $data );
 		$normalized_data = $this->express_checkout_helper->fix_address_fields_mapping( $normalized_data );
 
+		/**
+		 * Filters the address data for express checkout after the standard normalization logic has been applied.
+		 *
+		 * NOTE: This data is immediately returned to the client, so be careful with the filter implementation,
+		 * as it can cause issues for express checkout flows. Also ensure that data is correctly sanitized and checked
+		 * as it will be visible to shoppers.
+		 *
+		 * @since 10.2.0
+		 *
+		 * @param array $normalized_data The normalized address data.
+		 * @param array $data            The original address data sent from the client before normalization.
+		 */
+		$normalized_data = apply_filters( 'wc_stripe_express_checkout_normalize_address', $normalized_data, $data );
+
 		wp_send_json( $normalized_data );
 	}
 
@@ -402,6 +416,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Modify country locale for express checkout.
 	 * Countries that don't have state fields, make the state field optional.
+	 * Make postcode optional for specific countries during express checkout.
 	 *
 	 * @param array $locale The country locale.
 	 * @return array Modified country locale.
@@ -418,6 +433,28 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {
 			if ( empty( $states ) ) {
 				$locale[ $country_code ]['state']['required'] = false;
+			}
+		}
+
+		// List of countries where postcode is optional in express checkouts (Google Pay, Apple Pay).
+		// These countries allow addresses without postal codes, but WooCommerce requires them by default.
+		$countries_with_optional_postcode = apply_filters(
+			'wc_stripe_express_checkout_countries_with_optional_postcode',
+			[
+				'AE', // United Arab Emirates
+				'BH', // Bahrain
+				'IL', // Israel
+				'KW', // Kuwait
+				'OM', // Oman
+				'QA', // Qatar
+				'SA', // Saudi Arabia
+			]
+		);
+
+		// Make postcode optional for countries where payment providers don't require it.
+		foreach ( $countries_with_optional_postcode as $country_code ) {
+			if ( isset( $locale[ $country_code ] ) ) {
+				$locale[ $country_code ]['postcode']['required'] = false;
 			}
 		}
 

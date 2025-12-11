@@ -235,8 +235,16 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
+		$masked_secret_key = self::get_masked_secret_key();
+
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API request: {$method} {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+				'request'        => $request,
+			]
+		);
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -251,22 +259,26 @@ class WC_Stripe_API {
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			// Stripe redacts API keys in the response.
-			WC_Stripe_Logger::error(
-				"Stripe API error: {$method} {$api}",
-				[
-					'request'         => $request,
-					'idempotency_key' => $idempotency_key,
-					'response'        => $response,
-				]
-			);
+			$error_data = [
+				'stripe_api_key'    => $masked_secret_key,
+				'request'           => $request,
+				'idempotency_key'   => $idempotency_key,
+			];
+			self::log_error_response( $response, $api, $method, $error_data );
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: {$method} {$api}",
+			[
+				'stripe_api_key'    => $masked_secret_key,
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		if ( $with_headers ) {
 			return [
@@ -300,7 +312,14 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
+		$masked_secret_key = self::get_masked_secret_key();
+
+		WC_Stripe_Logger::debug(
+			"Stripe API request: GET {$api}",
+			[
+				'stripe_api_key' => $masked_secret_key,
+			]
+		);
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -317,7 +336,9 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api} returned a 401",
 				[
-					'response' => json_decode( $response['body'] ),
+					'stripe_api_key'    => $masked_secret_key,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => json_decode( $response['body'] ),
 				]
 			);
 
@@ -328,8 +349,9 @@ class WC_Stripe_API {
 				WC_Stripe_Logger::error(
 					'Invalid API keys request rate limit exceeded',
 					[
-						'count'      => $invalid_api_key_error_count,
-						'next_retry' => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
+						'stripe_api_key' => $masked_secret_key,
+						'count'          => $invalid_api_key_error_count,
+						'next_retry'     => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
 					]
 				);
 
@@ -347,18 +369,24 @@ class WC_Stripe_API {
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::error(
-				"Stripe API error: GET {$api}",
-				[
-					'response' => $response,
-				]
-			);
-			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			$error_data = [
+				'stripe_api_key' => $masked_secret_key,
+			];
+			self::log_error_response( $response, $api, 'GET', $error_data );
+
+			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$response_body = json_decode( $response['body'] );
 
-		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+		WC_Stripe_Logger::debug(
+			"Stripe API response: GET {$api}",
+			[
+				'stripe_api_key'    => $masked_secret_key,
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response_body,
+			]
+		);
 
 		return $response_body;
 	}
@@ -561,19 +589,54 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
-		// and return false when the site is a staging/local/development site.
-		// This is to avoid detaching the payment method from the live production site.
-		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-			if ( 'production' === wp_get_environment_type() ) {
-				return true;
-			} else {
-				return false;
-			}
+		// Requests coming from the customer account page i.e delete payment method, should always be allowed, and should return true.
+		// We thus treat the following requests as admin requests:
+		// - Requests where is_admin() is true
+		// - Actions via WP CLI
+		// - WP Cron requests
+		$is_admin_request = is_admin() ||
+			( defined( 'WP_CLI' ) && WP_CLI ) ||
+			wp_doing_cron();
+
+		if ( ! $is_admin_request ) {
+			return true;
 		}
 
+		// If we are not in a production site, we should not detach the payment method,
+		// as we don't want to detach the payment method from the live production site.
+		$is_staging_site = self::is_woocommerce_subscriptions_staging_mode() || 'production' !== wp_get_environment_type();
+		if ( $is_staging_site ) {
+			return false;
+		}
+
+		// Otherwise, we are in a production site, and we should detach the payment method.
 		return true;
+	}
+
+	/**
+	 * Checks if the site has WooCommerce Subscriptions staging mode enabled.
+	 *
+	 * @return bool True if the site has WooCommerce Subscriptions active and staging mode enabled, false otherwise.
+	 */
+	private static function is_woocommerce_subscriptions_staging_mode() {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return false;
+		}
+
+		// Check if WooCommerce Subscriptions >= 4.0.0 is active (uses WCS_Staging class)
+		if ( class_exists( 'WCS_Staging' ) && method_exists( 'WCS_Staging', 'is_duplicate_site' ) ) {
+			return WCS_Staging::is_duplicate_site();
+		}
+
+		// Check if WooCommerce Subscriptions < 4.0.0 is active
+		// and if it is, check if the site is in staging mode via is_duplicate_site().
+		if ( version_compare( WC_Subscriptions::$version, '4.0.0', '<' )
+			&& method_exists( 'WC_Subscriptions', 'is_duplicate_site' )
+		) {
+			return WC_Subscriptions::is_duplicate_site();
+		}
+
+		return false;
 	}
 
 	/**
@@ -582,7 +645,9 @@ class WC_Stripe_API {
 	 * @return array The response from the API request.
 	 */
 	public function get_payment_method_configurations() {
-		return self::retrieve( 'payment_method_configurations' );
+		// The default limit is 10, so we set it to 100 to get all configurations in a single request.
+		// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
+		return self::retrieve( 'payment_method_configurations?limit=100' );
 	}
 
 	/**
@@ -596,5 +661,79 @@ class WC_Stripe_API {
 			'payment_method_configurations/' . $id
 		);
 		return $response;
+	}
+
+	/**
+	 * Log an error response from the Stripe API.
+	 *
+	 * @param array|WP_Error $response HTTP response or error.
+	 * @param string         $api      The API endpoint.
+	 * @param string         $method   The HTTP method used for the request.
+	 * @param array          $data     Additional data to add to the log.
+	 * @return void
+	 */
+	private static function log_error_response( $response, string $api, string $method, array $data = [] ): void {
+		$error_message = "Stripe API error: {$method} {$api}";
+		$error_data = array_merge(
+			$data,
+			[
+				'stripe_request_id' => self::get_stripe_request_id( $response ),
+				'response'          => $response,
+			]
+		);
+
+		// Add logging for URL validation errors.
+		if (
+			is_wp_error( $response ) &&
+			'http_request_failed' === $response->get_error_code() &&
+			// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+			__( 'A valid URL was not provided.' ) === $response->get_error_message()
+		) {
+			$stripe_api_host     = 'api.stripe.com';
+			$resolved_ip_address = gethostbyname( $stripe_api_host );
+
+			$error_data['resolved_ip_address'] = $resolved_ip_address;
+
+			if ( $resolved_ip_address === $stripe_api_host ) {
+				$error_data['validation_details'] = "$stripe_api_host could not be resolved to an IP address";
+			} else {
+				$error_message .= "; Possible DNS resolution problem for $stripe_api_host";
+				$error_data['validation_details'] = "$stripe_api_host resolved to $resolved_ip_address";
+			}
+		}
+
+		WC_Stripe_Logger::error( $error_message, $error_data );
+	}
+
+	/**
+	 * Returns the Stripe's request_id associated with the response.
+	 *
+	 * @param array|WP_Error $response HTTP response.
+	 *
+	 * @return string The Stripe's request_id associated with the response or null if not present.
+	 */
+	private static function get_stripe_request_id( $response ) {
+		$headers = wp_remote_retrieve_headers( $response );
+		if ( is_array( $headers ) ) {
+			return $headers['request-id'] ?? '';
+		}
+		if ( is_object( $headers ) && $headers instanceof \WpOrg\Requests\Utility\CaseInsensitiveDictionary ) {
+			return $headers->getAll()['request-id'] ?? '';
+		}
+		return '';
+	}
+
+	/**
+	 * Get the masked secret key.
+	 * It uses the same pattern as the Stripe dashboard: sk_live_...JLWaeq.
+	 *
+	 * @return string The masked secret key.
+	 */
+	public static function get_masked_secret_key(): string {
+		$key = self::get_secret_key();
+		if ( empty( $key ) ) {
+			return 'secret_key_not_configured';
+		}
+		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
 	}
 }

@@ -4,8 +4,8 @@ namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
 use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
+use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WC_Gateway_Stripe_Sepa;
 use WC_Logger;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
@@ -68,7 +68,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	 *
 	 * @var string
 	 */
-	private $legacy_sepa_gateway_id = WC_Gateway_Stripe_Sepa::ID;
+	private $legacy_sepa_gateway_id = WC_Stripe_Payment_Methods::LEGACY_SEPA;
 
 	public function set_up() {
 		parent::set_up();
@@ -110,17 +110,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		$this->updater
 			 ->expects( $this->once() )
-			 ->method( 'schedule_repair' );
-
-		$this->updater->maybe_update();
-	}
-
-	public function test_updater_doesn_not_get_scheduled_when_legacy_is_enabled() {
-		add_filter( 'wc_stripe_is_upe_checkout_enabled', '__return_false' );
-		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
-
-		$this->updater
-			 ->expects( $this->never() )
 			 ->method( 'schedule_repair' );
 
 		$this->updater->maybe_update();
@@ -202,29 +191,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 			);
 
 		$this->updater->repair_item( $ids_to_migrate[0] );
-	}
-
-	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_legacy_experience_is_enabled() {
-		add_filter( 'wc_stripe_is_upe_checkout_enabled', '__return_false' );
-		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
-		$subscription_id = $ids_to_migrate[0];
-
-		// We didn't set upe_checkout_experience_enabled to 'yes', which means the Legacy experience is enabled.
-		$this->logger_mock
-			->expects( $this->exactly( 2 ) )
-			->method( 'add' )
-			->withConsecutive(
-				[
-					$this->anything(),
-					$this->anything(),
-				],
-				[
-					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) ),
-				],
-			);
-
-		$this->updater->repair_item( $subscription_id );
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_subscription_is_not_found() {

@@ -166,7 +166,6 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
-export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(

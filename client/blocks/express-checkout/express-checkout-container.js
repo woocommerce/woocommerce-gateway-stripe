@@ -7,6 +7,7 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
@@ -19,7 +20,10 @@ export const ExpressCheckoutContainer = ( props ) => {
 		) && {
 			paymentMethodCreation: 'manual',
 		} ),
-		amount: billing.cartTotal.value,
+		amount: transformPriceWithMinorUnits(
+			billing.cartTotal.value,
+			billing.currency.minorUnit
+		),
 		currency: billing.currency.code.toLowerCase(),
 		paymentMethodTypes:
 			getPaymentMethodTypesForExpressMethod( expressPaymentMethod ),

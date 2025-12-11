@@ -86,18 +86,21 @@ class WC_Stripe_Account {
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param string|null $mode          Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param bool        $force_refresh Optional. Whether to fetch the account data from Stripe instead of using the cache. Default is false.
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public function get_cached_account_data( $mode = null ) {
+	public function get_cached_account_data( $mode = null, bool $force_refresh = false ) {
 		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache();
+		if ( ! $force_refresh ) {
+			$account = $this->read_account_from_cache();
 
-		if ( ! empty( $account ) ) {
-			return $account;
+			if ( ! empty( $account ) ) {
+				return $account;
+			}
 		}
 
 		return $this->cache_account( $mode );
@@ -282,18 +285,13 @@ class WC_Stripe_Account {
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+	public function configure_webhooks( $mode = 'live' ) {
+
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
-
-		// If a secret key is provided, use it to configure the webhooks.
-		if ( $secret_key ) {
-			$previous_secret = WC_Stripe_API::get_secret_key();
-			WC_Stripe_API::set_secret_key( $secret_key );
-		}
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
@@ -308,11 +306,6 @@ class WC_Stripe_Account {
 
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
-
-		// Restore the previous secret key if we changed it.
-		if ( $secret_key && isset( $previous_secret ) ) {
-			WC_Stripe_API::set_secret_key( $previous_secret );
-		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -491,7 +484,7 @@ class WC_Stripe_Account {
 
 				// Events differ, reconfigure webhook
 				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
-				$this->configure_webhooks( $mode, $secret_key );
+				$this->configure_webhooks( $mode );
 				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
 
 			} catch ( Exception $e ) {

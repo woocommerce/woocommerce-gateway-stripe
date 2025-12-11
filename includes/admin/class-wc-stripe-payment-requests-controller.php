@@ -21,7 +21,7 @@ class WC_Stripe_Payment_Requests_Controller {
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment-requests-settings.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout-settings.asset.php';
 		$asset_metadata    = file_exists( $script_asset_path )
 			? require $script_asset_path
 			: [
@@ -30,7 +30,7 @@ class WC_Stripe_Payment_Requests_Controller {
 			];
 		wp_register_script(
 			'wc-stripe-payment-request-settings',
-			plugins_url( 'build/payment-requests-settings.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/express-checkout-settings.js', WC_STRIPE_MAIN_FILE ),
 			$asset_metadata['dependencies'],
 			$asset_metadata['version'],
 			true
@@ -45,7 +45,7 @@ class WC_Stripe_Payment_Requests_Controller {
 		$params          = [
 			'key'            => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
 			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'is_ece_enabled' => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
+			'is_ece_enabled' => true,
 		];
 		wp_localize_script(
 			'wc-stripe-payment-request-settings',
@@ -55,7 +55,7 @@ class WC_Stripe_Payment_Requests_Controller {
 
 		wp_register_style(
 			'wc-stripe-payment-request-settings',
-			plugins_url( 'build/payment-requests-settings.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/express-checkout-settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$asset_metadata['version']
 		);

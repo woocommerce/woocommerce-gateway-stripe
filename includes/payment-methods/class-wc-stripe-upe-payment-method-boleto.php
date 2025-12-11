@@ -13,6 +13,11 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BOLETO;
 
+	/**
+	 * Legacy payment method class reference.
+	 *
+	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
+	 */
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Boleto::class;
 
 	/**
@@ -47,7 +52,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::BOLETO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::BOLETO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 

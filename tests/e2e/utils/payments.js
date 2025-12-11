@@ -91,6 +91,105 @@ export async function setupCart(
 }
 
 /**
+ * Wait for Stripe iframe to be fully loaded and ready for interaction.
+ * This helper addresses common race conditions with Stripe Elements.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} iframeSelector The selector for the Stripe iframe.
+ * @param {number} timeout Maximum time to wait in milliseconds (default: 15000).
+ * @returns {Promise<Frame>} The loaded Stripe frame.
+ */
+export async function waitForStripeReady(
+	page,
+	iframeSelector,
+	timeout = 15000
+) {
+	// Wait for iframe to be present and visible
+	await page.waitForSelector( iframeSelector, {
+		state: 'visible',
+		timeout,
+	} );
+
+	// Get the frame handle and content frame
+	const frameHandle = await page.waitForSelector( iframeSelector, {
+		timeout,
+	} );
+	const stripeFrame = await frameHandle.contentFrame();
+
+	if ( ! stripeFrame ) {
+		throw new Error(
+			`Could not get content frame for: ${ iframeSelector }`
+		);
+	}
+
+	// Wait for the frame to be fully loaded
+	await stripeFrame.waitForLoadState( 'networkidle', { timeout } );
+
+	// Additional wait for any loading indicators to disappear in parallel
+	const loadingIndicators = [
+		'.__PrivateStripeElementLoader',
+		'.LightboxModalLoadingIndicator',
+		'[data-testid="loading"]',
+	];
+
+	await Promise.all(
+		loadingIndicators.map( ( indicator ) =>
+			stripeFrame
+				.locator( indicator )
+				.waitFor( { state: 'hidden', timeout } )
+				.catch( () => {} )
+		)
+	);
+
+	return stripeFrame;
+}
+
+/**
+ * Retry an async function with exponential backoff.
+ * Useful for flaky operations like iframe interactions or API calls.
+ *
+ * @param {Function} fn The async function to retry.
+ * @param {Object} options Retry configuration.
+ * @param {number} options.maxRetries Maximum number of retries (default: 3).
+ * @param {number} options.initialDelay Initial delay in milliseconds (default: 500).
+ * @param {number} options.maxDelay Maximum delay in milliseconds (default: 5000).
+ * @param {Function} options.shouldRetry Optional function to determine if error should trigger retry.
+ * @returns {Promise<any>} The result of the function call.
+ */
+export async function retryWithBackoff( fn, options = {} ) {
+	const {
+		maxRetries = 3,
+		initialDelay = 500,
+		maxDelay = 5000,
+		shouldRetry = () => true,
+	} = options;
+
+	let lastError;
+	let delay = initialDelay;
+
+	for ( let attempt = 0; attempt <= maxRetries; attempt++ ) {
+		try {
+			return await fn();
+		} catch ( error ) {
+			lastError = error;
+
+			// Don't retry if we've exhausted attempts or if shouldRetry returns false
+			if ( attempt === maxRetries || ! shouldRetry( error ) ) {
+				break;
+			}
+
+			// Wait before retrying
+			await new Promise( ( resolve ) => setTimeout( resolve, delay ) );
+
+			// Exponential backoff with max delay cap
+			delay = Math.min( delay * 2, maxDelay );
+		}
+	}
+
+	throw lastError;
+}
+
+/**
  * Fills in the credit card details on the default (blocks) checkout page.
  * @param {Page} page Playwright page fixture.
  * @param {Object} card The CC info in the format provided on the test-data.
@@ -416,32 +515,25 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await emptyCart( page );
 	await setupCart( page );
 
+	const rawIframeSelector = 'iframe[src*="elements-inner-payment"]';
+	let iframeSelector;
+
 	if ( checkoutType === 'blocks' ) {
+		iframeSelector = `#radio-control-wc-payment-method-options-stripe_us_bank_account__content ${ rawIframeSelector }`;
+
 		await setupBlocksCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
+
 		// Select ACH in blocks checkout
 		await page
 			.locator( 'label' )
 			.filter( { hasText: 'ACH Direct Debit' } )
-			.dispatchEvent( 'click' );
-
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
-
-		// Click "Test Institution"
-		await page
-			.frameLocator(
-				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
-			)
-			.getByText( 'Test Institution' )
-			.dispatchEvent( 'click' );
+			.click();
 	} else {
+		iframeSelector = `.wc_payment_method.payment_method_stripe_us_bank_account ${ rawIframeSelector }`;
+
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
@@ -450,23 +542,21 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		// Select ACH in shortcode checkout
 		const achLabel = page.getByText( 'ACH Direct Debit' );
 		await achLabel.waitFor( { state: 'visible' } );
-		await achLabel.dispatchEvent( 'click' );
-
-		// Wait for the iframe to be ready
-		const frameHandle = await page.waitForSelector(
-			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-		await stripeFrame.waitForLoadState( 'networkidle' );
-
-		// Click "Test Institution"
-		await page
-			.frameLocator(
-				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
-			)
-			.getByTestId( 'featured-institution-default' )
-			.dispatchEvent( 'click' );
+		await achLabel.click();
 	}
+
+	await waitForStripeReady( page, iframeSelector );
+
+	// Click "Test Institution" with retry logic
+	await retryWithBackoff( async () => {
+		const testInstitutionButton = page
+			.frameLocator( iframeSelector )
+			.getByText( 'Test Institution' )
+			.first();
+
+		await expect( testInstitutionButton ).toBeVisible();
+		await testInstitutionButton.click();
+	} );
 };
 
 /**
@@ -478,34 +568,49 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Agree and Continue
-	await frame.getByTestId( 'agree-button' ).click();
-
-	// Click "Success ••••" button
-	await frame.getByRole( 'button', { name: 'Success ••••' } ).click();
-
-	// Click "Connect Account" button.
-	await frame.getByTestId( 'select-button' ).click();
+	// Click Agree and Continue button
+	let button = frame.getByTestId( 'agree-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 
 	// Link registration button may or may not appear.
 	await Promise.race( [
 		frame
 			.getByTestId( 'link-not-now-button' )
-			.waitFor( {
-				state: 'visible',
-				timeout: 5000,
-			} )
+			.waitFor( { state: 'visible' } )
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-
-		frame.getByTestId( 'done-button' ).waitFor( {
-			state: 'visible',
-			timeout: 5000,
-		} ),
+		frame
+			.getByRole( 'button', { name: 'Success ••••' } )
+			.waitFor( { state: 'visible' } ),
 	] );
 
-	await frame.getByTestId( 'done-button' ).click();
+	// Click "Success ••••" account
+	button = frame.getByRole( 'button', { name: 'Success ••••' } );
+	await expect( button ).toBeVisible();
+	await button.click();
+
+	// Click Connect account button
+	button = frame.getByTestId( 'select-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
+
+	// If link registration did not load when starting the flow, it will appear here.
+	await Promise.race( [
+		frame
+			.getByTestId( 'link-not-now-button' )
+			.waitFor( { state: 'visible' } )
+			.then( async () => {
+				await frame.getByTestId( 'link-not-now-button' ).click();
+			} ),
+		frame.getByTestId( 'done-button' ).waitFor( { state: 'visible' } ),
+	] );
+
+	// Click the done button with retry logic
+	button = frame.getByTestId( 'done-button' );
+	await expect( button ).toBeVisible();
+	await button.click();
 };
 
 /**

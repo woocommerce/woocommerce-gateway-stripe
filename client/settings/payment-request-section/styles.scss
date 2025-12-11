@@ -43,12 +43,15 @@
 			}
 
 			&__label {
-				display: inline-block;
+				display: inline-flex;
 				font-size: 14px;
 				font-weight: 600;
 				line-height: 20px;
 				color: styles.$gray-900;
 				margin-bottom: 4px;
+				align-items: center;
+				gap: 8px;
+				flex-wrap: wrap;
 			}
 
 			&__link {

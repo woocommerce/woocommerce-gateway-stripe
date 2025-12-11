@@ -4,7 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Amazon Pay Payment Method class extending UPE base class
+ * Amazon Pay Payment Method class extending UPE base class.
+ * Note that Amazon Pay only supports USD for US accounts.
+ * Furthermore, Amazon Pay supports multiple currencies without supporting accounts from those
+ * countries, including AUD, HKD, JPY, NOK, NZD, and ZAR.
+ * In addition, Amazon Pay supports EUR transactions, but does not support accounts from all EU countries.
+ *
+ * @see https://docs.stripe.com/payments/amazon-pay
  */
 class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
@@ -18,7 +24,21 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
+		$this->supported_currencies = [
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::SWISS_FRANC,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
+			WC_Stripe_Currency_Code::JAPANESE_YEN,
+			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+			WC_Stripe_Currency_Code::SWEDISH_KRONA,
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			WC_Stripe_Currency_Code::SOUTH_AFRICAN_RAND,
+		];
+		$this->supported_countries  = [ 'AT', 'BE', 'CY', 'DK', 'FR', 'DE', 'HU', 'IE', 'IT', 'LU', 'NL', 'PT', 'ES', 'SE', 'CH', 'GB', 'US' ];
 		$this->is_reusable          = true;
 		$this->label                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -37,6 +57,37 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function get_retrievable_type() {
 		return $this->get_id();
+	}
+
+	/**
+	 * Returns the currencies this UPE method supports for the Stripe account.
+	 *
+	 * Amazon Pay has restrictions for US accounts, as they can only transact in USD.
+	 * All other accounts can transact in any currency.
+	 *
+	 * @return array Supported currencies.
+	 */
+	public function get_supported_currencies() {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+
+		if ( 'US' === $account_country ) {
+			return [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
+		}
+
+		return $this->supported_currencies;
+	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * Amazon Pay is available for the following countries: AT, BE, CY, DK, FR, DE, HU, IE, IT, LU, NL, PT, ES, SE, CH, GB, US.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+
+		return in_array( $account_country, $this->supported_countries, true );
 	}
 
 	/**
@@ -67,11 +118,6 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public static function is_amazon_pay_enabled( WC_Gateway_Stripe $gateway ) {
 		// Amazon Pay is disabled if feature flag is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-			return false;
-		}
-
-		// Amazon Pay is disabled if UPE is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
 		}
 
