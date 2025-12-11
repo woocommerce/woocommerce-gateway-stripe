@@ -742,7 +742,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Check if Amazon Pay is the only enabled method, but not available due to the tax configuration.
 		if ( $this->is_amazon_pay_enabled() &&
-			! ( $this->is_payment_request_enabled() || $this->is_link_enabled() ) &&
+			! ( $this->is_express_checkout_enabled() || $this->is_link_enabled() ) &&
 			( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ) )
 		) {
 			WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to Amazon Pay being the only enabled method, but not available due to taxes being based on billing address.' );
@@ -935,7 +935,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean True if any express checkout buttons are enabled on the given page, false otherwise.
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
-		return $this->is_enabled_for_location( 'payment_request', $location ) ||
+		return $this->is_enabled_for_location( 'express_checkout', $location ) ||
 				$this->is_enabled_for_location( 'amazon_pay', $location );
 	}
 
@@ -1635,20 +1635,40 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
 	 */
-	public function get_button_locations() {
-		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['express_checkout_button_locations'] ) ) {
+	public function get_button_locations( ?string $express_checkout_type = null ): array {
+		if ( 'amazon_pay' === $express_checkout_type ) {
+			$key = 'amazon_pay_button_locations';
+		} else {
+			$key = 'express_checkout_button_locations';
+		}
+
+		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
+			// If the locations have not been set/modified, return the default setting.
 			return [ 'product', 'cart' ];
 		}
 
-		// If all locations are removed through the settings UI the location config will be set to
-		// an empty string "". If that's the case (and if the settings are not an array for any
-		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['express_checkout_button_locations'] ) ) {
+		if ( ! is_array( $this->stripe_settings[ $key ] ) ) {
+			// If all locations are removed through the settings UI the location config will be set to
+			// an empty string "". If that's the case (and if the settings are not an array for any
+			// other reason) we should return an empty array.
 			return [];
 		}
 
-		return $this->stripe_settings['express_checkout_button_locations'];
+		return $this->stripe_settings[ $key ];
+	}
+
+	/**
+	 * Check if the express checkout type is enabled for the given location.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 * @param string $location The location to check.
+	 *
+	 * @return boolean
+	 */
+	public function is_enabled_for_location( string $express_checkout_type = 'express_checkout', string $location = '' ): bool {
+		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+
+		return in_array( $location, $enabled_locations, true );
 	}
 
 	/**
@@ -1657,9 +1677,47 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
-		return $this->gateway->is_express_checkout_enabled() ||
-			$this->is_amazon_pay_enabled() ||
-			$this->is_link_enabled();
+		return (
+				$this->gateway->is_express_checkout_enabled() && $this->is_enabled_for_current_context( 'express_checkout' )
+			) ||
+				$this->is_amazon_pay_enabled() ||
+				$this->is_link_enabled();
+	}
+
+	/**
+	 * Checks if the given express checkout type is enabled for the current page context.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 *
+	 * @return boolean
+	 */
+	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		if ( $this->is_product() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'product' );
+		}
+
+		if ( $this->is_cart() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'cart' );
+		}
+
+		if ( $this->is_checkout() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks if Apple Pay and Google Pay buttons are enabled.
+	 *
+	 * @return boolean
+	 *
+	 * @deprecated 10.3.0 This method is deprecated and will be removed in a future version.
+	 */
+	public function is_payment_request_enabled() {
+		$is_enabled = $this->gateway->is_payment_request_enabled();
+
+		return $is_enabled && $this->is_enabled_for_current_context( 'express_checkout' );
 	}
 
 	/**
