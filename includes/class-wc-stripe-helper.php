@@ -460,7 +460,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_method_classes() {
 		return [];
@@ -471,7 +471,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_methods() {
 		return [];
@@ -482,7 +482,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return null
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_payment_method( $id ) {
 		return null;
@@ -497,7 +497,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_available_payment_method_ids() {
 		return [];
@@ -508,7 +508,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_enabled_payment_methods() {
 		return [];
@@ -519,7 +519,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 *
-	 * @deprecated 10.2.0 This method will be removed in future versions.
+	 * @deprecated 10.3.0 This method will be removed in future versions.
 	 */
 	public static function get_legacy_enabled_payment_method_ids() {
 		return [];
