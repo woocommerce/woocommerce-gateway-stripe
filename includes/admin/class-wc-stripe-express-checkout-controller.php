@@ -6,11 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin page for UPE Customize Express Checkouts.
  *
- * @since 5.4.1
- *
- * @deprecated 10.3.0 Moved to includes/admin/class-wc-stripe-express-checkout-controller.php
+ * @since 10.3.0
  */
-class WC_Stripe_Payment_Requests_Controller {
+class WC_Stripe_Express_Checkout_Controller {
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
@@ -29,37 +27,37 @@ class WC_Stripe_Payment_Requests_Controller {
 				'version'      => WC_STRIPE_VERSION,
 			];
 		wp_register_script(
-			'wc-stripe-payment-request-settings',
+			'wc-stripe-express-checkout-settings',
 			plugins_url( 'build/express-checkout-settings.js', WC_STRIPE_MAIN_FILE ),
 			$asset_metadata['dependencies'],
 			$asset_metadata['version'],
 			true
 		);
 		wp_set_script_translations(
-			'wc-stripe-payment-request-settings',
+			'wc-stripe-express-checkout-settings',
 			'woocommerce-gateway-stripe'
 		);
-		wp_enqueue_script( 'wc-stripe-payment-request-settings' );
+		wp_enqueue_script( 'wc-stripe-express-checkout-settings' );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$params          = [
 			'key'            => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
 			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'is_ece_enabled' => true,
+			'is_ece_enabled' => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 		];
 		wp_localize_script(
-			'wc-stripe-payment-request-settings',
-			'wc_stripe_payment_request_settings_params',
+			'wc-stripe-express-checkout-settings',
+			'wc_stripe_express_checkout_settings_params',
 			$params
 		);
 
 		wp_register_style(
-			'wc-stripe-payment-request-settings',
+			'wc-stripe-express-checkout-settings',
 			plugins_url( 'build/express-checkout-settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$asset_metadata['version']
 		);
-		wp_enqueue_style( 'wc-stripe-payment-request-settings' );
+		wp_enqueue_style( 'wc-stripe-express-checkout-settings' );
 	}
 
 	/**
@@ -75,6 +73,6 @@ class WC_Stripe_Payment_Requests_Controller {
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
-		echo '<div class="wrap"><div id="wc-stripe-payment-request-settings-container"></div></div>';
+		echo '<div class="wrap"><div id="wc-stripe-express-checkout-settings-container"></div></div>';
 	}
 }
