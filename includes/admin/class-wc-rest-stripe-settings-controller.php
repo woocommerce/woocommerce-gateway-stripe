@@ -318,6 +318,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			);
 		}
 
+		// Amazon Pay cannot be enabled when taxes are based on the customer billing address.
+		if ( ! empty( $payment_method_ids_to_enable ) && in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $payment_method_ids_to_enable, true ) &&
+			'billing' === get_option( 'woocommerce_tax_based_on' )
+		) {
+			$payment_method_ids_to_enable = array_diff(
+				$payment_method_ids_to_enable,
+				[ WC_Stripe_Payment_Methods::AMAZON_PAY ]
+			);
+		}
+
 		return $payment_method_ids_to_enable;
 	}
 

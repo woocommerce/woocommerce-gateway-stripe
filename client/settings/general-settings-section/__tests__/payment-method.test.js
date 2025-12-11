@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import icons from '../../../payment-method-icons';
-import UpeToggleContext from '../../upe-toggle/context';
 import PaymentMethod from '../payment-method';
 import PaymentMethodDescription from '../payment-method-description';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
@@ -51,11 +50,7 @@ describe( 'PaymentMethod', () => {
 	} );
 
 	const renderPaymentMethod = ( method, data ) => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethod method={ method } data={ data } />
-			</UpeToggleContext.Provider>
-		);
+		render( <PaymentMethod method={ method } data={ data } /> );
 	};
 
 	it( 'card payment method should be enabled with expected details', () => {

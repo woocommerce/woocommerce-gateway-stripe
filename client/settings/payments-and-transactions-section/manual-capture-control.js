@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
 import { CheckboxControl, Button } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const AlertIcon = styled( Icon )`
 	fill: #afafaf;
@@ -38,14 +37,13 @@ const WarningListElement = ( { children } ) => (
 const ManualCaptureControl = () => {
 	const [ isManualCaptureEnabled, setIsManualCaptureEnabled ] =
 		useManualCapture();
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
 		useState( false );
 
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.
-		if ( ! isChecked || ! isUpeEnabled ) {
+		if ( ! isChecked ) {
 			setIsManualCaptureEnabled( isChecked );
 			return;
 		}
