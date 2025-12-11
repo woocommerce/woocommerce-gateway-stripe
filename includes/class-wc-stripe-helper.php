@@ -256,7 +256,8 @@ class WC_Stripe_Helper {
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
-			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
+			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
+			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
 	}
 
