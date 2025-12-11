@@ -6,7 +6,7 @@
  * The list is based on libaddressinput: https://github.com/google/libaddressinput,
  * which is used by Chromium based browsers in the native Payment Request address dialog.
  *
- * @since 5.1.0
+ * @since 10.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
