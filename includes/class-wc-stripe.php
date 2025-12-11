@@ -343,58 +343,60 @@ class WC_Stripe {
 
 		$previous_version = get_option( 'wc_stripe_version' );
 
-		if ( WC_STRIPE_VERSION !== $previous_version ) {
-			do_action( 'woocommerce_stripe_updated' );
+		if ( WC_STRIPE_VERSION === $previous_version ) {
+			return;
+		}
 
-			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
-				define( 'WC_STRIPE_INSTALLING', true );
-			}
+		do_action( 'woocommerce_stripe_updated' );
 
-			$is_new_install = false === $previous_version;
+		if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
+			define( 'WC_STRIPE_INSTALLING', true );
+		}
 
-			// Mark optimized checkout as default on for new installs.
-			if ( $is_new_install && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-				update_option( 'wc_stripe_optimized_checkout_default_on', true );
-			}
+		$is_new_install = false === $previous_version;
 
-			if ( $is_new_install ) {
-				update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
-			}
+		// Mark optimized checkout as default on for new installs.
+		if ( $is_new_install && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
+			update_option( 'wc_stripe_optimized_checkout_default_on', true );
+		}
 
-			add_woocommerce_inbox_variant();
-			$this->update_plugin_version();
+		if ( $is_new_install ) {
+			update_option( 'wc_stripe_amazon_pay_default_on', 'yes' );
+		}
 
-			// Add webhook reconfiguration
-			$account = self::get_instance()->account;
-			$account->maybe_reconfigure_webhooks_on_update();
+		add_woocommerce_inbox_variant();
+		$this->update_plugin_version();
 
-			// TODO: Remove this when we're reasonably sure most merchants have had their
-			// settings updated like this. ~80% of merchants is a good threshold.
-			// - @reykjalin
-			$this->update_prb_location_settings();
+		// Add webhook reconfiguration
+		$account = self::get_instance()->account;
+		$account->maybe_reconfigure_webhooks_on_update();
 
-			// Migrate to the new checkout experience.
-			$this->migrate_to_new_checkout_experience();
+		// TODO: Remove this when we're reasonably sure most merchants have had their
+		// settings updated like this. ~80% of merchants is a good threshold.
+		// - @reykjalin
+		$this->update_prb_location_settings();
 
-			// Check for subscriptions using legacy SEPA tokens on upgrade.
-			// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
-			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+		// Migrate to the new checkout experience.
+		$this->migrate_to_new_checkout_experience();
 
-			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
-			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
-			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+		// Check for subscriptions using legacy SEPA tokens on upgrade.
+		// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
+		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
-			// Try to schedule the daily async cleanup of the Stripe database cache.
-			WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+		// TODO: Remove this call when all the merchants have moved to the new checkout experience.
+		// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 
-			// If we have previously disabled settings synchronization, remove the flag after the upgrade,
-			// just to make sure we are still ineligible for settings synchronization.
-			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
-				unset( $stripe_settings['pmc_enabled'] );
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
-			}
+		// Try to schedule the daily async cleanup of the Stripe database cache.
+		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+
+		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
+		// just to make sure we are still ineligible for settings synchronization.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
+			unset( $stripe_settings['pmc_enabled'] );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
 
