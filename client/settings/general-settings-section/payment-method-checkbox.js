@@ -1,17 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { Icon, info } from '@wordpress/icons';
-import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import {
-	useEnabledPaymentMethodIds,
-	useManualCapture,
-	useIsStripeEnabled,
-} from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
-import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const StyledCheckbox = styled( CheckboxControl )`
 	.components-base-control__field {
@@ -39,8 +33,6 @@ const PaymentMethodCheckbox = ( {
 		useState( false );
 	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
 		useEnabledPaymentMethodIds();
-	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const checked = ! disabled && enabledPaymentMethods.includes( id );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
@@ -52,12 +44,6 @@ const PaymentMethodCheckbox = ( {
 			return;
 		}
 
-		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
-		// So if the card payment method is enabled, Stripe should be enabled.
-		if ( id === PAYMENT_METHOD_CARD && ! isUpeEnabled ) {
-			setIsStripeEnabled( true );
-		}
-
 		setEnabledPaymentMethods( [ ...enabledPaymentMethods, id ] );
 	};
 
@@ -66,12 +52,6 @@ const PaymentMethodCheckbox = ( {
 		setEnabledPaymentMethods(
 			enabledPaymentMethods.filter( ( m ) => m !== id )
 		);
-
-		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
-		// So if the card payment method is disabled, Stripe should be disabled.
-		if ( id === PAYMENT_METHOD_CARD && ! isUpeEnabled ) {
-			setIsStripeEnabled( false );
-		}
 	};
 
 	return (
