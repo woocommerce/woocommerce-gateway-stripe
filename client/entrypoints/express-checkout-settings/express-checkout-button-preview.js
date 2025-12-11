@@ -7,9 +7,9 @@ import { shouldUseGooglePayBrand } from './utils/utils';
 import { __, sprintf } from '@wordpress/i18n';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import {
-	usePaymentRequestButtonType,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonTheme,
+	useExpressCheckoutButtonType,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonTheme,
 } from 'wcstripe/data';
 
 /**
@@ -53,9 +53,9 @@ const ExpressCheckoutButtonPreview = () => {
 	const stripe = useStripe();
 	const [ paymentRequest, setPaymentRequest ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
-	const [ buttonType ] = usePaymentRequestButtonType();
-	const [ size ] = usePaymentRequestButtonSize();
-	const [ theme ] = usePaymentRequestButtonTheme();
+	const [ buttonType ] = useExpressCheckoutButtonType();
+	const [ size ] = useExpressCheckoutButtonSize();
+	const [ theme ] = useExpressCheckoutButtonTheme();
 
 	useEffect( () => {
 		// when `stripe` is falsy, it means that it didn't load because of some error (like: the website wasn't loaded with HTTPS).
