@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin page for UPE Customize Express Checkouts.
  *
- * @since 10.0.0
+ * @since 10.3.0
  */
 class WC_Stripe_Express_Checkout_Controller {
 	public function __construct() {
