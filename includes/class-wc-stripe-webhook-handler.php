@@ -1135,7 +1135,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
 				$is_awaiting_action    = $order_helper->get_stripe_upe_waiting_for_redirect( $order ) ?? false;
 
-				// Process the webhook now if it's for a voucher or wallet payment, or if filtered to process immediately and order is not awaiting action.
+				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
