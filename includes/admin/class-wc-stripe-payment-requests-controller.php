@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.4.1
  *
- * @deprecated 10.0.0 Moved to includes/admin/class-wc-stripe-express-checkout-controller.php
+ * @deprecated 10.3.0 Moved to includes/admin/class-wc-stripe-express-checkout-controller.php
  */
 class WC_Stripe_Payment_Requests_Controller {
 	public function __construct() {
