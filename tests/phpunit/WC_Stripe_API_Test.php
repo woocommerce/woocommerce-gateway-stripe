@@ -291,11 +291,11 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		if ( 'GET' === $method ) {
 			$this->assertInstanceof( \WP_Error::class, $result );
 			$this->assertEquals( 'stripe_error', $result->get_error_code() );
-			$this->assertEquals( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
+			$this->assertEquals( __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $result->get_error_message() );
 		} else {
 			$this->assertInstanceof( \WC_Stripe_Exception::class, $caught_exception );
 			$this->assertEquals( print_r( $response, true ), $caught_exception->getMessage() );
-			$this->assertEquals( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
+			$this->assertEquals( __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ), $caught_exception->getLocalizedMessage() );
 		}
 	}
 

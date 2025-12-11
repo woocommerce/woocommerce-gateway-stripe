@@ -11,6 +11,57 @@ namespace WooCommerce\Stripe\Tests;
  */
 class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
+	/**
+	 * Helper method to create a mock WC_Order with billing data.
+	 *
+	 * @param array $billing_data Billing data array with keys: email, first_name, last_name, address_1, address_2, city, state, postcode, country.
+	 * @return \PHPUnit\Framework\MockObject\MockObject Mock WC_Order instance.
+	 */
+	private function create_mock_order( array $billing_data = [] ) {
+		$default_billing_data = [
+			'email'      => 'test@example.com',
+			'first_name' => 'Test',
+			'last_name'  => 'User',
+			'address_1' => '123 Test St',
+			'address_2' => '',
+			'city'       => 'Test City',
+			'state'      => 'CA',
+			'postcode'   => '90210',
+			'country'    => 'US',
+		];
+
+		$billing_data = wp_parse_args( $billing_data, $default_billing_data );
+
+		$mock_order = $this->getMockBuilder( \WC_Order::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'get_billing_address_1',
+					'get_billing_address_2',
+					'get_billing_city',
+					'get_billing_country',
+					'get_billing_email',
+					'get_billing_first_name',
+					'get_billing_last_name',
+					'get_billing_postcode',
+					'get_billing_state',
+				]
+			)
+			->getMock();
+
+		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
+		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
+		$mock_order->method( 'get_billing_last_name' )->willReturn( $billing_data['last_name'] );
+		$mock_order->method( 'get_billing_address_1' )->willReturn( $billing_data['address_1'] );
+		$mock_order->method( 'get_billing_address_2' )->willReturn( $billing_data['address_2'] );
+		$mock_order->method( 'get_billing_city' )->willReturn( $billing_data['city'] );
+		$mock_order->method( 'get_billing_state' )->willReturn( $billing_data['state'] );
+		$mock_order->method( 'get_billing_postcode' )->willReturn( $billing_data['postcode'] );
+		$mock_order->method( 'get_billing_country' )->willReturn( $billing_data['country'] );
+
+		return $mock_order;
+	}
+
 	public function provide_test_validate_create_customer_request_cases(): array {
 		return [
 			'all fields present and required, no overrides' => [
@@ -244,34 +295,9 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
 		}
 
-		$mock_order = $this->getMockBuilder( \WC_Order::class )
-			->disableOriginalConstructor()
-			->onlyMethods(
-				[
-					'get_billing_address_1',
-					'get_billing_city',
-					'get_billing_country',
-					'get_billing_email',
-					'get_billing_first_name',
-					'get_billing_last_name',
-					'get_billing_postcode',
-					'get_billing_state',
-				]
-			)
-			->getMock();
+		$mock_order = $this->create_mock_order( $billing_data );
 
-		$mock_order->method( 'get_billing_address_1' )->willReturn( $billing_data['address_1'] );
-		$mock_order->method( 'get_billing_city' )->willReturn( $billing_data['city'] );
-		$mock_order->method( 'get_billing_country' )->willReturn( $billing_data['country'] );
-		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
-		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
-		$mock_order->method( 'get_billing_last_name' )->willReturn( $billing_data['last_name'] );
-		$mock_order->method( 'get_billing_postcode' )->willReturn( $billing_data['postcode'] );
-		$mock_order->method( 'get_billing_state' )->willReturn( $billing_data['state'] );
-
-		$args     = [
-			'order' => $mock_order,
-		];
+		$args = [];
 		$customer = new \WC_Stripe_Customer();
 
 		$was_exception_thrown = false;
@@ -318,7 +344,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args, $current_context );
+			$customer->create_customer( $args, $current_context, $mock_order );
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 
@@ -353,6 +379,92 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		if ( null === $expected_exception_message ) {
 			$this->assertFalse( $was_exception_thrown, 'No exception was thrown when no exception was expected' );
+		}
+	}
+
+	/**
+	 * Test that order data is excluded from Stripe API requests when passed via $args['order'].
+	 *
+	 * This test verifies the fix for backwards compatibility: when order is passed via $args['order'],
+	 * it should be extracted and used for billing data, but the 'order' key itself should not be
+	 * sent to the Stripe API.
+	 */
+	public function test_order_excluded_from_stripe_api_when_passed_via_args() {
+		$customer = new \WC_Stripe_Customer();
+
+		$mock_order = $this->create_mock_order( [ 'address_2' => 'Apt 1' ] );
+
+		$captured_create_request = null;
+		$captured_update_request  = null;
+
+		// Mock for create_customer
+		$mock_create_call = function ( $return_value, $parsed_args, $url ) use ( &$captured_create_request ) {
+			if ( 'https://api.stripe.com/v1/customers' === $url ) {
+				if ( isset( $parsed_args['body'] ) ) {
+					$captured_create_request = is_array( $parsed_args['body'] ) ? $parsed_args['body'] : [];
+					if ( ! is_array( $captured_create_request ) ) {
+						parse_str( $captured_create_request, $captured_create_request );
+					}
+				}
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_123' ] ),
+				];
+			}
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/customers/search' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'data' => [] ] ),
+				];
+			}
+			return $return_value;
+		};
+
+		// Mock for update_customer
+		$mock_update_call = function ( $return_value, $parsed_args, $url ) use ( &$captured_update_request ) {
+			if ( 'https://api.stripe.com/v1/customers/cus_existing' === $url ) {
+				if ( isset( $parsed_args['body'] ) ) {
+					$captured_update_request = is_array( $parsed_args['body'] ) ? $parsed_args['body'] : [];
+					if ( ! is_array( $captured_update_request ) ) {
+						parse_str( $captured_update_request, $captured_update_request );
+					}
+				}
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_existing' ] ),
+				];
+			}
+			return $return_value;
+		};
+
+		add_filter( 'pre_http_request', $mock_create_call, 10, 3 );
+
+		try {
+			// Test create_customer with $args['order']
+			$args = [ 'order' => $mock_order ];
+			$customer->create_customer( $args );
+
+			$this->assertNotNull( $captured_create_request, 'Create request should have been captured' );
+			$this->assertArrayNotHasKey( 'order', $captured_create_request, 'Order should not be sent to Stripe API in create_customer' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_create_call, 10 );
+		}
+
+		// Test update_customer with $args['order']
+		$customer->set_id( 'cus_existing' );
+		add_filter( 'pre_http_request', $mock_update_call, 10, 3 );
+
+		try {
+			$args = [ 'order' => $mock_order ];
+			$customer->update_customer( $args );
+
+			$this->assertNotNull( $captured_update_request, 'Update request should have been captured' );
+			$this->assertArrayNotHasKey( 'order', $captured_update_request, 'Order should not be sent to Stripe API in update_customer' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_update_call, 10 );
 		}
 	}
 }

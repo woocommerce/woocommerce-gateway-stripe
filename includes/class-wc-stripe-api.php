@@ -266,7 +266,7 @@ class WC_Stripe_API {
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$response_body = json_decode( $response['body'] );
@@ -374,7 +374,7 @@ class WC_Stripe_API {
 			];
 			self::log_error_response( $response, $api, 'GET', $error_data );
 
-			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$response_body = json_decode( $response['body'] );

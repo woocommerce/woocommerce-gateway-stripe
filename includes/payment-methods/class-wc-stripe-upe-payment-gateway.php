@@ -548,7 +548,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
 		$stripe_params['currency']  = $currency;
 
-		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
+
+		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order, Change Payment Method, and Add Payment Method pages.
+		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
+			// Get billing details from the current user's customer data instead of the order.
+			$customer = WC()->customer;
+			if ( $customer ) {
+				$stripe_params['customerBillingData'] = [
+					'name'    => trim( $customer->get_billing_first_name() . ' ' . $customer->get_billing_last_name() ),
+					'email'   => $customer->get_billing_email(),
+					'phone'   => $customer->get_billing_phone(),
+					'address' => [
+						'country'     => $customer->get_billing_country(),
+						'line1'       => $customer->get_billing_address_1(),
+						'line2'       => $customer->get_billing_address_2(),
+						'city'        => $customer->get_billing_city(),
+						'state'       => $customer->get_billing_state(),
+						'postal_code' => $customer->get_billing_postcode(),
+					],
+				];
+			}
+		}
+
+		if ( $is_pay_for_order || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
@@ -590,6 +613,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			$stripe_params['isAddPaymentMethod'] = true;
 			$stripe_params['cartTotal']    = 0;
 			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
@@ -700,6 +724,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			foreach ( $this->payment_methods as $payment_method ) {
 				if ( is_callable( [ $payment_method, 'is_available_for_account_country' ] ) && ! $payment_method->is_available_for_account_country() ) {
+					continue;
+				}
+				// Amazon Pay is not available when taxes are based on the customer billing address.
+				if ( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' )
+					&& WC_Stripe_Payment_Methods::AMAZON_PAY === $payment_method->get_id() ) {
 					continue;
 				}
 				$available_payment_methods[] = $payment_method->get_id();
@@ -2992,8 +3021,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Pass the order object so we can retrieve billing details
 		// in payment flows where it is not present in the request.
-		$args = [ 'order' => $order ];
-		return $customer->update_or_create_customer( $args, $current_context );
+		return $customer->update_or_create_customer( [], $current_context, $order );
 	}
 
 	/**

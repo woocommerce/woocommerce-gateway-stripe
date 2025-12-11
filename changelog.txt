@@ -1,6 +1,16 @@
 *** Changelog ***
 
-= 10.2.0 - xxxx-xx-xx =
+= 10.3.0 - xxxx-xx-xx =
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
+* Fix - Error when using Puerto Rico addresses with express checkouts
+* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
+
+= 10.2.0 - 2025-12-08 =
+* Dev - Refactor display logic for payment method issue pills
+* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
+* Update - Better notices and interactions for disabled express checkout methods
+* Update - Enable the Optimized Checkout Suite feature for all new installations
 * Dev - Deprecates all the legacy checkout payment method classes
 * Dev - Deprecates all the LPM class constants
 * Dev - Remove all references to the UPE-enabled feature flag
@@ -31,6 +41,13 @@
 * Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
 * Fix - Always use the current payment method configuration in Optimized Checkout
 * Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
+* Update - Expand Amazon Pay support for all permitted currencies and countries
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
+* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
+* Fix - Exclude order parameter from customer request data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
 
 = 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend

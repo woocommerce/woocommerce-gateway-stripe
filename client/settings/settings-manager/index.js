@@ -13,7 +13,6 @@ import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import {
 	BNPL_PROMOTION_BANNER,
@@ -44,11 +43,9 @@ const SettingsManager = () => {
 	const [ initialSettings, setInitialSettings ] = useState( settings );
 	const { data } = useAccount();
 	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const promotionalBannerType = getPromotionalBannerType(
 		data,
-		isUpeEnabled,
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
@@ -120,7 +117,6 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
-								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
 						) : (
 							<PaymentMethodsPanel
@@ -132,7 +128,6 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
-								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
 						) }
 						<SaveSettingsSection
