@@ -6,7 +6,7 @@ import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';
 import {
-	usePaymentRequestEnabledSettings,
+	useExpressCheckoutEnabledSettings,
 	useAmazonPayEnabledSettings,
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
@@ -28,8 +28,8 @@ import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method
 import PaymentMethodRequiresCardMethodPill from 'wcstripe/components/payment-method-requires-card-method-pill';
 
 const PaymentRequestSection = () => {
-	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
-		usePaymentRequestEnabledSettings();
+	const [ isExpressCheckoutEnabled, updateIsExpressCheckoutEnabled ] =
+		useExpressCheckoutEnabledSettings();
 
 	const [ isAmazonPayEnabled, updateIsAmazonPayEnabled ] =
 		useAmazonPayEnabledSettings();
@@ -106,7 +106,7 @@ const PaymentRequestSection = () => {
 
 	const isApplePayGooglePayDisabled =
 		applePayGooglePayUnavailableReason !== null &&
-		! isPaymentRequestEnabled;
+		! isExpressCheckoutEnabled;
 
 	const isLinkDisabled =
 		linkUnavailableReason !== null && ! isStripeLinkEnabled;
@@ -122,8 +122,8 @@ const PaymentRequestSection = () => {
 									'Apple Pay / Google Pay Input',
 									'woocommerce-gateway-stripe'
 								) }
-								checked={ isPaymentRequestEnabled }
-								onChange={ updateIsPaymentRequestEnabled }
+								checked={ isExpressCheckoutEnabled }
+								onChange={ updateIsExpressCheckoutEnabled }
 								disabled={ isApplePayGooglePayDisabled }
 							/>
 						</div>
