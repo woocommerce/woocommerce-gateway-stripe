@@ -525,14 +525,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Reset WC_Stripe_Order_Helper instance to avoid issues with other tests.
 		WC_Stripe_Order_Helper::set_instance( null );
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_locked ) {
 			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
 		}
 		if ( $order_status_final ) {
 			$order->update_meta_data( '_stripe_status_final', true );
 		}
-		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
-		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		$order_helper->update_stripe_upe_payment_type( $order, $payment_type );
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
 		$order->save_meta_data();
 		$order->save();
 
@@ -803,7 +804,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_transaction_id( $charge_id );
 		$order->save();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund( $order, $refund_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id( $order, $refund_id );
 		$order->save_meta_data();
 
 		$refund_order = WC_Helper_Order::create_order();

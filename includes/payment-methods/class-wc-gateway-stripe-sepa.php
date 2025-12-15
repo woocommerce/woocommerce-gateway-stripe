@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
+ *
+ * @deprecated 10.2.0 This class is now deprecated along with the legacy checkout and will be removed in a future release.
  */
 class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
@@ -310,12 +312,14 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 			$this->save_source_to_order( $order, $prepared_source );
 
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 			// Result from Stripe API request.
 			$response = null;
 
 			if ( $order->get_total() > 0 ) {
 				// This will throw exception if not valid.
-				WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
+				$order_helper->validate_minimum_order_amount( $order );
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
@@ -326,7 +330,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( $this->is_no_such_customer_error( $response->error ) ) {
 						delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-						$order->delete_meta_data( '_stripe_customer_id' );
+						$order_helper->delete_stripe_customer_id( $order );
 						$order->save();
 					}
 

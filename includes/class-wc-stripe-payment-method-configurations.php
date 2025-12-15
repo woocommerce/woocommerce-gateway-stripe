@@ -42,7 +42,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_EXPIRATION = 10 * MINUTE_IN_SECONDS;
+	const CONFIGURATION_CACHE_EXPIRATION = 20 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
@@ -120,10 +120,45 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
+		$is_test_mode       = WC_Stripe_Mode::is_test();
+
+		/**
+		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
+		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
+		 * with different local payment methods.
+		 *
+		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
+		 * @param bool        $is_test_mode       Whether the site is in test mode.
+		 */
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+
+		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+			$error = null;
+			if ( is_wp_error( $configuration ) ) {
+				$error = $configuration;
+			} elseif ( ! empty( $configuration->error ) ) {
+				$error = $configuration->error;
+			}
+
+			if ( null !== $error ) {
+				WC_Stripe_Logger::error(
+					'Error retrieving preselected Payment Method Configuration',
+					[
+						'pmc_id' => $preselected_pmc_id,
+						'error'  => $error,
+					]
+				);
+			} elseif ( ! empty( $configuration ) ) {
+				self::set_payment_method_configuration_cache( $configuration );
+				return $configuration;
+			}
+			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
+		}
+
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
-		$is_test_mode     = WC_Stripe_Mode::is_test();
 		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
@@ -299,6 +334,24 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the current payment method configuration ID.
+	 *
+	 * @return string|null The payment method configuration ID when settings sync is enabled and we have a PMC. Null otherwise.
+	 */
+	public static function get_configuration_id(): ?string {
+		if ( ! self::is_enabled() ) {
+			return null;
+		}
+
+		$primary_configuration = self::get_primary_configuration();
+		if ( ! $primary_configuration || empty( $primary_configuration->id ) ) {
+			return null;
+		}
+
+		return (string) $primary_configuration->id;
+	}
+
+	/**
 	 * Get the UPE available payment method IDs.
 	 *
 	 * @return array
@@ -368,7 +421,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$newly_disabled_methods               = [];
 
 		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
+			WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
 			return;
 		}
 
@@ -395,7 +448,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			$updated_payment_method_configuration
 		);
 		if ( ! empty( $response->error ) ) {
-			WC_Stripe_Logger::log( 'Error: ' . $response->error->message . ': ' . $response->error->request_log_url );
+			WC_Stripe_Logger::error(
+				'Unable to update Payment Method Configuration',
+				[
+					'pmc_id'        => $payment_method_configuration->id,
+					'configuration' => $updated_payment_method_configuration,
+					'response'      => $response,
+				]
+			);
 		}
 
 		self::clear_payment_method_configuration_cache();
@@ -503,7 +563,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Add Google Pay and Apple Pay to the list if payment_request is enabled
-		if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]

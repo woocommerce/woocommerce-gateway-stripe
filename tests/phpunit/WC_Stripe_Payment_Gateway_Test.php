@@ -3,24 +3,23 @@
 namespace WooCommerce\Stripe\Tests;
 
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
-use WC_Stripe_Exception;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Helper;
+use WC_Stripe_UPE_Payment_Gateway;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
-use WP_Error;
-use WP_UnitTestCase;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Payment_Method_CC;
 
 /**
  * These tests make assertions against abstract class WC_Stripe_Payment_Gateway
  */
-class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
+class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Stripe Gateway under test.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -37,8 +36,10 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->gateway         = new WC_Gateway_Stripe();
+		$this->gateway         = new WC_Stripe_UPE_Payment_Gateway();
 		$this->giropay_gateway = new WC_Gateway_Stripe_Giropay();
+
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ] );
 	}
 
 	/**
@@ -97,7 +98,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_success_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 
 		$expected_intent = (object) [ 'id' => 'pi_123' ];
 		$callback        = function ( $preempt, $request_args, $url ) use ( $expected_intent ) {
@@ -130,7 +131,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_error_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 
 		$response_error = (object) [
 			'error' => [
@@ -200,6 +201,21 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->gateway->publishable_key = 'pk_live_key';
 		$this->gateway->secret_key      = 'sk_live_key';
 
+		// Mocking the card payment method to be available and enabled, as UPE checks for that in is_available().
+		$mocked_card_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mocked_card_pm->method( 'is_available' )
+			->willReturn( true );
+
+		$mocked_card_pm->method( 'is_enabled' )
+			->willReturn( true );
+
+		$this->gateway->payment_methods = [
+			WC_Stripe_Payment_Methods::CARD => $mocked_card_pm,
+		];
+
 		// Using this to manipulate is_ssl().
 		$_SERVER['HTTPS'] = 'on';
 
@@ -224,240 +240,25 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->gateway->publishable_key = 'pk_test_key';
 		$this->gateway->secret_key      = 'sk_test_key';
 
+		// Mocking the card payment method to be available and enabled, as UPE checks for that in is_available().
+		$mocked_card_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mocked_card_pm->method( 'is_available' )
+			->willReturn( true );
+
+		$mocked_card_pm->method( 'is_enabled' )
+			->willReturn( true );
+
+		$this->gateway->payment_methods = [
+			WC_Stripe_Payment_Methods::CARD => $mocked_card_pm,
+		];
+
 		// Using this to manipulate is_ssl().
 		$_SERVER['HTTPS'] = false;
 
 		$this->assertTrue( $this->gateway->is_available() );
-	}
-
-	public function test_add_payment_method_succeeds_with_source_object() {
-		wp_set_current_user( 1 );
-		$source_object_id       = 'le_source_object_id';
-		$_POST['stripe_source'] = $source_object_id;
-
-		$mock_source_object = (object) [
-			'id'    => '123',
-			'usage' => 'reusable',
-		];
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $source_object_id )
-			->willReturn( $mock_source_object );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'save_payment_method' )
-			->with( $mock_source_object );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'success', $result );
-	}
-
-	public function test_add_payment_method_succeeds_with_stripe_token() {
-		wp_set_current_user( 1 );
-		$stripe_token          = 'le_stripe_token';
-		$_POST['stripe_token'] = $stripe_token;
-
-		$mock_source_object = (object) [
-			'id'    => '123',
-			'usage' => 'reusable',
-		];
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $stripe_token )
-			->willReturn( $mock_source_object );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'save_payment_method' )
-			->with( $mock_source_object );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'success', $result );
-	}
-
-	public function test_add_payment_method_fails_when_no_logged_in_user() {
-		$_POST['stripe_token'] = 'le_stripe_token';
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'get_source_object' );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
-	}
-
-	public function test_add_payment_method_fails_when_no_token_or_source_in_post() {
-		wp_set_current_user( 1 );
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'get_source_object' );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
-	}
-
-	public function test_add_payment_method_fails_when_stripe_returns_an_error() {
-		wp_set_current_user( 1 );
-		$stripe_token          = 'le_stripe_token';
-		$_POST['stripe_token'] = $stripe_token;
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $stripe_token )
-			->will( $this->throwException( new WC_Stripe_Exception() ) );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
-	}
-
-	public function test_add_payment_method_fails_when_source_object_is_wp_error() {
-		wp_set_current_user( 1 );
-		$stripe_token          = 'le_stripe_token';
-		$_POST['stripe_token'] = $stripe_token;
-
-		$wp_error_source_object = new WP_Error( 'Something went wrong' );
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $stripe_token )
-			->willReturn( $wp_error_source_object );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
-	}
-
-	public function test_add_payment_method_fails_when_source_object_is_empty() {
-		wp_set_current_user( 1 );
-		$stripe_token          = 'le_stripe_token';
-		$_POST['stripe_token'] = $stripe_token;
-
-		$mock_source_object = (object) [];
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $stripe_token )
-			->willReturn( $mock_source_object );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
-	}
-
-	public function test_add_payment_method_fails_when_payment_method_is_not_reusable() {
-		wp_set_current_user( 1 );
-		$stripe_token          = 'le_stripe_token';
-		$_POST['stripe_token'] = $stripe_token;
-
-		$mock_source_object = (object) [
-			'id'    => '123',
-			'usage' => 'not-reusable',
-		];
-
-		$methods      = [
-			'get_source_object',
-			'save_payment_method',
-		];
-		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
-
-		$mock_gateway
-			->expects( $this->once() )
-			->method( 'get_source_object' )
-			->with( $stripe_token )
-			->willReturn( $mock_source_object );
-
-		$mock_gateway
-			->expects( $this->never() )
-			->method( 'save_payment_method' )
-			->with( $mock_source_object );
-
-		$result = $mock_gateway->add_payment_method();
-
-		$this->assertArrayHasKey( 'result', $result );
-		$this->assertContains( 'failure', $result );
 	}
 
 	/**
@@ -482,7 +283,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['secret_key']           = $secret_key;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$gateway = new WC_Gateway_Stripe();
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertSame( $expected, $gateway->needs_setup() );
 	}
 
@@ -529,13 +330,13 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Create a partial mock for WC_Gateway_Stripe class.
+	 * Create a partial mock for WC_Stripe_UPE_Payment_Gateway class.
 	 *
 	 * @param array $methods Method names that need to be mocked.
-	 * @return MockObject|WC_Gateway_Stripe
+	 * @return MockObject|WC_Stripe_UPE_Payment_Gateway
 	 */
 	private function get_partial_mock_for_gateway( array $methods = [] ) {
-		return $this->getMockBuilder( WC_Gateway_Stripe::class )
+		return $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->setMethods( $methods )
 			->getMock();
@@ -851,7 +652,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$order->set_transaction_id( 'ch_123' );
 		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent( $order, 'pi_123' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_123' );
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -934,7 +735,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			add_filter( 'wc_stripe_payment_icons', $filter );
 		}
 
-		$gateway = new WC_Gateway_Stripe();
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$actual  = $gateway->payment_icons();
 		// Clean up
 		OC_Test_Helper::disable_oc();
@@ -1014,5 +815,76 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 				'expected'                   => [],
 			],
 		];
+	}
+
+	/**
+	 * Test that non-retryable error codes return false
+	 *
+	 * @dataProvider non_retryable_error_codes_provider
+	 */
+	public function test_non_retryable_error_codes_return_false( $error_code ) {
+		$error       = new \stdClass();
+		$error->code = $error_code;
+		$error->type = 'invalid_request_error';
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertFalse( $result, "Error code '{$error_code}' should not be retryable" );
+	}
+
+	/**
+	 * Data provider for non-retryable error codes
+	 */
+	public function non_retryable_error_codes_provider() {
+		return [
+			'payment_intent_mandate_invalid'   => [ 'payment_intent_mandate_invalid' ],
+			'charge_exceeds_transaction_limit' => [ 'charge_exceeds_transaction_limit' ],
+			'amount_too_small'                 => [ 'amount_too_small' ],
+			'card_declined'                    => [ 'card_declined' ],
+			'payment_method_provider_decline'  => [ 'payment_method_provider_decline' ],
+		];
+	}
+
+	/**
+	 * Test that retryable error types return true
+	 *
+	 * @dataProvider retryable_error_types_provider
+	 */
+	public function test_retryable_error_types_return_true( $error_type ) {
+		$error       = new \stdClass();
+		$error->type = $error_type;
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertTrue( $result, "Error type '{$error_type}' should be retryable" );
+	}
+
+	/**
+	 * Data provider for retryable error types
+	 */
+	public function retryable_error_types_provider() {
+		return [
+			'invalid_request_error' => [ 'invalid_request_error' ],
+			'idempotency_error'     => [ 'idempotency_error' ],
+			'rate_limit_error'      => [ 'rate_limit_error' ],
+			'api_connection_error'  => [ 'api_connection_error' ],
+			'api_error'             => [ 'api_error' ],
+		];
+	}
+
+	/**
+	 * Test that invalid_request_error with non-blocked error codes returns true
+	 *
+	 * This explicitly tests the case where we have an invalid_request_error type
+	 * with an error code that is NOT in the non-retryable codes list.
+	 */
+	public function test_invalid_request_error_with_non_blocked_code_is_retryable() {
+		$error       = new \stdClass();
+		$error->type = 'invalid_request_error';
+		$error->code = 'non_existent_code';
+
+		$result = $this->gateway->is_retryable_error( $error );
+
+		$this->assertTrue( $result, 'invalid_request_error with non-blocked code should be retryable' );
 	}
 }

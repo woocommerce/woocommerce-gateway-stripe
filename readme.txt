@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
-Requires at least: 6.6
-Tested up to: 6.8.2
+Requires at least: 6.7
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 9.9.2
+Stable tag: 10.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -30,6 +30,35 @@ The enhanced checkout experience from Stripe can help customers:
 - Support Strong Customer Authentication (SCA).
 
 Stripe is available for store owners and merchants in [46 countries worldwide](https://stripe.com/global), with more to come.
+
+== Compatibility Notes ==
+
+The following items note specific versions that include important changes, features, or deprecations.
+
+* 10.2.0
+   - Optimized Checkout Suite enabled by default for all new installations
+   - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* 10.1.0
+   - Improved express checkout address handling for countries without state/postal codes
+* 10.0.0
+   - Payment Request Buttons are fully replaced by Express Checkout
+   - Legacy Checkout is fully deprecated and no longer available
+* 9.8.0
+  - Optimized Checkout Suite available via a configuration setting
+  - We will disable the Affirm or Klarna payment methods if the respective official plugin is enabled
+* 9.7.0
+  - Improved express checkout support for custom checkout fields
+  - Validate customer details against required billing fields from checkout before sending to Stripe
+* 9.6.0
+  - Legacy checkout deprecated by default
+  - Voucher payment methods can be used for subscription purchases when manual renewals are available
+  - Include extension data from block checkout for express checkout orders
+  - Add hooks to support custom checkout fields for classic checkout
+* 9.5.0
+   - Synchronize payment methods with Stripe
+   - Support Pre-Authorized Debit (PAD) in Canada and the US
+   - Support BLIK in Poland and from other EU countries
+   - Support BECS Direct Debit payments in Australia
 
 == Frequently Asked Questions ==
 
@@ -110,36 +139,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.0.0 - xxxx-xx-xx =
-* Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
-* Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
-* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
-* Update - Shows the Stripe account connection modal in settings when the merchant did not connect via OAuth along with a new notice
-* Update - The usage of SEPA Direct Debit as a saved payment method for iDEAL and Bancontact is now disabled by default
-* Dev - Introduces a new helper class to handle Stripe orders
-* Dev - Fixes a warning thrown when running Klarna payment token PHP Unit tests
-* Dev - Fixes some possible warnings shown in the browser console when the Optimized Checkout payment element is instantiated with invalid parameters
-* Dev - Renaming the Klarna payment token class to WC_Stripe_Klarna_Payment_Token
-* Fix - Minor fixes and code improvements for the saved payment methods comparison logic
-* Dev - Upgrades Node to v20
-* Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
-* Update - Changes the documentation page URL for the Optimized Checkout feature to https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/
-* Update - Changes the background color and spacing for the Woo logo shown in the account modal
-* Dev - Fix live reload issue with Webpack 5
-* Update - Splits the "Enable SEPA for other methods" setting into two separate settings for Bancontact and iDEAL
-* Dev - Upgrades the Webpack-related packages
-* Dev - Upgrade the cross-env and rimraf NPM packages; remove chromedriver NPM dependency
-* Dev - Removes three unused NPM script commands: `test`, `test:grep`, and `test:single`
-* Dev - Upgrades the Babel-related packages
-* Dev - Consolidate component used for unavailable payment methods
-* Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
-* Add - Implement cache prefetch for payment method configuration
-* Dev - Update the @woocommerce/navigation dependency
-* Fix - BACS instruction text appears twice on the Order Confirmation page
-* Update - Allow more situations to enable settings synchronization with Stripe
-* Update - Ensure that we check for settings sync eligibility after every upgrade
-* Update - Reduce settings Javascript file size by using smaller image
-* Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
+= 10.3.0 - xxxx-xx-xx =
+* Dev - Renames all express checkout related frontend hooks
+* Dev - Removes deprecated legacy checkout settings retrieval methods
+* Fix - Error when using Puerto Rico addresses with express checkouts
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
+* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
 * Fix - Update Ukraine state mapping list
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

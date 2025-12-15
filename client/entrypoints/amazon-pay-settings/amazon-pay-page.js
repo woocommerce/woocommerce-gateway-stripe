@@ -7,7 +7,7 @@ import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SaveSettingsSection from 'wcstripe/settings/save-settings-section';
-import '../payment-request-settings/style.scss';
+import '../express-checkout-settings/style.scss';
 
 const EnableDescription = () => (
 	<>

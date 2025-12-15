@@ -5,6 +5,8 @@ import RecurringPaymentIcon from '../../components/recurring-payment-icon';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import PaymentMethodDeprecationPill from 'wcstripe/components/payment-method-deprecation-pill';
 import PaymentMethodUnavailableDueConflictPill from 'wcstripe/components/payment-method-unavailable-due-conflict-pill';
+import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const Wrapper = styled.div`
 	display: flex;
@@ -50,6 +52,16 @@ const PaymentMethodDescription = ( {
 	supportsRecurring,
 	...restProps
 } ) => {
+	const unavailableReason = usePaymentMethodUnavailableReason( id );
+	const showMissingCurrencyPill =
+		! deprecated &&
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY ===
+			unavailableReason;
+	const showCapabilityStatusPill = ! deprecated;
+	const showUnavailableDueConflictPill =
+		! deprecated &&
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT ===
+			unavailableReason;
 	return (
 		<Wrapper { ...restProps }>
 			<IconWrapper>
@@ -60,21 +72,23 @@ const PaymentMethodDescription = ( {
 					<Label>{ label }</Label>
 					{ supportsRecurring && <RecurringPaymentIcon /> }
 					{ deprecated && <PaymentMethodDeprecationPill /> }
-					{ ! deprecated && (
-						<>
-							<PaymentMethodMissingCurrencyPill
-								id={ id }
-								label={ label }
-							/>
-							<PaymentMethodCapabilityStatusPill
-								id={ id }
-								label={ label }
-							/>
-							<PaymentMethodUnavailableDueConflictPill
-								id={ id }
-								label={ label }
-							/>
-						</>
+					{ showMissingCurrencyPill && (
+						<PaymentMethodMissingCurrencyPill
+							id={ id }
+							label={ label }
+						/>
+					) }
+					{ showCapabilityStatusPill && (
+						<PaymentMethodCapabilityStatusPill
+							id={ id }
+							label={ label }
+						/>
+					) }
+					{ showUnavailableDueConflictPill && (
+						<PaymentMethodUnavailableDueConflictPill
+							id={ id }
+							label={ label }
+						/>
 					) }
 				</LabelWrapper>
 				<Description>{ description }</Description>

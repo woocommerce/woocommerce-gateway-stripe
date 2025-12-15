@@ -35,6 +35,8 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 	const OC                = 'card'; // This is a special case for the Optimized Checkout
 
+	public const LEGACY_SEPA       = 'stripe_sepa'; // Sepa method identifier for the legacy checkout (now removed)
+
 	// Express method constants
 	const AMAZON_PAY = 'amazon_pay';
 	const GOOGLE_PAY = 'google_pay';

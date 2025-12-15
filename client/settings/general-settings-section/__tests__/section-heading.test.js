@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { expect } from '@playwright/test';
 import SectionHeading from 'wcstripe/settings/general-settings-section/section-heading';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useIsOCEnabled, useGetOrderedPaymentMethodIds } from 'wcstripe/data';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import { useAccount } from 'wcstripe/data/account';
@@ -34,9 +33,7 @@ describe( 'SectionHeading', () => {
 
 	it( 'default display', () => {
 		const { getByText, getByLabelText } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<SectionHeading isChangingDisplayOrder={ false } />
-			</UpeToggleContext.Provider>
+			<SectionHeading isChangingDisplayOrder={ false } />
 		);
 
 		expect( getByText( 'Payment methods' ) ).toBeInTheDocument();
@@ -46,9 +43,7 @@ describe( 'SectionHeading', () => {
 
 	it( 'is changing display order', () => {
 		const { getByText } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<SectionHeading isChangingDisplayOrder={ true } />
-			</UpeToggleContext.Provider>
+			<SectionHeading isChangingDisplayOrder={ true } />
 		);
 
 		expect( getByText( 'Payment methods' ) ).toBeInTheDocument();
@@ -67,9 +62,7 @@ describe( 'SectionHeading', () => {
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		const { getByText, getByLabelText } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<SectionHeading isChangingDisplayOrder={ false } />
-			</UpeToggleContext.Provider>
+			<SectionHeading isChangingDisplayOrder={ false } />
 		);
 
 		expect( getByText( 'Payment methods' ) ).toBeInTheDocument();

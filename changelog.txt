@@ -1,6 +1,96 @@
 *** Changelog ***
 
-= 10.0.0 - xxxx-xx-xx =
+= 10.3.0 - xxxx-xx-xx =
+* Dev - Renames all express checkout related frontend hooks
+* Dev - Removes deprecated legacy checkout settings retrieval methods
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
+* Fix - Error when using Puerto Rico addresses with express checkouts
+* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
+* Fix - Update Ukraine state mapping list
+
+= 10.2.0 - 2025-12-08 =
+* Dev - Refactor display logic for payment method issue pills
+* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
+* Update - Better notices and interactions for disabled express checkout methods
+* Update - Enable the Optimized Checkout Suite feature for all new installations
+* Dev - Deprecates all the legacy checkout payment method classes
+* Dev - Deprecates all the LPM class constants
+* Dev - Remove all references to the UPE-enabled feature flag
+* Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
+* Dev - Remove the merchant email address from the System Status Report
+* Dev - Replace the constant reference for the legacy SEPA payment method
+* Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
+* Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
+* Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
+* Fix - Make token detachment checks use shared logic for detaching payment methods
+* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
+* Update - Include customer data in wc_stripe_create_customer_required_fields filter
+* Fix - Fix error handling when processing subscription renewals
+* Fix - Use the built-in Database Cache for the Connect flow data
+* Add - Implement cache prefetch for account data
+* Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Fix - Always use the current payment method configuration in Optimized Checkout
+* Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
+* Update - Expand Amazon Pay support for all permitted currencies and countries
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
+* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
+* Fix - Exclude order parameter from customer request data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
+
+= 10.1.0 - 2025-11-11 =
+* Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
+* Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
+* Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
+* Fix - Remove `redirect_url` parameter from Express Checkout payment flow
+* Fix - Adjust UI spacing of help text on express checkout theme settings page
+* Update - Renames and migrates all Payment Request Buttons settings to Express Checkout
+* Dev - Upgrades `@automattic/interpolate-components` to 1.2.1 to remove the `node-fetch` dependency
+* Add - Includes a notice to inform merchants about methods that are automatically enabled upon account connection
+* Dev - Upgrades the `nock` NPM package to version `^13.5.6` to remove the lodash.set dependency
+* Add - Add a new filter allowing third-party plugins to hook captcha solutions when creating and confirming setup intents
+* Dev - Add track events when clicking the "Reconnect to Stripe" button (both in the settings page and the admin notice)
+* Update - Removes unnecessary legacy checkout gateway instantiations and UPE disablement code
+* Dev - Renames previous Order Helper class methods to use the `_id` suffix
+* Dev - Expands the Stripe Order Helper class to handle customer ID, card ID, UPE payment type, and UPE redirect status metas
+* Fix - Remove redundant secret management logic when configuring webhooks
+* Dev - Improve Payment Method Configuration error logging
+* Dev - Add Stripe's request-id to API response logs
+* Fix - Increase limit when listing available payment method configurations from the Stripe API
+* Fix - Klarna not processing recurring payments
+* Fix - Fix Express Checkout error with free trial subscription on blocks cart/checkout
+* Fix - Improve Express Checkout compatibility with One Page Checkout
+* Fix - Allow express checkout to complete successfully for addresses without postal codes in countries where it's not required (eg: Israel)
+* Fix - Prevent retrying requests that errored out due to declined payment methods
+* Fix - GooglePay/ApplePay fail when there are more than 9 shipping options
+* Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
+* Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
+* Dev - Add Stripe's masked API key to API request/response logs
+* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
+* Dev - Add verbose debug logging mode to the OAuth connect flow
+* Fix - Disable Amazon Pay when taxes are based on billing address and add notices with details
+* Fix - Fix express checkout error for a Saudi Arabian address without state and postal code
+* Fix - Ensure we have a fallback for shipping rate names in classic checkout
+
+= 10.0.1 - 2025-10-15 =
+* Fix - Remove persistent reconnection notices
+
+= 10.0.0 - 2025-10-14 =
+* Update - Removes frontend code related to Payment Request Buttons in the checkout page
+* Update - Disable Payment Request Buttons and ensure Express Checkout is used when express checkout buttons are enabled
 * Dev - Expands the Stripe Order Helper class to handle source ID, refund ID, intent ID, and setup intent ID metas
 * Update - Removing the `wc_stripe_is_upe_checkout_enabled` filter, as Legacy Checkout is no longer supported
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 26.19.0, and adds `axios`(version 1.12.2) to the JavaScript development dependencies
@@ -25,17 +115,17 @@
 * Dev - Update webhook unit tests to be compatible with WooCommerce 10.2
 * Add - Implement cache prefetch for payment method configuration
 * Dev - Update the @woocommerce/navigation dependency
-* Fix - BACS instruction text appears twice on the Order Confirmation page
-* Update - Allow more situations to enable settings synchronization with Stripe
-* Update - Ensure that we check for settings sync eligibility after every upgrade
+* Update - Reduce settings Javascript file size by using smaller image
 * Dev - Update @wordpress/scripts to 30.24.0 and @wordpress/base-styles to 6.7.0
-* Fix - Update Ukraine state mapping list
+* Fix - Prevent fatal error when third-party plugins check for non-existent methods in payment method classes
+* Add - Introduce wc_stripe_preselect_payment_method_configuration filter for manual payment method configuration selection
+* Fix - Ensure Klarna payment tokens can be deleted and handled correctly
+* Tweak - Update PMC cache expiration time from 10 minutes to 20 minutes
 
 = 9.9.2 - 2025-09-29 =
 * Fix - BACS instruction text appears twice on the Order Confirmation page
 * Update - Allow more situations to enable settings synchronization with Stripe
 * Update - Ensure that we check for settings sync eligibility after every upgrade
-* Update - Reduce settings Javascript file size by using smaller image
 
 = 9.9.1 - 2025-09-16 =
 * Add - Allow Klarna to be used for recurring payments and subscriptions

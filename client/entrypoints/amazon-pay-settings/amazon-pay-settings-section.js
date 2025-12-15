@@ -1,9 +1,9 @@
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
-import interpolateComponents from 'interpolate-components';
+import interpolateComponents from '@automattic/interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
+import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
 	RadioControl,
