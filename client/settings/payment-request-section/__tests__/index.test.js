@@ -3,7 +3,7 @@ import PaymentRequestSection from '..';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
-	usePaymentRequestEnabledSettings,
+	useExpressCheckoutEnabledSettings,
 	useAmazonPayEnabledSettings,
 	useIsOCEnabled,
 } from 'wcstripe/data';
@@ -14,7 +14,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
-	usePaymentRequestEnabledSettings: jest.fn(),
+	useExpressCheckoutEnabledSettings: jest.fn(),
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useAmazonPayEnabledSettings: jest.fn(),
@@ -30,7 +30,7 @@ describe( 'PaymentRequestSection', () => {
 	const globalValues = global.wc_stripe_settings_params;
 
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
+		useExpressCheckoutEnabledSettings.mockReturnValue(
 			getMockPaymentRequestEnabledSettings( true, jest.fn() )
 		);
 		useEnabledPaymentMethodIds.mockReturnValue( [
@@ -151,7 +151,7 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'Apple Pay / Google Pay checkbox disabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
+		useExpressCheckoutEnabledSettings.mockReturnValue(
 			getMockPaymentRequestEnabledSettings( false, jest.fn() )
 		);
 		global.wc_stripe_settings_params = {

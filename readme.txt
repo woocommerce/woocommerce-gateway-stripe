@@ -141,6 +141,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.3.0 - xxxx-xx-xx =
 * Dev - Deprecates and replaces PRBs classes with ECE equivalents
+* Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
 * Fix - Error when using Puerto Rico addresses with express checkouts
 * Dev - Removes all references to the UPE-enabled feature flag
