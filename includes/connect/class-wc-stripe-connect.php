@@ -225,8 +225,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Helper function to clear some important PMC caches after a key update.
 		 */
 		public function clear_caches_after_key_update(): void {
-			// Clean up PMC fallback ID after key updates.
-			WC_Stripe_Payment_Method_Configurations::reset_payment_method_configuration_fallback_id();
+			// Note that we also need to update the fallback PMC details, but we can't simply wipe that data.
 
 			// Clear PMC cache after key updates.
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();

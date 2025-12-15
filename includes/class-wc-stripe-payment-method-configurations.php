@@ -97,15 +97,6 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
-	 * Reset the payment method configuration fallback ID.
-	 */
-	public static function reset_payment_method_configuration_fallback_id(): void {
-		$is_test = WC_Stripe_Mode::is_test();
-		$fallback_pmc_option = $is_test ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
-		delete_option( $fallback_pmc_option );
-	}
-
-	/**
 	 * Clear the payment method configuration from cache.
 	 */
 	public static function clear_payment_method_configuration_cache() {
