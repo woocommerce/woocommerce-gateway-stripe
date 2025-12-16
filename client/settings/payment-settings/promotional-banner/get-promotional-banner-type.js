@@ -19,6 +19,7 @@ export const getPromotionalBannerType = (
 	isOCEnabled,
 	enabledPaymentMethodIds
 ) => {
+	return null;
 	const isTestModeEnabled = Boolean( accountData.testmode );
 	const oauthConnected = isTestModeEnabled
 		? accountData?.oauth_connections?.test?.connected
