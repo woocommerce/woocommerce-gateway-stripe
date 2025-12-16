@@ -678,6 +678,17 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected process payment calls' => 1,
 				'expected process payment intent incomplete calls' => 0,
 			],
+			'success, payment_intent.succeeded, BLIK payment' => [
+				'event type'                     => 'payment_intent.succeeded',
+				'order status'                   => OrderStatus::PENDING,
+				'order locked'                   => false,
+				'payment type'                   => WC_Stripe_Payment_Methods::BLIK,
+				'order status final'             => false,
+				'expected status'                => OrderStatus::PROCESSING,
+				'expected note'                  => '',
+				'expected process payment calls' => 1,
+				'expected process payment intent incomplete calls' => 0,
+			],
 			'success, payment_intent.amount_capturable_updated, async payment, awaiting action' => [
 				'event type'                     => 'payment_intent.amount_capturable_updated',
 				'order status'                   => OrderStatus::PENDING,
