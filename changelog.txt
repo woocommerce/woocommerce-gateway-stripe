@@ -9,6 +9,7 @@
 * Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
 * Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
 * Fix - Preserve express checkout button location settings when upgrading from older plugin versions
+* Fix - Fix some initialization bugs for reconnections
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
