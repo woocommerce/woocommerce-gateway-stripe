@@ -306,6 +306,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
 				$multibanco->update_option( 'enabled', 'no' );
 			}
+
+			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}
 
 		$this->account->clear_cache();
