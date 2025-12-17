@@ -1,27 +1,25 @@
-import { PaymentElement } from '@stripe/react-stripe-js/checkout';
+import React, { useCallback } from 'react';
+import {
+	EmbeddedCheckout,
+	EmbeddedCheckoutProvider,
+} from '@stripe/react-stripe-js';
+import { loadStripe } from 'wcstripe/blocks/load-stripe';
 
-const CheckoutForm = async () => {
-	// const checkoutState = useCheckout();
+const stripePromise = loadStripe();
 
-	// checkoutState.type === 'success'
-	// const { checkout } = checkoutState;
-	// const result = await checkout.confirm();
-	//
-	// if ( result.type === 'error' ) {
-	// 	onCheckoutFail( ( { processingResponse: { paymentDetails } } ) => {
-	// 		return {
-	// 			type: 'failure',
-	// 			message: paymentDetails.errorMessage,
-	// 			messageContext: emitResponse.noticeContexts.PAYMENTS,
-	// 		};
-	// 	} );
-	// } else {
-	// 	onCheckoutSuccess( ( { processingResponse: { paymentDetails } } ) =>
-	// 		confirmPayment( api, paymentDetails, emitResponse )
-	// 	);
-	// }
+export const CheckoutForm = ( props ) => {
+	const { api } = props;
+	const fetchClientSecret = useCallback( () => {
+		return api
+			.checkoutSessionsCreateSession()
+			.then( ( r ) => r.client_secret );
+	}, [ api ] );
 
-	return <PaymentElement />;
+	const options = { fetchClientSecret };
+
+	return (
+		<EmbeddedCheckoutProvider stripe={ stripePromise } options={ options }>
+			<EmbeddedCheckout />
+		</EmbeddedCheckoutProvider>
+	);
 };
-
-export default CheckoutForm;
