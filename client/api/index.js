@@ -12,6 +12,7 @@ import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -692,13 +693,13 @@ export default class WCStripeAPI {
 	}
 
 	checkoutSessionsCreateSession() {
-		return apiFetch( {
-			method: 'POST',
-			path: '/wc/v3/wc_stripe/checkout-sessions',
-			headers: {
-				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-			},
-		} );
-
+		return this.request(
+			getExpressCheckoutAjaxURL( 'create_checkout_session' ),
+			{
+				security:
+					getExpressCheckoutData( 'nonce' )
+						?.createCheckoutSessionNonce,
+			}
+		);
 	}
 }

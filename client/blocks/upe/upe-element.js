@@ -68,7 +68,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 
 	let paymentMethodComponent;
 	if ( true ) { // if checkout sessions is enabled
-		paymentMethodComponent = <CheckoutSessionsContainer />;
+		paymentMethodComponent = <CheckoutSessionsContainer api={ api } />;
 	} else {
 		paymentMethodComponent = getDeferredIntentCreationUPEFields(
 			paymentMethod,
