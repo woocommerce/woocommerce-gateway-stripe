@@ -146,6 +146,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Removes all references to the UPE-enabled feature flag
 * Dev - Removes deprecated promotional banners (related to legacy checkout)
 * Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
+* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
+* Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
