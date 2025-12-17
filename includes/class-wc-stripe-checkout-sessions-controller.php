@@ -53,7 +53,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		}
 
 		$request = [
-			'ui_mode'              => 'embedded',
+			'ui_mode'              => 'custom',
 			'customer'             => $customer->get_id(),
 			'line_items'           => $line_items,
 			'payment_method_types' => $enabled_payment_methods,

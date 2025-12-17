@@ -1,25 +1,21 @@
-import React, { useCallback } from 'react';
-import {
-	EmbeddedCheckout,
-	EmbeddedCheckoutProvider,
-} from '@stripe/react-stripe-js';
-import { loadStripe } from 'wcstripe/blocks/load-stripe';
+import { useCheckout } from '@stripe/react-stripe-js/checkout';
 
-const stripePromise = loadStripe();
+const CheckoutForm = () => {
+	const checkoutState = useCheckout();
 
-export const CheckoutForm = ( props ) => {
-	const { api } = props;
-	const fetchClientSecret = useCallback( () => {
-		return api
-			.checkoutSessionsCreateSession()
-			.then( ( r ) => r.client_secret );
-	}, [ api ] );
-
-	const options = { fetchClientSecret };
-
+	if ( checkoutState.type === 'loading' ) {
+		return <div>Loading...</div>;
+	} else if ( checkoutState.type === 'error' ) {
+		return <div>Error: { checkoutState.error.message }</div>;
+	}
+	const { checkout } = checkoutState;
 	return (
-		<EmbeddedCheckoutProvider stripe={ stripePromise } options={ options }>
-			<EmbeddedCheckout />
-		</EmbeddedCheckoutProvider>
+		<pre>
+			{ JSON.stringify( checkout.lineItems, null, 2 ) }
+			{ /* A formatted total amount */ }
+			Total: { checkout.total.total.amount }
+		</pre>
 	);
 };
+
+export default CheckoutForm;

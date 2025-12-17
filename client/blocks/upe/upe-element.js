@@ -13,7 +13,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
-import { CheckoutForm } from 'wcstripe/blocks/checkout-sessions/checkout-form';
+import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -68,7 +68,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 
 	let paymentMethodComponent;
 	if ( true ) { // if checkout sessions is enabled
-		paymentMethodComponent = <CheckoutForm api={ api } />;
+		paymentMethodComponent = <CheckoutSessionsContainer api={ api } />;
 	} else {
 		paymentMethodComponent = getDeferredIntentCreationUPEFields(
 			paymentMethod,
