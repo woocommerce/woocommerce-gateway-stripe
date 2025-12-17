@@ -424,6 +424,7 @@ class WC_Stripe {
 			// Use existing payment_request_button_locations if it exists.
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
+				unset( $stripe_settings['payment_request_button_locations'] );
 				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				return;
 			}
