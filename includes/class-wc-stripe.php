@@ -795,6 +795,10 @@ class WC_Stripe {
 
 		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
 		$oc_setting_toggle_controller->register_routes();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
+		$checkout_sessions_controller = new WC_Stripe_Checkout_Sessions_Controller();
+		$checkout_sessions_controller->register_routes();
 	}
 
 	/**

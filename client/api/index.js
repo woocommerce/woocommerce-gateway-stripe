@@ -80,7 +80,6 @@ export default class WCStripeAPI {
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
-			apiVersion: this.options.apiVersion,
 		};
 
 		if ( betas.length ) {
@@ -690,5 +689,16 @@ export default class WCStripeAPI {
 				...productData,
 			}
 		);
+	}
+
+	checkoutSessionsCreateSession() {
+		return apiFetch( {
+			method: 'POST',
+			path: '/wc/v3/wc_stripe/checkout-sessions',
+			headers: {
+				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			},
+		} );
+
 	}
 }

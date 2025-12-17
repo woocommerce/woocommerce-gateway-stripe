@@ -58,20 +58,20 @@ Object.entries( paymentMethodsConfig )
 		registerPaymentMethod( upeElement( method, api, config ) );
 	} );
 
-// Register Express Checkout Elements.
-if (
-	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-	getBlocksConfiguration()?.isAmazonPayEnabled
-) {
-	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-}
-if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
-	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
-}
-if ( getBlocksConfiguration()?.isLinkEnabled ) {
-	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
-}
+// // Register Express Checkout Elements.
+// if (
+// 	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+// 	getBlocksConfiguration()?.isAmazonPayEnabled
+// ) {
+// 	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+// }
+// if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
+// 	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+// 	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+// }
+// if ( getBlocksConfiguration()?.isLinkEnabled ) {
+// 	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
+// }
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
