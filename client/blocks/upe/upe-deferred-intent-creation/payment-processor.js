@@ -181,6 +181,7 @@ const PaymentProcessor = ( {
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
+				// @TODO: add this to the checkout form
 				async function handlePaymentProcessing() {
 					if (
 						upeMethods[ paymentMethodId ] !== activePaymentMethod

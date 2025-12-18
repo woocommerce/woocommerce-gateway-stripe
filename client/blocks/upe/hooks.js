@@ -78,6 +78,58 @@ export const usePaymentFailHandler = (
 	);
 };
 
+export const usePaymentCompleteHandler2 = (
+	api,
+	stripe,
+	checkoutState,
+	onCheckoutSuccess,
+	emitResponse,
+	shouldSavePayment
+) => {
+	console.log('usePaymentCompleteHandler2');
+	// Once the server has completed payment processing, confirm the intent of necessary.
+	useEffect(
+		() =>
+			onCheckoutSuccess( ( { processingResponse: { paymentDetails } } ) =>
+				confirmCardPayment(
+					api,
+					paymentDetails,
+					emitResponse,
+					shouldSavePayment
+				)
+			),
+		// not sure if we need to disable this, but kept it as-is to ensure nothing breaks. Please consider passing all the deps.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[ checkoutState, stripe, api, shouldSavePayment ]
+	);
+};
+
+export const usePaymentFailHandler2 = (
+	api,
+	stripe,
+	checkoutState,
+	onCheckoutFail,
+	emitResponse
+) => {
+	useEffect(
+		() =>
+			onCheckoutFail( ( { processingResponse: { paymentDetails } } ) => {
+				return {
+					type: 'failure',
+					message: paymentDetails.errorMessage,
+					messageContext: emitResponse.noticeContexts.PAYMENTS,
+				};
+			} ),
+		[
+			checkoutState,
+			stripe,
+			api,
+			onCheckoutFail,
+			emitResponse.noticeContexts.PAYMENTS,
+		]
+	);
+};
+
 /**
  * Returns the customer data and setters for the customer data.
  *

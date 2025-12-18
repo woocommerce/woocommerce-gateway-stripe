@@ -9,6 +9,7 @@ const CheckoutForm = () => {
 		return <div>Error: { checkoutState.error.message }</div>;
 	}
 	const { checkout } = checkoutState;
+
 	return (
 		<pre>
 			{ JSON.stringify( checkout.lineItems, null, 2 ) }
