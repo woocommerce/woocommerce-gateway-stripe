@@ -8,6 +8,7 @@
 * Fix - Error when using Puerto Rico addresses with express checkouts
 * Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
 * Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
+* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 
