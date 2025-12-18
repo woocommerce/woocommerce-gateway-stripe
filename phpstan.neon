@@ -11,6 +11,8 @@ parameters:
 	bootstrapFiles:
 		- vendor/autoload.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	scanDirectories:
+		- php-stubs
 	treatPhpDocTypesAsCertain: false
 	parallel:
 		maximumNumberOfProcesses: 4
