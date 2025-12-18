@@ -140,9 +140,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.3.0 - xxxx-xx-xx =
+* Dev - Renames all express checkout related frontend hooks
+* Dev - Removes deprecated legacy checkout settings retrieval methods
 * Fix - Error when using Puerto Rico addresses with express checkouts
 * Dev - Removes all references to the UPE-enabled feature flag
 * Dev - Removes deprecated promotional banners (related to legacy checkout)
 * Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
+* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
+* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
+* Fix - Fix some initialization bugs for reconnections
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
