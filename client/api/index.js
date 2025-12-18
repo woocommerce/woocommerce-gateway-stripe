@@ -80,7 +80,6 @@ export default class WCStripeAPI {
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
-			apiVersion: this.options.apiVersion,
 		};
 
 		if ( betas.length ) {
@@ -379,6 +378,14 @@ export default class WCStripeAPI {
 			request,
 			isChangingPayment,
 		};
+	}
+
+	createCheckoutSession( orderId = null, paymentMethodType = null ) {
+		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
+			stripe_order_id: orderId,
+			payment_method_type: paymentMethodType,
+			_ajax_nonce: this.options?.createCheckoutSessionNonce,
+		} );
 	}
 
 	/**
