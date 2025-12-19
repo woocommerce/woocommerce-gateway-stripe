@@ -99,6 +99,7 @@ class WC_Stripe {
 	 */
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'install' ] );
+		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ] );
 
 		$this->init();
 
@@ -383,6 +384,15 @@ class WC_Stripe {
 				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
 			}
+		}
+	}
+
+	public function maybe_redirect_to_stripe_settings() {
+		if ( get_transient( 'wc_stripe_redirect_to_settings' ) && ! isset( $_GET['activate-multi'] ) ) {
+			delete_transient( 'wc_stripe_redirect_to_settings' );
+
+			wp_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+			exit;
 		}
 	}
 
