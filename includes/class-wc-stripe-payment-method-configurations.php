@@ -133,7 +133,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
 
 		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
-			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+			$configuration = WC_Stripe_Client::get_instance()::$sdk->paymentMethodConfigurations->retrieve( $preselected_pmc_id );
 			$error = null;
 			if ( is_wp_error( $configuration ) ) {
 				$error = $configuration;
@@ -443,7 +443,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			];
 		}
 
-		$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
+		$response = WC_Stripe_Client::get_instance()::$sdk->paymentMethodConfigurations->update(
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration
 		);

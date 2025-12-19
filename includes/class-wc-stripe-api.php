@@ -296,6 +296,8 @@ class WC_Stripe_API {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $api
+	 *
+	 * @deprecated 10.3.0 Use the SDK
 	 */
 	public static function retrieve( $api ) {
 		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
@@ -496,11 +498,11 @@ class WC_Stripe_API {
 	public static function get_payment_method( string $payment_method_id ) {
 		// Sources have a separate API.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::retrieve( 'sources/' . $payment_method_id );
+			return WC_Stripe_Client::get_instance()::$sdk->sources->retrieve( $payment_method_id );
 		}
 
 		// If it's not a source it's a PaymentMethod.
-		return self::retrieve( 'payment_methods/' . $payment_method_id );
+		return WC_Stripe_Client::get_instance()::$sdk->paymentMethods->retrieve( $payment_method_id );
 	}
 
 	/**

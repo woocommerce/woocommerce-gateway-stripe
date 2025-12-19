@@ -800,7 +800,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::get_payment_method( $source_id );
+		$source_object = WC_Stripe_Client::get_instance()::$sdk->paymentMethodDomains->retrieve( $source_id );
 
 		if ( ! empty( $source_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
@@ -824,7 +824,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$charge_object = WC_Stripe_API::request( $params, 'charges/' . $charge_id, 'GET' );
+		$charge_object = WC_Stripe_Client::get_instance()::$sdk->charges->retrieve( $charge_id );
 
 		if ( ! empty( $charge_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message );
@@ -1063,7 +1063,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( $source_id ) {
 				$stripe_source = $source_id;
-				$source_object = WC_Stripe_API::get_payment_method( $source_id );
+				$source_object = WC_Stripe_Client::get_instance()::$sdk->sources->retrieve( $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -1133,7 +1133,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param int    $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
-		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
+		$balance_transaction = WC_Stripe_Client::get_instance()::$sdk->balanceTransactions->retrieve( $balance_transaction_id );
 
 		if ( empty( $balance_transaction->error ) ) {
 			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
@@ -1256,7 +1256,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( ! $intent_cancelled && $captured ) {
 				$order_helper->lock_order_refund( $order );
-				$response = WC_Stripe_API::request( $request, 'refunds' );
+				$response = WC_Stripe_Client::get_instance()::$sdk->refunds->create( $request );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -1586,7 +1586,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = $this->generate_create_intent_request( $order, $prepared_source );
 
 		// Create an intent that awaits an action.
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$intent = WC_Stripe_Client::get_instance()::$sdk->paymentIntents->create( $request );
 		if ( ! empty( $intent->error ) ) {
 			return $intent;
 		}

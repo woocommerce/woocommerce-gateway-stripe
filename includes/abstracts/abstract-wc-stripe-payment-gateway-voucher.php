@@ -338,10 +338,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$body = $this->update_request_body_on_create_or_update_payment_intent( $body );
 		}
 
-		$payment_intent = WC_Stripe_API::request(
-			$body,
-			'payment_intents' . $intent_to_be_updated
-		);
+		$payment_intent = WC_Stripe_Client::get_instance()::$sdk->paymentIntents->update( $intent_to_be_updated, $body );
 
 		if ( ! empty( $payment_intent->error ) ) {
 			throw new Exception( $payment_intent->error->message );

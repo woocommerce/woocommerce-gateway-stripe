@@ -129,7 +129,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
 			 */
-			$source_info = WC_Stripe_API::get_payment_method( $source );
+			$source_info = WC_Stripe_Client::get_instance()::$sdk->paymentMethods->retrieve( $source );
 
 			if ( ! empty( $source_info->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );
@@ -338,7 +338,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
 
 					// First retrieve charge to see if it has been captured.
-					$result = WC_Stripe_API::retrieve( 'charges/' . $charge );
+					$result = WC_Stripe_Client::get_instance()::$sdk->charges->retrieve( $charge );
 
 					if ( ! empty( $result->error ) ) {
 						/* translators: error message */

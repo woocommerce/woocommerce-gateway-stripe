@@ -443,7 +443,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			if ( empty( $keys['secret_key'] ) || $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
 				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
 				WC_Stripe_API::set_secret_key( $keys['webhook_data']['secret'] );
-				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
+				WC_Stripe_Client::get_instance()::$sdk->webhookEndpoints->delete( $keys['webhook_data']['id'] );
 
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];

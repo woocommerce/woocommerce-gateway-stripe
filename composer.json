@@ -26,5 +26,8 @@
 		},
     "extra": {
       "installer-disable": true
+    },
+    "require": {
+        "stripe/stripe-php": "^19.1"
     }
 }

@@ -538,7 +538,7 @@ class WC_Stripe_Customer {
 		 * @param array $args The arguments used to update a customer.
 		 */
 		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
-		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
+		$response = WC_Stripe_Client::get_instance()::$sdk->customers->retrieve( $this->get_id() );
 
 		if ( ! empty( $response->error ) ) {
 			if ( $this->is_no_such_customer_error( $response->error ) && ! $is_retry ) {

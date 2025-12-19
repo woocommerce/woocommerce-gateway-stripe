@@ -400,7 +400,7 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 
-		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$payment_intent = WC_Stripe_Client::get_instance()::$sdk->paymentIntents->create( $request );
 
 		if ( ! empty( $payment_intent->error ) ) {
 			throw new Exception( $payment_intent->error->message );
@@ -756,9 +756,9 @@ class WC_Stripe_Intent_Controller {
 			if ( ! empty( $order_id ) && ! empty( $intent_id ) && is_object( $order ) ) {
 				$payment_needed = 0 < $order->get_total();
 				if ( $payment_needed ) {
-					$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
+					$intent = WC_Stripe_Client::get_instance()::$sdk->paymentIntents->retrieve( $intent_id );
 				} else {
-					$intent = WC_Stripe_API::retrieve( "setup_intents/$intent_id" );
+					$intent = WC_Stripe_Client::get_instance()::$sdk->setupIntents->retrieve( $intent_id );
 				}
 				$error = $intent->last_payment_error || $intent->error;
 

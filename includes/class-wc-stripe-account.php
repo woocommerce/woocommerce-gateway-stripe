@@ -293,7 +293,7 @@ class WC_Stripe_Account {
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
-		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+		$response = WC_Stripe_Client::get_instance()::$sdk->webhookEndpoints->create( $request );
 
 		if ( isset( $response->error->message ) ) {
 			// Translators: %s is the error message from the Stripe API.
@@ -429,7 +429,7 @@ class WC_Stripe_Account {
 	 * @return object|false The webhook object if found, false otherwise.
 	 */
 	public function get_existing_webhook() {
-		$webhooks = WC_Stripe_API::retrieve( 'webhook_endpoints' );
+		$webhooks = WC_Stripe_Client::get_instance()::$sdk->webhookEndpoints->all();
 
 		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) ) {
 			return false;
