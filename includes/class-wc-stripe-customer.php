@@ -225,7 +225,10 @@ class WC_Stripe_Customer {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
 
-			$email    = $user->user_email;
+			$email = $user->user_email;
+			if ( empty( $email ) ) {
+				$email = $this->get_billing_data_field( 'billing_email', $order );
+			}
 			$username = $user->user_login;
 		} elseif ( $wc_customer && 'wc_customer' === $preferred_customer_source ) {
 			$user_or_customer   = $wc_customer;
@@ -233,6 +236,19 @@ class WC_Stripe_Customer {
 			$billing_last_name  = $wc_customer->get_last_name();
 			$email              = $wc_customer->get_email();
 			$username           = $wc_customer->get_username();
+
+			// Fallback to billing data if critical fields are missing on the WC_Customer object.
+			if ( empty( $billing_first_name ) ) {
+				$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			}
+
+			if ( empty( $billing_last_name ) ) {
+				$billing_last_name = $this->get_billing_data_field( 'billing_last_name', $order );
+			}
+
+			if ( empty( $email ) ) {
+				$email = $this->get_billing_data_field( 'billing_email', $order );
+			}
 		} else {
 			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
 			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $order );
