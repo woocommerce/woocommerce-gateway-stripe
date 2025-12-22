@@ -1002,4 +1002,71 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected with unexpected data.
+	 *
+	 * @dataProvider provide_test_get_localized_error_message_from_response_with_unexpected_data
+	 * @param mixed $response The response to test.
+	 * @param string $expected_message The expected message.
+	 */
+	public function test_get_localized_error_message_from_response_with_unexpected_data( $response, string $expected_message ) {
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response_with_unexpected_data()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
+		return [
+			'String response' => [
+				'response'         => 'Unexpected data',
+				'expected_message' => '',
+			],
+			'Integer response' => [
+				'response'         => 123,
+				'expected_message' => '',
+			],
+			'Float response' => [
+				'response'         => 123.45,
+				'expected_message' => '',
+			],
+			'Boolean response' => [
+				'response'         => true,
+				'expected_message' => '',
+			],
+			'Array response' => [
+				'response'         => [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with string error' => [
+				'response'         => (object) [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with array error' => [
+				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type or message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'code' => 'unexpected_error_code' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 'Unexpected error' ] ],
+				'expected_message' => 'Unexpected error',
+			],
+			'Object response with valid card_error but no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 'Unexpected card error',
+					],
+				],
+				'expected_message' => 'Unexpected card error',
+			],
+		];
+	}
 }

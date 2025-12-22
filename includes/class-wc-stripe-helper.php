@@ -314,10 +314,19 @@ class WC_Stripe_Helper {
 	 * @return string The localized error message.
 	 */
 	public static function get_localized_error_message_from_response( $response ) {
+		// Handle unexpected data in $response.
+		if ( ! is_object( $response ) || ! isset( $response->error, $response->error->type ) ) {
+			if ( isset( $response->error->message ) ) {
+				return $response->error->message;
+			}
+
+			return '';
+		}
+
 		$localized_messages = self::get_localized_messages();
 
 		if ( 'card_error' === $response->error->type ) {
-			if ( isset( $localized_messages[ $response->error->code ] ) ) {
+			if ( isset( $response->error->code ) && isset( $localized_messages[ $response->error->code ] ) ) {
 				return $localized_messages[ $response->error->code ];
 			}
 
