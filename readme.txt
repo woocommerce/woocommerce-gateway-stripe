@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.3.0 - xxxx-xx-xx =
+* Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
 * Fix - Error when using Puerto Rico addresses with express checkouts
