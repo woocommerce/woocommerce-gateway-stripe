@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.1.0
  *
- * @deprecated 10.3.0 Moved to includes/wc-stripe-express-checkout-button-states.php
+ * @deprecated 10.3.0 Moved to includes/constants/wc-stripe-express-checkout-button-states.php
  */
 class WC_Stripe_Payment_Request_Button_States {
 	/**
