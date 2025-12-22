@@ -234,9 +234,9 @@ class WC_Stripe_Customer {
 			$email              = $wc_customer->get_email();
 			$username           = $wc_customer->get_username();
 		} else {
-			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $args );
-			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $args );
-			$email              = $this->get_billing_data_field( 'billing_email', $args );
+			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $order );
+			$email              = $this->get_billing_data_field( 'billing_email', $order );
 		}
 
 		if ( empty( $username ) ) {
@@ -261,7 +261,7 @@ class WC_Stripe_Customer {
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
-		$defaults['address'] = $this->generate_customer_address_fields( $args, $user_or_customer );
+		$defaults['address'] = $this->generate_customer_address_fields( $user_or_customer, $order );
 
 		return wp_parse_args( $args, $defaults );
 	}
@@ -269,12 +269,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Helper function to build the address fields for the customer request.
 	 *
-	 * @param array                    $args             Additional arguments.
 	 * @param WP_User|WC_Customer|null $user_or_customer The user object, WC_Customer object, or null.
+	 * @param WC_Order|null            $order            The order object (optional). Billing details may be retrieved from the order.
 	 *
 	 * @return array The address fields.
 	 */
-	private function generate_customer_address_fields( array $args, $user_or_customer ): array {
+	private function generate_customer_address_fields( $user_or_customer, $order = null ): array {
 		$address_field_map = [
 			'line1'       => 'billing_address_1',
 			'line2'       => 'billing_address_2',
@@ -304,7 +304,7 @@ class WC_Stripe_Customer {
 			} elseif ( 'wc_customer' === $source && method_exists( $user_or_customer, 'get_' . $field ) ) {
 				$value = $user_or_customer->{ 'get_' . $field }();
 			} elseif ( 'billing' === $source ) {
-				$value = $this->get_billing_data_field( $field, $args );
+				$value = $this->get_billing_data_field( $field, $order );
 			}
 
 			$address_fields[ $key ] = $value;
@@ -428,7 +428,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @return string
 	 */
-	protected function get_billing_data_field( $field, $args = [] ) {
+	protected function get_billing_data_field( $field, $order = null ) {
 		$valid_fields = [
 			'billing_email',
 			'billing_first_name',
