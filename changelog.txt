@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.3.0 - xxxx-xx-xx =
+* Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
 * Dev - Removes all references to the UPE-enabled feature flag
@@ -12,6 +13,7 @@
 * Fix - Preserve express checkout button location settings when upgrading from older plugin versions
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
+* Fix - Use same default locations for Amazon Pay express checkout
 * Update - Add `wc_stripe_customer_data_preferred_source` filter to make it possible to get customer details from WooCommerce customer object
 
 = 10.2.0 - 2025-12-08 =
