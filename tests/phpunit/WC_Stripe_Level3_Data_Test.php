@@ -245,6 +245,69 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test that shipping totals with 3+ decimal places are properly rounded.
+	 *
+	 * For example, shipping of 20.685 should round to 2069 cents,
+	 * not truncate to 2068 cents.
+	 */
+	public function test_level3_data_with_three_decimal_shipping() {
+		update_option( 'woocommerce_store_postcode', '95747' );
+
+		// Setup the item - replicating customer order with product at $60.95
+		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->getMock();
+
+		$mock_item->method( 'get_name' )->willReturn( 'Test Product' );
+		$mock_item->method( 'get_quantity' )->willReturn( 1 );
+		$mock_item->method( 'get_total' )->willReturn( 60.95 );
+		$mock_item->method( 'get_subtotal' )->willReturn( 60.95 );
+		$mock_item->method( 'get_total_tax' )->willReturn( 0 );
+		$mock_item->method( 'get_variation_id' )->willReturn( false );
+		$mock_item->method( 'get_product_id' )->willReturn( 30754 );
+
+		// Setup the order with 3-decimal shipping total (20.685)
+		$mock_order = $this->getMockBuilder( WC_Order::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->getMock();
+
+		$mock_order->method( 'get_id' )->willReturn( 114439 );
+		$mock_order->method( 'get_items' )->willReturn( [ $mock_item ] );
+		$mock_order->method( 'get_currency' )->willReturn( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		// 3-decimal shipping total
+		$mock_order->method( 'get_shipping_total' )->willReturn( 20.685 );
+		$mock_order->method( 'get_shipping_tax' )->willReturn( 0 );
+		$mock_order->method( 'get_shipping_postcode' )->willReturn( '60060' );
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$result  = $gateway->get_level3_data_from_order( $mock_order );
+
+		// The shipping_amount should be 2069 (rounded), not 2068 (truncated)
+		// 20.685 * 100 = 2068.5, which should round to 2069
+		$this->assertEquals(
+			2069,
+			$result['shipping_amount'],
+			'Shipping total of 20.685 should convert to 2069 cents (rounded), not 2068 (truncated)'
+		);
+
+		// Verify Level3 sum matches what Stripe would expect
+		// Total charged: 60.95 + 20.69 (rounded) = 81.64 = 8164 cents
+		$total_charged = 8164;
+		$level3_sum    = $result['line_items'][0]->unit_cost
+			+ $result['line_items'][0]->tax_amount
+			- $result['line_items'][0]->discount_amount
+			+ $result['shipping_amount'];
+
+		$this->assertEquals(
+			$total_charged,
+			$level3_sum,
+			"Level3 sum ({$level3_sum}) should match total charged ({$total_charged})"
+		);
+	}
+
 	public function test_full_level3_data_with_fee() {
 		$expected_data = [
 			'merchant_reference'   => '210',
