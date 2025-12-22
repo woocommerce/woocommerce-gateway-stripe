@@ -470,7 +470,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 	}
 
-  /**
+	/**
 	 * Data provider for {@see test_generate_customer_request_via_create_customer()}.
 	 */
 	public function provide_test_generate_customer_request_via_create_customer_cases(): array {
@@ -736,5 +736,5 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$this->assertInstanceOf( \Exception::class, $caught_exception );
 		$this->assertEquals( 'test_exception', $caught_exception->getMessage() );
 		$this->assertEquals( 321, $caught_exception->getCode() );
-  }
+	}
 }

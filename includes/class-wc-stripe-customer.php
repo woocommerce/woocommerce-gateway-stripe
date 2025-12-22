@@ -174,7 +174,7 @@ class WC_Stripe_Customer {
 		if ( ! is_array( $args ) ) {
 			$args = [];
 		}
- 
+
 		// The $order parameter was added in 10.2.0, so check for `$args['order'] for backwards compatibility.
 		if ( null === $order && isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
 			$order = $args['order'];
