@@ -421,6 +421,15 @@ class WC_Stripe {
 			? $stripe_settings['express_checkout_button_locations']
 			: [];
 		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+			// Use existing payment_request_button_locations if it exists.
+			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
+				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
+				unset( $stripe_settings['payment_request_button_locations'] );
+				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				return;
+			}
+
+			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
 			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
