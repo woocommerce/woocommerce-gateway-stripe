@@ -191,7 +191,7 @@ class WC_Stripe_Customer {
 		 * but 'wc_customer' can be used to get data from the WC_Customer object.
 		 * The 'wc_customer' option may be most useful for sites that create customers during checkout.
 		 *
-		 * @since 10.1.0
+		 * @since 10.3.0
 		 * @param string           $preferred_source The preferred source of customer data.
 		 * @param WP_User|false    $user             The user object or false.
 		 * @param WC_Customer|null $wc_customer      The WooCommerce customer object or null.
