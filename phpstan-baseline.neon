@@ -4702,6 +4702,12 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
+			message: '#^Method WC_Stripe_Customer\:\:generate_customer_address_fields\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
 			message: '#^Method WC_Stripe_Customer\:\:generate_customer_request\(\) has parameter \$args with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -4746,12 +4752,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:get_sources\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
-			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 

@@ -312,12 +312,12 @@ class WC_Stripe_Customer {
 		foreach ( $address_field_map as $key => $field ) {
 			$value = '';
 
-			if ( 'user_meta' === $source ) {
+			if ( 'user_meta' === $source && $user_or_customer instanceof WP_User ) {
 				$value = get_user_meta( $user_or_customer->ID, $field, true );
 				if ( empty( $value ) ) {
 					$value = '';
 				}
-			} elseif ( 'wc_customer' === $source && method_exists( $user_or_customer, 'get_' . $field ) ) {
+			} elseif ( 'wc_customer' === $source && $user_or_customer instanceof WC_Customer && method_exists( $user_or_customer, 'get_' . $field ) ) {
 				$value = $user_or_customer->{ 'get_' . $field }();
 			} elseif ( 'billing' === $source ) {
 				$value = $this->get_billing_data_field( $field, $order );
@@ -1148,7 +1148,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the customer's preferred locale based on the user or site setting.
 	 *
-	 * @param object $user The user being created/modified.
+	 * @param object|false $user The user being created/modified.
 	 * @return array The matched locale string wrapped in an array, or empty default.
 	 */
 	public function get_customer_preferred_locale( $user ) {
@@ -1194,7 +1194,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Gets the customer's locale/language based on their setting or the site settings.
 	 *
-	 * @param object $user The user we're wanting to get the locale for.
+	 * @param object|false $user The user we're wanting to get the locale for.
 	 * @return string The locale/language set in the user profile or the site itself.
 	 */
 	public function get_customer_locale( $user ) {
