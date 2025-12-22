@@ -2,6 +2,7 @@
 
 = 10.3.0 - xxxx-xx-xx =
 * Dev - Deprecates and replaces PRBs classes with ECE equivalents
+* Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
 * Dev - Removes all references to the UPE-enabled feature flag
@@ -13,6 +14,7 @@
 * Fix - Preserve express checkout button location settings when upgrading from older plugin versions
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
+* Fix - Use same default locations for Amazon Pay express checkout
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
