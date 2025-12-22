@@ -928,4 +928,78 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEquals( $expected, $minimum_amount );
 	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected.
+	 *
+	 * @param string $error_type The type of error.
+	 * @param string $error_code The code of error.
+	 * @param string $error_message The message of error.
+	 * @param array $localized_data The localized data.
+	 * @param string $expected_message The expected message.
+	 * @dataProvider provide_test_get_localized_error_message_from_response
+	 */
+	public function test_get_localized_error_message_from_response( string $error_type, string $error_code, string $error_message, array $localized_data, string $expected_message ): void {
+		$response = (object) [
+			'error' => (object) [
+				'type'    => $error_type,
+				'code'    => $error_code,
+				'message' => $error_message,
+			],
+		];
+
+		$localized_message_filter = function ( $messages ) use ( $localized_data ) {
+			return array_merge( $messages, $localized_data );
+		};
+
+		add_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10, 1 );
+
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+
+		remove_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10 );
+
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response(): array {
+		return [
+			'card_error with localized message'    => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'invalid_cvc',
+				'error_message'    => 'Mock invalid CVC',
+				'localized_data'   => [
+					'invalid_cvc' => "The card's security code is invalid.",
+				],
+				'expected_message' => "The card's security code is invalid.",
+			],
+			'card_error without localized message' => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+			'other error with localized message'   => [
+				'error_type'       => 'invalid_request_error',
+				'error_code'       => 'amount_too_small',
+				'error_message'    => 'Amount too small',
+				'localized_data'   => [
+					'invalid_request_error' => 'Unable to process this payment, please try again or use alternative method.',
+				],
+				'expected_message' => 'Unable to process this payment, please try again or use alternative method.',
+			],
+			'other error without localized message' => [
+				'error_type'       => 'unexpected_error_type',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+		];
+	}
 }
