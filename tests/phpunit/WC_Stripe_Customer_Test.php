@@ -569,6 +569,29 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'billing_data'     => null,
 				'expected'         => $jane_doe_expected_fields,
 			],
+			'user_meta preferred, no WC_Customer - fields from user and user meta using fallback names from meta and email from billing data' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => array_merge( $jane_doe_user_data, [ 'user_email' => '' ] ),
+				'user_meta_data'   => array_merge(
+					$jane_doe_user_meta_data,
+					[
+						'first_name'         => 'Jennifer',
+						'last_name'          => 'Fallback',
+						'billing_first_name' => '',
+						'billing_last_name'  => '',
+					]
+				),
+				'wc_customer_data' => null,
+				'billing_data'     => array_merge( $jack_cash_billing_data, [ 'billing_email' => 'test-fallback-billing-email@example.com' ] ),
+				'expected'         => array_merge(
+					$jane_doe_expected_fields,
+					[
+						'email'             => 'test-fallback-billing-email@example.com',
+						'name'              => 'Jennifer Fallback',
+						'description'       => 'Name: Jennifer Fallback, Username: test_user',
+					]
+				),
+			],
 			'wc_customer preferred, no user - fields from WC_Customer' => [
 				'preferred_source' => 'wc_customer',
 				'user_data'        => null,
@@ -576,6 +599,32 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'wc_customer_data' => $john_smith_wc_customer_data,
 				'billing_data'     => null,
 				'expected'         => $john_smith_expected_fields,
+			],
+			'wc_customer preferred, no user - fields from WC_Customer; fallback names and email from billing data' => [
+				'preferred_source' => 'wc_customer',
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => array_merge(
+					$john_smith_wc_customer_data,
+					[
+						'get_email'      => '',
+						'get_first_name' => '',
+						'get_last_name'  => '',
+					]
+				),
+				'billing_data'     => [
+					'billing_email'      => 'test-fallback-billing-email@example.com',
+					'billing_first_name' => 'Joseph',
+					'billing_last_name'  => 'Fallback',
+				],
+				'expected'         => array_merge(
+					$john_smith_expected_fields,
+					[
+						'email'             => 'test-fallback-billing-email@example.com',
+						'name'              => 'Joseph Fallback',
+						'description'       => 'Name: Joseph Fallback, Username: test_wc_customer',
+					]
+				),
 			],
 			'user_meta preferred, no user or WC_Customer - fields from billing data' => [
 				'preferred_source' => 'user_meta',
