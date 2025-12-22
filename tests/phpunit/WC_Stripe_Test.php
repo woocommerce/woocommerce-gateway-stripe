@@ -250,4 +250,58 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 	}
+
+	/**
+	 * Tests that update_prb_location_settings copies payment_request_button_locations to express_checkout_button_locations.
+	 *
+	 * @return void
+	 */
+	public function test_update_prb_location_settings_copies_existing_payment_request_locations(): void {
+		$this->remove_gateway_settings_update_filter();
+
+		// Set up settings with payment_request_button_locations but no express_checkout_button_locations.
+		$stripe_settings = [
+			'enabled'                          => 'yes',
+			'payment_request_button_locations' => [ 'checkout' ],
+		];
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		WC_Stripe::get_instance()->update_prb_location_settings();
+
+		$updated_settings = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame( [ 'checkout' ], $updated_settings['express_checkout_button_locations'] );
+	}
+
+	/**
+	 * Tests that update_prb_location_settings falls back to filter defaults when no existing locations are set.
+	 *
+	 * @return void
+	 */
+	public function test_update_prb_location_settings_uses_filter_defaults_when_no_existing_locations(): void {
+		$this->remove_gateway_settings_update_filter();
+
+		// Set up settings with no location settings.
+		$stripe_settings = [
+			'enabled' => 'yes',
+		];
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		WC_Stripe::get_instance()->update_prb_location_settings();
+
+		$updated_settings = get_option( 'woocommerce_stripe_settings' );
+		$this->assertContains( 'product', $updated_settings['express_checkout_button_locations'] );
+		$this->assertContains( 'cart', $updated_settings['express_checkout_button_locations'] );
+	}
+
+	/**
+	 * Removes the gateway_settings_update filter that merges defaults when saving settings.
+	 *
+	 * This filter adds default field values when saving settings for the first time,
+	 * which interferes with tests that need to set specific settings without defaults.
+	 *
+	 * @return void
+	 */
+	private function remove_gateway_settings_update_filter(): void {
+		remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
+	}
 }
