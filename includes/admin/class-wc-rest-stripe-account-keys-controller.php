@@ -294,6 +294,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+
+			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}
 
 		$this->account->clear_cache();
