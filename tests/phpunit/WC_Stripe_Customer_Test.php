@@ -721,7 +721,6 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				$user_data['ID'] = 12345;
 			}
 			$user_return_value = new \WP_User( (object) $user_data );
-
 		}
 		$stripe_customer->method( 'get_user' )->willReturn( $user_return_value );
 
