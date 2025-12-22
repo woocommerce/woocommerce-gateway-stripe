@@ -1,19 +1,14 @@
-import { React, useState, useContext } from 'react';
+import { React, useState } from 'react';
 import CardBody from '../card-body';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
 import { Card, CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { useIsStripeEnabled, useEnabledPaymentMethodIds } from 'wcstripe/data';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import { useIsStripeEnabled } from 'wcstripe/data';
 
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
-	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
-		useEnabledPaymentMethodIds();
 	const [ modalType, setModalType ] = useState( '' );
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -21,29 +16,6 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
 		setIsStripeEnabled( hasBeenChecked );
-
-		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
-		// So if Stripe is disabled, card should be excluded from the enabled methods list and vice versa.
-		if ( ! isUpeEnabled ) {
-			if (
-				! hasBeenChecked &&
-				enabledPaymentMethods.includes( PAYMENT_METHOD_CARD )
-			) {
-				setEnabledPaymentMethods(
-					enabledPaymentMethods.filter(
-						( m ) => m !== PAYMENT_METHOD_CARD
-					)
-				);
-			} else if (
-				hasBeenChecked &&
-				! enabledPaymentMethods.includes( PAYMENT_METHOD_CARD )
-			) {
-				setEnabledPaymentMethods( [
-					...enabledPaymentMethods,
-					PAYMENT_METHOD_CARD,
-				] );
-			}
-		}
 	};
 
 	return (

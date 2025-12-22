@@ -13,6 +13,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Class WC_Stripe_UPE_Availability_Note
+ *
+ * @deprecated 10.2.0 This note is now deprecated since UPE is generally available.
  */
 class WC_Stripe_UPE_Availability_Note {
 	use NoteTraits;
@@ -71,35 +73,6 @@ class WC_Stripe_UPE_Availability_Note {
 	}
 
 	public static function init() {
-		/**
-		 * No need to display the admin inbox note when
-		 * - UPE preview is disabled
-		 * - UPE is already enabled
-		 * - UPE has been manually disabled
-		 * - Stripe is not enabled
-		 */
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return;
-		}
-
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return;
-		}
-
-		if ( WC_Stripe_Feature_Flags::did_merchant_disable_upe() ) {
-			return;
-		}
-
-		if ( ! woocommerce_gateway_stripe()->connect->is_connected() ) {
-			return;
-		}
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		if ( ! $stripe_enabled ) {
-			return;
-		}
-
-		self::possibly_add_note();
+		return;
 	}
 }

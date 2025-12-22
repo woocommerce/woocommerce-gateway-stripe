@@ -799,22 +799,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
-
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-	}
-
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled() {
 		update_option( 'woocommerce_currency', 'EUR' );
 		$this->upe_helper->enable_upe_feature_flag();
@@ -896,5 +880,52 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'webhook URL with wrong parameter should not match'        => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
 			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
 		];
+	}
+
+	/**
+	 * Data provider for {@see test_get_minimum_amount()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_minimum_amount(): array {
+		return [
+			'USD'              => [ 'USD', 50 ],
+			'EUR'              => [ 'EUR', 50 ],
+			'GBP'              => [ 'GBP', 30 ],
+			'CAD'              => [ 'CAD', 50 ],
+			'CHF'              => [ 'CHF', 50 ],
+			'CZK'              => [ 'CZK', 1500 ],
+			'DKK'              => [ 'DKK', 250 ],
+			'HUF'              => [ 'HUF', 17500 ],
+			'INR'              => [ 'INR', 50 ],
+			'MXN'              => [ 'MXN', 1000 ],
+			'MYR'              => [ 'MYR', 200 ],
+			'NOK'              => [ 'NOK', 300 ],
+			'NZD'              => [ 'NZD', 50 ],
+			'PLN'              => [ 'PLN', 200 ],
+			'RON'              => [ 'RON', 200 ],
+			'SEK'              => [ 'SEK', 300 ],
+			'SGD'              => [ 'SGD', 50 ],
+			'THB'              => [ 'THB', 1000 ],
+			'JPY'              => [ 'JPY', 5000 ],
+			'UNKNOWN_CURRENCY' => [ 'UNKNOWN_CURRENCY', 50 ],
+			'ZMW - not known'  => [ 'ZMW', 50 ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_get_minimum_amount
+	 */
+	public function test_get_minimum_amount( string $currency, int $expected ): void {
+		$currency_filter = function () use ( $currency ) {
+			return $currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+
+		$minimum_amount = WC_Stripe_Helper::get_minimum_amount();
+
+		remove_filter( 'woocommerce_currency', $currency_filter );
+
+		$this->assertEquals( $expected, $minimum_amount );
 	}
 }

@@ -7,9 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Bancontact Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
 
+	/**
+	 * Legacy payment method class reference.
+	 *
+	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
+	 */
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Bancontact::class;
 
 	/**
@@ -28,9 +34,10 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 			'woocommerce-gateway-stripe'
 		);
 		if ( $is_sepa_tokens_for_bancontact_enabled ) {
-			$this->supports[] = 'subscriptions';
 			$this->supports[] = 'tokenization';
-			$this->supports[] = 'multiple_subscriptions';
+
+			// Check if subscriptions are enabled and add support for them.
+			$this->maybe_init_subscriptions();
 		}
 
 		// Add support for pre-orders.

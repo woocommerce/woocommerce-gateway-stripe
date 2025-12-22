@@ -46,8 +46,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
 
 		if ( null === $express_checkout_configuration ) {
-			$helper = new WC_Stripe_Express_Checkout_Helper();
-			$ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
+			$helper                         = new WC_Stripe_Express_Checkout_Helper();
+			$ajax_handler                   = new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
 			$express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
 		}
 		$this->express_checkout_configuration = $express_checkout_configuration;
@@ -103,11 +103,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			true
 		);
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$this->register_upe_payment_method_script_handles();
-		} else {
-			$this->register_legacy_payment_method_script_handles();
-		}
+		$this->register_upe_payment_method_script_handles();
 
 		return [ 'wc-stripe-blocks-integration' ];
 	}
@@ -184,14 +180,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		$js_params = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_stripe_ece_enabled()
-			? $this->get_express_checkout_javascript_params()
-			: $this->get_payment_request_javascript_params();
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
 		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
-			$js_params,
+			$this->get_express_checkout_javascript_params(),
 			// Blocks-specific options
 			[
 				'icons'                           => $this->get_icons(),
@@ -229,35 +222,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return boolean True if ECEs should be displayed, false otherwise.
 	 */
 	private function should_show_express_checkout_button() {
-		// Don't show if ECEs are turned off in settings.
-		if ( ! $this->express_checkout_configuration->express_checkout_helper->is_express_checkout_enabled() ) {
-			return false;
-		}
-
-		// Don't show if ECEs are supposed to be hidden on the cart page.
-		if (
-			has_block( 'woocommerce/cart' )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_cart_page()
-		) {
-			return false;
-		}
-
-		// Don't show if ECEs are supposed to be hidden on the checkout page.
-		if (
-			has_block( 'woocommerce/checkout' )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_checkout_page()
-		) {
-			return false;
-		}
-
-		// Don't show ECEs if there are unsupported products in the cart.
-		if (
-			( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->allowed_items_in_cart()
-		) {
-			return false;
-		}
-
 		return $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button();
 	}
 

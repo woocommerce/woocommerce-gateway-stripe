@@ -1,12 +1,8 @@
-/* global wc_stripe_payment_request_settings_params */
-
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import ExpressCheckoutButtonPreview from './express-checkout-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
 	Card,
@@ -16,11 +12,11 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonType,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonTheme,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutLocations,
+	useExpressCheckoutButtonType,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonTheme,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
@@ -115,14 +111,12 @@ const buttonThemeOptions = [
 ];
 
 const ExpressCheckoutSettingsSection = () => {
-	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
-	const [ size, setSize ] = usePaymentRequestButtonSize();
-	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
+	const [ buttonType, setButtonType ] = useExpressCheckoutButtonType();
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
+	const [ theme, setTheme ] = useExpressCheckoutButtonTheme();
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const isECEEnabled =
-		wc_stripe_payment_request_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -134,20 +128,20 @@ const ExpressCheckoutSettingsSection = () => {
 		);
 	}, [ testPublishableKey, publishableKey, accountId ] );
 
-	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+	const [ isExpressCheckoutEnabled ] = useExpressCheckoutEnabledSettings();
 
-	const [ paymentRequestLocations, updatePaymentRequestLocations ] =
-		usePaymentRequestLocations();
+	const [ expressCheckoutLocations, updateExpressCheckoutLocations ] =
+		useExpressCheckoutLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
-			updatePaymentRequestLocations( [
-				...paymentRequestLocations,
+			updateExpressCheckoutLocations( [
+				...expressCheckoutLocations,
 				location,
 			] );
 		} else {
-			updatePaymentRequestLocations(
-				paymentRequestLocations.filter( ( name ) => name !== location )
+			updateExpressCheckoutLocations(
+				expressCheckoutLocations.filter( ( name ) => name !== location )
 			);
 		}
 	};
@@ -195,10 +189,10 @@ const ExpressCheckoutSettingsSection = () => {
 				<ul className="payment-request-settings__location">
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isExpressCheckoutEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'checkout' )
+								isExpressCheckoutEnabled &&
+								expressCheckoutLocations.includes( 'checkout' )
 							}
 							onChange={ makeLocationChangeHandler( 'checkout' ) }
 							label={ __(
@@ -209,10 +203,10 @@ const ExpressCheckoutSettingsSection = () => {
 					</li>
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isExpressCheckoutEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'product' )
+								isExpressCheckoutEnabled &&
+								expressCheckoutLocations.includes( 'product' )
 							}
 							onChange={ makeLocationChangeHandler( 'product' ) }
 							label={ __(
@@ -223,10 +217,10 @@ const ExpressCheckoutSettingsSection = () => {
 					</li>
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isExpressCheckoutEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'cart' )
+								isExpressCheckoutEnabled &&
+								expressCheckoutLocations.includes( 'cart' )
 							}
 							onChange={ makeLocationChangeHandler( 'cart' ) }
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
@@ -270,18 +264,12 @@ const ExpressCheckoutSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					{ isECEEnabled ? (
-						<ExpressCheckoutPreviewComponent
-							stripe={ stripePromise }
-							buttonType={ buttonType }
-							theme={ theme }
-							size={ size }
-						/>
-					) : (
-						<Elements stripe={ stripePromise }>
-							<ExpressCheckoutButtonPreview />
-						</Elements>
-					) }
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						buttonType={ buttonType }
+						theme={ theme }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>

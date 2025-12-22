@@ -73,18 +73,10 @@ class WC_Stripe_UPE_StripeLink_Note {
 	 * @throws \Automattic\WooCommerce\Admin\Notes\NotesUnavailableException
 	 */
 	public static function init( WC_Stripe_Payment_Gateway $gateway ) {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return;
-		}
-
 		// Check if Link payment is available.
 		$available_upe_payment_methods = $gateway->get_upe_available_payment_methods();
 
 		if ( ! in_array( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, $available_upe_payment_methods, true ) ) {
-			return;
-		}
-
-		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return;
 		}
 

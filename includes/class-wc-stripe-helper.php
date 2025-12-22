@@ -256,7 +256,8 @@ class WC_Stripe_Helper {
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
-			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
+			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
+			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
 	}
 
@@ -377,8 +378,12 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks Stripe minimum order value authorized per currency
+	 *
+	 * @see https://docs.stripe.com/currencies#minimum-and-maximum-charge-amounts
+	 *
+	 * @return int The minimum amount in the smallest currency unit.
 	 */
-	public static function get_minimum_amount() {
+	public static function get_minimum_amount(): int {
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
 			case WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR:
@@ -387,6 +392,9 @@ class WC_Stripe_Helper {
 			case WC_Stripe_Currency_Code::SWISS_FRANC:
 			case WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR:
 			case WC_Stripe_Currency_Code::SINGAPORE_DOLLAR:
+			case WC_Stripe_Currency_Code::BRAZILIAN_REAL:
+			case WC_Stripe_Currency_Code::INDIAN_RUPEE:
+			case WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR:
 				$minimum_amount = 50;
 				break;
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -403,10 +411,23 @@ class WC_Stripe_Helper {
 				$minimum_amount = 5000;
 				break;
 			case WC_Stripe_Currency_Code::MEXICAN_PESO:
+			case WC_Stripe_Currency_Code::THAI_BAHT:
 				$minimum_amount = 1000;
+				break;
+			case WC_Stripe_Currency_Code::CZECH_KORUNA:
+				$minimum_amount = 1500;
 				break;
 			case WC_Stripe_Currency_Code::HONG_KONG_DOLLAR:
 				$minimum_amount = 400;
+				break;
+			case WC_Stripe_Currency_Code::HUNGARIAN_FORINT:
+				$minimum_amount = 17500;
+				break;
+			case WC_Stripe_Currency_Code::UNITED_ARAB_EMIRATES_DIRHAM:
+			case WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT:
+			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				$minimum_amount = 200;
 				break;
 			default:
 				$minimum_amount = 50;
@@ -609,93 +630,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Get settings of individual legacy payment methods.
-	 *
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
-	 */
-	public static function get_legacy_individual_payment_method_settings() {
-		$stripe_settings = self::get_stripe_settings();
-		$payment_methods = self::get_legacy_payment_methods();
-
-		$payment_method_settings = [
-			WC_Stripe_Payment_Methods::CARD => [
-				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
-				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
-			],
-		];
-
-		foreach ( $payment_methods as $payment_method ) {
-			$settings = [
-				'name'        => $payment_method->get_option( 'title' ),
-				'description' => $payment_method->get_option( 'description' ),
-			];
-
-			$unique_settings = $payment_method->get_unique_settings();
-			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
-				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
-			}
-
-			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
-
-			$payment_method_settings[ $payment_method_id ] = $settings;
-		}
-
-		return $payment_method_settings;
-	}
-
-	/**
-	 * Get settings of individual upe payment methods.
-	 *
-	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
-	 */
-	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$payment_method_settings = [];
-		$available_gateways      = $gateway->get_upe_available_payment_methods();
-
-		foreach ( $available_gateways as $gateway ) {
-			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
-
-			$settings = [
-				'name'        => isset( $individual_gateway_settings['title'] ) ? $individual_gateway_settings['title'] : '',
-				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
-			];
-
-			if ( in_array( $gateway, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
-				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
-			}
-
-			$payment_method_settings[ $gateway ] = $settings;
-		}
-
-		// If card settings are not set, get it from the default Stripe settings which might be set before enabling UPE.
-		if ( ! isset( $payment_method_settings['card']['title'] ) && ! isset( $payment_method_settings['card']['description'] ) ) {
-			$stripe_settings = self::get_stripe_settings();
-			$title           = isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '';
-			$description     = isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '';
-
-			$payment_method_settings['card'] = [
-				'name'        => $title,
-				'description' => $description,
-			];
-			// Save the title and description to the card settings option.
-			update_option(
-				'woocommerce_stripe_card_settings',
-				[
-					'title'       => $title,
-					'description' => $description,
-				]
-			);
-		}
-
-		return $payment_method_settings;
-	}
-
-	/**
 	 * Returns the list of ordered payment methods for the settings page when UPE is enabled.
 	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
 	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
@@ -809,14 +743,9 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = self::get_stripe_settings();
 
-			if ( $is_upe_enabled ) {
-				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
-			} else {
-				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
-			}
+			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
 
 			if ( empty( $ordered_payment_method_ids ) ) {
 				return;
@@ -2043,5 +1972,23 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
+
+	/**
+	 * Checks if the verbose debug mode is enabled.
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_verbose_debug_mode_enabled(): bool {
+		/**
+		 * Filters the flag that decides if the verbose debug mode is enabled.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param bool $enabled True if enabled, false otherwise.
+		 *
+		 * @return bool True if enabled, false otherwise.
+		*/
+		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
 	}
 }

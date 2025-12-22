@@ -305,14 +305,14 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function provide_get_payment_method_configuration_from_stripe_tests(): array {
 		return [
-			'no_pmcs_returned' => [
+			'no_pmcs_returned'                             => [
 				'mock_pmc_response'        => [],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => false,
 			],
-			'only_live_child_pmc_returned' => [
+			'only_live_child_pmc_returned'                 => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
@@ -340,7 +340,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => false,
 			],
-			'only_test_child_pmc_returned' => [
+			'only_test_child_pmc_returned'                 => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
@@ -368,7 +368,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => true,
 			],
-			'only_live_non_child_default_pmc_returned' => [
+			'only_live_non_child_default_pmc_returned'     => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
@@ -410,7 +410,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'only_test_non_child_default_pmc_returned' => [
+			'only_test_non_child_default_pmc_returned'     => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
@@ -586,7 +586,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @dataProvider provide_get_payment_method_configuration_from_stripe_tests()
 	 */
 	public function test_get_payment_method_configuration_from_stripe( array $mock_pmc_response, ?string $expected_pmc_id, ?string $expected_fallback_pmc_id, ?string $initial_fallback_pmc_id = null, bool $is_test_mode = false ) {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
 		$settings['testmode'] = $is_test_mode ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
@@ -639,6 +639,235 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 
 		if ( null !== $expected_pmc_id && null !== $expected_fallback_pmc_id ) {
 			$this->assertEquals( $expected_fallback_pmc_id, $primary_pmc->id );
+		}
+	}
+
+	/**
+	 * Provide test cases for {@see test_get_configuration_id()}.
+	 *
+	 * @return array
+	 */
+	public function provide_get_configuration_id_tests(): array {
+		return [
+			'PMC is disabled - live'                       => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => false,
+				'account_connected'         => true,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'PMC is disabled - test'                       => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => false,
+				'account_connected'         => true,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Account is not connected - live'              => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => false,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Account is not connected - test'              => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => false,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Does not have a primary configuration - live' => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Does not have a primary configuration - test' => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => false,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Has a primary configuration with no id - live' => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Has a primary configuration with no id - test' => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => null,
+				'from_cache'                => false,
+				'expected_configuration_id' => null,
+			],
+			'Has a cached primary configuration with no id - live' => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => null,
+				'from_cache'                => true,
+				'expected_configuration_id' => null,
+			],
+			'Has a cached primary configuration with no id - test' => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => null,
+				'from_cache'                => true,
+				'expected_configuration_id' => null,
+			],
+			'Has a primary configuration with an id - live' => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => 'pmc_12345',
+				'from_cache'                => false,
+				'expected_configuration_id' => 'pmc_12345',
+			],
+			'Has a primary configuration with an id - test' => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => 'pmc_12345',
+				'from_cache'                => false,
+				'expected_configuration_id' => 'pmc_12345',
+			],
+			'Has a cached primary configuration with an id - live' => [
+				'is_test_mode'              => false,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => 'pmc_12345',
+				'from_cache'                => true,
+				'expected_configuration_id' => 'pmc_12345',
+			],
+			'Has a cached primary configuration with an id - test' => [
+				'is_test_mode'              => true,
+				'pmc_enabled'               => true,
+				'account_connected'         => true,
+				'has_primary_configuration' => true,
+				'primary_configuration_id'  => 'pmc_12345',
+				'from_cache'                => true,
+				'expected_configuration_id' => 'pmc_12345',
+			],
+		];
+	}
+	/**
+	 * Tests for `get_configuration_id`.
+	 *
+	 * @dataProvider provide_get_configuration_id_tests()
+	 * @param bool        $is_test_mode              Whether test mode should be enabled.
+	 * @param bool        $pmc_enabled               Whether the PMC is enabled.
+	 * @param bool        $account_connected         Whether the account is connected.
+	 * @param bool        $has_primary_configuration Whether a primary configuration should be returned.
+	 * @param string|null $primary_configuration_id  The ID of the returned primary configuration.
+	 * @param bool        $from_cache                Should the mock configuration be set in the cache.
+	 * @param string|null $expected_configuration_id The expected configuration ID.
+	 * @return void
+	 */
+	public function test_get_configuration_id(
+		bool $is_test_mode,
+		bool $pmc_enabled,
+		bool $account_connected,
+		bool $has_primary_configuration,
+		?string $primary_configuration_id,
+		bool $from_cache,
+		?string $expected_configuration_id
+	): void {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings         = $initial_settings;
+
+		$settings['testmode']    = $is_test_mode ? 'yes' : 'no';
+		$settings['pmc_enabled'] = $pmc_enabled ? 'yes' : 'no';
+		if ( $account_connected ) {
+			if ( $is_test_mode ) {
+				$settings['test_publishable_key'] = 'pk_test_1234567890';
+				$settings['test_secret_key']      = 'sk_test_1234567890';
+				$settings['test_connection_type'] = 'connect';
+			} else {
+				$settings['publishable_key'] = 'pk_live_1234567890';
+				$settings['secret_key']      = 'sk_live_1234567890';
+				$settings['connection_type'] = 'connect';
+			}
+		} elseif ( $is_test_mode ) {
+				unset( $settings['test_publishable_key'] );
+				unset( $settings['test_secret_key'] );
+				unset( $settings['test_connection_type'] );
+		} else {
+			unset( $settings['publishable_key'] );
+			unset( $settings['secret_key'] );
+			unset( $settings['connection_type'] );
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$mock_configurations = [];
+		if ( $has_primary_configuration ) {
+			$mock_configurations[] = (object) [
+				'id'     => $primary_configuration_id,
+				'parent' => null,
+				'active' => true,
+			];
+		}
+
+		// Mock API to return the mock configurations from above.
+		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		// Don't test for a specific count of calls, as the method may or may not be called, and that
+		// is not what we are trying to test here.
+		$mock_api->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => $mock_configurations ] );
+
+		$reflection = new ReflectionClass( \WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		if ( $from_cache && $has_primary_configuration ) {
+			\WC_Stripe_Database_Cache::set( \WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, $mock_configurations[0] );
+		}
+
+		$configuration_id = \WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+
+		// Reset settings and API instance before running assertions.
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		$property->setValue( null, null );
+		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		if ( null === $expected_configuration_id ) {
+			$this->assertNull( $configuration_id );
+		} else {
+			$this->assertEquals( $expected_configuration_id, $configuration_id );
 		}
 	}
 }

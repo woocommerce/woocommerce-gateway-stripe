@@ -1,6 +1,62 @@
 *** Changelog ***
 
-= 10.1.0 - xxxx-xx-xx =
+= 10.3.0 - xxxx-xx-xx =
+* Dev - Renames all express checkout related frontend hooks
+* Dev - Removes deprecated legacy checkout settings retrieval methods
+* Dev - Removes all references to the UPE-enabled feature flag
+* Dev - Removes deprecated promotional banners (related to legacy checkout)
+* Fix - Error when using Puerto Rico addresses with express checkouts
+* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
+* Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
+* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
+* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
+* Fix - Fix some initialization bugs for reconnections
+* Fix - Update Ukraine state mapping list
+* Update - Add `wc_stripe_customer_data_preferred_source` filter to make it possible to get customer details from WooCommerce customer object
+
+= 10.2.0 - 2025-12-08 =
+* Dev - Refactor display logic for payment method issue pills
+* Update - Improves the error log for SSL connection missing when trying to render the express checkout buttons
+* Update - Better notices and interactions for disabled express checkout methods
+* Update - Enable the Optimized Checkout Suite feature for all new installations
+* Dev - Deprecates all the legacy checkout payment method classes
+* Dev - Deprecates all the LPM class constants
+* Dev - Remove all references to the UPE-enabled feature flag
+* Dev - Removing all usages of the `is_stripe_ece_enabled` feature flag method
+* Dev - Expands the Stripe Order Helper class to handle mandate ID, Multibanco data, refund status, card brand, charge captured flag, status final flag, and the refund failure reason
+* Dev - Remove the merchant email address from the System Status Report
+* Dev - Replace the constant reference for the legacy SEPA payment method
+* Update - Changes the list of payment methods shown in the Stripe account connection modal
+* Update - Changes labels related to saved payment methods from "cards" to "payment methods"
+* Fix - Ensure Amazon Pay, Apple Pay, and Google Pay display settings are managed correctly
+* Dev - Add logging with DNS resolution diagnostics for URL validation issues when calling Stripe API
+* Fix - Allow payment methods to be disabled when they are not available
+* Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
+* Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
+* Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
+* Fix - Disable express checkout when Amazon Pay is disabled and the only method
+* Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
+* Update - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
+* Dev - Add additional context data to the OAuth connect flow verbose debug logging mode
+* Fix - Make token detachment checks use shared logic for detaching payment methods
+* Fix - Ensure express payment methods are processed correctly when Optimized Checkout is enabled
+* Update - Include customer data in wc_stripe_create_customer_required_fields filter
+* Fix - Fix error handling when processing subscription renewals
+* Fix - Use the built-in Database Cache for the Connect flow data
+* Add - Implement cache prefetch for account data
+* Tweak - Hide Amazon Pay from the standard payments in Optimized Checkout
+* Fix - Always use the current payment method configuration in Optimized Checkout
+* Fix - Fix revoked secret_key error during the OAuth account connection flow
+* Add - Add wc_stripe_express_checkout_normalize_address filter for express checkout address normalization
+* Update - Expand Amazon Pay support for all permitted currencies and countries
+* Add - Allow cache prefetch window to be adjusted via the wc_stripe_database_cache_prefetch_window filter
+* Fix - Respect button.radius value of 0 in Express Checkout Element appearance settings
+* Fix - Prefill customer billing information on the Pay for Order and Change Payment Method pages
+* Fix - Exclude order parameter from customer request data
+* Fix - Generate OAuth URLs on-demand when connecting to Stripe instead of pre-generating them on page load
+
+= 10.1.0 - 2025-11-11 =
 * Dev - Remove unused `shouldShowPaymentRequestButton` parameter and calculations from backend
 * Fix - Improves the error message shown in checkout when a saved payment method is no longer valid
 * Fix - Fix fatal error when trying to allow the `display` CSS property using the `safe_style_css` filter
@@ -28,7 +84,11 @@
 * Fix - Detect WooCommerce Subscriptions staging sites when checking if payments can be detached
 * Fix - Fix saved ACH payment methods sending unsupported capture_method parameter causing checkout failures
 * Dev - Add Stripe's masked API key to API request/response logs
-* Update - Add `wc_stripe_customer_data_preferred_source` to make it possible to get customer details from WooCommerce customer object
+* Add - Add wc_stripe_is_amazon_pay_available filter to override Amazon Pay feature flag
+* Dev - Add verbose debug logging mode to the OAuth connect flow
+* Fix - Disable Amazon Pay when taxes are based on billing address and add notices with details
+* Fix - Fix express checkout error for a Saudi Arabian address without state and postal code
+* Fix - Ensure we have a fallback for shipping rate names in classic checkout
 
 = 10.0.1 - 2025-10-15 =
 * Fix - Remove persistent reconnection notices

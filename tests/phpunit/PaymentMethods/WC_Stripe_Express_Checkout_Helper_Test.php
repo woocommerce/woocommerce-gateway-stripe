@@ -44,6 +44,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			$this->shipping_zone->delete();
 		}
 
+		delete_option( 'woocommerce_calc_taxes' );
+		delete_option( 'woocommerce_tax_based_on' );
+
 		parent::tear_down();
 	}
 
@@ -100,16 +103,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			remove_filter( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', '__return_true' );
 		}
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-			[ $gateway ]
-		);
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
 
 		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
@@ -271,16 +268,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-			[ $gateway ]
-		);
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->onlyMethods( [ 'is_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->getMock();
+
 		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
@@ -325,16 +317,14 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_hides_ece_if_free_trial_requires_shipping() {
 		$this->set_up_shipping_methods();
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_product',
-				'get_product',
-				'allowed_items_in_cart',
-				'should_show_ece_on_cart_page',
-				'should_show_ece_on_checkout_page',
-			],
-		);
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $mock_gateway ] )
+			->onlyMethods( [ 'is_product', 'get_product', 'allowed_items_in_cart', 'should_show_ece_on_cart_page', 'should_show_ece_on_checkout_page' ] )
+			->getMock();
 
 		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
@@ -980,6 +970,112 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `is_cart`.
+	 *
+	 * @return void
+	 */
+	public function test_is_cart(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$actual = $helper->is_cart();
+
+		// Clean up.
+		remove_filter( 'woocommerce_is_cart', '__return_true' );
+
+		$this->assertTrue( $actual );
+
+		$actual = $helper->is_cart();
+
+		$this->assertFalse( $actual );
+	}
+
+	/**
+	 * Tests for `get_button_locations`.
+	 *
+	 * @param string $express_checkout_type Express checkout type.
+	 * @param array  $settings              Settings array.
+	 * @param array  $expected              Expected locations.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_button_locations
+	 */
+	public function test_get_button_locations( string $express_checkout_type, array $settings = [], $expected = [] ): void {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		$actual = $helper->get_button_locations( $express_checkout_type );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_test_get_button_locations(): array {
+		return [
+			'payment request, settings exists' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'payment request, settings exists, but not a valid array' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'payment request, settings do not exist' => [
+				'express checkout type' => 'payment_request',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'link, settings exists' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
+				'expected'              => [ 'cart' ],
+			],
+			'link, settings exists, but not a valid array' => [
+				'express checkout type' => 'link',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'link, settings do not exist' => [
+				'express checkout type' => 'link',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'amazon pay, settings exists' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
+				'expected'              => [ 'checkout' ],
+			],
+			'amazon pay, settings exists, but not a valid array' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'amazon pay, settings do not exist' => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'default, settings exists' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
+				'expected'              => [ 'checkout', 'cart' ],
+			],
+			'default, settings exists, but not a valid array' => [
+				'express checkout type' => 'default',
+				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
+				'expected'              => [],
+			],
+			'default, settings do not exist' => [
+				'express checkout type' => 'default',
+				'settings'              => [],
+				'expected'              => [ 'product', 'cart' ],
+			],
+		];
+	}
+
+	/**
 	 * Test that OPC detection logic works correctly.
 	 *
 	 * @dataProvider provide_opc_detection_scenarios
@@ -999,17 +1095,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$wc_stripe_ece_helper_mock = $this->createPartialMock(
-			WC_Stripe_Express_Checkout_Helper::class,
-			[
-				'is_one_page_checkout',
-				'is_product',
-				'is_checkout',
-				'allowed_items_in_cart',
-				'get_product',
-			],
-			[ $gateway ]
-		);
+		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->onlyMethods( [ 'is_one_page_checkout', 'is_product', 'is_checkout', 'allowed_items_in_cart', 'get_product' ] )
+			->getMock();
 
 		// Create a mock product.
 		$product = WC_Helper_Product::create_simple_product();
@@ -1053,5 +1142,159 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'OPC with checkout disabled'    => [ true, [ 'product' ], false ],
 			'OPC with both enabled'         => [ true, [ 'checkout', 'product' ], true ],
 		];
+	}
+
+	/**
+	 * Test that the express checkout button is shown or hidden when Amazon Pay is the only enabled method.
+	 *
+	 * @param bool   $taxes_enabled Whether taxes are enabled.
+	 * @param string $tax_based_on  The tax based on option.
+	 * @param bool   $expected      Expected result.
+	 * @return void
+	 * @dataProvider provide_test_should_show_express_checkout_button_with_amazon_pay_only
+	 */
+	public function test_should_show_express_checkout_button_with_amazon_pay_only( bool $taxes_enabled, string $tax_based_on, bool $expected ): void {
+		update_option( 'woocommerce_calc_taxes', $taxes_enabled ? 'yes' : 'no' );
+		update_option( 'woocommerce_tax_based_on', $tax_based_on );
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_amazon_pay_enabled', 'is_payment_request_enabled', 'is_link_enabled' ] )
+			->getMock();
+
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_payment_request_enabled' )->willReturn( false );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->testmode = true;
+
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
+		];
+
+		$result = $helper->should_show_express_checkout_button();
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		$this->assertEquals( $expected, $result );
+	}
+
+	/**
+	 * Data provider for {@see test_should_show_express_checkout_button_with_amazon_pay_only()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_express_checkout_button_with_amazon_pay_only(): array {
+		return [
+			'taxes enabled, billing address' => [ true, 'billing', false ],
+			'taxes disabled, billing address' => [ false, 'billing', true ],
+			'taxes enabled, shipping address' => [ true, 'shipping', true ],
+			'taxes disabled, shipping address' => [ false, 'shipping', true ],
+		];
+	}
+
+	/**
+	 * Data provider for {@see test_amazon_pay_is_available()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_amazon_pay_is_available(): array {
+		return [
+			'feature flag disabled, payment method enabled, US account, USD currency' => [ false, true, 'US', 'USD', false ],
+			'feature flag enabled, payment method enabled, US account, USD currency'  => [ true, true, 'US', 'USD', true ],
+			'feature flag enabled, payment method disabled, US account, USD currency' => [ true, false, 'US', 'USD', false ],
+			'feature flag enabled, payment method enabled, US account, EUR currency'  => [ true, true, 'US', 'EUR', false ],
+			'feature flag disabled, payment method enabled, AT account, EUR currency' => [ false, true, 'AT', 'EUR', false ],
+			'feature flag enabled, payment method enabled, AT account, EUR currency'  => [ true, true, 'AT', 'EUR', true ],
+			'feature flag enabled, payment method disabled, AT account, EUR currency' => [ true, false, 'AT', 'EUR', false ],
+			'feature flag enabled, payment method enabled, AT account, USD currency'  => [ true, true, 'AT', 'USD', true ],
+			'feature flag enabled, payment method enabled, BE account, CAD currency'  => [ true, true, 'BE', 'CAD', false ],
+			'feature flag enabled, payment method enabled, CA account, USD currency'  => [ true, true, 'CA', 'USD', false ],
+			'feature flag enabled, payment method enabled, DE account, HKD currency'  => [ true, true, 'DE', 'HKD', true ],
+			'feature flag enabled, payment method enabled, HU account, HUF currency'  => [ true, true, 'HU', 'HUF', false ],
+			'feature flag enabled, payment method enabled, IE account, ZAR currency'  => [ true, true, 'IE', 'ZAR', true ],
+			'feature flag enabled, payment method enabled, IT account, JPY currency'  => [ true, true, 'IT', 'JPY', true ],
+			'feature flag enabled, payment method enabled, LU account, EUR currency'  => [ true, true, 'LU', 'EUR', true ],
+			'feature flag enabled, payment method enabled, NL account, EUR currency'  => [ true, true, 'NL', 'EUR', true ],
+			'feature flag enabled, payment method enabled, PT account, EUR currency'  => [ true, true, 'PT', 'EUR', true ],
+			'feature flag enabled, payment method enabled, ES account, EUR currency'  => [ true, true, 'ES', 'EUR', true ],
+			'feature flag enabled, payment method enabled, SE account, EUR currency'  => [ true, true, 'SE', 'EUR', true ],
+		];
+	}
+
+	/**
+	 * Test the `is_amazon_pay_enabled()` method.
+	 *
+	 * @param bool   $feature_flag_enabled   Whether the feature flag is enabled.
+	 * @param bool   $payment_method_enabled Whether the payment method is enabled.
+	 * @param string $account_country        The country code for the Stripe account.
+	 * @param string $currency               The currency of the store.
+	 * @param bool   $expected_availability  The expected availability.
+	 * @dataProvider provide_test_amazon_pay_is_available
+	 */
+	public function test_amazon_pay_is_available(
+		bool $feature_flag_enabled,
+		bool $payment_method_enabled,
+		string $account_country,
+		string $currency,
+		bool $expected_availability
+	): void {
+		$feature_flag_value = $feature_flag_enabled ? 'yes' : 'no';
+		update_option( \WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, $feature_flag_value );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids' ] )
+			->getMock();
+
+		$payment_method_ids = [ \WC_Stripe_Payment_Methods::CARD, \WC_Stripe_Payment_Methods::KLARNA ];
+		if ( $payment_method_enabled ) {
+			$payment_method_ids[] = \WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+		$gateway->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( $payment_method_ids );
+
+		$inject_gateway = \Closure::bind(
+			function ( $gateway ) {
+				$this->stripe_gateway = $gateway;
+			},
+			\WC_Stripe::get_instance(),
+			\WC_Stripe::class
+		);
+		$inject_gateway( $gateway );
+
+		$mock_helper = $this->getMockBuilder( \WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'is_checkout', 'is_cart' ] )
+			->getMock();
+
+		$mock_helper->method( 'is_product' )->willReturn( false );
+		$mock_helper->method( 'is_checkout' )->willReturn( false );
+		$mock_helper->method( 'is_cart' )->willReturn( false );
+
+		$mock_account = $this->createMock( \WC_Stripe_Account::class );
+		$mock_account->method( 'get_account_country' )
+			->willReturn( $account_country );
+
+		$stripe_instance = \WC_Stripe::get_instance();
+		$initial_account = $stripe_instance->account;
+		$stripe_instance->account = $mock_account;
+
+		$currency_filter = function () use ( $currency ) {
+			return $currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+
+		$result = $mock_helper->is_amazon_pay_enabled();
+
+		// Reset account and filters before asserting.
+		$stripe_instance->account = $initial_account;
+		remove_filter( 'woocommerce_currency', $currency_filter );
+		$inject_gateway( null );
+
+		if ( $expected_availability ) {
+			$this->assertTrue( $result, 'Amazon Pay should be enabled' );
+		} else {
+			$this->assertFalse( $result, 'Amazon Pay should be disabled' );
+		}
 	}
 }

@@ -48,16 +48,13 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'prepare_order_source', 'has_subscription' ] )
+			->onlyMethods( [ 'prepare_order_source', 'has_subscription' ] )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->wc_gateway_stripe
-			->expects( $this->any() )
 			->method( 'has_subscription' )
-			->will(
-				$this->returnValue( true )
-			);
+			->willReturn( true );
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
@@ -390,5 +387,117 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Clean up.
 		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
+	}
+
+	public function test_missing_customer() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$source        = 'src_123abc';
+
+		// Mock prepare_order_source() to return a missing customer.
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => null,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$thrown_exception = null;
+		$error_helper     = function ( $exception, $order ) use ( &$thrown_exception, $renewal_order ) {
+			if ( $order && $order->get_id() === $renewal_order->get_id() ) {
+				$thrown_exception = $exception;
+			}
+		};
+
+		\add_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10, 2 );
+
+		// Process via the mocked gateway.
+		$this->wc_gateway_stripe->process_subscription_payment( $renewal_order->get_total(), $renewal_order, false, false );
+
+		\remove_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10 );
+
+		$this->assertEquals( \Automattic\WooCommerce\Enums\OrderStatus::FAILED, $renewal_order->get_status() );
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $thrown_exception );
+
+		$expected_raw_error       = 'Failed to process renewal for order ' . $renewal_order->get_id() . '. Stripe customer id is missing in the order';
+		$expected_localized_error = __( 'Customer not found', 'woocommerce-gateway-stripe' );
+
+		$this->assertEquals( $expected_raw_error, $thrown_exception->getMessage() );
+		$this->assertEquals( $expected_localized_error, $thrown_exception->getLocalizedMessage() );
+	}
+
+	public function test_payment_intent_returns_non_retryable_error() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$source        = 'src_123abc';
+		$customer      = 'cus_123abc';
+
+		// Mock prepare_order_source() to return a valid customer.
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$mock_error = (object) [
+			'error' => (object) [
+				'type'    => 'card_error',
+				'code'    => 'card_declined',
+				'message' => 'Mock card declined error',
+			],
+		];
+
+		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
+		// Note: There are assertions in the callback function.
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $mock_error ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => json_encode( $mock_error ),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+			];
+		};
+		\add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		$thrown_exception = null;
+		$error_helper     = function ( $exception, $order ) use ( &$thrown_exception, $renewal_order ) {
+			if ( $order && $order->get_id() === $renewal_order->get_id() ) {
+				$thrown_exception = $exception;
+			}
+		};
+		\add_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10, 2 );
+
+		$this->wc_gateway_stripe->process_subscription_payment( $renewal_order->get_total(), $renewal_order, false, false );
+
+		\remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		\remove_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10 );
+
+		$this->assertEquals( \Automattic\WooCommerce\Enums\OrderStatus::FAILED, $renewal_order->get_status() );
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $thrown_exception );
+
+		$expected_raw_error       = print_r( $mock_error, true );
+		$expected_localized_error = __( 'The card was declined.', 'woocommerce-gateway-stripe' );
+
+		$this->assertEquals( $expected_raw_error, $thrown_exception->getMessage() );
+		$this->assertEquals( $expected_localized_error, $thrown_exception->getLocalizedMessage() );
 	}
 }

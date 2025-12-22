@@ -13,6 +13,11 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
 
+	/**
+	 * Legacy payment method class reference.
+	 *
+	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
+	 */
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Multibanco::class;
 
 	/**
@@ -73,7 +78,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param bool     $plain_text
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = WC_Stripe_Order_Helper::get_instance()->get_stripe_multibanco_data( $order );
 		if ( ! $data ) {
 			return;
 		}
@@ -114,8 +119,8 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Saves Multibanco information to the order meta for later use.
 	 *
-	 * @param object $order
-	 * @param object $payment_intent. The PaymentIntent object.
+	 * @param WC_Order $order
+	 * @param object   $payment_intent. The PaymentIntent object.
 	 */
 	public function save_instructions( $order, $payment_intent ) {
 		if ( empty( $payment_intent->next_action->multibanco_display_details ) ) {
@@ -128,7 +133,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'reference' => $payment_intent->next_action->multibanco_display_details->reference,
 		];
 
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_multibanco_data( $order, $data );
 	}
 
 	/**

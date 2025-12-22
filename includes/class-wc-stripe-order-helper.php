@@ -86,6 +86,55 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CARD_ID = '_stripe_card_id';
 
 	/**
+	 * Meta key for Stripe mandate ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
+
+	/**
+	 * Meta key for the Stripe Multibanco data.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_MULTIBANCO_DATA = '_stripe_multibanco';
+
+	/**
+	 * Meta key for the Stripe refund status.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_REFUND_STATUS = '_stripe_refund_status';
+
+	/**
+	 * Meta key for the Stripe card brand.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
+
+	/**
+	 * Meta key for Stripe charge captured.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CHARGE_CAPTURED = '_stripe_charge_captured';
+
+	/**
+	 * Meta key for Stripe status final.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
+
+	/**
+	 * Meta key for Stripe refund failure reason.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_REFUND_FAILURE_REASON = '_stripe_refund_failure_reason';
+
+	/**
 	 * Meta key for Stripe UPE payment type.
 	 *
 	 * @var string
@@ -502,6 +551,183 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function delete_stripe_card_id( ?WC_Order $order = null ) {
 		return $this->delete_order_meta( $order, self::META_STRIPE_CARD_ID );
+	}
+
+	/**
+	 * Gets the Stripe mandate ID for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_mandate_id( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_MANDATE_ID );
+	}
+
+	/**
+	 * Updates the Stripe mandate ID for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $mandate_id
+	 * @return false|void
+	 */
+	public function update_stripe_mandate_id( ?WC_Order $order = null, string $mandate_id = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_MANDATE_ID, $mandate_id );
+	}
+
+	/**
+	 * Gets the Stripe Multibanco data for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_multibanco_data( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_MULTIBANCO_DATA );
+	}
+
+	/**
+	 * Updates the Stripe Multibanco data for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param array $multibanco_data
+	 * @return false|void
+	 */
+	public function update_stripe_multibanco_data( ?WC_Order $order = null, array $multibanco_data = [] ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_MULTIBANCO_DATA, $multibanco_data );
+	}
+
+	/**
+	 * Updates the Stripe refund status for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $status
+	 * @return false|void
+	 */
+	public function update_stripe_refund_status( ?WC_Order $order = null, string $status = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_STATUS, $status );
+	}
+
+	/**
+	 * Updates the Stripe card brand for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $brand
+	 * @return false|void
+	 */
+	public function update_stripe_card_brand( ?WC_Order $order = null, string $brand = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_CARD_BRAND, $brand );
+	}
+
+	/**
+	 * Gets the Stripe refund failure reason for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_refund_failure_reason( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_REFUND_FAILURE_REASON );
+	}
+
+	/**
+	 * Updates the Stripe mandate ID for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $failure_reason
+	 * @return false|void
+	 */
+	public function update_stripe_refund_failure_reason( ?WC_Order $order = null, string $failure_reason = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_REFUND_FAILURE_REASON, $failure_reason );
+	}
+
+	/**
+	 * Deletes the Stripe refund failure reason for an order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_refund_failure_reason( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_REFUND_FAILURE_REASON );
+	}
+
+	/**
+	 * Gets whether charge was captured for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order The order to get the meta from.
+	 * @return false|string|null
+	 */
+	public function get_stripe_charge_captured( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED );
+	}
+
+	/**
+	 * Checks if charge was captured for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function is_stripe_charge_captured( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_stripe_charge_captured( $order ) );
+	}
+
+	/**
+	 * Sets whether charge was captured for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order $order The order to add the metadata to.
+	 * @param bool $captured  Whether the charge was captured.
+	 *
+	 * @return void
+	 */
+	public function set_stripe_charge_captured( WC_Order $order, bool $captured = true ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED, wc_bool_to_string( $captured ) );
+	}
+
+	/**
+	 * Checks if stripe status is final for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function is_stripe_status_final( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_STATUS_FINAL ) );
+	}
+
+	/**
+	 * Sets whether stripe status is final for order.
+	 *
+	 * @since 10.1.0
+	 *
+	 * @param WC_Order $order The order to add the metadata to.
+	 * @param bool $is_final  Whether the stripe status is final.
+	 *
+	 * @return void
+	 */
+	public function set_stripe_status_final( WC_Order $order, bool $is_final = true ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_STATUS_FINAL, wc_bool_to_string( $is_final ) );
 	}
 
 	/**
@@ -991,6 +1217,21 @@ class WC_Stripe_Order_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Helper function to get order meta data. The goal of the function is to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @param WC_Order|null $order The order to get meta for.
+	 * @param string $key The meta key to get.
+	 * @return false|string|null
+	 */
+	protected function get_order_meta( ?WC_Order $order, string $key ) {
+		if ( null === $order ) {
+			return false;
+		}
+
+		return $order->get_meta( $key, true );
 	}
 
 	/**
