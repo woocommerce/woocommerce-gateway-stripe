@@ -5338,6 +5338,12 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Parameter \#1 \$number of function round expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Parameter \#1 \$str of function trim expects string, string\|null given\.$#'
 			identifier: argument.type
 			count: 1
