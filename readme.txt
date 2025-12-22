@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
+* Dev - Add configuration and workflow for PHPStan
 * Update - Add `wc_stripe_customer_data_preferred_source` filter to make it possible to get customer details from WooCommerce customer object
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

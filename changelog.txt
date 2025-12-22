@@ -14,6 +14,7 @@
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
+* Dev - Add configuration and workflow for PHPStan
 * Update - Add `wc_stripe_customer_data_preferred_source` filter to make it possible to get customer details from WooCommerce customer object
 
 = 10.2.0 - 2025-12-08 =

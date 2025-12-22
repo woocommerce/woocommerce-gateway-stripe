@@ -156,6 +156,8 @@
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
+    "phpstan": "composer run-script phpstan",
+    "phpstan:baseline": "composer run-script phpstan:baseline",
     "test:e2e-setup": "./tests/e2e/bin/setup.sh",
     "test:e2e-up": "./tests/e2e/bin/up.sh",
     "test:e2e-down": "./tests/e2e/bin/down.sh",
