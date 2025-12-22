@@ -150,6 +150,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
 * Fix - Preserve express checkout button location settings when upgrading from older plugin versions
 * Fix - Fix some initialization bugs for reconnections
+* Fix - Update Ukraine state mapping list
 * Dev - Add configuration and workflow for PHPStan
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
