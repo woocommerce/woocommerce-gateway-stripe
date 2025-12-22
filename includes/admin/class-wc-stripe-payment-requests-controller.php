@@ -49,7 +49,7 @@ class WC_Stripe_Payment_Requests_Controller {
 		];
 		wp_localize_script(
 			'wc-stripe-payment-request-settings',
-			'wc_stripe_payment_request_settings_params',
+			'wc_stripe_express_checkout_settings_params',
 			$params
 		);
 
@@ -75,6 +75,6 @@ class WC_Stripe_Payment_Requests_Controller {
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
-		echo '<div class="wrap"><div id="wc-stripe-payment-request-settings-container"></div></div>';
+		echo '<div class="wrap"><div id="wc-stripe-express-checkout-settings-container"></div></div>';
 	}
 }
