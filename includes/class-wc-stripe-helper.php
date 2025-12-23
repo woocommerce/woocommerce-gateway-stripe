@@ -309,7 +309,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 10.3.0
 	 *
-	 * @param stdClass $response The response from the Stripe API.
+	 * @param stdClass|object $response The response from the Stripe API.
 	 *
 	 * @return string The localized error message.
 	 */
