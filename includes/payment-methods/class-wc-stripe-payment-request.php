@@ -1349,7 +1349,7 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		try { // @phpstan-ignore-line (return statement is added)
+		try {
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
@@ -1485,7 +1485,6 @@ class WC_Stripe_Payment_Request {
 			$data          += $this->build_display_items();
 			$data['result'] = 'success';
 
-			// @phpstan-ignore-next-line (return statement is added)
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );

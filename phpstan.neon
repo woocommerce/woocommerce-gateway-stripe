@@ -1,0 +1,19 @@
+includes:
+	- phpstan-baseline.neon
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	tmpDir: phpstan-tmp
+	level: 8
+	phpVersion: 70400
+	paths:
+		- woocommerce-gateway-stripe.php
+		- includes/
+	bootstrapFiles:
+		- vendor/autoload.php
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+	scanDirectories:
+		- phpstan-stubs
+	treatPhpDocTypesAsCertain: false
+	parallel:
+		maximumNumberOfProcesses: 4
