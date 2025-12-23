@@ -315,29 +315,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_localized_error_message_from_response( $response ) {
 		// Handle unexpected data in $response.
-		if ( ! is_object( $response ) || ! isset( $response->error, $response->error->type ) ) {
-			if ( isset( $response->error->message ) ) {
-				return $response->error->message;
-			}
-
+		if ( ! is_object( $response ) || ! isset( $response->error ) ) {
 			return '';
+		}
+
+		$error = $response->error;
+
+		$fallback_message = '';
+		if ( isset( $error->message ) && is_scalar( $error->message ) ) {
+			$fallback_message = (string) $error->message;
+		}
+
+		if ( ! isset( $error->type ) ) {
+			return $fallback_message;
 		}
 
 		$localized_messages = self::get_localized_messages();
 
-		if ( 'card_error' === $response->error->type ) {
-			if ( isset( $response->error->code ) && isset( $localized_messages[ $response->error->code ] ) ) {
-				return $localized_messages[ $response->error->code ];
+		if ( 'card_error' === $error->type ) {
+			if ( isset( $error->code ) && isset( $localized_messages[ $error->code ] ) ) {
+				return $localized_messages[ $error->code ];
 			}
 
-			return $response->error->message;
+			return $fallback_message;
 		}
 
-		if ( isset( $localized_messages[ $response->error->type ] ) ) {
-			return $localized_messages[ $response->error->type ];
+		if ( isset( $localized_messages[ $error->type ] ) ) {
+			return $localized_messages[ $error->type ];
 		}
 
-		return $response->error->message;
+		return $fallback_message;
 	}
 
 	/**

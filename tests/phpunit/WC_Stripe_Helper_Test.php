@@ -1058,6 +1058,35 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'response'         => (object) [ 'error' => (object) [ 'message' => 'Unexpected error' ] ],
 				'expected_message' => 'Unexpected error',
 			],
+			'Object response with object error, no type, and integer message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123 ] ],
+				'expected_message' => '123',
+			],
+			'Object response with object error, no type, and float message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123.45 ] ],
+				'expected_message' => '123.45',
+			],
+			'Object response with object error, no type, and boolean message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => true ] ],
+				'expected_message' => '1',
+			],
+			'Object response with object error, no type, and array message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, no type, and object message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => (object) [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, type, and object message property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type' => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
 			'Object response with valid card_error but no code property' => [
 				'response'         => (object) [
 					'error' => (object) [
@@ -1066,6 +1095,51 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 				'expected_message' => 'Unexpected card error',
+			],
+			'Object response with valid card_error, array message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, object message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, integer message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456,
+					],
+				],
+				'expected_message' => '456',
+			],
+			'Object response with valid card_error, float message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456.78,
+					],
+				],
+				'expected_message' => '456.78',
+			],
+			'Object response with valid card_error, boolean message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => false,
+					],
+				],
+				'expected_message' => '',
 			],
 		];
 	}
