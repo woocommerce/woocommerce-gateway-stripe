@@ -7,19 +7,17 @@ use WC_Stripe_Helper;
 use WP_UnitTestCase;
 
 /**
- * This stub assists IDE in recognizing PHPUnit tests.
+ * WC_Stripe_Express_Checkout_Controller_Test class
  *
  * @package WooCommerce_Stripe/Tests/WP_UnitTestCase
- * /
-
-/**
- * WC_Stripe_Express_Checkout_Controller_Test class
  */
 class WC_Stripe_Express_Checkout_Controller_Test extends WP_UnitTestCase {
 	/**
+	 * The controller instance.
+	 *
 	 * @var WC_Stripe_Express_Checkout_Controller
 	 */
-	protected $controller;
+	protected WC_Stripe_Express_Checkout_Controller $controller;
 
 	/**
 	 * Test suite set up.

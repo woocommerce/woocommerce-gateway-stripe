@@ -9,6 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 10.3.0
  */
 class WC_Stripe_Express_Checkout_Controller {
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
@@ -16,8 +19,10 @@ class WC_Stripe_Express_Checkout_Controller {
 
 	/**
 	 * Load admin scripts.
+	 *
+	 * @return void
 	 */
-	public function admin_scripts() {
+	public function admin_scripts(): void {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
 		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout-settings.asset.php';
 		$asset_metadata    = file_exists( $script_asset_path )
@@ -62,10 +67,14 @@ class WC_Stripe_Express_Checkout_Controller {
 
 	/**
 	 * Prints the admin options for the gateway.
-	 * Remove this action once we're fully migrated to UPE and move the wrapper in the `admin_options` method of the UPE gateway.
+	 *
+	 * TODO: Remove this action and move the wrapper in the `admin_options` method of the UPE gateway.
+	 *
+	 * @return void
 	 */
-	public function admin_options() {
+	public function admin_options(): void {
 		global $hide_save_button;
+
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
 		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
