@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/wc-stripe-express-checkout-button-states.php';
+
 /**
  * Known issues/inconsistencies:
  *    1. WC provides a dropdown list of states, but there's no state field in Chrome for the following countries:
