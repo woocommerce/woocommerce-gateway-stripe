@@ -141,6 +141,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.3.0 - xxxx-xx-xx =
 * Dev - Removes legacy checkout payment method classes
+* Dev - Renames the express checkout frontend main setting key
+* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
@@ -154,5 +156,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
+* Dev - Add configuration and workflow for PHPStan
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

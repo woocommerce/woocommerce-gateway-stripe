@@ -2,6 +2,8 @@
 
 = 10.3.0 - xxxx-xx-xx =
 * Dev - Removes legacy checkout payment method classes
+* Dev - Renames the express checkout frontend main setting key
+* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
@@ -15,6 +17,7 @@
 * Fix - Fix some initialization bugs for reconnections
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
+* Dev - Add configuration and workflow for PHPStan
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
