@@ -294,6 +294,21 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests for `maybe_redirect_to_stripe_settings`.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_redirect_to_stripe_settings(): void {
+		// Set the transient to trigger redirection.
+		set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
+
+		WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
+
+		// Check that the transient has been deleted after redirection.
+		$this->assertFalse( get_transient( 'wc_stripe_redirect_to_settings' ) );
+	}
+
+	/**
 	 * Removes the gateway_settings_update filter that merges defaults when saving settings.
 	 *
 	 * This filter adds default field values when saving settings for the first time,
