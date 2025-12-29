@@ -1,4 +1,4 @@
-/* global wc_stripe_payment_request_settings_params */
+/* global wc_stripe_express_checkout_settings_params */
 
 import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
@@ -23,8 +23,8 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 
 	/* eslint-disable camelcase */
 	const stripePromise = useMemo( () => {
-		return loadStripe( wc_stripe_payment_request_settings_params.key, {
-			locale: wc_stripe_payment_request_settings_params.locale,
+		return loadStripe( wc_stripe_express_checkout_settings_params.key, {
+			locale: wc_stripe_express_checkout_settings_params.locale,
 		} );
 	}, [] );
 	/* eslint-enable camelcase */

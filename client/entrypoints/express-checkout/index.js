@@ -213,7 +213,7 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isPaymentRequestEnabled =
+			const isExpressCheckoutEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_payment_request_enabled;
 			const isAmazonPayEnabled =
@@ -230,9 +230,9 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isPaymentRequestEnabled &&
+				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isPaymentRequestEnabled &&
+				isExpressCheckoutEnabled &&
 					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
