@@ -235,9 +235,9 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-			if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
-				new WC_Stripe_Payment_Requests_Controller();
+			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
+				new WC_Stripe_Express_Checkout_Controller();
 			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				new WC_Stripe_Amazon_Pay_Controller();
@@ -421,6 +421,15 @@ class WC_Stripe {
 			? $stripe_settings['express_checkout_button_locations']
 			: [];
 		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+			// Use existing payment_request_button_locations if it exists.
+			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
+				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
+				unset( $stripe_settings['payment_request_button_locations'] );
+				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				return;
+			}
+
+			// Fall back to filter defaults only if no existing setting.
 			global $post;
 
 			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
