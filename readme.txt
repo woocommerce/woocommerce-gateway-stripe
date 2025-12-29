@@ -140,7 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.3.0 - xxxx-xx-xx =
-* Dev - Removes legacy checkout payment method classes
+* Update - Remove legacy checkout payment method classes
 * Dev - Renames the express checkout frontend main setting key
 * Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
