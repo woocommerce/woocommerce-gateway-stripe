@@ -223,7 +223,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 		$post_data['owner']    = WC_Stripe_Order_Helper::get_instance()->get_owner_details( $order );
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 
-		WC_Stripe_Logger::log( 'Info: Begin creating P24 source' );
+		WC_Stripe_Logger::info( 'Info: Begin creating P24 source' );
 
 		return WC_Stripe_API::request( apply_filters( 'wc_stripe_p24_source', $post_data, $order ), 'sources' );
 	}
@@ -266,7 +266,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_source_id', $response->id );
 			$order->save();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to P24...' );
+			WC_Stripe_Logger::info( 'Info: Redirecting to P24...' );
 
 			return [
 				'result'   => 'success',
@@ -274,7 +274,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

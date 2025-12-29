@@ -226,7 +226,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating EPS source' );
+		WC_Stripe_Logger::info( 'Info: Begin creating EPS source' );
 
 		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
@@ -269,7 +269,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_source_id', $response->id );
 			$order->save();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to EPS...' );
+			WC_Stripe_Logger::info( 'Info: Redirecting to EPS...' );
 
 			return [
 				'result'   => 'success',
@@ -277,7 +277,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 			];
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

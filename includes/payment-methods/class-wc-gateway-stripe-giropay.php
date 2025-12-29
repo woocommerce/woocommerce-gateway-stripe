@@ -222,7 +222,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating giropay source' );
+		WC_Stripe_Logger::info( 'Info: Begin creating giropay source' );
 
 		return WC_Stripe_API::request( apply_filters( 'wc_stripe_giropay_source', $post_data, $order ), 'sources' );
 	}
@@ -265,7 +265,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_source_id', $response->id );
 			$order->save();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to giropay...' );
+			WC_Stripe_Logger::info( 'Info: Redirecting to giropay...' );
 
 			return [
 				'result'   => 'success',
@@ -273,7 +273,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

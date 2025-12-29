@@ -253,7 +253,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 		}
 	}
 
@@ -345,7 +345,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			return [
 				'result'   => 'failure',
@@ -1029,7 +1029,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 		}
 
 		return __( 'N/A', 'woocommerce-gateway-stripe' );

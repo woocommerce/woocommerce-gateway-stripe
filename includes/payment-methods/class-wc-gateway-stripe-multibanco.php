@@ -236,7 +236,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		$payment_method = $order->get_payment_method();
 
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( OrderStatus::ON_HOLD ) ) {
-			WC_Stripe_Logger::log( 'Sending multibanco email for order #' . $order_id );
+			WC_Stripe_Logger::info( 'Sending multibanco email for order #' . $order_id );
 
 			$this->get_instructions( $order, $plain_text );
 		}
@@ -330,7 +330,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Multibanco source' );
+		WC_Stripe_Logger::info( 'Info: Begin creating Multibanco source' );
 
 		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
@@ -384,7 +384,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			// Remove cart
 			WC()->cart->empty_cart();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to Multibanco...' );
+			WC_Stripe_Logger::info( 'Info: Redirecting to Multibanco...' );
 
 			return [
 				'result'   => 'success',
@@ -392,7 +392,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			];
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

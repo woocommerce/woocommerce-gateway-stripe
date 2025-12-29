@@ -67,7 +67,7 @@ class WC_Stripe_Intent_Controller {
 	protected function get_upe_gateway() {
 		$gateway = $this->get_gateway();
 		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-			WC_Stripe_Logger::log( 'Error instantiating the UPE Payment Gateway, UPE is not enabled.' );
+			WC_Stripe_Logger::error( 'Error instantiating the UPE Payment Gateway, UPE is not enabled.' );
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
 		}
 		return $gateway;
@@ -206,7 +206,7 @@ class WC_Stripe_Intent_Controller {
 	protected function handle_error( $e, $redirect_url ) {
 		// Log the exception before redirecting.
 		$message = sprintf( 'PaymentIntent verification exception: %s', $e->getLocalizedMessage() );
-		WC_Stripe_Logger::log( $message );
+		WC_Stripe_Logger::error( $message );
 
 		// `is_ajax` is only used for PI error reporting, a response is not expected.
 		if ( isset( $_GET['is_ajax'] ) ) {
@@ -292,8 +292,8 @@ class WC_Stripe_Intent_Controller {
 
 			if ( ! empty( $setup_intent->error ) ) {
 				$error_response_message = print_r( $setup_intent, true );
-				WC_Stripe_Logger::log( 'Failed create Setup Intent while saving a card.' );
-				WC_Stripe_Logger::log( "Response: $error_response_message" );
+				WC_Stripe_Logger::error( 'Failed create Setup Intent while saving a card.' );
+				WC_Stripe_Logger::error( "Response: $error_response_message" );
 				throw new Exception( __( 'Your card could not be set up for future usage.', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -358,7 +358,7 @@ class WC_Stripe_Intent_Controller {
 
 			wp_send_json_success( $this->create_payment_intent( $order_id, $payment_method_type ), 200 );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Create payment intent error: ' . $e->getMessage() );
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
@@ -710,7 +710,7 @@ class WC_Stripe_Intent_Controller {
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			/* translators: error message */
 			if ( $order ) {
@@ -763,7 +763,7 @@ class WC_Stripe_Intent_Controller {
 				$error = $intent->last_payment_error || $intent->error;
 
 				if ( ! empty( $error ) ) {
-					WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
+					WC_Stripe_Logger::error( 'Error when processing payment: ' . $error->message );
 					throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 				}
 
@@ -781,7 +781,7 @@ class WC_Stripe_Intent_Controller {
 		} catch ( WC_Stripe_Exception $e ) {
 			// We are expecting an exception to be thrown here.
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
@@ -1260,7 +1260,7 @@ class WC_Stripe_Intent_Controller {
 				200
 			);
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
 
 			/**
 			 * Filter the rate limit delay after a failure adding a payment method.
@@ -1343,7 +1343,7 @@ class WC_Stripe_Intent_Controller {
 				200
 			);
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Change subscription payment method error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Change subscription payment method error: ' . $e->getMessage() );
 			wp_send_json_error(
 				[
 					'error' => [

@@ -1689,7 +1689,7 @@ class WC_Stripe_Helper {
 				$log_data[ $header ] = isset( $_SERVER[ $header ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) : 'not set';
 			}
 
-			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
+			WC_Stripe_Logger::warning( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
 		}
 	}
 

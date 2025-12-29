@@ -330,7 +330,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Product data error in express checkout: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Product data error in express checkout: ' . $e->getMessage() );
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
 	}
@@ -343,7 +343,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
 
-		WC_Stripe_Logger::log( $errors );
+		WC_Stripe_Logger::debug( $errors );
 
 		exit;
 	}
@@ -401,7 +401,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$result = apply_filters( 'woocommerce_payment_successful_result', $result, $order_id );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Pay for order failed for order ' . $order_id . ' with express checkout: ' . $e );
+			WC_Stripe_Logger::error( 'Pay for order failed for order ' . $order_id . ' with express checkout: ' . $e );
 
 			$result = [
 				'result'   => 'error',
