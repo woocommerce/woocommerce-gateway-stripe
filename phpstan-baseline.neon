@@ -1,48 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:check_permission\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:delete_internal\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:delete_internal\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:get_internal\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:get_internal\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:post_internal\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:post_internal\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-connect-rest-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Connect_REST_Controller\:\:prevent_route_caching\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -133,8 +91,8 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:can_refund_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
@@ -145,26 +103,8 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:get_confirm_payment_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
@@ -177,12 +117,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:process_payment\(\) has parameter \$force_save_save with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
@@ -235,12 +169,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Property WC_Stripe_Payment_Gateway_Voucher\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Property WC_Stripe_Payment_Gateway_Voucher\:\:\$stripe_id has no type specified\.$#'
 			identifier: missingType.property
 			count: 1
@@ -249,12 +177,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_Payment_Gateway_Voucher\:\:\$supported_countries has no type specified\.$#'
 			identifier: missingType.property
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Gateway_Voucher\:\:\$supported_currencies type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
@@ -1033,12 +955,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:add_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:add_subscription_information_to_intent\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1051,24 +967,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:admin_options\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1077,12 +975,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:change_idempotency_key\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:change_idempotency_key\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1107,12 +999,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_intent\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1171,20 +1057,8 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:generate_create_intent_request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:generate_payment_request\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_charge_object\(\) has parameter \$params with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1210,12 +1084,6 @@ parameters:
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) should return bool\|obect but returns bool\|object\.$#'
 			identifier: return.type
 			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_level3_data_from_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1257,18 +1125,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_stripe_return_url\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_unique_settings\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_unique_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1327,12 +1183,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_original_request\(\) has parameter \$headers with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_retryable_error\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1353,12 +1203,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_type_payment_method\(\) should return bool but returns int\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1411,12 +1255,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:payment_icons\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1429,26 +1267,8 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_pre_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1543,12 +1363,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:send_failed_order_email\(\) has parameter \$status_update with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:setup_intent\(\) should return string\|null but empty return statement found\.$#'
 			identifier: return.empty
 			count: 1
@@ -1611,12 +1425,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1879,12 +1687,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Controller\:\:get_account_oauth_connection_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Controller\:\:register_routes\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1917,24 +1719,6 @@ parameters:
 		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:configure_webhooks\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:decommission_configured_webhook_after_key_update\(\) has parameter \$current_account_keys with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:decommission_configured_webhook_after_key_update\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:decommission_configured_webhook_after_key_update\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
@@ -2043,12 +1827,6 @@ parameters:
 		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_stripe_param\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_stripe_param\(\) has parameter \$validate_options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
@@ -2245,18 +2023,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:transform_pr_address\(\) has parameter \$location with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:transform_pr_address\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:update_location\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2383,12 +2149,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Property WC_REST_Stripe_Orders_Controller\:\:\$minimum_amounts type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_customization_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -2403,18 +2163,6 @@ parameters:
 		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:get_payment_method_ids_to_enable\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:record_payment_method_settings_event\(\) has parameter \$disabled_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:record_payment_method_settings_event\(\) has parameter \$enabled_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -2445,12 +2193,6 @@ parameters:
 		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_enabled_payment_methods\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_enabled_payment_methods\(\) has parameter \$payment_method_ids_to_enable with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -2713,12 +2455,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:get_payment_methods\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
 			message: '#^Method WC_Stripe_Admin_Notices\:\:hide_notices\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2761,10 +2497,10 @@ parameters:
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
-			message: '#^Property WC_Stripe_Admin_Notices\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
+			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
 
 		-
 			message: '#^Method WC_Stripe_Amazon_Pay_Controller\:\:admin_options\(\) has no return type specified\.$#'
@@ -2777,6 +2513,12 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
+
+		-
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-express-checkout-controller.php
 
 		-
 			message: '#^Call to WC_Stripe_UPE_Availability_Note\:\:init\(\) on a separate line has no effect\.$#'
@@ -2983,36 +2725,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
-			message: '#^Method WC_Stripe_Privacy\:\:account_settings\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:account_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:customer_data_eraser\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:customer_data_exporter\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:get_stripe_orders\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
 			message: '#^Method WC_Stripe_Privacy\:\:get_stripe_orders\(\) should return array but returns array\<WC_Order\>\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -3031,38 +2743,8 @@ parameters:
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
-			message: '#^Method WC_Stripe_Privacy\:\:maybe_handle_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:maybe_handle_subscription\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:order_data_eraser\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:order_data_exporter\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
 			message: '#^Method WC_Stripe_Privacy\:\:register_erasers_exporters\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:subscriptions_data_exporter\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-stripe-privacy.php
 
@@ -3187,12 +2869,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:set_stripe_gateways_in_list\(\) has parameter \$ordering with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 2
@@ -3213,24 +2889,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
-
-		-
-			message: '#^Method WC_Stripe_Subscription_Detached_Bulk_Action\:\:handle_subscription_detachment_check\(\) has parameter \$post_ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
-
-		-
-			message: '#^Method WC_Stripe_Subscription_Detached_Bulk_Action\:\:subscriptions_bulk_actions\(\) has parameter \$bulk_actions with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
-
-		-
-			message: '#^Method WC_Stripe_Subscription_Detached_Bulk_Action\:\:subscriptions_bulk_actions\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
 
@@ -3273,12 +2931,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:show_current_compatibility_notice\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:show_current_compatibility_notice\(\) has parameter \$unsatisfied_requirements with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
 
@@ -3553,12 +3205,6 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe\:\:complete_free_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe\:\:disable\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3595,12 +3241,6 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe\:\:get_required_settings_keys\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe\:\:get_saved_payment_method_option_html\(\) should return string but returns string\|null\.$#'
 			identifier: return.type
 			count: 1
@@ -3621,18 +3261,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:modify_successful_payment_result\(\) has parameter \$result with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:modify_successful_payment_result\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
@@ -3661,20 +3289,8 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe\:\:render_payment_intent_inputs\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:retry_after_error\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
@@ -3699,12 +3315,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe\:\:update_onboarding_settings\(\) has parameter \$settings with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:update_onboarding_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
@@ -4057,18 +3667,6 @@ parameters:
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Method WC_Stripe_Account\:\:get_cached_account_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-account.php
-
-		-
-			message: '#^Method WC_Stripe_Account\:\:read_account_from_cache\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-account.php
-
-		-
 			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4093,12 +3691,6 @@ parameters:
 			path: includes/class-wc-stripe-action-scheduler-service.php
 
 		-
-			message: '#^Method WC_Stripe_Action_Scheduler_Service\:\:schedule_job\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-action-scheduler-service.php
-
-		-
 			message: '#^Call to function method_exists\(\) with ''WCS_Staging'' and ''is_duplicate_site'' will always evaluate to false\.$#'
 			identifier: function.impossibleType
 			count: 1
@@ -4117,86 +3709,14 @@ parameters:
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:attach_payment_method_to_customer\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:detach_payment_method_from_customer\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
 			message: '#^Method WC_Stripe_API\:\:get_headers\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:get_idempotency_key\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:get_payment_method_configurations\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:get_stripe_request_id\(\) has parameter \$response with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
 			message: '#^Method WC_Stripe_API\:\:get_user_agent\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:log_error_response\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:log_error_response\(\) has parameter \$response with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:request\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:request_with_level3_data\(\) has parameter \$level3_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:request_with_level3_data\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:request_with_level3_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
@@ -4231,18 +3751,6 @@ parameters:
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method\(\) has parameter \$payment_method_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
 			message: '#^Method WC_Stripe_API\:\:update_payment_method\(\) should return array but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -4257,12 +3765,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has parameter \$id with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has parameter \$payment_method_configurations with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
@@ -4297,12 +3799,6 @@ parameters:
 			path: includes/class-wc-stripe-apple-pay-registration.php
 
 		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:get_secret_key\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
 			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:is_enabled\(\) should return string but returns bool\.$#'
 			identifier: return.type
 			count: 1
@@ -4323,18 +3819,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:register_domain_on_domain_name_change\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:register_domain_on_updated_settings\(\) has parameter \$prev_settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:register_domain_on_updated_settings\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-apple-pay-registration.php
 
@@ -4435,50 +3919,8 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_express_checkout_javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_gateway_javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_icons\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_method_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_method_script_handles\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_request_javascript_params\(\) is unused\.$#'
 			identifier: method.unused
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_request_javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_style\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
@@ -4491,12 +3933,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:initialize\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:is_upe_method_available\(\) has parameter \$available_gateways with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
@@ -4618,12 +4054,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:create_customer\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:delete_id_from_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -4642,54 +4072,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:generate_customer_request\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:generate_customer_request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_all_payment_methods\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_create_customer_required_fields\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_customer_preferred_locale\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_existing_customer\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_payment_methods\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:get_sources\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
 			identifier: return.type
 			count: 1
@@ -4698,30 +4080,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has parameter \$error with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_source_already_attached_error\(\) has parameter \$error with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:map_customer_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:recreate_customer\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -4774,32 +4132,14 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:update_customer\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:update_id_in_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:update_or_create_customer\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:validate_create_customer_request\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:validate_create_customer_request\(\) has parameter \$create_customer_request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -4822,12 +4162,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Property WC_Stripe_Customer\:\:\$customer_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Property WC_Stripe_Customer\:\:\$id \(string\) does not accept array\|string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -4840,80 +4174,14 @@ parameters:
 			path: includes/class-wc-stripe-database-cache-prefetch.php
 
 		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:delete_all_stale_entries\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:delete_all_stale_entries_async\(\) has parameter \$job_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:delete_stale_entries\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:get_expiry_time\(\) has parameter \$cache_contents with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:get_from_cache\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:is_expired\(\) has parameter \$cache_contents with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:maybe_trigger_prefetch\(\) has parameter \$cache_contents with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Method WC_Stripe_Database_Cache\:\:validate_stale_entries_async_job_data\(\) has parameter \$job_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
-			message: '#^Property WC_Stripe_Database_Cache\:\:\$in_memory_cache type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
 			message: '#^Expected 3 @param tags, found 2\.$#'
 			identifier: paramTag.count
 			count: 1
 			path: includes/class-wc-stripe-feature-flags.php
 
 		-
-			message: '#^Method WC_Stripe_Feature_Flags\:\:get_all_feature_flags_with_defaults\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
 			message: '#^Method WC_Stripe_Feature_Flags\:\:is_oc_available\(\) should return bool but returns string\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
-			message: '#^Property WC_Stripe_Feature_Flags\:\:\$feature_flags type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-feature-flags.php
 
@@ -5020,18 +4288,6 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:add_mandate_data\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_mandate_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -5050,26 +4306,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:add_payment_method_to_request_array\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_payment_method_to_request_array\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:add_stripe_methods_in_woocommerce_gateway_order\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_stripe_methods_in_woocommerce_gateway_order\(\) has parameter \$ordered_payment_method_ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -5092,44 +4330,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_available_payment_method_ids\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_enabled_payment_method_ids\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_enabled_payment_methods\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:get_legacy_payment_method\(\) has parameter \$id with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_payment_method_classes\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_payment_methods\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_localized_messages\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -5188,20 +4390,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_stripe_gateway_ids\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:get_stripe_net\(\) should return string but returns false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_stripe_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -5218,26 +4408,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:has_gateway_plugin_active\(\) has parameter \$available_payment_gateways with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:is_stripe_gateway_order\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:no_decimal_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:three_decimal_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -5298,12 +4470,6 @@ parameters:
 		-
 			message: '#^Parameter \#3 \$subject of function str_replace expects array\<string\>\|string, string\|null given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Property WC_Stripe_Helper\:\:\$stripe_legacy_gateways type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -5434,38 +4600,14 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:build_base_payment_intent_request_params\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:build_base_payment_intent_request_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:confirm_change_payment_from_setup_intent_ajax\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_payment_intent\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_payment_intent\(\) should return stdClass but returns array\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_setup_intent\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -5478,12 +4620,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_setup_intent_ajax\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:create_payment_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -5518,20 +4654,8 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:init_setup_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:init_setup_intent_ajax\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:is_delayed_confirmation_required\(\) has parameter \$payment_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -5542,38 +4666,8 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:maybe_add_mandate_options\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:maybe_add_mandate_options\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:maybe_process_upe_redirect\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:request_needs_redirection\(\) has parameter \$payment_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_and_confirm_payment_intent\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_and_confirm_payment_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -5590,12 +4684,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:update_order_status_ajax\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -5604,30 +4692,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:update_payment_intent_ajax\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:validate_payment_intent_required_params\(\) has parameter \$instance_params with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:validate_payment_intent_required_params\(\) has parameter \$non_empty_params with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:validate_payment_intent_required_params\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:validate_payment_intent_required_params\(\) has parameter \$required_params with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -5776,42 +4840,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Logger\:\:alert\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:critical\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:debug\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:emergency\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:error\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:info\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
 			message: '#^Method WC_Stripe_Logger\:\:log\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -5832,18 +4860,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$start_time with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:notice\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:warning\(\) has parameter \$context with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-logger.php
 
@@ -6274,12 +5290,6 @@ parameters:
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:update_stripe_multibanco_data\(\) has parameter \$multibanco_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-order-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Order_Helper\:\:update_stripe_net\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -6334,44 +5344,8 @@ parameters:
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:get_fallback_payment_method_configuration\(\) has parameter \$payment_method_configurations with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:get_fallback_payment_method_configuration\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:get_upe_available_payment_method_ids\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:get_upe_enabled_payment_method_ids\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:maybe_migrate_payment_methods_from_db_to_pmc\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:record_payment_method_settings_event\(\) has parameter \$disabled_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:record_payment_method_settings_event\(\) has parameter \$enabled_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
@@ -6382,26 +5356,8 @@ parameters:
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:set_payment_method_configuration_cache\(\) has parameter \$configuration with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:update_payment_method_configuration\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:update_payment_method_configuration\(\) has parameter \$available_payment_method_ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:update_payment_method_configuration\(\) has parameter \$enabled_payment_method_ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
@@ -6414,12 +5370,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Status\:\:debug_tools\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-status.php
-
-		-
-			message: '#^Method WC_Stripe_Status\:\:debug_tools\(\) has parameter \$tools with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-status.php
 
@@ -6724,12 +5674,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) has parameter \$additional_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_order_from_intent\(\) should return WC_Order\|false but returns WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: return.type
 			count: 2
@@ -6792,12 +5736,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_deferred_webhook\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_deferred_webhook\(\) has parameter \$additional_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -6892,18 +5830,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:validate_request\(\) has parameter \$request_body with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:validate_request\(\) has parameter \$request_headers with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, obect\|true given\.$#'
 			identifier: argument.type
 			count: 1
@@ -6994,12 +5920,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-state.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_State\:\:get_configured_webhook_urls\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe-webhook-state.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_State\:\:set_last_error_reason\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7078,18 +5998,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe\:\:checkout_update_email_field_priority\(\) has parameter \$fields with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:checkout_update_email_field_priority\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:disable_upe\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7122,24 +6030,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe\:\:filter_gateway_order_admin\(\) has parameter \$sections with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:gateway_settings_update\(\) has parameter \$old_settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:gateway_settings_update\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:gateway_settings_update\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -7180,48 +6070,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe\:\:maybe_deactivate_amazon_pay\(\) has parameter \$enabled_payment_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_deactivate_amazon_pay\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_deactivate_bnpls\(\) has parameter \$available_payment_gateways with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_deactivate_bnpls\(\) has parameter \$enabled_payment_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_deactivate_bnpls\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_reset_stripe_in_memory_key\(\) has parameter \$old_settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:maybe_reset_stripe_in_memory_key\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:migrate_to_new_checkout_experience\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7240,38 +6088,8 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe\:\:plugin_row_meta\(\) has parameter \$links with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:plugin_row_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:register_routes\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:toggle_upe\(\) has parameter \$old_settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:toggle_upe\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:toggle_upe\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -7342,12 +6160,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Admin_Failed_Refund\:\:get_template_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-admin-failed-refund.php
-
-		-
 			message: '#^Method WC_Stripe_Email_Admin_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7362,12 +6174,6 @@ parameters:
 		-
 			message: '#^Cannot access property \$billing_email on WC_Order\|false\.$#'
 			identifier: property.nonObject
-			count: 1
-			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Customer_Failed_Refund\:\:get_template_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
 
@@ -7540,40 +6346,10 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-refund.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Failed_Refund\:\:get_template_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
 			message: '#^Method WC_Stripe_Email_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:prevent_retry_notification_email\(\) has parameter \$rule_array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:prevent_retry_notification_email\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:set_store_owner_custom_email\(\) has parameter \$rule_array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:set_store_owner_custom_email\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
 
 		-
 			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:trigger\(\) has no return type specified\.$#'
@@ -7650,24 +6426,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Subscriptions_Helper\:\:build_subscriptions_detached_messages\(\) has parameter \$subscriptions with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Helper\:\:get_detached_payment_data_from_subscription\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Helper\:\:get_detached_subscriptions\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Helper\:\:get_some_detached_subscriptions\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
@@ -7786,62 +6544,14 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
 
 		-
-			message: '#^Method WC_Stripe_Connect_API\:\:get_stripe_oauth_init\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:get_stripe_oauth_keys\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
 			message: '#^Method WC_Stripe_Connect_API\:\:get_stripe_oauth_keys\(\) should return array but returns array\|WP_Error\.$#'
 			identifier: return.type
 			count: 2
 			path: includes/connect/class-wc-stripe-connect-api.php
 
 		-
-			message: '#^Method WC_Stripe_Connect_API\:\:refresh_stripe_app_oauth_keys\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
 			message: '#^Method WC_Stripe_Connect_API\:\:refresh_stripe_app_oauth_keys\(\) should return array but returns array\|WP_Error\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:request\(\) has parameter \$body with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:request_body\(\) has parameter \$initial_body with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:request_body\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:request_headers\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/connect/class-wc-stripe-connect-api.php
 
@@ -7942,18 +6652,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Method WC_Stripe_Connect\:\:redact_sensitive_data\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Method WC_Stripe_Connect\:\:redact_sensitive_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
 			message: '#^Method WC_Stripe_Connect\:\:redact_sensitive_data\(\) should return array\|string but returns string\|null\.$#'
 			identifier: return.type
 			count: 1
@@ -8032,40 +6730,10 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Constant WC_Stripe_Express_Checkout_Button_States\:\:STATES type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
-			path: includes/constants/class-wc-stripe-express-checkout-button-states.php
-
-		-
-			message: '#^Constant WC_Stripe_Intent_Status\:\:SUCCESSFUL_STATUSES type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/constants/class-wc-stripe-intent-status.php
-
-		-
-			message: '#^Constant WC_Stripe_Payment_Methods\:\:BNPL_PAYMENT_METHODS type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/constants/class-wc-stripe-payment-methods.php
-
-		-
-			message: '#^Constant WC_Stripe_Payment_Methods\:\:EXPRESS_PAYMENT_METHODS type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/constants/class-wc-stripe-payment-methods.php
-
-		-
-			message: '#^Constant WC_Stripe_Payment_Methods\:\:VOUCHER_PAYMENT_METHODS type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/constants/class-wc-stripe-payment-methods.php
-
-		-
-			message: '#^Constant WC_Stripe_Payment_Methods\:\:WALLET_PAYMENT_METHODS type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/constants/class-wc-stripe-payment-methods.php
+			path: includes/constants/class-wc-stripe-payment-request-button-states.php
 
 		-
 			message: '#^Method WC_Stripe_Apple_Pay\:\:__call\(\) has no return type specified\.$#'
@@ -8218,18 +6886,6 @@ parameters:
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:add_debug_tool\(\) has parameter \$tools with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:add_debug_tool\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
 			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:display_admin_notice\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8238,12 +6894,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:get_items_to_repair\(\) should return array\<int\> but returns array\<WC_Order\>\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:get_scheduled_action_counts\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
@@ -8548,8 +7198,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Alipay\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
 
@@ -8574,12 +7224,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Alipay\:\:process_payment\(\) has parameter \$force_save_save with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Alipay\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
 
@@ -8610,12 +7254,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, float\|int given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_Alipay\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
 
@@ -8680,8 +7318,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Bancontact\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
 
@@ -8700,12 +7338,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Bancontact\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Bancontact\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
 
@@ -8734,12 +7366,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
 
 		-
-			message: '#^Property WC_Gateway_Stripe_Bancontact\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Boleto\:\:add_allowed_payment_processing_statuses\(\) has parameter \$allowed_statuses with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -8752,24 +7378,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Boleto\:\:get_confirm_payment_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Boleto\:\:get_unique_settings\(\) has parameter \$settings with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Boleto\:\:get_unique_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Boleto\:\:payment_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8778,18 +7386,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Boleto\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Boleto\:\:update_request_body_on_create_or_update_payment_intent\(\) has parameter \$body with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Boleto\:\:update_request_body_on_create_or_update_payment_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
 
@@ -8830,12 +7426,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
 
 		-
-			message: '#^Property WC_Gateway_Stripe_Boleto\:\:\$supported_currencies type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-boleto.php
-
-		-
 			message: '#^Access to an undefined property WC_Cart\:\:\$total\.$#'
 			identifier: property.notFound
 			count: 1
@@ -8908,8 +7498,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Eps\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
 
@@ -8928,12 +7518,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Eps\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Eps\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
 
@@ -8962,12 +7546,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
 
 		-
-			message: '#^Property WC_Gateway_Stripe_Eps\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
-
-		-
 			message: '#^Access to an undefined property WC_Cart\:\:\$total\.$#'
 			identifier: property.notFound
 			count: 1
@@ -9040,8 +7618,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Giropay\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
 
@@ -9060,12 +7638,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Giropay\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Giropay\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
 
@@ -9094,12 +7666,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
 
 		-
-			message: '#^Property WC_Gateway_Stripe_Giropay\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
-
-		-
 			message: '#^Access to an undefined property WC_Cart\:\:\$total\.$#'
 			identifier: property.notFound
 			count: 1
@@ -9172,8 +7738,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Ideal\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
 
@@ -9192,12 +7758,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Ideal\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Ideal\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
 
@@ -9222,12 +7782,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, float\|int given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_Ideal\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
 
@@ -9358,12 +7912,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Multibanco\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Multibanco\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -9378,12 +7926,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Multibanco\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Multibanco\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
 
@@ -9430,12 +7972,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
 
 		-
-			message: '#^Property WC_Gateway_Stripe_Multibanco\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Oxxo\:\:add_allowed_payment_processing_statuses\(\) has parameter \$allowed_statuses with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -9444,12 +7980,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Oxxo\:\:add_allowed_payment_processing_statuses\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-oxxo.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Oxxo\:\:get_confirm_payment_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-oxxo.php
 
@@ -9486,12 +8016,6 @@ parameters:
 		-
 			message: '#^Property WC_Gateway_Stripe_Oxxo\:\:\$supported_countries has no type specified\.$#'
 			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-oxxo.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_Oxxo\:\:\$supported_currencies type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-oxxo.php
 
@@ -9568,8 +8092,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_P24\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
 
@@ -9592,12 +8116,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_P24\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
-
-		-
 			message: '#^PHPDoc tag @extends has invalid value \(WC_Gateway_Stripe\)\: Unexpected token "\\n \*", expected ''\<'' at offset 78 on line 4$#'
 			identifier: phpDoc.parseError
 			count: 1
@@ -9612,12 +8130,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, float\|int given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_P24\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
 
@@ -9700,12 +8212,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Sepa\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Sepa\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -9726,12 +8232,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Sepa\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Sepa\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
 
@@ -9792,12 +8292,6 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_Sepa\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
 
@@ -9880,8 +8374,8 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
 
 		-
-			message: '#^Method WC_Gateway_Stripe_Sofort\:\:get_supported_currency\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
 
@@ -9900,12 +8394,6 @@ parameters:
 		-
 			message: '#^Method WC_Gateway_Stripe_Sofort\:\:payment_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe_Sofort\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
 
@@ -9930,12 +8418,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, float\|int given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe_Sofort\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
 
@@ -10006,8 +8488,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:ajax_add_to_cart\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -10020,12 +8502,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:ajax_get_cart_details\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:ajax_get_selected_product_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -10056,18 +8532,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:ajax_update_shipping_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:modify_country_locale_for_express_checkout\(\) has parameter \$locale with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Ajax_Handler\:\:modify_country_locale_for_express_checkout\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -10144,32 +8608,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Custom_Fields\:\:get_custom_checkout_data_from_request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Custom_Fields\:\:get_custom_checkout_data_schema\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Custom_Fields\:\:get_custom_checkout_fields\(\) has parameter \$context with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Custom_Fields\:\:get_custom_checkout_fields\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Custom_Fields\:\:get_standard_checkout_fields\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php
 
@@ -10240,9 +8680,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Element\:\:add_order_meta\(\) has parameter \$posted_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
+			identifier: constant.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
+
+		-
+			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
+			identifier: constant.notFound
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
@@ -10270,12 +8716,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Element\:\:get_asset_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Element\:\:handle_express_checkout_redirect\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10284,12 +8724,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Express_Checkout_Element\:\:instance\(\) has invalid return type class\.$#'
 			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Element\:\:javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
@@ -10540,42 +8974,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:calculate_shipping\(\) has parameter \$address with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:fix_address_fields_mapping\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:fix_address_fields_mapping\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_booking_ids_from_cart\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_button_locations\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_button_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_checkout_data\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10584,18 +8982,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_default_shipping_option\(\) never returns void so it can be removed from the return type\.$#'
 			identifier: return.unusedType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_default_shipping_option\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_login_confirmation_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
@@ -10636,24 +9022,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_shipping_options\(\) has parameter \$shipping_address with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_shipping_options\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:get_taxes_like_cart\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:has_pre_order_charged_upon_release\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -10684,50 +9052,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:maybe_restore_recurring_chosen_shipping_methods\(\) has parameter \$previous_chosen_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:normalize_state\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:normalize_state\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:process_pre_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:supported_product_types\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:update_shipping_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:update_shipping_method\(\) has parameter \$shipping_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
@@ -11098,18 +9430,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:add_order_meta\(\) has parameter \$posted_data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_add_to_cart\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_clear_cart\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11124,12 +9444,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_get_cart_details\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_get_selected_product_data\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
@@ -11182,12 +9496,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:calculate_shipping\(\) has parameter \$address with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:display_payment_request_button_html\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11230,18 +9538,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_button_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_login_confirmation_settings\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:get_login_confirmation_settings\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 1
@@ -11278,18 +9574,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_shipping_options\(\) has parameter \$shipping_address with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_shipping_options\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:handle_payment_request_redirect\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11314,12 +9598,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:mark_order_as_pre_ordered\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11338,12 +9616,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:maybe_restore_recurring_chosen_shipping_methods\(\) has parameter \$previous_chosen_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:migrate_button_size\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11352,12 +9624,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:normalize_state\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:process_pre_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
@@ -11374,20 +9640,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:supported_product_types\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Request\:\:update_shipping_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:update_shipping_method\(\) has parameter \$shipping_methods with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
@@ -11926,24 +10180,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:add_bnpl_debug_metadata\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:add_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:can_refund_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11986,36 +10222,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_my_account_my_orders_actions\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_saved_payment_methods_list\(\) has parameter \$list with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_saved_payment_methods_list\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:generate_upe_checkout_experience_accepted_payments_html\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_address_data_for_payment_request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) never returns array so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
@@ -12028,38 +10234,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) should return array\|null but returns string\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_enabled_payment_method_config\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_existing_compatible_payment_intent\(\) has parameter \$payment_method_types with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_existing_compatible_payment_intent\(\) should return object\|null but returns obect\|true\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_metadata_from_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12078,12 +10260,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_payment_method_options\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_payment_method_types_for_intent_creation\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12124,12 +10300,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:handle_process_payment_error\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:handle_saving_payment_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -12144,12 +10314,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:is_setup_intent_success_creation_redirection\(\) should return bool but returns int\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:javascript_params\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12178,50 +10342,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:prepare_payment_information_for_confirmation_token\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:prepare_payment_information_for_confirmation_token\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:prepare_payment_information_for_payment_method\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:prepare_payment_information_for_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:prepare_payment_information_from_request\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_order_for_confirmed_intent\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment_intent_for_order\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12238,44 +10360,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment_with_confirmation_token\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment_with_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_payment_with_saved_payment_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_setup_intent_for_order\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:process_upe_redirect_payment\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:retry_after_error\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12354,12 +10446,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_selected_payment_method_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_selected_payment_method_type\(\) has parameter \$payment_information with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -12838,12 +10924,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$notices type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Property WooCommerce\:\:\$cart \(WC_Cart\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -13270,30 +11350,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -13384,20 +11440,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -13446,12 +11490,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -13948,30 +11986,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -14062,20 +12076,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -14124,12 +12126,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -14206,16 +12202,10 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay\:\:get_title\(\) has parameter \$payment_details with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
+			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-afterpay-clearpay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Alipay\:\:get_supported_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
@@ -14638,30 +12628,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -14716,12 +12682,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_supported_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:handle_add_payment_method_success\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -14758,20 +12718,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -14820,12 +12768,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -15328,30 +13270,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -15442,20 +13360,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -15504,12 +13410,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -15994,30 +13894,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -16108,20 +13984,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -16170,12 +14034,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -16660,30 +14518,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -16774,20 +14608,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -16836,12 +14658,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -16922,12 +14738,6 @@ parameters:
 			identifier: method.childReturnType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:get_available_billing_countries\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:get_retrievable_type\(\) has no return type specified\.$#'
@@ -17398,30 +15208,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -17506,20 +15292,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -17568,12 +15342,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -18064,30 +15832,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -18148,12 +15892,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:get_title\(\) has parameter \$payment_details with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:handle_add_payment_method_success\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -18190,20 +15928,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -18252,12 +15978,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -18760,30 +16480,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -18874,20 +16570,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -18936,12 +16620,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -19426,30 +17104,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -19492,20 +17146,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_available_billing_countries\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_mandate_for_subscription\(\) has parameter \$payment_method with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_supported_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -19546,20 +17188,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -19608,12 +17238,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -20230,30 +17854,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -20314,12 +17914,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:get_title\(\) has parameter \$payment_details with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:handle_add_payment_method_success\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -20356,20 +17950,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -20418,12 +18000,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -20938,30 +18514,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -21058,20 +18610,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -21120,12 +18660,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -21616,30 +19150,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:add_subscription_information_to_intent\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:add_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:add_subscription_payment_meta\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:create_mandate_options_for_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:delete_renewal_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -21724,20 +19234,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_change_subscription_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_change_subscription_payment_with_deferred_intent\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
@@ -21786,12 +19284,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_subscription_payment_meta\(\) has parameter \$payment_meta with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
@@ -21860,12 +19352,6 @@ parameters:
 			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Wechat_Pay\:\:get_supported_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
@@ -21940,26 +19426,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:__call\(\) has parameter \$arguments with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:add_payment_method\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:can_refund_via_stripe\(\) should return bool but returns array\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_available_billing_countries\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
@@ -21994,18 +19462,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_supported_currencies\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_title\(\) has parameter \$payment_details with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_woocommerce_currency\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -22032,18 +19488,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:payment_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:process_payment\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:process_pre_order\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
@@ -22090,18 +19534,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$can_refund type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$supported_currencies type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Variable \$order might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -22138,12 +19570,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
 
 		-
-			message: '#^Property WC_Payment_Token_ACH\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 1
@@ -22174,12 +19600,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
 
 		-
-			message: '#^Property WC_Payment_Token_ACSS\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 1
@@ -22188,12 +19608,6 @@ parameters:
 		-
 			message: '#^Method WC_Payment_Token_Amazon_Pay\:\:set_email\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php
-
-		-
-			message: '#^Property WC_Payment_Token_Amazon_Pay\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php
 
@@ -22222,12 +19636,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
 
 		-
-			message: '#^Property WC_Payment_Token_Bacs_Debit\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 1
@@ -22242,12 +19650,6 @@ parameters:
 		-
 			message: '#^Method WC_Payment_Token_Becs_Debit\:\:set_last4\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php
-
-		-
-			message: '#^Property WC_Payment_Token_Becs_Debit\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php
 
@@ -22320,12 +19722,6 @@ parameters:
 		-
 			message: '#^Method WC_Payment_Token_Link\:\:set_payment_method_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
-
-		-
-			message: '#^Property WC_Payment_Token_Link\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
 
@@ -22438,36 +19834,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:add_token_to_user\(\) has parameter \$payment_method_ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_account_saved_payment_methods_list_item\(\) has parameter \$item with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_account_saved_payment_methods_list_item\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_account_saved_payment_methods_list_item_sepa\(\) has parameter \$item with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_account_saved_payment_methods_list_item_sepa\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) has parameter \$gateway_id with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -22492,26 +19858,8 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_token_from_request\(\) has parameter \$request with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Tokens\:\:update_token_from_method_details\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens\(\) has parameter \$tokens with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
@@ -22524,30 +19872,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens_legacy\(\) has parameter \$gateway_id with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens_legacy\(\) has parameter \$tokens with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens_legacy\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_upe_payment_tokens\(\) has parameter \$tokens with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_upe_payment_tokens\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
@@ -22614,12 +19938,6 @@ parameters:
 		-
 			message: '#^Method WC_Payment_Token_SEPA\:\:set_payment_method_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
-		-
-			message: '#^Property WC_Payment_Token_SEPA\:\:\$extra_data type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 
