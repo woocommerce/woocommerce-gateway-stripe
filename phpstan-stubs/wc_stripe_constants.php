@@ -7,10 +7,6 @@
  * @see https://github.com/phpstan/phpstan/issues/11210
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
 if ( ! defined( 'WC_STRIPE_PLUGIN_URL' ) ) {
 	define( 'WC_STRIPE_PLUGIN_URL', 'https://example.com/wp-content/plugins/woocommerce-gateway-stripe' );
 }
