@@ -236,8 +236,8 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
 			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
-				new WC_Stripe_Payment_Requests_Controller();
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
+				new WC_Stripe_Express_Checkout_Controller();
 			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				new WC_Stripe_Amazon_Pay_Controller();

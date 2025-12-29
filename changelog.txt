@@ -1,6 +1,8 @@
 *** Changelog ***
 
 = 10.3.0 - xxxx-xx-xx =
+* Dev - Renames the express checkout frontend main setting key
+* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods
