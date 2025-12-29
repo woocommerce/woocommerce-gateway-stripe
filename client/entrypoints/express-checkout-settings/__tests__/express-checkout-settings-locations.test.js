@@ -3,16 +3,16 @@ import userEvent from '@testing-library/user-event';
 import ExpressCheckoutSettingsSection from '../express-checkout-settings-section';
 import ExpressCheckoutButtonPreview from '../express-checkout-button-preview';
 import {
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutLocations,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
-	usePaymentRequestEnabledSettings: jest.fn(),
-	usePaymentRequestLocations: jest.fn(),
-	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
-	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
-	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useExpressCheckoutEnabledSettings: jest.fn(),
+	useExpressCheckoutLocations: jest.fn(),
+	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
+	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
 } ) );
 
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
@@ -36,38 +36,38 @@ jest.mock( '../utils/utils', () => ( {
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
-const getMockPaymentRequestEnabledSettings = (
+const getMockExpressCheckoutEnabledSettings = (
 	isEnabled,
-	updateIsPaymentRequestEnabledHandler
-) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
+	updateIsExpressCheckoutEnabledHandler
+) => [ isEnabled, updateIsExpressCheckoutEnabledHandler ];
 
-const getMockPaymentRequestLocations = (
+const getMockExpressCheckoutLocations = (
 	isCheckoutEnabled,
 	isProductPageEnabled,
 	isCartEnabled,
-	updatePaymentRequestLocationsHandler
+	updateExpressCheckoutLocationsHandler
 ) => [
 	[
 		isCheckoutEnabled && 'checkout',
 		isProductPageEnabled && 'product',
 		isCartEnabled && 'cart',
 	].filter( Boolean ),
-	updatePaymentRequestLocationsHandler,
+	updateExpressCheckoutLocationsHandler,
 ];
 
 describe( 'ExpressCheckoutSettingsSection', () => {
-	const globalValues = global.wc_stripe_payment_request_settings_params;
+	const globalValues = global.wc_stripe_express_checkout_settings_params;
 
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings( true, jest.fn() )
+		useExpressCheckoutEnabledSettings.mockReturnValue(
+			getMockExpressCheckoutEnabledSettings( true, jest.fn() )
 		);
 
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations( true, true, true, jest.fn() )
+		useExpressCheckoutLocations.mockReturnValue(
+			getMockExpressCheckoutLocations( true, true, true, jest.fn() )
 		);
 
-		global.wc_stripe_payment_request_settings_params = {
+		global.wc_stripe_express_checkout_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
 			locale: 'en',
@@ -77,7 +77,7 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 	afterEach( () => {
 		jest.clearAllMocks();
-		global.wc_stripe_payment_request_settings_params = globalValues;
+		global.wc_stripe_express_checkout_settings_params = globalValues;
 	} );
 
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
@@ -95,14 +95,17 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 	} );
 
 	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', async () => {
-		const updatePaymentRequestLocationsHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations(
+		const updateExpressCheckoutLocationsHandler = jest.fn();
+		useExpressCheckoutEnabledSettings.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
+		useExpressCheckoutLocations.mockReturnValue(
+			getMockExpressCheckoutLocations(
 				true,
 				true,
 				true,
-				updatePaymentRequestLocationsHandler
+				updateExpressCheckoutLocationsHandler
 			)
 		);
 
@@ -111,32 +114,35 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 		// Uncheck each checkbox, and verify them what kind of action should have been called
 		await userEvent.click( screen.getByText( 'Product page' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'checkout', 'cart' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
 
 		await userEvent.click( screen.getByText( 'Checkout' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'product', 'cart' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
 
 		await userEvent.click( screen.getByText( 'Cart' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'checkout', 'product' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
 	} );
 
 	it( 'should trigger an action to save the checked locations when checking the location checkboxes', async () => {
-		const updatePaymentRequestLocationsHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations(
+		const updateExpressCheckoutLocationsHandler = jest.fn();
+		useExpressCheckoutEnabledSettings.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
+		useExpressCheckoutLocations.mockReturnValue(
+			getMockExpressCheckoutLocations(
 				false,
 				false,
 				false,
-				updatePaymentRequestLocationsHandler
+				updateExpressCheckoutLocationsHandler
 			)
 		);
 
@@ -144,20 +150,20 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 		await userEvent.click( screen.getByText( 'Cart' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'cart' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'cart' ] );
 
 		await userEvent.click( screen.getByText( 'Product page' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'product' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'product' ] );
 
 		await userEvent.click( screen.getByText( 'Checkout' ) );
 
-		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
-			[ 'checkout' ]
-		);
+		expect(
+			updateExpressCheckoutLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout' ] );
 	} );
 } );

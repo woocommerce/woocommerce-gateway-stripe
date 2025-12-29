@@ -256,7 +256,8 @@ class WC_Stripe_Helper {
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
-			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
+			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
+			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
 	}
 
@@ -626,93 +627,6 @@ class WC_Stripe_Helper {
 		}
 
 		return array_merge( $enabled_payment_method_ids, $mapped_enabled_payment_method_ids );
-	}
-
-	/**
-	 * Get settings of individual legacy payment methods.
-	 *
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
-	 */
-	public static function get_legacy_individual_payment_method_settings() {
-		$stripe_settings = self::get_stripe_settings();
-		$payment_methods = self::get_legacy_payment_methods();
-
-		$payment_method_settings = [
-			WC_Stripe_Payment_Methods::CARD => [
-				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
-				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
-			],
-		];
-
-		foreach ( $payment_methods as $payment_method ) {
-			$settings = [
-				'name'        => $payment_method->get_option( 'title' ),
-				'description' => $payment_method->get_option( 'description' ),
-			];
-
-			$unique_settings = $payment_method->get_unique_settings();
-			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
-				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
-			}
-
-			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
-
-			$payment_method_settings[ $payment_method_id ] = $settings;
-		}
-
-		return $payment_method_settings;
-	}
-
-	/**
-	 * Get settings of individual upe payment methods.
-	 *
-	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
-	 */
-	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$payment_method_settings = [];
-		$available_gateways      = $gateway->get_upe_available_payment_methods();
-
-		foreach ( $available_gateways as $gateway ) {
-			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
-
-			$settings = [
-				'name'        => isset( $individual_gateway_settings['title'] ) ? $individual_gateway_settings['title'] : '',
-				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
-			];
-
-			if ( in_array( $gateway, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
-				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
-			}
-
-			$payment_method_settings[ $gateway ] = $settings;
-		}
-
-		// If card settings are not set, get it from the default Stripe settings which might be set before enabling UPE.
-		if ( ! isset( $payment_method_settings['card']['title'] ) && ! isset( $payment_method_settings['card']['description'] ) ) {
-			$stripe_settings = self::get_stripe_settings();
-			$title           = isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '';
-			$description     = isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '';
-
-			$payment_method_settings['card'] = [
-				'name'        => $title,
-				'description' => $description,
-			];
-			// Save the title and description to the card settings option.
-			update_option(
-				'woocommerce_stripe_card_settings',
-				[
-					'title'       => $title,
-					'description' => $description,
-				]
-			);
-		}
-
-		return $payment_method_settings;
 	}
 
 	/**

@@ -2,20 +2,20 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ExpressCheckoutSettingsSection from '../express-checkout-settings-section';
 import {
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonType,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonTheme,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutLocations,
+	useExpressCheckoutButtonType,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonTheme,
 } from 'wcstripe/data';
 import ExpressCheckoutButtonPreview from 'wcstripe/entrypoints/express-checkout-settings/express-checkout-button-preview';
 
 jest.mock( 'wcstripe/data', () => ( {
-	usePaymentRequestEnabledSettings: jest.fn(),
-	usePaymentRequestLocations: jest.fn(),
-	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
-	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
-	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useExpressCheckoutEnabledSettings: jest.fn(),
+	useExpressCheckoutLocations: jest.fn(),
+	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
+	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
 } ) );
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),
@@ -38,37 +38,37 @@ jest.mock( '../utils/utils', () => ( {
 	} ),
 } ) );
 
-const getMockPaymentRequestEnabledSettings = (
+const getMockExpressCheckoutEnabledSettings = (
 	isEnabled,
-	updateIsPaymentRequestEnabledHandler
-) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
+	updateIsExpressCheckoutEnabledHandler
+) => [ isEnabled, updateIsExpressCheckoutEnabledHandler ];
 
-const getMockPaymentRequestLocations = (
+const getMockExpressCheckoutLocations = (
 	isCheckoutEnabled,
 	isProductPageEnabled,
 	isCartEnabled,
-	updatePaymentRequestLocationsHandler
+	updateExpressCheckoutLocationsHandler
 ) => [
 	[
 		isCheckoutEnabled && 'checkout',
 		isProductPageEnabled && 'product',
 		isCartEnabled && 'cart',
 	].filter( Boolean ),
-	updatePaymentRequestLocationsHandler,
+	updateExpressCheckoutLocationsHandler,
 ];
 
 describe( 'ExpressCheckoutSettingsSection', () => {
-	const globalValues = global.wc_stripe_payment_request_settings_params;
+	const globalValues = global.wc_stripe_express_checkout_settings_params;
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings( true, jest.fn() )
+		useExpressCheckoutEnabledSettings.mockReturnValue(
+			getMockExpressCheckoutEnabledSettings( true, jest.fn() )
 		);
 
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations( true, true, true, jest.fn() )
+		useExpressCheckoutLocations.mockReturnValue(
+			getMockExpressCheckoutLocations( true, true, true, jest.fn() )
 		);
 
-		global.wc_stripe_payment_request_settings_params = {
+		global.wc_stripe_express_checkout_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
 			locale: 'en',
@@ -78,7 +78,7 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 	afterEach( () => {
 		jest.clearAllMocks();
-		global.wc_stripe_payment_request_settings_params = globalValues;
+		global.wc_stripe_express_checkout_settings_params = globalValues;
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -111,19 +111,22 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 		const setButtonSizeMock = jest.fn();
 		const setButtonThemeMock = jest.fn();
 
-		usePaymentRequestButtonType.mockReturnValue( [
+		useExpressCheckoutButtonType.mockReturnValue( [
 			'buy',
 			setButtonTypeMock,
 		] );
-		usePaymentRequestButtonSize.mockReturnValue( [
+		useExpressCheckoutButtonSize.mockReturnValue( [
 			'default',
 			setButtonSizeMock,
 		] );
-		usePaymentRequestButtonTheme.mockReturnValue( [
+		useExpressCheckoutButtonTheme.mockReturnValue( [
 			'dark',
 			setButtonThemeMock,
 		] );
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+		useExpressCheckoutEnabledSettings.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
 
 		render( <ExpressCheckoutSettingsSection /> );
 

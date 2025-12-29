@@ -65,7 +65,7 @@ if (
 ) {
 	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
 }
-if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
+if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
 }
