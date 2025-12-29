@@ -388,7 +388,8 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Redirects to the Stripe settings page upon plugin activation if the transient is set.
+	 * Redirects to the Stripe settings page upon plugin activation if the transient is set,
+	 * and if not activating multiple plugins at once.
 	 *
 	 * @return void
 	 */
