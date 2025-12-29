@@ -17,6 +17,7 @@
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
+* Dev - Improve PHPStan handling of plugin constants
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
