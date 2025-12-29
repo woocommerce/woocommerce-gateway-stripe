@@ -91,12 +91,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:create_or_update_payment_intent\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -940,12 +934,6 @@ parameters:
 			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 3
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
-			identifier: constant.notFound
-			count: 20
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -2503,12 +2491,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Amazon_Pay_Controller\:\:admin_options\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2519,12 +2501,6 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-express-checkout-controller.php
 
 		-
 			message: '#^Call to WC_Stripe_UPE_Availability_Note\:\:init\(\) on a separate line has no effect\.$#'
@@ -2593,12 +2569,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-inbox-notes.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 4
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
 			message: '#^Method WC_Stripe_Inbox_Notes\:\:are_inbox_notes_supported\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2659,12 +2629,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-inbox-notes.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-gateways-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateways_Controller\:\:enqueue_payments_scripts\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2681,12 +2645,6 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-stripe-payment-gateways-controller.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-requests-controller.php
 
 		-
 			message: '#^Method WC_Stripe_Payment_Requests_Controller\:\:admin_options\(\) has no return type specified\.$#'
@@ -2815,12 +2773,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 2
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
-
-		-
 			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:register_routes\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2848,12 +2800,6 @@ parameters:
 			message: '#^Cannot call method get_option\(\) on WC_Stripe_Payment_Gateway\|null\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
@@ -3922,18 +3868,6 @@ parameters:
 			message: '#^Cannot assign offset ''verification…'' to string\.$#'
 			identifier: offsetAssign.dimType
 			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 2
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
-			identifier: constant.notFound
-			count: 10
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -6034,12 +5968,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 125
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:add_gateways\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -6784,12 +6712,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/constants/class-wc-stripe-payment-request-button-states.php
-
-		-
 			message: '#^Method WC_Stripe_Apple_Pay\:\:__call\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7252,12 +7174,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-alipay.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Alipay\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7368,12 +7284,6 @@ parameters:
 		-
 			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-bancontact.php
 
@@ -7552,12 +7462,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-eps.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Eps\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7672,12 +7576,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-giropay.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Giropay\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7788,12 +7686,6 @@ parameters:
 		-
 			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-ideal.php
 
@@ -7944,12 +7836,6 @@ parameters:
 		-
 			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-multibanco.php
 
@@ -8152,12 +8038,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-p24.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_P24\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8262,12 +8142,6 @@ parameters:
 		-
 			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-gateway-stripe-sepa.php
 
@@ -8440,12 +8314,6 @@ parameters:
 			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
 
 		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-gateway-stripe-sofort.php
-
-		-
 			message: '#^Method WC_Gateway_Stripe_Sofort\:\:init_form_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8550,12 +8418,6 @@ parameters:
 		-
 			message: '#^Cannot call method needs_shipping\(\) on WC_Product\|false\|null\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -8743,18 +8605,6 @@ parameters:
 			message: '#^Cannot call method update_meta_data\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
-			identifier: constant.notFound
-			count: 2
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
@@ -9007,12 +8857,6 @@ parameters:
 			message: '#^Cannot call method needs_shipping\(\) on WC_Product\|false\|null\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 3
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
@@ -9492,12 +9336,6 @@ parameters:
 		-
 			message: '#^Cannot call method set_payment_method_title\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
 			count: 3
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
@@ -10243,18 +10081,6 @@ parameters:
 			message: '#^Constant LOGGED_IN_COOKIE not found\.$#'
 			identifier: constant.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_PATH not found\.$#'
-			identifier: constant.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
-			identifier: constant.notFound
-			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -12290,12 +12116,6 @@ parameters:
 			identifier: method.childReturnType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Constant WC_STRIPE_PLUGIN_URL not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-afterpay-clearpay.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'

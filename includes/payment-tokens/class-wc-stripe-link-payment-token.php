@@ -37,13 +37,8 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @return string
 	 */
 	public function get_display_name( $deprecated = '' ) {
-		$display = sprintf(
-			/* translators: customer email */
-			__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
-			$this->get_email()
-		);
-
-		return $display;
+		// Note that 'Stripe Link' is a branded product, and should not be translated.
+		return sprintf( 'Stripe Link (%s)', $this->get_email() );
 	}
 
 	/**

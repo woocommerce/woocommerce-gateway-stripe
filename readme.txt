@@ -156,6 +156,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
+* Dev - Improve PHPStan handling of plugin constants
+* Fix - Ensure that 'Link' and 'Stripe Link' are not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
