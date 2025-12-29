@@ -6,6 +6,7 @@ use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
+use WooCommerce\Stripe\Tests\Exceptions\WC_Stripe_Catch_Redirect_Exception;
 
 /**
  * These tests make assertions against the class WC_Stripe.
@@ -15,6 +16,11 @@ use WC_Stripe_UPE_Payment_Gateway;
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/**
+	 * Tests that the plugin constants are defined.
+	 *
+	 * @return void
+	 */
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_MIN_PHP_VER' ) );
@@ -299,13 +305,37 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 */
 	public function test_maybe_redirect_to_stripe_settings(): void {
+		$redirected_to      = '';
+		$wp_redirect_filter = function ( string $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+
+			// Throw exception to prevent exit() from being called after wp_safe_redirect().
+			throw new WC_Stripe_Catch_Redirect_Exception();
+		};
+
+		// Add filter to catch redirects.
+		add_filter( 'wp_redirect', $wp_redirect_filter );
+
 		// Set the transient to trigger redirection.
 		set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
 
-		WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
+		try {
+			WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
+		} catch ( WC_Stripe_Catch_Redirect_Exception $e ) {
+			// Expected - this prevents exit() from killing the test.
+			unset( $e );
+		}
+
+		$redirect_to_settings_transient = get_transient( 'wc_stripe_redirect_to_settings' );
+
+		// Clean up.
+		remove_filter( 'wp_redirect', $wp_redirect_filter );
 
 		// Check that the transient has been deleted after redirection.
-		$this->assertFalse( get_transient( 'wc_stripe_redirect_to_settings' ) );
+		$this->assertFalse( $redirect_to_settings_transient );
+
+		// Check that the redirect location is the Stripe settings page.
+		$this->assertStringContainsString( 'admin.php?page=wc-settings&tab=checkout&section=stripe', $redirected_to );
 	}
 
 	/**
