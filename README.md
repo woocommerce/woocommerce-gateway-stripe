@@ -29,6 +29,8 @@ We are using [PHPStan](https://phpstan.org/) to perform static analysis of our c
  * Error messages that are less clear if they need to be resolved, like array types not specifying a type for their contents.
  * Error messages that indicate an error doesn't exist or could not be found.
 
+**NOTE:** We are still working out which error types need to be fixed, and which can be safely ignored. For now, you can use your best judgement, knowing that most PHPStan errors don't need to be addressed in your PR. However, you SHOULD update the baseline file using the commands below, otherwise your errors will drive noise in `develop` and other developers' PRs.
+
 For the latter two situations, you will need to update the PHPStan baseline file, which you can do by running either of the following commands:
 ```
 npm run phpstan:baseline
