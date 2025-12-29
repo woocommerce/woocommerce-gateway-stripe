@@ -387,7 +387,12 @@ class WC_Stripe {
 		}
 	}
 
-	public function maybe_redirect_to_stripe_settings() {
+	/**
+	 * Redirects to the Stripe settings page upon plugin activation if the transient is set.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_to_stripe_settings(): void {
 		if ( get_transient( 'wc_stripe_redirect_to_settings' ) && ! isset( $_GET['activate-multi'] ) ) {
 			delete_transient( 'wc_stripe_redirect_to_settings' );
 
