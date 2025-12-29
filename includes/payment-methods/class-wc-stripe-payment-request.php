@@ -1138,7 +1138,7 @@ class WC_Stripe_Payment_Request {
 
 		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
 
-		WC_Stripe_Logger::debug( $errors );
+		WC_Stripe_Logger::debug( is_array( $errors ) ? wp_json_encode( $errors ) : $errors );
 
 		exit;
 	}
