@@ -1405,7 +1405,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Remove subscription shipping package filter if there is free trial in the cart to allow the calculation of shipping costs.
 		if ( $this->cart_contains_free_trial() ) {
-			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10, 1 );
+			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
 		}
 
 		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
