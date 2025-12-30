@@ -1,8 +1,6 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-remote="$1"
-
 zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
 
 while read local_ref local_oid remote_ref remote_oid
