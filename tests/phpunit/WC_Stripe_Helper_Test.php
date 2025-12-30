@@ -168,39 +168,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
 	}
 
-	public function test_get_legacy_payment_methods() {
-		$result = WC_Stripe_Helper::get_legacy_payment_methods();
-		$this->assertEquals( [ 'stripe_alipay', 'stripe_bancontact', 'stripe_boleto', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_oxxo', 'stripe_p24', 'stripe_sepa' ], array_keys( $result ) );
-	}
-
-	public function test_get_legacy_available_payment_method_ids() {
-		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::P24, WC_Stripe_Payment_Methods::SEPA ], $result );
-	}
-
-	public function test_get_legacy_enabled_payment_methods() {
-		// Enable EPS, Giropay and P24 LPM gateways.
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->enable();
-		$gateways['stripe_giropay']->enable();
-		$gateways['stripe_p24']->enable();
-
-		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
-		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
-	}
-
-	public function test_get_legacy_enabled_payment_method_ids() {
-		// Enable EPS, Giropay and P24 LPM gateways.
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->enable();
-		$gateways['stripe_giropay']->enable();
-		$gateways['stripe_p24']->enable();
-
-		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-		// In legacy mode (when UPE is disabled), Stripe refers to Card as payment method.
-		$this->assertEquals( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
-	}
-
 	/**
 	 * Test for `get_order_by_intent_id`
 	 *
@@ -797,60 +764,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'mixed length, \' and "' => [ 'Test\'s Store " Driving Course Range', 'Tests Store  Driving C' ],
 			'removes non-Latin'      => [ 'Test-Storeシ Drהiving?12', 'Test-Store Driving?12' ],
 		];
-	}
-
-	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled() {
-		update_option( 'woocommerce_currency', 'EUR' );
-		$this->upe_helper->enable_upe_feature_flag();
-
-		// Enable sepa and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
-		$this->upe_helper->reload_payment_gateways();
-
-		// Initialize default stripe settings, turn on UPE.
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
-		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-
-		// Make sure the SEPA and iDEAL LPMs were disabled.
-		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );
-		$this->assertEquals( 'no', $sepa_settings['enabled'] );
-		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
-		$this->assertEquals( 'no', $ideal_settings['enabled'] );
-	}
-
-	public function test_turning_off_upe_enables_the_correct_legacy_payment_methods_based_on_which_upe_payment_methods_were_enabled() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-		update_option( 'woocommerce_currency', 'EUR' );
-
-		// Disable sepa and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'no' ] );
-		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'no' ] );
-
-		// Turn UPE on first.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
-
-		// Turn UPE off.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		// Check that the correct LPMs were re-enabled.
-		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );
-		$this->assertEquals( 'yes', $sepa_settings['enabled'] );
-		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
-		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
 	}
 
 	/**

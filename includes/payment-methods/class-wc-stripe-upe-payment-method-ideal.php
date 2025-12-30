@@ -12,13 +12,6 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::IDEAL;
 
 	/**
-	 * Legacy payment method class reference.
-	 *
-	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
-	 */
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Ideal::class;
-
-	/**
 	 * Constructor for iDEAL payment method
 	 */
 	public function __construct() {
