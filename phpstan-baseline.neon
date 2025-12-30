@@ -27,18 +27,12 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
 			message: '#^Action callback returns bool but should not return anything\.$#'
 			identifier: return.void
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Cannot access property \$id on obect\|true\.$#'
-			identifier: property.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
@@ -237,7 +231,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 14
+			count: 15
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -285,7 +279,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 4
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -298,12 +292,6 @@ parameters:
 			message: '#^Access to an undefined property object\:\:\$us_bank_account\.$#'
 			identifier: property.notFound
 			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Access to property \$last_payment_error on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -583,12 +571,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$id on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$id on object\|string\.$#'
 			identifier: property.nonObject
 			count: 4
@@ -610,12 +592,6 @@ parameters:
 			message: '#^Cannot access property \$status on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 3
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot access property \$status on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1063,21 +1039,9 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent\(\) should return bool\|object but returns array\|stdClass\.$#'
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent\(\) should return object\|false but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) has invalid return type obect\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) should return bool\|obect but returns bool\|object\.$#'
-			identifier: return.type
-			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -2943,6 +2907,12 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
+			count: 2
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$object\.$#'
+			identifier: property.notFound
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
@@ -2961,49 +2931,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to property \$customer on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to property \$id on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to property \$last_payment_error on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to property \$object on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 1
+			count: 5
 			path: includes/class-wc-gateway-stripe.php
 
 		-
 			message: '#^Action callback returns bool but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot access property \$object on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot access property \$status on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 5
 			path: includes/class-wc-gateway-stripe.php
 
 		-
@@ -3331,12 +3265,6 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) expects object, obect\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:complete_free_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3439,13 +3367,13 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_failure\(\) expects stdClass, obect\|true given\.$#'
+			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_failure\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_success\(\) expects stdClass, obect\|true given\.$#'
+			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_success\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
@@ -4396,12 +4324,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Access to property \$last_payment_error on an unknown class obect\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:verify_intent_after_checkout\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4432,7 +4354,7 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot access property \$metadata on bool\|obect\.$#'
+			message: '#^Cannot access property \$metadata on object\|false\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -4630,7 +4552,7 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Parameter \#1 \$intent of static method WC_Stripe_Helper\:\:get_payment_method_from_intent\(\) expects object, bool\|obect given\.$#'
+			message: '#^Parameter \#1 \$intent of static method WC_Stripe_Helper\:\:get_payment_method_from_intent\(\) expects object, object\|false given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -4792,20 +4714,20 @@ parameters:
 			path: includes/class-wc-stripe-logger.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 3
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$token_id\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Access to property \$error on an unknown class obect\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
@@ -4861,18 +4783,6 @@ parameters:
 			message: '#^Cannot access offset ''headers'' on array\|stdClass\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot access property \$id on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot access property \$status on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 3
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -5334,7 +5244,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 6
+			count: 7
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -5374,13 +5284,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot access property \$id on bool\|obect\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot access property \$id on obect\|true\.$#'
+			message: '#^Cannot access property \$id on object\|false\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -5742,12 +5646,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_source_canceled\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, obect\|true given\.$#'
-			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -8446,6 +8344,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$card\.$#'
 			identifier: property.notFound
 			count: 1
@@ -8472,7 +8376,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 6
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8488,20 +8392,20 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$type\.$#'
+			message: '#^Access to an undefined property object\:\:\$payment_method_types\.$#'
 			identifier: property.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Access to property \$id on an unknown class obect\.$#'
-			identifier: class.notFound
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$type\.$#'
+			identifier: property.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -8548,39 +8452,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$amount on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$id on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$payment_method_details on object\|string\.$#'
 			identifier: property.nonObject
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot access property \$payment_method_types on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot access property \$status on obect\|true\.$#'
-			identifier: property.nonObject
-			count: 3
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8831,12 +8711,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) should return array\|null but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_existing_compatible_payment_intent\(\) should return object\|null but returns obect\|true\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
