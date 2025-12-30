@@ -551,7 +551,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await retryWithBackoff( async () => {
 		const testInstitutionButton = page
 			.frameLocator( iframeSelector )
-			.getByText( 'Test (Non-OAuth)' )
+			.getByText( 'Test (OAuth)' )
 			.first();
 
 		await expect( testInstitutionButton ).toBeVisible();
@@ -585,10 +585,10 @@ export const fillACHBankDetails = async ( page ) => {
 			.getByRole( 'button', { name: 'Success ••••' } )
 			.waitFor( { state: 'visible' } ),
 		frame
-			.getByTestId( 'test-mode-fill-button' )
+			.getByTestId( 'continue-button' )
 			.waitFor( { state: 'visible' } )
 			.then( async () => {
-				await frame.getByTestId( 'test-mode-fill-button' ).click();
+				await frame.getByTestId( 'continue-button' ).click();
 			} ),
 	] );
 
