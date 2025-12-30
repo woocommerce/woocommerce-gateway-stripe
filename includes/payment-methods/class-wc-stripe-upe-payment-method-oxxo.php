@@ -14,13 +14,6 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
 
 	/**
-	 * Legacy payment method class reference.
-	 *
-	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
-	 */
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Oxxo::class;
-
-	/**
 	 * Constructor for OXXO payment method
 	 *
 	 * @since 5.8.0
