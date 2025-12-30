@@ -157,7 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
-* Fix - Calculate subtotal correctly in express checkout when itemized display is disabled, preventing Google Pay from showing incorrect totals
+* Fix - Calculate subtotal correctly in express checkout
 * Dev - Improve PHPStan handling of plugin constants
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
 
