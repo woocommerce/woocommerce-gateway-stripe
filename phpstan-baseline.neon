@@ -43,12 +43,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Cannot call method add_payment_intent_to_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Cannot call method get_billing_country\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -80,12 +74,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
-			message: '#^Cannot call method update_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
@@ -151,6 +139,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_upe_payment_type\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway_Voucher\:\:create_or_update_payment_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 2
@@ -160,6 +154,12 @@ parameters:
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway_Voucher\:\:get_confirm_payment_data\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 2
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
+
+		-
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Order_Helper\:\:add_payment_intent_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
@@ -625,48 +625,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method add_payment_intent_to_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_billing_address_1\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -769,54 +727,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_setup_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -824,24 +734,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_transaction_id\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method is_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method lock_order_refund\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -871,69 +763,9 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method set_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method unlock_order_refund\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_currency\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 5
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_refund_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_setup_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1483,6 +1315,78 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_charge_captured\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_refund\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_refund\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_refund_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1597,6 +1501,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$currency of method WC_Stripe_Order_Helper\:\:update_stripe_currency\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, array\|stdClass given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1612,6 +1522,12 @@ parameters:
 			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
+			identifier: argument.type
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1671,6 +1587,12 @@ parameters:
 		-
 			message: '#^Variable \$name in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -2047,12 +1969,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
 			message: '#^Cannot call method get_total_refunded\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -2072,12 +1988,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
-			message: '#^Cannot call method update_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
@@ -2120,6 +2030,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-orders-controller.php
+
+		-
+			message: '#^Parameter \#2 \$customer_id of method WC_Stripe_Order_Helper\:\:update_stripe_customer_id\(\) expects string, int\|string\|WP_Error given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
@@ -2665,43 +2581,7 @@ parameters:
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Cannot call method delete_stripe_refund_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
 			message: '#^Cannot call method getTimestamp\(\) on WC_DateTime\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Cannot call method get_stripe_refund_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 2
 			path: includes/admin/class-wc-stripe-privacy.php
@@ -3025,24 +2905,6 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Cannot call method get_stripe_currency\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
@@ -3055,43 +2917,13 @@ parameters:
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Cannot call method payment_complete\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
 		-
-			message: '#^Cannot call method remove_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method set_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method unlock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-gateway-stripe.php
@@ -3370,6 +3202,54 @@ parameters:
 			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 3
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:remove_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 4
+			path: includes/class-wc-gateway-stripe.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:validate_minimum_order_amount\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-gateway-stripe.php
 
 		-
@@ -4168,42 +4048,6 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Cannot call method get_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Cannot call method get_stripe_setup_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Cannot call method update_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Cannot call method update_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Cannot call method update_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -4450,27 +4294,9 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot call method add_payment_intent_to_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method get_intent_id_from_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method get_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -4486,27 +4312,9 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot call method remove_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method update_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot call method validate_intent_for_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -4655,6 +4463,18 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_intent_id_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:remove_payment_awaiting_action\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -4888,12 +4708,6 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Cannot call method getTimestamp\(\) on WC_DateTime\|null\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -4903,12 +4717,6 @@ parameters:
 			message: '#^Cannot call method get_payment_method\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 3
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method get_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -4930,57 +4738,15 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Cannot call method is_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method is_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method is_stripe_gateway_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method set_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Cannot call method set_transaction_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Cannot call method unlock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -5063,6 +4829,48 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, array\|stdClass given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:delete_stripe_customer_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_charge_captured\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_charge_captured\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_stripe_charge_captured\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:validate_minimum_order_amount\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
@@ -5416,18 +5224,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method delete_stripe_refund_failure_reason\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method get_id\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -5440,31 +5236,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method get_intent_id_from_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method get_stripe_refund_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_waiting_for_redirect\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -5482,36 +5254,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method is_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method is_stripe_gateway_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method is_stripe_status_final\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 7
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method lock_order_refund\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method payment_complete\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -5524,55 +5266,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method set_stripe_charge_captured\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method set_stripe_status_final\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method unlock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method unlock_order_refund\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method update_stripe_refund_failure_reason\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method update_stripe_refund_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method update_stripe_refund_status\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -5753,6 +5447,30 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_intent_id_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -6256,12 +5974,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-refund.php
 
 		-
-			message: '#^Cannot call method get_stripe_refund_failure_reason\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
 			message: '#^Method WC_Stripe_Email_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -6316,12 +6028,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
 		-
-			message: '#^Cannot call method is_stripe_gateway_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
 			message: '#^Class WC_Subscription not found\.$#'
 			identifier: class.notFound
 			count: 2
@@ -6348,6 +6054,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Subscriptions_Helper\:\:is_subscription_payment_method_detached\(\) has parameter \$subscription with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/compat/class-wc-stripe-subscriptions-helper.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_gateway_order\(\) expects WC_Order, WC_Subscription given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
@@ -7498,18 +7210,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Cannot call method get_available_variations\(\) on WC_Product\|null\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -7945,18 +7645,6 @@ parameters:
 			message: '#^Callback expects 1 parameter, \$accepted_args is set to 3\.$#'
 			identifier: arguments.count
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-payment-request.php
 
 		-
@@ -8590,19 +8278,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method add_payment_intent_to_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method create_payment_token_for_user\(\) on WC_Stripe_UPE_Payment_Method\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method delete_stripe_upe_waiting_for_redirect\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -8644,27 +8320,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_redirect_processed\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 4
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8674,27 +8332,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method remove_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method set_payment_awaiting_action\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method unlock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8705,54 +8345,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_card_brand\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_upe_redirect_processed\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method update_stripe_upe_waiting_for_redirect\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method validate_intent_for_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method validate_minimum_order_amount\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -9130,6 +8722,60 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_upe_redirect_processed\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_upe_payment_type\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_upe_waiting_for_redirect\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:validate_minimum_order_amount\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:generate_payment_request\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -9286,6 +8932,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$payment_intent_id of method WC_Stripe_Order_Helper\:\:add_payment_intent_to_order\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 3
@@ -9388,6 +9040,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Order_Helper\:\:add_payment_intent_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:maybe_remove_non_existent_customer\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -9473,6 +9131,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_type of method WC_Stripe_UPE_Payment_Gateway\:\:set_payment_method_title_for_order\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$payment_type of method WC_Stripe_Order_Helper\:\:update_stripe_upe_payment_type\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -9838,72 +9502,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -9913,12 +9511,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -10108,6 +9700,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACH\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -10115,6 +9737,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_ACH\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -10164,6 +9792,12 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_ACH\|null\) of method WC_Stripe_UPE_Payment_Method_ACH\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -10474,72 +10108,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -10549,12 +10117,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -10738,6 +10300,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACSS\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -10745,6 +10337,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_ACSS\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -10794,6 +10392,12 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_ACSS\|null\) of method WC_Stripe_UPE_Payment_Method_ACSS\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -11110,72 +10714,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -11185,12 +10723,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -11374,6 +10906,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Amazon_Pay\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -11381,6 +10943,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -11430,6 +10998,12 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_Amazon_Pay\) of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -11746,72 +11320,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -11821,12 +11329,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -12016,6 +11518,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bacs_Debit\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -12023,6 +11555,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -12066,6 +11604,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -12376,72 +11920,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -12451,12 +11929,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -12640,6 +12112,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bancontact\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -12647,6 +12149,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -12690,6 +12198,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -13000,72 +12514,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -13075,12 +12523,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -13270,6 +12712,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Becs_Debit\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -13277,6 +12749,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -13330,6 +12808,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:get_retrievable_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -13358,12 +12842,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-boleto.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Boleto\:\:add_allowed_payment_processing_statuses\(\) has parameter \$allowed_statuses with no type specified\.$#'
@@ -13690,72 +13168,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -13765,12 +13177,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -13948,6 +13354,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Cash_App_Pay\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -13955,6 +13391,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -13998,6 +13440,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -14314,72 +13762,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -14389,12 +13771,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -14584,6 +13960,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
 			message: '#^Parameter \#1 \$user_id \(string\) of method WC_Stripe_UPE_Payment_Method_CC\:\:create_payment_token_for_user\(\) should be compatible with parameter \$user_id \(int\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childParameterType
 			count: 1
@@ -14603,6 +14009,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_CC\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -14652,6 +14064,12 @@ parameters:
 		-
 			message: '#^Return type \(WC_Stripe_Payment_Token_CC\) of method WC_Stripe_UPE_Payment_Method_CC\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -14962,72 +14380,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -15037,12 +14389,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -15226,6 +14572,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Ideal\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -15233,6 +14609,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Ideal\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -15276,6 +14658,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -15586,72 +14974,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -15661,12 +14983,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -15844,6 +15160,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Klarna\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -15851,6 +15197,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Klarna\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -15898,6 +15250,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -15932,24 +15290,6 @@ parameters:
 			identifier: method.childReturnType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-link.php
-
-		-
-			message: '#^Cannot call method get_stripe_multibanco_data\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php
-
-		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php
-
-		-
-			message: '#^Cannot call method update_stripe_multibanco_data\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Multibanco\:\:add_allowed_payment_processing_statuses\(\) has parameter \$allowed_statuses with no type specified\.$#'
@@ -16330,73 +15670,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Cannot call method get_title\(\) on WC_Stripe_UPE_Payment_Method\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -16411,12 +15685,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -16606,6 +15874,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_OC\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -16613,6 +15911,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_OC\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -16666,10 +15970,10 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Cannot call method get_stripe_upe_payment_type\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oxxo.php
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Oxxo\:\:add_allowed_payment_processing_statuses\(\) has parameter \$allowed_statuses with no type specified\.$#'
@@ -16996,72 +16300,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -17071,12 +16309,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -17272,6 +16504,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sepa\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -17279,6 +16541,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Sepa\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -17322,6 +16590,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -17632,72 +16906,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method delete_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method delete_stripe_fee\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method delete_stripe_intent_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method delete_stripe_net\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method get_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method get_stripe_customer_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method get_stripe_mandate_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method get_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method lock_order_payment\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -17707,12 +16915,6 @@ parameters:
 			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Cannot call method update_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -17890,6 +17092,36 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_card_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_customer_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sofort\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -17897,6 +17129,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Sofort\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -17944,6 +17182,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -17976,18 +17220,6 @@ parameters:
 		-
 			message: '#^Cannot access offset string on object\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Cannot call method delete_stripe_card_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Cannot call method delete_stripe_source_id\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
