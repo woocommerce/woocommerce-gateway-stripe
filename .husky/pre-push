@@ -43,7 +43,6 @@ do
 	fi
 
 	run_phpstan='yes'
-	phpstan_args=
 
 	if [ -n "$range" ]
 	then
@@ -53,14 +52,12 @@ do
 		# Use awk as grep has a non-zero exit code when no matches exist, which causes the pre-push hook to fail.
 		changed_php_files=$(echo "$changed_files" | awk '/.*(\.php|\/)$/ {print $0;}')
 
-		if [ -n "$changed_php_files" ]
+		if [ -z "$changed_php_files" ]
 		then
-			phpstan_args="$changed_php_files"
-			echo "Running PHPStan on changes from $range"
-		else
 			# Check for changes to phpstan.neon or phpstan-baseline.neon
 			changed_phpstan_files=$(echo "$changed_files" | awk '/^phpstan(-baseline)?\.neon$/ {print $0;}')
-			# No PHPStan configuration changes, so we can skip running PHPStan.
+
+			# Also no PHPStan configuration changes, so we can skip running PHPStan.
 			if [ -z "$changed_phpstan_files" ]
 			then
 				run_phpstan='no'
@@ -70,12 +67,7 @@ do
 
 	if [ 'yes' = "$run_phpstan" ]
 	then
-		if test -n "$phpstan_args"
-		then
-			npm run phpstan "$phpstan_args"
-		else
-			npm run phpstan
-		fi
+		npm run phpstan
 	fi
 
 	if [ 'yes' = "$should_restore_stash" ]
