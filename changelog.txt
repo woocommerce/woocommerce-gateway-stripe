@@ -21,6 +21,7 @@
 * Fix - Calculate subtotal correctly in express checkout
 * Dev - Improve PHPStan handling of plugin constants
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
+* Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 
 = 10.2.0 - 2025-12-08 =

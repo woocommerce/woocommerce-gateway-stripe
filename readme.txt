@@ -160,6 +160,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Calculate subtotal correctly in express checkout
 * Dev - Improve PHPStan handling of plugin constants
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
+* Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
