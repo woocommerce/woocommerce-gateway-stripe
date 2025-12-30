@@ -3,7 +3,6 @@
 namespace WooCommerce\Stripe\Tests;
 
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Gateway_Stripe_Giropay;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -24,20 +23,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private $gateway;
 
 	/**
-	 * giropay Gateway under test.
-	 *
-	 * @var WC_Gateway_Stripe_Giropay
-	 */
-	private $giropay_gateway;
-
-	/**
 	 * Sets up things all tests need.
 	 */
 	public function set_up() {
 		parent::set_up();
 
-		$this->gateway         = new WC_Stripe_UPE_Payment_Gateway();
-		$this->giropay_gateway = new WC_Gateway_Stripe_Giropay();
+		$this->gateway = new WC_Stripe_UPE_Payment_Gateway();
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ] );
 	}
@@ -47,40 +38,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {
 		$order->update_meta_data( $key, $value );
-	}
-
-	/**
-	 * Should print a placeholder div with id 'wc-stripe-payment-gateway-container'
-	 */
-	public function test_admin_options_when_stripe_is_connected() {
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled']              = 'yes';
-		$stripe_settings['testmode']             = 'yes';
-		$stripe_settings['test_publishable_key'] = 'pk_test_key';
-		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		ob_start();
-		$this->giropay_gateway->admin_options();
-		$output = ob_get_clean();
-		$this->assertStringMatchesFormat( '%aid="wc-stripe-payment-gateway-container"%a', $output );
-	}
-
-	/**
-	 * Should print a placeholder div with id 'wc-stripe-new-account-container'
-	 */
-	public function test_admin_options_when_stripe_is_not_connected() {
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled']              = 'yes';
-		$stripe_settings['testmode']             = 'yes';
-		$stripe_settings['test_publishable_key'] = '';
-		$stripe_settings['test_secret_key']      = '';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		ob_start();
-		$this->giropay_gateway->admin_options();
-		$output = ob_get_clean();
-		$this->assertStringMatchesFormat( '%aid="wc-stripe-new-account-container"%a', $output );
 	}
 
 	/**

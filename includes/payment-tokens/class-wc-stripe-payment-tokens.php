@@ -437,10 +437,12 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
-				$item['method']['brand'] = sprintf(
-					/* translators: customer email */
-					esc_html__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
-					esc_html( $payment_token->get_email() )
+				// Note that 'Stripe Link' is a branded product, and should not be translated.
+				$item['method']['brand'] = esc_html(
+					sprintf(
+						'Stripe Link (%s)',
+						$payment_token->get_email()
+					)
 				);
 				break;
 			case WC_Stripe_Payment_Methods::AMAZON_PAY:

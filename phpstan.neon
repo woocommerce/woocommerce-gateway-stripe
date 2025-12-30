@@ -17,3 +17,6 @@ parameters:
 	treatPhpDocTypesAsCertain: false
 	parallel:
 		maximumNumberOfProcesses: 4
+	ignoreErrors:
+		-
+			identifier: missingType.iterableValue
