@@ -35,7 +35,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @deprecated Parameter $payment_request_configuration is deprecated since version 10.3.0 and will be removed in later versions.
 	 */
 	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
-		if ( false !== $payment_request_configuration ) {
+		if ( null !== $payment_request_configuration ) {
 			_deprecated_argument(
 				__FUNCTION__,
 				'10.3.0'
