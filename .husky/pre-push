@@ -59,7 +59,7 @@ do
 			echo "Running PHPStan on changes from $range"
 		else
 			# Check for changes to phpstan.neon or phpstan-baseline.neon
-			$changed_phpstan_files=$(echo "$changed_files" | awk '/^phpstan(-baseline)?\.neon$/ {print $0;}')
+			changed_phpstan_files=$(echo "$changed_files" | awk '/^phpstan(-baseline)?\.neon$/ {print $0;}')
 			# No PHPStan configuration changes, so we can skip running PHPStan.
 			if [ -z "$changed_phpstan_files" ]
 			then
