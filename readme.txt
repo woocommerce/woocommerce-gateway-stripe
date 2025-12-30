@@ -162,5 +162,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
 * Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
+* Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -23,6 +23,7 @@
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
 * Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
+* Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
