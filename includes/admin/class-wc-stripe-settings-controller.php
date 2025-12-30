@@ -285,18 +285,6 @@ class WC_Stripe_Settings_Controller {
 		$gateways_to_hide = [
 			// Hide all UPE payment methods.
 			WC_Stripe_UPE_Payment_Method::class,
-			// Hide all legacy payment methods.
-			WC_Gateway_Stripe_Alipay::class,
-			WC_Gateway_Stripe_Sepa::class,
-			WC_Gateway_Stripe_Giropay::class,
-			WC_Gateway_Stripe_Ideal::class,
-			WC_Gateway_Stripe_Bancontact::class,
-			WC_Gateway_Stripe_Eps::class,
-			WC_Gateway_Stripe_P24::class,
-			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_Oxxo::class,
-			WC_Gateway_Stripe_Sofort::class,
-			WC_Gateway_Stripe_Multibanco::class,
 		];
 
 		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {
