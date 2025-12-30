@@ -52,7 +52,9 @@ class WC_Stripe {
 	/**
 	 * Stripe Payment Request configurations.
 	 *
-	 * @var WC_Stripe_Payment_Request
+	 * @var null
+	 *
+	 * @deprecated 10.3.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
 	public $payment_request_configuration;
 
@@ -210,7 +212,6 @@ class WC_Stripe {
 
 		$this->api                           = new WC_Stripe_Connect_API();
 		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded

@@ -19,14 +19,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
-	 * The Payment Request configuration class used for Shortcode PRBs. We use it here to retrieve
-	 * the same configurations.
-	 *
-	 * @var WC_Stripe_Payment_Request
-	 */
-	private $payment_request_configuration;
-
-	/**
 	 * The Express Checkout configuration class used for Shortcode PRBs. We use it here to retrieve
 	 * the same configurations.
 	 *
@@ -37,13 +29,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Constructor
 	 *
-	 * @param WC_Stripe_Payment_Request  The Stripe Payment Request configuration used for Payment
-	 *                                   Request buttons.
+	 * @param null                               $payment_request_configuration The Stripe Payment Request configuration used for Payment Request buttons (removed).
+	 * @param WC_Stripe_Express_Checkout_Element $express_checkout_configuration The Stripe Express Checkout configuration used for Express Checkout buttons.
 	 */
 	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
-		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
 
 		if ( null === $express_checkout_configuration ) {
 			$helper                         = new WC_Stripe_Express_Checkout_Helper();
@@ -194,9 +185,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSaveOption'                  => $this->get_show_save_option(),
 				'isAdmin'                         => is_admin(),
 				'shouldShowExpressCheckoutButton' => $this->should_show_express_checkout_button(),
-				'button'                          => [
-					'customLabel' => $this->payment_request_configuration->get_button_label(),
-				],
 				'style'                           => $this->get_style(),
 				'baseLocation'                    => wc_get_base_location(),
 			]
@@ -243,18 +231,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		return apply_filters(
 			'wc_stripe_params',
 			$js_configuration
-		);
-	}
-
-	/**
-	 * Returns the Stripe Payment Request JavaScript configuration object.
-	 *
-	 * @return array  the JS configuration for Stripe Payment Requests.
-	 */
-	private function get_payment_request_javascript_params() {
-		return apply_filters(
-			'wc_stripe_payment_request_params',
-			$this->payment_request_configuration->javascript_params()
 		);
 	}
 
