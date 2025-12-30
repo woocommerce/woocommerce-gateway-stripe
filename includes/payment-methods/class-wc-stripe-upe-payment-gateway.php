@@ -3655,83 +3655,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Adds a notice for customer when they update their billing address.
-	 *
-	 * @since 4.1.0
-	 * @param int    $user_id      The ID of the current user.
-	 * @param string $load_address The address to load.
-	 */
-	public function show_update_card_notice( $user_id, $load_address ) {
-		if (
-			is_admin() ||
-			! $this->saved_cards ||
-			! WC_Stripe_Payment_Tokens::customer_has_saved_methods( $user_id ) ||
-			'billing' !== $load_address
-		) {
-			return;
-		}
-
-		/* translators: 1) Opening anchor tag 2) closing anchor tag */
-		wc_add_notice( sprintf( __( 'If your billing address has been changed for saved payment methods, be sure to remove any %1$ssaved payment methods%2$s on file and re-add them.', 'woocommerce-gateway-stripe' ), '<a href="' . esc_url( wc_get_endpoint_url( 'payment-methods' ) ) . '" class="wc-stripe-update-card-notice" style="text-decoration:underline;">', '</a>' ), 'notice' );
-	}
-
-	/**
-	 * Renders the Stripe elements form.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function elements_form() {
-		?>
-		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-cc-form" class="wc-credit-card-form wc-payment-form" style="background:transparent;">
-			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
-
-			<?php if ( $this->inline_cc_form ) { ?>
-				<label for="card-element">
-					<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
-				</label>
-
-				<div id="stripe-card-element" class="wc-stripe-elements-field">
-					<!-- a Stripe Element will be inserted here. -->
-				</div>
-			<?php } else { ?>
-				<div class="form-row form-row-wide">
-					<label for="stripe-card-element"><?php esc_html_e( 'Card Number', 'woocommerce-gateway-stripe' ); ?> <span class="required">*</span></label>
-					<div class="stripe-card-group">
-						<div id="stripe-card-element" class="wc-stripe-elements-field">
-							<!-- a Stripe Element will be inserted here. -->
-						</div>
-
-						<i class="stripe-credit-card-brand stripe-card-brand" alt="Credit Card"></i>
-					</div>
-				</div>
-
-				<div class="form-row form-row-first">
-					<label for="stripe-exp-element"><?php esc_html_e( 'Expiry Date', 'woocommerce-gateway-stripe' ); ?> <span class="required">*</span></label>
-
-					<div id="stripe-exp-element" class="wc-stripe-elements-field">
-						<!-- a Stripe Element will be inserted here. -->
-					</div>
-				</div>
-
-				<div class="form-row form-row-last">
-					<label for="stripe-cvc-element"><?php esc_html_e( 'Card Code (CVC)', 'woocommerce-gateway-stripe' ); ?> <span class="required">*</span></label>
-					<div id="stripe-cvc-element" class="wc-stripe-elements-field">
-						<!-- a Stripe Element will be inserted here. -->
-					</div>
-				</div>
-				<div class="clear"></div>
-			<?php } ?>
-
-			<!-- Used to display form errors -->
-			<div class="stripe-source-errors" role="alert"></div>
-			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
-			<div class="clear"></div>
-		</fieldset>
-		<?php
-	}
-
-	/**
 	 * Override the parent admin_options method.
 	 */
 	public function admin_options() {
@@ -3741,13 +3664,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Completes an order without a positive value.
 	 *
-	 * @since 4.2.0
-	 * @param WC_Order $order             The order to complete.
-	 * @param WC_Order $prepared_source   Payment source and customer data.
-	 * @param boolean  $force_save_source Whether the payment source must be saved, like when dealing with a Subscription setup.
+	 * @since 10.3.0. Migrated from the legacy checkout.
+	 *
+	 * @param \WC_Order $order             The order to complete.
+	 * @param object    $prepared_source   Payment source and customer data.
+	 * @param boolean   $force_save_source Whether the payment source must be saved, like when dealing with a Subscription setup.
 	 * @return array                      Redirection data for `process_payment`.
 	 */
-	public function complete_free_order( $order, $prepared_source, $force_save_source ) {
+	public function complete_free_order( \WC_Order $order, object $prepared_source, bool $force_save_source ): array {
 		if ( $force_save_source ) {
 			$intent_secret = $this->setup_intent( $order, $prepared_source );
 
@@ -3776,11 +3700,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Displays the Stripe fee
 	 *
-	 * @since 4.1.0
+	 * @since 10.3.0 Migrated from the legacy checkout.
 	 *
 	 * @param int $order_id The ID of the order.
+	 * @return void
 	 */
-	public function display_order_fee( $order_id ) {
+	public function display_order_fee( int $order_id ): void {
 		if ( apply_filters( 'wc_stripe_hide_display_order_fee', false, $order_id ) ) {
 			return;
 		}
@@ -3814,11 +3739,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Displays the net total of the transaction without the charges of Stripe.
 	 *
-	 * @since 4.1.0
+	 * @since 10.3.0 Migrated from the legacy checkout.
 	 *
 	 * @param int $order_id The ID of the order.
+	 * @return void
 	 */
-	public function display_order_payout( $order_id ) {
+	public function display_order_payout( int $order_id ): void {
 		if ( apply_filters( 'wc_stripe_hide_display_order_payout', false, $order_id ) ) {
 			return;
 		}
@@ -3850,124 +3776,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Adds the necessary hooks to modify the "Pay for order" page in order to clean
-	 * it up and prepare it for the Stripe PaymentIntents modal to confirm a payment.
-	 *
-	 * @since 4.2
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[]          Either the same list or an empty one in the right conditions.
-	 */
-	public function prepare_order_pay_page( $gateways ) {
-		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['wc-stripe-confirmation'] ) ) { // wpcs: csrf ok.
-			return $gateways;
-		}
-
-		try {
-			$this->prepare_intent_for_order_pay_page();
-		} catch ( WC_Stripe_Exception $e ) {
-			// Just show the full order pay page if there was a problem preparing the Payment Intent
-			return $gateways;
-		}
-
-		add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
-		add_filter( 'woocommerce_pay_order_button_html', '__return_false' );
-		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
-		add_filter( 'woocommerce_no_available_payment_methods_message', [ $this, 'change_no_available_methods_message' ] );
-		add_action( 'woocommerce_pay_order_after_submit', [ $this, 'render_payment_intent_inputs' ] );
-
-		return [];
-	}
-
-	/**
-	 * Changes the text of the "No available methods" message to one that indicates
-	 * the need for a PaymentIntent to be confirmed.
-	 *
-	 * @since 4.2
-	 * @return string the new message.
-	 */
-	public function change_no_available_methods_message() {
-		return wpautop( __( "Almost there!\n\nYour order has already been created, the only thing that still needs to be done is for you to authorize the payment with your bank.", 'woocommerce-gateway-stripe' ) );
-	}
-
-	/**
-	 * Prepares the Payment Intent for it to be completed in the "Pay for Order" page.
-	 *
-	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
-	 *
-	 * @throws WC_Stripe_Exception
-	 * @since 4.3
-	 */
-	public function prepare_intent_for_order_pay_page( $order = null ) {
-		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-		}
-		$intent = $this->get_intent_from_order( $order );
-
-		if ( ! $intent ) {
-			throw new WC_Stripe_Exception(
-				'Payment Intent not found',
-				sprintf(
-				/* translators: %s is the order Id */
-					__( 'Payment Intent not found for order #%s', 'woocommerce-gateway-stripe' ),
-					$order->get_id()
-				)
-			);
-		}
-
-		if ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status && isset( $intent->last_payment_error )
-			&& 'authentication_required' === $intent->last_payment_error->code ) {
-			$level3_data = $this->get_level3_data_from_order( $order );
-			$intent      = WC_Stripe_API::request_with_level3_data(
-				[
-					'payment_method' => $intent->last_payment_error->source->id,
-				],
-				'payment_intents/' . $intent->id . '/confirm',
-				$level3_data,
-				$order
-			);
-
-			if ( isset( $intent->error ) ) {
-				throw new WC_Stripe_Exception( print_r( $intent, true ), $intent->error->message );
-			}
-		}
-
-		$this->order_pay_intent = $intent;
-	}
-
-	/**
-	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle PaymentIntents.
-	 *
-	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
-	 *
-	 * @throws WC_Stripe_Exception
-	 * @since 4.2
-	 */
-	public function render_payment_intent_inputs( $order = null ) {
-		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-		}
-		if ( ! isset( $this->order_pay_intent ) ) {
-			$this->prepare_intent_for_order_pay_page( $order );
-		}
-
-		$verification_url = add_query_arg(
-			[
-				'order'            => $order->get_id(),
-				'nonce'            => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to'      => rawurlencode( $this->get_return_url( $order ) ),
-				'is_pay_for_order' => true,
-			],
-			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-		);
-
-		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $this->order_pay_intent->client_secret ) . '" />';
-		echo '<input type="hidden" id="stripe-intent-return" value="' . esc_attr( $verification_url ) . '" />';
-	}
-
-	/**
 	 * Adds an error message wrapper to each saved method.
 	 *
-	 * @since 4.2.0
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @param WC_Payment_Token $token Payment Token.
 	 * @return string                 Generated payment method HTML
 	 */
@@ -3979,38 +3791,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Attempt to manually complete the payment process for orders, which are still pending
-	 * before displaying the View Order page. This is useful in case webhooks have not been set up.
-	 *
-	 * @since 4.2.0
-	 * @param int $order_id The ID that will be used for the thank you page.
-	 */
-	public function check_intent_status_on_order_page( $order_id ) {
-		if ( empty( $order_id ) || absint( $order_id ) <= 0 ) {
-			return;
-		}
-
-		$order = wc_get_order( absint( $order_id ) );
-
-		if ( ! $order ) {
-			return;
-		}
-
-		$this->verify_intent_after_checkout( $order );
-	}
-
-	/**
 	 * Attached to `woocommerce_payment_successful_result` with a late priority,
 	 * this method will combine the "naturally" generated redirect URL from
 	 * WooCommerce and a payment/setup intent secret into a hash, which contains both
 	 * the secret, and a proper URL, which will confirm whether the intent succeeded.
 	 *
-	 * @since 4.2.0
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @param array $result   The result from `process_payment`.
 	 * @param int   $order_id The ID of the order which is being paid for.
 	 * @return array
 	 */
-	public function modify_successful_payment_result( $result, $order_id ) {
+	public function modify_successful_payment_result( array $result, int $order_id ): array {
 		if ( ! isset( $result['payment_intent_secret'] ) && ! isset( $result['setup_intent_secret'] ) ) {
 			// Only redirects with intents need to be modified.
 			return $result;
@@ -4058,10 +3850,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Executed between the "Checkout" and "Thank you" pages, this
 	 * method updates orders based on the status of associated PaymentIntents.
 	 *
-	 * @since 4.2.0
-	 * @param WC_Order $order The order which is in a transitional state.
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
+	 * @param \WC_Order $order The order which is in a transitional state.
+	 * @return void
 	 */
-	public function verify_intent_after_checkout( $order ) {
+	public function verify_intent_after_checkout( \WC_Order $order ): void {
 		$payment_method = $order->get_payment_method();
 		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
@@ -4123,10 +3917,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Called after an intent verification succeeds, this allows
 	 * specific APNs or children of this class to modify its behavior.
 	 *
-	 * @param WC_Order $order The order whose verification succeeded.
+	 * @param \WC_Order $order The order whose verification succeeded.
 	 * @param stdClass $intent The Payment Intent object.
+	 * @return void
 	 */
-	protected function handle_intent_verification_success( $order, $intent ) {
+	protected function handle_intent_verification_success( \WC_Order $order, stdClass $intent ): void {
 		$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 		$this->maybe_process_subscription_early_renewal_success( $order, $intent );
 	}
@@ -4135,10 +3930,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Called after an intent verification fails, this allows
 	 * specific APNs or children of this class to modify its behavior.
 	 *
-	 * @param WC_Order $order The order whose verification failed.
+	 * @param \WC_Order $order The order whose verification failed.
 	 * @param stdClass $intent The Payment Intent object.
+	 * @return void
 	 */
-	protected function handle_intent_verification_failure( $order, $intent ) {
+	protected function handle_intent_verification_failure( \WC_Order $order, stdClass $intent ): void {
 		$this->failed_sca_auth( $order, $intent );
 		$this->maybe_process_subscription_early_renewal_failure( $order, $intent );
 	}
@@ -4146,11 +3942,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks if the payment intent associated with an order failed and records the event.
 	 *
-	 * @since 4.2.0
-	 * @param WC_Order $order  The order which should be checked.
-	 * @param object   $intent The intent, associated with the order.
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
+	 * @param \WC_Order $order  The order which should be checked.
+	 * @param object    $intent The intent, associated with the order.
+	 * @return void
 	 */
-	public function failed_sca_auth( $order, $intent ) {
+	public function failed_sca_auth( \WC_Order $order, stdClass $intent ): void {
 		// If the order has already failed, do not repeat the same message.
 		if ( $order->has_status( OrderStatus::FAILED ) ) {
 			return;
@@ -4167,13 +3965,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Preserves the "wc-stripe-confirmation" URL parameter so the user can complete the SCA authentication after logging in.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @param string   $pay_url Current computed checkout URL for the given order.
-	 * @param WC_Order $order Order object.
+	 * @param \WC_Order $order Order object.
 	 *
 	 * @return string Checkout URL for the given order.
 	 */
-	public function get_checkout_payment_url( $pay_url, $order ) {
+	public function get_checkout_payment_url( string $pay_url, \WC_Order $order ): string {
 		global $wp;
+
 		if ( isset( $_GET['wc-stripe-confirmation'] ) && isset( $wp->query_vars['order-pay'] ) && $wp->query_vars['order-pay'] == $order->get_id() ) {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
@@ -4182,8 +3983,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Checks whether new keys are being entered when saving options.
+	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
+	 * @return void
 	 */
-	public function process_admin_options() {
+	public function process_admin_options(): void {
 		// Load all old values before the new settings get saved.
 		$old_publishable_key      = $this->get_option( 'publishable_key' );
 		$old_secret_key           = $this->get_option( 'secret_key' );
@@ -4214,108 +4019,69 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 	}
 
-	public function validate_publishable_key_field( $key, $value ) {
-		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! preg_match( '/^pk_live_/', $value ) ) {
-			return '';
-		}
-		return $value;
-	}
-
-	public function validate_secret_key_field( $key, $value ) {
-		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_live_/', $value ) ) {
-			return '';
-		}
-		return $value;
-	}
-
-	public function validate_test_publishable_key_field( $key, $value ) {
-		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! preg_match( '/^pk_test_/', $value ) ) {
-			return '';
-		}
-		return $value;
-	}
-
-	public function validate_test_secret_key_field( $key, $value ) {
-		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_test_/', $value ) ) {
-			return '';
-		}
-		return $value;
-	}
-
 	/**
 	 * Checks whether the gateway is enabled.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @return bool The result.
 	 */
-	public function is_enabled() {
+	public function is_enabled(): bool {
 		return 'yes' === $this->get_option( 'enabled' );
 	}
 
 	/**
 	 * Disables gateway.
+	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
+	 * @return void
 	 */
-	public function disable() {
+	public function disable(): void {
 		$this->update_option( 'enabled', 'no' );
 	}
 
 	/**
 	 * Enables gateway.
+	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
+	 * @return void
 	 */
-	public function enable() {
+	public function enable(): void {
 		$this->update_option( 'enabled', 'yes' );
 	}
 
 	/**
 	 * Returns whether test_mode is active for the gateway.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @return boolean Test mode enabled if true, disabled if false.
 	 */
-	public function is_in_test_mode() {
+	public function is_in_test_mode(): bool {
 		return 'yes' === $this->get_option( 'testmode' );
 	}
 
 	/**
 	 * Determines whether the "automatic" or "manual" capture setting is enabled.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @return bool
 	 */
-	public function is_automatic_capture_enabled() {
+	public function is_automatic_capture_enabled(): bool {
 		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
-	}
-
-	/**
-	 * Get required setting keys for setup.
-	 *
-	 * @return array Array of setting keys used for setup.
-	 */
-	public function get_required_settings_keys() {
-		return [ 'publishable_key', 'secret_key' ];
-	}
-
-	/**
-	 * Get help text to display during quick setup.
-	 *
-	 * @return string
-	 */
-	public function get_setup_help_text() {
-		return sprintf(
-		/* translators: %1$s Link to Stripe API details, %2$s Link to register a Stripe account */
-			__( 'Your API details can be obtained from your <a href="%1$s">Stripe account</a>. Don’t have a Stripe account? <a href="%2$s">Create one.</a>', 'woocommerce-gateway-stripe' ),
-			'https://dashboard.stripe.com/apikeys',
-			'https://dashboard.stripe.com/register'
-		);
 	}
 
 	/**
 	 * Determine if the gateway still requires setup.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @return bool
 	 */
-	public function needs_setup() {
+	public function needs_setup(): bool {
 		if ( $this->testmode ) {
 			return ! $this->get_option( 'test_publishable_key' ) || ! $this->get_option( 'test_secret_key' );
 		}
@@ -4323,52 +4089,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Updates the test mode based on keys provided when setting up the gateway via onboarding.
-	 *
-	 * @return array
-	 */
-	public function update_onboarding_settings( $settings ) {
-		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			return;
-		}
-
-		parse_str( wp_parse_url( wp_unslash( $_SERVER['HTTP_REFERER'] ), PHP_URL_QUERY ), $queries ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		// Determine if merchant is onboarding (page='wc-admin' and task='payments').
-		if (
-			! isset( $queries ) ||
-			! isset( $queries['page'] ) ||
-			! isset( $queries['task'] ) ||
-			'wc-admin' !== $queries['page'] ||
-			'payments' !== $queries['task']
-		) {
-			return;
-		}
-
-		if ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) {
-			if ( strpos( $settings['publishable_key'], 'pk_test_' ) === 0 || strpos( $settings['secret_key'], 'sk_test_' ) === 0 ) {
-				$settings['test_publishable_key'] = $settings['publishable_key'];
-				$settings['test_secret_key']      = $settings['secret_key'];
-				unset( $settings['publishable_key'] );
-				unset( $settings['secret_key'] );
-				$settings['testmode'] = 'yes';
-			} else {
-				$settings['testmode'] = 'no';
-			}
-		}
-
-		return $settings;
-	}
-
-	/**
 	 * Validates a field value before updating.
+	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
 	 *
 	 * @param string $field_key the form field key.
 	 * @param string $field_value the form field value.
 	 *
 	 * @return bool True if the value was updated, false otherwise.
 	 */
-	public function update_validated_option( $field_key, $field_value ) {
+	public function update_validated_option( $field_key, $field_value ): bool {
 		$validated_field_value = $this->validate_field( $field_key, $field_value );
 		return $this->update_option( $field_key, $validated_field_value );
 	}
@@ -4376,12 +4106,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Retrieves validated field value.
 	 *
+	 * @since 10.3.0 Migrated from the legacy checkout.
+	 *
 	 * @param string $field_key the form field key.
 	 * @param mixed $empty_value fallback value.
 	 *
 	 * @return string validated field value.
 	 */
-	public function get_validated_option( $field_key, $empty_value = null ) {
+	public function get_validated_option( $field_key, $empty_value = null ): string {
 		$value = parent::get_option( $field_key, $empty_value );
 		return $this->validate_field( $field_key, $value );
 	}
@@ -4394,7 +4126,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string validated field value.
 	 */
-	private function validate_field( $field_key, $field_value ) {
+	private function validate_field( string $field_key, string $field_value ): string {
 		if ( is_callable( [ $this, 'validate_' . $field_key . '_field' ] ) ) {
 			return $this->{'validate_' . $field_key . '_field'}( $field_key, $field_value );
 		}
