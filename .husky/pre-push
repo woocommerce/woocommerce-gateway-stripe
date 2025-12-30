@@ -1,6 +1,85 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+remote="$1"
+
+zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
+
+while read local_ref local_oid remote_ref remote_oid
+do
+	range=""
+	if [ "$local_oid" != "$zero" ]
+	then
+		if test "$remote_oid" != "$zero"
+		then
+				# Update to existing branch - check all new commits.
+				range="$remote_oid..$local_oid"
+		fi
+	fi
+
+
+	# Ensure we stash any changes that are not part of the push.
+	should_restore_stash='no'
+	should_stash_changes='no'
+
+	# Check for changes to tracked files.
+	if ! git diff --quiet HEAD
+	then
+		should_stash_changes='yes'
+	else
+		# Check for any untracked files.
+		if [ -n "$(git ls-files --others --exclude-standard)" ]
+		then
+			should_stash_changes='yes'
+		fi
+	fi
+
+	if [ 'yes' = "$should_stash_changes" ]
+	then
+		echo "Stashing changes that are not part of the push; if PHPStan fails, you will need to restore the changes via"
+		echo "git stash pop"
+		git stash --quiet --include-untracked
+		should_restore_stash='yes'
+	fi
+
+	run_phpstan='yes'
+	phpstan_args=
+
+	if [ -n "$range" ]
+	then
+		# Get the changed files.
+		changed_files=$(git diff --name-only "$range")
+		# Get the changed PHP files or directories in the push.
+		# Use awk as grep has a non-zero exit code when no matches exist, which causes the pre-push hook to fail.
+		changed_php_files=$(echo "$changed_files" | awk '/.*(\.php|\/)$/ {print $0;}')
+
+		if [ -n "$changed_php_files" ]
+		then
+			phpstan_args="$changed_php_files"
+			echo "Running PHPStan on changes from $range"
+		else
+			run_phpstan='no'
+		fi
+	fi
+
+	if [ 'yes' = "$run_phpstan" ]
+	then
+		if test -n "$phpstan_args"
+		then
+			npm run phpstan "$phpstan_args"
+		else
+			npm run phpstan
+		fi
+	fi
+
+	if [ 'yes' = "$should_restore_stash" ]
+	then
+		git stash pop --quiet
+		echo "Successfully restored changes that were stashed"
+	fi
+
+done
+
 RED="\033[1;31m"
 NO_COLOR="\033[0m"
 
