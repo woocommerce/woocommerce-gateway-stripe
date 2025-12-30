@@ -551,7 +551,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await retryWithBackoff( async () => {
 		const testInstitutionButton = page
 			.frameLocator( iframeSelector )
-			.getByText( 'Test (OAuth)' )
+			.getByTestId( 'featured-institution-default_oauth' )
 			.first();
 
 		await expect( testInstitutionButton ).toBeVisible();
