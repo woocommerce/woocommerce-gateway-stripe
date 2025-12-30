@@ -4,8 +4,8 @@ set -e
 
 echo "Installing the test environment..."
 
-docker compose exec -u www-data wordpress \
-	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/bin/install-wp-tests.sh
+#docker compose exec -u www-data wordpress \
+#	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/bin/install-wp-tests.sh
 
 echo "Running the tests..."
 
