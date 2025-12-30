@@ -291,8 +291,9 @@ $stripe_settings = apply_filters(
 	]
 );
 
-// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
+// Ensure express checkout buttons are displayed on the checkout page by default.
 $stripe_settings['express_checkout_button_locations']['default'][] = 'checkout';
+$stripe_settings['amazon_pay_button_locations']['default'][]       = 'checkout';
 
 // no longer needed in the new settings.
 unset( $stripe_settings['express_checkout_button_branded_type'] );

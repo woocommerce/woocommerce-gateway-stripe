@@ -58,7 +58,7 @@ const getMockExpressCheckoutLocations = (
 ];
 
 describe( 'ExpressCheckoutSettingsSection', () => {
-	const globalValues = global.wc_stripe_payment_request_settings_params;
+	const globalValues = global.wc_stripe_express_checkout_settings_params;
 	beforeEach( () => {
 		useExpressCheckoutEnabledSettings.mockReturnValue(
 			getMockExpressCheckoutEnabledSettings( true, jest.fn() )
@@ -68,7 +68,7 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 			getMockExpressCheckoutLocations( true, true, true, jest.fn() )
 		);
 
-		global.wc_stripe_payment_request_settings_params = {
+		global.wc_stripe_express_checkout_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
 			locale: 'en',
@@ -78,7 +78,7 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 	afterEach( () => {
 		jest.clearAllMocks();
-		global.wc_stripe_payment_request_settings_params = globalValues;
+		global.wc_stripe_express_checkout_settings_params = globalValues;
 	} );
 
 	it( 'renders settings with defaults', () => {
