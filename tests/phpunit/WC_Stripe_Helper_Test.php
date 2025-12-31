@@ -168,39 +168,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
 	}
 
-	public function test_get_legacy_payment_methods() {
-		$result = WC_Stripe_Helper::get_legacy_payment_methods();
-		$this->assertEquals( [ 'stripe_alipay', 'stripe_bancontact', 'stripe_boleto', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_oxxo', 'stripe_p24', 'stripe_sepa' ], array_keys( $result ) );
-	}
-
-	public function test_get_legacy_available_payment_method_ids() {
-		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::P24, WC_Stripe_Payment_Methods::SEPA ], $result );
-	}
-
-	public function test_get_legacy_enabled_payment_methods() {
-		// Enable EPS, Giropay and P24 LPM gateways.
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->enable();
-		$gateways['stripe_giropay']->enable();
-		$gateways['stripe_p24']->enable();
-
-		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
-		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
-	}
-
-	public function test_get_legacy_enabled_payment_method_ids() {
-		// Enable EPS, Giropay and P24 LPM gateways.
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->enable();
-		$gateways['stripe_giropay']->enable();
-		$gateways['stripe_p24']->enable();
-
-		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-		// In legacy mode (when UPE is disabled), Stripe refers to Card as payment method.
-		$this->assertEquals( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
-	}
-
 	/**
 	 * Test for `get_order_by_intent_id`
 	 *
@@ -799,60 +766,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled() {
-		update_option( 'woocommerce_currency', 'EUR' );
-		$this->upe_helper->enable_upe_feature_flag();
-
-		// Enable sepa and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
-		$this->upe_helper->reload_payment_gateways();
-
-		// Initialize default stripe settings, turn on UPE.
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
-		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-
-		// Make sure the SEPA and iDEAL LPMs were disabled.
-		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );
-		$this->assertEquals( 'no', $sepa_settings['enabled'] );
-		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
-		$this->assertEquals( 'no', $ideal_settings['enabled'] );
-	}
-
-	public function test_turning_off_upe_enables_the_correct_legacy_payment_methods_based_on_which_upe_payment_methods_were_enabled() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-		update_option( 'woocommerce_currency', 'EUR' );
-
-		// Disable sepa and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'no' ] );
-		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'no' ] );
-
-		// Turn UPE on first.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
-
-		// Turn UPE off.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		// Check that the correct LPMs were re-enabled.
-		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );
-		$this->assertEquals( 'yes', $sepa_settings['enabled'] );
-		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
-		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
-	}
-
 	/**
 	 * Test that {@see WC_Stripe_Helper::is_webhook_url()} works as expected.
 	 *
@@ -927,5 +840,220 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		remove_filter( 'woocommerce_currency', $currency_filter );
 
 		$this->assertEquals( $expected, $minimum_amount );
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected.
+	 *
+	 * @param string $error_type The type of error.
+	 * @param string $error_code The code of error.
+	 * @param string $error_message The message of error.
+	 * @param array $localized_data The localized data.
+	 * @param string $expected_message The expected message.
+	 * @dataProvider provide_test_get_localized_error_message_from_response
+	 */
+	public function test_get_localized_error_message_from_response( string $error_type, string $error_code, string $error_message, array $localized_data, string $expected_message ): void {
+		$response = (object) [
+			'error' => (object) [
+				'type'    => $error_type,
+				'code'    => $error_code,
+				'message' => $error_message,
+			],
+		];
+
+		$localized_message_filter = function ( $messages ) use ( $localized_data ) {
+			return array_merge( $messages, $localized_data );
+		};
+
+		add_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10, 1 );
+
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+
+		remove_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10 );
+
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response(): array {
+		return [
+			'card_error with localized message'    => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'invalid_cvc',
+				'error_message'    => 'Mock invalid CVC',
+				'localized_data'   => [
+					'invalid_cvc' => "The card's security code is invalid.",
+				],
+				'expected_message' => "The card's security code is invalid.",
+			],
+			'card_error without localized message' => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+			'other error with localized message'   => [
+				'error_type'       => 'invalid_request_error',
+				'error_code'       => 'amount_too_small',
+				'error_message'    => 'Amount too small',
+				'localized_data'   => [
+					'invalid_request_error' => 'Unable to process this payment, please try again or use alternative method.',
+				],
+				'expected_message' => 'Unable to process this payment, please try again or use alternative method.',
+			],
+			'other error without localized message' => [
+				'error_type'       => 'unexpected_error_type',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+		];
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected with unexpected data.
+	 *
+	 * @dataProvider provide_test_get_localized_error_message_from_response_with_unexpected_data
+	 * @param mixed $response The response to test.
+	 * @param string $expected_message The expected message.
+	 */
+	public function test_get_localized_error_message_from_response_with_unexpected_data( $response, string $expected_message ) {
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response_with_unexpected_data()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
+		return [
+			'String response' => [
+				'response'         => 'Unexpected data',
+				'expected_message' => '',
+			],
+			'Integer response' => [
+				'response'         => 123,
+				'expected_message' => '',
+			],
+			'Float response' => [
+				'response'         => 123.45,
+				'expected_message' => '',
+			],
+			'Boolean response' => [
+				'response'         => true,
+				'expected_message' => '',
+			],
+			'Array response' => [
+				'response'         => [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with string error' => [
+				'response'         => (object) [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with array error' => [
+				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type or message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'code' => 'unexpected_error_code' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 'Unexpected error' ] ],
+				'expected_message' => 'Unexpected error',
+			],
+			'Object response with object error, no type, and integer message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123 ] ],
+				'expected_message' => '123',
+			],
+			'Object response with object error, no type, and float message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123.45 ] ],
+				'expected_message' => '123.45',
+			],
+			'Object response with object error, no type, and boolean message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => true ] ],
+				'expected_message' => '1',
+			],
+			'Object response with object error, no type, and array message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, no type, and object message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => (object) [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, type, and object message property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type' => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error but no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 'Unexpected card error',
+					],
+				],
+				'expected_message' => 'Unexpected card error',
+			],
+			'Object response with valid card_error, array message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, object message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, integer message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456,
+					],
+				],
+				'expected_message' => '456',
+			],
+			'Object response with valid card_error, float message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456.78,
+					],
+				],
+				'expected_message' => '456.78',
+			],
+			'Object response with valid card_error, boolean message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => false,
+					],
+				],
+				'expected_message' => '',
+			],
+		];
 	}
 }
