@@ -11,7 +11,8 @@ on:
       - milestoned
       - demilestoned
     branches:
-      - trunk
+      - develop
+      - release/**
 
 permissions:
   pull-requests: read
