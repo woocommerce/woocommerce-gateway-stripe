@@ -99,7 +99,7 @@ class WC_Stripe {
 	 */
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'install' ] );
-		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ] );
+		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
 
 		$this->init();
 
