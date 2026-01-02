@@ -135,21 +135,11 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 4.1.0
 	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in a future release.
 	 */
 	public function get_payment_methods() {
-		return [
-			WC_Stripe_Payment_Methods::ALIPAY     => WC_Gateway_Stripe_Alipay::class,
-			WC_Stripe_Payment_Methods::BANCONTACT => WC_Gateway_Stripe_Bancontact::class,
-			WC_Stripe_Payment_Methods::EPS        => WC_Gateway_Stripe_Eps::class,
-			WC_Stripe_Payment_Methods::GIROPAY    => WC_Gateway_Stripe_Giropay::class,
-			WC_Stripe_Payment_Methods::IDEAL      => WC_Gateway_Stripe_Ideal::class,
-			WC_Stripe_Payment_Methods::MULTIBANCO => WC_Gateway_Stripe_Multibanco::class,
-			WC_Stripe_Payment_Methods::P24        => WC_Gateway_Stripe_P24::class,
-			WC_Stripe_Payment_Methods::SEPA       => WC_Gateway_Stripe_Sepa::class,
-			WC_Stripe_Payment_Methods::SOFORT     => WC_Gateway_Stripe_Sofort::class,
-			WC_Stripe_Payment_Methods::BOLETO     => WC_Gateway_Stripe_Boleto::class,
-			WC_Stripe_Payment_Methods::OXXO       => WC_Gateway_Stripe_Oxxo::class,
-		];
+		return [];
 	}
 
 	/**
