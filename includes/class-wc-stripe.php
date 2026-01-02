@@ -386,7 +386,7 @@ class WC_Stripe {
 		if ( get_transient( 'wc_stripe_redirect_to_settings' ) && ! isset( $_GET['activate-multi'] ) ) {
 			delete_transient( 'wc_stripe_redirect_to_settings' );
 
-			wp_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 			exit;
 		}
 	}
