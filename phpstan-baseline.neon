@@ -2917,12 +2917,6 @@ parameters:
 			path: includes/admin/stripe-settings.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_UPE_Payment_Gateway\)\: Unexpected token "\\n \*", expected ''\<'' at offset 154 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$enabled_events\.$#'
 			identifier: property.notFound
 			count: 1
@@ -9017,6 +9011,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$value of method WC_Settings_API\:\:validate_text_field\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
