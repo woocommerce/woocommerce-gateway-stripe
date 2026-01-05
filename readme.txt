@@ -139,8 +139,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 10.4.0 - xxxx-xx-xx =
+* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+
 = 10.3.0 - xxxx-xx-xx =
-* Update - Removes the main Payment Request Buttons backend class (previously deprecated)
 * Dev - Require milestones to be set on pull requests
 * Update - Remove legacy checkout payment method classes
 * Dev - Renames the express checkout frontend main setting key
