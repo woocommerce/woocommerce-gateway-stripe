@@ -164,5 +164,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 * Dev - Fix ACH E2E tests for updated Stripe test flow
+* Dev - Ensure PHPStan is run when pushing changes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

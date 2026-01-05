@@ -25,6 +25,7 @@
 * Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 * Dev - Fix ACH E2E tests for updated Stripe test flow
+* Dev - Ensure PHPStan is run when pushing changes
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
