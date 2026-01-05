@@ -141,6 +141,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.3.0 - xxxx-xx-xx =
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
+* Dev - Require milestones to be set on pull requests
+* Update - Remove legacy checkout payment method classes
 * Dev - Renames the express checkout frontend main setting key
 * Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
@@ -157,5 +159,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
+* Fix - Calculate subtotal correctly in express checkout
+* Dev - Improve PHPStan handling of plugin constants
+* Fix - Ensure that 'Link' and 'Stripe Link' are not translated
+* Fix - Fix situation where Stripe errors were not translated
+* Dev - Ensure multiple subdirectories are not exposed via Docker container
+* Dev - Fix ACH E2E tests for updated Stripe test flow
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

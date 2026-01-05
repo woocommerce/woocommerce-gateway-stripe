@@ -12,13 +12,6 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
 
 	/**
-	 * Legacy payment method class reference.
-	 *
-	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
-	 */
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Sepa::class;
-
-	/**
 	 * Constructor for SEPA payment method
 	 *
 	 * @param WC_Payments_Token_Service $token_service Token class instance.
