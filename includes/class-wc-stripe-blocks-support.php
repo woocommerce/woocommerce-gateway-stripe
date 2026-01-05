@@ -194,6 +194,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSaveOption'                  => $this->get_show_save_option(),
 				'isAdmin'                         => is_admin(),
 				'shouldShowExpressCheckoutButton' => $this->should_show_express_checkout_button(),
+				'button'                          => [
+					'customLabel' => '',
+				],
 				'style'                           => $this->get_style(),
 				'baseLocation'                    => wc_get_base_location(),
 			]
