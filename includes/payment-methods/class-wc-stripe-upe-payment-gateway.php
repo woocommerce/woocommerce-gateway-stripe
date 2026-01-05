@@ -4093,12 +4093,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.3.0 Migrated from the legacy checkout.
 	 *
-	 * @param string $field_key the form field key.
-	 * @param string $field_value the form field value.
+	 * @param string       $field_key the form field key.
+	 * @param string|array $field_value the form field value.
 	 *
 	 * @return bool True if the value was updated, false otherwise.
 	 */
-	public function update_validated_option( $field_key, $field_value ): bool {
+	public function update_validated_option( string $field_key, $field_value ): bool {
 		$validated_field_value = $this->validate_field( $field_key, $field_value );
 		return $this->update_option( $field_key, $validated_field_value );
 	}
@@ -4108,12 +4108,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.3.0 Migrated from the legacy checkout.
 	 *
-	 * @param string $field_key the form field key.
-	 * @param mixed $empty_value fallback value.
+	 * @param string       $field_key the form field key.
+	 * @param string|array $empty_value fallback value.
 	 *
-	 * @return string validated field value.
+	 * @return string|array validated field value.
 	 */
-	public function get_validated_option( $field_key, $empty_value = null ): string {
+	public function get_validated_option( string $field_key, $empty_value = null ) {
 		$value = parent::get_option( $field_key, $empty_value );
 		return $this->validate_field( $field_key, $value );
 	}
@@ -4121,12 +4121,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Ensures validated field values.
 	 *
-	 * @param string $field_key the form field key.
-	 * @param string $field_value the form field value.
+	 * @param string       $field_key the form field key.
+	 * @param string|array $field_value the form field value.
 	 *
-	 * @return string validated field value.
+	 * @return string|array validated field value.
 	 */
-	private function validate_field( string $field_key, string $field_value ): string {
+	private function validate_field( string $field_key, $field_value ) {
 		if ( is_callable( [ $this, 'validate_' . $field_key . '_field' ] ) ) {
 			return $this->{'validate_' . $field_key . '_field'}( $field_key, $field_value );
 		}
