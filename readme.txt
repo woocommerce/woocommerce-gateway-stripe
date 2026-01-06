@@ -141,6 +141,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.3.0 - xxxx-xx-xx =
 * Update - Update the legacy checkout experience gateway class, removing all the logic and temporarily extending the UPE class for backwards compatibility
+* Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 USD
 * Dev - Require milestones to be set on pull requests
 * Update - Remove legacy checkout payment method classes
 * Dev - Renames the express checkout frontend main setting key
@@ -165,5 +166,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix situation where Stripe errors were not translated
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 * Dev - Fix ACH E2E tests for updated Stripe test flow
+* Tweak - Simplify logic for default settings and wc_stripe_settings filter
+* Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
+* Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
