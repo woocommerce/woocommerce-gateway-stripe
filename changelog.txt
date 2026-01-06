@@ -1,7 +1,9 @@
 *** Changelog ***
 
-= 10.3.0 - xxxx-xx-xx =
+= 10.4.0 - xxxx-xx-xx =
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
+
+= 10.3.0 - xxxx-xx-xx =
 * Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 USD
 * Dev - Require milestones to be set on pull requests
 * Update - Remove legacy checkout payment method classes
