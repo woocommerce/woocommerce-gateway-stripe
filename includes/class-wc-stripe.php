@@ -499,8 +499,7 @@ class WC_Stripe {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) {
-					$method_class = get_class( $method );
-					if ( WC_Stripe_UPE_Payment_Method_Link::class === $method_class || WC_Stripe_UPE_Payment_Method_Amazon_Pay::class === $method_class ) {
+					if ( $method instanceof WC_Stripe_UPE_Payment_Method_Link || $method instanceof WC_Stripe_UPE_Payment_Method_Amazon_Pay ) {
 						return false;
 					}
 					return true;
