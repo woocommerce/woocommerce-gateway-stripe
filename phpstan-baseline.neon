@@ -37,12 +37,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Cannot call method add_payment_intent_to_order\(\) on WC_Stripe_Order_Helper\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Cannot call method get_billing_country\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -5350,31 +5344,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, obect\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_intent_id_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
+			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
