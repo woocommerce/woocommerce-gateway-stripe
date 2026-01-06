@@ -305,6 +305,49 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Generates a localized message for an error from a response.
+	 *
+	 * @since 10.3.0
+	 *
+	 * @param stdClass|object $response The response from the Stripe API.
+	 *
+	 * @return string The localized error message.
+	 */
+	public static function get_localized_error_message_from_response( $response ) {
+		// Handle unexpected data in $response.
+		if ( ! is_object( $response ) || ! isset( $response->error ) ) {
+			return '';
+		}
+
+		$error = $response->error;
+
+		$fallback_message = '';
+		if ( isset( $error->message ) && is_scalar( $error->message ) ) {
+			$fallback_message = (string) $error->message;
+		}
+
+		if ( ! isset( $error->type ) ) {
+			return $fallback_message;
+		}
+
+		$localized_messages = self::get_localized_messages();
+
+		if ( 'card_error' === $error->type ) {
+			if ( isset( $error->code ) && isset( $localized_messages[ $error->code ] ) ) {
+				return $localized_messages[ $error->code ];
+			}
+
+			return $fallback_message;
+		}
+
+		if ( isset( $localized_messages[ $error->type ] ) ) {
+			return $localized_messages[ $error->type ];
+		}
+
+		return $fallback_message;
+	}
+
+	/**
 	 * List of currencies supported by Stripe that has no decimals
 	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
 	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases

@@ -205,13 +205,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					}
 				}
 
-				$localized_messages = WC_Stripe_Helper::get_localized_messages();
-
-				if ( 'card_error' === $response->error->type ) {
-					$message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
-				} else {
-					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
-				}
+				$message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 			}

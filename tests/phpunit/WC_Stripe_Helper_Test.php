@@ -841,4 +841,219 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEquals( $expected, $minimum_amount );
 	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected.
+	 *
+	 * @param string $error_type The type of error.
+	 * @param string $error_code The code of error.
+	 * @param string $error_message The message of error.
+	 * @param array $localized_data The localized data.
+	 * @param string $expected_message The expected message.
+	 * @dataProvider provide_test_get_localized_error_message_from_response
+	 */
+	public function test_get_localized_error_message_from_response( string $error_type, string $error_code, string $error_message, array $localized_data, string $expected_message ): void {
+		$response = (object) [
+			'error' => (object) [
+				'type'    => $error_type,
+				'code'    => $error_code,
+				'message' => $error_message,
+			],
+		];
+
+		$localized_message_filter = function ( $messages ) use ( $localized_data ) {
+			return array_merge( $messages, $localized_data );
+		};
+
+		add_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10, 1 );
+
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+
+		remove_filter( 'wc_stripe_localized_messages', $localized_message_filter, 10 );
+
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response(): array {
+		return [
+			'card_error with localized message'    => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'invalid_cvc',
+				'error_message'    => 'Mock invalid CVC',
+				'localized_data'   => [
+					'invalid_cvc' => "The card's security code is invalid.",
+				],
+				'expected_message' => "The card's security code is invalid.",
+			],
+			'card_error without localized message' => [
+				'error_type'       => 'card_error',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+			'other error with localized message'   => [
+				'error_type'       => 'invalid_request_error',
+				'error_code'       => 'amount_too_small',
+				'error_message'    => 'Amount too small',
+				'localized_data'   => [
+					'invalid_request_error' => 'Unable to process this payment, please try again or use alternative method.',
+				],
+				'expected_message' => 'Unable to process this payment, please try again or use alternative method.',
+			],
+			'other error without localized message' => [
+				'error_type'       => 'unexpected_error_type',
+				'error_code'       => 'unexpected_error_code',
+				'error_message'    => 'Unexpected error',
+				'localized_data'   => [],
+				'expected_message' => 'Unexpected error',
+			],
+		];
+	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::get_localized_error_message_from_response()} works as expected with unexpected data.
+	 *
+	 * @dataProvider provide_test_get_localized_error_message_from_response_with_unexpected_data
+	 * @param mixed $response The response to test.
+	 * @param string $expected_message The expected message.
+	 */
+	public function test_get_localized_error_message_from_response_with_unexpected_data( $response, string $expected_message ) {
+		$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
+		$this->assertEquals( $expected_message, $localized_message );
+	}
+
+	/**
+	 * Data provider for {@see test_get_localized_error_message_from_response_with_unexpected_data()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
+		return [
+			'String response' => [
+				'response'         => 'Unexpected data',
+				'expected_message' => '',
+			],
+			'Integer response' => [
+				'response'         => 123,
+				'expected_message' => '',
+			],
+			'Float response' => [
+				'response'         => 123.45,
+				'expected_message' => '',
+			],
+			'Boolean response' => [
+				'response'         => true,
+				'expected_message' => '',
+			],
+			'Array response' => [
+				'response'         => [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with string error' => [
+				'response'         => (object) [ 'error' => 'Unexpected data' ],
+				'expected_message' => '',
+			],
+			'Object response with array error' => [
+				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type or message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'code' => 'unexpected_error_code' ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error but no type property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 'Unexpected error' ] ],
+				'expected_message' => 'Unexpected error',
+			],
+			'Object response with object error, no type, and integer message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123 ] ],
+				'expected_message' => '123',
+			],
+			'Object response with object error, no type, and float message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => 123.45 ] ],
+				'expected_message' => '123.45',
+			],
+			'Object response with object error, no type, and boolean message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => true ] ],
+				'expected_message' => '1',
+			],
+			'Object response with object error, no type, and array message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, no type, and object message property' => [
+				'response'         => (object) [ 'error' => (object) [ 'message' => (object) [ 'test' => 'Unexpected error' ] ] ],
+				'expected_message' => '',
+			],
+			'Object response with object error, type, and object message property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type' => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error but no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 'Unexpected card error',
+					],
+				],
+				'expected_message' => 'Unexpected card error',
+			],
+			'Object response with valid card_error, array message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, object message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => (object) [ 'test' => 'Unexpected error' ],
+					],
+				],
+				'expected_message' => '',
+			],
+			'Object response with valid card_error, integer message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456,
+					],
+				],
+				'expected_message' => '456',
+			],
+			'Object response with valid card_error, float message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => 456.78,
+					],
+				],
+				'expected_message' => '456.78',
+			],
+			'Object response with valid card_error, boolean message, and no code property' => [
+				'response'         => (object) [
+					'error' => (object) [
+						'type'    => 'card_error',
+						'message' => false,
+					],
+				],
+				'expected_message' => '',
+			],
+		];
+	}
 }
