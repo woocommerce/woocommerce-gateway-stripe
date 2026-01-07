@@ -188,40 +188,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->controller->set_account_keys( $request );
 	}
 
-	/**
-	 * Test for `set_account_keys` checking if payment methods are reset (legacy payments)
-	 * @return void
-	 */
-	public function test_changing_keys_resets_legacy_payment_methods() {
-		// Build request params
-		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'publishable_key', '' );
-
-		// Disable UPE
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Set initial payment methods
-		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		foreach ( $payment_gateways as $gateway ) {
-			if ( in_array( $gateway->id, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], true ) ) {
-				$gateway->update_option( 'enabled', 'yes' );
-			}
-		}
-		$this->controller->set_account_keys( $request );
-
-		// Retrieve the current enabled payment methods
-		$enabled_methods = 0;
-		foreach ( WC_Stripe_Helper::get_legacy_payment_methods() as $method ) {
-			if ( $method->is_enabled() ) {
-				$enabled_methods++;
-			}
-		}
-
-		$this->assertEquals( 0, $enabled_methods ); // card is a default payment, but it is not returned from the method above
-	}
-
 	public function test_validate_publishable_key() {
 		$expected_wp_error = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
 

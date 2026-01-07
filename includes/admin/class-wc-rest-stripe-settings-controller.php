@@ -71,7 +71,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => $this->gateway->get_upe_available_payment_methods(),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -185,7 +185,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => $this->gateway->get_upe_available_payment_methods(),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -599,25 +599,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		if ( ! $is_upe_enabled ) {
-			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
-
-			foreach ( $payment_gateways as $gateway ) {
-				$gateway_id = str_replace( 'stripe_', '', $gateway->id );
-				if ( ! in_array( $gateway_id, $payment_method_ids_to_enable, true ) && in_array( $gateway_id, $currently_enabled_payment_method_ids, true ) ) {
-					$gateway->update_option( 'enabled', 'no' );
-				} elseif ( in_array( $gateway_id, $payment_method_ids_to_enable, true ) ) {
-					$gateway->update_option( 'enabled', 'yes' );
-				}
-			}
-
-			return;
-		}
-
-		if ( $this->gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-			$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
-		}
+		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**

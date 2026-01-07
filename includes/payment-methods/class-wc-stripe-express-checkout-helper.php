@@ -1522,6 +1522,8 @@ class WC_Stripe_Express_Checkout_Helper {
 					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
 				];
 			}
+		} else {
+			$subtotal = WC()->cart->get_subtotal();
 		}
 
 		if ( $display_items && ! $has_deposits ) {
