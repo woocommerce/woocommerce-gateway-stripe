@@ -59,21 +59,32 @@ do
 	then
 		if [ 'yes' = "$should_stash_changes" ]
 		then
-			echo "Stashing changes that are not part of the push; they will be restored automatically if PHPStan succeeds."
-			echo "If PHPStan fails, you will need to restore the stashed changes by running:"
-			echo "git stash pop"
+			echo "Stashing changes that are not part of the push."
 
 			git stash --quiet --include-untracked
 			should_restore_stash='yes'
 		fi
 
-		npm run phpstan
+		phpstan_exit_code=0
+
+		npm run phpstan || phpstan_exit_code=$?
+
+		if [ $phpstan_exit_code -ne 0 ]
+		then
+			if [ 'yes' = "$should_restore_stash" ]
+			then
+				git stash pop --quiet
+				should_restore_stash='no'
+				echo "Successfully restored stashed changes."
+			fi
+			exit 1
+		fi
 	fi
 
 	if [ 'yes' = "$should_restore_stash" ]
 	then
 		git stash pop --quiet
-		echo "Successfully restored stashed changes"
+		echo "Successfully restored stashed changes."
 	fi
 
 done
