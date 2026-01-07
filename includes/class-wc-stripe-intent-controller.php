@@ -291,9 +291,7 @@ class WC_Stripe_Intent_Controller {
 			);
 
 			if ( ! empty( $setup_intent->error ) ) {
-				$error_response_message = print_r( $setup_intent, true );
-				WC_Stripe_Logger::error( 'Failed create Setup Intent while saving a card.' );
-				WC_Stripe_Logger::error( "Response: $error_response_message" );
+				WC_Stripe_Logger::error( 'Failed create Setup Intent while saving a card.', $setup_intent );
 				throw new Exception( __( 'Your card could not be set up for future usage.', 'woocommerce-gateway-stripe' ) );
 			}
 

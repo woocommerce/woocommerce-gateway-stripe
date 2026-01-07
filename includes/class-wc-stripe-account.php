@@ -403,7 +403,7 @@ class WC_Stripe_Account {
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Unable to determine webhook status: .;' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Unable to determine webhook status', [ 'error_message' => $e->getMessage() ] );
 			return false;
 		}
 	}
@@ -488,7 +488,7 @@ class WC_Stripe_Account {
 				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
 
 			} catch ( Exception $e ) {
-				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
 			} finally {
 				// Restore the previous secret key if we changed it
 				if ( isset( $previous_secret ) ) {

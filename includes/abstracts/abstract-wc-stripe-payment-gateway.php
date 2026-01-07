@@ -1162,7 +1162,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 		} else {
-			WC_Stripe_Logger::warning( 'Unable to update fees/net meta for order: ' . $order->get_id() );
+			WC_Stripe_Logger::warning( 'Unable to update fees/net meta for order: ' . $order->get_id(), [ 'error' => $balance_transaction->error ] );
 		}
 	}
 
@@ -1259,7 +1259,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing refund', [ 'error_message' => $e->getMessage() ] );
 			$order_helper->unlock_order_refund( $order );
 
 			return new WP_Error(
@@ -1273,7 +1273,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line (return statement is added)
-			WC_Stripe_Logger::error( 'Error: ' . $response->error->message );
+			WC_Stripe_Logger::error( 'Exception processing refund', [ 'response_error' => $response->error->message ] );
 			$order_helper->unlock_order_refund( $order );
 
 			return new WP_Error(
@@ -1361,12 +1361,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->save_payment_method( $source_object );
 
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error(
-				sprintf(
-					'Add payment method Error: %s',
-					$e->getMessage()
-				)
-			);
+			WC_Stripe_Logger::error( 'Error adding payment method', [ 'error_message' => $e->getMessage() ] );
 
 			return [ 'result' => 'failure' ];
 		}
@@ -1776,9 +1771,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
 
 		if ( $response && isset( $response->{ 'error' } ) ) {
-			$error_response_message = print_r( $response, true );
-			WC_Stripe_Logger::error( "Failed to get Stripe intent $intent_type/$intent_id." );
-			WC_Stripe_Logger::error( "Response: $error_response_message" );
+			WC_Stripe_Logger::error( "Failed to get Stripe intent $intent_type/$intent_id.", [ 'response' => $response ] );
 			return false;
 		}
 
@@ -1939,7 +1932,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		);
 
 		if ( is_wp_error( $setup_intent ) ) {
-			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
+			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id", [ 'response' => $setup_intent ] );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
 			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $setup_intent->id );
 			$order->save();
@@ -2524,7 +2517,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		} catch ( WC_Stripe_Exception $e ) {
 			// If updating the payment method fails, log the error message.
-			WC_Stripe_Logger::error( 'Error when updating saved payment method: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error when updating saved payment method', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 

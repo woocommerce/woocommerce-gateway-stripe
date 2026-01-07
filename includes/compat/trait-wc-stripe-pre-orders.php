@@ -239,7 +239,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return $response;
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::error( 'Pre Orders Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Pre Orders Error', [ 'error_message' => $e->getMessage() ] );
 
 			return [
 				'result'   => 'success',
