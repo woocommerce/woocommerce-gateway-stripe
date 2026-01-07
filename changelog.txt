@@ -29,7 +29,7 @@
 * Tweak - Simplify logic for default settings and wc_stripe_settings filter
 * Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
-* Dev - Ensure PHPStan is run when pushing changes
+* Dev - Ensure PHPStan runs when pushing changes
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
