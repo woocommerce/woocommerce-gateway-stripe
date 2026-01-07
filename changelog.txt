@@ -29,6 +29,7 @@
 * Tweak - Simplify logic for default settings and wc_stripe_settings filter
 * Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
+* Fix - Ensure express checkout is enabled in current context before registering the express checkout script
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills
