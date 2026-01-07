@@ -1703,16 +1703,19 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
+		$is_one_page_checkout = $this->is_one_page_checkout();
+
+		if ( $this->is_checkout() || $is_one_page_checkout ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
+		}
+
 		if ( $this->is_product() ) {
 			return $this->is_enabled_for_location( $express_checkout_type, 'product' );
 		}
 
 		if ( $this->is_cart() ) {
 			return $this->is_enabled_for_location( $express_checkout_type, 'cart' );
-		}
-
-		if ( $this->is_checkout() ) {
-			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
 		}
 
 		return true;
