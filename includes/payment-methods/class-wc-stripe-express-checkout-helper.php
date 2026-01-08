@@ -671,6 +671,12 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		// Note that is_express_checkout_enabled() checks locations as well as the necessary express checkout methods being available.
+		if ( ! $this->is_express_checkout_enabled() ) {
+			WC_Stripe_Logger::debug( 'No Stripe Express Checkout options are enabled in the current context.' );
+			return false;
+		}
+
 		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
 		// shortcodes, with items in the cart that aren't supported.
 		if (
@@ -1697,16 +1703,19 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
+		$is_one_page_checkout = $this->is_one_page_checkout();
+
+		if ( $this->is_checkout() || $is_one_page_checkout ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
+		}
+
 		if ( $this->is_product() ) {
 			return $this->is_enabled_for_location( $express_checkout_type, 'product' );
 		}
 
 		if ( $this->is_cart() ) {
 			return $this->is_enabled_for_location( $express_checkout_type, 'cart' );
-		}
-
-		if ( $this->is_checkout() ) {
-			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
 		}
 
 		return true;
