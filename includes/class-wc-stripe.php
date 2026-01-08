@@ -492,12 +492,17 @@ class WC_Stripe {
 
 		$methods = array_merge( $methods, $upe_payment_methods );
 
-		// Don't include Link as an enabled method if we're in the admin so it doesn't show up in the checkout editor page.
+		// When we are in an admin context, filter out Link and Amazon Pay, as they are only available as
+		// express checkout methods, and including them in the list results in warnings about block support
+		// when viewing the Express Checkout block in the editor for the cart and checkout pages.
 		if ( is_admin() ) {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) {
-					return ! is_a( $method, WC_Stripe_UPE_Payment_Method_Link::class );
+					if ( $method instanceof WC_Stripe_UPE_Payment_Method_Link || $method instanceof WC_Stripe_UPE_Payment_Method_Amazon_Pay ) {
+						return false;
+					}
+					return true;
 				}
 			);
 		}
