@@ -31,6 +31,7 @@
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 * Fix - Ensure express checkout is enabled in current context before registering the express checkout script
 * Fix - Prevent warnings for Amazon Pay in Express Checkout block
+* Dev - Ensure PHPStan runs when pushing changes
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills

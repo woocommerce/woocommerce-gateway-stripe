@@ -1,6 +1,94 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
+
+while read local_ref local_oid remote_ref remote_oid
+do
+	range=""
+	if [ "$local_oid" != "$zero" ]
+	then
+		if test "$remote_oid" != "$zero"
+		then
+				# Update to existing branch - check all new commits.
+				range="$remote_oid..$local_oid"
+		fi
+	fi
+
+
+	# Ensure we stash any changes that are not part of the push.
+	should_restore_stash='no'
+	should_stash_changes='no'
+
+	# Check for changes to tracked files.
+	if ! git diff --quiet HEAD
+	then
+		should_stash_changes='yes'
+	else
+		# Check for any untracked files.
+		if [ -n "$(git ls-files --others --exclude-standard)" ]
+		then
+			should_stash_changes='yes'
+		fi
+	fi
+
+	run_phpstan='yes'
+
+	if [ -n "$range" ]
+	then
+		# Get the changed files.
+		changed_files=$(git diff --name-only "$range")
+		# Get the changed PHP files or directories in the push.
+		# Use awk as grep has a non-zero exit code when no matches exist, which causes the pre-push hook to fail.
+		changed_php_files=$(echo "$changed_files" | awk '/.*(\.php|\/)$/ {print $0;}')
+
+		if [ -z "$changed_php_files" ]
+		then
+			# Check for changes to phpstan.neon or phpstan-baseline.neon
+			changed_phpstan_files=$(echo "$changed_files" | awk '/^phpstan(-baseline)?\.neon$/ {print $0;}')
+
+			# Also no PHPStan configuration changes, so we can skip running PHPStan.
+			if [ -z "$changed_phpstan_files" ]
+			then
+				run_phpstan='no'
+			fi
+		fi
+	fi
+
+	if [ 'yes' = "$run_phpstan" ]
+	then
+		if [ 'yes' = "$should_stash_changes" ]
+		then
+			echo "Stashing changes that are not part of the push."
+
+			git stash --quiet --include-untracked
+			should_restore_stash='yes'
+		fi
+
+		phpstan_exit_code=0
+
+		npm run phpstan || phpstan_exit_code=$?
+
+		if [ $phpstan_exit_code -ne 0 ]
+		then
+			if [ 'yes' = "$should_restore_stash" ]
+			then
+				git stash pop --quiet
+				should_restore_stash='no'
+				echo "Successfully restored stashed changes."
+			fi
+			exit 1
+		fi
+	fi
+
+	if [ 'yes' = "$should_restore_stash" ]
+	then
+		git stash pop --quiet
+		echo "Successfully restored stashed changes."
+	fi
+
+done
+
 RED="\033[1;31m"
 NO_COLOR="\033[0m"
 
