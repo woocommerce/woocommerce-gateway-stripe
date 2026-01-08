@@ -144,7 +144,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Require milestones to be set on pull requests
 * Update - Remove legacy checkout payment method classes
 * Dev - Rename the express checkout frontend main setting key
-* Update - Deprecate and replaces Payment Request Button classes with Express Checkout equivalents
+* Update - Deprecate and replace Payment Request Button classes with Express Checkout equivalents
 * Dev - Rename the express checkout customization route
 * Dev - Rename all express checkout related frontend hooks
 * Dev - Remove deprecated legacy checkout settings retrieval methods
