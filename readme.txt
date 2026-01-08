@@ -168,5 +168,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Simplify logic for default settings and wc_stripe_settings filter
 * Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
+* Update - Add `wc_stripe_customer_data_preferred_source` filter to make it possible to get customer details from WooCommerce customer object
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -371,6 +371,8 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 			// Reset checkout fields, otherwise they persist across test cases.
 			\WC_Checkout::instance()->checkout_fields = null;
+			// Reset WC Customer, otherwise it also persists across test cases.
+			\WC()->customer = null;
 		}
 
 		if ( null !== $expected_exception_message && ! $was_exception_thrown ) {
@@ -466,5 +468,321 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $mock_update_call, 10 );
 		}
+	}
+
+	/**
+	 * Data provider for {@see test_generate_customer_request_via_create_customer()}.
+	 */
+	public function provide_test_generate_customer_request_via_create_customer_cases(): array {
+		$jane_doe_user_data = [
+			'ID'         => 12345,
+			'user_email' => 'test-user@example.com',
+			'user_login' => 'test_user',
+		];
+		$jane_doe_user_meta_data = [
+			'billing_first_name' => 'Jane',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '321 Main St',
+			'billing_address_2'  => 'Apt 4B',
+			'billing_city'       => 'Anytown',
+			'billing_state'      => 'CA',
+			'billing_postcode'   => '98765',
+			'billing_country'    => 'US',
+		];
+		$jane_doe_expected_fields = [
+			'email'             => 'test-user@example.com',
+			'description'       => 'Name: Jane Doe, Username: test_user',
+			'name'              => 'Jane Doe',
+			'metadata'          => [],
+			'preferred_locales' => [ 'en-US' ],
+			'address' => [
+				'line1'       => '321 Main St',
+				'line2'       => 'Apt 4B',
+				'postal_code' => '98765',
+				'city'        => 'Anytown',
+				'state'       => 'CA',
+				'country'     => 'US',
+			],
+		];
+
+		$john_smith_wc_customer_data = [
+			'get_first_name'        => 'John',
+			'get_last_name'         => 'Smith',
+			'get_email'             => 'test-wc-customer@example.com',
+			'get_username'          => 'test_wc_customer',
+			'get_billing_address_1' => '123 Customer St',
+			'get_billing_address_2' => 'Apt 3C',
+			'get_billing_city'      => 'Testville',
+			'get_billing_state'     => 'ON',
+			'get_billing_postcode'  => 'ABC 123',
+			'get_billing_country'   => 'CA',
+		];
+		$john_smith_expected_fields = [
+			'email'             => 'test-wc-customer@example.com',
+			'description'       => 'Name: John Smith, Username: test_wc_customer',
+			'name'              => 'John Smith',
+			'metadata'          => [],
+			'preferred_locales' => [ 'en-US' ],
+			'address' => [
+				'line1'       => '123 Customer St',
+				'line2'       => 'Apt 3C',
+				'postal_code' => 'ABC 123',
+				'city'        => 'Testville',
+				'state'       => 'ON',
+				'country'     => 'CA',
+			],
+		];
+
+		$jack_cash_billing_data = [
+			'billing_email'      => 'test-billing@example.com',
+			'billing_first_name' => 'Jack',
+			'billing_last_name'  => 'Cash',
+			'billing_address_1'  => '456 Test St',
+			'billing_address_2'  => 'Apt 2D',
+			'billing_city'       => 'Tester',
+			'billing_state'      => 'NY',
+			'billing_postcode'   => '12345',
+			'billing_country'    => 'US',
+		];
+		$jack_cash_expected_fields = [
+			'email'             => 'test-billing@example.com',
+			'description'       => 'Name: Jack Cash, Guest',
+			'name'              => 'Jack Cash',
+			'metadata'          => [],
+			'preferred_locales' => [ 'en-US' ],
+			'address' => [
+				'line1'       => '456 Test St',
+				'line2'       => 'Apt 2D',
+				'postal_code' => '12345',
+				'city'        => 'Tester',
+				'state'       => 'NY',
+				'country'     => 'US',
+			],
+		];
+
+		return [
+			'user_meta preferred, no WC_Customer - fields from user and user meta' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => $jane_doe_user_data,
+				'user_meta_data'   => $jane_doe_user_meta_data,
+				'wc_customer_data' => null,
+				'billing_data'     => null,
+				'expected'         => $jane_doe_expected_fields,
+			],
+			'user_meta preferred, no WC_Customer - fields from user and user meta using fallback names from meta and email from billing data' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => array_merge( $jane_doe_user_data, [ 'user_email' => '' ] ),
+				'user_meta_data'   => array_merge(
+					$jane_doe_user_meta_data,
+					[
+						'first_name'         => 'Jennifer',
+						'last_name'          => 'Fallback',
+						'billing_first_name' => '',
+						'billing_last_name'  => '',
+					]
+				),
+				'wc_customer_data' => null,
+				'billing_data'     => array_merge( $jack_cash_billing_data, [ 'billing_email' => 'test-fallback-billing-email@example.com' ] ),
+				'expected'         => array_merge(
+					$jane_doe_expected_fields,
+					[
+						'email'             => 'test-fallback-billing-email@example.com',
+						'name'              => 'Jennifer Fallback',
+						'description'       => 'Name: Jennifer Fallback, Username: test_user',
+					]
+				),
+			],
+			'wc_customer preferred, no user - fields from WC_Customer' => [
+				'preferred_source' => 'wc_customer',
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => $john_smith_wc_customer_data,
+				'billing_data'     => null,
+				'expected'         => $john_smith_expected_fields,
+			],
+			'wc_customer preferred, no user - fields from WC_Customer; fallback names and email from billing data' => [
+				'preferred_source' => 'wc_customer',
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => array_merge(
+					$john_smith_wc_customer_data,
+					[
+						'get_email'      => '',
+						'get_first_name' => '',
+						'get_last_name'  => '',
+					]
+				),
+				'billing_data'     => [
+					'billing_email'      => 'test-fallback-billing-email@example.com',
+					'billing_first_name' => 'Joseph',
+					'billing_last_name'  => 'Fallback',
+				],
+				'expected'         => array_merge(
+					$john_smith_expected_fields,
+					[
+						'email'             => 'test-fallback-billing-email@example.com',
+						'name'              => 'Joseph Fallback',
+						'description'       => 'Name: Joseph Fallback, Username: test_wc_customer',
+					]
+				),
+			],
+			'user_meta preferred, no user or WC_Customer - fields from billing data' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => null,
+				'billing_data'     => $jack_cash_billing_data,
+				'expected'         => $jack_cash_expected_fields,
+			],
+			'user_meta preferred, data present across all sources, user fields take precedence' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => $jane_doe_user_data,
+				'user_meta_data'   => $jane_doe_user_meta_data,
+				'wc_customer_data' => $john_smith_wc_customer_data,
+				'billing_data'     => $jack_cash_billing_data,
+				'expected'         => $jane_doe_expected_fields,
+			],
+			'user_meta preferred, no user data present, wc_customer_data present, billing fields take precedence' => [
+				'preferred_source' => 'user_meta',
+				'user_data'        => null,
+				'user_meta_data'   => null,
+				'wc_customer_data' => $john_smith_wc_customer_data,
+				'billing_data'     => $jack_cash_billing_data,
+				'expected'         => $jack_cash_expected_fields,
+			],
+			'wc_customer preferred, data present across all sources, wc_customer fields take precedence' => [
+				'preferred_source' => 'wc_customer',
+				'user_data'        => $jane_doe_user_data,
+				'user_meta_data'   => $jane_doe_user_meta_data,
+				'wc_customer_data' => $john_smith_wc_customer_data,
+				'billing_data'     => $jack_cash_billing_data,
+				'expected'         => $john_smith_expected_fields,
+			],
+			'wc_customer preferred, no wc_customer data present, user data present, billing fields take precedence' => [
+				'preferred_source' => 'wc_customer',
+				'user_data'        => $jane_doe_user_data,
+				'user_meta_data'   => $jane_doe_user_meta_data,
+				'wc_customer_data' => null,
+				'billing_data'     => $jack_cash_billing_data,
+				'expected'         => $jack_cash_expected_fields,
+			],
+		];
+	}
+
+	/**
+	 * Test the generate_customer_request() method via create_customer().
+	 *
+	 * @dataProvider provide_test_generate_customer_request_via_create_customer_cases
+	 *
+	 * @param string           $preferred_customer_source The preferred source of customer data.
+	 * @param array|null       $user_data                 The user data.
+	 * @param array|null       $user_meta_data            The user meta data.
+	 * @param array|null       $wc_customer_data          The WC customer data.
+	 * @param array|null       $billing_data              The billing data.
+	 */
+	public function test_generate_customer_request_via_create_customer( string $preferred_customer_source, ?array $user_data, ?array $user_meta_data, ?array $wc_customer_data, ?array $billing_data, array $expected ) {
+		/** @var \WC_Stripe_Customer & \PHPUnit\Framework\MockObject\MockObject $stripe_customer */
+		$stripe_customer = $this->getMockBuilder( \WC_Stripe_Customer::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'get_user',
+					'get_wc_customer',
+					'get_billing_data_field',
+					'get_existing_customer',
+				]
+			)
+			->getMock();
+		/*
+		 * We really want to focus on testing generate_customer_request(), which is called early on in create_customer().
+		 * We thus want to stub out get_existing_customer(), as it is not always called, and then throw an exception from
+		 * within the 'wc_stripe_create_customer_args' filter, as that allows us to interrogate the data generated by generate_customer_request().
+		 */
+		$stripe_customer->method( 'get_existing_customer' )->willReturn( [] );
+
+		$create_customer_args_filter = function ( $create_customer_args ) use ( $expected ) {
+			$this->assertCount( count( $expected ), $create_customer_args );
+			foreach ( $expected as $key => $value ) {
+				$this->assertArrayHasKey( $key, $create_customer_args );
+				$this->assertEquals( $value, $create_customer_args[ $key ] );
+			}
+			throw new \Exception( 'test_exception', 321 );
+		};
+		add_filter( 'wc_stripe_create_customer_args', $create_customer_args_filter, 10, 1 );
+
+		$preferred_customer_source_filter = function ( $preferred_customer_source_arg ) use ( $preferred_customer_source ) {
+			return $preferred_customer_source;
+		};
+		add_filter( 'wc_stripe_customer_data_preferred_source', $preferred_customer_source_filter, 10, 1 );
+
+		$user_return_value = false;
+		if ( is_array( $user_data ) ) {
+			if ( ! isset( $user_data['ID'] ) ) {
+				$user_data['ID'] = 12345;
+			}
+			$user_return_value = new \WP_User( (object) $user_data );
+		}
+		$stripe_customer->method( 'get_user' )->willReturn( $user_return_value );
+
+		$user_meta_filter = null;
+		if ( is_array( $user_meta_data ) ) {
+			$user_meta_filter = function ( $user_meta_value, $user_id, $meta_key, $single ) use ( $user_meta_data ) {
+				if ( $single && isset( $user_meta_data[ $meta_key ] ) ) {
+					return $user_meta_data[ $meta_key ];
+				}
+				return $user_meta_value;
+			};
+			add_filter( 'get_user_metadata', $user_meta_filter, 10, 4 );
+		}
+
+		$wc_customer_return_value = null;
+		if ( is_array( $wc_customer_data ) ) {
+			$mock_wc_customer = $this->getMockBuilder( \WC_Customer::class )
+				->disableOriginalConstructor()
+				->onlyMethods( array_keys( $wc_customer_data ) )
+				->getMock();
+
+			foreach ( $wc_customer_data as $key => $value ) {
+				$mock_wc_customer->method( $key )
+					->willReturn( $value );
+			}
+
+			$wc_customer_return_value = $mock_wc_customer;
+		}
+
+		$stripe_customer->method( 'get_wc_customer' )
+			->willReturn( $wc_customer_return_value );
+
+		$billing_data_callback = function ( $field, $args ) use ( $billing_data ) {
+			if ( is_array( $billing_data ) && isset( $billing_data[ $field ] ) ) {
+				return $billing_data[ $field ];
+			}
+			return '';
+		};
+
+		$stripe_customer->method( 'get_billing_data_field' )
+			->will( $this->returnCallback( $billing_data_callback ) );
+
+		$caught_exception = null;
+		try {
+			$stripe_customer->create_customer( [] );
+		} catch ( \Throwable $e ) {
+			$caught_exception = $e;
+		}
+
+		// Perform all cleanup before assertions.
+
+		if ( null !== $user_meta_filter ) {
+			remove_filter( 'get_user_metadata', $user_meta_filter, 10 );
+		}
+
+		remove_filter( 'wc_stripe_customer_data_preferred_source', $preferred_customer_source_filter, 10 );
+
+		remove_filter( 'wc_stripe_create_customer_args', $create_customer_args_filter, 10 );
+
+		// Make sure we caught the expected exception.
+		$this->assertInstanceOf( \Exception::class, $caught_exception );
+		$this->assertEquals( 'test_exception', $caught_exception->getMessage() );
+		$this->assertEquals( 321, $caught_exception->getCode() );
 	}
 }

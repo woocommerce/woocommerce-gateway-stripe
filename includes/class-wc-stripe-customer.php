@@ -134,10 +134,25 @@ class WC_Stripe_Customer {
 	/**
 	 * Get user object.
 	 *
-	 * @return WP_User
+	 * @return WP_User|false
 	 */
 	protected function get_user() {
 		return $this->get_user_id() ? get_user_by( 'id', $this->get_user_id() ) : false;
+	}
+
+	/**
+	 * Get the current WooCommerce customer object.
+	 *
+	 * @return WC_Customer|null
+	 */
+	protected function get_wc_customer(): ?WC_Customer {
+		$wc_customer = WC()->customer;
+
+		if ( $wc_customer instanceof WC_Customer ) {
+			return $wc_customer;
+		}
+
+		return null;
 	}
 
 	/**
@@ -156,14 +171,47 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	protected function generate_customer_request( $args = [], $order = null ) {
+		if ( ! is_array( $args ) ) {
+			$args = [];
+		}
+
 		// The $order parameter was added in 10.2.0, so check for `$args['order'] for backwards compatibility.
 		if ( null === $order && isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
 			$order = $args['order'];
 		}
 		// Always ensure the old 'order' key is unset
 		unset( $args['order'] );
-		$user = $this->get_user();
-		if ( $user ) {
+
+		$user        = $this->get_user();
+		$wc_customer = $this->get_wc_customer();
+
+		/**
+		 * Filter to control the preferred source of customer data between user meta fields
+		 * and the WC_Customer object. Defaults to 'user_meta' for backwards compatibility,
+		 * but 'wc_customer' can be used to get data from the WC_Customer object.
+		 * The 'wc_customer' option may be most useful for sites that create customers during checkout.
+		 *
+		 * @since 10.3.0
+		 * @param string           $preferred_source The preferred source of customer data.
+		 * @param WP_User|false    $user             The user object or false.
+		 * @param WC_Customer|null $wc_customer      The WooCommerce customer object or null.
+		 */
+		$preferred_customer_source = apply_filters( 'wc_stripe_customer_data_preferred_source', 'user_meta', $user, $wc_customer );
+
+		// Validate $preferred_customer_source.
+		if ( ! in_array( $preferred_customer_source, [ 'user_meta', 'wc_customer' ], true ) ) {
+			// Default to 'user_meta' if we don't have a valid value.
+			$preferred_customer_source = 'user_meta';
+		}
+
+		$billing_first_name = '';
+		$billing_last_name  = '';
+		$email              = '';
+		$username           = '';
+		$user_or_customer   = null;
+
+		if ( $user && 'user_meta' === $preferred_customer_source ) {
+			$user_or_customer   = $user;
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
 
@@ -178,49 +226,72 @@ class WC_Stripe_Customer {
 			}
 
 			$email = $user->user_email;
-
-			// If the user email is not set, use the billing email.
 			if ( empty( $email ) ) {
 				$email = $this->get_billing_data_field( 'billing_email', $order );
 			}
+			$username = $user->user_login;
+		} elseif ( $wc_customer && 'wc_customer' === $preferred_customer_source ) {
+			$user_or_customer   = $wc_customer;
+			$billing_first_name = $wc_customer->get_first_name();
+			$billing_last_name  = $wc_customer->get_last_name();
+			$email              = $wc_customer->get_email();
+			$username           = $wc_customer->get_username();
 
-			// translators: %1$s First name, %2$s Second name, %3$s Username.
-			$description = sprintf( __( 'Name: %1$s %2$s, Username: %3$s', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name, $user->user_login );
+			// Fallback to billing data if critical fields are missing on the WC_Customer object.
+			if ( empty( $billing_first_name ) ) {
+				$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			}
 
-			$defaults = [
-				'email'       => $email,
-				'description' => $description,
-			];
+			if ( empty( $billing_last_name ) ) {
+				$billing_last_name = $this->get_billing_data_field( 'billing_last_name', $order );
+			}
 
-			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
-			if ( ! empty( $billing_full_name ) ) {
-				$defaults['name'] = $billing_full_name;
+			if ( empty( $email ) ) {
+				$email = $this->get_billing_data_field( 'billing_email', $order );
 			}
 		} else {
-			$billing_email      = $this->get_billing_data_field( 'billing_email', $order );
 			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
 			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $order );
+			$email              = $this->get_billing_data_field( 'billing_email', $order );
+		}
 
+		if ( empty( $username ) ) {
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
+		} else {
+			// translators: %1$s First name, %2$s Second name, %3$s Username.
+			$description = sprintf( __( 'Name: %1$s %2$s, Username: %3$s', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name, $username );
+		}
 
-			$defaults = [
-				'email'       => $billing_email,
-				'description' => $description,
-			];
+		$defaults = [
+			'email'       => $email,
+			'description' => $description,
+		];
 
-			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
-			if ( ! empty( $billing_full_name ) ) {
-				$defaults['name'] = $billing_full_name;
-			}
+		$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
+		if ( ! empty( $billing_full_name ) ) {
+			$defaults['name'] = $billing_full_name;
 		}
 
 		$metadata                      = [];
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
-		// Add customer address default values.
-		$address_fields = [
+		$defaults['address'] = $this->generate_customer_address_fields( $user_or_customer, $order );
+
+		return wp_parse_args( $args, $defaults );
+	}
+
+	/**
+	 * Helper function to build the address fields for the customer request.
+	 *
+	 * @param WP_User|WC_Customer|null $user_or_customer The user object, WC_Customer object, or null.
+	 * @param WC_Order|null            $order            The order object (optional). Billing details may be retrieved from the order.
+	 *
+	 * @return array The address fields.
+	 */
+	private function generate_customer_address_fields( $user_or_customer, $order = null ): array {
+		$address_field_map = [
 			'line1'       => 'billing_address_1',
 			'line2'       => 'billing_address_2',
 			'postal_code' => 'billing_postcode',
@@ -228,15 +299,34 @@ class WC_Stripe_Customer {
 			'state'       => 'billing_state',
 			'country'     => 'billing_country',
 		];
-		foreach ( $address_fields as $key => $field ) {
-			if ( $user ) {
-				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
-			} else {
-				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $order );
-			}
+
+		$address_fields = [];
+
+		$source = 'billing';
+		if ( $user_or_customer instanceof WC_Customer ) {
+			$source = 'wc_customer';
+		} elseif ( $user_or_customer instanceof WP_User ) {
+			$source = 'user_meta';
 		}
 
-		return wp_parse_args( $args, $defaults );
+		foreach ( $address_field_map as $key => $field ) {
+			$value = '';
+
+			if ( 'user_meta' === $source && $user_or_customer instanceof WP_User ) {
+				$value = get_user_meta( $user_or_customer->ID, $field, true );
+				if ( empty( $value ) ) {
+					$value = '';
+				}
+			} elseif ( 'wc_customer' === $source && $user_or_customer instanceof WC_Customer && method_exists( $user_or_customer, 'get_' . $field ) ) {
+				$value = $user_or_customer->{ 'get_' . $field }();
+			} elseif ( 'billing' === $source ) {
+				$value = $this->get_billing_data_field( $field, $order );
+			}
+
+			$address_fields[ $key ] = $value;
+		}
+
+		return $address_fields;
 	}
 
 	/**
@@ -354,7 +444,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @return string
 	 */
-	private function get_billing_data_field( $field, $order = null ) {
+	protected function get_billing_data_field( $field, $order = null ) {
 		$valid_fields = [
 			'billing_email',
 			'billing_first_name',
@@ -1058,7 +1148,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the customer's preferred locale based on the user or site setting.
 	 *
-	 * @param object $user The user being created/modified.
+	 * @param object|false $user The user being created/modified.
 	 * @return array The matched locale string wrapped in an array, or empty default.
 	 */
 	public function get_customer_preferred_locale( $user ) {
@@ -1104,7 +1194,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Gets the customer's locale/language based on their setting or the site settings.
 	 *
-	 * @param object $user The user we're wanting to get the locale for.
+	 * @param object|false $user The user we're wanting to get the locale for.
 	 * @return string The locale/language set in the user profile or the site itself.
 	 */
 	public function get_customer_locale( $user ) {
