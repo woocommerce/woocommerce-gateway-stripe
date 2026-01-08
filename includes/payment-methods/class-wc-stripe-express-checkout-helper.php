@@ -673,7 +673,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Note that is_express_checkout_enabled() checks locations as well as the necessary express checkout methods being available.
 		if ( ! $this->is_express_checkout_enabled() ) {
-			WC_Stripe_Logger::log( 'No Stripe Express Checkout options are enabled in the current context.' );
+			WC_Stripe_Logger::debug( 'No Stripe Express Checkout options are enabled in the current context.' );
 			return false;
 		}
 
