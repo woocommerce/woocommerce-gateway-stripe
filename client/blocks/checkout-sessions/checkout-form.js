@@ -1,4 +1,4 @@
-import { PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
+import { CurrencySelectorElement, PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
 import { useEffect, useRef, useState } from 'react';
 import {
 	usePaymentCompleteHandler2,
@@ -183,12 +183,15 @@ const CheckoutForm = ( {
 	const { checkout } = checkoutState;
 
 	return (
-		<PaymentElement
-			options={ getStripeElementOptions() }
-			onChange={ onSelectedPaymentMethodChange }
-			onLoadError={ setHasLoadError }
-			className="wcstripe-payment-element"
-		/>
+		<>
+			<CurrencySelectorElement />
+			<PaymentElement
+				options={ getStripeElementOptions() }
+				onChange={ onSelectedPaymentMethodChange }
+				onLoadError={ setHasLoadError }
+				className="wcstripe-payment-element"
+			/>
+		</>
 	);
 };
 

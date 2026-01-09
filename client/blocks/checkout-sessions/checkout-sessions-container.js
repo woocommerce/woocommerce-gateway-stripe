@@ -18,6 +18,11 @@ export const CheckoutSessionsContainer = ( props ) => {
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
 
+	const providerOptions = {
+		clientSecret: promise,
+		adaptivePricing: { allowed: true },
+	};
+
 	return (
 		<>
 			{ paymentProcessorLoadErrorMessage?.error?.message && (
@@ -29,7 +34,7 @@ export const CheckoutSessionsContainer = ( props ) => {
 			) }
 			<CheckoutProvider
 				stripe={ stripePromise }
-				options={ { clientSecret: promise } }
+				options={ providerOptions }
 			>
 				<CheckoutForm
 					api={ api }
