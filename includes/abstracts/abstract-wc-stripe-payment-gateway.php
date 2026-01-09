@@ -565,11 +565,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
-		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
+		WC_Stripe_Logger::debug(
+			'Processing charge response',
+			[
+				'response' => $response,
+				'order' => $order,
+			]
+		);
 
 		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
 		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
-			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
+			WC_Stripe_Logger::error( 'Aborting, transaction already consumed by another order.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 		}
@@ -1736,7 +1742,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @param WC_Order $order The order to retrieve an intent for.
-	 * @return obect|bool     Either the intent object or `false`.
+	 * @return object|false   Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -1759,7 +1765,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param string $intent_type   Either 'payment_intents' or 'setup_intents'.
 	 * @param string $intent_id     Intent id.
-	 * @return object|bool          Either the intent object or `false`.
+	 * @return object|false         Either the intent object or `false`.
 	 * @throws Exception            Throws exception for unknown $intent_type.
 	 */
 	private function get_intent( $intent_type, $intent_id ) {
@@ -2131,15 +2137,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string The localized error message.
 	 */
 	public function get_localized_error_message_from_response( $response ) {
-		$localized_messages = WC_Stripe_Helper::get_localized_messages();
-
-		if ( 'card_error' === $response->error->type ) {
-			$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
-		} else {
-			$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
-		}
-
-		return $localized_message;
+		return WC_Stripe_Helper::get_localized_error_message_from_response( $response );
 	}
 
 	/**
@@ -2170,8 +2168,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		// Bail if no Stripe payment method is enabled.
-		if ( 'no' === $this->enabled && empty( WC_Stripe_Helper::get_legacy_enabled_payment_methods() ) ) {
+		// Bail if Stripe is disabled.
+		if ( 'no' === $this->enabled ) {
 			return;
 		}
 

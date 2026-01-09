@@ -5,7 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $is_gte_wc6_6 = defined( WC_VERSION ) && version_compare( WC_VERSION, '6.6', '>=' );
 
-$stripe_settings = apply_filters(
+$wc_stripe_default_express_checkout_locations = [ 'product', 'cart', 'checkout' ];
+
+return apply_filters(
 	'wc_stripe_settings',
 	[
 		'enabled'                             => [
@@ -141,11 +143,10 @@ $stripe_settings = apply_filters(
 			'default'     => 'default',
 			'desc_tip'    => true,
 			'options'     => [
-				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
+				'default' => __( 'Only icon', 'woocommerce-gateway-stripe' ),
 				'buy'     => __( 'Buy', 'woocommerce-gateway-stripe' ),
 				'donate'  => __( 'Donate', 'woocommerce-gateway-stripe' ),
-				'branded' => __( 'Branded', 'woocommerce-gateway-stripe' ),
-				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
+				'book'    => __( 'Book', 'woocommerce-gateway-stripe' ),
 			],
 		],
 		'express_checkout_button_theme'        => [
@@ -200,7 +201,7 @@ $stripe_settings = apply_filters(
 				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
 				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
 			],
-			'default'           => [ 'product', 'cart' ],
+			'default'           => $wc_stripe_default_express_checkout_locations,
 			'custom_attributes' => [
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
@@ -260,7 +261,7 @@ $stripe_settings = apply_filters(
 				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
 				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
 			],
-			'default'           => [ 'product', 'cart' ],
+			'default'           => $wc_stripe_default_express_checkout_locations,
 			'custom_attributes' => [
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
@@ -289,23 +290,4 @@ $stripe_settings = apply_filters(
 			],
 		],
 	]
-);
-
-// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
-$stripe_settings['express_checkout_button_locations']['default'][] = 'checkout';
-
-// no longer needed in the new settings.
-unset( $stripe_settings['express_checkout_button_branded_type'] );
-unset( $stripe_settings['express_checkout_button_height'] );
-unset( $stripe_settings['express_checkout_button_label'] );
-// injecting some of the new options.
-$stripe_settings['express_checkout_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
-$stripe_settings['express_checkout_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
-// no longer valid options.
-unset( $stripe_settings['express_checkout_button_type']['options']['branded'] );
-unset( $stripe_settings['express_checkout_button_type']['options']['custom'] );
-
-return apply_filters(
-	'wc_stripe_settings',
-	$stripe_settings
 );
