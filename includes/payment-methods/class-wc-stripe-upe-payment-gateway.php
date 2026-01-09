@@ -536,6 +536,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $this->oc_enabled ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
 		}
 
 		// Checking for other BNPL extensions.
@@ -627,6 +628,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+	 *
+	 * @return array
+	 */
+	private function get_excluded_payment_method_types() {
+		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		// 'Link', 'Apple Pay', and 'Google Pay' are not supported in the 'excludedPaymentMethodTypes' parameter, so we always allow them.
+		$allowed_methods = [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY, 'cartes_bancaires' ];
+
+		$excluded_methods = array_diff( $unsupported_methods, $allowed_methods );
+
+		// Always exclude amazon_pay (shown via Express Checkout, not in Payment Element)
+		if ( ! in_array( 'amazon_pay', $excluded_methods, true ) ) {
+			$excluded_methods[] = 'amazon_pay';
+		}
+
+		return array_values( array_unique( $excluded_methods ) );
 	}
 
 	/**
