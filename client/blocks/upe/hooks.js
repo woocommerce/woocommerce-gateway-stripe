@@ -86,21 +86,33 @@ export const usePaymentCompleteHandler2 = (
 	emitResponse,
 	shouldSavePayment
 ) => {
-	console.log('usePaymentCompleteHandler2');
-	// Once the server has completed payment processing, confirm the intent of necessary.
+	// Once the server has completed payment processing, confirm the session if necessary.
 	useEffect(
 		() =>
-			onCheckoutSuccess( ( { processingResponse: { paymentDetails } } ) =>
-				confirmCardPayment(
-					api,
-					paymentDetails,
-					emitResponse,
-					shouldSavePayment
-				)
+			onCheckoutSuccess( async ( { processingResponse: { paymentDetails } } ) => {
+					console.log('before confirm');
+
+					const { checkout } = checkoutState;
+					const confirmResult = await checkout.confirm();
+					console.log('after confirm');
+
+					return confirmCheckoutSession(
+						checkoutState.checkout,
+						paymentDetails,
+						emitResponse,
+						shouldSavePayment
+					);
+				}
 			),
 		// not sure if we need to disable this, but kept it as-is to ensure nothing breaks. Please consider passing all the deps.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[ checkoutState, stripe, api, shouldSavePayment ]
+		[
+			checkoutState,
+			stripe,
+			api,
+			shouldSavePayment,
+			emitResponse.noticeContexts.PAYMENTS,
+		]
 	);
 };
 
@@ -161,5 +173,31 @@ export const useCustomerData = () => {
 		shippingAddress: customerData.shippingAddress,
 		setBillingAddress: setCustomerBillingAddress,
 		setShippingAddress,
+	};
+};
+
+const confirmCheckoutSession = async (
+	checkout,
+	paymentDetails,
+	emitResponse
+) => {
+	const { redirect } = paymentDetails;
+
+	console.log('before confirm');;
+
+	const confirmResult = await checkout.confirm();
+	console.log('after confirm');
+	if ( confirmResult.type === 'error' ) {
+		return {
+			type: 'error',
+			message: confirmResult.error.message,
+			messageContext: emitResponse.noticeContexts.PAYMENTS,
+		};
+	}
+
+
+	return {
+		type: 'success',
+		redirectUrl: redirect,
 	};
 };

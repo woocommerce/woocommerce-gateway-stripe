@@ -11,6 +11,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { validateElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
 
 const noop = () => null;
 
@@ -119,6 +120,17 @@ const CheckoutForm = ( {
 
 					const billingAddress = billing.billingAddress;
 
+					// const { checkout } = checkoutState;
+
+					// const confirmResult = await checkout.confirm();
+
+					// if ( confirmResult.type === 'error' ) {
+					// 	return {
+					// 		type: 'error',
+					// 		message: confirmResult.error.message,
+					// 	};
+					// }
+
 					return {
 						type: 'success',
 						meta: {
@@ -127,6 +139,7 @@ const CheckoutForm = ( {
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method': '',
 								save_payment_method: 'no',
+								// checkout_session_id: checkout.id,
 
 								// The billing information here is relevant to properly create the Stripe Customer object.
 								billing_email: billingAddress.email,
@@ -180,7 +193,6 @@ const CheckoutForm = ( {
 	} else if ( checkoutState.type === 'error' ) {
 		return <div>Error: { checkoutState.error.message }</div>;
 	}
-	const { checkout } = checkoutState;
 
 	return (
 		<>

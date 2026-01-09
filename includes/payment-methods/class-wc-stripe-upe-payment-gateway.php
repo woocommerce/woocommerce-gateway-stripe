@@ -1087,7 +1087,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
 			// Attempt to acquire lock, bail if already locked
-			$is_order_payment_locked = $order_helper->lock_order_payment( $order );
+			$is_order_payment_locked = false;
 			if ( $is_order_payment_locked ) {
 				// If the request is already being processed, return an error.
 				return [
@@ -1137,6 +1137,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $is_using_saved_payment_method ) {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
+
+			$order->update_meta_data( '_stripe_checkout_session_id', $_POST['checkout_session_id'] );
+			$order->save_meta_data();
+
+			$order->payment_complete();
+
+			// Remove cart.
+			if ( isset( WC()->cart ) ) {
+				WC()->cart->empty_cart();
+			}
+
+			return [
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			];
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.

@@ -11,6 +11,7 @@ import {
 } from '../../stripe-utils';
 import './style.scss';
 import {
+	confirmCheckoutSessionsPayment,
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
@@ -172,6 +173,13 @@ jQuery( function ( $ ) {
 						getStripeServerData()?.isChangingPayment
 						? $( '#order_review' )
 						: $( 'form.checkout' )
+				);
+			} else if (
+				window.location.hash.startsWith( '#wc-stripe-checkout-sessions-' )
+			) {
+				confirmCheckoutSessionsPayment(
+					api,
+					$( 'form.checkout' )
 				);
 			}
 		}
