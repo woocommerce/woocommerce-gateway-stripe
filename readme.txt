@@ -171,5 +171,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure express checkout is enabled in current context before registering the express checkout script
 * Fix - Prevent warnings for Amazon Pay in Express Checkout block
 * Dev - Ensure PHPStan runs when pushing changes
+* Fix - Resolve and issue where unsupported payment methods gets displayed on checkout page when optimized checkout is enabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
