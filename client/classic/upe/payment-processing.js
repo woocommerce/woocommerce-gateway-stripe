@@ -838,34 +838,3 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		resetBlockCheckoutPaymentState();
 	}
 };
-
-export const confirmCheckoutSessionsPayment = async ( api, jQueryForm ) => {
-	const partials = window.location.href.match(
-		/#wc-stripe-checkout-sessions-(.+):(.+):(.+):(.+):(.+)$/
-	);
-
-	if ( ! partials ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
-		return;
-	}
-
-	// Remove the hash from the URL.
-	history.replaceState(
-		'',
-		document.title,
-		window.location.pathname + window.location.search
-	);
-
-	const orderId = partials[ 1 ];
-	const clientSecret = partials[ 4 ];
-
-	try {
-		const confirmCheckoutSession = await api.getStripe().confirm();
-	} catch ( error ) {
-		showErrorCheckout( error.message );
-	} finally {
-		jQueryForm.removeClass( 'processing' ).unblock();
-		unblockBlockCheckout();
-		resetBlockCheckoutPaymentState();
-	}
-};

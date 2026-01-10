@@ -1,17 +1,17 @@
-import { CurrencySelectorElement, PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
-import { useEffect, useRef, useState } from 'react';
+import {
+	CurrencySelectorElement,
+	PaymentElement,
+	useCheckout,
+} from '@stripe/react-stripe-js/checkout';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	usePaymentCompleteHandler2,
 	usePaymentFailHandler2,
 } from 'wcstripe/blocks/upe/hooks';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
-import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
-import { validateElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
 
 const noop = () => null;
 
@@ -61,7 +61,12 @@ const getStripeElementOptions = () => {
 const CheckoutForm = ( {
 	api,
 	stripe,
-	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
+	eventRegistration: {
+		onPaymentSetup,
+		onCheckoutSuccess,
+		onCheckoutFail,
+		// onPaymentProcessing,
+	},
 	emitResponse,
 	errorMessage,
 	billing,
@@ -69,12 +74,22 @@ const CheckoutForm = ( {
 } ) => {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState( false );
+	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
+		useState( false );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
+
+	const confirmCheckoutSession = useCallback( async () => {
+		if ( checkoutState.type === 'success' ) {
+			const { checkout } = checkoutState;
+			if ( checkout.canConfirm ) {
+				return await checkout.confirm();
+			}
+		}
+	}, [ checkoutState ] );
 
 	useEffect(
 		() =>
@@ -120,17 +135,6 @@ const CheckoutForm = ( {
 
 					const billingAddress = billing.billingAddress;
 
-					// const { checkout } = checkoutState;
-
-					// const confirmResult = await checkout.confirm();
-
-					// if ( confirmResult.type === 'error' ) {
-					// 	return {
-					// 		type: 'error',
-					// 		message: confirmResult.error.message,
-					// 	};
-					// }
-
 					return {
 						type: 'success',
 						meta: {
@@ -165,6 +169,22 @@ const CheckoutForm = ( {
 			billing.billingAddress,
 		]
 	);
+
+	useEffect( () => {
+		const placeOrderButton = document.querySelector(
+			'button.wc-block-components-checkout-place-order-button'
+		);
+		const placeOrderListener = async ( event ) => {
+			event.preventDefault();
+
+			const confirmResult = await confirmCheckoutSession();
+			if ( confirmResult?.type === 'error' ) {
+				throw new Error( confirmResult.error.message );
+			}
+		};
+		placeOrderButton.removeEventListener( 'click', placeOrderListener );
+		placeOrderButton.addEventListener( 'click', placeOrderListener );
+	}, [] );
 
 	usePaymentCompleteHandler2(
 		api,
