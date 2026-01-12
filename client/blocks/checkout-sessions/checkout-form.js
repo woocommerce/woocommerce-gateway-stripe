@@ -83,15 +83,6 @@ const CheckoutForm = ( {
 		onLoadError( event );
 	};
 
-	const confirmCheckoutSession = useCallback( async () => {
-		if ( checkoutState.type === 'success' ) {
-			const { checkout } = checkoutState;
-			if ( checkout.canConfirm ) {
-				// return await checkout.confirm();
-			}
-		}
-	}, [ checkoutState ] );
-
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
@@ -142,7 +133,6 @@ const CheckoutForm = ( {
 							paymentMethodData: {
 								payment_method: 'stripe',
 								'wc-stripe-is-deferred-intent': true,
-								'wc-stripe-payment-method': '',
 								save_payment_method: 'no',
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
@@ -172,22 +162,6 @@ const CheckoutForm = ( {
 			checkoutSessionId,
 		]
 	);
-
-	useEffect( () => {
-		const placeOrderButton = document.querySelector(
-			'button.wc-block-components-checkout-place-order-button'
-		);
-		const placeOrderListener = async ( event ) => {
-			event.preventDefault();
-
-			const confirmResult = await confirmCheckoutSession();
-			if ( confirmResult?.type === 'error' ) {
-				throw new Error( confirmResult.error.message );
-			}
-		};
-		placeOrderButton.removeEventListener( 'click', placeOrderListener );
-		placeOrderButton.addEventListener( 'click', placeOrderListener );
-	} );
 
 	usePaymentCompleteHandler2(
 		api,

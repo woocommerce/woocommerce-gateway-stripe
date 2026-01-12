@@ -59,7 +59,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			'payment_method_types' => $enabled_payment_methods,
 			'payment_intent_data'  => [],
 			'mode'                 => 'payment',
-			'return_url'           => wc_get_endpoint_url( 'order-received', '', wc_get_checkout_url() ),
 		];
 
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
