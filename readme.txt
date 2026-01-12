@@ -148,7 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
 * Fix - Preserve express checkout button location settings when upgrading from older plugin versions
 * Fix - Ensure express checkout is enabled in current context before registering the express checkout script
-* Fix - Fix some initialization bugs for reconnections
+* Fix - Initialization bugs during gateway reconnections
 * Tweak - Change BLIK confirmation webhook processing from deferred to immediate
 * Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
 * Update - Deprecate and replace Payment Request Button classes with Express Checkout equivalents
