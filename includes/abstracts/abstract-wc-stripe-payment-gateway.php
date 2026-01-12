@@ -2398,7 +2398,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 		if ( empty( $meta_key ) ) {
 			$log_message = sprintf( 'Error: Unable to set the order status for order %d when transitioning from %s to %s.', $order->get_id(), $current_status, $target_status );
-			WC_Stripe_Logger::error( $log_message );
+			WC_Stripe_Logger::error(
+				$log_message,
+				[
+					'order_id'       => $order->get_id(),
+					'current_status' => $current_status,
+					'target_status'  => $target_status,
+				]
+			);
 			return;
 		}
 		$order->update_meta_data( $meta_key, $current_status );

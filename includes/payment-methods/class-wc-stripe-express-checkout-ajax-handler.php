@@ -404,7 +404,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			$result = apply_filters( 'woocommerce_payment_successful_result', $result, $order_id );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Pay for order failed for order ' . $order_id . ' with express checkout: ' . $e );
+			WC_Stripe_Logger::error( 'Pay for order failed for order ' . $order_id . ' with express checkout', [ 'error_message' => $e->getMessage() ] );
 
 			$result = [
 				'result'   => 'error',
