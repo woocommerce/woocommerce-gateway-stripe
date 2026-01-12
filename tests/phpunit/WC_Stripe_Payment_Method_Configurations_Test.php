@@ -870,4 +870,161 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			$this->assertEquals( $expected_configuration_id, $configuration_id );
 		}
 	}
+
+		/**
+	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when PMC is disabled.
+	 *
+	 * @return void
+	 */
+	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_when_pmc_disabled() {
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$this->assertEmpty( $result );
+
+		// Reset settings
+		$settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+	}
+
+	/**
+	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there's no configuration.
+	 *
+	 * @return void
+	 */
+	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_when_no_configuration() {
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [] ] );
+
+		$reflection = new ReflectionClass( \WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$this->assertEmpty( $result );
+
+		// Reset API instance
+		$property->setValue( null, null );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+	}
+
+	/**
+	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there are unsupported enabled methods.
+	 *
+	 * @return void
+	 */
+	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_with_unsupported_methods() {
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$payment_method_configuration = (object) [
+			'id'        => 'pmc_test',
+			'parent'    => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			'active'    => true,
+			'livemode'  => false,
+			// Supported method (card) - should be skipped
+			'card'      => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+			// Unsupported enabled methods - should be returned
+			'fpx'       => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+			'naver_pay' => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+			// Unsupported but disabled method - should not be returned
+			'paypal'    => (object) [
+				'display_preference' => (object) [ 'value' => 'off' ],
+			],
+		];
+
+		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [ $payment_method_configuration ] ] );
+
+		$reflection = new ReflectionClass( \WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$this->assertIsArray( $result );
+		$this->assertContains( 'fpx', $result );
+		$this->assertContains( 'naver_pay', $result );
+		$this->assertNotContains( 'card', $result );
+		$this->assertNotContains( 'paypal', $result );
+
+		// Reset API instance
+		$property->setValue( null, null );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+	}
+
+	/**
+	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there are only supported methods.
+	 *
+	 * @return void
+	 */
+	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_with_only_supported_methods() {
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$payment_method_configuration_supported_only = (object) [
+			'id'       => 'pmc_test',
+			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			'active'   => true,
+			'livemode' => false,
+			'card'     => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+			'ideal'    => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+		];
+
+		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [ $payment_method_configuration_supported_only ] ] );
+
+		$reflection = new ReflectionClass( \WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$this->assertEmpty( $result );
+
+		// Reset API instance
+		$property->setValue( null, null );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+	}
 }
