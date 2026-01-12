@@ -1110,7 +1110,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
-			$this->set_payment_method_id_for_order( $order, $payment_method_id );
+//			$this->set_payment_method_id_for_order( $order, $payment_method_id );
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
@@ -1138,8 +1138,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
 
-			$order->update_meta_data( '_stripe_checkout_session_id', $_POST['checkout_session_id'] );
+			$checkout_session_id = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : '';
+
+			$order->update_meta_data( '_stripe_checkout_session_id', $checkout_session_id );
 			$order->save_meta_data();
+
+			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent' );
+
+			// TODO: Payment intent is not returned
+//			$this->save_intent_to_order( $order, $checkout_session->payment_intent );
+//
+//			$this->set_payment_method_id_for_order( $order, $checkout_session->payment_method );
 
 			$order->payment_complete();
 

@@ -74,6 +74,7 @@ const CheckoutForm = ( {
 } ) => {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
+	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
 	const hasLoadErrorRef = useRef( false );
@@ -86,7 +87,7 @@ const CheckoutForm = ( {
 		if ( checkoutState.type === 'success' ) {
 			const { checkout } = checkoutState;
 			if ( checkout.canConfirm ) {
-				return await checkout.confirm();
+				// return await checkout.confirm();
 			}
 		}
 	}, [ checkoutState ] );
@@ -143,7 +144,8 @@ const CheckoutForm = ( {
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method': '',
 								save_payment_method: 'no',
-								// checkout_session_id: checkout.id,
+								wc_stripe_checkout_session_id:
+									checkoutSessionId,
 
 								// The billing information here is relevant to properly create the Stripe Customer object.
 								billing_email: billingAddress.email,
@@ -167,6 +169,7 @@ const CheckoutForm = ( {
 			onPaymentSetup,
 			isPaymentElementComplete,
 			billing.billingAddress,
+			checkoutSessionId,
 		]
 	);
 
@@ -184,7 +187,7 @@ const CheckoutForm = ( {
 		};
 		placeOrderButton.removeEventListener( 'click', placeOrderListener );
 		placeOrderButton.addEventListener( 'click', placeOrderListener );
-	}, [] );
+	} );
 
 	usePaymentCompleteHandler2(
 		api,
@@ -212,6 +215,11 @@ const CheckoutForm = ( {
 		return <div>Loading...</div>;
 	} else if ( checkoutState.type === 'error' ) {
 		return <div>Error: { checkoutState.error.message }</div>;
+	} else if (
+		checkoutState.type === 'success' &&
+		checkoutSessionId !== checkoutState.checkout.id
+	) {
+		setCheckoutSessionId( checkoutState.checkout.id );
 	}
 
 	return (
