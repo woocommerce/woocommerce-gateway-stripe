@@ -537,6 +537,8 @@ export const getDefaultValues = () => {
 
 /**
  * Gets the list of payment method types to exclude from the Payment Element.
+ * The list is populated by the server.
+ * Fallback to exclude Amazon Pay, which should be only shown via Express Checkout, and not within Optimized Checkout.
  *
  * @return {Array<string>} Array of payment method types to exclude.
  */
