@@ -34,6 +34,8 @@
 * Fix - Prevent warnings for Amazon Pay in Express Checkout block
 * Dev - Ensure PHPStan runs when pushing changes
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in block
+* Dev - Add PHPStan stub for WC_Subscription class
+* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills

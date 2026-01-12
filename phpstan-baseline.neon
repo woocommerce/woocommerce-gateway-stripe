@@ -469,60 +469,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
 			identifier: class.notFound
 			count: 2
@@ -1513,36 +1459,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Payment_Gateway\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Payment_Gateway\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Payment_Gateway\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Payment_Gateway\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_Payment_Gateway\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
 			count: 1
@@ -2245,30 +2161,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-tokens-controller.php
 
 		-
-			message: '#^Call to method get_change_payment_method_url\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Call to method has_status\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Class WC_Subscription not found\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
 			message: '#^Constant WC_Stripe_Admin_Notices\:\:STRIPE_CUSTOMER_PAGE_BASE_URL is unused\.$#'
 			identifier: classConstant.unused
 			count: 1
@@ -2699,18 +2591,6 @@ parameters:
 			identifier: deadCode.unreachable
 			count: 2
 			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
-
-		-
-			message: '#^Class WC_Subscription not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
 
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
@@ -5902,36 +5782,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
 		-
-			message: '#^Call to method get_change_payment_method_url\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Call to method get_time\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Class WC_Subscription not found\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
 			message: '#^Function wcs_get_subscriptions not found\.$#'
 			identifier: function.notFound
 			count: 1
@@ -5956,60 +5806,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_gateway_order\(\) expects WC_Order, WC_Subscription given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Subscriptions_Helper\:\:get_detached_payment_data_from_subscription\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
-			message: '#^Call to method add_order_note\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method set_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
 			message: '#^Call to sprintf contains 0 placeholders, 1 value given\.$#'
 			identifier: argument.sprintf
 			count: 2
@@ -6018,12 +5814,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update\:\:get_subscription_to_migrate\(\) has invalid return type WC_Subscription\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
 
@@ -6049,24 +5839,6 @@ parameters:
 			message: '#^Method WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update\:\:set_subscription_updated_payment_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update\:\:maybe_update_subscription_source\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update\:\:set_subscription_updated_payment_gateway_id\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update\:\:set_subscription_updated_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
 			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
 
 		-
@@ -6254,54 +6026,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:__call\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:__call\(\) has parameter \$arguments with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:__call\(\) has parameter \$name with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:__get\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:__get\(\) has parameter \$var with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay\:\:instance\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^PHPDoc tag @var has invalid value \(\)\: Unexpected token "\\n\\t\\t ", expected type at offset 38 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
-
-		-
-			message: '#^Property WC_Stripe_Apple_Pay\:\:\$_this has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/deprecated/class-wc-stripe-apple-pay.php
 
 		-
 			message: '#^Method Allowed_Payment_Request_Button_Types_Update\:\:maybe_migrate\(\) has no return type specified\.$#'
@@ -8128,18 +7852,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Call to method save_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -9040,12 +8752,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Gateway\:\:set_customer_id_for_subscription\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Part \$payment_intent_id \(non\-empty\-array\|non\-falsy\-string\) of encapsed string cannot be cast to string\.$#'
 			identifier: encapsedStringPart.nonString
 			count: 1
@@ -9289,60 +8995,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -9628,36 +9280,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACH\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACH\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACH\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACH\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_ACH\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -9895,60 +9517,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -10228,36 +9796,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACSS\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACSS\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACSS\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_ACSS\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_ACSS\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -10501,60 +10039,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -10834,36 +10318,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -11107,60 +10561,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -11446,36 +10846,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -11707,60 +11077,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -12040,36 +11356,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -12301,60 +11587,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -12636,36 +11868,6 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) expects object, false given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -12958,60 +12160,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
 			identifier: class.notFound
 			count: 2
@@ -13282,36 +12430,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -13549,60 +12667,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -13900,36 +12964,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_CC\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_CC\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_CC\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_CC\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_CC\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -14167,60 +13201,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -14500,36 +13480,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Ideal\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Ideal\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Ideal\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Ideal\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Ideal\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -14761,60 +13711,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -15084,36 +13980,6 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) expects object, false given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Klarna\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Klarna\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Klarna\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Klarna\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Klarna\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -15454,60 +14320,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
 			identifier: class.notFound
 			count: 2
@@ -15802,36 +14614,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_OC\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_OC\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_OC\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_OC\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_OC\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$enabled \(bool\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -16087,60 +14869,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -16432,36 +15160,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sepa\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sepa\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sepa\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sepa\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Sepa\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -16693,60 +15391,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method delete_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_customer_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_meta\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_parent\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_parent_id\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method get_payment_method\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method save\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to method update_meta_data\(\) on an unknown class WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -17016,36 +15660,6 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) expects object, false given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sofort\:\:add_subscription_payment_meta\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sofort\:\:maybe_render_subscription_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sofort\:\:update_failing_payment_method\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \$subscription of method WC_Stripe_UPE_Payment_Method_Sofort\:\:update_payment_after_deferred_intent\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \$subscriptions of method WC_Stripe_UPE_Payment_Method_Sofort\:\:create_mandate_options_for_order\(\) has invalid type WC_Subscription\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
