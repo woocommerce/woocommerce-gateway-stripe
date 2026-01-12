@@ -241,7 +241,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			} catch ( WC_Stripe_Exception $e ) {
 				wc_add_notice( $e->getLocalizedMessage(), 'error' );
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				WC_Stripe_Logger::error( 'Error getting customer payment tokens (legacy) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
 			}
 		}
 
@@ -373,7 +373,7 @@ class WC_Stripe_Payment_Tokens {
 
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for user: ' . $user_id, [ 'error_message' => $e->getMessage() ] );
 		}
 
 		return $tokens;
@@ -484,7 +484,7 @@ class WC_Stripe_Payment_Tokens {
 
 			$stripe_customer->detach_payment_method( $token->get_token() );
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error deleting payment token from Stripe customer.', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -506,7 +506,7 @@ class WC_Stripe_Payment_Tokens {
 				$stripe_customer->set_default_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error setting default payment token.', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 

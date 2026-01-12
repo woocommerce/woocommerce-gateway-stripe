@@ -972,13 +972,13 @@ class WC_Stripe_Payment_Request {
 	public function should_show_payment_request_button() {
 		// If keys are not set bail.
 		if ( ! $this->are_keys_set() ) {
-			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			WC_Stripe_Logger::debug( 'Keys are not set correctly.' );
 			return false;
 		}
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			WC_Stripe_Logger::debug( 'Stripe Payment Request live mode requires SSL.' );
 			return false;
 		}
 
@@ -1138,7 +1138,11 @@ class WC_Stripe_Payment_Request {
 
 		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
 
-		WC_Stripe_Logger::log( $errors );
+		if ( is_array( $errors ) ) {
+			$errors = wp_json_encode( $errors );
+		}
+
+		WC_Stripe_Logger::error( (string) $errors );
 
 		exit;
 	}

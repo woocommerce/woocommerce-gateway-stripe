@@ -243,9 +243,6 @@ class WC_Stripe {
 			}
 		}
 
-		// REMOVE IN THE FUTURE.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/deprecated/class-wc-stripe-apple-pay.php';
-
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );

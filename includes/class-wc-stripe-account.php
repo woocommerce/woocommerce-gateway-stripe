@@ -342,7 +342,7 @@ class WC_Stripe_Account {
 
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
-		WC_Stripe_Logger::log(
+		WC_Stripe_Logger::info(
 			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
 		);
 
@@ -363,7 +363,7 @@ class WC_Stripe_Account {
 					"webhook_endpoints/{$webhook->id}",
 					'DELETE'
 				);
-				WC_Stripe_Logger::log( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
 			}
 		}
 	}
@@ -403,7 +403,7 @@ class WC_Stripe_Account {
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Unable to determine webhook status', [ 'error_message' => $e->getMessage() ] );
 			return false;
 		}
 	}
@@ -483,12 +483,12 @@ class WC_Stripe_Account {
 				}
 
 				// Events differ, reconfigure webhook
-				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
+				WC_Stripe_Logger::info( "Webhook events need updating for {$mode} mode - reconfiguring." );
 				$this->configure_webhooks( $mode );
-				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
 
 			} catch ( Exception $e ) {
-				WC_Stripe_Logger::log( "Failed to check/reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
 			} finally {
 				// Restore the previous secret key if we changed it
 				if ( isset( $previous_secret ) ) {

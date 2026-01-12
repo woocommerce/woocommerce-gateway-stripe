@@ -428,7 +428,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// This will throw exception if not valid.
 			$order_helper->validate_minimum_order_amount( $order );
 
-			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			WC_Stripe_Logger::info( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			if ( $intent ) {
 				$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
@@ -515,7 +515,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
