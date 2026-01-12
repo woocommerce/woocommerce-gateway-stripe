@@ -4,11 +4,11 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Stripe_UPE_Payment_Gateway;
-use WC_Gateway_Stripe_Alipay;
 use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Stripe_Helper;
+use WC_Stripe_UPE_Payment_Method_Alipay;
 use WC_Subscription;
 use WC_Subscriptions_Cart;
 use WC_Subscriptions_Product;
@@ -295,7 +295,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe'        => new WC_Stripe_UPE_Payment_Gateway(),
-			'stripe_alipay' => new WC_Gateway_Stripe_Alipay(),
+			'stripe_alipay' => new WC_Stripe_UPE_Payment_Method_Alipay(),
 		];
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import ExpressCheckoutPage from './express-checkout-page';
 
 const container = document.getElementById(
-	'wc-stripe-payment-request-settings-container'
+	'wc-stripe-express-checkout-settings-container'
 );
 
 if ( container ) {

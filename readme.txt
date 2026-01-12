@@ -140,6 +140,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.3.0 - xxxx-xx-xx =
+* Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
+* Dev - Require milestones to be set on pull requests
+* Update - Remove legacy checkout payment method classes
+* Dev - Renames the express checkout frontend main setting key
+* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
 * Dev - Renames the express checkout customization route
 * Dev - Renames all express checkout related frontend hooks
 * Dev - Removes deprecated legacy checkout settings retrieval methods

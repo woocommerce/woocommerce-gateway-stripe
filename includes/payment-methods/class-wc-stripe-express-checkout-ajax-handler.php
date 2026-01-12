@@ -126,7 +126,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$data          += $this->express_checkout_helper->build_display_items();
 		$data['result'] = 'success';
 
-		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
 
@@ -240,7 +239,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		try { // @phpstan-ignore-line (return statement is added)
+		try {
 			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
@@ -427,10 +426,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			return $locale;
 		}
 
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
 
 		// For countries that don't have state fields, make the state field optional.
-		foreach ( WC_Stripe_Payment_Request_Button_States::STATES as $country_code => $states ) {
+		foreach ( WC_Stripe_Express_Checkout_Button_States::STATES as $country_code => $states ) {
 			if ( empty( $states ) ) {
 				$locale[ $country_code ]['state']['required'] = false;
 			}
