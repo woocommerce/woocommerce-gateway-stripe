@@ -72,7 +72,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				echo esc_html( $capture_notice ) . wp_kses_post( wc_help_tip( $capture_tooltip ) );
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order->get_id(), [ 'error_message' => $e->getMessage() ] );
+			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
