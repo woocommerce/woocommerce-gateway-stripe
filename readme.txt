@@ -154,8 +154,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Deprecate and replace Payment Request Button classes with Express Checkout equivalents
 
 **Other Fixes and Updates**
-* Fix - Use same default locations for Amazon Pay express checkout
-* Fix - Prevent warnings for Amazon Pay in Express Checkout block
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
 * Fix - Fix situation where Stripe errors were not translated
 * Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
@@ -173,6 +171,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Improve PHPStan handling of plugin constants
 * Dev - Ensure multiple subdirectories are not exposed via Docker container
 * Dev - Fix ACH E2E tests for updated Stripe test flow
+* Fix - Use same default locations for Amazon Pay express checkout
+* Fix - Prevent warnings for Amazon Pay in Express Checkout block
 * Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 * Update - Remove legacy checkout payment method classes
