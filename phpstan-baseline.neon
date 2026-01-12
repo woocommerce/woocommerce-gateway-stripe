@@ -483,7 +483,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -9306,7 +9306,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -9912,7 +9912,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -10518,7 +10518,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -11124,7 +11124,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -11724,7 +11724,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -12318,7 +12318,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -12972,7 +12972,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -13566,7 +13566,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -14184,7 +14184,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -14778,7 +14778,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -15468,7 +15468,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -16104,7 +16104,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -16710,7 +16710,7 @@ parameters:
 		-
 			message: '#^Call to method get_id\(\) on an unknown class WC_Subscription\.$#'
 			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
