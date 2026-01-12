@@ -159,6 +159,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
+* Dev - Replace deprecated logger method calls with severity specific methods
 * Fix - Calculate subtotal correctly in express checkout
 * Dev - Improve PHPStan handling of plugin constants
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated

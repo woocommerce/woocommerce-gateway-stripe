@@ -253,7 +253,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing change subscription payment method for subscription: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -345,7 +345,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing change subscription payment method with deferred intent for subscription: ' . $subscription_id, [ 'error_message' => $e->getMessage() ] );
 
 			return [
 				'result'   => 'failure',
@@ -1025,7 +1025,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error rendering subscription payment method for subscription: ' . $subscription->get_id(), [ 'error_message' => $e->getMessage() ] );
 		}
 
 		return __( 'N/A', 'woocommerce-gateway-stripe' );
