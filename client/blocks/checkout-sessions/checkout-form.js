@@ -60,7 +60,6 @@ const getStripeElementOptions = () => {
 
 const CheckoutForm = ( {
 	api,
-	stripe,
 	eventRegistration: {
 		onPaymentSetup,
 		onCheckoutSuccess,
@@ -75,6 +74,7 @@ const CheckoutForm = ( {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
+	const [ , setPaymentIntentId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
 	const hasLoadErrorRef = useRef( false );
@@ -125,6 +125,13 @@ const CheckoutForm = ( {
 						};
 					}
 
+					// const sessionDetails =
+					// 	await api.checkoutSessionsGetSession();
+					//
+					// console.log( 'sessionDetails', sessionDetails );
+					//
+					// setPaymentIntentId( sessionDetails.payment_intent.id );
+
 					const billingAddress = billing.billingAddress;
 
 					return {
@@ -163,22 +170,9 @@ const CheckoutForm = ( {
 		]
 	);
 
-	usePaymentCompleteHandler2(
-		api,
-		stripe,
-		checkoutState,
-		onCheckoutSuccess,
-		emitResponse,
-		false
-	);
+	usePaymentCompleteHandler2( checkoutState, onCheckoutSuccess );
 
-	usePaymentFailHandler2(
-		api,
-		stripe,
-		checkoutState,
-		onCheckoutFail,
-		emitResponse
-	);
+	usePaymentFailHandler2( checkoutState, onCheckoutFail, emitResponse );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
@@ -193,7 +187,8 @@ const CheckoutForm = ( {
 		checkoutState.type === 'success' &&
 		checkoutSessionId !== checkoutState.checkout.id
 	) {
-		setCheckoutSessionId( checkoutState.checkout.id );
+		const { checkout } = checkoutState;
+		setCheckoutSessionId( checkout.id );
 	}
 
 	return (

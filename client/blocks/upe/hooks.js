@@ -79,8 +79,6 @@ export const usePaymentFailHandler = (
 };
 
 export const usePaymentCompleteHandler2 = (
-	api,
-	stripe,
 	checkoutState,
 	onCheckoutSuccess
 ) => {
@@ -118,8 +116,6 @@ export const usePaymentCompleteHandler2 = (
 };
 
 export const usePaymentFailHandler2 = (
-	api,
-	stripe,
 	checkoutState,
 	onCheckoutFail,
 	emitResponse
@@ -133,13 +129,7 @@ export const usePaymentFailHandler2 = (
 					messageContext: emitResponse.noticeContexts.PAYMENTS,
 				};
 			} ),
-		[
-			checkoutState,
-			stripe,
-			api,
-			onCheckoutFail,
-			emitResponse.noticeContexts.PAYMENTS,
-		]
+		[ checkoutState, onCheckoutFail, emitResponse.noticeContexts.PAYMENTS ]
 	);
 };
 
