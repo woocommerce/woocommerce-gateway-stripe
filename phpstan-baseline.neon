@@ -3523,12 +3523,6 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_request_javascript_params\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:get_title\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1

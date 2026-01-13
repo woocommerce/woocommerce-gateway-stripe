@@ -29,12 +29,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Constructor
 	 *
-	 * @param null                               $payment_request_configuration The Stripe Payment Request configuration used for Payment Request buttons (removed).
-	 * @param WC_Stripe_Express_Checkout_Element $express_checkout_configuration The Stripe Express Checkout configuration used for Express Checkout buttons.
+	 * @param mixed                              $payment_request_configuration The Stripe Payment Request configuration used for Payment Request buttons (removed).
+	 * @param WC_Stripe_Express_Checkout_Element|null $express_checkout_configuration The Stripe Express Checkout configuration used for Express Checkout buttons.
 	 *
 	 * @deprecated Parameter $payment_request_configuration is deprecated since version 10.3.0 and will be removed in later versions.
 	 */
-	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
+	public function __construct( $payment_request_configuration = null, ?WC_Stripe_Express_Checkout_Element $express_checkout_configuration = null ) {
 		if ( null !== $payment_request_configuration ) {
 			_deprecated_argument(
 				__FUNCTION__,
