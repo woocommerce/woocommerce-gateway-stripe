@@ -7132,12 +7132,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Variable \$order might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
 			count: 1
