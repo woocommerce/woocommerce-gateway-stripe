@@ -253,7 +253,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing change subscription payment method for subscription: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -345,7 +345,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing change subscription payment method with deferred intent for subscription: ' . $subscription_id, [ 'error_message' => $e->getMessage() ] );
 
 			return [
 				'result'   => 'failure',
@@ -672,9 +672,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$subscription->update_meta_data( '_stripe_customer_id', $order_helper->get_stripe_customer_id( $renewal_order ) );
-		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source_id( $renewal_order ) );
+		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
+		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
+		$subscription->update_meta_data( '_stripe_customer_id', $stripe_customer_id ? $stripe_customer_id : '' );
+		$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id ? $stripe_source_id : '' );
 		$subscription->save();
 	}
 
@@ -1025,7 +1027,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error rendering subscription payment method for subscription: ' . $subscription->get_id(), [ 'error_message' => $e->getMessage() ] );
 		}
 
 		return __( 'N/A', 'woocommerce-gateway-stripe' );
