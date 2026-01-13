@@ -209,15 +209,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					return null;
 				}
 
-				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-				if (
-					// eslint-disable-next-line camelcase
-					wc_stripe_settings_params.are_apms_deprecated &&
-					method !== PAYMENT_METHOD_CARD
-				) {
-					return null;
-				}
-
 				const {
 					Icon,
 					label,

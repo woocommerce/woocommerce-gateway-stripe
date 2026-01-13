@@ -79,12 +79,6 @@ const PaymentMethod = ( { method, data } ) => {
 		return null;
 	}
 
-	// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-	const deprecated =
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.are_apms_deprecated &&
-		method !== PAYMENT_METHOD_CARD;
-
 	// If the payment method is unavailable and enabled, we should not disable so it can be unchecked.
 	const isDisabled =
 		paymentMethodUnavailableReason !== null &&
@@ -103,7 +97,7 @@ const PaymentMethod = ( { method, data } ) => {
 					id={ method }
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
-					disabled={ deprecated || isDisabled }
+					disabled={ isDisabled }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription

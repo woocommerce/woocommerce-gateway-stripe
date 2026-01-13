@@ -43,7 +43,6 @@ describe( 'PromotionalBanner', () => {
 		Object.defineProperty( window, 'location', {
 			value: { reload: jest.fn() },
 		} );
-		global.wc_stripe_settings_params = { are_apms_deprecated: false };
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);

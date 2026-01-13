@@ -115,6 +115,8 @@ class WC_Stripe_Feature_Flags {
 	 * Checks whether UPE has been manually disabled by the merchant.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 10.4.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function did_merchant_disable_upe() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -126,6 +128,8 @@ class WC_Stripe_Feature_Flags {
 	 * Checks if the APMs are deprecated. Stripe deprecated them on October 29, 2024 (for the legacy checkout).
 	 *
 	 * @return bool Whether the APMs are deprecated.
+	 *
+	 * @deprecated 10.4.0 APMs are deprecated and the legacy checkout no longer exists. This method will be removed in a future release.
 	 */
 	public static function are_apms_deprecated() {
 		return false;

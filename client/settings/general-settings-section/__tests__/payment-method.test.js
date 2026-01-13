@@ -34,7 +34,6 @@ describe( 'PaymentMethod', () => {
 
 		global.wc_stripe_settings_params = {
 			...globalSettingsParams,
-			are_apms_deprecated: false,
 		};
 
 		useManualCapture.mockReturnValue( [ false ] );
