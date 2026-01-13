@@ -2428,7 +2428,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_metadata_from_order( $order ) {
 		$payment_type = $this->is_payment_recurring( $order->get_id() ) ? 'recurring' : 'single';
-		$name         = sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() );
+		$name         = trim( sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() ) );
 		$email        = sanitize_email( $order->get_billing_email() );
 
 		$metadata = [
