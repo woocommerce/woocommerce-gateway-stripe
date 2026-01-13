@@ -3493,18 +3493,6 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:__construct\(\) has parameter \$express_checkout_configuration with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:__construct\(\) has parameter \$payment_request_configuration with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:add_order_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3560,15 +3548,6 @@ parameters:
 
 		-
 			message: '#^PHPDoc tag @extends has invalid value \(AbstractPaymentMethodType\)\: Unexpected token "\\n ", expected ''\<'' at offset 79 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '''
-				#^PHPDoc tag @param has invalid value \(WC_Stripe_Payment_Request  The Stripe Payment Request configuration used for Payment
-				                                  Request buttons\.\)\: Unexpected token "The", expected variable at offset 62 on line 4$#
-			'''
 			identifier: phpDoc.parseError
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
