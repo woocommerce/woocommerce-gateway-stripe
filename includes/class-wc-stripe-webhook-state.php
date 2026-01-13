@@ -34,21 +34,6 @@ class WC_Stripe_Webhook_State {
 	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 
 	/**
-	 * Gets whether Stripe is in test mode or not
-	 *
-	 * @since 5.0.0
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function get_testmode() {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-	}
-
-	/**
 	 * Clears the webhook state.
 	 *
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.

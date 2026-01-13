@@ -77,41 +77,6 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
-	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 ECE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_stripe_ece_enabled() {
-		return true;
-	}
-
-	/**
-	 * Checks whether UPE "preview" feature flag is enabled.
-	 * This allows the merchant to enable/disable UPE checkout.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.1.0 UPE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_upe_preview_enabled() {
-		return true;
-	}
-
-	/**
-	 * Checks whether UPE is enabled.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 UPE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_upe_checkout_enabled() {
-		return true;
-	}
-
-	/**
 	 * Checks whether UPE has been manually disabled by the merchant.
 	 *
 	 * @return bool

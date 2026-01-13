@@ -75,166 +75,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Gets the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @return string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
-	 */
-	public static function get_stripe_currency( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
-	}
-
-	/**
-	 * Updates the Stripe currency for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param string $currency
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
-	 */
-	public static function update_stripe_currency( $order, $currency ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
-	}
-
-	/**
-	 * Gets the Stripe fee for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
-	 */
-	public static function get_stripe_fee( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_FEE, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
-	 */
-	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_FEE, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe fee for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
-	 */
-	public static function delete_stripe_fee( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_FEE );
-		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
-	}
-
-	/**
-	 * Gets the Stripe net for order. With legacy check.
-	 *
-	 * @since 4.1.0
-	 * @param WC_Order $order
-	 * @return string $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
-	 */
-	public static function get_stripe_net( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_NAME_NET, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
-			}
-		}
-
-		return $amount;
-	}
-
-	/**
-	 * Updates the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
-	 */
-	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_NAME_NET, $amount );
-	}
-
-	/**
-	 * Deletes the Stripe net for order.
-	 *
-	 * @since 4.1.0
-	 * @param object $order
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
-	 */
-	public static function delete_stripe_net( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( self::META_NAME_NET );
-		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
-	}
-
-	/**
 	 * Get Stripe amount to pay
 	 *
 	 * @param float  $total Amount due.
@@ -1165,33 +1005,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Adds payment intent id and order note to order if payment intent is not already saved
-	 *
-	 * @param $payment_intent_id
-	 * @param $order
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
-	 */
-	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		$order_helper  = WC_Stripe_Order_Helper::get_instance();
-		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
-		if ( $old_intent_id === $payment_intent_id ) {
-			return;
-		}
-
-		$order->add_order_note(
-			sprintf(
-			/* translators: $1%s payment intent ID */
-				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-				$payment_intent_id
-			)
-		);
-
-		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
-		$order->save();
-	}
-
-	/**
 	 * Adds a source or payment method argument to the request array depending on what sort of
 	 * payment method ID is provided. If ID is neither a source or a payment method ID then nothing
 	 * is added.
@@ -1280,25 +1093,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the payment intent or setup intent ID from a given order object.
-	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
-	 *
-	 * @return string|bool  The intent ID if found, false otherwise.
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
-	 */
-	public static function get_intent_id_from_order( $order ) {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$intent_id    = $order_helper->get_stripe_intent_id( $order );
-		if ( ! $intent_id ) {
-			$intent_id = $order_helper->get_stripe_setup_intent_id( $order );
-		}
-
-		return $intent_id ?? false;
-	}
-
-	/**
 	 * Fetches a list of all Stripe gateway IDs.
 	 *
 	 * @return array An array of all Stripe gateway IDs.
@@ -1314,44 +1108,6 @@ class WC_Stripe_Helper {
 		}
 
 		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
-	}
-
-	/**
-	 * Adds metadata to the order to indicate that the payment is awaiting action.
-	 *
-	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
-	 *
-	 * @param WC_Order $order The order to add the metadata to.
-	 * @param bool     $save  Whether to save the order after adding the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
-	 */
-	public static function set_payment_awaiting_action( $order, $save = true ) {
-		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
-
-		if ( $save ) {
-			$order->save();
-		}
-	}
-
-	/**
-	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
-	 *
-	 * @param WC_Order $order The order to remove the metadata from.
-	 * @param bool     $save  Whether to save the order after removing the metadata.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
-	 */
-	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
-
-		if ( $save ) {
-			$order->save();
-		}
 	}
 
 	/**
@@ -1414,19 +1170,6 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
-	}
-
-	/**
-	 * Verifies if the provided order contains the identifier for a wallet method.
-	 *
-	 * @param WC_Order $order The order.
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function is_wallet_payment_method( $order ) {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1792,97 +1535,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if the given payment intent is valid for the order.
-	 * This checks the currency, amount, and payment method types.
-	 * The function will log a critical error if there is a mismatch.
-	 *
-	 * @param WC_Order      $order                 The order to check.
-	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
-	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
-	 *
-	 * @throws Exception Throws an exception if the intent is not valid for the order.
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
-	 */
-	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
-		$intent_id = null;
-		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
-			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
-			if ( $is_setup_intent ) {
-				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
-			} else {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
-			}
-		}
-
-		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
-		}
-
-		if ( null === $intent_id ) {
-			$intent_id = $intent->id ?? null;
-		}
-
-		// Make sure we actually fetched the intent.
-		if ( ! empty( $intent->error ) ) {
-			WC_Stripe_Logger::error(
-				'Error: failed to fetch requested Stripe intent',
-				[
-					'intent_id' => $intent_id,
-					'error'     => $intent->error,
-				]
-			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
-		}
-
-		if ( null === $selected_payment_type ) {
-			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
-		}
-
-		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
-		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
-		$order_currency        = strtolower( $order->get_currency() );
-		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = self::get_intent_id_from_order( $order );
-		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
-		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
-
-		if ( 'payment_intent' === $intent->object ) {
-			$is_valid = $order_currency === $intent_currency
-				&& $is_valid_payment_type
-				&& $order_amount === $intent_amount
-				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
-		} else {
-			// Setup intents don't have an amount or currency.
-			$is_valid = $is_valid_payment_type
-				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
-		}
-
-		// Return early if we have a valid intent.
-		if ( $is_valid ) {
-			return;
-		}
-
-		$permitted_payment_types = implode( '/', $intent->payment_method_types );
-		WC_Stripe_Logger::critical(
-			"Error: Invalid payment intent for order. Intent: {$intent_currency} {$intent_amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
-			[
-				'order_id'                    => $order->get_id(),
-				'intent_id'                   => $intent->id,
-				'intent_currency'             => $intent_currency,
-				'intent_amount'               => $intent_amount,
-				'intent_payment_method_types' => $intent->payment_method_types,
-				'selected_payment_type'       => $selected_payment_type,
-				'order_currency'              => $order->get_currency(),
-				'order_total'                 => $order->get_total(),
-			]
-		);
-
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
-	}
-
-	/**
 	 * Determines if the store is connected to Stripe.
 	 *
 	 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
@@ -1900,18 +1552,6 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
-	}
-
-	/**
-	 * Checks if the order is using a Stripe payment method.
-	 *
-	 * @param $order WC_Order The order to check.
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
-	 */
-	public static function is_stripe_gateway_order( $order ) {
-		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
 	/**

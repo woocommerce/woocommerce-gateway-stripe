@@ -50,15 +50,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	];
 
 	/**
-	 * Stripe intents that are treated as successfully created.
-	 *
-	 * @type array
-	 *
-	 * @deprecated 9.1.0
-	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
-
-	/**
 	 * Transient name for appearance settings.
 	 *
 	 * @type string
@@ -108,15 +99,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $saved_cards;
 
 	/**
-	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
-	 */
-	public $sepa_tokens_for_other_methods;
-
-	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -129,15 +111,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
-
-	/**
-	 * Is Single Payment Element enabled?
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `oc_enabled`.
-	 */
-	public $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -312,18 +285,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return null;
 		}
 		return new $payment_method_class();
-	}
-
-	/**
-	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
-	 *
-	 * @return string
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
-	 */
-	public static function get_testing_instructions_for_optimized_checkout() {
-		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
-		return $payment_method->get_testing_instructions();
 	}
 
 	/**
@@ -2045,17 +2006,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function is_saved_cards_enabled() {
 		return $this->saved_cards;
-	}
-
-	/**
-	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
-	 *
-	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
-	 *
-	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
-	 */
-	public function is_sepa_tokens_for_other_methods_enabled() {
-		return $this->sepa_tokens_for_other_methods;
 	}
 
 	/**
