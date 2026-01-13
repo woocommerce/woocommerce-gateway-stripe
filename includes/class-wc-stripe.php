@@ -54,7 +54,7 @@ class WC_Stripe {
 	 *
 	 * @var null
 	 *
-	 * @deprecated 10.3.0 Use express_checkout_configuration instead. This will be removed in a future release.
+	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
 	public $payment_request_configuration;
 
