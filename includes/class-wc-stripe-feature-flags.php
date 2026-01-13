@@ -8,25 +8,6 @@ class WC_Stripe_Feature_Flags {
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
 
 	/**
-	 * Feature flag for Stripe ECE (Express Checkout Element).
-	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
-	 */
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
-
-	/**
-	 * Feature flag for Optimized Checkout (OC).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
-
-	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -35,7 +16,6 @@ class WC_Stripe_Feature_Flags {
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
 	];
 
 	/**
@@ -108,19 +88,6 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		/**
-		 * Filter to control the availability of the Optimized Checkout feature.
-		 *
-		 * @since 9.6.0
-		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-		 * @param string $default_value The default value for the feature flag.
-		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
-		 */
-		return apply_filters(
-			'wc_stripe_is_optimized_checkout_available',
-			true,
-			'yes',
-			$pmc_enabled
-		);
+		return true;
 	}
 }
