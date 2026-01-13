@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 10.1.0
+Stable tag: 10.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -141,35 +141,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.4.0 - xxxx-xx-xx =
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
-
-= 10.3.0 - xxxx-xx-xx =
-* Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 USD
-* Dev - Require milestones to be set on pull requests
-* Update - Remove legacy checkout payment method classes
-* Dev - Renames the express checkout frontend main setting key
-* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
-* Dev - Renames the express checkout customization route
-* Dev - Renames all express checkout related frontend hooks
-* Dev - Removes deprecated legacy checkout settings retrieval methods
-* Fix - Error when using Puerto Rico addresses with express checkouts
-* Dev - Removes all references to the UPE-enabled feature flag
-* Dev - Removes deprecated promotional banners (related to legacy checkout)
-* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
-* Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
-* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
-* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
-* Fix - Fix some initialization bugs for reconnections
-* Fix - Update Ukraine state mapping list
-* Fix - Use same default locations for Amazon Pay express checkout
-* Dev - Add configuration and workflow for PHPStan
-* Fix - Calculate subtotal correctly in express checkout
-* Dev - Improve PHPStan handling of plugin constants
-* Fix - Ensure that 'Link' and 'Stripe Link' are not translated
-* Fix - Fix situation where Stripe errors were not translated
-* Dev - Ensure multiple subdirectories are not exposed via Docker container
-* Dev - Fix ACH E2E tests for updated Stripe test flow
-* Tweak - Simplify logic for default settings and wc_stripe_settings filter
-* Tweak - Update PHPDoc for WC_Stripe_Payment_Gateway->get_intent_from_order()
-* Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
+* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+* Dev - Replace deprecated logger method calls with severity specific methods
+* Dev - Ensure PHPStan runs when pushing changes
+* Dev - Add PHPStan stub for WC_Subscription class
+* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

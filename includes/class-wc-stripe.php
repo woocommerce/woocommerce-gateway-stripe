@@ -52,7 +52,9 @@ class WC_Stripe {
 	/**
 	 * Stripe Payment Request configurations.
 	 *
-	 * @var WC_Stripe_Payment_Request
+	 * @var null
+	 *
+	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
 	public $payment_request_configuration;
 
@@ -186,7 +188,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';
@@ -211,7 +212,6 @@ class WC_Stripe {
 
 		$this->api                           = new WC_Stripe_Connect_API();
 		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded
@@ -242,9 +242,6 @@ class WC_Stripe {
 				new WC_Stripe_Subscription_Detached_Bulk_Action();
 			}
 		}
-
-		// REMOVE IN THE FUTURE.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
@@ -492,12 +489,17 @@ class WC_Stripe {
 
 		$methods = array_merge( $methods, $upe_payment_methods );
 
-		// Don't include Link as an enabled method if we're in the admin so it doesn't show up in the checkout editor page.
+		// When we are in an admin context, filter out Link and Amazon Pay, as they are only available as
+		// express checkout methods, and including them in the list results in warnings about block support
+		// when viewing the Express Checkout block in the editor for the cart and checkout pages.
 		if ( is_admin() ) {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) {
-					return ! is_a( $method, WC_Stripe_UPE_Payment_Method_Link::class );
+					if ( $method instanceof WC_Stripe_UPE_Payment_Method_Link || $method instanceof WC_Stripe_UPE_Payment_Method_Amazon_Pay ) {
+						return false;
+					}
+					return true;
 				}
 			);
 		}
