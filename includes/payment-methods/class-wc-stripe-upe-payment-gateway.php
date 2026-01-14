@@ -2494,7 +2494,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string  $setup_intent_id ID of the setup intent.
 	 * @param WP_User $user            User to add token to.
 	 *
-	 * @return WC_Payment_Token The added token.
+	 * @return WC_Payment_Token|null The added token or null if an error occurs.
 	 *
 	 * @since 5.8.0
 	 * @version 5.8.0
@@ -2503,6 +2503,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		try {
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				WC_Stripe_Logger::error( 'Error in creating token from setup intent.', [ 'error' => $setup_intent->last_payment_error ] );
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -2536,10 +2537,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
-			WC_Stripe_Logger::error( 'Error when adding payment method.', [ 'error_message' => $e->getMessage() ] );
-			return [
-				'result' => 'error',
-			];
+			WC_Stripe_Logger::error( 'Error in creating token from setup intent.', [ 'error_message' => $e->getMessage() ] );
+			return null;
 		}
 	}
 
