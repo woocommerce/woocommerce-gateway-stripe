@@ -140,7 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
-* Update - Trim the `customer_name` field value before sending it to Stripe when creating a payment intent
+* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
 * Dev - Replace deprecated logger method calls with severity specific methods
