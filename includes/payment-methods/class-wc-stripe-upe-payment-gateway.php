@@ -1143,7 +1143,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order->update_meta_data( '_stripe_checkout_session_id', $checkout_session_id );
 			$order->save_meta_data();
 
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent' );
+			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent', [], null, 'GET' );
 
 			// TODO: Payment intent is not returned
 //			$this->save_intent_to_order( $order, $checkout_session->payment_intent );
@@ -2381,14 +2381,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
-	 * @param string   $path   Stripe API endpoint path to query.
-	 * @param string   $params Parameters for request body.
-	 * @param WC_Order $order  WC Order for request.
-	 * @param string   $method HTTP method for request.
+	 * @param string        $path   Stripe API endpoint path to query.
+	 * @param array|null    $params Parameters for request body.
+	 * @param \WC_Order|null $order  WC Order for request.
+	 * @param string        $method HTTP method for request.
 	 *
 	 * @return object JSON response object.
 	 */
-	protected function stripe_request( $path, $params = null, $order = null, $method = 'POST' ) {
+	protected function stripe_request( string $path, ?array $params = null, ?\WC_Order $order = null, string $method = 'POST' ) {
 		if ( is_null( $params ) ) {
 			return WC_Stripe_API::retrieve( $path );
 		}
