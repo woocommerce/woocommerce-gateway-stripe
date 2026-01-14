@@ -615,9 +615,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
 
 				if ( $this->is_setup_intent_success_creation_redirection() && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) ) ) {
-					$setup_intent_id                 = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-					$token                           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
-					$stripe_params['newTokenFormId'] = '#wc-' . $token->get_gateway_id() . '-payment-token-' . $token->get_id();
+					$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+					$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
+					if ( $token ) {
+						$stripe_params['newTokenFormId'] = '#wc-' . $token->get_gateway_id() . '-payment-token-' . $token->get_id();
+					}
 				}
 				return $stripe_params;
 			}
@@ -1734,6 +1736,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					try {
 						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
 						$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
+						if ( ! $token ) {
+							throw new Exception( __( 'Unable to create token for updating payment method billing information.', 'woocommerce-gateway-stripe' ) );
+						}
 
 						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
 						$payment_method_object = $this->stripe_request(
