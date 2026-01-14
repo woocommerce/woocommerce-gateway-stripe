@@ -7,7 +7,7 @@
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
-
+* Fix - Return null from create_token_from_setup_intent on failure and add validation checks to prevent fatal errors when token creation fails
 
 = 10.3.0 - 2026-01-13 =
 * Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
