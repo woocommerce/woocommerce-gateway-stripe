@@ -672,9 +672,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$subscription->update_meta_data( '_stripe_customer_id', $order_helper->get_stripe_customer_id( $renewal_order ) );
-		$subscription->update_meta_data( '_stripe_source_id', $order_helper->get_stripe_source_id( $renewal_order ) );
+		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
+		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
+		$subscription->update_meta_data( '_stripe_customer_id', $stripe_customer_id ? $stripe_customer_id : '' );
+		$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id ? $stripe_source_id : '' );
 		$subscription->save();
 	}
 

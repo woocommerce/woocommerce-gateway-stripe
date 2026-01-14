@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Abstract class that will be inherited by voucher payment methods.
  * Used by Boleto and OXXO
  *
- * @extends WC_Gateway_Stripe
+ * @extends WC_Stripe_UPE_Payment_Gateway
  *
  * @since 5.8.0
  */
