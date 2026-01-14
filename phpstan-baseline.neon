@@ -15067,12 +15067,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Cannot call method get_token\(\) on WC_Payment_Token\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
 			count: 2
