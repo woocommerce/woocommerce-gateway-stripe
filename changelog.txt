@@ -7,6 +7,7 @@
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 
 
 = 10.3.0 - 2026-01-13 =
