@@ -19,7 +19,6 @@ use WP_UnitTestCase;
  * These tests make assertions against class WC_Stripe_Express_Checkout_Helper.
  *
  * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Helper
- * @group helper
  *
  * WC_Stripe_Express_Checkout_Helper_Test class.
  */
