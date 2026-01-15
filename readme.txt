@@ -140,12 +140,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
+* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
 * Dev - Replace deprecated logger method calls with severity specific methods
 * Dev - Ensure PHPStan runs when pushing changes
-* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 
