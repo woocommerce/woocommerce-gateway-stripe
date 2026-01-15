@@ -5761,12 +5761,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
 		-
-			message: '#^Cannot call method get_id\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
 			message: '#^Cannot call method get_name\(\) on WC_Product\|false\|null\.$#'
 			identifier: method.nonObject
 			count: 2
@@ -5774,12 +5768,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_stock_quantity\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Cannot call method get_type\(\) on WC_Product\|false\|null\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
@@ -5846,12 +5834,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$data of method WC_Stripe_Express_Checkout_Helper\:\:normalize_state\(\) expects array, array\<string\|false\>\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
