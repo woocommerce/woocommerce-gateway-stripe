@@ -1300,6 +1300,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+		// Lock the order
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
 		}
@@ -1308,9 +1309,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$intent_id = $checkout_session->payment_intent;
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// Store the payment intent ID on the order.
 		$order_helper->add_payment_intent_to_order( $intent_id, $order );
-		$order_helper->update_stripe_source_id( $order, $checkout_session->payment_method );
-		$order->save_meta_data();
 
 		// TODO: Add mandate ID support. See includes/abstracts/abstract-wc-stripe-payment-gateway.php:1713
 
@@ -1320,13 +1321,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $this->get_intent_from_order( $order );
 
+		// Update the source ID to be the payment method ID.
+		$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
+		$order->save_meta_data();
+
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
 		$charge->is_webhook_response = true;
+
+		// Process the payment response
 		$this->process_response( $charge, $order );
 
 		$this->run_webhook_received_action( (string) $notification->type, $notification );
 
+		// Unlock the order
 		$order_helper->unlock_order_payment( $order );
 	}
 
