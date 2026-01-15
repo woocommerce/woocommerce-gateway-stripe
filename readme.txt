@@ -149,5 +149,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Fatal error when using express payment method with certain addresses
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
