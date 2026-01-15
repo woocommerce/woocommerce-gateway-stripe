@@ -1,6 +1,17 @@
 *** Changelog ***
 
-= 10.3.0 - xxxx-xx-xx =
+= 10.4.0 - xxxx-xx-xx =
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in block
+* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
+* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
+* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+* Dev - Replace deprecated logger method calls with severity specific methods
+* Dev - Ensure PHPStan runs when pushing changes
+* Dev - Add PHPStan stub for WC_Subscription class
+* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+
+
+= 10.3.0 - 2026-01-13 =
 * Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
 * Dev - Require milestones to be set on pull requests
 * Update - Remove legacy checkout payment method classes
@@ -20,7 +31,6 @@
 * Fix - Update Ukraine state mapping list
 * Fix - Use same default locations for Amazon Pay express checkout
 * Dev - Add configuration and workflow for PHPStan
-* Dev - Replace deprecated logger method calls with severity specific methods
 * Fix - Calculate subtotal correctly in express checkout
 * Dev - Improve PHPStan handling of plugin constants
 * Fix - Ensure that 'Link' and 'Stripe Link' are not translated
@@ -32,10 +42,6 @@
 * Tweak - Fix return type for WC_Stripe_Order_Helper::get_instance()
 * Fix - Ensure express checkout is enabled in current context before registering the express checkout script
 * Fix - Prevent warnings for Amazon Pay in Express Checkout block
-* Dev - Ensure PHPStan runs when pushing changes
-* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in block
-* Dev - Add PHPStan stub for WC_Subscription class
-* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 
 = 10.2.0 - 2025-12-08 =
 * Dev - Refactor display logic for payment method issue pills

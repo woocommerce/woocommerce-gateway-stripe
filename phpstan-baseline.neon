@@ -115,7 +115,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Gateway_Stripe\)\: Unexpected token "\\n \*", expected ''\<'' at offset 132 on line 5$#'
+			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_UPE_Payment_Gateway\)\: Unexpected token "\\n \*", expected ''\<'' at offset 144 on line 5$#'
 			identifier: phpDoc.parseError
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
@@ -1933,12 +1933,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Call to an undefined method WC_Gateway_Stripe\:\:update_enabled_payment_methods\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_customization_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -2647,606 +2641,6 @@ parameters:
 			path: includes/admin/stripe-settings.php
 
 		-
-			message: '#^@param WC_Order \$order does not accept actual type of parameter\: bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$client_secret\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$error\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$object\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$source\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 5
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Action callback returns bool but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_billing_email\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_checkout_payment_url\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method has_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method payment_complete\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Constant LOGGED_IN_COOKIE not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Gateway_Stripe\:\:process_payment\(\) is incompatible with type mix\.$#'
-			identifier: parameter.defaultValue
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:admin_options\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:check_intent_status_on_order_page\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:disable\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:display_order_fee\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:display_order_payout\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:elements_form\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:enable\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:failed_sca_auth\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:get_saved_payment_method_option_html\(\) should return string but returns string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:handle_intent_verification_failure\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:handle_intent_verification_success\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:init_form_fields\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:payment_fields\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:prepare_intent_for_order_pay_page\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:process_admin_options\(\) should return bool but return statement is missing\.$#'
-			identifier: return.missing
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:process_payment\(\) invoked with 6 parameters, 1\-5 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:render_payment_intent_inputs\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:set_cookie_on_current_request\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:set_cookie_on_current_request\(\) has parameter \$cookie with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:show_update_card_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:update_onboarding_settings\(\) has parameter \$settings with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:update_onboarding_settings\(\) should return array but empty return statement found\.$#'
-			identifier: return.empty
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_publishable_key_field\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_publishable_key_field\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_publishable_key_field\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_secret_key_field\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_secret_key_field\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_secret_key_field\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_publishable_key_field\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_publishable_key_field\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_publishable_key_field\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_secret_key_field\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_secret_key_field\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:validate_test_secret_key_field\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Method WC_Gateway_Stripe\:\:verify_intent_after_checkout\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Payment_Gateway\)\: Unexpected token "\\n \*", expected ''\<'' at offset 65 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$encoded_string of function parse_str expects string, string\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:complete_free_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:handle_intent_verification_failure\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:handle_intent_verification_success\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:prepare_intent_for_order_pay_page\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Gateway_Stripe\:\:verify_intent_after_checkout\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 3
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:remove_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 4
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:validate_minimum_order_amount\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:create_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_level3_data_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:mark_order_as_pre_ordered\(\) expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:prepare_order_source\(\) expects object\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$price of function wc_price expects float, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:throw_localized_message\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_failure\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$intent of method WC_Gateway_Stripe\:\:handle_intent_verification_success\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Gateway_Stripe\:\:retry_after_error\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:confirm_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:maybe_remove_non_existent_customer\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:throw_localized_message\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$prepared_source of method WC_Gateway_Stripe\:\:complete_free_order\(\) expects WC_Order, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \#4 \$order of static method WC_Stripe_API\:\:request_with_level3_data\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Parameter \$previous_error of method WC_Gateway_Stripe\:\:process_payment\(\) has invalid type mix\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe\:\:\$inline_cc_form \(string\) does not accept bool\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe\:\:\$order_pay_intent has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Property WC_Gateway_Stripe\:\:\$statement_descriptor \(bool\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Property WooCommerce\:\:\$cart \(WC_Cart\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Variable \$queries in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Variable \$redirect_signature might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
-			message: '#^Variable \$response might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: includes/class-wc-gateway-stripe.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$enabled_events\.$#'
 			identifier: property.notFound
 			count: 1
@@ -3493,18 +2887,6 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:__construct\(\) has parameter \$express_checkout_configuration with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:__construct\(\) has parameter \$payment_request_configuration with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:add_order_meta\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3519,12 +2901,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:add_stripe_intents\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:get_payment_request_javascript_params\(\) is unused\.$#'
-			identifier: method.unused
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
@@ -3566,15 +2942,6 @@ parameters:
 
 		-
 			message: '#^PHPDoc tag @extends has invalid value \(AbstractPaymentMethodType\)\: Unexpected token "\\n ", expected ''\<'' at offset 79 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '''
-				#^PHPDoc tag @param has invalid value \(WC_Stripe_Payment_Request  The Stripe Payment Request configuration used for Payment
-				                                  Request buttons\.\)\: Unexpected token "The", expected variable at offset 62 on line 4$#
-			'''
 			identifier: phpDoc.parseError
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
@@ -4366,7 +3733,7 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Property WC_Stripe_Intent_Controller\:\:\$gateway \(WC_Gateway_Stripe\) in isset\(\) is not nullable\.$#'
+			message: '#^Property WC_Stripe_Intent_Controller\:\:\$gateway \(WC_Stripe_UPE_Payment_Gateway\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -5524,43 +4891,43 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Account_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Account_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Connection_Tokens_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Connection_Tokens_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Orders_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Orders_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Settings_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Settings_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_Stripe_REST_OC_Setting_Toggle_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_Stripe_REST_OC_Setting_Toggle_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_Stripe_Status constructor expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of class WC_Stripe_Status constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of static method WC_Stripe_UPE_Payment_Method_Link\:\:is_link_enabled\(\) expects WC_Gateway_Stripe, WC_Stripe_Payment_Gateway given\.$#'
+			message: '#^Parameter \#1 \$gateway of static method WC_Stripe_UPE_Payment_Method_Link\:\:is_link_enabled\(\) expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
@@ -7102,7 +6469,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Property WC_Stripe_Express_Checkout_Helper\:\:\$gateway \(WC_Gateway_Stripe\) does not accept WC_Stripe_Payment_Gateway\.$#'
+			message: '#^Property WC_Stripe_Express_Checkout_Helper\:\:\$gateway \(WC_Stripe_UPE_Payment_Gateway\) does not accept WC_Stripe_Payment_Gateway\.$#'
 			identifier: assign.propertyType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
@@ -7132,628 +6499,10 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$cart_contents_total\.$#'
-			identifier: property.notFound
+			message: '#^@param WC_Order \$order does not accept actual type of parameter\: bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: parameter.phpDocType
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$dp\.$#'
-			identifier: property.notFound
-			count: 6
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$fees\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
-			identifier: property.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Access to an undefined property WooCommerce\:\:\$shipping\.$#'
-			identifier: property.notFound
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Action callback returns array but should not return anything\.$#'
-			identifier: return.void
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Binary operation "\+" between string and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Data_Store\:\:find_matching_product_variation\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Product\:\:get_available_variations\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Product\:\:get_variation_attributes\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Product\:\:get_variation_default_attribute\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Session\:\:has_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Session\:\:set_customer_session_cookie\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Request\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_id\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_payment_method_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_price\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_type\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions…'' and ''get_recurring…'' will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Callback expects 1 parameter, \$accepted_args is set to 3\.$#'
-			identifier: arguments.count
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method get_available_variations\(\) on WC_Product\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method get_checkout_payment_url\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method get_name\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method get_stock_quantity\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method get_type\(\) on WC_Product\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method has_enough_stock\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method is_sold_individually\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method needs_shipping\(\) on WC_Product\|false\|null\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Cannot call method set_payment_method_title\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^If condition is always true\.$#'
-			identifier: if.alwaysTrue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_clear_cart\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_create_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_get_cart_details\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_get_shipping_options\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_log_errors\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:ajax_update_shipping_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:build_display_items\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:build_display_items\(\) has parameter \$itemized_display_items with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:build_shipping_methods\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:build_shipping_methods\(\) has parameter \$shipping_methods with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:calculate_shipping\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:display_payment_request_button_html\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:display_payment_request_button_separator_html\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:filter_gateway_title\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:filter_gateway_title\(\) has parameter \$id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:filter_gateway_title\(\) has parameter \$title with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:fix_address_fields_mapping\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_button_locations\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_login_confirmation_settings\(\) should return array but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_normalized_postal_code\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_pre_order_product_from_cart\(\) should return object\|null but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_pre_order_product_from_order\(\) should return object\|null but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_product\(\) should return WC_Product but returns WC_Product\|false\|null\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:get_product\(\) should return WC_Product but returns false\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:handle_payment_request_redirect\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:has_pre_order_charged_upon_release\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:instance\(\) has invalid return type class\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:is_product_supported\(\) has parameter \$product with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:mark_order_as_pre_ordered\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:maybe_init_pre_orders\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:maybe_restore_recurring_chosen_shipping_methods\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:migrate_button_size\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:normalize_state\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:update_shipping_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Request\:\:validate_state\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$param$#'
-			identifier: parameter.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^PHPDoc tag @var has invalid value \(\)\: Unexpected token "\\n\\t ", expected type at offset 24 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^PHPDoc tag @var has invalid value \(\)\: Unexpected token "\\n\\t ", expected type at offset 29 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^PHPDoc tag @var has invalid value \(\)\: Unexpected token "\\n\\t ", expected type at offset 32 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^PHPDoc tag @var has invalid value \(\)\: Unexpected token "\\n\\t ", expected type at offset 35 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$context of method WC_Cart\:\:get_total\(\) expects string, false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$input of function str_pad expects string, string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$location of function wp_safe_redirect expects string, string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Request\:\:mark_order_as_pre_ordered\(\) expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Request\:\:get_product_price\(\) expects object, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Request\:\:is_invalid_subscription_product\(\) expects WC_Product\|null, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Request\:\:is_invalid_subscription_product\(\) expects WC_Product\|null, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Request\:\:is_pre_order_product_charged_upon_release\(\) expects object, object\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$shipping_methods of method WC_Stripe_Payment_Request\:\:update_shipping_method\(\) expects array, array\<string\|false\>\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$state of method WC_Stripe_Payment_Request\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$stock_quantity of function wc_format_stock_quantity_for_display expects int, int\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$str of function strtolower expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$string of function strlen expects string, string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#2 \$country of method WC_Stripe_Payment_Request\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#2 \$product of function wc_format_stock_quantity_for_display expects WC_Product, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#2 \$value of function wc_setcookie expects string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#3 \$deps of function wp_register_script expects array\<string\>, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Parameter \#4 \$variation of method WC_Cart\:\:add_to_cart\(\) expects array, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Request\:\:\$_this has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Request\:\:\$publishable_key has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Request\:\:\$secret_key has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Request\:\:\$stripe_settings has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WC_Stripe_Payment_Request\:\:\$total_label has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Property WooCommerce\:\:\$session \(WC_Session\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
-
-		-
-			message: '#^Variable \$order might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-payment-request.php
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
@@ -7770,7 +6519,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$client_secret\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -7788,13 +6537,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 6
+			count: 7
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$object\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -7810,21 +6559,27 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
 			identifier: property.notFound
 			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 6
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Action callback returns bool but should not return anything\.$#'
-			identifier: return.void
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -7888,6 +6643,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Cannot call method get_checkout_payment_url\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Cannot call method get_currency\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 3
@@ -7914,13 +6675,19 @@ parameters:
 		-
 			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
-			count: 4
+			count: 6
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Cannot call method has_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: method.nonObject
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Cannot call method payment_complete\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
-			count: 3
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -7938,12 +6705,18 @@ parameters:
 		-
 			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
-			count: 2
+			count: 3
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Constant LOGGED_IN_COOKIE not found\.$#'
 			identifier: constant.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -7956,6 +6729,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:add_bnpl_debug_metadata\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:admin_options\(\) has no return type specified\.$#'
+			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -8064,6 +6843,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_redirect_url\(\) has parameter \$return_url with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_saved_payment_method_option_html\(\) should return string but returns string\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -8242,14 +7027,26 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Offset string does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Gateway_Stripe\)\: Unexpected token "\\n\*", expected ''\<'' at offset 75 on line 4$#'
+			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_Payment_Gateway\)\: Unexpected token "\\n\*", expected ''\<'' at offset 83 on line 4$#'
 			identifier: phpDoc.parseError
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$intent with type object is not subtype of native type stdClass\.$#'
+			identifier: parameter.phpDocType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -8304,7 +7101,25 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 6
+			count: 8
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8322,13 +7137,19 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
+			count: 3
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:remove_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_payment_awaiting_action\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8340,7 +7161,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 6
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8358,7 +7179,13 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:validate_minimum_order_amount\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:create_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8370,13 +7197,13 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:mark_order_as_pre_ordered\(\) expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8392,7 +7219,25 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:prepare_order_source\(\) expects object\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_UPE_Payment_Gateway\:\:complete_free_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -8411,6 +7256,18 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_UPE_Payment_Gateway\:\:get_stripe_customer_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_UPE_Payment_Gateway\:\:handle_intent_verification_failure\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_UPE_Payment_Gateway\:\:handle_intent_verification_success\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -8490,7 +7347,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8530,6 +7387,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$price of function wc_price expects float, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Payment_Gateway\:\:is_pre_order_product_charged_upfront\(\) expects object, object\|null given\.$#'
 			identifier: argument.type
 			count: 2
@@ -8550,13 +7413,13 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
-			count: 4
+			count: 6
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:throw_localized_message\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8596,6 +7459,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, array\|stdClass given\.$#'
 			identifier: argument.type
 			count: 1
@@ -8605,6 +7474,18 @@ parameters:
 			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_UPE_Payment_Gateway\:\:handle_intent_verification_failure\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_UPE_Payment_Gateway\:\:handle_intent_verification_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8632,19 +7513,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:maybe_remove_non_existent_customer\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:confirm_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:maybe_remove_non_existent_customer\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 3
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:throw_localized_message\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -8652,7 +7545,7 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8670,7 +7563,7 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_UPE_Payment_Gateway\:\:retry_after_error\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -8734,6 +7627,18 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$value of method WC_Settings_API\:\:validate_text_field\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -8764,13 +7669,43 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Property WooCommerce\:\:\$cart \(WC_Cart\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
+			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$order_pay_intent has no type specified\.$#'
+			identifier: missingType.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Undefined variable\: \$intent$#'
+			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$order_pay_intent is unused\.$#'
+			identifier: property.unused
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Property WooCommerce\:\:\$cart \(WC_Cart\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Return type \(void\) of method WC_Stripe_UPE_Payment_Gateway\:\:process_admin_options\(\) should be compatible with return type \(bool\) of method WC_Settings_API\:\:process_admin_options\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Variable \$redirect_signature might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Variable \$response might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php

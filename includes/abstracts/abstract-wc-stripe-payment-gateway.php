@@ -292,9 +292,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
 	 */
 	public function are_keys_set() {
-		// NOTE: updates to this function should be added to are_keys_set()
-		// in includes/payment-methods/class-wc-stripe-payment-request.php
-
 		if ( $this->testmode ) { // @phpstan-ignore-line (testmode is defined in the classes that use this class)
 			return preg_match( '/^pk_test_/', $this->publishable_key ) // @phpstan-ignore-line (publishable_key is defined in the classes that use this class)
 				&& preg_match( '/^[rs]k_test_/', $this->secret_key ); // @phpstan-ignore-line (secret_key is defined in the classes that use this class)
@@ -516,7 +513,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['expand[]'] = 'balance_transaction';
 
 		$metadata = [
-			__( 'customer_name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
+			__( 'customer_name', 'woocommerce-gateway-stripe' ) => trim( sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ) ),
 			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
 			'order_id'  => $order->get_order_number(),
 			'site_url'  => esc_url( get_site_url() ),
