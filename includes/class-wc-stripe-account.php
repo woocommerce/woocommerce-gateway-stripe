@@ -56,6 +56,10 @@ class WC_Stripe_Account {
 		'payment_intent.requires_action',
 		'setup_intent.succeeded',
 		'setup_intent.setup_failed',
+		'checkout.session.async_payment_failed',
+		'checkout.session.async_payment_succeeded',
+		'checkout.session.completed',
+		'checkout.session.expired',
 	];
 
 	/**
