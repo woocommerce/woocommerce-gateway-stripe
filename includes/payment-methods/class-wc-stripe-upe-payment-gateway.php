@@ -1140,15 +1140,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$checkout_session_id = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : '';
 
-			$order->update_meta_data( '_stripe_checkout_session_id', $checkout_session_id );
+			$order->update_meta_data( '_wc_stripe_checkout_session_id', $checkout_session_id );
 			$order->save_meta_data();
 
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent', [], null, 'GET' );
-
-			// TODO: Payment intent is not returned
-//			$this->save_intent_to_order( $order, $checkout_session->payment_intent );
-//
-//			$this->set_payment_method_id_for_order( $order, $checkout_session->payment_method );
+			$order->add_order_note(
+				sprintf(
+					/* translators: $1%s checkout session ID */
+					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+					$checkout_session_id
+				)
+			);
 
 			$order->payment_complete();
 
