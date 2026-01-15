@@ -1146,12 +1146,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order->add_order_note(
 				sprintf(
 					/* translators: $1%s checkout session ID */
-					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+					__( 'Stripe checkout session attached (Checkout Session ID: %1$s)', 'woocommerce-gateway-stripe' ),
 					$checkout_session_id
 				)
 			);
-
-			$order->payment_complete();
 
 			// Remove cart.
 			if ( isset( WC()->cart ) ) {
@@ -1179,7 +1177,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					],
 					$this->get_upe_gateway_id_for_order( $upe_payment_method )
 				);
-				$order->payment_complete();
 
 				return [
 					'result'   => 'success',
