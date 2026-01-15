@@ -45,7 +45,7 @@ export const checkPaymentMethodIsAvailable = memoize(
 						) && {
 							paymentMethodCreation: 'manual',
 						} ),
-						amount,
+						amount: Number( amount ),
 						currency: cart.cartTotals.currency_code.toLowerCase(),
 						paymentMethodTypes:
 							getPaymentMethodTypesForExpressMethod(
