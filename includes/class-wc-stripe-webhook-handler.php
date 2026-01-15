@@ -1304,6 +1304,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// TODO: For some reason, this is the checkout session ID, not the payment intent ID.
 		$intent_id = $checkout_session->payment_intent;
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();

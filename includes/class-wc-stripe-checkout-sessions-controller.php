@@ -18,6 +18,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	}
 
 	public function create_checkout_session() {
+		// TODO: verify nonce
 //		$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
 //		if ( ! $is_nonce_valid ) {
 //			throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
@@ -35,6 +36,9 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		$user     = wp_get_current_user();
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->update_or_create_customer();
+
+		// TODO: fix issue when customer does not have a billing address.
+		// Critical Uncaught WC_Stripe_Exception: missing_required_customer_field: name in includes/class-wc-stripe-customer.php:265
 
 		$currency   = get_woocommerce_currency();
 		$line_items = [];
