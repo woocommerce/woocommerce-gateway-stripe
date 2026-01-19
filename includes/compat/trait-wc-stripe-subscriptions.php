@@ -1265,7 +1265,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( false === $mandate ) {
 			$mandate = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
-			WC_Stripe_Database_Cache::set( $cache_key, $mandate );
+			WC_Stripe_Database_Cache::set( $cache_key, $mandate, HOUR_IN_SECONDS );
 		}
 
 		$method_details = $mandate->payment_method_details;
