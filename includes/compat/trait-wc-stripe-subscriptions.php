@@ -1242,7 +1242,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Disables the ability to edit a subscription for orders with mandates.
+	 * Disables the ability to edit a subscription for Indian orders with fixed amount mandates.
 	 *
 	 * @param $editable boolean The current editability of the subscription.
 	 * @param $order WC_Order The order object.
@@ -1250,14 +1250,26 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
 		$parent_order = wc_get_order( $order->get_parent_id() );
-		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
-			&& $this->is_subscription( $order )
-			&& $parent_order
-			&& ! empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
-			$editable = false;
+		if ( ! $parent_order ) {
+			return $editable;
 		}
 
-		return $editable;
+		$mandate_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order );
+		if ( empty( $mandate_id ) ) {
+			return $editable;
+		}
+
+		$mandate        = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
+		$method_details = $mandate->payment_method_details;
+		if ( WC_Stripe_Payment_Methods::CARD !== ( $method_details->type ?? '' ) ) {
+			return $editable;
+		}
+
+		if ( 'fixed' !== $method_details->card->amount_type || 'india' !== $method_details->card->supported_types[0] ) {
+			return $editable;
+		}
+
+		return false;
 	}
 
 	/**
