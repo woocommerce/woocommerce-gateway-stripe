@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 10.1.0
+Stable tag: 10.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -139,25 +139,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.3.0 - xxxx-xx-xx =
-* Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
-* Dev - Require milestones to be set on pull requests
-* Update - Remove legacy checkout payment method classes
-* Dev - Rename the express checkout frontend main setting key
-* Update - Deprecate and replace Payment Request Button classes with Express Checkout equivalents
-* Dev - Rename the express checkout customization route
-* Dev - Rename all express checkout related frontend hooks
-* Dev - Remove deprecated legacy checkout settings retrieval methods
-* Fix - Error when using Puerto Rico addresses with express checkouts
-* Dev - Remove all references to the UPE-enabled feature flag
-* Dev - Remove deprecated promotional banners (related to legacy checkout)
-* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
-* Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
-* Tweak - Change BLIK confirmation webhook processing from deferred to immediate
-* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
-* Fix - Fix some initialization bugs for reconnections
-* Fix - Update Ukraine state mapping list
-* Fix - Use same default locations for Amazon Pay express checkout
+= 10.4.0 - xxxx-xx-xx =
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in block
+* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
+* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
+* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
+* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+* Dev - Replace deprecated logger method calls with severity specific methods
+* Dev - Ensure PHPStan runs when pushing changes
+* Dev - Add PHPStan stub for WC_Subscription class
+* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Fatal error when using express payment method with certain addresses
 * Add - Support Amazon Pay as an express checkout method
 * Add - Enable Amazon Pay for eligible new installs
 
