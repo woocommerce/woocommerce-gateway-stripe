@@ -1263,7 +1263,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$cache_key       = 'mandate_for_subscription_' . $subscription_id;
 
 		$mandate = WC_Stripe_Database_Cache::get( $cache_key );
-		if ( false === $mandate ) {
+		if ( ! $mandate ) {
 			$mandate = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
 			WC_Stripe_Database_Cache::set( $cache_key, $mandate, HOUR_IN_SECONDS );
 		}
@@ -1273,7 +1273,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
-		if ( 'fixed' !== $method_details->card->amount_type || 'india' !== $method_details->card->supported_types[0] ) {
+		$amount_type     = $method_details->card->amount_type ?? '';
+		$supported_types = $method_details->card->supported_types ?? [];
+		if ( 'fixed' !== $amount_type || empty( $supported_types ) || 'india' !== $supported_types[0] ) {
 			return $editable;
 		}
 

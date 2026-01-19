@@ -844,4 +844,131 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertTrue( $result, 'invalid_request_error with non-blocked code should be retryable' );
 	}
+
+	/**
+	 * Tests for the `disable_subscription_edit_for_india` method.
+	 *
+	 * @param \WC_Order $order    The order to test.
+	 * @param bool      $expected The expected result.
+	 * @return void
+	 * @dataProvider provide_test_disable_subscription_edit_for_india
+	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
+	 */
+	public function test_disable_subscription_edit_for_india( \WC_Order $order, bool $expected ): void {
+		$actual = $this->gateway->disable_subscription_edit_for_india( true, $order );
+
+		// Clean up.
+		\WC_Stripe_Database_Cache::delete( 'mandate_for_subscription_' . $order->get_id() );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_disable_subscription_edit_for_india` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_disable_subscription_edit_for_india(): array {
+		// Mock response from Stripe API using request arguments.
+		$mock_request = function ( $preempt, $parsed_args, $url ) {
+			$mandate_id = str_replace( 'https://api.stripe.com/v1/mandates/', '', $url );
+			switch ( $mandate_id ) {
+				case 'mandate_123':
+					// Non-card payment method mandate.
+					$payment_method_type = 'sepa_debit';
+					$amount_type         = '';
+					$supported_types     = [];
+					break;
+				case 'mandate_456':
+					// Card payment method, but not Indian.
+					$payment_method_type = 'card';
+					$amount_type         = '';
+					$supported_types     = [];
+					break;
+				case 'mandate_789':
+					// Indian card payment method.
+					$payment_method_type = 'card';
+					$amount_type         = 'fixed';
+					$supported_types     = [ 'india' ];
+					break;
+				default:
+					return $preempt;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'                     => $mandate_id,
+						'payment_method_details' => [
+							'type'               => $payment_method_type,
+							$payment_method_type => [
+								'amount_type'     => $amount_type,
+								'supported_types' => $supported_types,
+							],
+						],
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		// Order missing parent order.
+		$order_missing_parent = WC_Helper_Order::create_order();
+
+		// Parent order missing mandate ID.
+		$parent_missing_mandate_id = WC_Helper_Order::create_order();
+
+		$order_missing_mandate_id = WC_Helper_Order::create_order();
+		$order_missing_mandate_id->set_parent_id( $parent_missing_mandate_id->get_id() );
+
+		// Parent order with mandate ID set to a non-card payment method.
+		$non_card_parent = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $non_card_parent, 'mandate_123' );
+		$non_card_parent->save_meta_data();
+
+		$non_card_mandate_order = WC_Helper_Order::create_order();
+		$non_card_mandate_order->set_parent_id( $non_card_parent->get_id() );
+
+		// Parent order with mandate ID set to a card payment method, but not Indian.
+		$non_indian_parent = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $non_indian_parent, 'mandate_456' );
+		$non_indian_parent->save_meta_data();
+
+		$non_indian_mandate_order = WC_Helper_Order::create_order();
+		$non_indian_mandate_order->set_parent_id( $non_indian_parent->get_id() );
+
+		// Parent order with mandate ID set to an Indian card payment method.
+		$indian_parent = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $indian_parent, 'mandate_789' );
+		$indian_parent->save_meta_data();
+
+		$indian_mandate_order = WC_Helper_Order::create_order();
+		$indian_mandate_order->set_parent_id( $indian_parent->get_id() );
+
+		return [
+			'parent order not found'          => [
+				'order'    => $order_missing_parent,
+				'expected' => true,
+			],
+			'missing mandate ID meta'         => [
+				'order'    => $order_missing_mandate_id,
+				'expected' => true,
+			],
+			'mandate is not card'             => [
+				'order'    => $non_card_mandate_order,
+				'expected' => true,
+			],
+			'mandate is card, but not indian' => [
+				'order'    => $non_indian_mandate_order,
+				'expected' => true,
+			],
+			'mandate is indian card'          => [
+				'order'    => $indian_mandate_order,
+				'expected' => false,
+			],
+		];
+	}
 }
