@@ -1245,7 +1245,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Disables the ability to edit a subscription for Indian orders with fixed amount mandates.
 	 *
 	 * @param $editable boolean The current editability of the subscription.
-	 * @param $order WC_Order The order object.
+	 * @param $order \WC_Order The subscription order object.
 	 * @return boolean true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
@@ -1259,7 +1259,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
-		$mandate        = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
+		$subscription_id = $order->get_id();
+		$cache_key       = 'mandate_for_subscription_' . $subscription_id;
+
+		$mandate = WC_Stripe_Database_Cache::get( $cache_key );
+		if ( false === $mandate ) {
+			$mandate = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
+			WC_Stripe_Database_Cache::set( $cache_key, $mandate );
+		}
+
 		$method_details = $mandate->payment_method_details;
 		if ( WC_Stripe_Payment_Methods::CARD !== ( $method_details->type ?? '' ) ) {
 			return $editable;
