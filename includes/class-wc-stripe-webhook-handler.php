@@ -1313,6 +1313,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Store the payment intent ID on the order.
 		$order_helper->add_payment_intent_to_order( $intent_id, $order );
 
+		// Add presentment details if available.
+		if ( ! empty( $checkout_session->presentment_details ) ) {
+			$presentment_details = $checkout_session->presentment_details;
+			$order->update_meta_data( '_stripe_presentment_currency', $presentment_details->presentment_currency );
+			$order->update_meta_data( '_stripe_presentment_amount', $presentment_details->presentment_amount );
+			$order->save_meta_data();
+
+			$formatted_amount = wc_price( $presentment_details->presentment_amount / 100 );
+			if ( in_array( $presentment_details->presentment_currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$formatted_amount = wc_price( $presentment_details->presentment_amount );
+			}
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) presentment amount 2) presentment currency */
+					__( 'Presentment amount: %s %s', 'woocommerce-gateway-stripe' ),
+					$formatted_amount,
+					strtoupper( $presentment_details->presentment_currency )
+				)
+			);
+		}
+
 		// TODO: Add mandate ID support. See includes/abstracts/abstract-wc-stripe-payment-gateway.php:1713
 
 		$order_id = $order->get_id();
