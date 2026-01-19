@@ -855,20 +855,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
 	 */
 	public function test_disable_subscription_edit_for_india( \WC_Order $order, bool $expected ): void {
-		$actual = $this->gateway->disable_subscription_edit_for_india( true, $order );
-
-		// Clean up.
-		\WC_Stripe_Database_Cache::delete( 'mandate_for_subscription_' . $order->get_id() );
-
-		$this->assertSame( $expected, $actual );
-	}
-
-	/**
-	 * Data provider for `test_disable_subscription_edit_for_india` method.
-	 *
-	 * @return array
-	 */
-	public function provide_test_disable_subscription_edit_for_india(): array {
 		// Mock response from Stripe API using request arguments.
 		$mock_request = function ( $preempt, $parsed_args, $url ) {
 			$mandate_id = str_replace( 'https://api.stripe.com/v1/mandates/', '', $url );
@@ -915,6 +901,21 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		add_filter( 'pre_http_request', $mock_request, 10, 3 );
 
+		$actual = $this->gateway->disable_subscription_edit_for_india( true, $order );
+
+		// Clean up.
+		\WC_Stripe_Database_Cache::delete( 'mandate_for_subscription_' . $order->get_id() );
+		remove_filter( 'pre_http_request', $mock_request );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_disable_subscription_edit_for_india` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_disable_subscription_edit_for_india(): array {
 		// Order missing parent order.
 		$order_missing_parent = WC_Helper_Order::create_order();
 
