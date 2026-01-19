@@ -848,13 +848,25 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the `disable_subscription_edit_for_india` method.
 	 *
-	 * @param \WC_Order $order    The order to test.
-	 * @param bool      $expected The expected result.
+	 * @param bool      $order_has_parent Whether the order has a parent order.
+	 * @param string    $mandate_id       The mandate ID to set on the parent
+	 * @param bool      $expected         The expected result.
 	 * @return void
 	 * @dataProvider provide_test_disable_subscription_edit_for_india
 	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
 	 */
-	public function test_disable_subscription_edit_for_india( \WC_Order $order, bool $expected ): void {
+	public function test_disable_subscription_edit_for_india( bool $order_has_parent, string $mandate_id, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+
+		if ( $order_has_parent ) {
+			$parent_order = WC_Helper_Order::create_order();
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $parent_order, $mandate_id );
+			$parent_order->save_meta_data();
+
+			$order->set_parent_id( $parent_order->get_id() );
+			$order->save();
+		}
+
 		// Mock response from Stripe API using request arguments.
 		$mock_request = function ( $preempt, $parsed_args, $url ) {
 			$mandate_id = str_replace( 'https://api.stripe.com/v1/mandates/', '', $url );
@@ -905,7 +917,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Clean up.
 		\WC_Stripe_Database_Cache::delete( 'mandate_for_subscription_' . $order->get_id() );
-		remove_filter( 'pre_http_request', $mock_request );
+		remove_filter( 'pre_http_request', $mock_request, 10, 3 );
 
 		$this->assertSame( $expected, $actual );
 	}
@@ -916,59 +928,31 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return array
 	 */
 	public function provide_test_disable_subscription_edit_for_india(): array {
-		// Order missing parent order.
-		$order_missing_parent = WC_Helper_Order::create_order();
-
-		// Parent order missing mandate ID.
-		$parent_missing_mandate_id = WC_Helper_Order::create_order();
-
-		$order_missing_mandate_id = WC_Helper_Order::create_order();
-		$order_missing_mandate_id->set_parent_id( $parent_missing_mandate_id->get_id() );
-
-		// Parent order with mandate ID set to a non-card payment method.
-		$non_card_parent = WC_Helper_Order::create_order();
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $non_card_parent, 'mandate_123' );
-		$non_card_parent->save_meta_data();
-
-		$non_card_mandate_order = WC_Helper_Order::create_order();
-		$non_card_mandate_order->set_parent_id( $non_card_parent->get_id() );
-
-		// Parent order with mandate ID set to a card payment method, but not Indian.
-		$non_indian_parent = WC_Helper_Order::create_order();
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $non_indian_parent, 'mandate_456' );
-		$non_indian_parent->save_meta_data();
-
-		$non_indian_mandate_order = WC_Helper_Order::create_order();
-		$non_indian_mandate_order->set_parent_id( $non_indian_parent->get_id() );
-
-		// Parent order with mandate ID set to an Indian card payment method.
-		$indian_parent = WC_Helper_Order::create_order();
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $indian_parent, 'mandate_789' );
-		$indian_parent->save_meta_data();
-
-		$indian_mandate_order = WC_Helper_Order::create_order();
-		$indian_mandate_order->set_parent_id( $indian_parent->get_id() );
-
 		return [
 			'parent order not found'          => [
-				'order'    => $order_missing_parent,
-				'expected' => true,
+				'order has parent' => false,
+				'mandate ID'       => '',
+				'expected'         => true,
 			],
 			'missing mandate ID meta'         => [
-				'order'    => $order_missing_mandate_id,
-				'expected' => true,
+				'order has parent' => true,
+				'mandate ID'       => '',
+				'expected'         => true,
 			],
 			'mandate is not card'             => [
-				'order'    => $non_card_mandate_order,
-				'expected' => true,
+				'order has parent' => true,
+				'mandate ID'       => 'mandate_123',
+				'expected'         => true,
 			],
 			'mandate is card, but not indian' => [
-				'order'    => $non_indian_mandate_order,
-				'expected' => true,
+				'order has parent' => true,
+				'mandate ID'       => 'mandate_456',
+				'expected'         => true,
 			],
 			'mandate is indian card'          => [
-				'order'    => $indian_mandate_order,
-				'expected' => false,
+				'order has parent' => true,
+				'mandate ID'       => 'mandate_789',
+				'expected'         => false,
 			],
 		];
 	}
