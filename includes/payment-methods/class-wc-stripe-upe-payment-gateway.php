@@ -1737,7 +1737,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
 						$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
 						if ( ! $token ) {
-							throw new Exception( __( 'Unable to create token for updating payment method billing information.', 'woocommerce-gateway-stripe' ) );
+							throw new Exception( __( 'Unable to create token for the payment method.', 'woocommerce-gateway-stripe' ) );
 						}
 
 						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
