@@ -2508,7 +2508,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		try {
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
-				WC_Stripe_Logger::error( 'Error in creating token from setup intent.', [ 'error' => $setup_intent->last_payment_error ] );
+				WC_Stripe_Logger::error( 'Setup intent has payment error, cannot create token.', [ 'error' => $setup_intent->last_payment_error ] );
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
