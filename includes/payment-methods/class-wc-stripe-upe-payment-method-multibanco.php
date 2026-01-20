@@ -56,8 +56,12 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param WC_Order $order
 	 * @param bool     $sent_to_admin
 	 * @param bool     $plain_text
+	 * @return void
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return;
+		}
 		$payment_method = $order->get_payment_method();
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( OrderStatus::ON_HOLD ) ) {
 			$this->get_instructions( $order, $plain_text );
