@@ -495,7 +495,12 @@ class WC_Stripe_Payment_Tokens {
 	 * @version 4.0.0
 	 */
 	public function woocommerce_payment_token_set_default( $token_id ) {
-		$token           = WC_Payment_Tokens::get( $token_id );
+		$token = WC_Payment_Tokens::get( $token_id );
+
+		if ( ! $token ) {
+			return;
+		}
+
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 		try {
