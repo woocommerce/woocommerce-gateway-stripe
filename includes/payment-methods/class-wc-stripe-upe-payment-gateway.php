@@ -3624,6 +3624,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return $actions;
+		}
+
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
