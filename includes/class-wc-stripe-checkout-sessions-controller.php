@@ -63,6 +63,9 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			'payment_method_types' => $enabled_payment_methods,
 			'payment_intent_data'  => [],
 			'mode'                 => 'payment',
+			'adaptive_pricing'     => [
+				'enabled' => 'true',
+			],
 		];
 
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
