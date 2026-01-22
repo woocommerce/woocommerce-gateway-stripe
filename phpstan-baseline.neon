@@ -12961,12 +12961,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Multibanco\:\:email_instructions\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Multibanco\:\:get_instructions\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -15046,12 +15040,6 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_sepa_tokens_for_ideal_enabled\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Cannot call method get_token\(\) on WC_Payment_Token\|null\.$#'
-			identifier: method.nonObject
-			count: 4
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-

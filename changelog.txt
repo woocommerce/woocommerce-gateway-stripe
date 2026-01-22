@@ -10,9 +10,14 @@
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
-* Fix - Fatal error when using express payment method with certain addresses
 * Dev - Unit tests to cover address normalization
+* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
+* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
+* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
+* Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 
+= 10.3.1 - 2026-01-15 =
+* Fix - Fatal error when using express payment method with certain addresses
 
 = 10.3.0 - 2026-01-13 =
 * Update - Increase Afterpay/Clearpay maximum transaction amount to 4,000 AUD and 4,000 NZD
