@@ -266,6 +266,11 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			// Sanitize and encode entry data.
 			$sanitized_entry = $this->sanitize_entry( $entry );
 
+			// Ensure file handle is valid (should always be true after start() check above).
+			if ( ! is_resource( $this->file_handle ) ) {
+				throw new Exception( __( 'Feeds must be started before adding entries.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			// Write to file (fputcsv handles escaping automatically).
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
 			if ( false === fputcsv( $this->file_handle, $sanitized_entry, ',', '"', '\\' ) ) {
@@ -339,7 +344,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * @return void
 	 */
 	public function end(): void {
-		if ( ! is_resource( $this->file_handle ) ) {
+		if ( ! is_resource( $this->file_handle ) || null === $this->file_path ) {
 			return;
 		}
 
@@ -350,17 +355,19 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 		$this->finalized = true;
 
 		// Get file size for logging.
-		$file_size       = filesize( $this->file_path );
-		$file_size_human = size_format( $file_size );
+		$file_size = filesize( $this->file_path );
+		if ( false !== $file_size ) {
+			$file_size_human = size_format( $file_size );
 
-		WC_Stripe_Logger::info(
-			sprintf(
-				'Feed generation completed: %d entries, %s - %s',
-				$this->entry_count,
-				$file_size_human,
-				basename( $this->file_path )
-			)
-		);
+			WC_Stripe_Logger::info(
+				sprintf(
+					'Feed generation completed: %d entries, %s - %s',
+					$this->entry_count,
+					$file_size_human,
+					basename( $this->file_path )
+				)
+			);
+		}
 	}
 
 	/**
