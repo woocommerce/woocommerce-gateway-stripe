@@ -81,7 +81,7 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
 	}
@@ -145,7 +145,7 @@ add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe-blocks-support.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is
 		// registered before the WooCommerce Blocks built-in Stripe registration.
 		// Blocks code has a check in place to only register if 'stripe' is not
@@ -154,7 +154,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 			'woocommerce_blocks_payment_method_type_registration',
 			function ( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
 				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
-				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) || ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
+				if ( ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
 					return;
 				}
 
@@ -164,7 +164,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 					WC_Stripe_Blocks_Support::class,
 					function () {
 						if ( class_exists( 'WC_Stripe' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
+							return new WC_Stripe_Blocks_Support( null, WC_Stripe::get_instance()->express_checkout_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}

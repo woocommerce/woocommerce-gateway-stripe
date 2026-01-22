@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Abstract class that will be inherited by voucher payment methods.
  * Used by Boleto and OXXO
  *
- * @extends WC_Gateway_Stripe
+ * @extends WC_Stripe_UPE_Payment_Gateway
  *
  * @since 5.8.0
  */
@@ -282,7 +282,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing voucher payment', [ 'error_message' => $e->getMessage() ] );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

@@ -72,7 +72,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 			$this->set_subscription_updated_payment_method( $subscription );
 			$subscription->add_order_note( __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' ) );
 		} catch ( \Exception $e ) {
-			WC_Stripe_Logger::log( $e->getMessage() );
+			WC_Stripe_Logger::error( 'Exception when updating subscription payment method', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
