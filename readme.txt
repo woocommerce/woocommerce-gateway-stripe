@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 10.1.0
+Stable tag: 10.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -139,30 +139,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.3.0 - xxxx-xx-xx =
+= 10.4.0 - xxxx-xx-xx =
 * Update - Redirects merchants to the Stripe settings screen upon plugin activation
-* Dev - Require milestones to be set on pull requests
-* Update - Remove legacy checkout payment method classes
-* Dev - Renames the express checkout frontend main setting key
-* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
-* Dev - Renames the express checkout customization route
-* Dev - Renames all express checkout related frontend hooks
-* Dev - Removes deprecated legacy checkout settings retrieval methods
-* Fix - Error when using Puerto Rico addresses with express checkouts
-* Dev - Removes all references to the UPE-enabled feature flag
-* Dev - Removes deprecated promotional banners (related to legacy checkout)
-* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
-* Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
-* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
-* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
-* Fix - Fix some initialization bugs for reconnections
-* Fix - Update Ukraine state mapping list
-* Fix - Use same default locations for Amazon Pay express checkout
-* Dev - Add configuration and workflow for PHPStan
-* Fix - Calculate subtotal correctly in express checkout
-* Dev - Improve PHPStan handling of plugin constants
-* Fix - Ensure that 'Link' and 'Stripe Link' are not translated
-* Fix - Fix situation where Stripe errors were not translated
-* Dev - Ensure multiple subdirectories are not exposed via Docker container
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
+* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
+* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
+* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
+* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+* Dev - Replace deprecated logger method calls with severity specific methods
+* Dev - Ensure PHPStan runs when pushing changes
+* Dev - Add PHPStan stub for WC_Subscription class
+* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
+* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
+* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
+* Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

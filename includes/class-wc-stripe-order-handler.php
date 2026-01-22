@@ -72,7 +72,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				echo esc_html( $capture_notice ) . wp_kses_post( wc_help_tip( $capture_tooltip ) );
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -118,7 +118,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// This will throw exception if not valid.
 			$order_helper->validate_minimum_order_amount( $order );
 
-			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			WC_Stripe_Logger::info( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Lock the order or return if the order is already locked.
 			if ( $order_helper->lock_order_payment( $order ) ) {
@@ -226,7 +226,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$this->process_response( $response, $order );
 
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
