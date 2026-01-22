@@ -310,7 +310,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$redirected_to = $url;
 
 			// Throw exception to prevent exit() from being called after wp_safe_redirect().
-			throw new WC_Stripe_Catch_Redirect_Exception();
+			throw new \Exception();
 		};
 
 		// Add filter to catch redirects.
@@ -324,7 +324,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		try {
 			WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
-		} catch ( WC_Stripe_Catch_Redirect_Exception $e ) {
+		} catch ( \Exception $e ) {
 			// Expected - this prevents exit() from killing the test.
 			unset( $e );
 		}
