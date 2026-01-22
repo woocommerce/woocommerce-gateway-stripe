@@ -153,5 +153,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
+* Add - Add the base CSV feed for agentic commerce"
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
