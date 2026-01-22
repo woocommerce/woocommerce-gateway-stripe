@@ -1308,7 +1308,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_is_normalized_state
 	 */
-	public function test_is_normalized_state( $state, $country, $expected ) {
+	public function test_is_normalized_state( string $state, string $country, bool $expected ): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->is_normalized_state( $state, $country ) );
 	}
@@ -1318,7 +1318,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_normalized_state() {
+	public function provide_test_is_normalized_state(): array {
 		return [
 			'US state code CA is normalized'            => [
 				'state'    => 'CA',
@@ -1375,7 +1375,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_get_normalized_state_from_pr_states
 	 */
-	public function test_get_normalized_state_from_pr_states( $state, $country, $expected ) {
+	public function test_get_normalized_state_from_pr_states( string $state, string $country, string $expected ): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_state_from_pr_states( $state, $country ) );
 	}
@@ -1385,7 +1385,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_normalized_state_from_pr_states() {
+	public function provide_test_get_normalized_state_from_pr_states(): array {
 		return [
 			'US state California normalizes to CA'      => [
 				'state'    => 'California',
@@ -1461,7 +1461,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_get_normalized_state
 	 */
-	public function test_get_normalized_state( $state, $country, $expected ) {
+	public function test_get_normalized_state( string $state, string $country, string $expected ): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_state( $state, $country ) );
 	}
@@ -1471,7 +1471,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_normalized_state() {
+	public function provide_test_get_normalized_state(): array {
 		return [
 			'Already normalized US state code stays unchanged' => [
 				'state'    => 'CA',
@@ -1513,7 +1513,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_normalize_state_with_address_data() {
+	public function test_normalize_state_with_address_data(): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 
 		$data = [
@@ -1538,7 +1538,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_normalize_state_with_already_normalized_states() {
+	public function test_normalize_state_with_already_normalized_states(): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 
 		$data = [
