@@ -319,6 +319,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Set the transient to trigger redirection.
 		set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
 
+		// Simulate activation by setting the 'activate' GET parameter.
+		$_GET['activate'] = 'true';
+
 		try {
 			WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
 		} catch ( WC_Stripe_Catch_Redirect_Exception $e ) {
