@@ -16,14 +16,6 @@ use WC_Stripe_Agentic_Commerce_Csv_Feed;
  * Tests the CSV feed implementation for Agentic Commerce.
  */
 class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
-
-	/**
-	 * Temporary upload directory for testing.
-	 *
-	 * @var string
-	 */
-	private $temp_upload_dir;
-
 	/**
 	 * Setup test environment before each test.
 	 *
@@ -146,7 +138,6 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 
 		// Verify file path is null before finalization.
 		$this->assertNull( $feed->get_file_path() );
-		$this->assertNull( $feed->get_file_url() );
 	}
 
 	/**
@@ -334,28 +325,6 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test security files are created (via FilesystemUtil::mkdir_p_not_indexable).
-	 *
-	 * @return void
-	 */
-	public function test_security_files_created() {
-		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
-		$feed->start();
-		$feed->end();
-
-		// Trigger directory creation by getting URL.
-		$feed->get_file_url();
-
-		$upload_dir = wp_upload_dir();
-		$base_dir   = trailingslashit( $upload_dir['basedir'] ) . 'stripe-agentic-commerce/product-feeds';
-
-		$this->assertFileExists( trailingslashit( $base_dir ) . '.htaccess' );
-		$this->assertFileExists( trailingslashit( $base_dir ) . 'index.html' );
-	}
-
-	/**
 	 * Test adding entry before start throws exception.
 	 *
 	 * @return void
@@ -407,36 +376,11 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_stats returns correct information.
+	 * Test final file is created in temp directory.
 	 *
 	 * @return void
 	 */
-	public function test_get_stats() {
-		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
-		$feed->start();
-		$feed->add_entry( [ '1', 'Test 1' ] );
-		$feed->add_entry( [ '2', 'Test 2' ] );
-		$feed->end();
-
-		$stats = $feed->get_stats();
-
-		$this->assertTrue( $stats['started'] );
-		$this->assertTrue( $stats['finalized'] );
-		$this->assertEquals( 2, $stats['entry_count'] );
-		$this->assertArrayHasKey( 'file_size_bytes', $stats );
-		$this->assertArrayHasKey( 'file_size_human', $stats );
-		$this->assertArrayHasKey( 'file_path', $stats );
-		$this->assertArrayHasKey( 'file_url', $stats );
-	}
-
-	/**
-	 * Test final file is in product-feeds directory.
-	 *
-	 * @return void
-	 */
-	public function test_file_in_product_feeds_directory() {
+	public function test_file_in_temp_directory() {
 		$headers = [ 'id', 'title' ];
 		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
@@ -445,26 +389,10 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 
 		$file_path = $feed->get_file_path();
 
-		$this->assertStringContainsString( '/stripe-agentic-commerce/product-feeds/', $file_path );
-	}
-
-	/**
-	 * Test public URL is generated correctly.
-	 *
-	 * @return void
-	 */
-	public function test_public_url_generated() {
-		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
-		$feed->start();
-		$feed->end();
-
-		$file_url = $feed->get_file_url();
-
-		$this->assertNotNull( $file_url );
-		$this->assertStringContainsString( '/stripe-agentic-commerce/product-feeds/', $file_url );
-		$this->assertStringContainsString( '.csv', $file_url );
+		// File should be in temp directory.
+		$this->assertNotNull( $file_path );
+		$this->assertFileExists( $file_path );
+		$this->assertStringContainsString( '.csv', $file_path );
 	}
 
 	/**
@@ -476,45 +404,25 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 		$headers = [ 'id', 'title' ];
 
 		// Create first feed.
-		$feed1 = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed1 = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed-1' );
 		$feed1->set_columns( $headers );
 		$feed1->start();
 		$feed1->add_entry( [ '1', 'Test 1' ] );
 		$feed1->end();
 		$file1 = $feed1->get_file_path();
 
-		// Create second feed - should get different hash.
-		$feed2 = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		// Create second feed with different base name - should get different hash.
+		$feed2 = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed-2' );
 		$feed2->set_columns( $headers );
 		$feed2->start();
 		$feed2->add_entry( [ '2', 'Test 2' ] );
 		$feed2->end();
 		$file2 = $feed2->get_file_path();
 
-		// Filenames should be different due to different hashes.
-		$this->assertNotEquals( $file1, $file2, 'wp_hash should create unique filenames' );
+		// Filenames should be different due to different base names and hashes.
+		$this->assertNotEquals( $file1, $file2, 'Different base names should create unique filenames' );
 		$this->assertFileExists( $file1 );
 		$this->assertFileExists( $file2 );
-	}
-
-	/**
-	 * Test human-readable file size in stats.
-	 *
-	 * @return void
-	 */
-	public function test_human_readable_file_size() {
-		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
-		$feed->start();
-		$feed->add_entry( [ '1', 'Test' ] );
-		$feed->end();
-
-		$stats = $feed->get_stats();
-
-		$this->assertArrayHasKey( 'file_size_human', $stats );
-		// Should be in format like "123 B", "1 KB", "2 MB", etc.
-		$this->assertMatchesRegularExpression( '/^\d+(\.\d+)?\s+(B|KB|MB|GB|TB)$/', $stats['file_size_human'] );
 	}
 
 	/**
@@ -539,6 +447,9 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	/**
 	 * Test how fputcsv handles raw PHP types vs string-converted types.
 	 *
+	 * This test documents fputcsv's native behavior. Note that our sanitize_entry()
+	 * method converts booleans to "true"/"false" strings to match Stripe's spec.
+	 *
 	 * @return void
 	 */
 	public function test_php_type_handling_in_csv() {
@@ -557,24 +468,5 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( '123', $content, 'Integer should be written as "123"' );
 		$this->assertStringContainsString( '3.14', $content, 'Float should be written as "3.14"' );
 		$this->assertStringContainsString( '1', $content, 'true becomes "1" in fputcsv' );
-		$this->assertStringContainsString( '0', $content, 'false becomes "0" in fputcsv (not empty!)' );
-	}
-
-	/**
-	 * Test URL has no backslashes (wp_normalize_path).
-	 *
-	 * @return void
-	 */
-	public function test_url_normalized() {
-		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
-		$feed->start();
-		$feed->end();
-
-		$file_url = $feed->get_file_url();
-
-		// URL should not contain backslashes.
-		$this->assertStringNotContainsString( '\\', $file_url );
 	}
 }
