@@ -127,7 +127,7 @@ register_activation_hook( __FILE__, 'set_settings_redirection_transient' );
  *
  * @return void
  */
-function set_settings_redirection_transient(): void {
+function wc_stripe_set_settings_redirection_transient(): void {
 	set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
 }
 
