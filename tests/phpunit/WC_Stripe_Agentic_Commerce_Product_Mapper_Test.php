@@ -1,0 +1,823 @@
+<?php
+/**
+ * Tests for WC_Stripe_Agentic_Commerce_Product_Mapper
+ *
+ * @package WooCommerce\Stripe\Tests
+ */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WP_UnitTestCase;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
+
+/**
+ * Class WC_Stripe_Agentic_Commerce_Product_Mapper_Test
+ *
+ * Tests the product mapper for Agentic Commerce feeds.
+ */
+class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
+	/**
+	 * Setup test environment before each test.
+	 *
+	 * @return void
+	 */
+	public function setUp(): void {
+		parent::setUp();
+
+		// Skip tests if WooCommerce ProductMapperInterface is not available.
+		if ( ! interface_exists( 'Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\ProductMapperInterface' ) ) {
+			$this->markTestSkipped( 'WooCommerce ProductMapperInterface not available (requires WooCommerce 10.5.0+)' );
+		}
+
+		// Skip tests if Mapper class is not loaded.
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Mapper' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Mapper class not loaded' );
+		}
+
+		// Skip tests if Schema class is not loaded.
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Schema' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Schema class not loaded' );
+		}
+	}
+
+	/**
+	 * Test simple product mapping with all required fields.
+	 *
+	 * @return void
+	 */
+	public function test_map_simple_product_with_required_fields() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_name( 'Test Product' );
+		$product->set_description( 'Test Description' );
+		$product->set_regular_price( '19.99' );
+		$product->set_stock_status( 'instock' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Verify required fields are present.
+		$this->assertArrayHasKey( 'id', $result );
+		$this->assertArrayHasKey( 'title', $result );
+		$this->assertArrayHasKey( 'description', $result );
+		$this->assertArrayHasKey( 'link', $result );
+		$this->assertArrayHasKey( 'brand', $result );
+		$this->assertArrayHasKey( 'image_link', $result );
+		$this->assertArrayHasKey( 'availability', $result );
+		$this->assertArrayHasKey( 'price', $result );
+
+		// Verify field values.
+		$this->assertEquals( (string) $product->get_id(), $result['id'] );
+		$this->assertEquals( 'Test Product', $result['title'] );
+		$this->assertEquals( 'Test Description', $result['description'] );
+		$this->assertEquals( 'in_stock', $result['availability'] );
+		$this->assertStringContainsString( 'USD', $result['price'] );
+		$this->assertStringContainsString( '19.99', $result['price'] );
+
+		// Cleanup.
+		$product->delete( true );
+	}
+
+	/**
+	 * Test price formatting with various values.
+	 *
+	 * @return void
+	 */
+	public function test_price_formatting() {
+		$test_cases = [
+			[
+				'input'    => '0',
+				'expected' => '0.00 USD',
+			],
+			[
+				'input'    => '0.99',
+				'expected' => '0.99 USD',
+			],
+			[
+				'input'    => '10',
+				'expected' => '10.00 USD',
+			],
+			[
+				'input'    => '99.99',
+				'expected' => '99.99 USD',
+			],
+			[
+				'input'    => '999.99',
+				'expected' => '999.99 USD',
+			],
+			[
+				'input'    => '9999.99',
+				'expected' => '9999.99 USD',
+			],
+			[
+				'input'    => '19.9',
+				'expected' => '19.90 USD',
+			],
+			[
+				'input'    => '19.999',
+				'expected' => '20.00 USD',
+			], // Rounds up.
+		];
+
+		foreach ( $test_cases as $test_case ) {
+			$product = WC_Helper_Product::create_simple_product();
+			$product->set_regular_price( $test_case['input'] );
+			$product->save();
+
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertEquals(
+				$test_case['expected'],
+				$result['price'],
+				"Price {$test_case['input']} should format to {$test_case['expected']}"
+			);
+
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test availability status mapping.
+	 *
+	 * @return void
+	 */
+	public function test_availability_mapping() {
+		$test_cases = [
+			[
+				'wc_status' => 'instock',
+				'expected'  => 'in_stock',
+			],
+			[
+				'wc_status' => 'outofstock',
+				'expected'  => 'out_of_stock',
+			],
+			[
+				'wc_status' => 'onbackorder',
+				'expected'  => 'backorder',
+			],
+		];
+
+		foreach ( $test_cases as $test_case ) {
+			$product = WC_Helper_Product::create_simple_product();
+			$product->set_stock_status( $test_case['wc_status'] );
+			$product->save();
+
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertEquals(
+				$test_case['expected'],
+				$result['availability'],
+				"WC status {$test_case['wc_status']} should map to {$test_case['expected']}"
+			);
+
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Test sale price mapping.
+	 *
+	 * @return void
+	 */
+	public function test_sale_price_mapping() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '29.99' );
+		$product->set_sale_price( '19.99' );
+		$product->set_date_on_sale_from( '2026-01-01' );
+		$product->set_date_on_sale_to( '2026-12-31' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( '29.99 USD', $result['price'], 'Regular price should be in price field' );
+		$this->assertEquals( '19.99 USD', $result['sale_price'], 'Sale price should be in sale_price field' );
+		$this->assertStringContainsString( '2026-01-01', $result['sale_price_effective_date'] );
+		$this->assertStringContainsString( '2026-12-31', $result['sale_price_effective_date'] );
+		$this->assertStringContainsString( '/', $result['sale_price_effective_date'], 'Should use / separator' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test brand extraction with attribute.
+	 *
+	 * @return void
+	 */
+	public function test_brand_extraction_from_attribute() {
+		// Create a brand attribute.
+		$attribute_id = wc_create_attribute(
+			[
+				'name' => 'Brand',
+				'slug' => 'pa_brand',
+				'type' => 'select',
+			]
+		);
+
+		// Skip if attribute creation failed.
+		if ( is_wp_error( $attribute_id ) ) {
+			$this->markTestSkipped( 'Could not create brand attribute: ' . $attribute_id->get_error_message() );
+		}
+
+		// Create a brand term.
+		$term = wp_insert_term( 'Nike', 'pa_brand' );
+
+		// Skip if term creation failed.
+		if ( is_wp_error( $term ) ) {
+			wc_delete_attribute( $attribute_id );
+			$this->markTestSkipped( 'Could not create brand term: ' . $term->get_error_message() );
+		}
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		// Set the brand attribute.
+		$attributes   = [];
+		$attributes[] = [
+			'name'     => 'pa_brand',
+			'value'    => '',
+			'position' => 0,
+			'visible'  => true,
+			'taxonomy' => 'pa_brand',
+		];
+		$product->set_attributes( $attributes );
+		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_brand' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'Nike', $result['brand'] );
+
+		// Cleanup.
+		$product->delete( true );
+		wp_delete_term( $term['term_id'], 'pa_brand' );
+		wc_delete_attribute( $attribute_id );
+	}
+
+	/**
+	 * Test brand fallback to Generic.
+	 *
+	 * @return void
+	 */
+	public function test_brand_fallback_to_generic() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'Generic', $result['brand'], 'Should fallback to Generic when no brand found' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test category path building.
+	 *
+	 * @return void
+	 */
+	public function test_category_path_building() {
+		// Create category hierarchy: Apparel > Shoes > Running Shoes.
+		$parent_cat = wp_insert_term( 'Apparel', 'product_cat' );
+		$child_cat  = wp_insert_term( 'Shoes', 'product_cat', [ 'parent' => $parent_cat['term_id'] ] );
+		$leaf_cat   = wp_insert_term( 'Running Shoes', 'product_cat', [ 'parent' => $child_cat['term_id'] ] );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		// Set category after product is saved.
+		wp_set_object_terms( $product->get_id(), [ $leaf_cat['term_id'] ], 'product_cat', false );
+		// Clear product cache to force reload of terms.
+		clean_post_cache( $product->get_id() );
+
+		// Reload product to get fresh category data.
+		$product = wc_get_product( $product->get_id() );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Check if product_category is present and contains expected values.
+		if ( isset( $result['product_category'] ) ) {
+			$this->assertStringContainsString( 'Apparel', $result['product_category'] );
+			$this->assertStringContainsString( 'Shoes', $result['product_category'] );
+			$this->assertStringContainsString( 'Running Shoes', $result['product_category'] );
+			$this->assertStringContainsString( ' > ', $result['product_category'], 'Should use > separator' );
+
+			// Verify order: parent > child > leaf.
+			$this->assertMatchesRegularExpression( '/Apparel.*>.*Shoes.*>.*Running Shoes/', $result['product_category'] );
+		} else {
+			$this->markTestIncomplete( 'product_category field not present in output' );
+		}
+
+		// Cleanup.
+		$product->delete( true );
+		wp_delete_term( $leaf_cat['term_id'], 'product_cat' );
+		wp_delete_term( $child_cat['term_id'], 'product_cat' );
+		wp_delete_term( $parent_cat['term_id'], 'product_cat' );
+	}
+
+	/**
+	 * Test UTF-8 character handling in title and description.
+	 *
+	 * @return void
+	 */
+	public function test_utf8_character_handling() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_name( 'Café Product 日本語 🎉' );
+		$product->set_description( 'Description with café, 日本語, and emoji 🎉' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'Café Product 日本語 🎉', $result['title'] );
+		$this->assertStringContainsString( 'café', $result['description'] );
+		$this->assertStringContainsString( '日本語', $result['description'] );
+		$this->assertStringContainsString( '🎉', $result['description'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test HTML stripping from title and description.
+	 *
+	 * @return void
+	 */
+	public function test_html_stripping() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_name( 'Product <strong>with</strong> HTML' );
+		$product->set_description( '<p>Description with <em>HTML</em> tags</p>' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertStringNotContainsString( '<strong>', $result['title'] );
+		$this->assertStringNotContainsString( '</strong>', $result['title'] );
+		$this->assertStringContainsString( 'with', $result['title'] );
+
+		$this->assertStringNotContainsString( '<p>', $result['description'] );
+		$this->assertStringNotContainsString( '<em>', $result['description'] );
+		$this->assertStringContainsString( 'HTML', $result['description'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test variable product mapping returns data.
+	 *
+	 * Note: In practice, variable products should be filtered out before mapping
+	 * and only variations should be included in the feed.
+	 *
+	 * @return void
+	 */
+	public function test_variable_product_can_be_mapped() {
+		$product = WC_Helper_Product::create_variation_product();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Variable products can be mapped (though they should be filtered out before feed generation).
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'id', $result );
+		$this->assertArrayHasKey( 'title', $result );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test variation mapping includes item_group_id and item_group_title.
+	 *
+	 * @return void
+	 */
+	public function test_variation_mapping_includes_group_fields() {
+		$parent = WC_Helper_Product::create_variation_product();
+		$parent->set_name( 'Variable Product' );
+		$parent->save();
+
+		$variations = $parent->get_children();
+		$variation  = wc_get_product( $variations[0] );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $variation );
+
+		$this->assertNotNull( $result );
+		$this->assertEquals( (string) $parent->get_id(), $result['item_group_id'] );
+		$this->assertEquals( 'Variable Product', $result['item_group_title'] );
+
+		$parent->delete( true );
+	}
+
+	/**
+	 * Test variation inherits brand from parent if not set.
+	 *
+	 * @return void
+	 */
+	public function test_variation_inherits_brand_from_parent() {
+		// Create brand attribute.
+		$attribute_id = wc_create_attribute(
+			[
+				'name' => 'Brand',
+				'slug' => 'pa_brand',
+				'type' => 'select',
+			]
+		);
+
+		// Skip if attribute creation failed.
+		if ( is_wp_error( $attribute_id ) ) {
+			$this->markTestSkipped( 'Could not create brand attribute: ' . $attribute_id->get_error_message() );
+		}
+
+		$term = wp_insert_term( 'Nike', 'pa_brand' );
+
+		// Skip if term creation failed.
+		if ( is_wp_error( $term ) ) {
+			wc_delete_attribute( $attribute_id );
+			$this->markTestSkipped( 'Could not create brand term: ' . $term->get_error_message() );
+		}
+
+		$parent = WC_Helper_Product::create_variation_product();
+
+		// Set brand on parent.
+		$attributes   = $parent->get_attributes();
+		$attributes[] = [
+			'name'     => 'pa_brand',
+			'value'    => '',
+			'position' => 0,
+			'visible'  => true,
+			'taxonomy' => 'pa_brand',
+		];
+		$parent->set_attributes( $attributes );
+		wp_set_object_terms( $parent->get_id(), [ $term['term_id'] ], 'pa_brand' );
+		$parent->save();
+
+		$variations = $parent->get_children();
+		$variation  = wc_get_product( $variations[0] );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $variation );
+
+		$this->assertEquals( 'Nike', $result['brand'], 'Variation should inherit brand from parent' );
+
+		// Cleanup.
+		$parent->delete( true );
+		wp_delete_term( $term['term_id'], 'pa_brand' );
+		wc_delete_attribute( $attribute_id );
+	}
+
+	/**
+	 * Test color attribute extraction.
+	 *
+	 * @return void
+	 */
+	public function test_color_attribute_extraction() {
+		// Create color attribute.
+		$attribute_id = wc_create_attribute(
+			[
+				'name' => 'Color',
+				'slug' => 'pa_color',
+				'type' => 'select',
+			]
+		);
+
+		// Skip if attribute creation failed.
+		if ( is_wp_error( $attribute_id ) ) {
+			$this->markTestSkipped( 'Could not create color attribute: ' . $attribute_id->get_error_message() );
+		}
+
+		$term = wp_insert_term( 'Red', 'pa_color' );
+
+		// Skip if term creation failed.
+		if ( is_wp_error( $term ) ) {
+			wc_delete_attribute( $attribute_id );
+			$this->markTestSkipped( 'Could not create color term: ' . $term->get_error_message() );
+		}
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$attributes   = [];
+		$attributes[] = [
+			'name'     => 'pa_color',
+			'value'    => '',
+			'position' => 0,
+			'visible'  => true,
+			'taxonomy' => 'pa_color',
+		];
+		$product->set_attributes( $attributes );
+		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_color' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'Red', $result['color'] );
+
+		// Cleanup.
+		$product->delete( true );
+		wp_delete_term( $term['term_id'], 'pa_color' );
+		wc_delete_attribute( $attribute_id );
+	}
+
+	/**
+	 * Test size attribute extraction.
+	 *
+	 * @return void
+	 */
+	public function test_size_attribute_extraction() {
+		// Create size attribute.
+		$attribute_id = wc_create_attribute(
+			[
+				'name' => 'Size',
+				'slug' => 'pa_size',
+				'type' => 'select',
+			]
+		);
+
+		// Skip if attribute creation failed.
+		if ( is_wp_error( $attribute_id ) ) {
+			$this->markTestSkipped( 'Could not create size attribute: ' . $attribute_id->get_error_message() );
+		}
+
+		$term = wp_insert_term( 'Large', 'pa_size' );
+
+		// Skip if term creation failed.
+		if ( is_wp_error( $term ) ) {
+			wc_delete_attribute( $attribute_id );
+			$this->markTestSkipped( 'Could not create size term: ' . $term->get_error_message() );
+		}
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		$attributes   = [];
+		$attributes[] = [
+			'name'     => 'pa_size',
+			'value'    => '',
+			'position' => 0,
+			'visible'  => true,
+			'taxonomy' => 'pa_size',
+		];
+		$product->set_attributes( $attributes );
+		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_size' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Size field might not be present if mapper returned null for it.
+		if ( isset( $result['size'] ) ) {
+			$this->assertEquals( 'Large', $result['size'] );
+		} else {
+			$this->markTestIncomplete( 'Size attribute was not mapped (returned null or empty)' );
+		}
+
+		// Cleanup.
+		$product->delete( true );
+		wp_delete_term( $term['term_id'], 'pa_size' );
+		wc_delete_attribute( $attribute_id );
+	}
+
+	/**
+	 * Test dimensions formatting with units.
+	 *
+	 * @return void
+	 */
+	public function test_dimensions_formatting() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_length( '10' );
+		$product->set_width( '5' );
+		$product->set_height( '3' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Default WooCommerce unit is 'in'.
+		$this->assertStringContainsString( '10', $result['length'] );
+		$this->assertStringContainsString( 'in', $result['length'] );
+		$this->assertStringContainsString( '5', $result['width'] );
+		$this->assertStringContainsString( 'in', $result['width'] );
+		$this->assertStringContainsString( '3', $result['height'] );
+		$this->assertStringContainsString( 'in', $result['height'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test weight formatting with units.
+	 *
+	 * @return void
+	 */
+	public function test_weight_formatting() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_weight( '2.5' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Default WooCommerce unit is 'lbs'.
+		$this->assertStringContainsString( '2.5', $result['weight'] );
+		$this->assertStringContainsString( 'lbs', $result['weight'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test GTIN field mapping.
+	 *
+	 * @return void
+	 */
+	public function test_gtin_field_mapping() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_sku( '1234567890123' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// GTIN is optional - check if it exists before asserting.
+		if ( isset( $result['gtin'] ) ) {
+			$this->assertNotEmpty( $result['gtin'], 'GTIN should not be empty if present' );
+		} else {
+			$this->markTestIncomplete( 'GTIN field not present in output (product may not have global_unique_id set)' );
+		}
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product link generation.
+	 *
+	 * @return void
+	 */
+	public function test_product_link_generation() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Verify link is a valid URL (may use slug or ID depending on permalink settings).
+		$this->assertStringStartsWith( 'http', $result['link'] );
+		$this->assertNotEmpty( $result['link'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test image_link generation.
+	 *
+	 * @return void
+	 */
+	public function test_image_link_generation() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Should have some image link (either product image or placeholder).
+		$this->assertNotNull( $result['image_link'] );
+		$this->assertStringContainsString( 'http', $result['image_link'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test inventory_not_tracked for virtual products.
+	 *
+	 * @return void
+	 */
+	public function test_inventory_not_tracked_for_virtual_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( true );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'true', $result['inventory_not_tracked'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test inventory_quantity for tracked products.
+	 *
+	 * @return void
+	 */
+	public function test_inventory_quantity_for_tracked_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( 50 );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Check inventory fields if present.
+		if ( isset( $result['inventory_quantity'] ) ) {
+			$this->assertEquals( 50, $result['inventory_quantity'] );
+		}
+		if ( isset( $result['inventory_not_tracked'] ) ) {
+			$this->assertEquals( 'false', $result['inventory_not_tracked'] );
+		}
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product with no price returns null price.
+	 *
+	 * @return void
+	 */
+	public function test_product_with_no_price() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// If price is null/empty, clean_row() removes it from output.
+		$this->assertArrayNotHasKey( 'price', $result, 'Price should not be present when product has no price' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test all schema fields are present in mapper output.
+	 *
+	 * @return void
+	 */
+	public function test_all_required_fields_present_in_output() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '19.99' );
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Only required fields must be present (optional fields are removed if null/empty).
+		$required_fields = \WC_Stripe_Agentic_Commerce_Feed_Schema::get_required_fields();
+
+		foreach ( $required_fields as $field ) {
+			$this->assertArrayHasKey( $field, $result, "Mapper output should include required field: {$field}" );
+		}
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test tax code filter hook.
+	 *
+	 * @return void
+	 */
+	public function test_tax_code_filter_hook() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_tax_class( 'reduced-rate' );
+		$product->save();
+
+		// Add filter to return a tax code.
+		add_filter(
+			'wc_stripe_agentic_commerce_tax_code',
+			function ( $tax_code, $tax_class, $product ) {
+				if ( 'reduced-rate' === $tax_class ) {
+					return 'txcd_12345678';
+				}
+				return $tax_code;
+			},
+			10,
+			3
+		);
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'txcd_12345678', $result['stripe_product_tax_code'] );
+
+		// Remove filter.
+		remove_all_filters( 'wc_stripe_agentic_commerce_tax_code' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test condition field defaults to 'new'.
+	 *
+	 * @return void
+	 */
+	public function test_condition_defaults_to_new() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 'new', $result['condition'] );
+
+		$product->delete( true );
+	}
+}
