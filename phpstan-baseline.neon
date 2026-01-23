@@ -397,12 +397,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Call to an undefined method object\:\:get_total\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
 			identifier: class.notFound
 			count: 2
@@ -613,32 +607,20 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_Payment_Gateway\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:change_idempotency_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -691,24 +673,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_stripe_customer_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_stripe_customer_id\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_upe_enabled_payment_method_ids\(\) has parameter \$force_refresh with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_type_legacy_card\(\) should return bool but returns int\|false\.$#'
 			identifier: return.type
 			count: 1
@@ -717,12 +681,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_type_payment_method\(\) should return bool but returns int\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) has parameter \$existing_customer_id with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -739,86 +697,14 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:render_upe_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_payment_method_checkbox\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_payment_method_checkbox\(\) has parameter \$force_checked with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_payment_method_requested\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -835,56 +721,20 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:throw_localized_message\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_refund\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_fees\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Parameter \#1 \$error of method WC_Stripe_Payment_Gateway\:\:is_no_linked_source_error\(\) expects object, object\|false given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_minimum_order_amount\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Parameter \#1 \$error of method WC_Stripe_Payment_Gateway\:\:is_no_such_source_error\(\) expects object, object\|false given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -992,6 +842,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_stripe_customer_id\(\) expects WC_Order, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1117,6 +973,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$error of method WC_Stripe_Payment_Gateway\:\:need_update_idempotency_key\(\) expects object, object\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, array\|stdClass given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1153,9 +1015,9 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_Payment_Gateway\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
-			count: 1
+			message: '#^Result of method WC_Stripe_Payment_Gateway\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1201,44 +1063,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:configure_webhooks\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:configure_webhooks\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:mask_key_value\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:record_manual_account_disconnect_track_event\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:record_manual_account_key_update_track_event\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:set_account_keys\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
@@ -1249,68 +1075,20 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:test_account_keys\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:test_account_keys\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_publishable_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_publishable_key\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_publishable_key\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_publishable_key\(\) has parameter \$param with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_publishable_key\(\) has parameter \$request with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_secret_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_secret_key\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_secret_key\(\) has parameter \$param with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_secret_key\(\) has parameter \$request with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_stripe_param\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
+			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_secret_key\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
@@ -1321,57 +1099,21 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_publishable_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_publishable_key\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_publishable_key\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
+			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_publishable_key\(\) has parameter \$param with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_publishable_key\(\) has parameter \$request with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has parameter \$param with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has parameter \$request with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$value$#'
-			identifier: parameter.notFound
-			count: 1
+			message: '#^Parameter \#1 \$value of method WC_REST_Stripe_Account_Keys_Controller\:\:mask_key_value\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 2
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
@@ -4675,12 +4417,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Failed_Order\)\: Unexpected token "\\n ", expected ''\<'' at offset 440 on line 9$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
 			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, WCS_Retry\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4735,12 +4471,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-authentication.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email\)\: Unexpected token "\\n ", expected ''\<'' at offset 94 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
 			message: '#^Parameter \#1 \$date of function wc_format_datetime expects WC_DateTime, WC_DateTime\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4771,12 +4501,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
 
 		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_Email_Failed_Authentication\)\: Unexpected token "\\n ", expected ''\<'' at offset 112 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
 			message: '#^Parameter \#2 \$callback of function add_action expects callable\(\)\: mixed, array\{WC_Email, ''trigger''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4803,12 +4527,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:trigger\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Customer_Invoice\)\: Unexpected token "\\n ", expected ''\<'' at offset 100 on line 4$#'
-			identifier: phpDoc.parseError
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
 
@@ -6493,12 +6211,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_enabled_payment_method_ids\(\) has parameter \$force_refresh with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:handle_saving_payment_method\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -7597,14 +7309,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_ACH\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -7627,51 +7333,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -7735,15 +7399,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_ACH\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_ACH\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -8023,14 +7687,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -8053,51 +7711,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -8155,15 +7771,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -8449,14 +8065,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -8479,51 +8089,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -8581,15 +8149,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -8875,14 +8443,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -8911,51 +8473,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -9013,15 +8533,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -9295,14 +8815,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -9325,51 +8839,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -9427,15 +8899,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -9709,14 +9181,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -9739,51 +9205,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -9847,15 +9271,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -10183,14 +9607,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -10207,51 +9625,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -10309,15 +9685,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -10597,14 +9973,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_CC\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -10633,51 +10003,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -10747,15 +10075,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_CC\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_CC\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -11035,14 +10363,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -11065,51 +10387,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -11167,15 +10447,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -11449,14 +10729,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -11473,51 +10747,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -11575,15 +10807,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -11965,14 +11197,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_OC\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -12001,51 +11227,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -12103,12 +11287,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_OC\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$enabled \(bool\) does not accept string\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -12118,6 +11296,12 @@ parameters:
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_OC\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -12409,14 +11593,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -12445,51 +11623,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -12553,15 +11689,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -12835,14 +11971,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Default value of the parameter \#4 \$previous_error \(false\) of method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) is incompatible with type object\.$#'
-			identifier: parameter.defaultValue
+			message: '#^Filter callback return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
@@ -12859,51 +11989,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:remove_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:restore_order_pay_var\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:scheduled_subscription_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:scheduled_subscription_payment\(\) has parameter \$amount_to_charge with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:scheduled_subscription_payment\(\) has parameter \$renewal_order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:update_subscription_payment_method_from_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_subscription_payment_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -12961,15 +12049,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Parameter \#4 \$previous_error of method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) expects object, false given\.$#'
-			identifier: argument.type
+			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 1
+			message: '#^Result of method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_subscription_payment\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-

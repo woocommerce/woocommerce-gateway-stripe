@@ -5,8 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Base for Failed Renewal/Pre-Order Authentication Notifications.
- *
- * @extends WC_Email
  */
 abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 	/**

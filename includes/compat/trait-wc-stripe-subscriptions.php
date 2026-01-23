@@ -362,8 +362,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Scheduled_subscription_payment function.
 	 *
-	 * @param $amount_to_charge float The amount to charge.
-	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
+	 * @param float    $amount_to_charge The amount to charge.
+	 * @param WC_Order $renewal_order A WC_Order object created to record the renewal payment.
+	 * @return void
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
 		$this->process_subscription_payment( $amount_to_charge, $renewal_order, true, false );
@@ -377,10 +378,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
 	 * @since 5.6.0 Process renewal payments for SEPA and UPE.
 	 *
-	 * @param float  $amount
-	 * @param mixed  $renewal_order
-	 * @param bool   $retry Should we retry the process?
-	 * @param object $previous_error
+	 * @param float        $amount         The amount to charge.
+	 * @param WC_Order     $renewal_order  The renewal order.
+	 * @param bool         $retry          Should we retry the process?
+	 * @param object|false $previous_error Previous error object.
+	 * @return void
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
@@ -737,6 +739,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param string $payment_method_id The ID of the payment method to validate
 	 * @param array  $payment_meta associative array of meta data required for automatic payments
+	 * @return void
 	 */
 	public function validate_subscription_payment_meta( $payment_method_id, $payment_meta ) {
 		if ( $this->id === $payment_method_id ) {
@@ -1112,6 +1115,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * If this is the "Pass the SCA challenge" flow, remove a variable that is checked by WC Subscriptions
 	 * so WC Subscriptions doesn't redirect to the checkout
+	 *
+	 * @return void
 	 */
 	public function remove_order_pay_var() {
 		global $wp;
@@ -1123,6 +1128,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 	/**
 	 * Restore the variable that was removed in remove_order_pay_var()
+	 *
+	 * @return void
 	 */
 	public function restore_order_pay_var() {
 		global $wp;
@@ -1242,6 +1249,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order               The order to update the related subscriptions for.
 	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
+	 * @return void
 	 */
 	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {

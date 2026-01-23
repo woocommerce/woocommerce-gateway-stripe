@@ -7,7 +7,6 @@
  *
  * @version     4.3.0
  * @package     WooCommerce_Stripe/Classes/WC_Stripe_Email_Failed_Authentication_Retry
- * @extends     WC_Email_Failed_Order
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

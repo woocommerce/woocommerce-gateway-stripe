@@ -36,6 +36,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
+	 * @param bool $force_refresh Whether to force refresh the payment method IDs.
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
@@ -124,6 +125,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Inserts an empty placeholder div for new account card when Stripe is not connected.
 	 * Inserts an empty placeholder div for UPE opt-in banner within the existing form fields, otherwise.
+	 *
+	 * @return void
 	 */
 	public function render_upe_settings() {
 		global $hide_save_button;
@@ -138,6 +141,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.1.0
 	 * @version 5.6.0
+	 * @param bool $force_checked Whether to force the checkbox to be checked.
+	 * @return void
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -336,6 +341,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return parent::is_available();
 	}
 
+	/**
+	 * Checks if save payment method was requested.
+	 *
+	 * @return bool
+	 */
 	public function save_payment_method_requested() {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
@@ -405,7 +415,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Order $order The order object.
+	 * @return void
+	 * @throws WC_Stripe_Exception When order amount is below minimum.
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_minimum_order_amount() instead.
 	 */
@@ -433,6 +445,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @param WC_Order $order The order object.
+	 * @return string|false The customer ID or false if not found.
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
@@ -939,8 +953,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param string $user_id
-	 * @param bool   $force_save_source Should we force save payment source.
+	 * @param string   $user_id              The user ID.
+	 * @param bool     $force_save_source    Should we force save payment source.
+	 * @param int|null $existing_customer_id The existing customer ID.
 	 *
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
@@ -1113,6 +1128,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 * @param WC_Order $order For to which the source applies.
 	 * @param stdClass $source Source information.
+	 * @return void
 	 */
 	public function save_source_to_order( $order, $source ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -1141,6 +1157,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.6
 	 * @param WC_Order $order The order object
 	 * @param int    $balance_transaction_id
+	 * @return void
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
@@ -1413,8 +1430,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * process order as a different transaction.
 	 *
 	 * @since 4.0.6
-	 * @param string $idempotency_key
-	 * @param array  $request
+	 * @param string $idempotency_key The idempotency key.
+	 * @param array  $request The request array.
+	 * @return string The modified idempotency key.
 	 */
 	public function change_idempotency_key( $idempotency_key, $request ) {
 		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
@@ -1708,6 +1726,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.2.0
 	 * @param WC_Order $order For to which the source applies.
 	 * @param stdClass $intent Payment intent information.
+	 * @return void
 	 */
 	public function save_intent_to_order( $order, $intent ) {
 		// Don't save any intent information on a subscription.
@@ -1817,6 +1836,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @param WC_Order $order The order that is being unlocked.
+	 * @return void
 	 *
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_payment().
 	 */
@@ -1897,6 +1917,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 9.1.0
 	 * @param WC_Order $order The order that is being unlocked.
+	 * @return void
 	 *
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_refund().
 	 */
@@ -2121,6 +2142,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 4.2.0
 	 * @param  stdClass $response  The response from the Stripe API.
 	 * @param  WC_Order $order     The order to add a note to.
+	 * @return void
 	 * @throws WC_Stripe_Exception An exception with the right message.
 	 */
 	public function throw_localized_message( $response, $order ) {
@@ -2212,6 +2234,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Attaches the given payment method to the currently logged-in user.
 	 *
 	 * @param object $source_object The payment method to be attached.
+	 * @return void
 	 * @throws WC_Stripe_Exception
 	 */
 	public function save_payment_method( $source_object ) {
@@ -2497,6 +2520,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
+	 * @return void
 	 */
 	public function update_saved_payment_method( $payment_method_id, $order ) {
 		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
