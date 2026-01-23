@@ -849,73 +849,44 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the `disable_subscription_edit_for_india` method.
 	 *
-	 * @param bool      $order_has_parent Whether the order has a parent order.
-	 * @param string    $mandate_id       The mandate ID to set on the parent
-	 * @param bool      $expected         The expected result.
+	 * @param bool  $is_subscription  Whether the order is a subscription.
+	 * @param bool  $order_has_parent Whether the order has a parent order.
+	 * @param array $mandate          The mandate data to mock.
+	 * @param bool  $expected         The expected result.
 	 * @return void
 	 * @dataProvider provide_test_disable_subscription_edit_for_india
 	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
 	 */
-	public function test_disable_subscription_edit_for_india( bool $order_has_parent, string $mandate_id, bool $expected ): void {
+	public function test_disable_subscription_edit_for_india(
+		bool $is_subscription,
+		bool $order_has_parent,
+		array $mandate,
+		bool $expected
+	): void {
 		$order = WC_Helper_Order::create_order();
 
 		if ( $order_has_parent ) {
 			$parent_order = WC_Helper_Order::create_order();
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $parent_order, $mandate_id );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_mandate_id( $parent_order, $mandate['id'] ?? '' );
 			$parent_order->save_meta_data();
 
 			$order->set_parent_id( $parent_order->get_id() );
 			$order->save();
 		}
 
-		WC_Subscriptions_Helpers::$wcs_is_subscription = true;
+		WC_Subscriptions_Helpers::$wcs_is_subscription = $is_subscription;
 
 		// Mock response from Stripe API using request arguments.
-		$mock_request = function ( $preempt, $parsed_args, $url ) {
+		$mock_request = function ( $preempt, $parsed_args, $url ) use ( $mandate ) {
 			$mandates_base_url = 'https://api.stripe.com/v1/mandates/';
 			if ( ! str_starts_with( $url, $mandates_base_url ) ) {
 				return $preempt;
 			}
 
-			$mandate_id = str_replace( $mandates_base_url, '', $url );
-			switch ( $mandate_id ) {
-				case 'mandate_123':
-					// Non-card payment method mandate.
-					$payment_method_type = 'sepa_debit';
-					$amount_type         = '';
-					$supported_types     = [];
-					break;
-				case 'mandate_456':
-					// Card payment method, but not Indian.
-					$payment_method_type = 'card';
-					$amount_type         = '';
-					$supported_types     = [];
-					break;
-				case 'mandate_789':
-					// Indian card payment method.
-					$payment_method_type = 'card';
-					$amount_type         = 'fixed';
-					$supported_types     = [ 'india' ];
-					break;
-				default:
-					return $preempt;
-			}
-
 			return [
 				'response' => 200,
 				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'                     => $mandate_id,
-						'payment_method_details' => [
-							'type'               => $payment_method_type,
-							$payment_method_type => [
-								'amount_type'     => $amount_type,
-								'supported_types' => $supported_types,
-							],
-						],
-					]
-				),
+				'body'     => json_encode( $mandate ),
 			];
 		};
 
@@ -938,29 +909,67 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_disable_subscription_edit_for_india(): array {
 		return [
+			'not a subscription'              => [
+				'is subscription'  => false,
+				'order has parent' => true,
+				'mandate'          => [],
+				'expected'         => true,
+			],
 			'parent order not found'          => [
+				'is subscription'  => true,
 				'order has parent' => false,
-				'mandate ID'       => '',
+				'mandate'          => [],
 				'expected'         => true,
 			],
 			'missing mandate ID meta'         => [
+				'is subscription'  => true,
 				'order has parent' => true,
-				'mandate ID'       => '',
+				'mandate'          => [],
 				'expected'         => true,
 			],
 			'mandate is not card'             => [
+				'is subscription'  => true,
 				'order has parent' => true,
-				'mandate ID'       => 'mandate_123',
+				'mandate'          => [
+					'id'                     => 'mandate_123',
+					'payment_method_details' => [
+						'type'       => 'sepa_debit',
+						'sepa_debit' => [
+							'amount_type'     => '',
+							'supported_types' => [],
+						],
+					],
+				],
 				'expected'         => true,
 			],
 			'mandate is card, but not indian' => [
+				'is subscription'  => true,
 				'order has parent' => true,
-				'mandate ID'       => 'mandate_456',
+				'mandate'          => [
+					'id'                     => 'mandate_456',
+					'payment_method_details' => [
+						'type' => 'card',
+						'card' => [
+							'amount_type'     => '',
+							'supported_types' => [],
+						],
+					],
+				],
 				'expected'         => true,
 			],
 			'mandate is indian card'          => [
+				'is subscription'  => true,
 				'order has parent' => true,
-				'mandate ID'       => 'mandate_789',
+				'mandate'          => [
+					'id'                     => 'mandate_789',
+					'payment_method_details' => [
+						'type' => 'card',
+						'card' => [
+							'amount_type'     => 'fixed',
+							'supported_types' => [ 'india' ],
+						],
+					],
+				],
 				'expected'         => false,
 			],
 		];
