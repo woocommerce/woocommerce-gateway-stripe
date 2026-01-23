@@ -1298,4 +1298,263 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			$this->assertFalse( $result, 'Amazon Pay should be disabled' );
 		}
 	}
+
+	/**
+	 * Test is_normalized_state method.
+	 *
+	 * @param string $state State value.
+	 * @param string $country Country code.
+	 * @param bool   $expected Expected result.
+	 * @return void
+	 * @dataProvider provide_test_is_normalized_state
+	 */
+	public function test_is_normalized_state( string $state, string $country, bool $expected ): void {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertEquals( $expected, $wc_stripe_ece_helper->is_normalized_state( $state, $country ) );
+	}
+
+	/**
+	 * Provider for `test_is_normalized_state`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_normalized_state(): array {
+		return [
+			'US state code CA is normalized'            => [
+				'state'    => 'CA',
+				'country'  => 'US',
+				'expected' => true,
+			],
+			'US state full name California is not normalized' => [
+				'state'    => 'California',
+				'country'  => 'US',
+				'expected' => false,
+			],
+			'AU state code NSW is normalized'           => [
+				'state'    => 'NSW',
+				'country'  => 'AU',
+				'expected' => true,
+			],
+			'AU state full name New South Wales is not normalized' => [
+				'state'    => 'New South Wales',
+				'country'  => 'AU',
+				'expected' => false,
+			],
+			'CA province code BC is normalized'         => [
+				'state'    => 'BC',
+				'country'  => 'CA',
+				'expected' => true,
+			],
+			'CA province full name British Columbia is not normalized' => [
+				'state'    => 'British Columbia',
+				'country'  => 'CA',
+				'expected' => false,
+			],
+			'Empty state returns false'                 => [
+				'state'    => '',
+				'country'  => 'US',
+				'expected' => false,
+			],
+			'Country without states returns false'      => [
+				'state'    => 'SomeState',
+				'country'  => 'DE',
+				'expected' => false,
+			],
+		];
+	}
+
+	/**
+	 * Test get_normalized_state_from_pr_states method.
+	 *
+	 * This test ensures that the Payment Request API state mapping file is loaded correctly
+	 * and state normalization works as expected.
+	 *
+	 * @param string $state State value from Payment Request API.
+	 * @param string $country Country code.
+	 * @param string $expected Expected normalized state code.
+	 * @return void
+	 * @dataProvider provide_test_get_normalized_state_from_pr_states
+	 */
+	public function test_get_normalized_state_from_pr_states( string $state, string $country, string $expected ): void {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_state_from_pr_states( $state, $country ) );
+	}
+
+	/**
+	 * Provider for `test_get_normalized_state_from_pr_states`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_normalized_state_from_pr_states(): array {
+		return [
+			'US state California normalizes to CA'      => [
+				'state'    => 'California',
+				'country'  => 'US',
+				'expected' => 'CA',
+			],
+			'US state New York normalizes to NY'        => [
+				'state'    => 'New York',
+				'country'  => 'US',
+				'expected' => 'NY',
+			],
+			'US state code CA stays CA'                 => [
+				'state'    => 'CA',
+				'country'  => 'US',
+				'expected' => 'CA',
+			],
+			'AU state New South Wales normalizes to NSW' => [
+				'state'    => 'New South Wales',
+				'country'  => 'AU',
+				'expected' => 'NSW',
+			],
+			'AU state Queensland normalizes to QLD'     => [
+				'state'    => 'Queensland',
+				'country'  => 'AU',
+				'expected' => 'QLD',
+			],
+			'CA province British Columbia normalizes to BC' => [
+				'state'    => 'British Columbia',
+				'country'  => 'CA',
+				'expected' => 'BC',
+			],
+			'CA province French name Colombie-Britannique normalizes to BC' => [
+				'state'    => 'Colombie-Britannique',
+				'country'  => 'CA',
+				'expected' => 'BC',
+			],
+			'BR state São Paulo normalizes to SP'       => [
+				'state'    => 'São Paulo',
+				'country'  => 'BR',
+				'expected' => 'SP',
+			],
+			'Unknown state returns original value'      => [
+				'state'    => 'UnknownState',
+				'country'  => 'US',
+				'expected' => 'UnknownState',
+			],
+			'Country without PR states returns original value' => [
+				'state'    => 'SomeState',
+				'country'  => 'DE',
+				'expected' => 'SomeState',
+			],
+			'Case insensitive matching for US state'    => [
+				'state'    => 'california',
+				'country'  => 'US',
+				'expected' => 'CA',
+			],
+			'Case insensitive matching for AU state'    => [
+				'state'    => 'new south wales',
+				'country'  => 'AU',
+				'expected' => 'NSW',
+			],
+		];
+	}
+
+	/**
+	 * Test get_normalized_state method.
+	 *
+	 * This is the main state normalization method that combines PR states and WC states lookup.
+	 *
+	 * @param string $state State value.
+	 * @param string $country Country code.
+	 * @param string $expected Expected normalized state code.
+	 * @return void
+	 * @dataProvider provide_test_get_normalized_state
+	 */
+	public function test_get_normalized_state( string $state, string $country, string $expected ): void {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_state( $state, $country ) );
+	}
+
+	/**
+	 * Provider for `test_get_normalized_state`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_normalized_state(): array {
+		return [
+			'Already normalized US state code stays unchanged' => [
+				'state'    => 'CA',
+				'country'  => 'US',
+				'expected' => 'CA',
+			],
+			'US state full name normalizes to code'     => [
+				'state'    => 'California',
+				'country'  => 'US',
+				'expected' => 'CA',
+			],
+			'Empty state returns empty'                 => [
+				'state'    => '',
+				'country'  => 'US',
+				'expected' => '',
+			],
+			'AU state full name normalizes to code'     => [
+				'state'    => 'New South Wales',
+				'country'  => 'AU',
+				'expected' => 'NSW',
+			],
+			'CA province full name normalizes to code'  => [
+				'state'    => 'British Columbia',
+				'country'  => 'CA',
+				'expected' => 'BC',
+			],
+			'Unknown state returns original value'      => [
+				'state'    => 'UnknownState',
+				'country'  => 'US',
+				'expected' => 'UnknownState',
+			],
+		];
+	}
+
+	/**
+	 * Test normalize_state method with address data.
+	 *
+	 * This tests the full normalization flow with billing and shipping addresses.
+	 *
+	 * @return void
+	 */
+	public function test_normalize_state_with_address_data(): void {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$data = [
+			'billing_address'  => [
+				'country' => 'US',
+				'state'   => 'California',
+			],
+			'shipping_address' => [
+				'country' => 'AU',
+				'state'   => 'New South Wales',
+			],
+		];
+
+		$result = $wc_stripe_ece_helper->normalize_state( $data );
+
+		$this->assertEquals( 'CA', $result['billing_address']['state'] );
+		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
+
+	/**
+	 * Test normalize_state method when states are already normalized.
+	 *
+	 * @return void
+	 */
+	public function test_normalize_state_with_already_normalized_states(): void {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$data = [
+			'billing_address'  => [
+				'country' => 'US',
+				'state'   => 'CA',
+			],
+			'shipping_address' => [
+				'country' => 'AU',
+				'state'   => 'NSW',
+			],
+		];
+
+		$result = $wc_stripe_ece_helper->normalize_state( $data );
+
+		$this->assertEquals( 'CA', $result['billing_address']['state'] );
+		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
 }
