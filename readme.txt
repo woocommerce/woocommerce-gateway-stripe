@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Update - Remove the main deferred intent flag (`wc-stripe-is-deferred-intent`) and all the code not using it, as it is the default behavior now
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
