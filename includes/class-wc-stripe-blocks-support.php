@@ -275,8 +275,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private function get_show_save_option() {
 		$saved_cards = $this->get_show_saved_cards();
 		// This assumes that Stripe supports `tokenization` - currently this is true, based on
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/class-wc-gateway-stripe.php#L95 .
-		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/ad19168b63df86176cbe35c3e95203a245687640/includes/class-wc-gateway-stripe.php#L271 and
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L222.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L905 and
 		// https://github.com/woocommerce/woocommerce/wiki/Payment-Token-API .
 		return apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $saved_cards, FILTER_VALIDATE_BOOLEAN ) );
 	}

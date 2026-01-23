@@ -5,7 +5,7 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 10.3.0
+ * Version: 10.3.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.7
  * Tested up to: 6.9
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '10.3.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '10.3.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '9.9' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '10.0' );
@@ -81,7 +81,7 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
 	}
@@ -145,7 +145,7 @@ add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe-blocks-support.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is
 		// registered before the WooCommerce Blocks built-in Stripe registration.
 		// Blocks code has a check in place to only register if 'stripe' is not
