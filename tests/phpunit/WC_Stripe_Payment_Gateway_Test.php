@@ -869,10 +869,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Mock response from Stripe API using request arguments.
 		$mock_request = function ( $preempt, $parsed_args, $url ) {
-			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/mandates/' ) ) {
+			$mandates_base_url = 'https://api.stripe.com/v1/mandates/';
+			if ( ! str_starts_with( $url, $mandates_base_url ) ) {
 				return $preempt;
 			}
-			$mandate_id = str_replace( 'https://api.stripe.com/v1/mandates/', '', $url );
+
+			$mandate_id = str_replace( $mandates_base_url, '', $url );
 			switch ( $mandate_id ) {
 				case 'mandate_123':
 					// Non-card payment method mandate.
