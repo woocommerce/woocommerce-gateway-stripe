@@ -909,25 +909,25 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_disable_subscription_edit_for_india(): array {
 		return [
-			'not a subscription'              => [
+			'not a subscription'                             => [
 				'is subscription'  => false,
 				'order has parent' => true,
 				'mandate'          => [],
 				'expected'         => true,
 			],
-			'parent order not found'          => [
+			'parent order not found'                         => [
 				'is subscription'  => true,
 				'order has parent' => false,
 				'mandate'          => [],
 				'expected'         => true,
 			],
-			'missing mandate ID meta'         => [
+			'missing mandate ID meta'                        => [
 				'is subscription'  => true,
 				'order has parent' => true,
 				'mandate'          => [],
 				'expected'         => true,
 			],
-			'mandate is not card'             => [
+			'mandate is not card'                            => [
 				'is subscription'  => true,
 				'order has parent' => true,
 				'mandate'          => [
@@ -942,7 +942,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'         => true,
 			],
-			'mandate is card, but not indian' => [
+			'mandate is card, but not indian'                 => [
 				'is subscription'  => true,
 				'order has parent' => true,
 				'mandate'          => [
@@ -957,7 +957,22 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'         => true,
 			],
-			'mandate is indian card'          => [
+			'mandate is indian card, but amount is not fixed' => [
+				'is subscription'  => true,
+				'order has parent' => true,
+				'mandate'          => [
+					'id'                     => 'mandate_789',
+					'payment_method_details' => [
+						'type' => 'card',
+						'card' => [
+							'amount_type'     => 'maximum',
+							'supported_types' => [ 'india' ],
+						],
+					],
+				],
+				'expected'         => true,
+			],
+			'mandate is indian card, amount is fixed'          => [
 				'is subscription'  => true,
 				'order has parent' => true,
 				'mandate'          => [
