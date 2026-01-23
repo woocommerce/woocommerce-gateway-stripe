@@ -25,6 +25,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Initialize subscription support and hooks.
 	 *
+	 * @return void
 	 * @since 5.6.0
 	 */
 	public function maybe_init_subscriptions() {
@@ -110,6 +111,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Displays a checkbox to allow users to update all subs payments with new
 	 * payment.
 	 *
+	 * @return void
 	 * @since 4.1.11
 	 */
 	public function display_update_subs_payment_checkout() {
@@ -147,8 +149,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @see handle_upe_add_payment_method_success() for the new UPE checkout method.
 	 *
-	 * @param string $source_id
-	 * @param object $source_object
+	 * @param string $source_id The source ID.
+	 * @param object $source_object The source object.
+	 * @return void
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
 		$this->handle_upe_add_payment_method_success( get_current_user_id(), $source_object );
@@ -161,6 +164,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param int      $user_id               The user ID.
 	 * @param stdClass $payment_method_object The newly added payment method object.
+	 * @return void
 	 */
 	public function handle_upe_add_payment_method_success( $user_id, $payment_method_object ) {
 		// To avoid errors, exit early if there is no WC_Subscriptions_Change_Payment_Gateway class or the payment method object is not complete.
@@ -206,6 +210,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Render a dummy element in the "Change payment method" form (that does not appear in the "Pay for order" form)
 	 * which can be checked to determine proper SCA handling to apply for each form.
 	 *
+	 * @return void
 	 * @since 4.6.1
 	 */
 	public function differentiate_change_payment_method_form() {
@@ -593,7 +598,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order              The order object.
 	 * @param stdClass $source             The source object.
-	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
+	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe'.
+	 * @return void
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
@@ -633,6 +639,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Don't transfer Stripe customer/token meta to resubscribe orders.
 	 *
 	 * @param WC_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
+	 * @return void
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -650,7 +657,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Don't transfer Stripe fee/ID meta to renewal orders.
 	 *
-	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
+	 * @param WC_Order|null $renewal_order The renewal order.
+	 * @return WC_Order|null The renewal order.
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -763,6 +771,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
 	 * @param WC_Order $order            The renewal order.
 	 * @param object   $prepared_source  The source object.
+	 * @param bool     $is_setup_intent  Whether this is a setup intent.
+	 * @return array
 	 */
 	public function add_subscription_information_to_intent( $request, $order, $prepared_source, $is_setup_intent = false ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
@@ -831,7 +841,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * new mandate should be created.
 	 *
 	 * @param WC_Order $order The subscription order.
-	 * @return string the mandate id or empty string if no valid mandate id is found.
+	 * @param string   $payment_method The payment method ID.
+	 * @return string The mandate id or empty string if no valid mandate id is found.
 	 */
 	private function get_mandate_for_subscription( $order, $payment_method ) {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
@@ -1179,6 +1190,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 * @param stdClass $intent The Payment Intent object.
+	 * @return void
 	 */
 	protected function maybe_process_subscription_early_renewal_success( $order, $intent ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
@@ -1196,6 +1208,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 * @param stdClass $intent The Payment Intent object (unused).
+	 * @return void
 	 */
 	protected function maybe_process_subscription_early_renewal_failure( $order, $intent ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
@@ -1244,9 +1257,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Disables the ability to edit a subscription for orders with mandates.
 	 *
-	 * @param $editable boolean The current editability of the subscription.
-	 * @param $order WC_Order The order object.
-	 * @return boolean true if the subscription can be edited, false otherwise.
+	 * @param bool     $editable The current editability of the subscription.
+	 * @param WC_Order $order The order object.
+	 * @return bool true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
 		$parent_order = wc_get_order( $order->get_parent_id() );

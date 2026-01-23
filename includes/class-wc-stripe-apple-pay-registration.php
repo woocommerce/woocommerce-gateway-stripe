@@ -13,7 +13,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Cached Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	private $stripe_settings;
 
@@ -44,8 +44,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Gets the Stripe settings.
 	 *
 	 * @since 4.0.6
-	 * @param string $setting
-	 * @param string default
+	 * @param string $setting The setting key.
+	 * @param string $default_value The default value.
 	 * @return string $setting_value
 	 */
 	public function get_option( $setting = '', $default_value = '' ) {

@@ -12,8 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Abstract class that will be inherited by all payment methods.
  *
- * @extends WC_Payment_Gateway_CC
- *
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
@@ -64,6 +62,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Disables gateway.
+	 *
+	 * @return void
 	 */
 	public function disable() {
 		$this->update_option( 'enabled', 'no' );
@@ -71,6 +71,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Enables gateway.
+	 *
+	 * @return void
 	 */
 	public function enable() {
 		$this->update_option( 'enabled', 'yes' );
@@ -105,6 +107,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Prints the admin options for the gateway.
 	 * Inserts an empty placeholder div feature flag is enabled.
+	 *
+	 * @return void
 	 */
 	public function admin_options() {
 		$form_fields = $this->get_form_fields();
@@ -154,7 +158,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * they are worth retrying.
 	 *
 	 * @since 4.0.5
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_retryable_error( $error ) {
 		// Note that this check is required since the error type is 'invalid_request_error' which
@@ -196,7 +201,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error due to retries with different parameters.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_same_idempotency_error( $error ) {
 		return (
@@ -211,7 +217,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_no_such_customer_error( $error ) {
 		return (
@@ -226,7 +233,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such token.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_no_such_token_error( $error ) {
 		return (
@@ -241,7 +249,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_no_such_source_error( $error ) {
 		return (
@@ -256,7 +265,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source linked to customer.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object $error The error object.
+	 * @return bool
 	 */
 	public function is_no_linked_source_error( $error ) {
 		return (
@@ -440,8 +450,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
-	 * @param int    $id Stripe session id.
+	 * @param WC_Order|null   $order The order object.
+	 * @param int|string|null $id    Stripe session id.
+	 * @return string
 	 */
 	public function get_stripe_return_url( $order = null, $id = null ) {
 		if ( is_object( $order ) ) {
@@ -467,9 +478,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.5.4
-	 * @param  WC_Order $order
+	 * @param  WC_Order $order The order object.
 	 * @param  object   $prepared_payment_method Stripe Payment Method or Source.
-	 * @return array()
+	 * @return array
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
 		$settings                              = WC_Stripe_Helper::get_stripe_settings();
@@ -873,7 +884,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * throws an exception if it is one, but that is not allowed.
 	 *
 	 * @since 4.2.0
-	 * @param object $prepared_source The object with source details.
+	 * @param object $payment_method The payment method object.
+	 * @return void
 	 * @throws WC_Stripe_Exception An exception if the card is prepaid, but prepaid cards are not allowed.
 	 */
 	public function maybe_disallow_prepaid_card( $payment_method ) {
@@ -1084,6 +1096,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2.0
 	 * @param  object $prepared_source The source that should be verified.
+	 * @return void
 	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
 	 */
 	public function check_source( $prepared_source ) {
@@ -1417,7 +1430,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * needs to be the same to mean its the original request.
 	 *
 	 * @since 4.0.6
-	 * @param array $headers
+	 * @param array $headers The request headers.
+	 * @return bool
 	 */
 	public function is_original_request( $headers ) {
 		if ( $headers['original-request'] === $headers['request-id'] ) {
@@ -2135,6 +2149,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * Outputs scripts used for stripe payment
 	 *
+	 * @return void
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 */
