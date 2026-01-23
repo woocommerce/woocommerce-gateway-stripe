@@ -1244,8 +1244,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Disables the ability to edit a subscription for Indian orders with fixed amount mandates.
 	 *
-	 * @param $editable boolean The current editability of the subscription.
-	 * @param $order \WC_Order The subscription order object.
+	 * @param boolean   $editable The current editability of the subscription.
+	 * @param \WC_Order $order The order object.
 	 * @return boolean true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
