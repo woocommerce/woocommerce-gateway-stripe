@@ -6,6 +6,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
+use WC_Subscriptions_Helpers;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Stripe_Payment_Methods;
@@ -867,6 +868,8 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$order->save();
 		}
 
+		WC_Subscriptions_Helpers::$wcs_is_subscription = true;
+
 		// Mock response from Stripe API using request arguments.
 		$mock_request = function ( $preempt, $parsed_args, $url ) {
 			$mandates_base_url = 'https://api.stripe.com/v1/mandates/';
@@ -923,6 +926,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Clean up.
 		\WC_Stripe_Database_Cache::delete( 'mandate_for_subscription_' . $order->get_id() );
 		remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+		WC_Subscriptions_Helpers::$wcs_is_subscription = null;
 
 		$this->assertSame( $expected, $actual );
 	}
