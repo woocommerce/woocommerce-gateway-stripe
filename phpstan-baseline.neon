@@ -781,18 +781,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8005,18 +7993,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -8527,18 +8503,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -9045,18 +9009,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:differentiate_change_payment_method_form\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -9577,18 +9529,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10087,18 +10027,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10593,18 +10521,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:differentiate_change_payment_method_form\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -11167,18 +11083,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -11673,18 +11577,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:differentiate_change_payment_method_form\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -12211,18 +12103,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -12717,18 +12597,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:differentiate_change_payment_method_form\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -13333,18 +13201,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -13873,18 +13729,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:display_update_subs_payment_checkout\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -14391,18 +14235,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:differentiate_change_payment_method_form\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:disable_subscription_edit_for_india\(\) has parameter \$editable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:disable_subscription_edit_for_india\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
