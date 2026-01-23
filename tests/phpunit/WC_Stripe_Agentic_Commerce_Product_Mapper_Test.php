@@ -207,42 +207,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_brand_extraction_from_attribute() {
-		// Create a brand attribute.
-		$attribute_id = wc_create_attribute(
-			[
-				'name' => 'Brand',
-				'slug' => 'pa_brand',
-				'type' => 'select',
-			]
-		);
-
-		// Skip if attribute creation failed.
-		if ( is_wp_error( $attribute_id ) ) {
-			$this->markTestSkipped( 'Could not create brand attribute: ' . $attribute_id->get_error_message() );
-		}
-
-		// Create a brand term.
-		$term = wp_insert_term( 'Nike', 'pa_brand' );
-
-		// Skip if term creation failed.
-		if ( is_wp_error( $term ) ) {
-			wc_delete_attribute( $attribute_id );
-			$this->markTestSkipped( 'Could not create brand term: ' . $term->get_error_message() );
-		}
-
 		$product = WC_Helper_Product::create_simple_product();
 
-		// Set the brand attribute.
-		$attributes   = [];
-		$attributes[] = [
-			'name'     => 'pa_brand',
-			'value'    => '',
-			'position' => 0,
-			'visible'  => true,
-			'taxonomy' => 'pa_brand',
-		];
-		$product->set_attributes( $attributes );
-		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_brand' );
+		// Create and set the brand attribute using helper.
+		$brand_attribute = WC_Helper_Product::create_product_attribute_object( 'brand', [ 'Nike' ] );
+		$product->set_attributes( [ $brand_attribute ] );
 		$product->save();
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -252,8 +221,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		// Cleanup.
 		$product->delete( true );
-		wp_delete_term( $term['term_id'], 'pa_brand' );
-		wc_delete_attribute( $attribute_id );
+		$attribute = wc_get_attribute( $brand_attribute->get_id() );
+		if ( $attribute ) {
+			$taxonomy = $attribute->slug;
+			$terms    = get_terms(
+				[
+					'taxonomy'   => $taxonomy,
+					'hide_empty' => false,
+				]
+			);
+			foreach ( $terms as $term ) {
+				wp_delete_term( $term->term_id, $taxonomy );
+			}
+			wc_delete_attribute( $brand_attribute->get_id() );
+		}
 	}
 
 	/**
@@ -416,41 +397,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_variation_inherits_brand_from_parent() {
-		// Create brand attribute.
-		$attribute_id = wc_create_attribute(
-			[
-				'name' => 'Brand',
-				'slug' => 'pa_brand',
-				'type' => 'select',
-			]
-		);
-
-		// Skip if attribute creation failed.
-		if ( is_wp_error( $attribute_id ) ) {
-			$this->markTestSkipped( 'Could not create brand attribute: ' . $attribute_id->get_error_message() );
-		}
-
-		$term = wp_insert_term( 'Nike', 'pa_brand' );
-
-		// Skip if term creation failed.
-		if ( is_wp_error( $term ) ) {
-			wc_delete_attribute( $attribute_id );
-			$this->markTestSkipped( 'Could not create brand term: ' . $term->get_error_message() );
-		}
-
 		$parent = WC_Helper_Product::create_variation_product();
 
-		// Set brand on parent.
-		$attributes   = $parent->get_attributes();
-		$attributes[] = [
-			'name'     => 'pa_brand',
-			'value'    => '',
-			'position' => 0,
-			'visible'  => true,
-			'taxonomy' => 'pa_brand',
-		];
+		// Create and set brand attribute on parent using helper.
+		$brand_attribute = WC_Helper_Product::create_product_attribute_object( 'brand', [ 'Nike' ] );
+		$attributes      = $parent->get_attributes();
+		$attributes[]    = $brand_attribute;
 		$parent->set_attributes( $attributes );
-		wp_set_object_terms( $parent->get_id(), [ $term['term_id'] ], 'pa_brand' );
 		$parent->save();
 
 		$variations = $parent->get_children();
@@ -463,8 +416,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		// Cleanup.
 		$parent->delete( true );
-		wp_delete_term( $term['term_id'], 'pa_brand' );
-		wc_delete_attribute( $attribute_id );
+		$attribute = wc_get_attribute( $brand_attribute->get_id() );
+		if ( $attribute ) {
+			$taxonomy = $attribute->slug;
+			$terms    = get_terms(
+				[
+					'taxonomy'   => $taxonomy,
+					'hide_empty' => false,
+				]
+			);
+			foreach ( $terms as $term ) {
+				wp_delete_term( $term->term_id, $taxonomy );
+			}
+			wc_delete_attribute( $brand_attribute->get_id() );
+		}
 	}
 
 	/**
@@ -473,40 +438,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_color_attribute_extraction() {
-		// Create color attribute.
-		$attribute_id = wc_create_attribute(
-			[
-				'name' => 'Color',
-				'slug' => 'pa_color',
-				'type' => 'select',
-			]
-		);
-
-		// Skip if attribute creation failed.
-		if ( is_wp_error( $attribute_id ) ) {
-			$this->markTestSkipped( 'Could not create color attribute: ' . $attribute_id->get_error_message() );
-		}
-
-		$term = wp_insert_term( 'Red', 'pa_color' );
-
-		// Skip if term creation failed.
-		if ( is_wp_error( $term ) ) {
-			wc_delete_attribute( $attribute_id );
-			$this->markTestSkipped( 'Could not create color term: ' . $term->get_error_message() );
-		}
-
 		$product = WC_Helper_Product::create_simple_product();
 
-		$attributes   = [];
-		$attributes[] = [
-			'name'     => 'pa_color',
-			'value'    => '',
-			'position' => 0,
-			'visible'  => true,
-			'taxonomy' => 'pa_color',
-		];
-		$product->set_attributes( $attributes );
-		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_color' );
+		// Create and set the color attribute using helper.
+		$color_attribute = WC_Helper_Product::create_product_attribute_object( 'color', [ 'Red' ] );
+		$product->set_attributes( [ $color_attribute ] );
 		$product->save();
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -516,8 +452,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		// Cleanup.
 		$product->delete( true );
-		wp_delete_term( $term['term_id'], 'pa_color' );
-		wc_delete_attribute( $attribute_id );
+		$attribute = wc_get_attribute( $color_attribute->get_id() );
+		if ( $attribute ) {
+			$taxonomy = $attribute->slug;
+			$terms    = get_terms(
+				[
+					'taxonomy'   => $taxonomy,
+					'hide_empty' => false,
+				]
+			);
+			foreach ( $terms as $term ) {
+				wp_delete_term( $term->term_id, $taxonomy );
+			}
+			wc_delete_attribute( $color_attribute->get_id() );
+		}
 	}
 
 	/**
@@ -526,40 +474,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_size_attribute_extraction() {
-		// Create size attribute.
-		$attribute_id = wc_create_attribute(
-			[
-				'name' => 'Size',
-				'slug' => 'pa_size',
-				'type' => 'select',
-			]
-		);
-
-		// Skip if attribute creation failed.
-		if ( is_wp_error( $attribute_id ) ) {
-			$this->markTestSkipped( 'Could not create size attribute: ' . $attribute_id->get_error_message() );
-		}
-
-		$term = wp_insert_term( 'Large', 'pa_size' );
-
-		// Skip if term creation failed.
-		if ( is_wp_error( $term ) ) {
-			wc_delete_attribute( $attribute_id );
-			$this->markTestSkipped( 'Could not create size term: ' . $term->get_error_message() );
-		}
-
 		$product = WC_Helper_Product::create_simple_product();
 
-		$attributes   = [];
-		$attributes[] = [
-			'name'     => 'pa_size',
-			'value'    => '',
-			'position' => 0,
-			'visible'  => true,
-			'taxonomy' => 'pa_size',
-		];
-		$product->set_attributes( $attributes );
-		wp_set_object_terms( $product->get_id(), [ $term['term_id'] ], 'pa_size' );
+		// Create and set the size attribute using helper.
+		$size_attribute = WC_Helper_Product::create_product_attribute_object( 'size', [ 'Large' ] );
+		$product->set_attributes( [ $size_attribute ] );
 		$product->save();
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -574,8 +493,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		// Cleanup.
 		$product->delete( true );
-		wp_delete_term( $term['term_id'], 'pa_size' );
-		wc_delete_attribute( $attribute_id );
+		$attribute = wc_get_attribute( $size_attribute->get_id() );
+		if ( $attribute ) {
+			$taxonomy = $attribute->slug;
+			$terms    = get_terms(
+				[
+					'taxonomy'   => $taxonomy,
+					'hide_empty' => false,
+				]
+			);
+			foreach ( $terms as $term ) {
+				wp_delete_term( $term->term_id, $taxonomy );
+			}
+			wc_delete_attribute( $size_attribute->get_id() );
+		}
 	}
 
 	/**
@@ -631,18 +562,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 */
 	public function test_gtin_field_mapping() {
 		$product = WC_Helper_Product::create_simple_product();
-		$product->set_sku( '1234567890123' );
+		$product->set_sku( 'TEST-SKU' );
+		$product->set_global_unique_id( '1234567890123' ); // Valid GTIN-13 format.
 		$product->save();
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 		$result = $mapper->map_product( $product );
 
-		// GTIN is optional - check if it exists before asserting.
-		if ( isset( $result['gtin'] ) ) {
-			$this->assertNotEmpty( $result['gtin'], 'GTIN should not be empty if present' );
-		} else {
-			$this->markTestIncomplete( 'GTIN field not present in output (product may not have global_unique_id set)' );
-		}
+		$this->assertArrayHasKey( 'gtin', $result, 'GTIN field should be present when global_unique_id is set' );
+		$this->assertEquals( '1234567890123', $result['gtin'], 'GTIN should match the global_unique_id' );
 
 		$product->delete( true );
 	}
