@@ -1249,6 +1249,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return boolean true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! $this->is_subscription( $order ) ) {
+			return $editable;
+		}
+
 		$parent_order = wc_get_order( $order->get_parent_id() );
 		if ( ! $parent_order ) {
 			return $editable;
