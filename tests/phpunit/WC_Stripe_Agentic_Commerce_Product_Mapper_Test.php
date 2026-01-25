@@ -657,25 +657,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test product with no price returns null price.
-	 *
-	 * @return void
-	 */
-	public function test_product_with_no_price() {
-		$product = WC_Helper_Product::create_simple_product();
-		$product->set_regular_price( '' );
-		$product->save();
-
-		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
-		$result = $mapper->map_product( $product );
-
-		// If price is null/empty, clean_row() removes it from output.
-		$this->assertArrayNotHasKey( 'price', $result, 'Price should not be present when product has no price' );
-
-		$product->delete( true );
-	}
-
-	/**
 	 * Test all schema fields are present in mapper output.
 	 *
 	 * @return void

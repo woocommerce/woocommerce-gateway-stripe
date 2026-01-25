@@ -89,8 +89,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			$row[ $field ] = $this->map_field( $product, $field, $config, $parent_product );
 		}
 
-		$row = $this->clean_row( $row );
-
 		/**
 		 * Filter mapped product data before validation.
 		 *
@@ -158,22 +156,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			default:
 				return $value;
 		}
-	}
-
-	/**
-	 * Remove null and empty fields from the row.
-	 *
-	 * @since 10.4.0
-	 * @param array $row Product data row.
-	 * @return array Cleaned product data row.
-	 */
-	protected function clean_row( array $row ): array {
-		return array_filter(
-			$row,
-			function ( $value ) {
-				return null !== $value && '' !== $value;
-			}
-		);
 	}
 
 	/**

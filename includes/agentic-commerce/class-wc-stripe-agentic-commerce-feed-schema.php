@@ -351,10 +351,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	 *
 	 * @since 10.4.0
 	 * @param string $field Field name to check.
-	 * @param array  $data  Product data for conditional checks.
+	 * @param array  $data  Product data for conditional checks. Not modified, passed by reference.
 	 * @return bool True if field is required, false otherwise.
 	 */
-	public static function is_field_required( string $field, array $data = [] ): bool {
+	public static function is_field_required( string $field, array &$data = [] ): bool {
 		$field_config = self::get_field( $field );
 		if ( ! $field_config ) {
 			return false;
