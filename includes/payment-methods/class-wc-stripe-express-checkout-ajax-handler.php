@@ -87,9 +87,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product      = wc_get_product( $product_id );
+		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+		$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+		$product    = wc_get_product( $product_id );
+
+		if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
+			/* translators: 1) The product Id */
+			throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+		}
+
 		$product_type = $product->get_type();
 
 		$booking_ids = [];
@@ -249,7 +255,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$is_deposit      = isset( $_POST['wc_deposit_option'] ) ? 'yes' === sanitize_text_field( wp_unslash( $_POST['wc_deposit_option'] ) ) : null;
 			$deposit_plan_id = isset( $_POST['wc_deposit_payment_plan'] ) ? absint( $_POST['wc_deposit_payment_plan'] ) : 0;
 
-			if ( ! is_a( $product, 'WC_Product' ) ) {
+			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}

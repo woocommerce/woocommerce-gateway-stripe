@@ -38,7 +38,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 

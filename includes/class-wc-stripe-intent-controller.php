@@ -16,7 +16,7 @@ class WC_Stripe_Intent_Controller {
 	 * Holds an instance of the gateway class.
 	 *
 	 * @since 4.2.0
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	protected $gateway;
 
