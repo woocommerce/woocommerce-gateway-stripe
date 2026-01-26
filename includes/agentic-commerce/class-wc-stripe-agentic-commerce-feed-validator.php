@@ -155,16 +155,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	protected function validate_field_formats( array $row ): array {
 		$errors = [];
 
-		/**
-		 * Fields to check soon:
-		 * - exempt_categories
-		 * - format
-		 * - max_items
-		 * - max_length
-		 * - range
-		 * - values
-		 */
-
 		// Validate Stripe tax code format.
 		if ( ! empty( $row['stripe_product_tax_code'] ) ) {
 			if ( ! preg_match( '/^txcd_\d{8}$/', $row['stripe_product_tax_code'] ) ) {
