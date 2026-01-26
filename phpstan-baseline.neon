@@ -2641,6 +2641,90 @@ parameters:
 			path: includes/admin/stripe-settings.php
 
 		-
+			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-files-api-delivery.php
+
+		-
+			message: '#^Access to property \$memory_manager on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Access to property \$processed_batches on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Access to property \$processed_items on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Access to property \$total_batch_count on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Access to property \$total_count on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Call to method check_setup\(\) on an unknown class Automattic\\WooCommerce\\ProductFeedForOpenAI\\Integrations\\FileDeliveryInterface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Call to method deliver\(\) on an unknown class Automattic\\WooCommerce\\ProductFeedForOpenAI\\Integrations\\FileDeliveryInterface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Call to static method from_integration\(\) on an unknown class Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\ProductWalker\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Function as_schedule_recurring_action not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Method WC_Stripe_Agentic_Commerce_Integration\:\:get_push_delivery_method\(\) has invalid return type Automattic\\WooCommerce\\ProductFeedForOpenAI\\Integrations\\FileDeliveryInterface\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Method WC_Stripe_Agentic_Commerce_Integration\:\:get_push_delivery_method\(\) should return Automattic\\WooCommerce\\ProductFeedForOpenAI\\Integrations\\FileDeliveryInterface but returns WC_Stripe_Agentic_Commerce_Files_Api_Delivery\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
+			message: '#^Parameter \$progress of anonymous function has invalid type Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\WalkerProgress\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$enabled_events\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4767,6 +4851,12 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:init\(\)\.$#'
 			identifier: method.notFound
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Class Automattic\\WooCommerce\\Internal\\ProductFeed\\ProductFeed not found\.$#'
+			identifier: class.notFound
 			count: 1
 			path: includes/class-wc-stripe.php
 

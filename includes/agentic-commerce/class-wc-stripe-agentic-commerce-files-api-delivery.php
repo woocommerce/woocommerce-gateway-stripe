@@ -79,6 +79,12 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery implements FileDeliveryInter
 
 		$file_path = $feed->get_file_path();
 
+		if ( empty( $file_path ) || ! is_string( $file_path ) ) {
+			throw new Exception(
+				esc_html__( 'Feed file path is invalid or empty.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		if ( ! file_exists( $file_path ) ) {
 			throw new Exception(
 				esc_html(

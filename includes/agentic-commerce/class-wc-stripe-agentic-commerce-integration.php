@@ -240,7 +240,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			// Get feed file info.
 			$file_path = $feed->get_file_path();
-			$file_size = file_exists( $file_path ) ? filesize( $file_path ) : 0;
+			$file_size = 0;
+
+			if ( ! empty( $file_path ) && is_string( $file_path ) && file_exists( $file_path ) ) {
+				$file_size = filesize( $file_path );
+			}
 
 			WC_Stripe_Logger::log(
 				'Agentic Commerce: Feed generated successfully',
