@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
 
     steps:
       - name: Checkout branch
@@ -31,7 +32,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          direct_prompt: |
+          prompt: |
             Please reorganize the changelog entries in readme.txt for the upcoming release.
 
             The changelog entries should be rearranged under these four headings (in this order):
@@ -64,8 +65,7 @@ jobs:
             After making changes, commit them to the current branch with message:
             "Reorganize changelog entries for release"
 
-          allowed_tools: "Edit,Read,Bash(git status),Bash(git add),Bash(git commit),Bash(git diff)"
-          timeout_minutes: 10
+          claude_args: "--allowedTools 'Edit,Read,Bash(git status),Bash(git add),Bash(git commit),Bash(git diff)' --max-turns 10"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 #v8.1.0
