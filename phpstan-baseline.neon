@@ -2503,24 +2503,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
 
 		-
-			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
-
-		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
 			count: 1
@@ -5639,54 +5621,6 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:add_action\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_content\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_type\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Availability_Note\:\:get_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Availability_Note\:\:init\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
 
 		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:get_upe_enabled_at_checkout_payment_method_ids\(\)\.$#'
