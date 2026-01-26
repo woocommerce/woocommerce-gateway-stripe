@@ -24,6 +24,8 @@ class WC_Stripe_Intent_Controller {
 	 * Adds the necessary hooks.
 	 *
 	 * @since 4.2.0
+	 *
+	 * @return void
 	 */
 	public function init_hooks() {
 		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
@@ -105,6 +107,8 @@ class WC_Stripe_Intent_Controller {
 	 * Handles successful PaymentIntent authentications.
 	 *
 	 * @since 4.2.0
+	 *
+	 * @return void
 	 */
 	public function verify_intent() {
 		global $woocommerce;
@@ -414,6 +418,8 @@ class WC_Stripe_Intent_Controller {
 	 * Handle AJAX request for updating a payment intent for Stripe UPE.
 	 *
 	 * @since 5.6.0
+	 *
+	 * @return void
 	 */
 	public function update_payment_intent_ajax() {
 		try {
@@ -590,6 +596,8 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @since 5.6.0
 	 * @version 9.4.0
+	 *
+	 * @return void
 	 */
 	public function init_setup_intent_ajax() {
 		try {
@@ -668,6 +676,8 @@ class WC_Stripe_Intent_Controller {
 	 * - Pay for Order page (in theory).
 	 *
 	 * @throws WC_Stripe_Exception
+	 *
+	 * @return void
 	 */
 	public function update_order_status_ajax() {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -739,6 +749,8 @@ class WC_Stripe_Intent_Controller {
 	 * We will log the error and update the order.
 	 *
 	 * @throws WC_Stripe_Exception
+	 *
+	 * @return void
 	 */
 	public function update_failed_order_ajax() {
 		$order     = false;
@@ -1405,6 +1417,8 @@ class WC_Stripe_Intent_Controller {
 	 * @deprecated 8.3.0
 	 * @since 5.6.0
 	 * @version 5.6.0
+	 *
+	 * @return void
 	 */
 	public function maybe_process_upe_redirect() {
 		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
@@ -1417,6 +1431,8 @@ class WC_Stripe_Intent_Controller {
 
 	/**
 	 * Check if manual renewal is required for the payment method.
+	 *
+	 * @param bool $is_payment_method_reusable Whether the payment method is reusable.
 	 *
 	 * @return bool
 	 */

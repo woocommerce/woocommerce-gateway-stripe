@@ -158,9 +158,11 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param object $order The order object.
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
+	 *
+	 * @return void|bool
 	 */
 	public static function delete_stripe_fee( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -221,9 +223,11 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param object $order The order object.
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
+	 *
+	 * @return void|bool
 	 */
 	public static function delete_stripe_net( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -524,6 +528,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Get legacy payment method by id.
 	 *
+	 * @param string $id The payment method ID.
+	 *
 	 * @return null
 	 *
 	 * @deprecated 10.3.0 This method will be removed in future versions.
@@ -679,6 +685,8 @@ class WC_Stripe_Helper {
 	 * in the order merchants have chosen in the settings.
 	 *
 	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
+	 *
+	 * @return void
 	 */
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
@@ -803,7 +811,9 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
-	 * @param string $charge_id
+	 * @param string $charge_id The Stripe charge ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
 		global $wpdb;
@@ -835,7 +845,9 @@ class WC_Stripe_Helper {
 	 * Gets the order by Stripe refund ID.
 	 *
 	 * @since 7.5.0
-	 * @param string $refund_id
+	 * @param string $refund_id The Stripe refund ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
@@ -1167,10 +1179,12 @@ class WC_Stripe_Helper {
 	/**
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
-	 * @param $payment_intent_id
-	 * @param $order
+	 * @param string   $payment_intent_id The payment intent ID.
+	 * @param WC_Order $order             The order object.
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
+	 *
+	 * @return void
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();

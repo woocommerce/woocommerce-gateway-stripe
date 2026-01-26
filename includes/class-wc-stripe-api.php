@@ -76,7 +76,9 @@ class WC_Stripe_API {
 	/**
 	 * Set secret API Key.
 	 *
-	 * @param string $key
+	 * @param string $secret_key The secret key to set.
+	 *
+	 * @return void
 	 */
 	public static function set_secret_key( $secret_key ) {
 		self::$secret_key = $secret_key;
@@ -98,6 +100,8 @@ class WC_Stripe_API {
 	 * Set secret key based on mode.
 	 *
 	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
+	 *
+	 * @return void
 	 */
 	public static function set_secret_key_for_mode( $mode = null ) {
 		$options         = WC_Stripe_Helper::get_stripe_settings();
@@ -653,7 +657,10 @@ class WC_Stripe_API {
 	/**
 	 * Update the payment method configuration.
 	 *
-	 * @param array $payment_method_configurations The payment method configurations to update.
+	 * @param string $id                           The payment method configuration ID.
+	 * @param array  $payment_method_configurations The payment method configurations to update.
+	 *
+	 * @return array|object The response from the API.
 	 */
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
 		$response = self::request(

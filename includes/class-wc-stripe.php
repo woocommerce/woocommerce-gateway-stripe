@@ -478,6 +478,10 @@ class WC_Stripe {
 	 *
 	 * @since 1.0.0
 	 * @version 5.6.0
+	 *
+	 * @param array $methods The current payment methods.
+	 *
+	 * @return array The modified payment methods.
 	 */
 	public function add_gateways( $methods ) {
 		$main_gateway = $this->get_main_stripe_gateway();
@@ -512,6 +516,10 @@ class WC_Stripe {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @param array $sections The current gateway sections.
+	 *
+	 * @return array The modified gateway sections.
 	 */
 	public function filter_gateway_order_admin( $sections ) {
 		unset( $sections['stripe'] );
@@ -623,6 +631,13 @@ class WC_Stripe {
 		return $this->disable_upe( $settings );
 	}
 
+	/**
+	 * Enable UPE (Universal Payment Elements) for Stripe settings.
+	 *
+	 * @param array $settings The current settings.
+	 *
+	 * @return array The modified settings.
+	 */
 	protected function enable_upe( $settings ) {
 		$settings['upe_checkout_experience_accepted_payments'] = [];
 
@@ -636,6 +651,13 @@ class WC_Stripe {
 		return $settings;
 	}
 
+	/**
+	 * Disable UPE (Universal Payment Elements) for Stripe settings.
+	 *
+	 * @param array $settings The current settings.
+	 *
+	 * @return array The modified settings.
+	 */
 	protected function disable_upe( $settings ) {
 		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
 		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();

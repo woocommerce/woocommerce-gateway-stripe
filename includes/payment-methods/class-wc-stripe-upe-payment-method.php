@@ -402,6 +402,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns string representing payment method type
 	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @return string
 	 */
 	public function get_retrievable_type() {
 		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
@@ -464,6 +466,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Wrapper function for get_woocommerce_currency global function
+	 *
+	 * @return string
 	 */
 	public function get_woocommerce_currency() {
 		return get_woocommerce_currency();
@@ -620,6 +624,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Renders the UPE payment fields.
+	 *
+	 * @return void
 	 */
 	public function payment_fields() {
 		try {
@@ -775,6 +781,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Displays the save to account checkbox.
 	 *
 	 * @param bool $force_checked Whether the checkbox should be checked by default.
+	 *
+	 * @return void
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -825,7 +833,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns the title for the card wallet type.
 	 * This is used to display the title for Apple Pay and Google Pay.
 	 *
-	 * @param $express_payment_type string The type of express payment method.
+	 * @param string $express_payment_type The type of express payment method.
 	 *
 	 * @return string The title for the card wallet type.
 	 */

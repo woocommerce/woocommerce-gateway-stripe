@@ -92,6 +92,8 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	 *
 	 * @param int           $order_id The order ID.
 	 * @param WC_Order|null $order Order object.
+	 *
+	 * @return void
 	 */
 	public function trigger( $order_id, $order = null ) {
 		$this->object = $order;

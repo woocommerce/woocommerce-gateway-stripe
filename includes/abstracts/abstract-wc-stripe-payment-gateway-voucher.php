@@ -358,7 +358,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * Validates the minimum and maximum amount.
 	 * Override this method when extending the class
 	 *
-	 * @param $amount
+	 * @param float $amount The amount to validate.
 	 *
 	 * @return void
 	 * @throws WC_Stripe_Exception when amount is out of range

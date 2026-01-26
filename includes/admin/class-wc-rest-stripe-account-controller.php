@@ -39,6 +39,8 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(

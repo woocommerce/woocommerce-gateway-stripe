@@ -171,7 +171,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Remove order meta.
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order $order The order object.
+	 *
+	 * @return void
 	 */
 	public function remove_order_source_before_retry( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();

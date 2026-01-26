@@ -497,7 +497,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_capture( $notification ) {
 		$order        = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
@@ -553,7 +555,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
 		if ( empty( $notification->data->object ) ) {
@@ -634,7 +638,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @since 4.1.5 Can handle any fail payments from any methods.
 	 * @since 9.0.0 Can handle payment expiration.
-	 * @param object $notification
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
 	 */
 	public function process_webhook_charge_failed( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
@@ -1192,6 +1198,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper->unlock_order_payment( $order );
 	}
 
+	/**
+	 * Process webhook for setup intent events.
+	 *
+	 * @param object $notification The webhook notification object.
+	 *
+	 * @return void
+	 */
 	public function process_setup_intent( $notification ) {
 		$intent = $notification->data->object;
 		$order  = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent->id );
@@ -1396,7 +1409,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $request_body
+	 * @param string $request_body The raw request body from the webhook.
+	 *
+	 * @return void
 	 */
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
