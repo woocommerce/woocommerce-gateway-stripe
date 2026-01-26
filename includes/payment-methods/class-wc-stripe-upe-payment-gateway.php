@@ -1075,7 +1075,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// This will throw exception if not valid.
 				$order_helper->validate_minimum_order_amount( $order );
 
-				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+				WC_Stripe_Logger::info( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				if ( $intent ) {
 					$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
@@ -2558,7 +2558,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 			// If the intent is already successful, return it to prevent duplicate charges
-			if ( isset( $intent->status ) && in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
 				return $intent;
 			}
 		}
