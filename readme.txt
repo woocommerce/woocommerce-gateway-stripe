@@ -140,19 +140,25 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+
+**Important Fixes and Updates**
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
+
+**Other Fixes and Updates**
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
+* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
+* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
+* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
-* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+
+**Internal Changes and Upcoming Features**
+* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Dev - Replace deprecated logger method calls with severity specific methods
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 * Dev - Unit tests to cover address normalization
-* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
-* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
-* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
