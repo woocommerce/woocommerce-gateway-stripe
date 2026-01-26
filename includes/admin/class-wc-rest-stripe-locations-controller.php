@@ -311,6 +311,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 	/**
 	 * Fetch terminal locations from Stripe API.
+	 *
+	 * @return array
 	 */
 	private function fetch_locations() {
 		$response = (array) WC_Stripe_API::request( [], 'terminal/locations', 'GET' );

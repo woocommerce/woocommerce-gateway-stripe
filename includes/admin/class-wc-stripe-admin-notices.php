@@ -160,6 +160,8 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 1.0.0
 	 * @version 4.0.0
+	 *
+	 * @return void
 	 */
 	public function stripe_check_environment() {
 		$show_style_notice         = get_option( 'wc_stripe_show_style_notice' );
@@ -360,6 +362,8 @@ class WC_Stripe_Admin_Notices {
 	 * Environment check for all other payment methods.
 	 *
 	 * @since 4.1.0
+	 *
+	 * @return void
 	 */
 	public function payment_methods_check_environment() {
 		// phpcs:ignore
@@ -606,6 +610,8 @@ class WC_Stripe_Admin_Notices {
 	 * Saves options in order to hide notices based on the gateway's version.
 	 *
 	 * @since 4.3.0
+	 *
+	 * @return void
 	 */
 	public function stripe_updated() {
 		$previous_version = get_option( 'wc_stripe_version' );

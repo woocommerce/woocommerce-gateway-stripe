@@ -90,6 +90,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		);
 	}
 
+	/**
+	 * Get the unsatisfied requirements message.
+	 *
+	 * @param array $unsatisfied_requirements The unsatisfied requirements.
+	 *
+	 * @return string The unsatisfied requirements message.
+	 */
 	private function get_unsatisfied_requirements_message( $unsatisfied_requirements ) {
 		return implode(
 			__( ' and ', 'woocommerce-gateway-stripe' ),
@@ -102,6 +109,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		);
 	}
 
+	/**
+	 * Show the current compatibility notice.
+	 *
+	 * @param array $unsatisfied_requirements The unsatisfied requirements.
+	 *
+	 * @return void
+	 */
 	private function show_current_compatibility_notice( array $unsatisfied_requirements ) {
 		/*
 		 * The following might be hard to read, but here's what I'm trying to do:

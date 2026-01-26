@@ -67,12 +67,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway_Voucher\:\:validate_amount_limits\(\) has parameter \$amount with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 2
@@ -703,12 +697,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:setup_intent\(\) should return string\|null but empty return statement found\.$#'
 			identifier: return.empty
 			count: 1
@@ -1051,12 +1039,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Account_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-controller.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$secret\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1123,21 +1105,15 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-connection-tokens-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-connection-tokens-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 2
 			path: includes/admin/class-wc-rest-stripe-connection-tokens-controller.php
 
 		-
@@ -1189,20 +1165,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:create_location\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:create_location\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:delete_location\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
@@ -1213,26 +1177,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:fetch_locations\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:get_all_locations\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:get_all_locations\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:get_location\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
@@ -1243,26 +1189,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:get_store_location\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:get_store_location\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-locations-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Locations_Controller\:\:update_location\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
 
@@ -1283,6 +1211,12 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-locations-controller.php
+
+		-
+			message: '#^Cannot access property \$status on object\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
 			message: '#^Cannot call method get_currency\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
@@ -1315,20 +1249,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Orders_Controller\:\:capture_terminal_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Orders_Controller\:\:capture_terminal_payment\(\) has parameter \$request with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Orders_Controller\:\:create_customer\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_REST_Stripe_Orders_Controller\:\:capture_terminal_payment\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
@@ -1339,8 +1261,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Orders_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, object\|null given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
@@ -1364,6 +1286,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$customer_id of method WC_Stripe_Order_Helper\:\:update_stripe_customer_id\(\) expects string, int\|string\|WP_Error given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-orders-controller.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, object\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
@@ -1405,32 +1333,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_amazon_pay_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_amazon_pay_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_enabled_payment_methods\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_debug_log_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1441,20 +1345,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_payment_request_enabled_for_legacy_checkout\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1465,20 +1357,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_saved_cards_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_saved_cards_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_bancontact_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1489,20 +1369,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_ideal_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_ideal_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_separate_card_form_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1513,20 +1381,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_short_account_statement_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_short_account_statement_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_stripe_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1537,20 +1393,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_test_mode_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_test_mode_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_oc_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1567,20 +1411,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_payment_request_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_payment_request_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1597,8 +1429,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-tokens-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Tokens_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Parameter \#1 \$secret_key of static method WC_Stripe_API\:\:set_secret_key\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-tokens-controller.php
 
@@ -1612,78 +1444,6 @@ parameters:
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
 			count: 2
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has parameter \$actions with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has parameter \$class with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has parameter \$dismissible with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has parameter \$message with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:add_admin_notice\(\) has parameter \$slug with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:admin_notices\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:display_legacy_deprecation_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:hide_notices\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:payment_methods_check_environment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:stripe_check_environment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Admin_Notices\:\:stripe_updated\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
@@ -1703,18 +1463,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Method WC_Stripe_Amazon_Pay_Controller\:\:admin_options\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Amazon_Pay_Controller\:\:admin_scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
 
 		-
 			message: '#^Call to WC_Stripe_UPE_Availability_Note\:\:init\(\) on a separate line has no effect\.$#'
@@ -1783,96 +1531,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-inbox-notes.php
 
 		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:are_inbox_notes_supported\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:cleanup_campaign_2020\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:create_failure_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:create_marketing_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:create_upe_notes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:get_campaign_2020_cutoff\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:get_success_title\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:notify_on_apple_pay_domain_registration\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:notify_on_apple_pay_domain_registration\(\) has parameter \$registration_complete with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Inbox_Notes\:\:should_show_marketing_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateways_Controller\:\:enqueue_payments_scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-gateways-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateways_Controller\:\:register_payments_scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-gateways-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateways_Controller\:\:wc_stripe_gateway_container\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-gateways-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Requests_Controller\:\:admin_options\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-requests-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Requests_Controller\:\:admin_scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-payment-requests-controller.php
-
-		-
 			message: '#^Cannot access property \$ID on WP_User\|false\.$#'
 			identifier: property.nonObject
 			count: 2
@@ -1891,21 +1549,9 @@ parameters:
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
-			message: '#^Method WC_Stripe_Privacy\:\:is_retention_expired\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:is_retention_expired\(\) has parameter \$created_date with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-privacy.php
-
-		-
-			message: '#^Method WC_Stripe_Privacy\:\:register_erasers_exporters\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Parameter \#1 \$created_date of method WC_Stripe_Privacy\:\:is_retention_expired\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
@@ -1927,40 +1573,10 @@ parameters:
 			path: includes/admin/class-wc-stripe-privacy.php
 
 		-
-			message: '#^Method WC_Stripe_REST_Base_Controller\:\:check_permission\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-base-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_OC_Setting_Toggle_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_OC_Setting_Toggle_Controller\:\:set_setting\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
-
-		-
 			message: '#^Method WC_Stripe_REST_OC_Setting_Toggle_Controller\:\:set_setting\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
-
-		-
-			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
 
 		-
 			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
@@ -1975,57 +1591,33 @@ parameters:
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-settings-controller.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:get_validated_option\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-settings-controller.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_in_test_mode\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-settings-controller.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_oc_enabled\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-settings-controller.php
+
+		-
 			message: '#^Cannot call method get_option\(\) on WC_Stripe_Payment_Gateway\|null\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:admin_options\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:admin_scripts\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:admin_scripts\(\) has parameter \$hook_suffix with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:ajax_get_oauth_url\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:get_gateway\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:hide_gateways_on_settings_page\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:hide_refund_button_for_uncaptured_orders\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:set_stripe_gateways_in_list\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
@@ -2041,48 +1633,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:add_compatibility_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:get_installed_versions_message\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:get_installed_versions_message\(\) has parameter \$unsatisfied_requirements with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:get_unsatisfied_requirements_message\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:get_unsatisfied_requirements_message\(\) has parameter \$unsatisfied_requirements with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:get_wc_version\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Compatibility_Controller\:\:show_current_compatibility_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-upe-compatibility-controller.php
-
-		-
 			message: '#^Variable \$this might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -2095,20 +1645,20 @@ parameters:
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Method WC_Stripe_Account\:\:cache_account\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Account\:\:cache_account\(\) with return type void returns array but should not return anything\.$#'
+			identifier: return.void
 			count: 1
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Method WC_Stripe_Account\:\:clear_cache\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Account\:\:cache_account\(\) with return type void returns mixed but should not return anything\.$#'
+			identifier: return.void
 			count: 1
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Method WC_Stripe_Account\:\:delete_previously_configured_webhooks\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Account\:\:get_cached_account_data\(\) should return array but returns null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-account.php
 
@@ -2121,6 +1671,12 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_Account\:\:\$stripe_api \(WC_Stripe_API\) does not accept string\.$#'
 			identifier: assign.propertyType
+			count: 1
+			path: includes/class-wc-stripe-account.php
+
+		-
+			message: '#^Result of method WC_Stripe_Account\:\:cache_account\(\) \(void\) is used\.$#'
+			identifier: method.void
 			count: 1
 			path: includes/class-wc-stripe-account.php
 
@@ -2155,68 +1711,20 @@ parameters:
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:get_headers\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
+			message: '#^Method WC_Stripe_API\:\:get_payment_method\(\) should return stdClass but returns object\|null\.$#'
+			identifier: return.type
+			count: 2
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:get_user_agent\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:retrieve\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:set_instance\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:set_secret_key\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:set_secret_key\(\) has parameter \$secret_key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:set_secret_key_for_mode\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_API\:\:get_payment_method_configurations\(\) should return array but returns object\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
 		-
 			message: '#^Method WC_Stripe_API\:\:update_payment_method\(\) should return array but returns array\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has parameter \$id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$key$#'
-			identifier: parameter.notFound
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
@@ -2229,36 +1737,6 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_payment_request_enabled\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:admin_notices\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:is_enabled\(\) should return string but returns bool\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:make_domain_registration_request\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:register_domain_if_configured\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
-
-		-
-			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:register_domain_on_domain_name_change\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-apple-pay-registration.php
 
@@ -2311,50 +1789,14 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:add_order_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:add_payment_request_order_meta\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:add_stripe_intents\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:get_title\(\) is unused\.$#'
 			identifier: method.unused
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:initialize\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:register_legacy_payment_method_script_handles\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Method WC_Stripe_Blocks_Support\:\:register_legacy_payment_method_script_handles\(\) is unused\.$#'
 			identifier: method.unused
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:register_upe_payment_method_script_handles\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
@@ -2410,6 +1852,12 @@ parameters:
 			message: '#^Cannot access property \$id on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 3
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Cannot access property \$id on object\|null\.$#'
+			identifier: property.nonObject
+			count: 1
 			path: includes/class-wc-stripe-customer.php
 
 		-
@@ -2581,56 +2029,14 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has parameter \$payment_intent_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:add_stripe_methods_in_woocommerce_gateway_order\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:delete_stripe_fee\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:delete_stripe_net\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Helper\:\:format_balance_fee\(\) should return string but empty return statement found\.$#'
 			identifier: return.empty
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_legacy_payment_method\(\) has parameter \$id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Method WC_Stripe_Helper\:\:get_order_by_charge_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Helper\:\:get_order_by_charge_id\(\) should return WC_Order\|false but returns bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -2641,8 +2047,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_order_by_refund_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Helper\:\:get_order_by_refund_id\(\) should return WC_Order\|false but returns bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -2653,8 +2059,8 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Helper\:\:get_order_by_source_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Method WC_Stripe_Helper\:\:get_order_by_source_id\(\) should return WC_Order\|false but returns bool\|WC_Order\|WC_Order_Refund\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -2785,6 +2191,12 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
+			message: '#^Cannot access property \$error on object\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
 			message: '#^Cannot access property \$id on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 2
@@ -2792,6 +2204,12 @@ parameters:
 
 		-
 			message: '#^Cannot access property \$id on stdClass\|null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Cannot access property \$last_payment_error on object\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -2899,56 +2317,8 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:init_hooks\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:init_setup_intent_ajax\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:is_manual_renewal_required\(\) has parameter \$is_payment_method_reusable with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:maybe_process_upe_redirect\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:update_and_confirm_payment_intent\(\) should return array but returns array\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_failed_order_ajax\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_order_status_ajax\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:update_payment_intent_ajax\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Method WC_Stripe_Intent_Controller\:\:verify_intent\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
@@ -2962,6 +2332,12 @@ parameters:
 			message: '#^Parameter \#1 \$haystack of function strpos expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 2
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, object\|null given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -3043,6 +2419,12 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
+			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3050,6 +2432,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, object\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -3187,6 +2575,18 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
+			message: '#^Cannot access property \$captured on object\|null\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Cannot access property \$id on array\|object\|string\|null\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
 			message: '#^Cannot call method add_order_note\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 3
@@ -3241,9 +2641,21 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
+			message: '#^Method WC_Stripe_Order_Handler\:\:capture_payment\(\) should return stdClass\|void but returns array\|object\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
 			message: '#^Method WC_Stripe_Order_Handler\:\:process_redirect_payment\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 2
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$charge of method WC_Stripe_Payment_Gateway\:\:get_balance_transaction_id_from_charge\(\) expects stdClass, array\|object\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -3555,7 +2967,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 39
+			count: 40
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3573,7 +2985,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3627,7 +3039,7 @@ parameters:
 		-
 			message: '#^Cannot call method add_order_note\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
-			count: 1
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3645,13 +3057,13 @@ parameters:
 		-
 			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
-			count: 1
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
-			count: 1
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3663,6 +3075,12 @@ parameters:
 		-
 			message: '#^Cannot call method has_status\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
+			count: 2
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Cannot call method needs_processing\(\) on WC_Order\|true\.$#'
+			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -3673,15 +3091,15 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method save\(\) on class\-string\|object\.$#'
+			message: '#^Cannot call method save\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
-			count: 2
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Cannot call method update_status\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
-			count: 1
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3781,42 +3199,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_setup_intent\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_setup_intent\(\) has parameter \$notification with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_capture\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_charge_failed\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_charge_succeeded\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_dispute\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3865,9 +3247,15 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_charge_captured\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3889,7 +3277,25 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_stripe_order_status_before_hold\(\) expects WC_Order, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_transaction_url\(\) expects WC_Order, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:mark_order_as_pre_ordered\(\) expects WC_Order, WC_Order\|true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:set_stripe_order_status_before_hold\(\) expects WC_Order, WC_Order\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -3945,7 +3351,7 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_Webhook_Handler\:\:\$resolved_order \(WC_Order\|null\) does not accept WC_Order\|true\.$#'
 			identifier: assign.propertyType
-			count: 1
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3969,54 +3375,6 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:init\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:add_gateways\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:add_gateways\(\) has parameter \$methods with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:disable_upe\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:disable_upe\(\) has parameter \$settings with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:enable_upe\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:enable_upe\(\) has parameter \$settings with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:filter_gateway_order_admin\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Method WC_Stripe\:\:filter_gateway_order_admin\(\) has parameter \$sections with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -4191,12 +3549,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_human_time_diff not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication_Retry\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 
@@ -5413,12 +4765,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$param$#'
 			identifier: parameter.notFound
 			count: 1
@@ -6016,6 +5362,12 @@ parameters:
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) should return object but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -6997,12 +6349,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
@@ -7375,12 +6721,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
@@ -7749,12 +7089,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -8503,12 +7837,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
@@ -8869,12 +8197,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
@@ -8971,12 +8293,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:get_testing_instructions\(\) has parameter \$show_optimized_checkout_instruction with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -8984,12 +8300,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:maybe_hide_blik\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_BLIK\:\:payment_fields\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php
@@ -9661,12 +8971,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:get_testing_instructions\(\) has parameter \$show_optimized_checkout_instruction with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -10047,12 +9351,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -10525,12 +9823,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-link.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Link\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-link.php
-
-		-
 			message: '#^Return type \(WC_Payment_Token_Link\) of method WC_Stripe_UPE_Payment_Method_Link\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
 			count: 1
@@ -10881,12 +10173,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -11277,12 +10563,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_subscription not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -11815,12 +11095,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_card_wallet_type_title\(\) has parameter \$express_payment_type with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_pre_order_product_from_cart\(\) should return object\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
@@ -11829,36 +11103,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_pre_order_product_from_order\(\) should return object\|null but returns false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_retrievable_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:get_woocommerce_currency\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:payment_fields\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:save_payment_method_checkbox\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 

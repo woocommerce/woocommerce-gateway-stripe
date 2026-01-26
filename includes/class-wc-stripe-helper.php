@@ -777,7 +777,9 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $source_id
+	 * @param string $source_id The Stripe source ID.
+	 *
+	 * @return WC_Order|false The order object or false if not found.
 	 */
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
