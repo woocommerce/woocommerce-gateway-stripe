@@ -7,8 +7,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * WC_Stripe_Blocks_Support class.
- *
- * @extends AbstractPaymentMethodType
  */
 final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**

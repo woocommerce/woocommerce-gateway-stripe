@@ -99,7 +99,9 @@ class WC_Stripe_Webhook_State {
 	 * Sets the timestamp of the last successfully processed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
+	 *
+	 * @return void
 	 */
 	public static function set_last_webhook_success_at( $timestamp ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
@@ -122,7 +124,9 @@ class WC_Stripe_Webhook_State {
 	 * Sets the timestamp of the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param integer UTC seconds since 1970.
+	 * @param int $timestamp UTC seconds since 1970.
+	 *
+	 * @return void
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
@@ -145,7 +149,9 @@ class WC_Stripe_Webhook_State {
 	 * Sets the reason for the last failed webhook.
 	 *
 	 * @since 5.0.0
-	 * @param string Reason code.
+	 * @param string $reason Reason code.
+	 *
+	 * @return void
 	 */
 	public static function set_last_error_reason( $reason ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
@@ -237,6 +243,8 @@ class WC_Stripe_Webhook_State {
 	 * @since 9.7.0
 	 *
 	 * @param int $pending_webhooks The number of pending webhooks.
+	 *
+	 * @return void
 	 */
 	public static function set_pending_webhooks_count( $pending_webhooks ) {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;

@@ -1699,8 +1699,8 @@ class WC_Stripe_Helper {
 	 * Checks if the payment method should be saved.
 	 *
 	 * @since 9.6.0
-	 * @param bool $force_save Whether the payment method should be saved.
-	 * @param string $order_id Order ID.
+	 * @param bool        $force_save Whether the payment method should be saved.
+	 * @param string|null $order_id   Order ID.
 	 * @return bool
 	 */
 	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {

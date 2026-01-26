@@ -20,14 +20,14 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	public $stripe_settings;
 
 	/**
 	 * This Instance.
 	 *
-	 * @var
+	 * @var WC_Stripe_Express_Checkout_Element|null
 	 */
 	private static $_this;
 
