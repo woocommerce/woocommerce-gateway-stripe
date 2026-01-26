@@ -289,5 +289,26 @@ return apply_filters(
 				'tabs'      => __( 'Tabs', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'agentic_commerce'                    => [
+			'title'       => __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+			'description' => __( 'Automatically sync your product catalog to Stripe for AI-powered commerce experiences.', 'woocommerce-gateway-stripe' ),
+		],
+		'agentic_commerce_enabled'            => [
+			'title'       => __( 'Enable Agentic Commerce', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable product catalog sync to Stripe', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'When enabled, your product catalog will be automatically synced to Stripe every 15 minutes. Requires WooCommerce 10.5.0+ and the Product Feed plugin.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		],
+		'agentic_commerce_account_id'         => [
+			'title'       => __( 'Stripe Account ID', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Optional. Use this if you need to upload to a specific connected account. Leave blank to use your default account.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+			'placeholder' => 'acct_...',
+		],
 	]
 );

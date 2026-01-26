@@ -158,4 +158,25 @@ class WC_Stripe_Feature_Flags {
 			$pmc_enabled
 		);
 	}
+
+	/**
+	 * Whether Agentic Commerce product feed is enabled.
+	 *
+	 * @since 10.4.0
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_agentic_commerce_enabled(): bool {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		/**
+		 * Filter to control the availability of the Agentic Commerce feature.
+		 *
+		 * @since 10.4.0
+		 * @param bool $enabled Whether Agentic Commerce is enabled.
+		 */
+		return (bool) apply_filters(
+			'wc_stripe_is_agentic_commerce_enabled',
+			! empty( $settings['agentic_commerce_enabled'] ) && 'yes' === $settings['agentic_commerce_enabled']
+		);
+	}
 }
