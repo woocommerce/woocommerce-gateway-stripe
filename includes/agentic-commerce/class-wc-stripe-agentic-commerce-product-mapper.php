@@ -655,6 +655,44 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Get product review count.
+	 *
+	 * @since 10.4.0
+	 * @param \WC_Product $product Product object.
+	 * @return int|null Number of reviews or null.
+	 */
+	protected function get_product_review_count( \WC_Product $product ): ?int {
+		$count = $product->get_review_count();
+		return $count > 0 ? $count : null;
+	}
+
+	/**
+	 * Get product review rating.
+	 *
+	 * @since 10.4.0
+	 * @param \WC_Product $product Product object.
+	 * @return float|null Average rating (1-5 scale) or null.
+	 */
+	protected function get_product_review_rating( \WC_Product $product ): ?float {
+		$rating = $product->get_average_rating();
+		return $rating > 0 ? (float) $rating : null;
+	}
+
+	/**
+	 * Get delete flag.
+	 *
+	 * Always returns null for products being included in the feed.
+	 * This field is used to mark products for removal from Stripe's catalog.
+	 *
+	 * @since 10.4.0
+	 * @param \WC_Product $product Product object.
+	 * @return null Always null for active products.
+	 */
+	protected function get_delete( \WC_Product $product ): ?string {
+		return null;
+	}
+
+	/**
 	 * Get shipping options.
 	 *
 	 * Format: country:region:service:speed:price

@@ -729,4 +729,179 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		$product->delete( true );
 	}
+
+	/**
+	 * Test product_review_count returns null when no reviews.
+	 *
+	 * @return void
+	 */
+	public function test_product_review_count_returns_null_when_no_reviews() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertNull( $result['product_review_count'], 'product_review_count should be null when no reviews exist' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product_review_count returns count when reviews exist.
+	 *
+	 * @return void
+	 */
+	public function test_product_review_count_returns_count_when_reviews_exist() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		// Create a review comment.
+		$comment_id = wp_insert_comment(
+			[
+				'comment_post_ID'      => $product->get_id(),
+				'comment_author'       => 'John Doe',
+				'comment_author_email' => 'john@example.com',
+				'comment_content'      => 'Great product!',
+				'comment_type'         => 'review',
+				'comment_approved'     => 1,
+			]
+		);
+
+		// Clear product cache to reload review data.
+		clean_post_cache( $product->get_id() );
+		$product = wc_get_product( $product->get_id() );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertEquals( 1, $result['product_review_count'], 'product_review_count should be 1 when one review exists' );
+
+		// Cleanup.
+		wp_delete_comment( $comment_id, true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product_review_rating returns null when no reviews.
+	 *
+	 * @return void
+	 */
+	public function test_product_review_rating_returns_null_when_no_reviews() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertNull( $result['product_review_rating'], 'product_review_rating should be null when no reviews exist' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product_review_rating returns average rating when reviews exist.
+	 *
+	 * @return void
+	 */
+	public function test_product_review_rating_returns_average_when_reviews_exist() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		// Create reviews with ratings.
+		$comment_id_1 = wp_insert_comment(
+			[
+				'comment_post_ID'      => $product->get_id(),
+				'comment_author'       => 'John Doe',
+				'comment_author_email' => 'john@example.com',
+				'comment_content'      => 'Great product!',
+				'comment_type'         => 'review',
+				'comment_approved'     => 1,
+			]
+		);
+		add_comment_meta( $comment_id_1, 'rating', 5 );
+
+		$comment_id_2 = wp_insert_comment(
+			[
+				'comment_post_ID'      => $product->get_id(),
+				'comment_author'       => 'Jane Smith',
+				'comment_author_email' => 'jane@example.com',
+				'comment_content'      => 'Good product!',
+				'comment_type'         => 'review',
+				'comment_approved'     => 1,
+			]
+		);
+		add_comment_meta( $comment_id_2, 'rating', 4 );
+
+		// Clear product cache to reload review data.
+		clean_post_cache( $product->get_id() );
+		\WC_Comments::clear_transients( $product->get_id() );
+		$product = wc_get_product( $product->get_id() );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		// Average of 5 and 4 is 4.5.
+		$this->assertEquals( 4.5, $result['product_review_rating'], 'product_review_rating should be 4.5 (average of 5 and 4)' );
+
+		// Cleanup.
+		wp_delete_comment( $comment_id_1, true );
+		wp_delete_comment( $comment_id_2, true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test product_review_rating value is between 1 and 5.
+	 *
+	 * @return void
+	 */
+	public function test_product_review_rating_is_within_valid_range() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		// Create a review with rating.
+		$comment_id = wp_insert_comment(
+			[
+				'comment_post_ID'      => $product->get_id(),
+				'comment_author'       => 'John Doe',
+				'comment_author_email' => 'john@example.com',
+				'comment_content'      => 'Great product!',
+				'comment_type'         => 'review',
+				'comment_approved'     => 1,
+			]
+		);
+		add_comment_meta( $comment_id, 'rating', 3 );
+
+		// Clear product cache to reload review data.
+		clean_post_cache( $product->get_id() );
+		\WC_Comments::clear_transients( $product->get_id() );
+		$product = wc_get_product( $product->get_id() );
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertGreaterThanOrEqual( 1, $result['product_review_rating'], 'Rating should be >= 1' );
+		$this->assertLessThanOrEqual( 5, $result['product_review_rating'], 'Rating should be <= 5' );
+
+		// Cleanup.
+		wp_delete_comment( $comment_id, true );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test delete field always returns null for active products.
+	 *
+	 * @return void
+	 */
+	public function test_delete_field_always_returns_null_for_active_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result = $mapper->map_product( $product );
+
+		$this->assertNull( $result['delete'], 'delete field should always be null for products in the feed' );
+
+		$product->delete( true );
+	}
 }
