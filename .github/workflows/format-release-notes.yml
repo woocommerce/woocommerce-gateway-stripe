@@ -7,10 +7,6 @@ on:
         description: 'Branch to format release notes for (e.g., release/10.4.0)'
         type: string
         required: true
-      base-branch:
-        description: 'Base branch to create PR against'
-        type: string
-        default: 'develop'
 
 run-name: Format release notes for ${{ inputs.branch }}
 
