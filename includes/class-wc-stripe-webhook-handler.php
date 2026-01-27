@@ -1058,7 +1058,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 * @param object $notification The notification object.
 	 *
-	 * @return float
+	 * @return float|false
 	 */
 	public function get_refund_amount( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
@@ -1082,7 +1082,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 * @param object $notification The notification object.
 	 *
-	 * @return float|null
+	 * @return float|false
 	 */
 	public function get_partial_amount_to_charge( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {

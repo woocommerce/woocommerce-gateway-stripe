@@ -1542,7 +1542,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @param bool $is_test_mode Whether test mode is enabled.
 	 *
-	 * @return string The transaction URL pattern.
+	 * @return string The transaction URL in sprintf() format.
 	 */
 	public static function get_transaction_url( $is_test_mode = false ) {
 		if ( $is_test_mode ) {

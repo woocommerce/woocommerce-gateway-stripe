@@ -2953,18 +2953,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_partial_amount_to_charge\(\) should return float\|null but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_refund_amount\(\) should return float but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_webhook_payment\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 2
@@ -3061,7 +3049,7 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$value of method WC_Abstract_Order\:\:set_total\(\) expects string, float\|null given\.$#'
+			message: '#^Parameter \#1 \$value of method WC_Abstract_Order\:\:set_total\(\) expects string, float\|false given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
