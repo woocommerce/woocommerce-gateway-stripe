@@ -204,8 +204,10 @@ class WC_Stripe_Intent_Controller {
 	 * Handles exceptions during intent verification.
 	 *
 	 * @since 4.2.0
-	 * @param WC_Stripe_Exception $e           The exception that was thrown.
+	 * @param WC_Stripe_Exception $e            The exception that was thrown.
 	 * @param string              $redirect_url An URL to use if a redirect is needed.
+	 *
+	 * @return void
 	 */
 	protected function handle_error( $e, $redirect_url ) {
 		// Log the exception before redirecting.
@@ -223,6 +225,8 @@ class WC_Stripe_Intent_Controller {
 
 	/**
 	 * Creates a Setup Intent through AJAX while adding cards.
+	 *
+	 * @return void
 	 */
 	public function create_setup_intent() {
 		if (
@@ -339,6 +343,8 @@ class WC_Stripe_Intent_Controller {
 
 	/**
 	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
+	 *
+	 * @return void
 	 */
 	public function create_payment_intent_ajax() {
 		try {
@@ -1211,6 +1217,8 @@ class WC_Stripe_Intent_Controller {
 	 * Handle AJAX requests for creating and confirming a setup intent.
 	 *
 	 * @throws Exception If the AJAX request is missing the required data or if there's an error creating and confirming the setup intent.
+	 *
+	 * @return void
 	 */
 	public function create_and_confirm_setup_intent_ajax() {
 		$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
@@ -1316,6 +1324,8 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * This function is used to confirm the change payment method request for a subscription after the user has been asked to authenticate their payment (eg 3D-Secure).
 	 * It is initiated from the subscription change payment method page.
+	 *
+	 * @return void
 	 */
 	public function confirm_change_payment_from_setup_intent_ajax() {
 		$subscription_id = absint( $_POST['order_id'] ?? false );

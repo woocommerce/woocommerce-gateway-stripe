@@ -53,6 +53,8 @@ class WC_Stripe_Status {
 
 	/**
 	 * Renders Stripe information on the status page.
+	 *
+	 * @return void
 	 */
 	public function render_status_report_section() {
 		$account_data            = $this->account->get_cached_account_data();
@@ -206,6 +208,8 @@ class WC_Stripe_Status {
 	 * Add Stripe tools to the Woo debug tools.
 	 *
 	 * @param array $tools List of current available tools.
+	 *
+	 * @return array
 	 */
 	public function debug_tools( $tools ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {

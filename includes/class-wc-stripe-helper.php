@@ -58,7 +58,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Update the main Stripe settings option.
 	 *
-	 * @param $options array The Stripe settings.
+	 * @param array $options The Stripe settings.
+	 *
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
@@ -95,10 +96,12 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
-	 * @param string $currency
+	 * @param object $order    The order object.
+	 * @param string $currency The currency code.
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
+	 *
+	 * @return void|false
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
@@ -141,10 +144,12 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
+	 * @param object $order  The order object.
+	 * @param float  $amount The fee amount.
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
+	 *
+	 * @return void|false
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -206,10 +211,12 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
-	 * @param float  $amount
+	 * @param object $order  The order object.
+	 * @param float  $amount The net amount.
 	 *
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
+	 *
+	 * @return void|false
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -490,8 +497,10 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $method The payment method to get the settings from.
+	 * @param string $method  The payment method to get the settings from.
 	 * @param string $setting The name of the setting to get.
+	 *
+	 * @return mixed
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
 		$all_settings = self::get_stripe_settings( $method );
@@ -1528,6 +1537,13 @@ class WC_Stripe_Helper {
 		return true;
 	}
 
+	/**
+	 * Get the Stripe transaction URL.
+	 *
+	 * @param bool $is_test_mode Whether test mode is enabled.
+	 *
+	 * @return string The transaction URL pattern.
+	 */
 	public static function get_transaction_url( $is_test_mode = false ) {
 		if ( $is_test_mode ) {
 			return 'https://dashboard.stripe.com/test/payments/%s';
@@ -1752,6 +1768,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the description for a refund reason.
 	 *
+	 * @param string $refund_reason_key The refund reason key.
+	 *
 	 * @return string
 	 */
 	public static function get_refund_reason_description( $refund_reason_key ) {
@@ -1921,7 +1939,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
-	 * @param $order WC_Order The order to check.
+	 * @param WC_Order $order The order to check.
+	 *
 	 * @return bool
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
