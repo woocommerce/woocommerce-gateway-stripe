@@ -51,7 +51,8 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	/**
 	 * Set the last four digits for the ACSS Debit Token.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
@@ -71,6 +72,7 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set Stripe payment method type.
 	 *
 	 * @param string $type Payment method type.
+	 * @return void
 	 */
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );
@@ -89,7 +91,8 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	/**
 	 * Set the bank name.
 	 *
-	 * @param string $bank_name
+	 * @param string $bank_name The bank name.
+	 * @return void
 	 */
 	public function set_bank_name( $bank_name ) {
 		$this->set_prop( 'bank_name', $bank_name );

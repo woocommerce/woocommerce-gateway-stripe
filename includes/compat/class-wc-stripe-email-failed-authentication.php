@@ -72,6 +72,8 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 
 	/**
 	 * Uses specific fields from `WC_Email_Customer_Invoice` for this email.
+	 *
+	 * @return void
 	 */
 	public function init_form_fields() {
 		parent::init_form_fields();
@@ -95,6 +97,7 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 	 * Triggers the email.
 	 *
 	 * @param WC_Order $order The renewal order whose payment failed.
+	 * @return void
 	 */
 	public function trigger( $order ) {
 		if ( ! $this->is_enabled() ) {

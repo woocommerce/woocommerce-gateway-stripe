@@ -52,6 +52,7 @@ class WC_Stripe_Webhook_State {
 	 * Clears the webhook state.
 	 *
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
+	 * @return void
 	 */
 	public static function clear_state( $mode = 'all' ) {
 		if ( 'all' === $mode || 'live' === $mode ) {

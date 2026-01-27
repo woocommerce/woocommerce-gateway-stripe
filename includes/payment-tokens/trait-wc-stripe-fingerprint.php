@@ -23,6 +23,7 @@ trait WC_Stripe_Fingerprint_Trait {
 	 *
 	 * @since 9.0.0
 	 * @param string $fingerprint The fingerprint.
+	 * @return void
 	 */
 	public function set_fingerprint( string $fingerprint ) {
 		$this->set_prop( 'fingerprint', $fingerprint );

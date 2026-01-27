@@ -29,6 +29,8 @@ final class WC_Stripe_OC_Promotion_Note {
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note|WC_Admin_Note
 	 */
 	public static function get_note() {
 		$note_class = self::get_note_class();
@@ -99,6 +101,7 @@ final class WC_Stripe_OC_Promotion_Note {
 	 * Should this note exist?
 	 *
 	 * @inheritDoc
+	 * @return bool
 	 */
 	public static function is_applicable() {
 		return ! WC_Stripe::get_instance()->get_main_stripe_gateway()->is_oc_enabled();

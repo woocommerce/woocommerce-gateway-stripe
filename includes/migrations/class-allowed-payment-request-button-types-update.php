@@ -22,6 +22,8 @@ class Allowed_Payment_Request_Button_Types_Update {
 
 	/**
 	 * Only execute the migration if not applied yet.
+	 *
+	 * @return void
 	 */
 	public function maybe_migrate() {
 		// not compatible with older WC versions, due to the missing `update_option` method on the gateway class

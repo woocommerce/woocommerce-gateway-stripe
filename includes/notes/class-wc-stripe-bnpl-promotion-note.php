@@ -29,6 +29,8 @@ class WC_Stripe_BNPL_Promotion_Note {
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note|WC_Admin_Note
 	 */
 	public static function get_note() {
 		$note_class = self::get_note_class();

@@ -32,6 +32,8 @@ class WC_Stripe_UPE_Availability_Note {
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note|WC_Admin_Note
 	 */
 	public static function get_note() {
 		$note_class = self::get_note_class();
@@ -72,6 +74,11 @@ class WC_Stripe_UPE_Availability_Note {
 		}
 	}
 
+	/**
+	 * Initialize the note.
+	 *
+	 * @return void
+	 */
 	public static function init() {
 		return;
 	}

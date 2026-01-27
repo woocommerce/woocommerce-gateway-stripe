@@ -182,6 +182,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
 	 * Retrieve custom checkout field IDs.
 	 *
+	 * @param string $context The context for the fields.
 	 * @return array Custom checkout field IDs.
 	 */
 	public function get_custom_checkout_fields( $context = '' ) {

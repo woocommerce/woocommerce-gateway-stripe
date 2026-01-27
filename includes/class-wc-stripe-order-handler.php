@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
+	/**
+	 * Instance of this class.
+	 *
+	 * @var WC_Stripe_Order_Handler|null
+	 */
 	private static $_this;
 
 	/**

@@ -148,6 +148,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @param string $method    The method name.
 	 * @param array  $arguments The method arguments.
+	 * @return mixed
 	 */
 	public function __call( $method, $arguments ) {
 		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();

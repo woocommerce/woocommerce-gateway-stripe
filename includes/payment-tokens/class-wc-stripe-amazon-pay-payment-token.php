@@ -68,6 +68,7 @@ class WC_Payment_Token_Amazon_Pay extends WC_Payment_Token implements WC_Stripe_
 	 * Set the customer email.
 	 *
 	 * @param string $email Customer email.
+	 * @return void
 	 */
 	public function set_email( $email ) {
 		$this->set_prop( 'email', $email );

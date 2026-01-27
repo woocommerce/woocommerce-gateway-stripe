@@ -117,6 +117,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @param string $title The gateway title.
 	 * @param string $id The gateway ID.
+	 * @return string
 	 */
 	public function filter_gateway_title( $title, $id ) {
 		global $theorder;

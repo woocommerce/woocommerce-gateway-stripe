@@ -112,6 +112,7 @@ class WC_Stripe {
 	 *
 	 * @since 1.0.0
 	 * @version 5.0.0
+	 * @return void
 	 */
 	public function init() {
 		if ( is_admin() ) {
@@ -285,6 +286,8 @@ class WC_Stripe {
 
 	/**
 	 * Initialize the class for handling the Apple Pay registration.
+	 *
+	 * @return void
 	 */
 	public function initialize_apple_pay_registration() {
 		new WC_Stripe_Apple_Pay_Registration();
@@ -292,6 +295,8 @@ class WC_Stripe {
 
 	/**
 	 * Initialize Express Checkout after translations are loaded.
+	 *
+	 * @return void
 	 */
 	public function init_express_checkout() {
 		// Express checkout configurations.
@@ -306,6 +311,7 @@ class WC_Stripe {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
+	 * @return void
 	 */
 	public function update_plugin_version() {
 		delete_option( 'wc_stripe_version' );
@@ -317,6 +323,7 @@ class WC_Stripe {
 	 *
 	 * @since 3.1.0
 	 * @version 3.1.0
+	 * @return void
 	 */
 	public function install() {
 		if ( ! is_plugin_active( plugin_basename( WC_STRIPE_MAIN_FILE ) ) ) {
@@ -377,6 +384,7 @@ class WC_Stripe {
 	 *
 	 * @since 9.6.0
 	 * @version 9.6.0
+	 * @return void
 	 */
 	public function migrate_to_new_checkout_experience() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -400,6 +408,7 @@ class WC_Stripe {
 	 *
 	 * @since 5.5.0
 	 * @version 5.5.0
+	 * @return void
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -446,6 +455,8 @@ class WC_Stripe {
 	 *
 	 * @since 1.0.0
 	 * @version 4.0.0
+	 * @param array<string, string> $links Existing action links.
+	 * @return array<string, string> Modified action links.
 	 */
 	public function plugin_action_links( $links ) {
 		$plugin_links = [
@@ -701,6 +712,8 @@ class WC_Stripe {
 	 * Register REST API routes.
 	 *
 	 * New endpoints/controllers can be added here.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		/** API includes */
@@ -777,6 +790,8 @@ class WC_Stripe {
 
 	/**
 	 * Initializes updating subscriptions.
+	 *
+	 * @return void
 	 */
 	public function initialize_subscriptions_updater() {
 		// The updater depends on WCS_Background_Repairer. Bail out if class does not exist.
@@ -792,6 +807,11 @@ class WC_Stripe {
 		$updater->maybe_update();
 	}
 
+	/**
+	 * Load the plugin text domain for translation.
+	 *
+	 * @return void
+	 */
 	public function load_plugin_textdomain() {
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, WC_STRIPE_PLUGIN_PATH . '/languages' );
 	}

@@ -47,6 +47,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
 	 * @return string
 	 */
 	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
