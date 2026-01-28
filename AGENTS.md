@@ -82,6 +82,7 @@ WC_Stripe_UPE_Payment_Method (abstract)
 2. **Abstract Base Classes:** Payment methods extend `WC_Stripe_UPE_Payment_Method`
 3. **Settings Storage:** WordPress options `woocommerce_stripe_settings`, `woocommerce_stripe_{method}_settings`
 4. **REST Controllers:** `includes/admin/` - Settings, payment gateways, account keys endpoints
+5. **Database Caching:** `WC_Stripe_Database_Cache` provides TTL-based caching stored as WordPress options with in-memory per-request cache and async cleanup via Action Scheduler
 
 ### Adding New Payment Methods
 
