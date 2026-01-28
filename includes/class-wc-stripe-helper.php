@@ -75,6 +75,182 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the Stripe currency for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @return string $currency
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
+	 */
+	public static function get_stripe_currency( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
+	}
+
+	/**
+	 * Updates the Stripe currency for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @param string $currency
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
+	 */
+	public static function update_stripe_currency( $order, $currency ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
+	}
+
+	/**
+	 * Gets the Stripe fee for order. With legacy check.
+	 *
+	 * @since 4.1.0
+	 * @param WC_Order $order
+	 * @return string $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
+	 */
+	public static function get_stripe_fee( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$amount = $order->get_meta( self::META_NAME_FEE, true );
+
+		// If not found let's check for legacy name.
+		if ( empty( $amount ) ) {
+			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
+
+			// If found update to new name.
+			if ( $amount ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_fee( $order, $amount );
+			}
+		}
+
+		return $amount;
+	}
+
+	/**
+	 * Updates the Stripe fee for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @param float  $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
+	 */
+	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_NAME_FEE, $amount );
+	}
+
+	/**
+	 * Deletes the Stripe fee for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
+	 */
+	public static function delete_stripe_fee( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_NAME_FEE );
+		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
+	}
+
+	/**
+	 * Gets the Stripe net for order. With legacy check.
+	 *
+	 * @since 4.1.0
+	 * @param WC_Order $order
+	 * @return string $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
+	 */
+	public static function get_stripe_net( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$amount = $order->get_meta( self::META_NAME_NET, true );
+
+		// If not found let's check for legacy name.
+		if ( empty( $amount ) ) {
+			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
+
+			// If found update to new name.
+			if ( $amount ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_net( $order, $amount );
+			}
+		}
+
+		return $amount;
+	}
+
+	/**
+	 * Updates the Stripe net for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @param float  $amount
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
+	 */
+	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->update_meta_data( self::META_NAME_NET, $amount );
+	}
+
+	/**
+	 * Deletes the Stripe net for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
+	 */
+	public static function delete_stripe_net( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net' );
+
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order->delete_meta_data( self::META_NAME_NET );
+		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
+	}
+
+	/**
 	 * Get Stripe amount to pay
 	 *
 	 * @param float  $total Amount due.
