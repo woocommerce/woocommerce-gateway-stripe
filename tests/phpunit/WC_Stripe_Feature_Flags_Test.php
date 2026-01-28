@@ -147,11 +147,11 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$stripe_settings['capture'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->assertSame( $expected, $actual );
-
 		if ( ! empty( $filter_function ) ) {
 			remove_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
 		}
+
+		$this->assertSame( $expected, $actual );
 	}
 
 	/**
