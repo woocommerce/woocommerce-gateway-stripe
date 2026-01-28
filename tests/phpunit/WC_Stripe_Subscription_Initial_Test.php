@@ -154,7 +154,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 				'filename' => null,
 			];
 
-			// Respond with a successfully intent for confirmations.
+			// Respond with a successful intent for confirmations.
 			if ( $url !== $intents_api_endpoint ) {
 				$response['body'] = str_replace( WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION, WC_Stripe_Intent_Status::SUCCEEDED, $response['body'] );
 				return $response;
