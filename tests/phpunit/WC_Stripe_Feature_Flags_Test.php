@@ -135,7 +135,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag_enabled ? 'yes' : 'no' );
 
 		if ( ! empty( $filter_function ) ) {
-			add_filter( 'wc_stripe_is_checkout_session_available', $filter_function );
+			add_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
 		}
 
 		$actual = WC_Stripe_Feature_Flags::is_checkout_sessions_available();
@@ -151,7 +151,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $expected, $actual );
 
 		if ( ! empty( $filter_function ) ) {
-			remove_filter( 'wc_stripe_is_checkout_session_available', $filter_function );
+			remove_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
 		}
 	}
 
