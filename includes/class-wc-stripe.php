@@ -507,16 +507,30 @@ class WC_Stripe {
 
 		$methods = array_merge( $methods, $upe_payment_methods );
 
-		// When we are in an admin context, filter out Link and Amazon Pay, as they are only available as
-		// express checkout methods, and including them in the list results in warnings about block support
+		// When we are in an admin context,
+		// 1. Filter out Link and Amazon Pay, as they are only available as express checkout methods,
+		// and including them in the list results in warnings about block support
 		// when viewing the Express Checkout block in the editor for the cart and checkout pages.
+		// 2. Filter out UPE payment methods that are not enabled at checkout, as they are not available in the checkout block
+		// and including them in the list results in warnings about block support
+		// when viewing the payment methods block in the editor for the cart and checkout pages.
 		if ( is_admin() ) {
 			$methods = array_filter(
 				$methods,
-				function ( $method ) {
+				function ( $method ) use ( $upe_payment_methods ) {
 					if ( $method instanceof WC_Stripe_UPE_Payment_Method_Link || $method instanceof WC_Stripe_UPE_Payment_Method_Amazon_Pay ) {
 						return false;
 					}
+
+					if ( $method instanceof WC_Stripe_UPE_Payment_Method ) {
+						$method_id = $method->get_id();
+						if ( isset( $upe_payment_methods[ $method_id ] ) && is_object( $upe_payment_methods[ $method_id ] ) ) {
+							if ( ! $upe_payment_methods[ $method_id ]->is_enabled_at_checkout() ) {
+								return false;
+							}
+						}
+					}
+
 					return true;
 				}
 			);
