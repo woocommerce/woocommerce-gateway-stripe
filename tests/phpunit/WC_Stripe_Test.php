@@ -6,7 +6,6 @@ use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\Exceptions\WC_Stripe_Catch_Redirect_Exception;
 
 /**
  * These tests make assertions against the class WC_Stripe.
