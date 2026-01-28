@@ -524,7 +524,7 @@ class WC_Stripe {
 
 					if ( $method instanceof WC_Stripe_UPE_Payment_Method ) {
 						$method_id = $method->get_id();
-						if ( isset( $upe_payment_methods[ $method_id ] ) && is_object( $upe_payment_methods[ $method_id ] ) ) {
+						if ( isset( $upe_payment_methods[ $method_id ] ) && $upe_payment_methods[ $method_id ] instanceof WC_Stripe_UPE_Payment_Method ) {
 							if ( ! $upe_payment_methods[ $method_id ]->is_enabled_at_checkout() ) {
 								return false;
 							}
