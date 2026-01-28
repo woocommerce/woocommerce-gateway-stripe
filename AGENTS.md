@@ -105,6 +105,8 @@ PHPStan runs at Level 8 on every PR. When you see errors:
 - **Jest Tests:** `tests/js/` - React component tests
 - **E2E Tests:** `tests/e2e/` - Playwright with projects: default, legacy, acss, blik, becs, optimized-checkout
 
+**PHPUnit Convention:** Use `@dataProvider` for parameterized tests. This is the standard pattern in this codebase for testing multiple input/output scenarios.
+
 ## Version Support
 
 Follows L-2 policy: supports current and two previous major versions of WordPress (strict) and WooCommerce (loose).
