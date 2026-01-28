@@ -30,7 +30,7 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag for Stripe Checkout Sessions.
 	 *
 	 * @var string
-	 * @since 10.5.0
+	 * @since 10.4.0
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
@@ -90,7 +90,7 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
 	 * @return bool
-	 * @since 10.5.0
+	 * @since 10.4.0
 	 */
 	public static function is_checkout_sessions_available() {
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
@@ -112,7 +112,7 @@ class WC_Stripe_Feature_Flags {
 		/**
 		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
-		 * @since 10.5.0
+		 * @since 10.4.0
 		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
 		 * @deprecated This filter will be removed when the feature rolls out.
 		 */
