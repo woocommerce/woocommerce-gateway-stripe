@@ -113,8 +113,8 @@ class WC_Stripe_Feature_Flags {
 		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
 		 * @since 10.4.0
+		 * Note: This filter will be removed when the feature rolls out.
 		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
-		 * @deprecated This filter will be removed when the feature rolls out.
 		 */
 		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', $is_checkout_sessions_available );
 	}
