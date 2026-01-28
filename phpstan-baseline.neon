@@ -3043,6 +3043,24 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Call to an undefined method object\:\:delete_meta_data\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_meta\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Call to an undefined method object\:\:update_meta_data\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -3050,6 +3068,18 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Helper\:\:add_stripe_methods_in_woocommerce_gateway_order\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:delete_stripe_fee\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:delete_stripe_net\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-helper.php
@@ -3109,6 +3139,24 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Method WC_Stripe_Helper\:\:get_stripe_currency\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:get_stripe_fee\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:get_stripe_net\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Method WC_Stripe_Helper\:\:get_transaction_url\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3123,6 +3171,24 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Helper\:\:update_main_stripe_settings\(\) has parameter \$options with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:update_stripe_currency\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:update_stripe_fee\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:update_stripe_net\(\) has no return type specified\.$#'
+			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
