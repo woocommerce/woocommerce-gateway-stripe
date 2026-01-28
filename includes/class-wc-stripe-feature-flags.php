@@ -103,7 +103,7 @@ class WC_Stripe_Feature_Flags {
 		// - OC Suite is enabled
 		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
 		// If any of the above conditions are not met, the feature is not available.
-		if ( 'no' === $is_pmc_enabled || 'no' === $is_oc_enabled || 'no' === $is_automatic_capture_enabled ) {
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
 			return false;
 		}
 
