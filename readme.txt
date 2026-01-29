@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Update - Redirect merchants to the Stripe settings screen upon plugin activation
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces

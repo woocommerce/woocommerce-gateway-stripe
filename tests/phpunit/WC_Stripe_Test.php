@@ -15,6 +15,11 @@ use WC_Stripe_UPE_Payment_Gateway;
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/**
+	 * Tests that the plugin constants are defined.
+	 *
+	 * @return void
+	 */
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_MIN_PHP_VER' ) );
@@ -291,6 +296,48 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$updated_settings = get_option( 'woocommerce_stripe_settings' );
 		$this->assertContains( 'product', $updated_settings['express_checkout_button_locations'] );
 		$this->assertContains( 'cart', $updated_settings['express_checkout_button_locations'] );
+	}
+
+	/**
+	 * Tests for `maybe_redirect_to_stripe_settings`.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_redirect_to_stripe_settings(): void {
+		$redirected_to      = '';
+		$wp_redirect_filter = function ( string $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+
+			// Throw exception to prevent exit() from being called after wp_safe_redirect().
+			throw new \Exception();
+		};
+
+		// Add filter to catch redirects.
+		add_filter( 'wp_redirect', $wp_redirect_filter );
+
+		// Set the transient to trigger redirection.
+		set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
+
+		// Simulate activation by setting the 'activate' GET parameter.
+		$_GET['activate'] = 'true';
+
+		try {
+			WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
+		} catch ( \Exception $e ) {
+			// Expected - this prevents exit() from killing the test.
+			unset( $e );
+		}
+
+		$redirect_to_settings_transient = get_transient( 'wc_stripe_redirect_to_settings' );
+
+		// Clean up.
+		remove_filter( 'wp_redirect', $wp_redirect_filter );
+
+		// Check that the transient has been deleted after redirection.
+		$this->assertFalse( $redirect_to_settings_transient );
+
+		// Check that the redirect location is the Stripe settings page.
+		$this->assertStringContainsString( 'admin.php?page=wc-settings&tab=checkout&section=stripe', $redirected_to );
 	}
 
 	/**
