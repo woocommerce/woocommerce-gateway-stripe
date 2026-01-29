@@ -45,10 +45,7 @@ do
 			echo "Update your local branch, then try pushing again."
 			exit 1
 		fi
-	fi
 
-	if [ -n "$range" ]
-	then
 		# Get the changed files.
 		changed_files=$(git diff --name-only "$range")
 		# Get the changed PHP files or directories in the push.
