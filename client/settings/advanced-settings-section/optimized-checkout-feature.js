@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { useIsOCEnabled, useOCLayout } from '../../data';
+import { useIsAPEnabled, useIsOCEnabled, useOCLayout } from '../../data';
 import {
 	CheckboxControl,
 	ExternalLink,
@@ -9,6 +9,10 @@ import {
 } from '@wordpress/components';
 import { createInterpolateElement } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+const AdaptivePricingCheckbox = styled( CheckboxControl )`
+	margin-left: 24px;
+`;
 
 const StyledRadioControl = styled( RadioControl )`
 	legend {
@@ -22,6 +26,7 @@ const StyledRadioControl = styled( RadioControl )`
 
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const [ isAPEnabled, setIsAPEnabled ] = useIsAPEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
 	const headingRef = useRef( null );
 
@@ -71,6 +76,28 @@ const OptimizedCheckoutFeature = () => {
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
 			/>
+			{ isOCEnabled && (
+				<AdaptivePricingCheckbox
+					data-testid="adaptive-pricing-checkbox"
+					label={ __(
+						'Let customers pay in their local currency with Adaptive Pricing.',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ createInterpolateElement(
+						__(
+							"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
+							'woocommerce-gateway-stripe'
+						),
+						{
+							learnMoreLink: (
+								<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
+							),
+						}
+					) }
+					checked={ isAPEnabled }
+					onChange={ setIsAPEnabled }
+				/>
+			) }
 			{ isOCEnabled && (
 				<StyledRadioControl
 					label={ __( 'Layout', 'woocommerce-gateway-stripe' ) }
