@@ -1092,6 +1092,7 @@ class WC_Stripe_Customer {
 			'it_IT'          => 'it-IT',
 			'ja'             => 'ja-JP',
 			'nl_NL'          => 'nl-NL',
+			'nb_NO'          => 'no-NO',
 			'nn_NO'          => 'no-NO',
 			'pt_BR'          => 'pt-BR',
 			'sv_SE'          => 'sv-SE',
