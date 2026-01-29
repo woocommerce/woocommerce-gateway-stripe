@@ -7,12 +7,14 @@ import {
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
+	useIsAPEnabled,
 	useOCLayout,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsOCEnabled: jest.fn(),
+	useIsAPEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
@@ -28,6 +30,7 @@ describe( 'AdvancedSettings', () => {
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAPEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
@@ -81,7 +84,7 @@ describe( 'AdvancedSettings', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should display the Optimized Checkout layout setting if the Optimized Checkout feature is enabled', () => {
+	it( 'should display the Optimized Checkout layout and the Adaptive Pricing settings if the Optimized Checkout feature is enabled', () => {
 		global.wc_stripe_settings_params = { is_oc_available: true };
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
@@ -94,5 +97,11 @@ describe( 'AdvancedSettings', () => {
 			)
 		).toBeInTheDocument();
 		expect( screen.queryByText( 'Layout' ) ).toBeInTheDocument();
+
+		expect(
+			screen.queryByText(
+				'Let customers pay in their local currency with Adaptive Pricing.'
+			)
+		).toBeInTheDocument();
 	} );
 } );

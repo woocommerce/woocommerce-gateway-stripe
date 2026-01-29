@@ -78,7 +78,6 @@ const OptimizedCheckoutFeature = () => {
 			/>
 			{ isOCEnabled && (
 				<AdaptivePricingCheckbox
-					data-testid="adaptive-pricing-checkbox"
 					label={ __(
 						'Let customers pay in their local currency with Adaptive Pricing.',
 						'woocommerce-gateway-stripe'
