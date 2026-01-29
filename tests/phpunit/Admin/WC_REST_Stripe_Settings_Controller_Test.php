@@ -141,9 +141,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Tests for boolean fields.
 	 *
+	 * @param string $rest_key    REST API key.
+	 * @param string $option_name Option name.
+	 * @param bool   $inverse     Whether the option is inverse of the REST key.
 	 * @dataProvider boolean_field_provider
 	 */
-	public function test_boolean_fields( $rest_key, $option_name, $inverse = false ): void {
+	public function test_boolean_fields( string $rest_key, string $option_name, bool $inverse = false ): void {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, 'yes' );
 		$response = $this->rest_get_settings();

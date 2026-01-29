@@ -80,6 +80,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_ap_enabled'                    => [
+						'description'       => __( 'If Adaptive Pricing should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'oc_layout'                        => [
 						'description'       => __( 'The Optimized Checkout layout (accordion or tabs).', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
