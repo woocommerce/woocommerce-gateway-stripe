@@ -13,15 +13,22 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	 *
 	 * @return void
 	 */
-	public function init_hooks() {
+	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
 	}
 
-	public function create_checkout_session() {
-		$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
-		if ( ! $is_nonce_valid ) {
-			throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
-		}
+	/**
+	 * Create a Stripe Checkout Session and return the client secret.
+	 *
+	 * @return void
+	 * @throws WC_Stripe_Exception When unable to create the Checkout Session.
+	 */
+	public function create_checkout_session(): void {
+		// TODO: verify nonce
+		// $is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
+		// if ( ! $is_nonce_valid ) {
+		// throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+		// }
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
