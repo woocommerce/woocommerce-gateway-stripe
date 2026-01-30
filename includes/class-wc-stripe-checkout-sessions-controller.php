@@ -80,6 +80,10 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			throw new Exception( $checkout_session->error->message );
 		}
 
+		if ( empty( $checkout_session->client_secret ) ) {
+			throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		wp_send_json( [ 'client_secret' => $checkout_session->client_secret ] );
 	}
 }
