@@ -24,11 +24,10 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	 * @throws WC_Stripe_Exception When unable to create the Checkout Session.
 	 */
 	public function create_checkout_session(): void {
-		// TODO: verify nonce
-		// $is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
-		// if ( ! $is_nonce_valid ) {
-		// throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
-		// }
+		$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
+		if ( ! $is_nonce_valid ) {
+			throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+		}
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
@@ -37,11 +36,8 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
 
-		WC()->cart->calculate_totals();
-
-		$user     = wp_get_current_user();
-		$customer = new WC_Stripe_Customer( $user->ID );
-		$customer->update_or_create_customer();
+		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		$customer->maybe_create_customer();
 
 		// TODO: fix issue when customer does not have a billing address.
 		// Critical Uncaught WC_Stripe_Exception: missing_required_customer_field: name in includes/class-wc-stripe-customer.php:265
