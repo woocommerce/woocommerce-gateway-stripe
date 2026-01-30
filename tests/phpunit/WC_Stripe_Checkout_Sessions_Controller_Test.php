@@ -40,6 +40,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_create_checkout_session(
 		bool $is_valid_nonce,
+		array $customer_data = [],
 		array $cart_contents = [],
 		?object $checkout_session_response = null,
 		?string $expected_exception_message = null,
@@ -50,13 +51,9 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		// Set up a logged-in user with billing details.
 		wp_set_current_user( 1 );
 
-		update_user_meta( 1, 'billing_first_name', 'John' );
-		update_user_meta( 1, 'billing_last_name', 'Doe' );
-		update_user_meta( 1, 'billing_address_1', '123 Main St' );
-		update_user_meta( 1, 'billing_city', 'New York' );
-		update_user_meta( 1, 'billing_state', 'NY' );
-		update_user_meta( 1, 'billing_postcode', '10001' );
-		update_user_meta( 1, 'billing_country', 'US' );
+		foreach ( $customer_data as $key => $value ) {
+			update_user_meta( 1, $key, $value );
+		}
 
 		// Set up the cart contents.
 		WC()->session->init();
@@ -121,6 +118,16 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_create_checkout_session(): array {
+		$customer_data = [
+			'billing_first_name' => 'John',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '123 Main St',
+			'billing_city'       => 'New York',
+			'billing_state'      => 'NY',
+			'billing_postcode'   => '10001',
+			'billing_country'    => 'US',
+		];
+
 		$product = WC_Helper_Product::create_simple_product();
 		$product->save();
 
@@ -143,13 +150,23 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		return [
 			'invalid nonce'            => [
 				'is valid nonce'             => false,
+				'customer data'              => [],
 				'cart contents'              => [],
 				'checkout session response'  => null,
 				'expected exception message' => "We're not able to process this payment. Please refresh the page and try again.",
 				'expected secret'            => null,
 			],
+			'missing customer data'    => [
+				'is valid nonce'             => true,
+				'customer data'              => [],
+				'cart contents'              => [ $product ],
+				'checkout session response'  => null,
+				'expected exception message' => 'Unable to create or retrieve Stripe customer.',
+				'expected secret'            => null,
+			],
 			'cart is empty'            => [
 				'is valid nonce'             => true,
+				'customer data'              => $customer_data,
 				'cart contents'              => [],
 				'checkout session response'  => null,
 				'expected exception message' => 'Your cart is currently empty.',
@@ -157,6 +174,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 			],
 			'error creating session'   => [
 				'is valid nonce'             => true,
+				'customer data'              => $customer_data,
 				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_error,
 				'expected exception message' => $mocked_error_message,
@@ -164,6 +182,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 			],
 			'client secret is missing' => [
 				'is valid nonce'             => true,
+				'customer data'              => $customer_data,
 				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_missing_secret,
 				'expected exception message' => 'Unable to create Stripe Checkout Session.',
@@ -171,6 +190,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 			],
 			'successful creation'      => [
 				'is valid nonce'             => true,
+				'customer data'              => $customer_data,
 				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_success,
 				'expected exception message' => null,

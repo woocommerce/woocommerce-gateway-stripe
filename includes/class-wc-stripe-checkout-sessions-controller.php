@@ -36,11 +36,12 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
 
-		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-		$customer->maybe_create_customer();
-
-		// TODO: fix issue when customer does not have a billing address.
-		// Critical Uncaught WC_Stripe_Exception: missing_required_customer_field: name in includes/class-wc-stripe-customer.php:265
+		try {
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$customer->maybe_create_customer();
+		} catch ( Exception $e ) {
+			throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
+		}
 
 		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
@@ -67,7 +68,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			'customer'             => $customer->get_id(),
 			'line_items'           => $line_items,
 			'payment_method_types' => $enabled_payment_methods,
-			'payment_intent_data'  => [],
+			'payment_intent_data'  => [], // @todo Pass additional data if needed.
 			'mode'                 => 'payment',
 			'adaptive_pricing'     => [
 				'enabled' => 'true',
