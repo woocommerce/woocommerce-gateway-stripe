@@ -17,6 +17,7 @@
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 * Dev - Automate release note creation PR
+* Dev - Improve the pre-push hook
 * Fix - Prevent credit card input from being cleared when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
 
 = 10.3.1 - 2026-01-15 =

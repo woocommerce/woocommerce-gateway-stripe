@@ -36,6 +36,16 @@ do
 
 	if [ -n "$range" ]
 	then
+		# Verify that the remote_oid exists locally. If the remote has commits
+		# we don't have, the push will be rejected by the remote anyway.
+		# Fail fast with a clear message.
+		if ! git cat-file -e "$remote_oid" 2>/dev/null
+		then
+			echo "Error: Remote branch has commits that don't exist locally."
+			echo "Update your local branch, then try pushing again."
+			exit 1
+		fi
+
 		# Get the changed files.
 		changed_files=$(git diff --name-only "$range")
 		# Get the changed PHP files or directories in the push.
