@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Update - Redirect merchants to the Stripe settings screen upon plugin activation
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
@@ -149,9 +150,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
-* Fix - Better error handling when token creation fails
+* Dev - Unit tests to cover address normalization
 * Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
+* Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
+* Dev - Automate release note creation PR
+* Dev - Improve the pre-push hook
+* Fix - Better error handling when token creation fails
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

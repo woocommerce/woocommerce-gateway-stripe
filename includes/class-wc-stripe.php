@@ -101,6 +101,7 @@ class WC_Stripe {
 	 */
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'install' ] );
+		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
 
 		$this->init();
 
@@ -368,6 +369,23 @@ class WC_Stripe {
 				unset( $stripe_settings['pmc_enabled'] );
 				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			}
+		}
+	}
+
+	/**
+	 * Redirects to the Stripe settings page upon plugin activation if the transient is set,
+	 * and if not activating multiple plugins at once.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_to_stripe_settings(): void {
+		if ( get_transient( 'wc_stripe_redirect_to_settings' ) ) {
+			delete_transient( 'wc_stripe_redirect_to_settings' );
+
+			if ( isset( $_GET['activate'] ) ) {
+				wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+				exit;
 			}
 		}
 	}

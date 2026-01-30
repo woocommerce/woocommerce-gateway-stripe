@@ -81,7 +81,7 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
 	}
@@ -120,6 +120,17 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
+register_activation_hook( __FILE__, 'wc_stripe_set_settings_redirection_transient' );
+
+/**
+ * Set a transient to redirect the user to the settings page upon activation.
+ *
+ * @return void
+ */
+function wc_stripe_set_settings_redirection_transient(): void {
+	set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
+}
+
 function wcstripe_deactivated(): void {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
@@ -145,7 +156,7 @@ add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce
 
 function woocommerce_gateway_stripe_woocommerce_block_support() {
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe-blocks-support.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is
 		// registered before the WooCommerce Blocks built-in Stripe registration.
 		// Blocks code has a check in place to only register if 'stripe' is not
