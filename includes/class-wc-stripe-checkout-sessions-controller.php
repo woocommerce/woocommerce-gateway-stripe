@@ -42,6 +42,10 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		// TODO: fix issue when customer does not have a billing address.
 		// Critical Uncaught WC_Stripe_Exception: missing_required_customer_field: name in includes/class-wc-stripe-customer.php:265
 
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$currency   = get_woocommerce_currency();
 		$line_items = [];
 		foreach ( WC()->cart->get_cart() as $cart_item ) {

@@ -2,7 +2,9 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 use WC_Stripe_Checkout_Sessions_Controller;
 
@@ -29,6 +31,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 * Tests for the `create_checkout_session` method.
 	 *
 	 * @param bool        $is_valid_nonce             Whether the AJAX nonce is valid.
+	 * @param array       $cart_contents              The contents to add to the cart.
 	 * @param object|null $checkout_session_response  The mocked response from Stripe when creating the Checkout Session.
 	 * @param string|null $expected_exception_message The expected exception message, if any.
 	 * @param string|null $expected_secret            The expected client secret, if any.
@@ -37,6 +40,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_create_checkout_session(
 		bool $is_valid_nonce,
+		array $cart_contents = [],
 		?object $checkout_session_response = null,
 		?string $expected_exception_message = null,
 		?string $expected_secret = null
@@ -53,6 +57,14 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		update_user_meta( 1, 'billing_state', 'NY' );
 		update_user_meta( 1, 'billing_postcode', '10001' );
 		update_user_meta( 1, 'billing_country', 'US' );
+
+		// Set up the cart contents.
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		foreach ( $cart_contents as $product ) {
+			WC()->cart->add_to_cart( $product->get_id(), 1 );
+		}
 
 		// Mock response from Stripe API.
 		$test_request = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_response ) {
@@ -109,6 +121,9 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_create_checkout_session(): array {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
 		$mocked_error_message = 'Simulated error for testing.';
 
 		$mocked_secret = 'cs_test_1234567890abcdef';
@@ -128,24 +143,35 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		return [
 			'invalid nonce'            => [
 				'is valid nonce'             => false,
+				'cart contents'              => [],
 				'checkout session response'  => null,
 				'expected exception message' => "We're not able to process this payment. Please refresh the page and try again.",
 				'expected secret'            => null,
 			],
+			'cart is empty'            => [
+				'is valid nonce'             => true,
+				'cart contents'              => [],
+				'checkout session response'  => null,
+				'expected exception message' => 'Your cart is currently empty.',
+				'expected secret'            => null,
+			],
 			'error creating session'   => [
 				'is valid nonce'             => true,
+				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_error,
 				'expected exception message' => $mocked_error_message,
 				'expected secret'            => null,
 			],
 			'client secret is missing' => [
 				'is valid nonce'             => true,
+				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_missing_secret,
 				'expected exception message' => 'Unable to create Stripe Checkout Session.',
 				'expected secret'            => null,
 			],
 			'successful creation'      => [
 				'is valid nonce'             => true,
+				'cart contents'              => [ $product ],
 				'checkout session response'  => $checkout_session_success,
 				'expected exception message' => null,
 				'expected secret'            => $mocked_secret,
