@@ -717,9 +717,9 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Updates a saved payment token from payment method details received from Stripe.
 	 *
-	 * @param int      $user_id                The user ID.
-	 * @param string   $payment_method         The Stripe payment method ID.
-	 * @param stdClass $payment_method_details The payment method object from Stripe.
+	 * @param int    $user_id                The user ID.
+	 * @param string $payment_method         The Stripe payment method ID.
+	 * @param object $payment_method_details The payment method object from Stripe.
 	 * @return void
 	 */
 	public static function update_token_from_method_details( $user_id, $payment_method, $payment_method_details ) {
@@ -778,9 +778,9 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Searches for a duplicate token in the user's saved payment methods and returns it.
 	 *
-	 * @param stdClass $payment_method The payment method object.
-	 * @param int      $user_id        The user ID.
-	 * @param string   $gateway_id     The gateway ID.
+	 * @param object $payment_method The payment method object.
+	 * @param int    $user_id        The user ID.
+	 * @param string $gateway_id     The gateway ID.
 	 * @return WC_Payment_Token|null
 	 */
 	public static function get_duplicate_token( $payment_method, $user_id, $gateway_id ) {

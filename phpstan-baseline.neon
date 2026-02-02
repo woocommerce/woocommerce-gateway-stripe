@@ -7369,12 +7369,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$payment_method of static method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$price of function wc_price expects float, string given\.$#'
 			identifier: argument.type
 			count: 2
@@ -14932,12 +14926,6 @@ parameters:
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
 			count: 2
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
