@@ -1757,6 +1757,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 						wp_safe_redirect( wc_get_account_endpoint_url( 'payment-methods' ) );
 					} catch ( Exception $e ) {
 						WC_Stripe_Logger::error( 'Error processing UPE redirect payment.', [ 'error_message' => $e->getMessage() ] );
+						wc_add_notice( __( 'Unable to add this payment method. Please try again or use an alternative method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
 					}
 				} else {
 					wc_add_notice( __( 'Failed to add payment method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
@@ -2505,6 +2506,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @version 5.8.0
 	 */
 	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
+		$setup_intent = '123';
 		try {
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
