@@ -159,5 +159,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Automate release note creation PR
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
+* Tweak - Improve PHPDoc for payment token code
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
