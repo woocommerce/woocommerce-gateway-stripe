@@ -43,7 +43,7 @@ class WC_Stripe_Klarna_Payment_Token extends WC_Payment_Token implements WC_Stri
 	/**
 	 * Sets the Klarna token's date of birth.
 	 *
-	 * @param string $dob The formatted date of birth object (YYYY-mm-dd).
+	 * @param string $dob The formatted date of birth string (YYYY-mm-dd).
 	 * @return void
 	 */
 	public function set_dob( string $dob ) {
