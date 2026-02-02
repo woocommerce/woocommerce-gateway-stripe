@@ -99,7 +99,8 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	/**
 	 * Set the last four digits.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
