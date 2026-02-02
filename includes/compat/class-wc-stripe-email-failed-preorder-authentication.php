@@ -5,8 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Failed Renewal/Pre-Order Authentication Notification
- *
- * @extends WC_Stripe_Email_Failed_Authentication
  */
 class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Failed_Authentication {
 	/**
@@ -47,6 +45,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	 * in order to send the authentication required email when the custom pre-orders message is available.
 	 *
 	 * @param WC_Order $order The order whose payment is failing.
+	 * @return void
 	 */
 	public function trigger( $order ) {
 		if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order->get_id() ) ) {
@@ -63,6 +62,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	 *
 	 * @param WC_Order $order The order that is being paid.
 	 * @param string   $message The message, which should be added to the email.
+	 * @return void
 	 */
 	public function send_email( $order, $message ) {
 		$this->custom_message = $message;
