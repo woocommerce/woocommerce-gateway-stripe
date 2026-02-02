@@ -1489,6 +1489,12 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:mask_key_value\(\) has parameter \$value with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:set_account_keys\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -1528,12 +1534,6 @@ parameters:
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:validate_test_secret_key\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Parameter \#1 \$value of method WC_REST_Stripe_Account_Keys_Controller\:\:mask_key_value\(\) expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 2
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
