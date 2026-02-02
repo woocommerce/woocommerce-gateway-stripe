@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.4.0 - xxxx-xx-xx =
+* Add - Map Norwegian nb-NO to generic no-NO locale
 * Update - Redirect merchants to the Stripe settings screen upon plugin activation
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in block
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
@@ -17,7 +18,6 @@
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 * Dev - Automate release note creation PR
-* Add - Support for Norwegian nb_NO locale mapping
 
 = 10.3.1 - 2026-01-15 =
 * Fix - Fatal error when using express payment method with certain addresses
