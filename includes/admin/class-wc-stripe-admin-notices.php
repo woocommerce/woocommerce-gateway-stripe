@@ -39,6 +39,14 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 1.0.0
 	 * @version 4.0.0
+	 *
+	 * @param string $slug        The notice slug.
+	 * @param string $class       The notice CSS class.
+	 * @param string $message     The notice message.
+	 * @param bool   $dismissible Whether the notice is dismissible.
+	 * @param array  $actions     Optional action buttons.
+	 *
+	 * @return void
 	 */
 	public function add_admin_notice( $slug, $class, $message, $dismissible = false, $actions = [] ) {
 		$this->notices[ $slug ] = [
@@ -54,6 +62,8 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 1.0.0
 	 * @version 4.0.0
+	 *
+	 * @return void
 	 */
 	public function admin_notices() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -125,6 +135,8 @@ class WC_Stripe_Admin_Notices {
 	 * Displays the legacy deprecation notice.
 	 *
 	 * @param string $plugin_file Plugin file.
+	 *
+	 * @return void
 	 */
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		return;
@@ -148,6 +160,8 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 1.0.0
 	 * @version 4.0.0
+	 *
+	 * @return void
 	 */
 	public function stripe_check_environment() {
 		$show_style_notice         = get_option( 'wc_stripe_show_style_notice' );
@@ -348,6 +362,8 @@ class WC_Stripe_Admin_Notices {
 	 * Environment check for all other payment methods.
 	 *
 	 * @since 4.1.0
+	 *
+	 * @return void
 	 */
 	public function payment_methods_check_environment() {
 		// phpcs:ignore
@@ -505,6 +521,8 @@ class WC_Stripe_Admin_Notices {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 *
+	 * @return void
 	 */
 	public function hide_notices() {
 		if ( isset( $_GET['wc-stripe-hide-notice'] ) && isset( $_GET['_wc_stripe_notice_nonce'] ) ) {
@@ -592,6 +610,8 @@ class WC_Stripe_Admin_Notices {
 	 * Saves options in order to hide notices based on the gateway's version.
 	 *
 	 * @since 4.3.0
+	 *
+	 * @return void
 	 */
 	public function stripe_updated() {
 		$previous_version = get_option( 'wc_stripe_version' );
