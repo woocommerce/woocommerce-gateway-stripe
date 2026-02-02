@@ -1543,12 +1543,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-connection-tokens-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Connection_Tokens_Controller\:\:create_token\(\) should return WP_REST_Response but returns WP_Error\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/admin/class-wc-rest-stripe-connection-tokens-controller.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$country\.$#'
 			identifier: property.notFound
 			count: 1
