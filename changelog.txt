@@ -20,6 +20,7 @@
 * Dev - Automate release note creation PR
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
+* Fix - Better error handling when token creation fails
 
 = 10.3.1 - 2026-01-15 =
 * Fix - Fatal error when using express payment method with certain addresses
