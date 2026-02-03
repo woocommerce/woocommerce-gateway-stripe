@@ -51,17 +51,16 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			$currency   = get_woocommerce_currency();
 			$line_items = [];
-			foreach ( WC()->cart->get_cart() as $cart_item ) {
-				$product_name   = $cart_item['data']->get_name();
+			foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
 				$line_items[] = [
 					'price_data' => [
 						'currency' => strtolower( $currency ),
 						'product_data' => [
-							'name' => $product_name,
+							'name' => $raw_line_item['label'],
 						],
-						'unit_amount' => WC_Stripe_Helper::get_stripe_amount( $cart_item['line_subtotal'] / $cart_item['quantity'], $currency ),
+						'unit_amount' => $raw_line_item['amount'],
 					],
-					'quantity' => $cart_item['quantity'],
+					'quantity' => 1,
 				];
 			}
 
