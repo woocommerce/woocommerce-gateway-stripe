@@ -2,13 +2,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
-import { useIsOCEnabled, useIsAPEnabled, useOCLayout } from 'wcstripe/data';
+import {
+	useIsOCEnabled,
+	useIsAdaptivePricingEnabled,
+	useOCLayout,
+} from 'wcstripe/data';
 
 jest.useFakeTimers();
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsOCEnabled: jest.fn(),
-	useIsAPEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
 } ) );
 
@@ -19,7 +23,7 @@ jest.mock( '@woocommerce/navigation', () => ( {
 describe( 'Optimized Checkout Element feature setting', () => {
 	beforeEach( () => {
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useIsAPEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 	} );
 
@@ -91,12 +95,15 @@ describe( 'Optimized Checkout Element feature setting', () => {
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
-		const setAPEnabledMock = jest.fn();
-		useIsAPEnabled.mockReturnValue( [ false, setAPEnabledMock ] );
+		const setAdaptivePricingEnabledMock = jest.fn();
+		useIsAdaptivePricingEnabled.mockReturnValue( [
+			false,
+			setAdaptivePricingEnabledMock,
+		] );
 
 		render( <OptimizedCheckoutFeature /> );
 
-		expect( setAPEnabledMock ).not.toHaveBeenCalled();
+		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 
 		await userEvent.click(
 			screen.getByLabelText(
@@ -105,7 +112,9 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		);
 
 		await waitFor( async () => {
-			expect( setAPEnabledMock ).toHaveBeenCalledWith( true );
+			expect( setAdaptivePricingEnabledMock ).toHaveBeenCalledWith(
+				true
+			);
 		} );
 	} );
 } );

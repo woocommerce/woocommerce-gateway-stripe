@@ -7,14 +7,14 @@ import {
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
-	useIsAPEnabled,
+	useIsAdaptivePricingEnabled,
 	useOCLayout,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsOCEnabled: jest.fn(),
-	useIsAPEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
@@ -30,7 +30,7 @@ describe( 'AdvancedSettings', () => {
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useIsAPEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 

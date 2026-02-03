@@ -22,7 +22,7 @@ import {
 	useSepaTokensForIdeal,
 	useSepaTokensForBancontact,
 	useIsOCEnabled,
-	useIsAPEnabled,
+	useIsAdaptivePricingEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -287,8 +287,8 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		useIsAPEnabledSettings: {
-			hook: useIsAPEnabled,
+		useIsAdaptivePricingEnabledSettings: {
+			hook: useIsAdaptivePricingEnabled,
 			storeKey: 'is_ap_enabled',
 			testedValue: true,
 			fallbackValue: false,
