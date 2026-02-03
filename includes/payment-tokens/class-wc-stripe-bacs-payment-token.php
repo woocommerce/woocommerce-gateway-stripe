@@ -50,7 +50,8 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	/**
 	 * Set the last four digits for the Bacs Debit Token.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
@@ -77,6 +78,7 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 * Set Stripe payment method type.
 	 *
 	 * @param string $type Payment method type.
+	 * @return void
 	 */
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );

@@ -47,6 +47,7 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token implements WC_Stripe_Pay
 	 * Sets the Cash App Pay $Cashtag for this token.
 	 *
 	 * @param string $cashtag A public identifier for buyers using Cash App.
+	 * @return void
 	 */
 	public function set_cashtag( $cashtag ) {
 		$this->set_prop( 'cashtag', $cashtag );

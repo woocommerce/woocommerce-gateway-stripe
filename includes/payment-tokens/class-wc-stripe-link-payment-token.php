@@ -52,6 +52,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set Stripe payment method type.
 	 *
 	 * @param string $type Payment method type.
+	 * @return void
 	 */
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );
@@ -82,6 +83,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set the customer email.
 	 *
 	 * @param string $email Customer email.
+	 * @return void
 	 */
 	public function set_email( $email ) {
 		$this->set_prop( 'email', $email );
