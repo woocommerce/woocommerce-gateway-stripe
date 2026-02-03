@@ -1994,6 +1994,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->needs_shipping() ) {
 			$items[] = [
+				'key'    => 'total_shipping',
 				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
 			];
@@ -2001,6 +2002,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
+				'key'    => 'total_discount',
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];

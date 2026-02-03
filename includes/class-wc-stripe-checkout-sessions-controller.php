@@ -52,6 +52,11 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			$currency   = get_woocommerce_currency();
 			$line_items = [];
 			foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
+				if ( 'total_discount' === $raw_line_item['key'] ) {
+					// TODO: Stripe Checkout handles discounts/coupons differently. Skip for now.
+					continue;
+				}
+
 				$line_items[] = [
 					'price_data' => [
 						'currency' => strtolower( $currency ),
