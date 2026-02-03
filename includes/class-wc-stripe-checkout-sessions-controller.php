@@ -65,7 +65,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 						],
 						'unit_amount' => $raw_line_item['amount'],
 					],
-					'quantity' => 1,
+					'quantity' => 1, // @TODO: Handle quantity properly if needed.
 				];
 			}
 
