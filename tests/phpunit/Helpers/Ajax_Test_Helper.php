@@ -18,7 +18,7 @@ class Ajax_Test_Helper {
 
 	public static function remove_hooks(): void {
 		remove_filter( 'wp_doing_ajax', '__return_true' );
-		remove_filter( 'wp_die_ajax_handler', [ Ajax_Test_Helper::class, 'wp_ajax_halt_handler_filter' ] );
+		remove_filter( 'wp_die_ajax_handler', [ self::class, 'wp_ajax_halt_handler_filter' ] );
 	}
 
 	/**
@@ -27,7 +27,7 @@ class Ajax_Test_Helper {
 	 * @return callable The custom handler function.
 	 */
 	public static function wp_ajax_halt_handler_filter(): callable {
-		return [ Ajax_Test_Helper::class, 'wp_ajax_print_handler' ];
+		return [ self::class, 'wp_ajax_print_handler' ];
 	}
 
 	/**
