@@ -37,6 +37,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
 			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
 
+			// TODO: Test guest checkout flow.
 			try {
 				$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 				$customer->maybe_create_customer();
