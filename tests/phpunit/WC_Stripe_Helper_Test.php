@@ -1114,10 +1114,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'amount' => 0,
 					],
 					[
+						'key'    => 'total_shipping',
 						'label'  => 'Shipping',
 						'amount' => 0,
 					],
 					[
+						'key'    => 'total_discount',
 						'label'  => 'Discount',
 						'amount' => 100,
 					],
@@ -1136,6 +1138,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 							'amount' => 0,
 						],
 						[
+							'key'    => 'total_discount',
 							'label'  => 'Discount',
 							'amount' => 100,
 						],
