@@ -161,6 +161,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
 * Fix - Better error handling when token creation fails
-* Dev - Introduce a feature flag for the Stripe checkout sessions feature
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
