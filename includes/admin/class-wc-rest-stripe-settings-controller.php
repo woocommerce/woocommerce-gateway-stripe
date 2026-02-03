@@ -575,7 +575,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			}
 
 			// Special handling for boolean settings except for oc_layout.
-			$value         = 'oc_layout' === $request_key ? $value : ( $value ? 'yes' : 'no' );
+			if ( 'oc_layout' !== $request_key ) {
+				$value = $value ? 'yes' : 'no';
+			}
 			$current_value = $this->gateway->get_option( $attribute );
 
 			$this->gateway->update_validated_option( $attribute, $value );
