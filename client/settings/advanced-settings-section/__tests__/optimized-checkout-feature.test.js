@@ -22,6 +22,8 @@ jest.mock( '@woocommerce/navigation', () => ( {
 
 describe( 'Optimized Checkout Element feature setting', () => {
 	beforeEach( () => {
+		global.wc_stripe_settings_params = { is_cs_available: false };
+
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
@@ -54,7 +56,9 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		} );
 	} );
 
-	it( 'Adaptive pricing and layout settings should be available when OC is enabled', () => {
+	it( 'Adaptive pricing and layout settings should be available when OC is enabled and checkout sessions is available', () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <OptimizedCheckoutFeature /> );
@@ -93,6 +97,8 @@ describe( 'Optimized Checkout Element feature setting', () => {
 	} );
 
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		const setAdaptivePricingEnabledMock = jest.fn();

@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import React, { useEffect, useRef } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
@@ -34,6 +35,8 @@ const OptimizedCheckoutFeature = () => {
 		useIsAdaptivePricingEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
 	const headingRef = useRef( null );
+	const isCheckoutSessionsAvailable =
+		wc_stripe_settings_params.is_cs_available; // eslint-disable-line camelcase
 
 	useEffect( () => {
 		if ( ! headingRef.current ) {
@@ -81,7 +84,7 @@ const OptimizedCheckoutFeature = () => {
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
 			/>
-			{ isOCEnabled && (
+			{ isOCEnabled && isCheckoutSessionsAvailable && (
 				<AdaptivePricingCheckbox
 					label={ __(
 						'Let customers pay in their local currency with Adaptive Pricing.',

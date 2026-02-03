@@ -26,7 +26,10 @@ jest.mock( '@woocommerce/navigation', () => ( {
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = { is_oc_available: false };
+		global.wc_stripe_settings_params = {
+			is_cs_available: false,
+			is_oc_available: false,
+		};
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
@@ -84,8 +87,11 @@ describe( 'AdvancedSettings', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should display the Optimized Checkout layout and the Adaptive Pricing settings if the Optimized Checkout feature is enabled', () => {
-		global.wc_stripe_settings_params = { is_oc_available: true };
+	it( 'should display the Optimized Checkout layout and the Adaptive Pricing settings if the Optimized Checkout feature is enabled and checkout sessions available', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			is_oc_available: true,
+		};
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
