@@ -13,7 +13,7 @@ class Ajax_Test_Helper {
 	 */
 	public static function init_hooks(): void {
 		add_filter( 'wp_doing_ajax', '__return_true' );
-		add_filter( 'wp_die_ajax_handler', [ Ajax_Test_Helper::class, 'wp_ajax_halt_handler_filter' ] );
+		add_filter( 'wp_die_ajax_handler', [ self::class, 'wp_ajax_halt_handler_filter' ] );
 	}
 
 	public static function remove_hooks(): void {
