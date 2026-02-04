@@ -101,11 +101,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		} catch ( \Exception $e ) {
 			ob_end_clean();
 			throw $e;
+		} finally {
+			// Clean up.
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			Ajax_Test_Helper::remove_hooks();
 		}
-
-		// Clean up.
-		remove_filter( 'pre_http_request', $test_request, 10, 3 );
-		Ajax_Test_Helper::remove_hooks();
 
 		$response = json_decode( $output );
 		$this->assertEquals( (object) $expected_response, $response );
