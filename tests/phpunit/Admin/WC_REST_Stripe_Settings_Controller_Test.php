@@ -139,9 +139,14 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests for boolean fields.
+	 *
+	 * @param string $rest_key    REST API key.
+	 * @param string $option_name Option name.
+	 * @param bool   $inverse     Whether the option is inverse of the REST key.
 	 * @dataProvider boolean_field_provider
 	 */
-	public function test_boolean_fields( $rest_key, $option_name, $inverse = false ) {
+	public function test_boolean_fields( string $rest_key, string $option_name, bool $inverse = false ): void {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, 'yes' );
 		$response = $this->rest_get_settings();
@@ -517,11 +522,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		];
 	}
 
-	public function boolean_field_provider() {
+	/**
+	 * Data provider for `test_boolean_fields`.
+	 *
+	 * @return array
+	 */
+	public function boolean_field_provider(): array {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_oc_enabled'                         => [ 'is_oc_enabled', 'optimized_checkout_element' ],
+			'is_ap_enabled'                         => [ 'is_ap_enabled', 'adaptive_pricing' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
 			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],

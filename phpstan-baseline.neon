@@ -3163,6 +3163,30 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$dp\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_tax_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$tax_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$currency\.$#'
 			identifier: property.notFound
 			count: 1
@@ -3394,6 +3418,12 @@ parameters:
 			message: '#^Parameter \#1 \$str of function trim expects string, string\|null given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 3
 			path: includes/class-wc-stripe-helper.php
 
 		-
@@ -6007,36 +6037,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$cart_contents_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$dp\.$#'
-			identifier: property.notFound
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6046,12 +6046,6 @@ parameters:
 			message: '#^Access to an undefined property WooCommerce\:\:\$shipping\.$#'
 			identifier: property.notFound
 			count: 3
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Binary operation "\+" between string and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
@@ -6358,12 +6352,6 @@ parameters:
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 3
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
