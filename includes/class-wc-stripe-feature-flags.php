@@ -22,7 +22,6 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                   => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
 	];
