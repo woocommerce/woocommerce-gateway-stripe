@@ -38,8 +38,8 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			// TODO: Test guest checkout flow.
 			try {
-				$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-				$customer->maybe_create_customer();
+				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
+				$stripe_customer->maybe_create_customer();
 			} catch ( Exception $e ) {
 				throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -70,7 +70,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			$request = [
 				'ui_mode'              => 'custom',
-				'customer'             => $customer->get_id(),
+				'customer'             => $stripe_customer->get_id(),
 				'line_items'           => $line_items,
 				'payment_method_types' => $enabled_payment_methods,
 				'payment_intent_data'  => [], // @todo Pass additional data if needed.
