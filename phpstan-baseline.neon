@@ -3601,15 +3601,39 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
+			message: '#^Method WC_Stripe_Logger\:\:log\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-logger.php
+
+		-
+			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$end_time with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-logger.php
+
+		-
+			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$message with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-logger.php
+
+		-
+			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$start_time with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-logger.php
+
+		-
 			message: '#^Static property WC_Stripe_Logger\:\:\$logger \(WC_Logger\) does not accept WC_Logger_Interface\.$#'
 			identifier: assign.propertyType
-			count: 8
+			count: 9
 			path: includes/class-wc-stripe-logger.php
 
 		-
 			message: '#^Static property WC_Stripe_Logger\:\:\$logger \(WC_Logger\) in empty\(\) is not falsy\.$#'
 			identifier: empty.property
-			count: 8
+			count: 9
 			path: includes/class-wc-stripe-logger.php
 
 		-
