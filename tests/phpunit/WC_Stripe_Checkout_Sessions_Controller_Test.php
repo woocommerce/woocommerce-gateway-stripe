@@ -48,7 +48,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		Ajax_Test_Helper::init_hooks();
 
 		// Set up a logged-in user with billing details.
-		wp_set_current_user( 1 );
+		WC()->customer = new \WC_Customer( 1 );
 
 		foreach ( $customer_data as $key => $value ) {
 			update_user_meta( 1, $key, $value );
