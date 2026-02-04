@@ -52,7 +52,9 @@ class WC_Stripe {
 	/**
 	 * Stripe Payment Request configurations.
 	 *
-	 * @var WC_Stripe_Payment_Request
+	 * @var null
+	 *
+	 * @deprecated 10.4.0 Use express_checkout_configuration instead. This will be removed in a future release.
 	 */
 	public $payment_request_configuration;
 
@@ -99,6 +101,7 @@ class WC_Stripe {
 	 */
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'install' ] );
+		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
 
 		$this->init();
 
@@ -155,11 +158,11 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-klarna-payment-token.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-status.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-currency-code.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-methods.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-intent-status.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
@@ -186,7 +189,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';
@@ -212,7 +214,6 @@ class WC_Stripe {
 
 		$this->api                           = new WC_Stripe_Connect_API();
 		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded
@@ -246,9 +247,6 @@ class WC_Stripe {
 				new WC_Stripe_Subscription_Detached_Bulk_Action();
 			}
 		}
-
-		// REMOVE IN THE FUTURE.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
@@ -375,6 +373,23 @@ class WC_Stripe {
 				unset( $stripe_settings['pmc_enabled'] );
 				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			}
+		}
+	}
+
+	/**
+	 * Redirects to the Stripe settings page upon plugin activation if the transient is set,
+	 * and if not activating multiple plugins at once.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_to_stripe_settings(): void {
+		if ( get_transient( 'wc_stripe_redirect_to_settings' ) ) {
+			delete_transient( 'wc_stripe_redirect_to_settings' );
+
+			if ( isset( $_GET['activate'] ) ) {
+				wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+				exit;
 			}
 		}
 	}

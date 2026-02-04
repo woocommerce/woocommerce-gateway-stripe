@@ -12,6 +12,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart ) => {
@@ -28,6 +29,11 @@ export const checkPaymentMethodIsAvailable = memoize(
 
 			const root = createRoot( containerEl );
 
+			const amount = transformPriceWithMinorUnits(
+				cart.cartTotals.total_price,
+				cart.cartTotals.currency_minor_unit
+			);
+
 			root.render(
 				<Elements
 					stripe={ api.loadStripe() }
@@ -39,7 +45,7 @@ export const checkPaymentMethodIsAvailable = memoize(
 						) && {
 							paymentMethodCreation: 'manual',
 						} ),
-						amount: Number( cart.cartTotals.total_price ),
+						amount: Number( amount ),
 						currency: cart.cartTotals.currency_code.toLowerCase(),
 						paymentMethodTypes:
 							getPaymentMethodTypesForExpressMethod(

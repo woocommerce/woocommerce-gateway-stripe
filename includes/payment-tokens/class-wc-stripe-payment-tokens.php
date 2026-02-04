@@ -10,6 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Payment_Tokens {
+	/**
+	 * Instance of this class.
+	 *
+	 * @var WC_Stripe_Payment_Tokens|null
+	 */
 	private static $_this;
 
 	/**
@@ -58,6 +63,7 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @return WC_Stripe_Payment_Tokens|null
 	 */
 	public static function get_instance() {
 		return self::$_this;
@@ -160,7 +166,9 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param array $tokens
+	 * @param array  $tokens      Existing tokens.
+	 * @param int    $customer_id The customer ID.
+	 * @param string $gateway_id  The gateway ID.
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens_legacy( $tokens, $customer_id, $gateway_id ) {
@@ -241,7 +249,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			} catch ( WC_Stripe_Exception $e ) {
 				wc_add_notice( $e->getLocalizedMessage(), 'error' );
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				WC_Stripe_Logger::error( 'Error getting customer payment tokens (legacy) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
 			}
 		}
 
@@ -373,7 +381,7 @@ class WC_Stripe_Payment_Tokens {
 
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for user: ' . $user_id, [ 'error_message' => $e->getMessage() ] );
 		}
 
 		return $tokens;
@@ -468,6 +476,7 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @param int              $token_id The WooCommerce token ID.
 	 * @param WC_Payment_Token $token    The WC_Payment_Token object.
+	 * @return void
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
@@ -484,7 +493,7 @@ class WC_Stripe_Payment_Tokens {
 
 			$stripe_customer->detach_payment_method( $token->get_token() );
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error deleting payment token from Stripe customer.', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -493,9 +502,16 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
+	 * @param int $token_id The token ID.
+	 * @return void
 	 */
 	public function woocommerce_payment_token_set_default( $token_id ) {
-		$token           = WC_Payment_Tokens::get( $token_id );
+		$token = WC_Payment_Tokens::get( $token_id );
+
+		if ( ! $token ) {
+			return;
+		}
+
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 		try {
@@ -506,7 +522,7 @@ class WC_Stripe_Payment_Tokens {
 				$stripe_customer->set_default_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error setting default payment token.', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -701,9 +717,10 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Updates a saved payment token from payment method details received from Stripe.
 	 *
-	 * @param int       $user_id                The user ID.
-	 * @param string    $payment_method         The Stripe payment method ID.
-	 * @param stdClass  $payment_method_details The payment method object from Stripe.
+	 * @param int    $user_id                The user ID.
+	 * @param string $payment_method         The Stripe payment method ID.
+	 * @param object $payment_method_details The payment method object from Stripe.
+	 * @return void
 	 */
 	public static function update_token_from_method_details( $user_id, $payment_method, $payment_method_details ) {
 		// Payment method types that we want to update from updated payment method details.
@@ -761,9 +778,9 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Searches for a duplicate token in the user's saved payment methods and returns it.
 	 *
-	 * @param $payment_method stdClass The payment method object.
-	 * @param $user_id int The user ID.
-	 * @param $gateway_id string The gateway ID.
+	 * @param object $payment_method The payment method object.
+	 * @param int    $user_id        The user ID.
+	 * @param string $gateway_id     The gateway ID.
 	 * @return WC_Payment_Token|null
 	 */
 	public static function get_duplicate_token( $payment_method, $user_id, $gateway_id ) {

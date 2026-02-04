@@ -35,10 +35,10 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Return if Stripe Link is enabled
 	 *
-	 * @param WC_Gateway_Stripe $gateway The gateway instance.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway The gateway instance.
 	 * @return bool
 	 */
-	public static function is_link_enabled( WC_Gateway_Stripe $gateway ) {
+	public static function is_link_enabled( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );

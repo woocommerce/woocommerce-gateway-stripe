@@ -89,7 +89,7 @@ class WC_Stripe_Subscriptions_Helper {
 		do {
 			if ( ( time() - $start_time ) > $max_time ) {
 				// If we have been running for more than the default limit, stop to avoid long execution times.
-				WC_Stripe_Logger::log(
+				WC_Stripe_Logger::warning(
 					sprintf(
 						/* translators: %d is the maximum time allowed for fetching detached subscriptions */
 						__( 'Stopped fetching detached subscriptions before the %d seconds limit for safety.', 'woocommerce-gateway-stripe' ),

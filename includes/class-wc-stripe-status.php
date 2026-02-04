@@ -17,9 +17,9 @@ class WC_Stripe_Status {
 	private const SUBSCRIPTIONS_DETACHED_LIST_LIMIT = 1000;
 
 	/**
-	 * Instance of WC_Gateway_Stripe
+	 * Instance of WC_Stripe_UPE_Payment_Gateway
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -33,7 +33,7 @@ class WC_Stripe_Status {
 	/**
 	 * WC_Stripe_Status constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Gateway instance.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Gateway instance.
 	 * @param WC_Stripe_Account $account Account instance.
 	 */
 	public function __construct( $gateway, $account ) {

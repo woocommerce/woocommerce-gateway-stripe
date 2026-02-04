@@ -94,7 +94,7 @@ class WC_Stripe_Settings_Controller {
 				echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wp_kses_post( wc_help_tip( $no_refunds_tooltip ) ) . '</span>';
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order->get_id(), [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
