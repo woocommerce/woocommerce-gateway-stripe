@@ -161,6 +161,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Automate release note creation PR
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
+* Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
 * Fix - Better error handling when token creation fails
 * Tweak - Improve PHPDoc for payment token code
 * Tweak - Update PHPDoc for email notification classes
