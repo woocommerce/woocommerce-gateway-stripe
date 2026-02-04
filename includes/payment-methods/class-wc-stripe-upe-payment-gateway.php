@@ -1164,7 +1164,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			} catch ( WC_Stripe_Exception $e ) {
 				wc_add_notice( $e->getLocalizedMessage(), 'error' );
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 				do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 

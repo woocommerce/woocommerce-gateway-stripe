@@ -6277,12 +6277,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Call to an undefined static method WC_Stripe_Logger\:\:log\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Call to function method_exists\(\) with WC_Order and ''get_shipping…'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
