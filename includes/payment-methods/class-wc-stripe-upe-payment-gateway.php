@@ -675,7 +675,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// There could be some payment methods in the unsupported list that are not supported in the 'excludedPaymentMethodTypes' parameter
 		// of the Payment Element (i.e. link, apple_pay, google_pay, cartes_bancaires etc.). Therefore, we need to exclude them and ensure that the excluded payment method list we send to the client has only
 		// payment methods that are supported in the 'excludedPaymentMethodTypes' parameter.
-		$excluded_methods = array_intersect( $unsupported_methods, $excludable_methods );
+		$excluded_methods = array_filter(
+			$unsupported_methods,
+			function ( $method ) use ( $excludable_methods ) {
+				return in_array( $method, $excludable_methods, true );
+			}
+		);
 
 		// Always exclude amazon_pay (shown via Express Checkout, not in Payment Element)
 		if ( ! in_array( 'amazon_pay', $excluded_methods, true ) ) {
