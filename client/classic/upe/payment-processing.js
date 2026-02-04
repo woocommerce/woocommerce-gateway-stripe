@@ -407,12 +407,17 @@ export function getMountedUPEComponent( paymentMethodType ) {
 	}
 
 	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	if ( ! component.elements ) {
+		return null;
+	}
+
 	const domElement = document.querySelector(
 		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
 	);
 
 	// Only return if the Elements object exists and is mounted.
-	if ( component.elements && domElement && domElement.children.length > 0 ) {
+	if ( domElement && domElement.children.length > 0 ) {
 		return component;
 	}
 
