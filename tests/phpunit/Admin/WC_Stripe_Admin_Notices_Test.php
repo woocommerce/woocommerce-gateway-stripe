@@ -77,6 +77,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function tear_down() {
 		parent::tear_down();
 
+		delete_option( 'wc_stripe_version' );
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+
 		// Restoring the original `WC_Stripe_Connect` instance.
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 	}
@@ -872,5 +875,73 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected content' => '',
 			],
 		];
+	}
+
+	/**
+	 * Test that upgrading from an affected version (10.1.0-10.2.x) sets the flag.
+	 */
+	public function test_stripe_updated_sets_ece_location_flag_for_affected_versions() {
+		update_option( 'wc_stripe_version', '10.2.0' );
+
+		// Remove hooks to prevent side effects during construction.
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		$notices->stripe_updated();
+
+		$this->assertNotEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+	}
+
+	/**
+	 * Test that upgrading from a version before the affected window does NOT set the flag.
+	 */
+	public function test_stripe_updated_does_not_set_ece_location_flag_for_pre_affected_versions() {
+		update_option( 'wc_stripe_version', '10.0.0' );
+
+		// Remove hooks to prevent side effects during construction.
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		$notices->stripe_updated();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+	}
+
+	/**
+	 * Test that upgrading from a version after the fix does NOT set the flag.
+	 */
+	public function test_stripe_updated_does_not_set_ece_location_flag_for_post_fix_versions() {
+		update_option( 'wc_stripe_version', '10.3.0' );
+
+		// Remove hooks to prevent side effects during construction.
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		$notices->stripe_updated();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+	}
+
+	/**
+	 * Test that a fresh install (no previous version) does NOT set the flag.
+	 */
+	public function test_stripe_updated_does_not_set_ece_location_flag_for_fresh_install() {
+		delete_option( 'wc_stripe_version' );
+
+		// Remove hooks to prevent side effects during construction.
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		$notices->stripe_updated();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 }
