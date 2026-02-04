@@ -671,7 +671,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		// 'Link', 'Apple Pay', and 'Google Pay' are not supported in the 'excludedPaymentMethodTypes' parameter, so we always allow them.
-		$allowed_methods = [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY, 'cartes_bancaires' ];
+		$allowed_methods = [
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::APPLE_PAY,
+			WC_Stripe_Payment_Methods::GOOGLE_PAY,
+			'cartes_bancaires',
+		];
 
 		$excluded_methods = array_diff( $unsupported_methods, $allowed_methods );
 
