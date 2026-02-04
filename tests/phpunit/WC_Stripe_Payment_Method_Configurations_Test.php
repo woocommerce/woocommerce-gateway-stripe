@@ -871,7 +871,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		}
 	}
 
-		/**
+	/**
 	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when PMC is disabled.
 	 *
 	 * @return void
@@ -931,8 +931,11 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @return void
 	 */
 	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_with_unsupported_methods() {
-		$settings                = WC_Stripe_Helper::get_stripe_settings();
-		$settings['pmc_enabled'] = 'yes';
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled']          = 'yes';
+		$settings['test_publishable_key'] = 'pk_test_1234567890';
+		$settings['test_secret_key']      = 'sk_test_1234567890';
+		$settings['test_connection_type'] = 'connect';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$payment_method_configuration = (object) [
