@@ -372,6 +372,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
+		$mock_main_gateway->method( 'get_option' )
+			->with( 'optimized_checkout_element', 'no' )
+			->willReturn( 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -421,10 +424,12 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$klarna_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Klarna::class )
 			->disableOriginalConstructor()
 			->getMock();
+		$klarna_gateway->method( 'is_enabled_at_checkout' )->willReturn( true );
 
 		$afterpay_clearpay_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class )
 			->disableOriginalConstructor()
 			->getMock();
+		$afterpay_clearpay_gateway->method( 'is_enabled_at_checkout' )->willReturn( true );
 
 		return [
 			'none active' => [
