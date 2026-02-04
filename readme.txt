@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 10.2.0
+Stable tag: 10.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -140,6 +140,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Add - Map Norwegian nb-NO to generic no-NO locale
+* Update - Redirect merchants to the Stripe settings screen upon plugin activation
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
+* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
+* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
 * Dev - Replace deprecated logger method calls with severity specific methods
@@ -147,5 +152,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
 * Fix - Resolve and issue where unsupported payment methods gets displayed on checkout page when optimized checkout is enabled
+* Dev - Unit tests to cover address normalization
+* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
+* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
+* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
+* Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
+* Dev - Automate release note creation PR
+* Dev - Introduce a feature flag for the Stripe checkout sessions feature
+* Dev - Improve the pre-push hook
+* Fix - Better error handling when token creation fails
+* Tweak - Improve PHPDoc for payment token code
+* Tweak - Update PHPDoc for email notification classes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

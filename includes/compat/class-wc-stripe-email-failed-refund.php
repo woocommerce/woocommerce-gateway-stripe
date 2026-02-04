@@ -75,8 +75,9 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	/**
 	 * Trigger.
 	 *
-	 * @param int $order_id The order ID.
-	 * @param WC_Order|false $order Order object.
+	 * @param int            $order_id The order ID.
+	 * @param WC_Order|false $order    Order object.
+	 * @return void
 	 */
 	public function trigger( $order_id, $order = false ) {
 		$this->object = $order;
