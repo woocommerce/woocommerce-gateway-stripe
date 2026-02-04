@@ -322,6 +322,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
 				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
 
+				// Update the WC_Stripe_Customer object with the new customer ID.
+				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
+				$stripe_customer->set_id( $payment_information['customer'] );
+
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
 					'wc_stripe_change_subs_payment_method_success',
