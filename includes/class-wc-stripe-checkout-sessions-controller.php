@@ -83,7 +83,8 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 
 			if ( ! empty( $checkout_session->error ) ) {
-				throw new Exception( $checkout_session->error->message );
+				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+				throw new Exception( $message );
 			}
 
 			if ( empty( $checkout_session->client_secret ) ) {
