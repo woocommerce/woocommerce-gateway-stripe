@@ -1,7 +1,12 @@
+/* global wc_stripe_settings_params */
 import React, { useEffect, useRef } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { useIsOCEnabled, useOCLayout } from '../../data';
+import {
+	useIsAdaptivePricingEnabled,
+	useIsOCEnabled,
+	useOCLayout,
+} from '../../data';
 import {
 	CheckboxControl,
 	ExternalLink,
@@ -9,6 +14,10 @@ import {
 } from '@wordpress/components';
 import { createInterpolateElement } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+const AdaptivePricingCheckbox = styled( CheckboxControl )`
+	margin-left: 24px;
+`;
 
 const StyledRadioControl = styled( RadioControl )`
 	legend {
@@ -22,8 +31,12 @@ const StyledRadioControl = styled( RadioControl )`
 
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const [ isAdaptivePricingEnabled, setIsAdaptivePricingEnabled ] =
+		useIsAdaptivePricingEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
 	const headingRef = useRef( null );
+	const isCheckoutSessionsAvailable =
+		wc_stripe_settings_params.is_cs_available; // eslint-disable-line camelcase
 
 	useEffect( () => {
 		if ( ! headingRef.current ) {
@@ -71,6 +84,27 @@ const OptimizedCheckoutFeature = () => {
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
 			/>
+			{ isOCEnabled && isCheckoutSessionsAvailable && (
+				<AdaptivePricingCheckbox
+					label={ __(
+						'Let customers pay in their local currency with Adaptive Pricing.',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ createInterpolateElement(
+						__(
+							"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
+							'woocommerce-gateway-stripe'
+						),
+						{
+							learnMoreLink: (
+								<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
+							),
+						}
+					) }
+					checked={ isAdaptivePricingEnabled }
+					onChange={ setIsAdaptivePricingEnabled }
+				/>
+			) }
 			{ isOCEnabled && (
 				<StyledRadioControl
 					label={ __( 'Layout', 'woocommerce-gateway-stripe' ) }
