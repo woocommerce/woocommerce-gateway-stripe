@@ -331,10 +331,15 @@ class WC_Stripe {
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
 
-			// Mark optimized checkout as default on for new installs.
-			if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
-				update_option( 'wc_stripe_optimized_checkout_default_on', true );
-			}
+			/*
+			 * Pause defaulting on Optimized Checkout for the time being, as we want to make UX improvements.
+			 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
+			 *
+			 * // Mark optimized checkout as default on for new installs.
+			 * if ( false === get_option( 'wc_stripe_version' ) && false === get_option( 'wc_stripe_optimized_checkout_default_on' ) ) {
+			 *   update_option( 'wc_stripe_optimized_checkout_default_on', true );
+			 * }
+			 */
 
 			add_woocommerce_inbox_variant();
 			$this->update_plugin_version();
