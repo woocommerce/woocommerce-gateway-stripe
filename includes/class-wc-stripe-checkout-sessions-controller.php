@@ -21,7 +21,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	 * Create a Stripe Checkout Session and return the client secret.
 	 *
 	 * @return void
-	 * @throws WC_Stripe_Exception When unable to create the Checkout Session.
 	 */
 	public function create_checkout_session(): void {
 		try {
