@@ -161,5 +161,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Improve the pre-push hook
 * Fix - Better error handling when token creation fails
 * Tweak - Improve PHPDoc for payment token code
+* Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
