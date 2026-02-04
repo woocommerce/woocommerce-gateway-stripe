@@ -527,7 +527,7 @@ class WC_Stripe {
 					}
 
 					if ( $method instanceof WC_Stripe_UPE_Payment_Method ) {
-						if ( $is_oc_enabled ) {
+						if ( 'yes' === $is_oc_enabled ) {
 							return false;
 						}
 
