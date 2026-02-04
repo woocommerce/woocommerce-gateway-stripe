@@ -76,11 +76,15 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				];
 			}
 
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode( $checkout_session_response ),
-			];
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( $checkout_session_response ),
+				];
+			}
+			
+			return $return_value;
 		};
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
