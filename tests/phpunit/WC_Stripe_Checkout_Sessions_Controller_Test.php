@@ -152,7 +152,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				'expected response'          => (object) [
 					'success' => false,
 					'data'    => (object) [
-						'message' => "We're not able to process this payment. Please refresh the page and try again.",
+						'message' => "We're not able to process this request. Please refresh the page and try again.",
 					],
 				],
 			],
