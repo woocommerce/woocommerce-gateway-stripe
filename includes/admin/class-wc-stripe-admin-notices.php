@@ -410,15 +410,14 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
+		$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods&area=express_checkout' );
 
 		$message = sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 4) HTML anchor closing tag */
-			__( '%1$sAction Required: Review your express checkout settings.%2$s A recent update may have unintentionally changed where Apple Pay / Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please %3$sreview your settings%4$s to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML line break tag */
+			__( '%1$sAction Required: Review your express checkout settings.%2$s%3$sA recent update may have unintentionally changed where Apple Pay / Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please verify your settings to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
-			'<a href="' . esc_url( $settings_url ) . '">',
-			'</a>'
+			'<br>'
 		);
 
 		$review_action = sprintf(
