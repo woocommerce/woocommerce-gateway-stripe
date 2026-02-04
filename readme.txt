@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.4.0 - xxxx-xx-xx =
+* Add - Introduce an endpoint to create Checkout Sessions tokens
 * Add - New setting to control Adaptive Pricing
 * Add - Map Norwegian nb-NO to generic no-NO locale
 * Update - Redirect merchants to the Stripe settings screen upon plugin activation
