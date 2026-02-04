@@ -662,10 +662,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Returns the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+	 * The payment method configuration might have some payment methods enabled in Stripe that are not supported in the plugin,
+	 * so we need to exclude them from the Payment Element.
 	 *
-	 * @return array
+	 * @return string[] List of payment method types to exclude.
 	 */
-	private function get_excluded_payment_method_types() {
+	private function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		// 'Link', 'Apple Pay', and 'Google Pay' are not supported in the 'excludedPaymentMethodTypes' parameter, so we always allow them.
