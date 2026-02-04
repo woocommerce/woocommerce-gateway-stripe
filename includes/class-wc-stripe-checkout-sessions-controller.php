@@ -26,7 +26,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
-				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
