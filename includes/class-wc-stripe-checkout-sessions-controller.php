@@ -44,7 +44,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
+			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
