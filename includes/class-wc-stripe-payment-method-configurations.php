@@ -379,9 +379,14 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the enabled payment method IDs in the PMC that are not supported in the plugin.
 	 *
-	 * @return array
+	 * @return string[] List of payment method IDs that are enabled in the PMC but not supported in the plugin.
 	 */
-	public static function get_unsupported_enabled_payment_method_ids_in_pmc() {
+	public static function get_unsupported_enabled_payment_method_ids_in_pmc(): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
 		$unsupported_payment_method_ids        = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
