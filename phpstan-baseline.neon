@@ -3163,6 +3163,30 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$dp\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_tax_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property WC_Cart\:\:\$tax_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$currency\.$#'
 			identifier: property.notFound
 			count: 1
@@ -3394,6 +3418,12 @@ parameters:
 			message: '#^Parameter \#1 \$str of function trim expects string, string\|null given\.$#'
 			identifier: argument.type
 			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 3
 			path: includes/class-wc-stripe-helper.php
 
 		-
@@ -4939,12 +4969,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Admin_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-admin-failed-refund.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Email_Failed_Refund\:\:get_reason\(\) expects object, bool\|object given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4953,12 +4977,6 @@ parameters:
 		-
 			message: '#^Cannot access property \$billing_email on WC_Order\|false\.$#'
 			identifier: property.nonObject
-			count: 1
-			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Customer_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
 
@@ -4989,18 +5007,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_human_time_diff not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication_Retry\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Failed_Order\)\: Unexpected token "\\n ", expected ''\<'' at offset 440 on line 9$#'
-			identifier: phpDoc.parseError
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 
@@ -5047,24 +5053,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-authentication.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication\:\:init_form_fields\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email\)\: Unexpected token "\\n ", expected ''\<'' at offset 94 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
 			message: '#^Parameter \#1 \$date of function wc_format_datetime expects WC_DateTime, WC_DateTime\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -5079,24 +5067,6 @@ parameters:
 		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Preorder_Authentication\:\:send_email\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Preorder_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_Email_Failed_Authentication\)\: Unexpected token "\\n ", expected ''\<'' at offset 112 on line 4$#'
-			identifier: phpDoc.parseError
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
 
@@ -5117,24 +5087,6 @@ parameters:
 			identifier: method.nonObject
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Customer_Invoice\)\: Unexpected token "\\n ", expected ''\<'' at offset 100 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
 
 		-
 			message: '#^Property WC_Stripe_Email_Failed_Authentication\:\:\$original_email \(WC_Email\) in isset\(\) is not nullable\.$#'
@@ -6085,36 +6037,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$cart_contents_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$dp\.$#'
-			identifier: property.notFound
-			count: 4
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$shipping_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Access to an undefined property WC_Cart\:\:\$tax_total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6124,12 +6046,6 @@ parameters:
 			message: '#^Access to an undefined property WooCommerce\:\:\$shipping\.$#'
 			identifier: property.notFound
 			count: 3
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Binary operation "\+" between string and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
@@ -6439,12 +6355,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Parameter \#2 \$country of method WC_Stripe_Express_Checkout_Helper\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 2
@@ -6741,12 +6651,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has parameter \$post_id with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:create_token_from_setup_intent\(\) should return WC_Payment_Token but returns array\<string, string\>\.$#'
-			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -14767,56 +14671,8 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
 
 		-
-			message: '#^Method WC_Payment_Token_ACH\:\:set_account_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACH\:\:set_bank_name\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACH\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACH\:\:set_last4\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-ach-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACSS\:\:set_bank_name\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACSS\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACSS\:\:set_last4\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_ACSS\:\:set_payment_method_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-acss-payment-token.php
 
@@ -14827,50 +14683,14 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php
 
 		-
-			message: '#^Method WC_Payment_Token_Amazon_Pay\:\:set_email\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
 
 		-
-			message: '#^Method WC_Payment_Token_Bacs_Debit\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Bacs_Debit\:\:set_last4\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Bacs_Debit\:\:set_payment_method_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-bacs-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Becs_Debit\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Becs_Debit\:\:set_last4\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-becs-debit-payment-token.php
 
@@ -14881,20 +14701,8 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php
 
 		-
-			message: '#^Method WC_Payment_Token_CashApp\:\:set_cashtag\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-cc-payment-token.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Token_CC\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-cc-payment-token.php
 
@@ -14917,32 +14725,8 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-klarna-payment-token.php
 
 		-
-			message: '#^Method WC_Stripe_Klarna_Payment_Token\:\:set_dob\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-klarna-payment-token.php
-
-		-
-			message: '#^Method WC_Stripe_Klarna_Payment_Token\:\:set_dob_from_object\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-klarna-payment-token.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Link\:\:set_email\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_Link\:\:set_payment_method_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
 
@@ -15049,66 +14833,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) has parameter \$gateway_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) has parameter \$payment_method with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_duplicate_token\(\) has parameter \$user_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:get_instance\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:update_token_from_method_details\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens_legacy\(\) has parameter \$customer_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_get_customer_payment_tokens_legacy\(\) has parameter \$gateway_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_payment_token_deleted\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_payment_token_set_default\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Tokens\:\:woocommerce_payment_token_set_default\(\) has parameter \$token_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Parameter \#1 \$payment_method of static method WC_Stripe_Helper\:\:is_card_payment_method\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
@@ -15127,32 +14851,8 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Property WC_Stripe_Payment_Tokens\:\:\$_this has no type specified\.$#'
-			identifier: missingType.property
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_SEPA\:\:set_fingerprint\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_SEPA\:\:set_last4\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
-		-
-			message: '#^Method WC_Payment_Token_SEPA\:\:set_payment_method_type\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 

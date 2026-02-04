@@ -120,6 +120,17 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
+register_activation_hook( __FILE__, 'wc_stripe_set_settings_redirection_transient' );
+
+/**
+ * Set a transient to redirect the user to the settings page upon activation.
+ *
+ * @return void
+ */
+function wc_stripe_set_settings_redirection_transient(): void {
+	set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
+}
+
 function wcstripe_deactivated(): void {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';

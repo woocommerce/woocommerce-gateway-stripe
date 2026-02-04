@@ -101,6 +101,7 @@ class WC_Stripe {
 	 */
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'install' ] );
+		add_action( 'admin_init', [ $this, 'maybe_redirect_to_stripe_settings' ], 15 );
 
 		$this->init();
 
@@ -199,6 +200,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
@@ -219,6 +221,9 @@ class WC_Stripe {
 
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
+
+		$checkout_sessions_controller = new WC_Stripe_Checkout_Sessions_Controller();
+		$checkout_sessions_controller->init_hooks();
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -383,6 +388,23 @@ class WC_Stripe {
 			unset( $stripe_settings['pmc_enabled'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 			WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+		}
+	}
+
+	/**
+	 * Redirects to the Stripe settings page upon plugin activation if the transient is set,
+	 * and if not activating multiple plugins at once.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_to_stripe_settings(): void {
+		if ( get_transient( 'wc_stripe_redirect_to_settings' ) ) {
+			delete_transient( 'wc_stripe_redirect_to_settings' );
+
+			if ( isset( $_GET['activate'] ) ) {
+				wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+				exit;
+			}
 		}
 	}
 
