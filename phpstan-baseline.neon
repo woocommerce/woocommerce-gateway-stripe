@@ -3037,7 +3037,25 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$net\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$object\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$payment_method_types\.$#'
 			identifier: property.notFound
 			count: 2
 			path: includes/class-wc-stripe-helper.php
@@ -3063,6 +3081,24 @@ parameters:
 		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has parameter \$order with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:add_payment_intent_to_order\(\) has parameter \$payment_intent_id with no type specified\.$#'
+			identifier: missingType.parameter
 			count: 1
 			path: includes/class-wc-stripe-helper.php
 
@@ -3164,6 +3200,12 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Helper\:\:get_transaction_url\(\) has parameter \$is_test_mode with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Helper\:\:is_stripe_gateway_order\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
 			path: includes/class-wc-stripe-helper.php
