@@ -625,6 +625,9 @@ class WC_Stripe_Admin_Notices {
 						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 					}
 					break;
+				case 'ece_location':
+					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+					break;
 			}
 		}
 	}

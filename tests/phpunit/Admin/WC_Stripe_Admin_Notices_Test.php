@@ -1063,6 +1063,30 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that dismissing the ece_location notice sets the option to 'no'.
+	 */
+	public function test_hide_notices_dismisses_ece_location_notice() {
+		// Set the current user to an admin.
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		// Simulate the dismiss request.
+		$_GET['wc-stripe-hide-notice']   = 'ece_location';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->hide_notices();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+
+		// Clean up.
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
 	 * Test that the notice is NOT shown when flag was never set (no affected upgrade).
 	 */
 	public function test_ece_location_notice_not_shown_when_flag_not_set() {
