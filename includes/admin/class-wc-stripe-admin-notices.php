@@ -67,6 +67,7 @@ class WC_Stripe_Admin_Notices {
 		$this->payment_methods_check_environment();
 
 		// Check for merchants affected by ECE button location bug.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4861
 		$this->check_express_checkout_location();
 
 		// Check for subscriptions detached from the customer.
