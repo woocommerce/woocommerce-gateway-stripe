@@ -83,7 +83,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					'body'     => json_encode( $checkout_session_response ),
 				];
 			}
-			
+
 			return $return_value;
 		};
 
