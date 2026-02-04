@@ -2269,12 +2269,6 @@ parameters:
 			path: includes/admin/class-wc-stripe-amazon-pay-controller.php
 
 		-
-			message: '#^Call to WC_Stripe_UPE_Availability_Note\:\:init\(\) on a separate line has no effect\.$#'
-			identifier: staticMethod.resultUnused
-			count: 1
-			path: includes/admin/class-wc-stripe-inbox-notes.php
-
-		-
 			message: '#^Call to an undefined method WC_Data_Store\:\:get_notes_with_name\(\)\.$#'
 			identifier: method.notFound
 			count: 3
@@ -3745,30 +3739,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Logger\:\:log\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$end_time with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$message with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
-			message: '#^Method WC_Stripe_Logger\:\:log\(\) has parameter \$start_time with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-logger.php
-
-		-
 			message: '#^Static property WC_Stripe_Logger\:\:\$logger \(WC_Logger\) does not accept WC_Logger_Interface\.$#'
 			identifier: assign.propertyType
 			count: 9
@@ -4247,18 +4217,6 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Method WC_Stripe_Status\:\:debug_tools\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-status.php
-
-		-
-			message: '#^Method WC_Stripe_Status\:\:render_status_report_section\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-status.php
 
 		-
 			message: '#^Method WC_Stripe_UPE_Compatibility\:\:is_wc_supported\(\) has no return type specified\.$#'
@@ -5395,30 +5353,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Method Allowed_Payment_Request_Button_Types_Update\:\:maybe_migrate\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-allowed-payment-request-button-types-update.php
-
-		-
-			message: '#^Method Migrate_Payment_Request_Data_To_Express_Checkout_Data\:\:maybe_migrate\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php
-
-		-
-			message: '#^Method Migrate_Payment_Request_Data_To_Express_Checkout_Data\:\:migrate\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php
-
-		-
-			message: '#^Method Sepa_Tokens_For_Other_Methods_Settings_Update\:\:maybe_migrate\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php
-
-		-
 			message: '#^Access to constant STATUS_COMPLETE on an unknown class ActionScheduler_Store\.$#'
 			identifier: class.notFound
 			count: 1
@@ -5497,44 +5431,8 @@ parameters:
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:display_admin_notice\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
 			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:get_items_to_repair\(\) should return array\<int\> but returns array\<WC_Order\>\|stdClass\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:maybe_migrate_before_renewal\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:maybe_update\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:repair_item\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:restart_update\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:update_item\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
@@ -5545,194 +5443,14 @@ parameters:
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
-			message: '#^Call to an undefined method object\:\:add_action\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_content\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_type\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
-			message: '#^Method WC_Stripe_BNPL_Promotion_Note\:\:get_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-bnpl-promotion-note.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_oc_enabled\(\)\.$#'
 			identifier: method.notFound
 			count: 2
 			path: includes/notes/class-wc-stripe-oc-promotion-note.php
 
 		-
-			message: '#^Call to an undefined method object\:\:add_action\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_content\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_type\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Method WC_Stripe_OC_Promotion_Note\:\:get_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Method WC_Stripe_OC_Promotion_Note\:\:is_applicable\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-oc-promotion-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:add_action\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_content\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_type\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Availability_Note\:\:get_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Availability_Note\:\:init\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-availability-note.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:get_upe_enabled_at_checkout_payment_method_ids\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:add_action\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_content\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_title\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Call to an undefined method object\:\:set_type\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_StripeLink_Note\:\:get_note\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/notes/class-wc-stripe-upe-stripelink-note.php
 
