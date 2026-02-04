@@ -878,7 +878,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that upgrading from an affected version (10.1.0-10.2.x) sets the flag.
+	 * Test that upgrading from an affected version (10.1.0–10.2.x) sets the flag to 'yes'.
 	 */
 	public function test_stripe_updated_sets_ece_location_flag_for_affected_versions() {
 		update_option( 'wc_stripe_version', '10.2.0' );
@@ -891,7 +891,25 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$notices->stripe_updated();
 
-		$this->assertNotEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_show_ece_location_notice' ) );
+	}
+
+	/**
+	 * Test that upgrading from an affected version does not overwrite a previous dismissal.
+	 */
+	public function test_stripe_updated_does_not_overwrite_dismissed_ece_location_flag() {
+		update_option( 'wc_stripe_version', '10.2.0' );
+		update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+
+		// Remove hooks to prevent side effects during construction.
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		$notices->stripe_updated();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 
 	/**
@@ -908,7 +926,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$notices->stripe_updated();
 
-		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+		$this->assertNotEquals( 'yes', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 
 	/**
@@ -925,7 +943,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$notices->stripe_updated();
 
-		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+		$this->assertNotEquals( 'yes', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 
 	/**
@@ -942,7 +960,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$notices->stripe_updated();
 
-		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+		$this->assertNotEquals( 'yes', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 
 	/**
@@ -950,7 +968,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_ece_location_notice_is_shown_when_all_criteria_met() {
 		// Flag set (merchant came through affected version).
-		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		// Express checkout enabled with only product+cart (not checkout).
 		update_option(
 			'woocommerce_stripe_settings',
@@ -974,7 +992,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test that the notice is NOT shown when express checkout is disabled.
 	 */
 	public function test_ece_location_notice_not_shown_when_express_checkout_disabled() {
-		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -997,7 +1015,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test that the notice is NOT shown when checkout is already in the locations.
 	 */
 	public function test_ece_location_notice_not_shown_when_checkout_in_locations() {
-		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -1020,7 +1038,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test that the notice is NOT shown when only cart is in locations (product missing).
 	 */
 	public function test_ece_location_notice_not_shown_when_product_not_in_locations() {
-		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -1090,7 +1108,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test that the notice is NOT shown when flag was never set (no affected upgrade).
 	 */
 	public function test_ece_location_notice_not_shown_when_flag_not_set() {
-		update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+		delete_option( 'wc_stripe_show_ece_location_notice' );
 		update_option(
 			'woocommerce_stripe_settings',
 			[
