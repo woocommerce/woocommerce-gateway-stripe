@@ -4939,12 +4939,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Admin_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-admin-failed-refund.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Email_Failed_Refund\:\:get_reason\(\) expects object, bool\|object given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4953,12 +4947,6 @@ parameters:
 		-
 			message: '#^Cannot access property \$billing_email on WC_Order\|false\.$#'
 			identifier: property.nonObject
-			count: 1
-			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Customer_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
 
@@ -4989,18 +4977,6 @@ parameters:
 		-
 			message: '#^Function wcs_get_human_time_diff not found\.$#'
 			identifier: function.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication_Retry\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Failed_Order\)\: Unexpected token "\\n ", expected ''\<'' at offset 440 on line 9$#'
-			identifier: phpDoc.parseError
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 
@@ -5047,24 +5023,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-failed-authentication.php
 
 		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication\:\:init_form_fields\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email\)\: Unexpected token "\\n ", expected ''\<'' at offset 94 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication.php
-
-		-
 			message: '#^Parameter \#1 \$date of function wc_format_datetime expects WC_DateTime, WC_DateTime\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -5079,24 +5037,6 @@ parameters:
 		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Preorder_Authentication\:\:send_email\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Preorder_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Stripe_Email_Failed_Authentication\)\: Unexpected token "\\n ", expected ''\<'' at offset 112 on line 4$#'
-			identifier: phpDoc.parseError
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-preorder-authentication.php
 
@@ -5117,24 +5057,6 @@ parameters:
 			identifier: method.nonObject
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Refund\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-refund.php
-
-		-
-			message: '#^Method WC_Stripe_Email_Failed_Renewal_Authentication\:\:trigger\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
-
-		-
-			message: '#^PHPDoc tag @extends has invalid value \(WC_Email_Customer_Invoice\)\: Unexpected token "\\n ", expected ''\<'' at offset 100 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-renewal-authentication.php
 
 		-
 			message: '#^Property WC_Stripe_Email_Failed_Authentication\:\:\$original_email \(WC_Email\) in isset\(\) is not nullable\.$#'
