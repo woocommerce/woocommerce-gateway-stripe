@@ -22,6 +22,7 @@
 * Dev - Improve the pre-push hook
 * Fix - Better error handling when token creation fails
 * Tweak - Improve PHPDoc for payment token code
+* Tweak - Update PHPDoc for email notification classes
 * Tweak - Update PHPDoc in admin REST controllers and related code
 
 = 10.3.1 - 2026-01-15 =
