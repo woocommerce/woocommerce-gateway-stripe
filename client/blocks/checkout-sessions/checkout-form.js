@@ -1,9 +1,6 @@
-import {
-	CurrencySelectorElement,
-	PaymentElement,
-	useCheckout,
-} from '@stripe/react-stripe-js/checkout';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
+import { useEffect, useRef, useState } from 'react';
+import CurrencySelector from 'wcstripe/blocks/checkout-sessions/currency-selector';
 import {
 	usePaymentCompleteHandler2,
 	usePaymentFailHandler2,
@@ -74,7 +71,6 @@ const CheckoutForm = ( {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const [ , setPaymentIntentId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
 	const hasLoadErrorRef = useRef( false );
@@ -193,7 +189,7 @@ const CheckoutForm = ( {
 
 	return (
 		<>
-			<CurrencySelectorElement />
+			<CurrencySelector mode="after-payment-method" />
 			<PaymentElement
 				options={ getStripeElementOptions() }
 				onChange={ onSelectedPaymentMethodChange }
