@@ -66,6 +66,9 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
+		// Check for merchants affected by ECE button location bug.
+		$this->check_express_checkout_location();
+
 		// Check for subscriptions detached from the customer.
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscription_check_detachment();
@@ -374,6 +377,55 @@ class WC_Stripe_Admin_Notices {
 		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
 			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
 		}
+	}
+
+	/**
+	 * Checks if the merchant may have been affected by the ECE button location bug
+	 * in versions 10.1.0–10.2.x and displays a notice if so.
+	 *
+	 * @since 10.4.0
+	 */
+	public function check_express_checkout_location() {
+		$show_notice = get_option( 'wc_stripe_show_ece_location_notice' );
+
+		if ( 'no' === $show_notice ) {
+			return;
+		}
+
+		$options   = WC_Stripe_Helper::get_stripe_settings();
+		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
+		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+
+		if ( ! $enabled ) {
+			return;
+		}
+
+		$has_product  = in_array( 'product', $locations, true );
+		$has_cart     = in_array( 'cart', $locations, true );
+		$has_checkout = in_array( 'checkout', $locations, true );
+
+		if ( ! $has_product || ! $has_cart || $has_checkout ) {
+			return;
+		}
+
+		$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
+
+		$message = sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 4) HTML anchor closing tag */
+			__( '%1$sAction Required: Review your express checkout settings.%2$s A recent update may have unintentionally changed where Apple Pay / Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please %3$sreview your settings%4$s to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>',
+			'<a href="' . esc_url( $settings_url ) . '">',
+			'</a>'
+		);
+
+		$review_action = sprintf(
+			'<a href="%s" style="display:inline-block;margin:4px 4px 4px 0;">%s</a>',
+			esc_url( $settings_url ),
+			__( 'Review Settings', 'woocommerce-gateway-stripe' )
+		);
+
+		$this->add_admin_notice( 'ece_location', 'notice notice-warning', $message, true, [ $review_action ] );
 	}
 
 	/**

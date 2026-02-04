@@ -944,4 +944,144 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
+
+	/**
+	 * Test that the notice is shown when all trigger criteria are met.
+	 */
+	public function test_ece_location_notice_is_shown_when_all_criteria_met() {
+		// Flag set (merchant came through affected version).
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+		// Express checkout enabled with only product+cart (not checkout).
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'yes',
+				'express_checkout_button_locations'    => [ 'product', 'cart' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayHasKey( 'ece_location', $notices->notices );
+	}
+
+	/**
+	 * Test that the notice is NOT shown when express checkout is disabled.
+	 */
+	public function test_ece_location_notice_not_shown_when_express_checkout_disabled() {
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'no',
+				'express_checkout_button_locations'    => [ 'product', 'cart' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+	}
+
+	/**
+	 * Test that the notice is NOT shown when checkout is already in the locations.
+	 */
+	public function test_ece_location_notice_not_shown_when_checkout_in_locations() {
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'yes',
+				'express_checkout_button_locations'    => [ 'product', 'cart', 'checkout' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+	}
+
+	/**
+	 * Test that the notice is NOT shown when only cart is in locations (product missing).
+	 */
+	public function test_ece_location_notice_not_shown_when_product_not_in_locations() {
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'yes',
+				'express_checkout_button_locations'    => [ 'cart' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+	}
+
+	/**
+	 * Test that the notice is NOT shown when notice has been dismissed.
+	 */
+	public function test_ece_location_notice_not_shown_when_dismissed() {
+		update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'yes',
+				'express_checkout_button_locations'    => [ 'product', 'cart' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+	}
+
+	/**
+	 * Test that the notice is NOT shown when flag was never set (no affected upgrade).
+	 */
+	public function test_ece_location_notice_not_shown_when_flag_not_set() {
+		update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                             => 'yes',
+				'express_checkout'                    => 'yes',
+				'express_checkout_button_locations'    => [ 'product', 'cart' ],
+			]
+		);
+
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->check_express_checkout_location();
+
+		$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+	}
 }
