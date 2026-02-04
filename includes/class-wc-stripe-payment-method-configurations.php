@@ -391,7 +391,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
 		if ( $merchant_payment_method_configuration ) {
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+			foreach ( (array) $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
 				if ( isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
 					continue;
 				}
