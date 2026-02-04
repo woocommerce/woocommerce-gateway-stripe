@@ -544,11 +544,13 @@ export const getDefaultValues = () => {
  */
 export const getExcludedPaymentMethodTypes = () => {
 	const stripeServerData = getStripeServerData();
-	return (
-		stripeServerData?.excludedPaymentMethodTypes || [
-			PAYMENT_METHOD_AMAZON_PAY,
-		]
-	);
+	const excludedTypes = stripeServerData?.excludedPaymentMethodTypes;
+
+	if ( ! Array.isArray( excludedTypes ) ) {
+		return [ PAYMENT_METHOD_AMAZON_PAY ];
+	}
+
+	return excludedTypes;
 };
 
 /**
