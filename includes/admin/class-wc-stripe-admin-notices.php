@@ -384,8 +384,10 @@ class WC_Stripe_Admin_Notices {
 	 * in versions 10.1.0–10.2.x and displays a notice if so.
 	 *
 	 * @since 10.4.0
+	 *
+	 * @return void
 	 */
-	public function check_express_checkout_location() {
+	public function check_express_checkout_location(): void {
 		$show_notice = get_option( 'wc_stripe_show_ece_location_notice' );
 
 		if ( 'no' === $show_notice ) {
