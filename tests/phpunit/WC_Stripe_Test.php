@@ -358,10 +358,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array $payment_methods The payment methods to add.
 	 * @param array $expected_gateways The expected gateways.
 	 * @param bool $is_admin Whether the test is running in the admin.
+	 * @param bool $oc_enabled Whether the optimized checkout is enabled.
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false ): void {
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false ): void {
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
@@ -374,7 +375,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$mock_main_gateway->payment_methods = $payment_methods;
 		$mock_main_gateway->method( 'get_option' )
 			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( 'no' );
+			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -506,6 +507,18 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+			],
+			'optimized checkout enabled admin' => [
+				'payment_methods'   => [
+					'card'              => $card_gateway,
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+					'link'              => $link_gateway,
+				],
+				'expected_gateways' => [],
+				'is_admin'          => true,
+				'oc_enabled'        => true,
 			],
 		];
 	}
