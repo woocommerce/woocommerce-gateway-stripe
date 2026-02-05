@@ -432,6 +432,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->getMock();
 		$afterpay_clearpay_gateway->method( 'is_enabled_at_checkout' )->willReturn( true );
 
+		$sepa_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Sepa::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$sepa_gateway->method( 'is_enabled_at_checkout' )->willReturn( false );
+
 		return [
 			'none active' => [
 				'payment_methods'   => [],
@@ -505,6 +510,19 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'amazon_pay'        => $amazon_pay_gateway,
 					'link'              => $link_gateway,
 				],
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
+				'is_admin'          => true,
+			],
+			'disabled at checkout payment methods are filtered out in admin' => [
+				'payment_methods'   => [
+					'card'              => $card_gateway,
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+					'link'              => $link_gateway,
+					'sepa_debit'        => $sepa_gateway,
+				],
+				// sepa is disabled at checkout, so it should be filtered out.
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 			],
