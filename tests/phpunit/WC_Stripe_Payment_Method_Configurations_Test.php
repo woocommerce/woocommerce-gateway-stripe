@@ -885,9 +885,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	public function test_get_unsupported_enabled_payment_method_ids_in_pmc( array $settings, $mock_api_response, array $expected_contains, array $expected_not_contains, bool $expect_empty ) {
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-
+		// Set up mock API first, before clearing cache, to ensure it's ready when needed.
 		$property = null;
 		if ( null !== $mock_api_response ) {
 			$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
@@ -903,6 +901,11 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			$property->setValue( null, $mock_api );
 		}
 
+		// Update settings and clear all caches/cooldowns after mock is set up.
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
 		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		// Restore original settings and API instance.
@@ -910,7 +913,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		if ( null !== $property ) {
 			$property->setValue( null, null );
 		}
-		// Clear cache.
+		// Clear cache and cooldown.
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
 		// Assert the expected output.
@@ -956,6 +960,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 					$settings_base,
 					[
 						'pmc_enabled'          => 'yes',
+						'testmode'             => 'yes',
 						'test_publishable_key' => 'pk_test_1234567890',
 						'test_secret_key'      => 'sk_test_1234567890',
 						'test_connection_type' => 'connect',
