@@ -11,6 +11,7 @@ use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 
 /**
  * These tests make assertions against class WC_Stripe_Helper.
@@ -1053,6 +1054,96 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 				'expected_message' => '',
+			],
+		];
+	}
+
+	/**
+	 * Tests for `build_line_items`.
+	 *
+	 * @param bool  $itemized       Whether itemized line items are enabled.
+	 * @param array $expected_items The expected line items.
+	 * @return void
+	 * @dataProvider provide_test_build_line_items
+	 */
+	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$coupon = new \WC_Coupon();
+		$coupon->set_code( 'TESTDISCOUNT' );
+		$coupon->set_amount( 1 );
+		$coupon->set_discount_type( 'fixed_cart' );
+		$coupon->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->add_discount( 'TESTDISCOUNT' );
+
+		$actual = WC_Stripe_Helper::build_line_items( $itemized );
+
+		// Clean up.
+		WC()->cart->empty_cart();
+		$product->delete( true );
+		$coupon->delete();
+		delete_option( 'woocommerce_calc_taxes' );
+
+		$this->assertSame( $expected_items, $actual );
+	}
+
+	/**
+	 * Data provider for `test_build_line_items`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_build_line_items(): array {
+		return [
+			'itemized'   => [
+				'itemized'       => true,
+				'expected items' => [
+					[
+						'label'  => 'Dummy Product',
+						'amount' => 1000,
+					],
+					[
+						'label' => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_shipping',
+						'label'  => 'Shipping',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+				],
+			],
+			'non-itemized'            => [
+				'itemized'       => false,
+				'expected items' => array_merge(
+					[
+						[
+							'label'  => 'Subtotal',
+							'amount' => 1000,
+						],
+						[
+							'label' => 'Tax',
+							'amount' => 0,
+						],
+						[
+							'key'    => 'total_discount',
+							'label'  => 'Discount',
+							'amount' => 100,
+						],
+					],
+				),
 			],
 		];
 	}
