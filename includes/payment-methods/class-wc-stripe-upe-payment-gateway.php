@@ -673,6 +673,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$excludable_methods = WC_Stripe_Payment_Methods::EXCLUDABLE_PAYMENT_METHOD_TYPES;
 
+		/**
+		 * Filters the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+		 *
+		 * @param string[] $excludable_methods List of payment method types to exclude.
+		 */
+		$custom_excludable_methods = apply_filters( 'wc_stripe_ocs_excludable_payment_methods', [] );
+
+		if ( is_array( $custom_excludable_methods ) && [] !== $custom_excludable_methods ) {
+			$custom_excludable_methods = array_filter( $custom_excludable_methods, 'is_string' );
+			$excludable_methods        = array_unique( array_merge( $custom_excludable_methods, $excludable_methods ) );
+		}
+
 		// There could be some payment methods in the unsupported list that are not supported in the 'excludedPaymentMethodTypes' parameter
 		// of the Payment Element (i.e. link, apple_pay, google_pay, cartes_bancaires etc.). Therefore, we need to exclude them and ensure that the excluded payment method list we send to the client has only
 		// payment methods that are supported in the 'excludedPaymentMethodTypes' parameter.
