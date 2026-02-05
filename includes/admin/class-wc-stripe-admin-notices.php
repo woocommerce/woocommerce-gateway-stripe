@@ -407,7 +407,8 @@ class WC_Stripe_Admin_Notices {
 		$has_cart     = in_array( 'cart', $locations, true );
 		$has_checkout = in_array( 'checkout', $locations, true );
 
-		if ( ! $has_product || ! $has_cart || $has_checkout ) {
+		// We only need to show the notice if we have ( product + cart ) but not checkout, so return if we have anything else.
+		if ( ! ( $has_product && $has_cart && ! $has_checkout ) ) {
 			return;
 		}
 
