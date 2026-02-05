@@ -97,9 +97,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Ensure Stripe JS is enqueued
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/v3/',
+			'https://js.stripe.com/clover/stripe.js',
 			[],
-			'3.0',
+			null,
 			true
 		);
 

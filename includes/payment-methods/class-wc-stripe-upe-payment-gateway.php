@@ -454,9 +454,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/v3/',
+			'https://js.stripe.com/clover/stripe.js',
 			[],
-			'3.0',
+			null,
 			true
 		);
 
