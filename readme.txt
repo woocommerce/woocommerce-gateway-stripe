@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.4.0
+   - Optimized Checkout Suite no longer enabled by default for new installs
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
@@ -141,6 +143,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.4.0 - xxxx-xx-xx =
 * Update - Remove the main deferred intent flag (`wc-stripe-is-deferred-intent`) and all the code not using it, as it is the default behavior now
+* Add - Introduce an endpoint to create Checkout Sessions tokens
+* Add - New setting to control Adaptive Pricing
+* Add - Map Norwegian nb-NO to generic no-NO locale
 * Update - Redirect merchants to the Stripe settings screen upon plugin activation
 * Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 * Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
@@ -157,5 +162,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 * Dev - Automate release note creation PR
+* Fix - Prevent incompatibility warnings for payment methods in block editor
+* Dev - Introduce a feature flag for the Stripe checkout sessions feature
+* Dev - Improve the pre-push hook
+* Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
+* Fix - Better error handling when token creation fails
+* Tweak - Improve PHPDoc for payment token code
+* Tweak - Update PHPDoc for email notification classes
+* Add - Support Amazon Pay as an express checkout method
+* Add - Enable Amazon Pay for eligible new installs
+* Update - Stop auto-enabling Optimized Checkout Suite for new installs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

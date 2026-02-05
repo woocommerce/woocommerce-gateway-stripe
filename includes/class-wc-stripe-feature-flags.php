@@ -5,6 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+
+	/**
+	 * Feature flag for Amazon Pay.
+	 *
+	 * @var string
+	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
+	 */
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
 
 	/**
@@ -27,15 +34,25 @@ class WC_Stripe_Feature_Flags {
 	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
 
 	/**
+	 * Feature flag for Stripe Checkout Sessions.
+	 *
+	 * @var string
+	 * @since 10.4.0
+	 */
+	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
+
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
+		'_wcstripe_feature_upe'                   => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
+		self::OC_FEATURE_FLAG_NAME                => 'no',
+		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
 	];
 
 	/**
@@ -63,17 +80,43 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag to control Amazon Pay feature availability.
 	 *
 	 * @return bool
+	 * @deprecated This method will be removed in a future version. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
 	public static function is_amazon_pay_available() {
-		$enable_amazon_pay = 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+		return true;
+	}
+
+	/**
+	 * Feature flag to control the availability of Stripe Checkout Sessions.
+	 *
+	 * @return bool
+	 * @since 10.4.0
+	 */
+	public static function is_checkout_sessions_available() {
+		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
+
+		$is_checkout_sessions_available = 'yes' === self::get_option_with_default( self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME );
 
 		/**
-		 * Filter to control the availability of the Amazon Pay feature.
+		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
-		 * @since 10.1.0
-		 * @param bool $enable_amazon_pay Whether Amazon Pay should be enabled.
+		 * @since 10.4.0
+		 * Note: This filter will be removed when the feature rolls out.
+		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
 		 */
-		return (bool) apply_filters( 'wc_stripe_is_amazon_pay_available', $enable_amazon_pay );
+		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', $is_checkout_sessions_available );
 	}
 
 	/**
