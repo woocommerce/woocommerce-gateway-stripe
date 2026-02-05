@@ -668,7 +668,7 @@ class WC_Stripe_Admin_Notices {
 		// A bug in these versions reset express checkout button locations during upgrade.
 		$was_affected_version = ! empty( $previous_version )
 			&& version_compare( $previous_version, '10.1.0', '>=' )
-			&& version_compare( $previous_version, '10.3.0', '<' );
+			&& version_compare( $previous_version, '10.4.0', '<' );
 
 		if ( $was_affected_version && 'no' !== get_option( 'wc_stripe_show_ece_location_notice' ) ) {
 			update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
