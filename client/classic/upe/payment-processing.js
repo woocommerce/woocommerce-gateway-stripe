@@ -396,6 +396,35 @@ export async function mountStripePaymentElement( api, domElement ) {
 }
 
 /**
+ * Gets the mounted UPE element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Object|null} The UPE element component object or null if not found.
+ */
+export function getMountedUPEComponent( paymentMethodType ) {
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return null;
+	}
+
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	if ( ! component.elements ) {
+		return null;
+	}
+
+	const domElement = document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+
+	// Only return if the Elements object exists and is mounted.
+	if ( domElement && domElement.children.length > 0 ) {
+		return component;
+	}
+
+	return null;
+}
+
+/**
  * Handles the checkout process for the provided jQuery form and Stripe payment method type. The function blocks the
  * form UI to prevent duplicate submission and validates the Stripe elements. It then creates a Stripe payment method
  * object and appends the necessary data to the form for checkout completion. Finally, it submits the form and prevents
