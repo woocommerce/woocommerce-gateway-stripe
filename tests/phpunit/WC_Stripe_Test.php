@@ -155,7 +155,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
-				'update enable payment methods calls' => 1,
+				'update enable payment methods calls' => 0,
 			],
 		];
 	}
@@ -234,11 +234,12 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return void
 	 */
-	public function test_install_sets_fresh_install_flag(): void {
+	public function test_fresh_install_sets_correct_options(): void {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
-		// Ensure the flag is not set.
+		// Ensure the flags are not set.
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
+		delete_option( 'wc_stripe_amazon_pay_default_on' );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -254,6 +255,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->install();
 
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_amazon_pay_default_on' ) );
 	}
 
 	/**
