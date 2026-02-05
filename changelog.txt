@@ -20,6 +20,7 @@
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 * Dev - Automate release note creation PR
+* Fix - Prevent incompatibility warnings for payment methods in block editor
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
 * Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
