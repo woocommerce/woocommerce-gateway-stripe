@@ -1,14 +1,20 @@
-import { usePaymentCompleteHandler } from 'wcstripe/blocks/checkout-sessions/hooks';
+import {
+	usePaymentCompleteHandler,
+	usePaymentFailHandler,
+} from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
 
 jest.mock( '@wordpress/element' );
 
 describe( 'CheckoutSessions hook tests', () => {
 	const onCheckoutSuccess = jest.fn();
+	beforeEach( () => {
+		useEffect.mockImplementation( ( fn ) => fn() );
+	} );
+
 	describe( 'usePaymentCompleteHandler hook', () => {
 		let onCheckoutSuccessResult; // Store the result from onCheckoutSuccess callback
 		beforeEach( () => {
-			useEffect.mockImplementation( ( fn ) => fn() );
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -59,6 +65,44 @@ describe( 'CheckoutSessions hook tests', () => {
 			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
 			expect( onCheckoutSuccessResult ).toEqual( {
 				type: 'success',
+			} );
+		} );
+	} );
+
+	describe( 'usePaymentFailHandler hook', () => {
+		let onCheckoutFailResult; // Store the result from onCheckoutFail callback
+		const onCheckoutFail = jest.fn();
+		const emitResponse = {
+			noticeContexts: {
+				PAYMENTS: 'payments',
+			},
+		};
+		beforeEach( () => {
+			onCheckoutFail.mockImplementation( ( fn ) => {
+				const onCheckoutProcessingData = {
+					processingResponse: {
+						paymentDetails: {
+							errorMessage:
+								'An error occurred during payment processing. Please try again.',
+						},
+					},
+				};
+				onCheckoutFailResult = fn( onCheckoutProcessingData );
+			} );
+		} );
+
+		it( 'calls onCheckoutFail and returns error object', () => {
+			const checkoutState = {};
+			usePaymentFailHandler(
+				checkoutState,
+				onCheckoutFail,
+				emitResponse
+			);
+			expect( onCheckoutFailResult ).toEqual( {
+				type: 'failure',
+				messageContext: 'payments',
+				message:
+					'An error occurred during payment processing. Please try again.',
 			} );
 		} );
 	} );
