@@ -49,6 +49,12 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 			->method( 'update_payment_method_configurations' );
 	}
 
+	/**
+	 * Test WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc() when pmc_enabled is 'yes' and force_migration is true.
+	 *
+	 * @see WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc()
+	 * @return void
+	 */
 	public function test_migration_executed_when_pmc_enabled_is_yes_and_force_migration_is_true() {
 		// Set up environment with pmc_enabled = 'yes'
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
