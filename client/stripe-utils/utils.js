@@ -546,7 +546,7 @@ export const getExcludedPaymentMethodTypes = () => {
 	const stripeServerData = getStripeServerData();
 	const excludedTypes = stripeServerData?.excludedPaymentMethodTypes;
 
-	if ( ! Array.isArray( excludedTypes ) ) {
+	if ( ! Array.isArray( excludedTypes ) || excludedTypes.length === 0 ) {
 		return [ PAYMENT_METHOD_AMAZON_PAY ];
 	}
 
