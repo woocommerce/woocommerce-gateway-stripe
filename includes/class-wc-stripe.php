@@ -200,6 +200,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
@@ -220,6 +221,9 @@ class WC_Stripe {
 
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
+
+		$checkout_sessions_controller = new WC_Stripe_Checkout_Sessions_Controller();
+		$checkout_sessions_controller->init_hooks();
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -503,8 +507,9 @@ class WC_Stripe {
 	 * @version 5.6.0
 	 */
 	public function add_gateways( $methods ) {
-		$main_gateway = $this->get_main_stripe_gateway();
-		$methods[]    = $main_gateway;
+		$main_gateway  = $this->get_main_stripe_gateway();
+		$methods[]     = $main_gateway;
+		$is_oc_enabled = 'yes' === $main_gateway->get_option( 'optimized_checkout_element', 'no' );
 
 		// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
 		$upe_payment_methods = $main_gateway->payment_methods;
@@ -512,16 +517,34 @@ class WC_Stripe {
 
 		$methods = array_merge( $methods, $upe_payment_methods );
 
-		// When we are in an admin context, filter out Link and Amazon Pay, as they are only available as
-		// express checkout methods, and including them in the list results in warnings about block support
+		// When we are in an admin context,
+		// 1. Filter out Link and Amazon Pay, as they are only available as express checkout methods,
+		// and including them in the list results in warnings about block support
 		// when viewing the Express Checkout block in the editor for the cart and checkout pages.
+		// 2. Filter out Optimized Checkout payment methods, as they are only available as one payment element under the Stripe payment method block,
+		// and including them in the list results in warnings about block support
+		// when viewing the Optimized Checkout block in the editor for the cart and checkout pages.
+		// 3. Filter out UPE payment methods that are not enabled at checkout, as they are not available in the checkout block
+		// and including them in the list results in warnings about block support
+		// when viewing the payment methods block in the editor for the cart and checkout pages.
 		if ( is_admin() ) {
 			$methods = array_filter(
 				$methods,
-				function ( $method ) {
+				function ( $method ) use ( $is_oc_enabled ) {
 					if ( $method instanceof WC_Stripe_UPE_Payment_Method_Link || $method instanceof WC_Stripe_UPE_Payment_Method_Amazon_Pay ) {
 						return false;
 					}
+
+					if ( $method instanceof WC_Stripe_UPE_Payment_Method ) {
+						if ( $is_oc_enabled ) {
+							return false;
+						}
+
+						if ( ! $method->is_enabled_at_checkout() ) {
+							return false;
+						}
+					}
+
 					return true;
 				}
 			);

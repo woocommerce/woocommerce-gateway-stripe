@@ -1497,91 +1497,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
 		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
-		$has_deposits  = false;
-
-		if ( $display_items ) {
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
-				if ( ! empty( $cart_item['is_deposit'] ) ) {
-					$has_deposits = true;
-					continue;
-				}
-
-				$subtotal      += $cart_item['line_subtotal'];
-				$amount         = $cart_item['line_subtotal'];
-				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
-				$product_name   = $cart_item['data']->get_name();
-
-				$lines[] = [
-					'label'  => $product_name . $quantity_label,
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
-				];
-			}
-		} else {
-			$subtotal = WC()->cart->get_subtotal();
-		}
-
-		if ( $display_items && ! $has_deposits ) {
-			$items = array_merge( $items, $lines );
-		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
-			$items[] = [
-				'label'  => 'Subtotal',
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
-			];
-		}
-
-		$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
-
-		foreach ( $applied_coupons as $amount ) {
-			$discounts += (float) $amount;
-		}
-
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
-		$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
-		$order_total = WC()->cart->get_total( false );
-
-		if ( wc_tax_enabled() ) {
-			$items[] = [
-				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
-			];
-		}
-
-		if ( WC()->cart->needs_shipping() ) {
-			$items[] = [
-				'key'    => 'total_shipping',
-				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
-			];
-		}
-
-		if ( WC()->cart->has_discount() ) {
-			$items[] = [
-				'key'    => 'total_discount',
-				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
-			];
-		}
-
-		$cart_fees = WC()->cart->get_fees();
-
-		// Include fees and taxes as display items.
-		foreach ( $cart_fees as $key => $fee ) {
-			$items[] = [
-				'label'  => $fee->name,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
-			];
-		}
+		$order_total   = WC()->cart->get_total( false );
 
 		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
-
 		$calculated_total = apply_filters_deprecated(
 			'woocommerce_stripe_calculated_total',
 			[ $calculated_total, $order_total, WC()->cart ],
@@ -1602,7 +1521,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 
 		return [
-			'displayItems' => $items,
+			'displayItems' => WC_Stripe_Helper::build_line_items( $display_items ),
 			'total'        => [
 				'label'   => $this->total_label,
 				'amount'  => max( 0, $calculated_total ),
