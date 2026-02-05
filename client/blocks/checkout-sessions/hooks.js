@@ -1,5 +1,11 @@
 import { useEffect } from '@wordpress/element';
 
+/**
+ * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
+ *
+ * @param {*} checkoutState     The checkout state.
+ * @param {*} onCheckoutSuccess The onCheckoutSuccess event.
+ */
 export const usePaymentCompleteHandler = (
 	checkoutState,
 	onCheckoutSuccess
@@ -37,6 +43,13 @@ export const usePaymentCompleteHandler = (
 	);
 };
 
+/**
+ * Handles the Block Checkout onCheckoutFail event for the Checkout Sessions integration.
+ *
+ * @param {*}                 checkoutState  The checkout state.
+ * @param {*}                 onCheckoutFail The onCheckoutFail event.
+ * @param {EmitResponseProps} emitResponse   Various helpers for usage with observer.
+ */
 export const usePaymentFailHandler = (
 	checkoutState,
 	onCheckoutFail,

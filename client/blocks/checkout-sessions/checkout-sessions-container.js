@@ -6,6 +6,12 @@ import { useState } from '@wordpress/element';
 
 const stripePromise = loadStripe();
 
+/**
+ * Checkout Sessions Container component.
+ *
+ * @param {Object} props Component props.
+ * @return {JSX.Element} The Checkout Sessions Container component.
+ */
 export const CheckoutSessionsContainer = ( props ) => {
 	const { api } = props;
 	const promise = useMemo( () => {

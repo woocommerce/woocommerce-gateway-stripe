@@ -13,8 +13,23 @@ import {
 	usePaymentFailHandler,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 
+/**
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
+ */
+
+/**
+ * No operation function.
+ *
+ * @return {null} Returns null.
+ */
 const noop = () => null;
 
+/**
+ * Gets the Stripe Payment Element options.
+ *
+ * @return {Object} The options object.
+ */
 const getStripeElementOptions = () => {
 	let options = {
 		fields: {
@@ -58,14 +73,22 @@ const getStripeElementOptions = () => {
 	return options;
 };
 
+/**
+ * Checkout Form component for Checkout Sessions integration.
+ *
+ * @param {*}                 api               The Stripe API object.
+ * @param {*}                 onPaymentSetup    The onPaymentSetup event.
+ * @param {*}                 onCheckoutSuccess The onCheckoutSuccess event.
+ * @param {*}                 onCheckoutFail    The onCheckoutFail event.
+ * @param {EmitResponseProps} emitResponse      Various helpers for usage with observer.
+ * @param {string}            errorMessage      An error message to display.
+ * @param {BillingDataProps}  billing           The billing data.
+ * @param {Object}            onLoadError       The onLoadError event.
+ * @return {JSX.Element} The Checkout Form component.
+ */
 const CheckoutForm = ( {
 	api,
-	eventRegistration: {
-		onPaymentSetup,
-		onCheckoutSuccess,
-		onCheckoutFail,
-		// onPaymentProcessing,
-	},
+	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	emitResponse,
 	errorMessage,
 	billing,
