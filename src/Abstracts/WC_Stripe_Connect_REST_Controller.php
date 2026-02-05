@@ -1,10 +1,15 @@
 <?php
 
+namespace WooCommerce\Stripe\Abstracts;
+
+use WC_Stripe_Connect_API;
+use WP_REST_Controller;
+use WP_REST_Response;
+use WP_REST_Server;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-// phpcs:disable WordPress.Files.FileName
 
 /**
  * Stripe Connect base REST controller class.

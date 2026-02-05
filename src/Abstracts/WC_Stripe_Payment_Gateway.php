@@ -1,7 +1,28 @@
 <?php
 
+namespace WooCommerce\Stripe\Abstracts;
+
 use Automattic\WooCommerce\Admin\Overrides\OrderRefund;
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Exception;
+use InvalidArgumentException;
+use stdClass;
+use WC_AJAX;
+use WC_Order;
+use WC_Payment_Tokens;
+use WC_Stripe_API;
+use WC_Stripe_Customer;
+use WC_Stripe_Exception;
+use WC_Stripe_Helper;
+use WC_Stripe_Intent_Status;
+use WC_Stripe_Logger;
+use WC_Stripe_Order_Helper;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Payment_Tokens;
+use WC_Stripe_Pre_Orders_Trait;
+use WC_Stripe_Subscriptions_Trait;
+use WC_Stripe_Webhook_State;
+use WCS_Early_Renewal_Manager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,11 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Abstract class that will be inherited by all payment methods.
  *
- * @extends WC_Payment_Gateway_CC
+ * @extends \WC_Payment_Gateway_CC
  *
  * @since 4.0.0
  */
-abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
+abstract class WC_Stripe_Payment_Gateway extends \WC_Payment_Gateway_CC {
 
 	use WC_Stripe_Subscriptions_Trait;
 	use WC_Stripe_Pre_Orders_Trait;

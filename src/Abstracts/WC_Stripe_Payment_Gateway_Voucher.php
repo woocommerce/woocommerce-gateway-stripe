@@ -1,6 +1,17 @@
 <?php
 
+namespace WooCommerce\Stripe\Abstracts;
+
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Exception;
+use WC_Order;
+use WC_Stripe_API;
+use WC_Stripe_Exception;
+use WC_Stripe_Helper;
+use WC_Stripe_Logger;
+use WC_Stripe_Mode;
+use WC_Stripe_Order_Helper;
+use WC_Stripe_UPE_Payment_Gateway;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
