@@ -80,6 +80,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_ap_enabled'                    => [
+						'description'       => __( 'If Adaptive Pricing should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'oc_layout'                        => [
 						'description'       => __( 'The Optimized Checkout layout (accordion or tabs).', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
@@ -250,11 +255,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_short_statement_descriptor_enabled'    => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
 
 				/* Settings > Advanced settings */
-				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_upe_enabled'                           => true,
-				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
-				'oc_layout'                                => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
-				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
+				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
+				'is_upe_enabled'                        => true,
+				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
+				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),
+				'oc_layout'                             => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
+				'is_pmc_enabled'                        => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
 			]
 		);
 	}
@@ -558,6 +564,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_oc_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'is_oc_enabled' => 'optimized_checkout_element',
+			'is_ap_enabled' => 'adaptive_pricing',
 			'oc_layout'     => 'optimized_checkout_layout',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
@@ -567,7 +574,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				continue;
 			}
 
-			$value         = 'is_oc_enabled' === $request_key ? ( $value ? 'yes' : 'no' ) : $value;
+			// Special handling for boolean settings except for oc_layout.
+			if ( 'oc_layout' !== $request_key ) {
+				$value = $value ? 'yes' : 'no';
+			}
 			$current_value = $this->gateway->get_option( $attribute );
 
 			$this->gateway->update_validated_option( $attribute, $value );

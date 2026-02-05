@@ -111,7 +111,14 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 * @dataProvider provide_test_is_checkout_sessions_available
 	 */
-	public function test_is_checkout_sessions_available( $pmc_enabled, $oc_enabled, $automatic_capture, $feature_flag_enabled, $filter_function, $expected ) {
+	public function test_is_checkout_sessions_available(
+		bool $pmc_enabled,
+		bool $oc_enabled,
+		bool $automatic_capture,
+		bool $feature_flag_enabled,
+		string $filter_function,
+		bool $expected
+	): void {
 		// Mock the payment method configuration for the test, to avoid it being disabled by default.
 		PMC_Test_Helper::cache_mocked_configuration();
 
@@ -159,7 +166,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_checkout_sessions_available() {
+	public function provide_test_is_checkout_sessions_available(): array {
 		return [
 			'All prerequisites met, feature flag enabled'  => [
 				'PMC enabled'       => true,
