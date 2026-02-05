@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.4.0
+   - Optimized Checkout Suite no longer enabled by default for new installs
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
@@ -159,6 +161,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
 * Dev - Automate release note creation PR
+* Fix - Prevent incompatibility warnings for payment methods in block editor
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
 * Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
@@ -166,5 +169,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Improve PHPDoc for payment token code
 * Tweak - Update PHPDoc for email notification classes
 * Add - Admin notice for merchants potentially affected by the express checkout button location issue in versions 10.1.0 to 10.2.x
+* Add - Support Amazon Pay as an express checkout method
+* Add - Enable Amazon Pay for eligible new installs
+* Update - Stop auto-enabling Optimized Checkout Suite for new installs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
