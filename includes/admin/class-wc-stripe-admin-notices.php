@@ -665,11 +665,11 @@ class WC_Stripe_Admin_Notices {
 
 		// Set the ECE location notice flag if upgrading from the affected version range (10.1.0–10.2.x).
 		// A bug in these versions reset express checkout button locations during upgrade.
-		$is_affected_version = ! empty( $previous_version )
+		$was_affected_version = ! empty( $previous_version )
 			&& version_compare( $previous_version, '10.1.0', '>=' )
 			&& version_compare( $previous_version, '10.3.0', '<' );
 
-		if ( $is_affected_version && 'no' !== get_option( 'wc_stripe_show_ece_location_notice' ) ) {
+		if ( $was_affected_version && 'no' !== get_option( 'wc_stripe_show_ece_location_notice' ) ) {
 			update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
 		}
 	}
