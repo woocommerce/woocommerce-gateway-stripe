@@ -16,6 +16,11 @@ import {
 	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
+import {
+	initializeCheckoutSessions,
+	getCheckoutSessionId,
+	getCheckoutInstance,
+} from './checkout-sessions';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -44,6 +49,9 @@ export function initializeUPEComponents() {
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
+			isCheckoutSession: false,
+			checkoutSessionRoot: null,
+			checkoutSessionId: null,
 		};
 	}
 }
@@ -355,6 +363,36 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
 		return;
+	}
+
+	const useCheckoutSessions = getStripeServerData()?.isAPEnabled;
+
+	if ( useCheckoutSessions ) {
+		try {
+			// // Clear any existing content
+			// domElement.innerHTML = '';
+
+			// Initialize checkout sessions
+			const checkoutData = await initializeCheckoutSessions(
+				api,
+				domElement
+			);
+
+			gatewayUPEComponents[ paymentMethodType ].isCheckoutSession = true;
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRoot =
+				checkoutData.root;
+			gatewayUPEComponents[ paymentMethodType ].clientSecret =
+				checkoutData.clientSecret;
+
+			return gatewayUPEComponents[ paymentMethodType ];
+		} catch ( error ) {
+			showErrorPaymentMethod(
+				error?.message ||
+					'Failed to initialize payment form. Please refresh the page and try again.',
+				domElement
+			);
+			// Continue and fall back to regular payment element if checkout sessions fail
+		}
 	}
 
 	const upeElement =
@@ -865,5 +903,36 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		unblockBlockCheckout();
 		resetBlockCheckoutPaymentState();
+	}
+};
+
+/**
+ * Handles checkout session confirmation from URL hash.
+ *
+ * @param {Object} api        The API object.
+ * @param {Object} jQueryForm The jQuery form object.
+ */
+export const confirmCheckoutSessionsPayment = async ( api, jQueryForm ) => {
+	const partials = window.location.href.match(
+		/#wc-stripe-checkout-sessions-(.+):(.+)$/
+	);
+
+	if ( ! partials ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		return;
+	}
+
+	// Remove the hash from the URL
+	history.replaceState(
+		'',
+		document.title,
+		window.location.pathname + window.location.search
+	);
+
+	const orderId = partials[ 1 ];
+	const returnUrl = decodeURIComponent( partials[ 2 ] );
+
+	if ( returnUrl ) {
+		window.location.href = returnUrl;
 	}
 };
