@@ -872,162 +872,146 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when PMC is disabled.
+	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` with various scenarios.
 	 *
+	 * @param array  $settings               Settings to configure.
+	 * @param object|null $mock_api_response Mock API response object.
+	 * @param array  $expected_contains      Payment methods that should be in the result.
+	 * @param array  $expected_not_contains  Payment methods that should NOT be in the result.
+	 * @param bool   $expect_empty           Whether to expect an empty result.
 	 * @return void
+	 * @dataProvider provide_test_get_unsupported_enabled_payment_method_ids_in_pmc
 	 */
-	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_when_pmc_disabled() {
-		$settings                = WC_Stripe_Helper::get_stripe_settings();
-		$settings['pmc_enabled'] = 'no';
+	public function test_get_unsupported_enabled_payment_method_ids_in_pmc( array $settings, $mock_api_response, array $expected_contains, array $expected_not_contains, bool $expect_empty ) {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$property = null;
+		if ( null !== $mock_api_response ) {
+			$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
+				->disableOriginalConstructor()
+				->getMock();
+
+			$mock_api->method( 'get_payment_method_configurations' )
+				->willReturn( $mock_api_response );
+
+			$reflection = new ReflectionClass( \WC_Stripe_API::class );
+			$property   = $reflection->getProperty( 'instance' );
+			$property->setAccessible( true );
+			$property->setValue( null, $mock_api );
+		}
 
 		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
-		$this->assertEmpty( $result );
-
-		// Reset settings
-		$settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-	}
-
-	/**
-	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there's no configuration.
-	 *
-	 * @return void
-	 */
-	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_when_no_configuration() {
-		$settings                = WC_Stripe_Helper::get_stripe_settings();
-		$settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-
+		// Restore original settings and API instance.
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		if ( null !== $property ) {
+			$property->setValue( null, null );
+		}
+		// Clear cache.
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
-		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$mock_api->method( 'get_payment_method_configurations' )
-			->willReturn( (object) [ 'data' => [] ] );
-
-		$reflection = new ReflectionClass( \WC_Stripe_API::class );
-		$property   = $reflection->getProperty( 'instance' );
-		$property->setAccessible( true );
-		$property->setValue( null, $mock_api );
-
-		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
-
-		$this->assertEmpty( $result );
-
-		// Reset API instance
-		$property->setValue( null, null );
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-	}
-
-	/**
-	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there are unsupported enabled methods.
-	 *
-	 * @return void
-	 */
-	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_with_unsupported_methods() {
-		$settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$settings['pmc_enabled']          = 'yes';
-		$settings['test_publishable_key'] = 'pk_test_1234567890';
-		$settings['test_secret_key']      = 'sk_test_1234567890';
-		$settings['test_connection_type'] = 'connect';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-
-		$payment_method_configuration = (object) [
-			'id'        => 'pmc_test',
-			'parent'    => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
-			'active'    => true,
-			'livemode'  => false,
-			// Supported method (card) - should be skipped
-			'card'      => (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
-			],
-			// Unsupported enabled methods - should be returned
-			'fpx'       => (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
-			],
-			'naver_pay' => (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
-			],
-			// Unsupported but disabled method - should not be returned
-			'paypal'    => (object) [
-				'display_preference' => (object) [ 'value' => 'off' ],
-			],
-		];
-
-		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$mock_api->method( 'get_payment_method_configurations' )
-			->willReturn( (object) [ 'data' => [ $payment_method_configuration ] ] );
-
-		$reflection = new ReflectionClass( \WC_Stripe_API::class );
-		$property   = $reflection->getProperty( 'instance' );
-		$property->setAccessible( true );
-		$property->setValue( null, $mock_api );
-
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
-
+		// Assert the expected output.
 		$this->assertIsArray( $result );
-		$this->assertContains( 'fpx', $result );
-		$this->assertContains( 'naver_pay', $result );
-		$this->assertNotContains( 'card', $result );
-		$this->assertNotContains( 'paypal', $result );
 
-		// Reset API instance
-		$property->setValue( null, null );
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		if ( $expect_empty ) {
+			$this->assertEmpty( $result );
+		} else {
+			foreach ( $expected_contains as $method ) {
+				$this->assertContains( $method, $result, "Expected method '{$method}' to be in result" );
+			}
+			foreach ( $expected_not_contains as $method ) {
+				$this->assertNotContains( $method, $result, "Expected method '{$method}' NOT to be in result" );
+			}
+		}
 	}
 
 	/**
-	 * Test `get_unsupported_enabled_payment_method_ids_in_pmc` when there are only supported methods.
+	 * Data provider for `test_get_unsupported_enabled_payment_method_ids_in_pmc`
 	 *
-	 * @return void
+	 * @return array
 	 */
-	public function test_get_unsupported_enabled_payment_method_ids_in_pmc_with_only_supported_methods() {
-		$settings                = WC_Stripe_Helper::get_stripe_settings();
-		$settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	public function provide_test_get_unsupported_enabled_payment_method_ids_in_pmc(): array {
+		$settings_base = WC_Stripe_Helper::get_stripe_settings();
 
-		$payment_method_configuration_supported_only = (object) [
-			'id'       => 'pmc_test',
-			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
-			'active'   => true,
-			'livemode' => false,
-			'card'     => (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
+		return [
+			'PMC disabled'             => [
+				'settings'              => array_merge( $settings_base, [ 'pmc_enabled' => 'no' ] ),
+				'mock_api_response'     => null,
+				'expected_contains'     => [],
+				'expected_not_contains' => [],
+				'expect_empty'          => true,
 			],
-			'ideal'    => (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
+			'No configuration'         => [
+				'settings'              => array_merge( $settings_base, [ 'pmc_enabled' => 'yes' ] ),
+				'mock_api_response'     => (object) [ 'data' => [] ],
+				'expected_contains'     => [],
+				'expected_not_contains' => [],
+				'expect_empty'          => true,
+			],
+			'With unsupported methods' => [
+				'settings'              => array_merge(
+					$settings_base,
+					[
+						'pmc_enabled'          => 'yes',
+						'test_publishable_key' => 'pk_test_1234567890',
+						'test_secret_key'      => 'sk_test_1234567890',
+						'test_connection_type' => 'connect',
+					]
+				),
+				'mock_api_response'     => (object) [
+					'data' => [
+						(object) [
+							'id'        => 'pmc_test',
+							'parent'    => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+							'active'    => true,
+							'livemode'  => false,
+							// Supported method (card) - should be skipped
+							'card'      => (object) [
+								'display_preference' => (object) [ 'value' => 'on' ],
+							],
+							// Unsupported enabled methods - should be returned
+							'fpx'       => (object) [
+								'display_preference' => (object) [ 'value' => 'on' ],
+							],
+							'naver_pay' => (object) [
+								'display_preference' => (object) [ 'value' => 'on' ],
+							],
+							// Unsupported but disabled method - should not be returned
+							'paypal'    => (object) [
+								'display_preference' => (object) [ 'value' => 'off' ],
+							],
+						],
+					],
+				],
+				'expected_contains'     => [ 'fpx', 'naver_pay' ],
+				'expected_not_contains' => [ 'card', 'paypal' ],
+				'expect_empty'          => false,
+			],
+			'Only supported methods'   => [
+				'settings'              => array_merge( $settings_base, [ 'pmc_enabled' => 'yes' ] ),
+				'mock_api_response'     => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'pmc_test',
+							'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+							'active'   => true,
+							'livemode' => false,
+							'card'     => (object) [
+								'display_preference' => (object) [ 'value' => 'on' ],
+							],
+							'ideal'    => (object) [
+								'display_preference' => (object) [ 'value' => 'on' ],
+							],
+						],
+					],
+				],
+				'expected_contains'     => [],
+				'expected_not_contains' => [ 'ideal', 'card' ],
+				'expect_empty'          => true,
 			],
 		];
-
-		$mock_api = $this->getMockBuilder( \WC_Stripe_API::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$mock_api->method( 'get_payment_method_configurations' )
-			->willReturn( (object) [ 'data' => [ $payment_method_configuration_supported_only ] ] );
-
-		$reflection = new ReflectionClass( \WC_Stripe_API::class );
-		$property   = $reflection->getProperty( 'instance' );
-		$property->setAccessible( true );
-		$property->setValue( null, $mock_api );
-
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-		$result = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
-
-		$this->assertEmpty( $result );
-
-		// Reset API instance
-		$property->setValue( null, null );
-		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 	}
 }
