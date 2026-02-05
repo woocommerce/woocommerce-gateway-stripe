@@ -5835,13 +5835,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method object\:\:get_id\(\)\.$#'
 			identifier: method.notFound
-			count: 5
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
 			message: '#^Call to an undefined method object\:\:get_type\(\)\.$#'
 			identifier: method.notFound
-			count: 2
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
@@ -5923,12 +5923,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:is_product_supported\(\) has parameter \$product with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:mark_order_as_pre_ordered\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -5943,12 +5937,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Express_Checkout_Helper\:\:remove_order_source_before_retry\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$param$#'
-			identifier: parameter.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
@@ -5990,12 +5978,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_taxes_like_cart\(\) expects WC_Product, WC_Product\|false\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
-			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:is_invalid_subscription_product\(\) expects WC_Product\|null, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php

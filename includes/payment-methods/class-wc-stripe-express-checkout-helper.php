@@ -950,7 +950,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Returns true if the provided product is supported, false otherwise.
 	 *
-	 * @param WC_Product $product The product to check if it is supported.
+	 * @param WC_Product|null|bool $product The product to check if it is supported.
 	 *
 	 * @return bool True if the provided product is supported, false otherwise.
 	 */
