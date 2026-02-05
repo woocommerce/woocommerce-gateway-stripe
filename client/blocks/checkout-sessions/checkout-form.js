@@ -4,14 +4,14 @@ import {
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
 import { useEffect, useRef, useState } from 'react';
-import {
-	usePaymentCompleteHandler2,
-	usePaymentFailHandler2,
-} from 'wcstripe/blocks/upe/hooks';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
+import {
+	usePaymentCompleteHandler,
+	usePaymentFailHandler,
+} from 'wcstripe/blocks/checkout-sessions/hooks';
 
 const noop = () => null;
 
@@ -74,7 +74,6 @@ const CheckoutForm = ( {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const [ , setPaymentIntentId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
 	const hasLoadErrorRef = useRef( false );
@@ -125,13 +124,6 @@ const CheckoutForm = ( {
 						};
 					}
 
-					// const sessionDetails =
-					// 	await api.checkoutSessionsGetSession();
-					//
-					// console.log( 'sessionDetails', sessionDetails );
-					//
-					// setPaymentIntentId( sessionDetails.payment_intent.id );
-
 					const billingAddress = billing.billingAddress;
 
 					return {
@@ -170,9 +162,9 @@ const CheckoutForm = ( {
 		]
 	);
 
-	usePaymentCompleteHandler2( checkoutState, onCheckoutSuccess );
+	usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
 
-	usePaymentFailHandler2( checkoutState, onCheckoutFail, emitResponse );
+	usePaymentFailHandler( checkoutState, onCheckoutFail, emitResponse );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
