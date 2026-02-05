@@ -454,7 +454,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/v3/',
+			'https://js.stripe.com/clover/stripe.js',
 			[],
 			'3.0',
 			true
@@ -566,6 +566,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 		}
+
+		// Adaptive Pricing feature flag and setting.
+		$stripe_params['isAPEnabled'] = WC_Stripe_Feature_Flags::is_checkout_sessions_available() && 'yes' === $this->get_option( 'adaptive_pricing', 'no' );
 
 		// Checking for other BNPL extensions.
 		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
