@@ -1259,8 +1259,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param int $order_id   The order ID being processed.
 	 * @param bool $can_retry Should we retry on fail.
-	 *
-	 * @deprecated 10.4.0 This method is deprecated and will be removed in a future release.
 	 */
 	public function process_payment_with_saved_payment_method( $order_id, $can_retry = true ) {
 		try {
@@ -1945,15 +1943,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		return $this->payment_methods[ $payment_method_id ]->is_reusable();
 	}
 
-	/**
-	 * Validates the UPE checkout experience accepted payments field.
-	 *
-	 * @param string $key Field key.
-	 * @param mixed  $value Field value.
-	 * @return mixed
-	 *
-	 * @deprecated 10.4.0 This method is deprecated and will be removed in a future release.
-	 */
+	// TODO: Actually validate.
 	public function validate_upe_checkout_experience_accepted_payments_field( $key, $value ) {
 		return $value;
 	}
@@ -2055,8 +2045,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string $key Field key.
 	 * @param array  $data Field data.
 	 * @return string
-	 *
-	 * @deprecated 10.4.0 This method is deprecated and will be removed in a future release.
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
 		try {
