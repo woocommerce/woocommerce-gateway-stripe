@@ -165,5 +165,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Better error handling when token creation fails
 * Tweak - Improve PHPDoc for payment token code
 * Tweak - Update PHPDoc for email notification classes
+* Tweak - Update PHPDoc for UPE payment method classes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
