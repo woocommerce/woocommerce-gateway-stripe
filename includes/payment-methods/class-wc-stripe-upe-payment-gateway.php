@@ -683,9 +683,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		);
 
-		// Always exclude amazon_pay (shown via Express Checkout, not in Payment Element)
-		if ( ! in_array( 'amazon_pay', $excluded_methods, true ) ) {
-			$excluded_methods[] = 'amazon_pay';
+		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
+		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
+			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 		}
 
 		return array_values( array_unique( $excluded_methods ) );
