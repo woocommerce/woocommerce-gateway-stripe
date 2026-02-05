@@ -5,6 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+
+	/**
+	 * Feature flag for Amazon Pay.
+	 *
+	 * @var string
+	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
+	 */
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
 
 	/**
@@ -73,8 +80,10 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag to control Amazon Pay feature availability.
 	 *
 	 * @return bool
+	 * @deprecated This method will be removed in a future version. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
 	public static function is_amazon_pay_available() {
+		wc_deprecated_function( __METHOD__, '10.4.0' );
 		return true;
 	}
 
