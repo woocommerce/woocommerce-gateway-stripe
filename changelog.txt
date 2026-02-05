@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.4.0 - xxxx-xx-xx =
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Add - Introduce an endpoint to create Checkout Sessions tokens
 * Add - New setting to control Adaptive Pricing
 * Add - Map Norwegian nb-NO to generic no-NO locale
