@@ -139,8 +139,8 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-subscriptions.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-pre-orders.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Abstracts/WC_Stripe_Payment_Gateway.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Abstracts/WC_Stripe_Payment_Gateway_Voucher.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-action-scheduler-service.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
@@ -738,7 +738,7 @@ class WC_Stripe {
 	public function register_routes() {
 		/** API includes */
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-connect-rest-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Abstracts/WC_Stripe_Connect_REST_Controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-connection-tokens-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-locations-controller.php';

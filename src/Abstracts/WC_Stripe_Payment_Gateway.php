@@ -15,8 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Payment_Gateway_CC
  *
  * @since 4.0.0
- *
- * @deprecated Use src/Abstracts/WC_Stripe_Payment_Gateway.php instead.
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 

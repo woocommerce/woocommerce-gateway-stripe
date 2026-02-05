@@ -8,8 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Stripe Connect base REST controller class.
- *
- * @deprecated Use src/Abstracts/WC_Stripe_Connect_REST_Controller.php instead.
  */
 abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 
