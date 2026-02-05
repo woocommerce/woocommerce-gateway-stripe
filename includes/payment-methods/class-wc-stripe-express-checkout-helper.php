@@ -950,7 +950,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Returns true if the provided product is supported, false otherwise.
 	 *
-	 * @param WC_Product $param  The product that's being checked for support.
+	 * @param WC_Product $product The product to check if it is supported.
 	 *
 	 * @return bool True if the provided product is supported, false otherwise.
 	 */
@@ -1513,9 +1513,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *     @type array $total {
 	 *         The total for express checkout.
 	 *
-	 *         @type string $label The label for the total.
-	 *         @type float $amount The amount for the total.
-	 *         @type bool $pending Whether the total is pending.
+	 *         @type string    $label   The label for the total.
+	 *         @type float|int $amount  The amount for the total.
+	 *         @type bool      $pending Whether the total is pending.
 	 *     }
 	 * }
 	 */
