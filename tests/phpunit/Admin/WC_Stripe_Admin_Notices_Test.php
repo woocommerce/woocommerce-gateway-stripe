@@ -917,6 +917,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_stripe_updated_does_not_set_ece_location_flag_for_pre_affected_versions() {
 		update_option( 'wc_stripe_version', '10.0.0' );
+		delete_option( 'wc_stripe_show_ece_location_notice' );
 
 		// Remove hooks to prevent side effects during construction.
 		remove_all_actions( 'admin_notices' );
@@ -926,7 +927,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$notices->stripe_updated();
 
-		$this->assertNotEquals( 'yes', get_option( 'wc_stripe_show_ece_location_notice' ) );
+		$this->assertFalse( get_option( 'wc_stripe_show_ece_location_notice' ) );
 	}
 
 	/**
