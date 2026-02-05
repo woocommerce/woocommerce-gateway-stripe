@@ -535,6 +535,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['createSetupIntentNonce']            = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
 		$stripe_params['createAndConfirmSetupIntentNonce']  = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
 		$stripe_params['updateFailedOrderNonce']            = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
+		$stripe_params['createCheckoutSessionNonce']        = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
 		$stripe_params['paymentMethodsConfig']              = $this->get_enabled_payment_method_config();
 		$stripe_params['genericErrorMessage']               = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                 = $this->statement_descriptor;

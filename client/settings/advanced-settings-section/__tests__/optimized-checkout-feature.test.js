@@ -2,12 +2,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
-import { useIsOCEnabled, useOCLayout } from 'wcstripe/data';
+import {
+	useIsOCEnabled,
+	useIsAdaptivePricingEnabled,
+	useOCLayout,
+} from 'wcstripe/data';
 
 jest.useFakeTimers();
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsOCEnabled: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
 } ) );
 
@@ -17,7 +22,10 @@ jest.mock( '@woocommerce/navigation', () => ( {
 
 describe( 'Optimized Checkout Element feature setting', () => {
 	beforeEach( () => {
+		global.wc_stripe_settings_params = { is_cs_available: false };
+
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 	} );
 
@@ -48,18 +56,27 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		} );
 	} );
 
-	it( 'layout setting should be available when OC is enabled', () => {
+	it( 'Adaptive pricing and layout settings should be available when OC is enabled and checkout sessions is available', () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <OptimizedCheckoutFeature /> );
 
-		const label = screen.getByText( 'Layout' );
-		expect( label ).toBeInTheDocument();
+		// Layout settings.
+		expect( screen.getByText( 'Layout' ) ).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
+			)
+		).toBeInTheDocument();
 
-		const help = screen.getByText(
-			'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
-		);
-		expect( help ).toBeInTheDocument();
+		// Adaptive pricing settings.
+		expect(
+			screen.getByText(
+				'Let customers pay in their local currency with Adaptive Pricing.'
+			)
+		).toBeInTheDocument();
 	} );
 
 	it( 'triggers the hook when changing the layout setting', async () => {
@@ -76,6 +93,34 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		await waitFor( async () => {
 			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+		} );
+	} );
+
+	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		const setAdaptivePricingEnabledMock = jest.fn();
+		useIsAdaptivePricingEnabled.mockReturnValue( [
+			false,
+			setAdaptivePricingEnabledMock,
+		] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
+
+		await userEvent.click(
+			screen.getByLabelText(
+				'Let customers pay in their local currency with Adaptive Pricing.'
+			)
+		);
+
+		await waitFor( async () => {
+			expect( setAdaptivePricingEnabledMock ).toHaveBeenCalledWith(
+				true
+			);
 		} );
 	} );
 } );

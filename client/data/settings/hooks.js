@@ -167,6 +167,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
+export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',
