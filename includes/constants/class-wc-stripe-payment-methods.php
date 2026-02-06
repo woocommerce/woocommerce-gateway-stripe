@@ -107,6 +107,10 @@ class WC_Stripe_Payment_Methods {
 	 * Payment method types that can not be excluded via Stripe's 'excludedPaymentMethodTypes' parameter.
 	 * These values are not supported in the 'excludedPaymentMethodTypes' parameter and causes an error when trying to render the Payment Element excluding them.
 	 *
+	 * The list is inferred by comparing the currently unsupported types of the accepted arguments to excluded_payment_method_types (https://docs.stripe.com/api/payment_intents/update#update_payment_intent-excluded_payment_method_types)
+	 * against the possible elements that are present in the Payment Method Configuration object (https://docs.stripe.com/api/payment_method_configurations/object).
+	 * see https://github.com/woocommerce/woocommerce-gateway-stripe/pull/4922#discussion_r2770707821
+	 *
 	 * @var array
 	 */
 	const NON_EXCLUDABLE_PAYMENT_METHOD_TYPES = [
