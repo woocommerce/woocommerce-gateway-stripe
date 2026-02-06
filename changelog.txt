@@ -29,6 +29,7 @@
 * Tweak - Update PHPDoc for email notification classes
 * Add - Support Amazon Pay as an express checkout method
 * Add - Enable Amazon Pay for eligible new installs
+* Update - Stop auto-enabling Optimized Checkout Suite for new installs
 
 = 10.3.1 - 2026-01-15 =
 * Fix - Fatal error when using express payment method with certain addresses
