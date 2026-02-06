@@ -1018,6 +1018,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $admin_user );
 
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
+
 		$_GET['wc-stripe-hide-notice']   = 'ece_location';
 		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
 
