@@ -671,18 +671,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	private function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
-		$excludable_methods = WC_Stripe_Payment_Methods::EXCLUDABLE_PAYMENT_METHOD_TYPES;
+		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
 
 		/**
-		 * Filters the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+		 * Filters the list of payment methods that can not be excluded from the Payment Element in optimized checkout.
 		 *
-		 * @param string[] $excludable_methods List of payment method types to exclude.
+		 * @param string[] $non_excludable_methods List of payment method types that can not be excluded.
 		 */
-		$custom_excludable_methods = apply_filters( 'wc_stripe_ocs_excludable_payment_methods', [] );
+		$custom_non_excludable_methods = apply_filters( 'wc_stripe_ocs_non_excludable_payment_methods', [] );
 
-		if ( is_array( $custom_excludable_methods ) && [] !== $custom_excludable_methods ) {
-			$custom_excludable_methods = array_filter( $custom_excludable_methods, 'is_string' );
-			$excludable_methods        = array_unique( array_merge( $custom_excludable_methods, $excludable_methods ) );
+		if ( is_array( $custom_non_excludable_methods ) && [] !== $custom_non_excludable_methods ) {
+			$custom_non_excludable_methods = array_filter( $custom_non_excludable_methods, 'is_string' );
+			$non_excludable_methods        = array_unique( array_merge( $custom_non_excludable_methods, $non_excludable_methods ) );
 		}
 
 		// There could be some payment methods in the unsupported list that are not supported in the 'excludedPaymentMethodTypes' parameter
@@ -690,8 +690,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// payment methods that are supported in the 'excludedPaymentMethodTypes' parameter.
 		$excluded_methods = array_filter(
 			$unsupported_methods,
-			function ( $method ) use ( $excludable_methods ) {
-				return in_array( $method, $excludable_methods, true );
+			function ( $method ) use ( $non_excludable_methods ) {
+				return ! in_array( $method, $non_excludable_methods, true );
 			}
 		);
 
