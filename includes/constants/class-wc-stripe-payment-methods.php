@@ -105,6 +105,7 @@ class WC_Stripe_Payment_Methods {
 
 	/**
 	 * Payment method types that can not be excluded via Stripe's 'excludedPaymentMethodTypes' parameter.
+	 * These values are not supported in the 'excludedPaymentMethodTypes' parameter and causes an error when trying to render the Payment Element excluding them.
 	 *
 	 * @var array
 	 */
