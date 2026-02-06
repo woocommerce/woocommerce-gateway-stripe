@@ -1,3 +1,4 @@
+import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
