@@ -161,7 +161,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
-* Fix - Prevent incompatibility warnings for payment methods in block editor
+* Fix - Resolve false incompatibility warnings for Block Editor payment methods
 * Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
 * Fix - Better error handling when token creation fails
 
