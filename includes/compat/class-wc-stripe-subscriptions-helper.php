@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Helper class to handle subscriptions.
  */
-class WC_Stripe_Subscriptions_Helper {
+class WC_Stripe_Subscriptions_Helper extends WC_Stripe_Order_Helper {
 	/**
 	 * Stripe customer page base URL.
 	 *
@@ -34,6 +34,43 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @var int
 	 */
 	private const MAX_EXECUTION_TIME_FALLBACK = 30;
+
+	/**
+	 * Subscription meta key used to store the payment method used before migration.
+	 *
+	 * @var string
+	 */
+	private const META_LEGACY_TOKEN_PAYMENT_METHOD = '_migrated_sepa_payment_method';
+
+	/**
+	 * Singleton instance of the class.
+	 *
+	 * @var null|WC_Stripe_Order_Helper
+	 */
+	private static ?WC_Stripe_Order_Helper $instance = null;
+
+	/**
+	 * Gets the singleton instance of the class.
+	 *
+	 * @return WC_Stripe_Subscriptions_Helper
+	 */
+	public static function get_instance(): self {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Sets the singleton instance of the class.
+	 *
+	 * @param WC_Stripe_Subscriptions_Helper|null $instance
+	 * @return void
+	 */
+	public static function set_instance( ?self $instance ) {
+		self::$instance = $instance;
+	}
 
 	/**
 	 * Checks if subscriptions are enabled on the site.
@@ -156,7 +193,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		$source_id = $subscription->get_meta( '_stripe_source_id' );
+		$source_id = $subscription->get_meta( self::META_STRIPE_SOURCE_ID );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -225,7 +262,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'customer_id'               => $subscription->get_meta( self::META_STRIPE_CUSTOMER_ID ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}
@@ -333,5 +370,17 @@ class WC_Stripe_Subscriptions_Helper {
 		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
 
 		return $saved_payment_method;
+	}
+
+	/**
+	 * Updates the legacy token payment method meta for a subscription.
+	 *
+	 * @since 10.4.0
+	 *
+	 * @param WC_Order $subscription
+	 * @param string $payment_method
+	 */
+	public function update_legacy_token_payment_method( WC_Order $subscription, string $payment_method ) {
+		return $this->update_order_meta( $subscription, self::META_LEGACY_TOKEN_PAYMENT_METHOD, $payment_method );
 	}
 }

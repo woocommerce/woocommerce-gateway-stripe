@@ -187,6 +187,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$done = true;
 
+		$subscriptions_helper = WC_Stripe_Subscriptions_Helper::get_instance();
+
 		if ( 0 < count( $subscriptions ) ) {
 			foreach ( $subscriptions as $subscription ) {
 				$data_to_export[] = [
@@ -196,11 +198,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription->get_meta( '_stripe_source_id', true ),
+							'value' => $subscriptions_helper->get_stripe_source_id( $subscription ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription->get_meta( '_stripe_customer_id', true ),
+							'value' => $subscriptions_helper->get_stripe_customer_id( $subscription ),
 						],
 					],
 				];
@@ -348,7 +350,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$subscription = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$subscriptions_helper = WC_Stripe_Subscriptions_Helper::get_instance();
+
+		$stripe_source_id = $subscriptions_helper->get_stripe_source_id( $subscription );
 
 		if ( empty( $stripe_source_id ) ) {
 			return [ false, false, [] ];
@@ -372,9 +376,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$order_helper->delete_stripe_customer_id( $renewal_order );
 		}
 
-		$subscription->delete_meta_data( '_stripe_source_id' );
-		$subscription->delete_meta_data( '_stripe_refund_id' );
-		$subscription->delete_meta_data( '_stripe_customer_id' );
+		$subscriptions_helper->delete_stripe_source_id( $subscription );
+		$subscriptions_helper->delete_stripe_refund_id( $subscription );
+		$subscriptions_helper->delete_stripe_customer_id( $subscription );
 
 		return [ true, false, [ __( 'Stripe Subscription Data Erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}

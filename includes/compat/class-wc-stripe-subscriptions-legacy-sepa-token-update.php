@@ -29,6 +29,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * Subscription meta key used to store the payment method used before migration.
 	 *
 	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use the constants in the WC_Stripe_Subscriptions_Helper class instead.
 	 */
 	const LEGACY_TOKEN_PAYMENT_METHOD_META_KEY = '_migrated_sepa_payment_method';
 
@@ -36,6 +38,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * Subscription meta key used to store the associated source ID.
 	 *
 	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use the constants in the WC_Stripe_Subscriptions_Helper class instead.
 	 */
 	const SOURCE_ID_META_KEY = '_stripe_source_id';
 
@@ -115,12 +119,14 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * @throws \Exception When the subscription is already using a pm_ or its src_ hasn't been migrated to a pm_.
 	 */
 	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
-		$source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+		$subscriptions_helper = WC_Stripe_Subscriptions_Helper::get_instance();
+
+		$source_id = $subscriptions_helper->get_stripe_source_id( $subscription );
 
 		// Bail out if the subscription is already using a pm_.
 		if ( 0 !== strpos( $source_id, 'src_' ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \Exception( sprintf( 'The subscription is not using a Stripe Source for renewals.', $subscription->get_id() ) );
+			throw new \Exception( sprintf( 'The subscription %d is not using a Stripe Source for renewals.', $subscription->get_id() ) );
 		}
 
 		// Retrieve the source object from the API.
@@ -135,14 +141,14 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
+			throw new \Exception( sprintf( 'The Source for subscription %d has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
 		}
 
 		// Get the payment method ID that was migrated from the source.
 		$migrated_payment_method_id = $source_object->metadata->migrated_payment_method;
 
 		// And set it as the payment method for the subscription.
-		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $migrated_payment_method_id );
+		$subscriptions_helper->update_stripe_source_id( $subscription, $migrated_payment_method_id );
 		$subscription->save();
 	}
 
@@ -159,7 +165,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		}
 
 		// Add a meta to the subscription to flag that its token got updated.
-		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Stripe_Payment_Methods::LEGACY_SEPA );
+		WC_Stripe_Subscriptions_Helper::get_instance()->update_legacy_token_payment_method( $subscription, WC_Stripe_Payment_Methods::LEGACY_SEPA );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
 
 		$subscription->save();

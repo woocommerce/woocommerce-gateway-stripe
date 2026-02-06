@@ -772,7 +772,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->set_payment_method( 'stripe_klarna' );
 		$subscription->save();
 
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		\WC_Stripe_Subscriptions_Helper::get_instance()->update_stripe_source_id( $subscription, $source_id );
 		$subscription->save_meta_data();
 
 		return [

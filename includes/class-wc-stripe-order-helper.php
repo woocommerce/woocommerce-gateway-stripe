@@ -13,154 +13,154 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_CURRENCY = '_stripe_currency';
+	protected const META_STRIPE_CURRENCY = '_stripe_currency';
 
 	/**
 	 * Meta key for Stripe fee.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_FEE = '_stripe_fee';
+	protected const META_STRIPE_FEE = '_stripe_fee';
 
 	/**
 	 * Meta key for Stripe fee (legacy version).
 	 *
 	 * @var string
 	 */
-	private const LEGACY_META_STRIPE_FEE = 'Stripe Fee';
+	protected const LEGACY_META_STRIPE_FEE = 'Stripe Fee';
 
 	/**
 	 * Meta key for Stripe net.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_NET = '_stripe_net';
+	protected const META_STRIPE_NET = '_stripe_net';
 
 	/**
 	 * Meta key for Stripe net (legacy version).
 	 *
 	 * @var string
 	 */
-	private const LEGACY_META_STRIPE_NET = 'Net Revenue From Stripe';
+	protected const LEGACY_META_STRIPE_NET = 'Net Revenue From Stripe';
 
 	/**
 	 * Meta key for Stripe source ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_SOURCE_ID = '_stripe_source_id';
+	protected const META_STRIPE_SOURCE_ID = '_stripe_source_id';
 
 	/**
 	 * Meta key for Stripe refund ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_REFUND_ID = '_stripe_refund_id';
+	protected const META_STRIPE_REFUND_ID = '_stripe_refund_id';
 
 	/**
 	 * Meta key for Stripe intent ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_INTENT_ID = '_stripe_intent_id';
+	protected const META_STRIPE_INTENT_ID = '_stripe_intent_id';
 
 	/**
 	 * Meta key for Stripe setup intent ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
+	protected const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
+	protected const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
 
 	/**
 	 * Meta key for Stripe card ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_CARD_ID = '_stripe_card_id';
+	protected const META_STRIPE_CARD_ID = '_stripe_card_id';
 
 	/**
 	 * Meta key for Stripe mandate ID.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
+	protected const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
 
 	/**
 	 * Meta key for the Stripe Multibanco data.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_MULTIBANCO_DATA = '_stripe_multibanco';
+	protected const META_STRIPE_MULTIBANCO_DATA = '_stripe_multibanco';
 
 	/**
 	 * Meta key for the Stripe refund status.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_REFUND_STATUS = '_stripe_refund_status';
+	protected const META_STRIPE_REFUND_STATUS = '_stripe_refund_status';
 
 	/**
 	 * Meta key for the Stripe card brand.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
+	protected const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
 
 	/**
 	 * Meta key for Stripe charge captured.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_CHARGE_CAPTURED = '_stripe_charge_captured';
+	protected const META_STRIPE_CHARGE_CAPTURED = '_stripe_charge_captured';
 
 	/**
 	 * Meta key for Stripe status final.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
+	protected const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
 
 	/**
 	 * Meta key for Stripe refund failure reason.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_REFUND_FAILURE_REASON = '_stripe_refund_failure_reason';
+	protected const META_STRIPE_REFUND_FAILURE_REASON = '_stripe_refund_failure_reason';
 
 	/**
 	 * Meta key for Stripe UPE payment type.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
+	protected const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
 
 	/**
 	 * Meta key for Stripe UPE waiting for redirect.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
+	protected const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
 
 	/**
 	 * Meta key for Stripe UPE redirect processed.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
+	protected const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
 
 	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
+	protected const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
 	 * Singleton instance of the class.

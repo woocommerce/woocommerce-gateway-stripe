@@ -107,6 +107,8 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
+		$subscriptions_helper = \WC_Stripe_Subscriptions_Helper::get_instance();
+
 		if ( count( $subscriptions ) > 0 ) {
 			$mocked_subscriptions = [];
 			foreach ( $subscriptions as $subscription_data ) {
@@ -116,8 +118,8 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 				$subscription->set_payment_method( 'stripe_klarna' );
 				$subscription->save();
 
-				$subscription->update_meta_data( '_stripe_customer_id', $subscription_data['customer_id'] );
-				$subscription->update_meta_data( '_stripe_source_id', $subscription_data['source_id'] );
+				$subscriptions_helper->update_stripe_customer_id( $subscription, $subscription_data['customer_id'] );
+				$subscriptions_helper->update_stripe_source_id( $subscription, $subscription_data['source_id'] );
 				$subscription->save_meta_data();
 
 				$mocked_subscriptions[] = $subscription;

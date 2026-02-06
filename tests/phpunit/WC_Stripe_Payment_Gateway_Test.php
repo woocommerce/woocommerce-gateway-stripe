@@ -488,8 +488,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$id_suffix = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
 		$mock_payment_method_id = 'pm_mock' . $payment_method_type . '_' . $id_suffix;
 
-		$mock_subscription->update_meta_data( '_stripe_source_id', $mock_payment_method_id );
-		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$subscriptions_helper = \WC_Stripe_Subscriptions_Helper::get_instance();
+
+		$subscriptions_helper->update_stripe_source_id( $mock_subscription, $mock_payment_method_id );
+		$subscriptions_helper->update_stripe_customer_id( $mock_subscription, 'cus_mock' );
 		$mock_subscription->save();
 
 		$mock_payment_method_data = [

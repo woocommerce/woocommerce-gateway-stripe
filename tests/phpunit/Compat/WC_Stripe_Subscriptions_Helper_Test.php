@@ -57,6 +57,8 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
 
+		$subscriptions_helper = \WC_Stripe_Subscriptions_Helper::get_instance();
+
 		$subscription = new WC_Subscription();
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
@@ -64,8 +66,8 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$subscription->set_time( 'next_payment_date', strtotime( '+1 week' ) );
 		$subscription->save();
 
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscriptions_helper->update_stripe_customer_id( $subscription, $customer_id );
+		$subscriptions_helper->update_stripe_source_id( $subscription, $source_id );
 		$subscription->save_meta_data();
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = [ $subscription ];
@@ -190,6 +192,8 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	public function test_is_subscription_payment_method_detached( $payment_method, $source_meta, $mocked_response, $expected ) {
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
 
+		$subscriptions_helper = \WC_Stripe_Subscriptions_Helper::get_instance();
+
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 1 );
 		$subscription->set_status( 'active' );
@@ -197,9 +201,9 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$subscription->save();
 
 		if ( ! is_null( $source_meta ) ) {
-			$subscription->update_meta_data( '_stripe_source_id', $source_meta );
+			$subscriptions_helper->update_stripe_source_id( $subscription, $source_meta );
 		} else {
-			$subscription->delete_meta_data( '_stripe_source_id' );
+			$subscriptions_helper->delete_stripe_source_id( $subscription );
 		}
 		$subscription->save_meta_data();
 

@@ -81,7 +81,7 @@ class WC_Stripe_Subscription_Detached_Bulk_Action_Test extends WP_UnitTestCase {
 		$subscription_detached = new WC_Subscription();
 		$subscription_detached->set_id( 2 );
 		$subscription_detached->set_payment_method( 'stripe_klarna' );
-		$subscription_detached->update_meta_data( '_stripe_source_id', $source_id );
+		\WC_Stripe_Subscriptions_Helper::get_instance()->update_stripe_source_id( $subscription_detached, $source_id );
 
 		$payment_method = (object) [
 			'customer' => null,

@@ -12,12 +12,60 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
-	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
-	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
-	const META_NAME_FEE                = '_stripe_fee';
-	const META_NAME_NET                = '_stripe_net';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+
+	/**
+	 * Legacy meta names for backward compatibility.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Order_Helper constants instead.
+	 */
+	const LEGACY_META_NAME_FEE = 'Stripe Fee';
+
+	/**
+	 * Legacy meta names for backward compatibility.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Order_Helper constants instead.
+	 */
+	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
+
+	/**
+	 * Meta key for fee.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Order_Helper constants instead.
+	 */
+	const META_NAME_FEE = '_stripe_fee';
+
+	/**
+	 * Meta key for net.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Order_Helper constants instead.
+	 */
+	const META_NAME_NET = '_stripe_net';
+
+	/**
+	 * Meta key for currency.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Order_Helper constants instead.
+	 */
 	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+
+	/**
+	 * Meta key for payment awaiting action.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 10.4.0 Use WC_Stripe_Payment_Intents_Controller::PAYMENT_AWAITING_ACTION_META instead.
+	 */
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
