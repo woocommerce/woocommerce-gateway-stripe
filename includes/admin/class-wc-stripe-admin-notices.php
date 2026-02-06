@@ -416,7 +416,7 @@ class WC_Stripe_Admin_Notices {
 
 		$message = sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML line break tag */
-			__( '%1$sAction Required: Review your express checkout settings.%2$s%3$sA recent update may have unintentionally changed where Apple Pay / Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please verify your settings to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
+			__( '%1$sAction Required: Review your Stripe express checkout settings.%2$s%3$sA recent update to the Stripe plugin may have unintentionally changed where Apple Pay and/or Google Pay buttons appear. Currently, they are active on the product and cart pages but not on the checkout page. Please review your express checkout settings to ensure your customers have the best checkout experience.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
 			'<br>'
