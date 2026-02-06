@@ -144,32 +144,30 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 10.4.0 - xxxx-xx-xx =
 
 **New Features**
-* Add - Introduce an endpoint to create Checkout Sessions tokens
-* Add - New setting to control Adaptive Pricing
-* Add - Map Norwegian nb-NO to generic no-NO locale
-* Add - Support Amazon Pay as an express checkout method
 * Add - Enable Amazon Pay for eligible new installs
-* Add - Admin notice for merchants potentially affected by the express checkout button location issue in versions 10.1.0 to 10.2.x
+* Add - Support Amazon Pay as an express checkout method
 
 **Important Fixes and Updates**
+* Add - Admin notice for merchants potentially affected by the express checkout button location issue in versions 10.1.0 to 10.2.x
+* Add - Map Norwegian nb-NO to generic no-NO locale
 * Update - Redirect merchants to the Stripe settings screen upon plugin activation
 * Update - Stop auto-enabling Optimized Checkout Suite for new installs
 * Fix - Prevent Optimized Checkout from showing unsupported payment methods
+* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
 
 **Other Fixes and Updates**
-* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
-* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
+* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
 * Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Fix - Prevent incompatibility warnings for payment methods in block editor
 * Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
 * Fix - Better error handling when token creation fails
-* Tweak - Improve PHPDoc for payment token code
-* Tweak - Update PHPDoc for email notification classes
 
 **Internal Changes and Upcoming Features**
+* Add - New setting to control Adaptive Pricing
+* Add - Introduce an endpoint to create Checkout Sessions tokens
 * Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
 * Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
 * Dev - Replace deprecated logger method calls with severity specific methods
@@ -181,5 +179,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Automate release note creation PR
 * Dev - Introduce a feature flag for the Stripe checkout sessions feature
 * Dev - Improve the pre-push hook
+* Tweak - Improve PHPDoc for payment token code
+* Tweak - Update PHPDoc for email notification classes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
