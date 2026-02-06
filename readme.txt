@@ -155,6 +155,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Prevent Optimized Checkout from showing unsupported payment methods
 * Dev - Unit tests to cover address normalization
 * Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
