@@ -162,7 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
 * Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
 * Fix - Resolve false incompatibility warnings for Block Editor payment methods
-* Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
+* Fix - Prevent credit card input fields from being cleared in the Optimized Checkout Suite (OCS) when the "Save payment method" checkbox is selected on classic checkout
 * Fix - Better error handling when token creation fails
 
 **Internal Changes and Upcoming Features**
