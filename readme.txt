@@ -37,6 +37,10 @@ The following items note specific versions that include important changes, featu
 
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
+   - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+   - Removed the deprecated WC_Stripe_Apple_Pay class
+* 10.3.0
+   - Removed legacy checkout payment method classes and settings retrieval methods
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
