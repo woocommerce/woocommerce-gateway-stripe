@@ -155,6 +155,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Ensure PHPStan runs when pushing changes
 * Dev - Add PHPStan stub for WC_Subscription class
 * Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+* Fix - Prevent Optimized Checkout from showing unsupported payment methods
 * Dev - Unit tests to cover address normalization
 * Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
 * Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
@@ -168,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Better error handling when token creation fails
 * Tweak - Improve PHPDoc for payment token code
 * Tweak - Update PHPDoc for email notification classes
+* Add - Admin notice for merchants potentially affected by the express checkout button location issue in versions 10.1.0 to 10.2.x
 * Add - Support Amazon Pay as an express checkout method
 * Add - Enable Amazon Pay for eligible new installs
 * Update - Stop auto-enabling Optimized Checkout Suite for new installs
