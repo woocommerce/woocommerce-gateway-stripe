@@ -3,7 +3,7 @@ import {
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
 	usePaymentCompleteHandler2,
 	usePaymentFailHandler2,
@@ -42,13 +42,10 @@ const getStripeElementOptions = () => {
 
 	if ( getBlocksConfiguration()?.isOCEnabled ) {
 		const layout = {
-			type:
-				getBlocksConfiguration()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			type: OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			radios: true,
+			paymentMethodLogoPosition: 'end',
 		};
-		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
-		}
 		options = {
 			...options,
 			layout,
@@ -74,7 +71,6 @@ const CheckoutForm = ( {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const [ , setPaymentIntentId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
 	const hasLoadErrorRef = useRef( false );
@@ -82,6 +78,39 @@ const CheckoutForm = ( {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
+
+	const stripeDiv = document.getElementById(
+		'radio-control-wc-payment-method-options-stripe__content'
+	);
+
+	const stripeIframes = document.querySelectorAll(
+		'#radio-control-wc-payment-method-options-stripe__content iframe'
+	);
+
+	const privateElement = document.querySelector(
+		'#radio-control-wc-payment-method-options-stripe__content .__PrivateStripeElement'
+	);
+
+	useEffect( () => {
+		if ( stripeDiv ) {
+			stripeDiv.style.padding = '0';
+		}
+	}, [ stripeDiv ] );
+
+	useEffect( () => {
+		if ( stripeIframes ) {
+			stripeIframes.forEach( ( iframe ) => {
+				iframe.style.setProperty( 'width', '100%', 'important' );
+				iframe.style.setProperty( 'margin', '0', 'important' );
+			} );
+		}
+	}, [ stripeIframes ] );
+
+	useEffect( () => {
+		if ( privateElement ) {
+			privateElement.style.margin = 0;
+		}
+	}, [ privateElement ] );
 
 	useEffect(
 		() =>
