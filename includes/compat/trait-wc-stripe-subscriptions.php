@@ -361,7 +361,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Scheduled_subscription_payment function.
+	 * Process a scheduled subscription payment,
+	 * most commonly via the 'woocommerce_scheduled_subscription_payment_<payment_method>' action.
 	 *
 	 * @param float    $amount_to_charge The amount to charge.
 	 * @param WC_Order $renewal_order    A WC_Order object created to record the renewal payment.
@@ -372,7 +373,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Process_subscription_payment function.
+	 * Process a payment for a subscription renewal.
 	 *
 	 * @since 3.0
 	 * @since 4.0.4 Add third parameter flag to retry.
