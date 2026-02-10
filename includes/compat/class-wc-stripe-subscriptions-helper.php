@@ -131,7 +131,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Checks if a subscription's payment method is detached from the customer.
 	 *
-	 * @param $subscription WC_Subscription The subscription object to check.
+	 * @param WC_Subscription $subscription The subscription object to check.
 	 * @return bool True if the payment method is detached, false otherwise.
 	 */
 	public static function is_subscription_payment_method_detached( $subscription ) {
@@ -221,7 +221,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a string containing messages about subscriptions that are detached from the customer.
 	 *
-	 * @param $subscriptions array An array of subscriptions that are detached from the customer.
+	 * @param array $subscriptions An array of subscriptions that are detached from the customer.
 	 * @return string A string containing the messages to be displayed in the admin interface.
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
@@ -257,7 +257,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a message for a single subscription that is detached from the customer.
 	 *
-	 * @param $subscription array An array containing the (single) subscription details.
+	 * @param array $subscription An array containing the (single) subscription details.
 	 * @return string
 	 */
 	public static function build_subscription_detached_message( $subscription ) {
