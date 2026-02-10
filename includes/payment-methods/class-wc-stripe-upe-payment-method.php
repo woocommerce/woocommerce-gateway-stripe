@@ -683,17 +683,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns true if the SEPA tokens for iDEAL feature is enabled.
 	 *
 	 * @return bool
-	 *
-	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
-	 */
-	public function is_sepa_tokens_for_other_methods_enabled() {
-		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
-	}
-
-	/**
-	 * Returns true if the SEPA tokens for iDEAL feature is enabled.
-	 *
-	 * @return bool
 	 */
 	public function is_sepa_tokens_for_ideal_enabled() {
 		return 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
