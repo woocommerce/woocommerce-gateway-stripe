@@ -242,6 +242,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.1.0
 	 * @param object|false $error
+	 * @return bool
 	 */
 	public function is_no_such_source_error( $error ) {
 		return (
@@ -257,6 +258,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.1.0
 	 * @param object|false $error
+	 * @return bool
 	 */
 	public function is_no_linked_source_error( $error ) {
 		return (
