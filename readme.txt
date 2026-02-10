@@ -154,5 +154,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Dev - Fix WC beta version resolution in tests
+* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

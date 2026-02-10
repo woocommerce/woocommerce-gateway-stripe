@@ -241,7 +241,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object|false $error
+	 * @return bool
 	 */
 	public function is_no_such_source_error( $error ) {
 		return (
@@ -256,7 +257,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source linked to customer.
 	 *
 	 * @since 4.1.0
-	 * @param object $error
+	 * @param object|false $error
+	 * @return bool
 	 */
 	public function is_no_linked_source_error( $error ) {
 		return (
@@ -272,7 +274,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.1.0
 	 * @param object $source_object
-	 * @param object $error
+	 * @param object|false $error
 	 * @return bool
 	 */
 	public function need_update_idempotency_key( $source_object, $error ) {
