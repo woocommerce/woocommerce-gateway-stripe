@@ -7,7 +7,6 @@
 
 use Automattic\WooCommerce\Admin\Notes\NoteTraits;
 use Automattic\WooCommerce\Admin\Notes\Note;
-use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,10 +31,11 @@ class WC_Stripe_UPE_Availability_Note {
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note
 	 */
 	public static function get_note() {
-		$note_class = self::get_note_class();
-		$note       = new $note_class();
+		$note = new Note();
 
 		$note->set_title( __( 'Boost your sales with the new payment experience in Stripe', 'woocommerce-gateway-stripe' ) );
 		$message = sprintf(
@@ -45,14 +45,14 @@ class WC_Stripe_UPE_Availability_Note {
 			'</a>'
 		);
 		$note->set_content( $message );
-		$note->set_type( $note_class::E_WC_ADMIN_NOTE_INFORMATIONAL );
+		$note->set_type( Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
 			__( 'Enable in your store', 'woocommerce-gateway-stripe' ),
 			self::ENABLE_IN_STORE_LINK,
-			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
+			Note::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
 
@@ -60,18 +60,10 @@ class WC_Stripe_UPE_Availability_Note {
 	}
 
 	/**
-	 * Get the class type to be used for the note.
+	 * Initialize the note.
 	 *
-	 * @return string
+	 * @return void
 	 */
-	private static function get_note_class() {
-		if ( class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' ) ) {
-			return Note::class;
-		} else {
-			return WC_Admin_Note::class;
-		}
-	}
-
 	public static function init() {
 		return;
 	}
