@@ -77,6 +77,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function tear_down() {
 		parent::tear_down();
 
+		delete_option( 'wc_stripe_version' );
+		delete_option( 'wc_stripe_show_ece_location_notice' );
+
 		// Restoring the original `WC_Stripe_Connect` instance.
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 	}
@@ -872,5 +875,159 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected content' => '',
 			],
 		];
+	}
+
+	/**
+	 * Creates a WC_Stripe_Admin_Notices instance with hooks removed to prevent side effects.
+	 *
+	 * @return WC_Stripe_Admin_Notices
+	 */
+	private function create_admin_notices_instance(): WC_Stripe_Admin_Notices {
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'wp_loaded' );
+		remove_all_actions( 'woocommerce_stripe_updated' );
+		return new WC_Stripe_Admin_Notices();
+	}
+
+	/**
+	 * Test that stripe_updated() sets the ECE location notice flag correctly based on the previous version.
+	 *
+	 * @param string|null $previous_version  Version to set as previous, or null to delete.
+	 * @param string|null $initial_flag      Initial value for the notice option, or null to delete.
+	 * @param string|false $expected         Expected option value after stripe_updated().
+	 *
+	 * @dataProvider provide_ece_location_flag_scenarios
+	 */
+	public function test_stripe_updated_sets_ece_location_flag( $previous_version, $initial_flag, $expected ) {
+		if ( null === $previous_version ) {
+			delete_option( 'wc_stripe_version' );
+		} else {
+			update_option( 'wc_stripe_version', $previous_version );
+		}
+
+		if ( null === $initial_flag ) {
+			delete_option( 'wc_stripe_show_ece_location_notice' );
+		} else {
+			update_option( 'wc_stripe_show_ece_location_notice', $initial_flag );
+		}
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->stripe_updated();
+
+		$this->assertSame( $expected, get_option( 'wc_stripe_show_ece_location_notice' ) );
+	}
+
+	/**
+	 * Data provider for test_stripe_updated_sets_ece_location_flag.
+	 *
+	 * @return array
+	 */
+	public function provide_ece_location_flag_scenarios(): array {
+		return [
+			'affected version sets flag'                    => [ '10.2.0', null, 'yes' ],
+			'affected version does not overwrite dismissal' => [ '10.2.0', 'no', 'no' ],
+			'pre-affected version does not set flag'        => [ '10.0.0', null, false ],
+			'post-fix version does not set flag'            => [ '10.4.0', null, false ],
+			'fresh install does not set flag'               => [ null, null, false ],
+		];
+	}
+
+	/**
+	 * Test that check_express_checkout_location() shows or hides the notice based on settings.
+	 *
+	 * @param string|null $flag_value       Value for the notice option, or null to delete.
+	 * @param array       $stripe_settings  Stripe settings to set.
+	 * @param bool        $expect_notice    Whether the notice should be present.
+	 *
+	 * @dataProvider provide_ece_location_notice_scenarios
+	 */
+	public function test_ece_location_notice_display( $flag_value, array $stripe_settings, bool $expect_notice ) {
+		if ( null === $flag_value ) {
+			delete_option( 'wc_stripe_show_ece_location_notice' );
+		} else {
+			update_option( 'wc_stripe_show_ece_location_notice', $flag_value );
+		}
+
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->check_express_checkout_location();
+
+		if ( $expect_notice ) {
+			$this->assertArrayHasKey( 'ece_location', $notices->notices );
+		} else {
+			$this->assertArrayNotHasKey( 'ece_location', $notices->notices );
+		}
+	}
+
+	/**
+	 * Data provider for test_ece_location_notice_display.
+	 *
+	 * @return array
+	 */
+	public function provide_ece_location_notice_scenarios(): array {
+		$base_settings = [
+			'enabled'          => 'yes',
+			'express_checkout' => 'yes',
+		];
+
+		return [
+			'shown when all criteria met (product+cart, no checkout)' => [
+				'yes',
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
+				true,
+			],
+			'not shown when express checkout disabled' => [
+				'yes',
+				array_merge(
+					$base_settings,
+					[
+						'express_checkout'                 => 'no',
+						'express_checkout_button_locations' => [ 'product', 'cart' ],
+					]
+				),
+				false,
+			],
+			'not shown when checkout already in locations' => [
+				'yes',
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
+				false,
+			],
+			'not shown when product not in locations' => [
+				'yes',
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
+				false,
+			],
+			'not shown when notice dismissed' => [
+				'no',
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
+				false,
+			],
+			'not shown when flag never set' => [
+				null,
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
+				false,
+			],
+		];
+	}
+
+	/**
+	 * Test that dismissing the ece_location notice sets the option to 'no'.
+	 */
+	public function test_hide_notices_dismisses_ece_location_notice() {
+		$admin_user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_user );
+
+		update_option( 'wc_stripe_show_ece_location_notice', 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = 'ece_location';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$notices = $this->create_admin_notices_instance();
+		$notices->hide_notices();
+
+		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
 	}
 }

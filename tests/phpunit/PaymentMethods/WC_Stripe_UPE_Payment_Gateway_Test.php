@@ -3592,4 +3592,174 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			],
 		];
 	}
+
+	/**
+	 * Test `get_excluded_payment_method_types` in various scenarios.
+	 *
+	 * @param array  $unsupported_methods        Unsupported payment methods from PMC.
+	 * @param callable|null $filter_callback     Filter callback function or null.
+	 * @param array  $expected_excluded          Payment methods expected to be excluded.
+	 * @param array  $expected_not_excluded      Payment methods expected NOT to be excluded.
+	 * @return void
+	 * @dataProvider provide_test_get_excluded_payment_method_types
+	 */
+	public function test_get_excluded_payment_method_types( array $unsupported_methods, $filter_callback, array $expected_excluded, array $expected_not_excluded ) {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings_base    = WC_Stripe_Helper::get_stripe_settings();
+
+		// Set up settings with PMC enabled and test mode
+		$settings = array_merge(
+			$settings_base,
+			[
+				'pmc_enabled'          => 'yes',
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_1234567890',
+				'test_secret_key'      => 'sk_test_1234567890',
+				'test_connection_type' => 'connect',
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Build mock API response with unsupported enabled methods
+		$pmc_data = (object) [
+			'id'       => 'pmc_test',
+			'parent'   => \WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			'active'   => true,
+			'livemode' => false,
+		];
+
+		foreach ( $unsupported_methods as $method_id ) {
+			$pmc_data->$method_id = (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			];
+		}
+
+		$mock_api_response = (object) [
+			'data' => [ $pmc_data ],
+		];
+
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->method( 'get_payment_method_configurations' )
+			->willReturn( $mock_api_response );
+
+		$reflection = new \ReflectionClass( WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, $mock_api );
+
+		// Clear cache
+		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		// Add filter if provided
+		if ( null !== $filter_callback ) {
+			add_filter( 'wc_stripe_ocs_non_excludable_payment_methods', $filter_callback );
+		}
+
+		// Create gateway instance and call method via reflection
+		$gateway            = new WC_Stripe_UPE_Payment_Gateway();
+		$reflection_gateway = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method             = $reflection_gateway->getMethod( 'get_excluded_payment_method_types' );
+		$method->setAccessible( true );
+
+		$excluded_methods = $method->invoke( $gateway );
+
+		// Cleanup
+		if ( null !== $filter_callback ) {
+			remove_filter( 'wc_stripe_ocs_non_excludable_payment_methods', $filter_callback );
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		$property->setValue( null, null );
+		delete_option( \WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+		\WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		// Assertions.
+		foreach ( $expected_excluded as $method_id ) {
+			$this->assertContains(
+				$method_id,
+				$excluded_methods,
+				"Expected method '{$method_id}' to be excluded."
+			);
+		}
+
+		foreach ( $expected_not_excluded as $method_id ) {
+			$this->assertNotContains(
+				$method_id,
+				$excluded_methods,
+				"Expected method '{$method_id}' NOT to be excluded."
+			);
+		}
+
+		// Amazon Pay should always be excluded
+		$this->assertContains(
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			$excluded_methods,
+			'Amazon Pay should always be excluded.'
+		);
+	}
+
+	/**
+	 * Data provider for `test_get_excluded_payment_method_types`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_excluded_payment_method_types(): array {
+		return [
+			'No filter, unsupported methods'  => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal' ],
+				'filter_callback'       => null,
+				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [],
+			],
+			'Filter with unsupported methods' => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'abc' ],
+				'filter_callback'       => function () {
+					return [ 'abc' ];
+				},
+				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [ 'abc' ],
+			],
+			'Filter with empty array'         => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
+				'filter_callback'       => function () {
+					return [];
+				},
+				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [],
+			],
+			'Filter with non-string values'   => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal', 'abc' ],
+				'filter_callback'       => function () {
+					return [ 123, null, 'abc', [], 'valid_method' ];
+				},
+				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [ 'abc', 'valid_method' ],
+			],
+			'Filter with methods already in NON_EXCLUDABLE_PAYMENT_METHOD_TYPES' => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal' ],
+				'filter_callback'       => function () {
+					return [ 'link', 'apple_pay', 'abc' ];
+				},
+				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [ 'link', 'apple_pay', 'abc' ],
+			],
+			'No unsupported methods'          => [
+				'unsupported_methods'   => [],
+				'filter_callback'       => null,
+				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [],
+			],
+			'Filter with duplicate values'    => [
+				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
+				'filter_callback'       => function () {
+					return [ 'fpx', 'fpx', 'naver_pay' ];
+				},
+				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'expected_not_excluded' => [ 'fpx', 'naver_pay' ],
+			],
+		];
+	}
 }

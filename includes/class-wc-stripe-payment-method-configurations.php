@@ -377,6 +377,35 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the enabled payment method IDs in the PMC that are not supported in the plugin.
+	 *
+	 * @return string[] List of payment method IDs that are enabled in the PMC but not supported in the plugin.
+	 */
+	public static function get_unsupported_enabled_payment_method_ids_in_pmc(): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
+		$unsupported_payment_method_ids        = [];
+		$merchant_payment_method_configuration = self::get_primary_configuration();
+
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( (array) $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
+					continue;
+				}
+
+				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+					$unsupported_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
+
+		return $unsupported_payment_method_ids;
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
@@ -562,12 +591,21 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		// Add Google Pay and Apple Pay to the list if payment_request is enabled
+		// Add default express checkout methods to the list if express checkout is enabled
 		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
 			);
+
+			// If Amazon Pay is available and should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
+			if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() && 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) ) {
+				$amazon_pay = new WC_Stripe_UPE_Payment_Method_Amazon_Pay();
+
+				if ( $amazon_pay->is_available_for_account_country() && in_array( get_woocommerce_currency(), $amazon_pay->get_supported_currencies(), true ) ) {
+					$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
+				}
+			}
 		}
 
 		// Update the PMC if there are locally enabled payment methods

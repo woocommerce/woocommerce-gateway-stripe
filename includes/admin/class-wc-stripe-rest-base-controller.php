@@ -21,6 +21,8 @@ class WC_Stripe_REST_Base_Controller extends WP_REST_Controller {
 	 * Verify access.
 	 *
 	 * Override this method if custom permissions required.
+	 *
+	 * @return bool
 	 */
 	public function check_permission() {
 		return current_user_can( 'manage_woocommerce' );
