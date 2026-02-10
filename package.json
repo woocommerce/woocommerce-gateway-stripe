@@ -102,8 +102,8 @@
   },
   "dependencies": {
     "@automattic/interpolate-components": "^1.2.1",
-    "@stripe/react-stripe-js": "^2.8.0",
-    "@stripe/stripe-js": "^1.36.0",
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.6.0",
     "@woocommerce/settings": "^1.0.0",
     "@wordpress/html-entities": "^3.6.1",
     "framer-motion": "^7.6.1",
