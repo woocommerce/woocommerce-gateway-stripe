@@ -22,6 +22,8 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data {
 
 	/**
 	 * Only execute the migration if not applied yet.
+	 *
+	 * @return void
 	 */
 	public function maybe_migrate() {
 		$stripe_gateway = $this->get_gateway();
@@ -35,6 +37,8 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data {
 
 	/**
 	 * Copies over Payment Request settings data to Express Checkout settings data.
+	 *
+	 * @return void
 	 */
 	private function migrate() {
 		$stripe_gateway = $this->get_gateway();
