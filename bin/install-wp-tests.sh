@@ -178,8 +178,6 @@ install_woocommerce() {
 
 	if [[ $WC_VERSION == 'beta' ]]; then
 		# Get the latest pre-release (beta or RC) version from the .org repo.
-		# Use PHP's version_compare for proper semantic version ordering
-		# (jq sorts lexicographically, which incorrectly ranks 9.x above 10.x).
 		WC_VERSION=$(curl -s https://api.wordpress.org/plugins/info/1.0/woocommerce.json | \
 			jq -r '.versions | keys[] | select(match("beta|rc";"i"))' | \
 			php -r '$v = array_filter( array_map( "trim", file( "php://stdin" ) ) ); usort( $v, "version_compare" ); echo end( $v ) ?: "";')
