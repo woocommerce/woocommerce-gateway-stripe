@@ -32,6 +32,11 @@ class WC_Stripe_Inbox_Notes {
 		}
 	}
 
+	/**
+	 * Check if inbox notes are supported.
+	 *
+	 * @return bool True if inbox notes are supported, false otherwise.
+	 */
 	public static function are_inbox_notes_supported() {
 		if ( ! class_exists( 'WC_Data_Store' ) ) {
 			return false;
@@ -48,6 +53,8 @@ class WC_Stripe_Inbox_Notes {
 
 	/**
 	 * Create UPE notes.
+	 *
+	 * @return void
 	 */
 	public static function create_upe_notes() {
 		if ( ! self::are_inbox_notes_supported() ) {
@@ -66,10 +73,20 @@ class WC_Stripe_Inbox_Notes {
 		WC_Stripe_OC_Promotion_Note::init( $gateway );
 	}
 
+	/**
+	 * Get the cutoff timestamp for the 2020 holiday campaign.
+	 *
+	 * @return int The cutoff timestamp.
+	 */
 	public static function get_campaign_2020_cutoff() {
 		return strtotime( '22 December 2020' );
 	}
 
+	/**
+	 * Get the success note title.
+	 *
+	 * @return string The success note title.
+	 */
 	public static function get_success_title() {
 		if ( time() < self::get_campaign_2020_cutoff() ) {
 			return __( 'Boost sales this holiday season with Apple Pay!', 'woocommerce-gateway-stripe' );
@@ -80,6 +97,10 @@ class WC_Stripe_Inbox_Notes {
 
 	/**
 	 * Manage notes to show after domain registration.
+	 *
+	 * @param bool $registration_complete Whether the domain registration was successful.
+	 *
+	 * @return void
 	 */
 	public static function notify_on_apple_pay_domain_registration( $registration_complete ) {
 		$admin_notes_class = WC_Stripe_Woo_Compat_Utils::get_notes_class();
@@ -110,6 +131,8 @@ class WC_Stripe_Inbox_Notes {
 
 	/**
 	 * Whether conditions are right for the marketing note.
+	 *
+	 * @return bool True if the marketing note should be shown, false otherwise.
 	 */
 	public static function should_show_marketing_note() {
 		// Display to US merchants only.
@@ -143,6 +166,8 @@ class WC_Stripe_Inbox_Notes {
 
 	/**
 	 * If conditions are right, show note promoting Apple Pay marketing guide.
+	 *
+	 * @return void
 	 */
 	public static function create_marketing_note() {
 		// Make sure conditions for this note still hold.
@@ -169,6 +194,8 @@ class WC_Stripe_Inbox_Notes {
 
 	/**
 	 * Show note indicating domain registration failure.
+	 *
+	 * @return void
 	 */
 	public static function create_failure_note() {
 		try {
@@ -192,6 +219,8 @@ class WC_Stripe_Inbox_Notes {
 	 * Destroy unactioned inbox notes from the 2020 holiday campaign, replacing
 	 * them with a non-holiday note promoting Apple Pay. This will be run once
 	 * on/about 2020 Dec 22.
+	 *
+	 * @return void
 	 */
 	public static function cleanup_campaign_2020() {
 		if ( ! self::are_inbox_notes_supported() ) {

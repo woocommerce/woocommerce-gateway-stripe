@@ -377,6 +377,35 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the enabled payment method IDs in the PMC that are not supported in the plugin.
+	 *
+	 * @return string[] List of payment method IDs that are enabled in the PMC but not supported in the plugin.
+	 */
+	public static function get_unsupported_enabled_payment_method_ids_in_pmc(): array {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
+		$unsupported_payment_method_ids        = [];
+		$merchant_payment_method_configuration = self::get_primary_configuration();
+
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( (array) $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
+					continue;
+				}
+
+				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+					$unsupported_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
+
+		return $unsupported_payment_method_ids;
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
