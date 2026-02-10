@@ -97,20 +97,38 @@ callWhenElementIsAvailable(
 			const stripeLabel = document.querySelector(
 				'label[for="radio-control-wc-payment-method-options-stripe"]'
 			);
+			const allOptions = document.querySelectorAll(
+				'.wc-block-components-radio-control-accordion-option'
+			);
 			const highlightedOption = document.querySelector(
 				'.wc-block-components-radio-control-accordion-option--checked-option-highlighted'
 			);
+			if ( allOptions.length > 0 ) {
+				allOptions.forEach( ( option, i ) => {
+					option.style.boxShadow = 'none';
+					option.style.backgroundColor =
+						'var(--wp--preset--color--base)';
+					option.style.zIndex = '1';
+					option.style.marginLeft = '-4px';
+					option.style.marginRight = '-4px';
+				} );
+			}
 			if ( value === 'stripe' ) {
-				stripeLabel.style.display = 'none';
+				if ( stripeLabel ) {
+					stripeLabel.style.display = 'none';
+				}
 				if ( highlightedOption ) {
 					highlightedOption.style.boxShadow = 'none';
-					highlightedOption.style.backgroundColor = '#FFFFFF';
+					highlightedOption.style.backgroundColor =
+						'var(--wp--preset--color--base)';
 					highlightedOption.style.zIndex = '1';
 					highlightedOption.style.marginLeft = '-4px';
 					highlightedOption.style.marginRight = '-4px';
 				}
 			} else {
-				stripeLabel.style.display = 'block';
+				if ( stripeLabel ) {
+					stripeLabel.style.display = 'block';
+				}
 				if ( highlightedOption ) {
 					highlightedOption.style.boxShadow =
 						'inset 0 0 0 1.5px currentColor';
@@ -124,9 +142,13 @@ callWhenElementIsAvailable(
 
 		// Add event listeners to payment method radio buttons to hide/show the Stripe option label when selected/deselected.
 		paymentMethodRadios.forEach( ( button ) => {
-			handleStyleChange( button.value );
+			if ( button.checked ) {
+				handleStyleChange( button.value );
+			}
 			button.addEventListener( 'change', function () {
-				handleStyleChange( this.value );
+				if ( this.checked ) {
+					handleStyleChange( this.value );
+				}
 			} );
 		} );
 
