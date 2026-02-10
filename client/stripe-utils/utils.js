@@ -11,6 +11,7 @@ import {
 } from './constants';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -532,6 +533,24 @@ export const getDefaultValues = () => {
 			},
 		},
 	};
+};
+
+/**
+ * Gets the list of payment method types to exclude from the Payment Element.
+ * The list is populated by the server.
+ * Fallback to exclude Amazon Pay, which should be only shown via Express Checkout, and not within Optimized Checkout.
+ *
+ * @return {Array<string>} Array of payment method types to exclude.
+ */
+export const getExcludedPaymentMethodTypes = () => {
+	const stripeServerData = getStripeServerData();
+	const excludedTypes = stripeServerData?.excludedPaymentMethodTypes;
+
+	if ( ! Array.isArray( excludedTypes ) || excludedTypes.length === 0 ) {
+		return [ PAYMENT_METHOD_AMAZON_PAY ];
+	}
+
+	return excludedTypes;
 };
 
 /**

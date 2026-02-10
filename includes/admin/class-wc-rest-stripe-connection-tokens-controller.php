@@ -35,6 +35,8 @@ class WC_REST_Stripe_Connection_Tokens_Controller extends WC_Stripe_REST_Base_Co
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -52,6 +54,8 @@ class WC_REST_Stripe_Connection_Tokens_Controller extends WC_Stripe_REST_Base_Co
 	 * Create a connection token via API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_token( $request ) {
 		try {
