@@ -19,6 +19,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -140,6 +142,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Create a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_location( $request ) {
 		try {
@@ -162,6 +166,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get all terminal locations via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_all_locations( $request ) {
 		try {
@@ -182,6 +188,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Delete a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function delete_location( $request ) {
 		try {
@@ -196,6 +204,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_location( $request ) {
 		try {
@@ -210,6 +220,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Get default terminal location.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_store_location( $request ) {
 		// Originally `get_bloginfo` was used for location name, later switched to `site_url` as the former may be blank.
@@ -278,6 +290,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Update a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_location( $request ) {
 		$body = [];
@@ -297,6 +311,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 	/**
 	 * Fetch terminal locations from Stripe API.
+	 *
+	 * @return array
 	 */
 	private function fetch_locations() {
 		$response = (array) WC_Stripe_API::request( [], 'terminal/locations', 'GET' );

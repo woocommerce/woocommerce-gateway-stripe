@@ -15,32 +15,12 @@ class WC_Stripe_Feature_Flags {
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
 
 	/**
-	 * Feature flag for Stripe ECE (Express Checkout Element).
-	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
-	 */
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
-
-	/**
-	 * Feature flag for Optimized Checkout (OC).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
-
-	/**
 	 * Feature flag for Stripe Checkout Sessions.
 	 *
 	 * @var string
 	 * @since 10.4.0
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
-
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
@@ -49,9 +29,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                   => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
-		self::OC_FEATURE_FLAG_NAME                => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
 	];
 
@@ -120,41 +98,6 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
-	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 ECE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_stripe_ece_enabled() {
-		return true;
-	}
-
-	/**
-	 * Checks whether UPE "preview" feature flag is enabled.
-	 * This allows the merchant to enable/disable UPE checkout.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.1.0 UPE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_upe_preview_enabled() {
-		return true;
-	}
-
-	/**
-	 * Checks whether UPE is enabled.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 UPE is always enabled. This method will be removed in a future release.
-	 */
-	public static function is_upe_checkout_enabled() {
-		return true;
-	}
-
-	/**
 	 * Checks whether UPE has been manually disabled by the merchant.
 	 *
 	 * @return bool
@@ -186,19 +129,6 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		/**
-		 * Filter to control the availability of the Optimized Checkout feature.
-		 *
-		 * @since 9.6.0
-		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-		 * @param string $default_value The default value for the feature flag.
-		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
-		 */
-		return apply_filters(
-			'wc_stripe_is_optimized_checkout_available',
-			true,
-			'yes',
-			$pmc_enabled
-		);
+		return true;
 	}
 }
