@@ -787,19 +787,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_no_linked_source_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_no_such_source_error\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
