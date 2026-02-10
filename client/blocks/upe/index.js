@@ -104,12 +104,20 @@ callWhenElementIsAvailable(
 				stripeLabel.style.display = 'none';
 				if ( highlightedOption ) {
 					highlightedOption.style.boxShadow = 'none';
+					highlightedOption.style.backgroundColor = '#FFFFFF';
+					highlightedOption.style.zIndex = '1';
+					highlightedOption.style.marginLeft = '-4px';
+					highlightedOption.style.marginRight = '-4px';
 				}
 			} else {
 				stripeLabel.style.display = 'block';
 				if ( highlightedOption ) {
 					highlightedOption.style.boxShadow =
 						'inset 0 0 0 1.5px currentColor';
+					highlightedOption.style.backgroundColor = 'transparent';
+					highlightedOption.style.zIndex = '0';
+					highlightedOption.style.marginLeft = '0';
+					highlightedOption.style.marginRight = '0';
 				}
 			}
 		}
