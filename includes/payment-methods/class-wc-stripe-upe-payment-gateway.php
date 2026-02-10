@@ -565,6 +565,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $this->oc_enabled ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
 		}
 
 		// Checking for other BNPL extensions.
@@ -658,6 +659,49 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+	 * The payment method configuration might have some payment methods enabled in Stripe that are not supported in the plugin,
+	 * so we need to exclude them from the Payment Element.
+	 *
+	 * @return string[] List of payment method types to exclude.
+	 */
+	private function get_excluded_payment_method_types(): array {
+		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
+
+		/**
+		 * Filters the list of additional payment methods that can not be excluded from the Payment Element in optimized checkout.
+		 * This list will be added to the base list in {@see WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES}.
+		 *
+		 * @param string[] $non_excludable_methods List of payment method types that can not be excluded.
+		 */
+		$custom_non_excludable_methods = apply_filters( 'wc_stripe_ocs_non_excludable_payment_methods', [] );
+
+		if ( is_array( $custom_non_excludable_methods ) && [] !== $custom_non_excludable_methods ) {
+			$custom_non_excludable_methods = array_filter( $custom_non_excludable_methods, 'is_string' );
+			$non_excludable_methods        = array_unique( array_merge( $custom_non_excludable_methods, $non_excludable_methods ) );
+		}
+
+		// There could be some payment methods in the unsupported list that are not supported in the 'excludedPaymentMethodTypes' parameter
+		// of the Payment Element (i.e. link, apple_pay, google_pay, cartes_bancaires etc.). Therefore, we need to exclude them and ensure that the excluded payment method list we send to the client has only
+		// payment methods that are supported in the 'excludedPaymentMethodTypes' parameter.
+		$excluded_methods = array_filter(
+			$unsupported_methods,
+			function ( $method ) use ( $non_excludable_methods ) {
+				return ! in_array( $method, $non_excludable_methods, true );
+			}
+		);
+
+		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
+		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
+			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+
+		return array_values( array_unique( $excluded_methods ) );
 	}
 
 	/**

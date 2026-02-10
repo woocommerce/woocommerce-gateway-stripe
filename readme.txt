@@ -2,7 +2,7 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 7.4
 Stable tag: 10.3.1
 License: GPLv3
@@ -35,6 +35,12 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.4.0
+   - Optimized Checkout Suite no longer enabled by default for new installs
+   - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+   - Removed the deprecated WC_Stripe_Apple_Pay class
+* 10.3.0
+   - Removed legacy checkout payment method classes and settings retrieval methods
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
@@ -139,33 +145,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.4.0 - xxxx-xx-xx =
-* Add - Introduce an endpoint to create Checkout Sessions tokens
-* Add - New setting to control Adaptive Pricing
-* Add - Map Norwegian nb-NO to generic no-NO locale
-* Update - Redirect merchants to the Stripe settings screen upon plugin activation
-* Fix - Fix Stripe client API calls with wrong amount when rendering the express checkout buttons in blocks
-* Fix - Validate product exists before accessing product methods in express checkout to prevent fatal errors
-* Update - Ensure the `customer_name` metadata sent to Stripe does not have leading or trailing spaces
-* Update - Move all logic from WC_Gateway_Stripe to WC_Stripe_UPE_Payment_Gateway as part of deprecation
-* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
-* Dev - Replace deprecated logger method calls with severity specific methods
-* Dev - Ensure PHPStan runs when pushing changes
-* Dev - Add PHPStan stub for WC_Subscription class
-* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
-* Dev - Unit tests to cover address normalization
-* Fix - Add order validation in Multibanco email instructions to prevent fatal error when order is invalid
-* Fix - Add validation to prevent fatal error when setting default payment token if token doesn't exist
-* Fix - Validate order object before accessing methods in my account orders actions to prevent fatal errors
-* Dev - Use WC_STRIPE_PLUGIN_PATH constant instead of __DIR__ for more reliable file path resolution
-* Dev - Automate release note creation PR
-* Fix - Prevent incompatibility warnings for payment methods in block editor
-* Dev - Introduce a feature flag for the Stripe checkout sessions feature
-* Dev - Improve the pre-push hook
-* Fix - Keep payment method details when toggling save payment method checkbox in classic checkout with Optimized Checkout enabled
-* Fix - Better error handling when token creation fails
-* Tweak - Improve PHPDoc for payment token code
-* Tweak - Update PHPDoc for email notification classes
+= 10.5.0 - xxxx-xx-xx =
+* Tweak - Update PHPDoc in admin REST controllers and related code
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
