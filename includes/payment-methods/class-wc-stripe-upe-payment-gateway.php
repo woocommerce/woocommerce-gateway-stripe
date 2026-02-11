@@ -50,15 +50,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	];
 
 	/**
-	 * Stripe intents that are treated as successfully created.
-	 *
-	 * @type array
-	 *
-	 * @deprecated 9.1.0
-	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
-
-	/**
 	 * Transient name for appearance settings.
 	 *
 	 * @type string
@@ -108,15 +99,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
-	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
-	 */
-	public $sepa_tokens_for_other_methods;
-
-	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -129,15 +111,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
-
-	/**
-	 * Is Single Payment Element enabled?
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `oc_enabled`.
-	 */
-	public $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -337,18 +310,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 		return new $payment_method_class();
-	}
-
-	/**
-	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
-	 *
-	 * @return string
-	 *
-	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
-	 */
-	public static function get_testing_instructions_for_optimized_checkout() {
-		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
-		return $payment_method->get_testing_instructions();
 	}
 
 	/**
@@ -565,6 +526,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $this->oc_enabled ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
 		}
 
 		// Checking for other BNPL extensions.
@@ -658,6 +620,49 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the list of payment methods that should be excluded from the Payment Element in optimized checkout.
+	 * The payment method configuration might have some payment methods enabled in Stripe that are not supported in the plugin,
+	 * so we need to exclude them from the Payment Element.
+	 *
+	 * @return string[] List of payment method types to exclude.
+	 */
+	private function get_excluded_payment_method_types(): array {
+		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
+
+		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
+
+		/**
+		 * Filters the list of additional payment methods that can not be excluded from the Payment Element in optimized checkout.
+		 * This list will be added to the base list in {@see WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES}.
+		 *
+		 * @param string[] $non_excludable_methods List of payment method types that can not be excluded.
+		 */
+		$custom_non_excludable_methods = apply_filters( 'wc_stripe_ocs_non_excludable_payment_methods', [] );
+
+		if ( is_array( $custom_non_excludable_methods ) && [] !== $custom_non_excludable_methods ) {
+			$custom_non_excludable_methods = array_filter( $custom_non_excludable_methods, 'is_string' );
+			$non_excludable_methods        = array_unique( array_merge( $custom_non_excludable_methods, $non_excludable_methods ) );
+		}
+
+		// There could be some payment methods in the unsupported list that are not supported in the 'excludedPaymentMethodTypes' parameter
+		// of the Payment Element (i.e. link, apple_pay, google_pay, cartes_bancaires etc.). Therefore, we need to exclude them and ensure that the excluded payment method list we send to the client has only
+		// payment methods that are supported in the 'excludedPaymentMethodTypes' parameter.
+		$excluded_methods = array_filter(
+			$unsupported_methods,
+			function ( $method ) use ( $non_excludable_methods ) {
+				return ! in_array( $method, $non_excludable_methods, true );
+			}
+		);
+
+		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
+		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
+			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+
+		return array_values( array_unique( $excluded_methods ) );
 	}
 
 	/**
@@ -1117,7 +1122,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// This will throw exception if not valid.
 				$order_helper->validate_minimum_order_amount( $order );
 
-				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+				WC_Stripe_Logger::info( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				if ( $intent ) {
 					$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
@@ -1204,7 +1209,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			} catch ( WC_Stripe_Exception $e ) {
 				wc_add_notice( $e->getLocalizedMessage(), 'error' );
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				WC_Stripe_Logger::error( 'Error: ' . $e->getMessage() );
 
 				do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
@@ -2245,17 +2250,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
-	 *
-	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
-	 *
-	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
-	 */
-	public function is_sepa_tokens_for_other_methods_enabled() {
-		return $this->sepa_tokens_for_other_methods;
-	}
-
-	/**
 	 * Checks if the setting to allow the saving of SEPA tokens for iDEAL is enabled.
 	 *
 	 * @return bool Whether the setting to allow SEPA tokens for iDEAL is enabled.
@@ -2615,7 +2609,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 			// If the intent is already successful, return it to prevent duplicate charges
-			if ( isset( $intent->status ) && in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
 				return $intent;
 			}
 		}
