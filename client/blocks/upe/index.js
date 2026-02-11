@@ -97,7 +97,7 @@ callWhenElementIsAvailable(
 						iframeElement.contentDocument ||
 						iframeElement.contentWindow.document;
 
-					// TODO: Stirpe blocks the reading of the iframe content
+					// TODO: Stripe blocks the reading of the iframe content
 
 					const accordionItems =
 						iframeDocument.querySelectorAll( '.p-AccordionItem' );
