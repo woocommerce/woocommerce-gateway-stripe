@@ -5,6 +5,7 @@
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
+* Add - Display adaptive pricing currency selector on classic checkout page
 
 = 10.4.0 - 2026-02-09 = 
 * Add - Introduce an endpoint to create Checkout Sessions tokens
