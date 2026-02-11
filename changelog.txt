@@ -1,11 +1,13 @@
 *** Changelog ***
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
+* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 
 = 10.4.0 - 2026-02-09 = 
 * Add - Introduce an endpoint to create Checkout Sessions tokens
