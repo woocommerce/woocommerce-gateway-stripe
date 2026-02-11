@@ -3,15 +3,8 @@ import {
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
-import {
-	usePaymentCompleteHandler,
-	usePaymentFailHandler,
-} from 'wcstripe/blocks/checkout-sessions/hooks';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
@@ -25,169 +18,19 @@ import {
  */
 const noop = () => null;
 
-/**
- * Gets the Stripe Payment Element options.
- *
- * @return {Object} The options object.
- */
-const getStripeElementOptions = () => {
-	let options = {
-		fields: {
-			billingDetails: {
-				name: 'never',
-				email: 'never',
-				// The phone field is optional, so it needs to be "auto" to not throw errors
-				// when passing the phone parameter to create a payment method.
-				phone: 'auto',
-				address: {
-					country: 'never',
-					line1: 'never',
-					line2: 'never',
-					city: 'never',
-					state: 'never',
-					postalCode: 'never',
-				},
-			},
-		},
-		wallets: {
-			applePay: 'never',
-			googlePay: 'never',
-		},
-	};
-
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		const layout = {
-			type:
-				getBlocksConfiguration()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-		};
-		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
-		}
-		options = {
-			...options,
-			layout,
-		};
-	}
-
-	return options;
-};
-
-/**
- * Checkout Form component for Checkout Sessions integration.
- *
- * @param {*}                 api               The Stripe API object.
- * @param {*}                 onPaymentSetup    The onPaymentSetup event.
- * @param {*}                 onCheckoutSuccess The onCheckoutSuccess event.
- * @param {*}                 onCheckoutFail    The onCheckoutFail event.
- * @param {EmitResponseProps} emitResponse      Various helpers for usage with observer.
- * @param {string}            errorMessage      An error message to display.
- * @param {BillingDataProps}  billing           The billing data.
- * @param {Object}            onLoadError       The onLoadError event.
- * @return {JSX.Element} The Checkout Form component.
- */
 const CheckoutForm = ( {
-	api,
-	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
-	emitResponse,
-	errorMessage,
-	billing,
+	components: { LoadingMask },
 	onLoadError = noop,
 } ) => {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
-		useState( false );
+	const [ , setIsPaymentElementComplete ] = useState( false );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
-
-	useEffect(
-		() =>
-			onPaymentSetup( () => {
-				async function handlePaymentProcessing() {
-					if ( hasLoadErrorRef.current ) {
-						return {
-							type: 'error',
-							message: __(
-								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
-								'woocommerce-gateway-stripe'
-							),
-						};
-					}
-
-					const { validationStore } = window.wc?.wcBlocksData ?? {};
-					if ( validationStore ) {
-						const store = select( validationStore );
-						const hasValidationErrors = store.hasValidationErrors();
-
-						// Return if there is a validation error on the checkout fields.
-						if ( hasValidationErrors ) {
-							return;
-						}
-					}
-
-					if ( ! isPaymentElementComplete ) {
-						return {
-							type: 'error',
-							message: __(
-								'Your payment information is incomplete.',
-								'woocommerce-gateway-stripe'
-							),
-						};
-					}
-
-					if ( errorMessage ) {
-						return {
-							type: 'error',
-							message: errorMessage,
-						};
-					}
-
-					const billingAddress = billing.billingAddress;
-
-					return {
-						type: 'success',
-						meta: {
-							paymentMethodData: {
-								payment_method: 'stripe',
-								'wc-stripe-is-deferred-intent': true,
-								save_payment_method: 'no',
-								wc_stripe_checkout_session_id:
-									checkoutSessionId,
-
-								// The billing information here is relevant to properly create the Stripe Customer object.
-								billing_email: billingAddress.email,
-								billing_first_name: billingAddress.first_name,
-								billing_last_name: billingAddress.last_name,
-								billing_address_1: billingAddress.address_1,
-								billing_address_2: billingAddress.address_2,
-								billing_city: billingAddress.city,
-								billing_state: billingAddress.state,
-								billing_postcode: billingAddress.postcode,
-								billing_country: billingAddress.country,
-							},
-						},
-					};
-				}
-				return handlePaymentProcessing();
-			} ),
-		[
-			api,
-			errorMessage,
-			onPaymentSetup,
-			isPaymentElementComplete,
-			billing.billingAddress,
-			checkoutSessionId,
-		]
-	);
-
-	usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-
-	usePaymentFailHandler( checkoutState, onCheckoutFail, emitResponse );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
@@ -195,7 +38,16 @@ const CheckoutForm = ( {
 	};
 
 	if ( checkoutState.type === 'loading' ) {
-		return <div>Loading...</div>;
+		return (
+			<LoadingMask
+				isLoading={ true }
+				showSpinner={ true }
+				screenReaderLabel={ __(
+					'Loading payment method…',
+					'woocommerce-gateway-stripe'
+				) }
+			/>
+		);
 	} else if ( checkoutState.type === 'error' ) {
 		return <div>Error: { checkoutState.error.message }</div>;
 	} else if (
@@ -210,7 +62,23 @@ const CheckoutForm = ( {
 		<>
 			<CurrencySelectorElement />
 			<PaymentElement
-				options={ getStripeElementOptions() }
+				options={ {
+					fields: {
+						billingDetails: {
+							name: 'never',
+							email: 'never',
+							phone: 'auto',
+							address: {
+								country: 'never',
+								line1: 'never',
+								line2: 'never',
+								city: 'never',
+								state: 'never',
+								postalCode: 'never',
+							},
+						},
+					},
+				} }
 				onChange={ onSelectedPaymentMethodChange }
 				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"
