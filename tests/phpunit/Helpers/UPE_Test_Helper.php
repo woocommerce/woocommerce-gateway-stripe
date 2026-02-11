@@ -14,29 +14,21 @@ use WC_Stripe_Helper;
  */
 class UPE_Test_Helper {
 	/**
-	 * Creates a mock object for the specified class
+	 * Enable UPE feature flag by deleting main Stripe settings to force re-initialization.
 	 *
-	 * @param string $class_name Name of the class to mock
-	 * @return MockObject
+	 * @return void
 	 */
-	private function create_mock( $class_name ) {
-		$mock_builder = new Generator();
-		return $mock_builder->getMock( $class_name );
-	}
-
-	public function enable_upe_feature_flag() {
-		// Force the UPE feature flag on.
-		add_filter(
-			'pre_option__wcstripe_feature_upe',
-			function () {
-				return 'yes';
-			}
-		);
+	public function enable_upe_feature_flag(): void {
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$this->reload_payment_gateways();
 	}
 
-	public function reload_payment_gateways() {
+	/**
+	 * Reload payment gateways to reflect any settings changes.
+	 *
+	 * @return void
+	 */
+	public function reload_payment_gateways(): void {
 		$closure = Closure::bind(
 			function () {
 				$this->stripe_gateway = null;
@@ -59,13 +51,23 @@ class UPE_Test_Helper {
 		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}
 
-	public function enable_upe() {
+	/**
+	 * Enable UPE in the Stripe settings.
+	 *
+	 * @return void
+	 */
+	public function enable_upe(): void {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 	}
 
-	public function disable_upe() {
+	/**
+	 * Disable UPE in the Stripe settings.
+	 *
+	 * @return void
+	 */
+	public function disable_upe(): void {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );

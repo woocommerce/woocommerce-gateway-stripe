@@ -7,7 +7,6 @@
 
 use Automattic\WooCommerce\Admin\Notes\NoteTraits;
 use Automattic\WooCommerce\Admin\Notes\Note;
-use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -29,38 +28,26 @@ final class WC_Stripe_OC_Promotion_Note {
 
 	/**
 	 * Get the note.
+	 *
+	 * @return Note
 	 */
 	public static function get_note() {
-		$note_class = self::get_note_class();
-		$note       = new $note_class();
+		$note = new Note();
 
 		$note->set_title( __( 'Increase conversions with Stripe\'s Optimized Checkout Suite', 'woocommerce-gateway-stripe' ) );
 		$note->set_content( __( 'Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer.', 'woocommerce-gateway-stripe' ) );
-		$note->set_type( $note_class::E_WC_ADMIN_NOTE_MARKETING );
+		$note->set_type( Note::E_WC_ADMIN_NOTE_MARKETING );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
 			__( 'Activate now', 'woocommerce-gateway-stripe' ),
 			self::ACTIVATE_NOW_LINK,
-			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
+			Note::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
 
 		return $note;
-	}
-
-	/**
-	 * Get the class type to be used for the note.
-	 *
-	 * @return string
-	 */
-	private static function get_note_class() {
-		if ( class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' ) ) {
-			return Note::class;
-		} else {
-			return WC_Admin_Note::class;
-		}
 	}
 
 	/**
@@ -99,6 +86,8 @@ final class WC_Stripe_OC_Promotion_Note {
 	 * Should this note exist?
 	 *
 	 * @inheritDoc
+	 *
+	 * @return bool
 	 */
 	public static function is_applicable() {
 		return ! WC_Stripe::get_instance()->get_main_stripe_gateway()->is_oc_enabled();
