@@ -309,6 +309,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
+		// Attach the currency selector div to the classic checkout page.
+		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
+
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
 
@@ -968,6 +971,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Attaches the currency selector div to the classic checkout page.
+	 * This is used to render the currency selector element in the checkout page.
+	 *
+	 * @return void
+	 */
+	public function attach_currency_selector_element() {
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		echo '<div id="currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 	}
 
 	/**
