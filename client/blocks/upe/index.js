@@ -83,6 +83,7 @@ addOrderAttributionInputsIfNotExists();
 // Populate order attribution inputs with order tracking data.
 populateOrderAttributionInputs();
 
+// TODO: use wcBlocksData instead and/or set-active-payment-method event and/or __internalSetActivePaymentMethod
 callWhenElementIsAvailable(
 	'label[for="radio-control-wc-payment-method-options-stripe"]',
 	function () {
@@ -153,9 +154,9 @@ callWhenElementIsAvailable(
 		} );
 
 		// If there is more than one payment method option, we won't auto-select the Stripe option to avoid overriding the customer's choice. We only want to auto-select Stripe if it's the only available payment method.
-		if ( paymentMethodRadios.length > 1 ) {
-			return;
-		}
+		// if ( paymentMethodRadios.length > 1 ) {
+		// 	return;
+		// }
 		const clickEvent = new MouseEvent( 'click', {
 			bubbles: true,
 			cancelable: true,
