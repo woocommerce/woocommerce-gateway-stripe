@@ -33,6 +33,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+const isAPEnabled = getStripeServerData()?.isAPEnabled;
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -81,23 +82,20 @@ export function validateElements( elements ) {
 
 /**
  * Updates the payment element's default values.
+ *
+ * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
  */
-function updatePaymentElementDefaultValues() {
+function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
 	if ( ! gatewayUPEComponents?.card?.upeElement ) {
 		return;
 	}
 
 	const paymentElement = gatewayUPEComponents.card.upeElement;
-	paymentElement.update( getDefaultValues() );
+	paymentElement.update( getDefaultValues( forCheckoutSession ) );
 }
 
 /**
  * Creates a Stripe payment element with the specified payment method type and options.
- *
- * If the payment method doesn't support deferred intent, the intent must be created first.
- * Then, the payment element is created with the intent's client secret.
- *
- * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
  * @param {Object} api               The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
@@ -190,19 +188,54 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
-	const elements = api.getStripe().elements( options );
+	let elements;
+	let shouldLoadStripeElements = ! isAPEnabled;
+	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
+	if ( isAPEnabled ) {
+		try {
+			const response = await api.checkoutSessionsCreateSession();
+			const clientSecret = response.data?.client_secret;
+
+			elements = await api.getStripe().initCheckout( {
+				clientSecret,
+				elementsOptions: {
+					appearance: options.appearance,
+					fonts: options.fonts,
+				},
+				adaptivePricing: {
+					allowed: true,
+				},
+				...getDefaultValues( true ),
+			} );
+
+			if ( elements.error ) {
+				throw elements.error;
+			}
+
+			shouldLoadStripeElements = false;
+		} catch ( error ) {
+			// eslint-disable-next-line no-console
+			console.error( error );
+			shouldLoadStripeElements = true;
+		}
+	}
+
+	// If Adaptive Pricing is not enabled, or if there was an error loading the AP elements,
+	// load the Stripe elements as fallback.
+	if ( shouldLoadStripeElements ) {
+		elements = api.getStripe().elements( options );
+	}
 
 	const attachDefaultValuesUpdateEvent = ( element ) => {
 		if ( document.getElementById( element ) ) {
 			document.getElementById( element ).onblur = function () {
-				updatePaymentElementDefaultValues();
+				updatePaymentElementDefaultValues( true );
 			};
 		}
 	};
 
 	let paymentElementOptions = {
 		...getUpeSettings(),
-		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -224,10 +257,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		};
 	}
 
-	const createdStripePaymentElement = elements.create(
-		'payment',
-		paymentElementOptions
-	);
+	let createdStripePaymentElement = null;
+
+	if ( shouldLoadStripeElements ) {
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...getDefaultValues(),
+		};
+		createdStripePaymentElement = elements.create(
+			'payment',
+			paymentElementOptions
+		);
+	} else {
+		createdStripePaymentElement = elements.createPaymentElement(
+			paymentElementOptions
+		);
+		mountCurrencySelectorElement( elements );
+	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[ paymentMethodType ].upeElement =
@@ -245,6 +291,16 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	}
 
 	return createdStripePaymentElement;
+}
+
+/**
+ * Mounts the currency selector element to the DOM element.
+ *
+ * @param {Object} elements The Stripe elements object.
+ */
+function mountCurrencySelectorElement( elements ) {
+	const currencySelector = elements.createCurrencySelectorElement();
+	currencySelector.mount( '#currency-selector' );
 }
 
 /**
