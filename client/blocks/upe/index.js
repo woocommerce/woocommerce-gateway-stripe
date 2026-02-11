@@ -24,6 +24,7 @@ import {
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
+import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -81,3 +82,41 @@ addOrderAttributionInputsIfNotExists();
 
 // Populate order attribution inputs with order tracking data.
 populateOrderAttributionInputs();
+
+callWhenElementIsAvailable(
+	'label[for="radio-control-wc-payment-method-options-stripe"]',
+	function () {
+		callWhenElementIsAvailable(
+			'#radio-control-wc-payment-method-options-stripe__content > div:nth-child(6) > div > iframe:nth-child(1)',
+			function () {
+				const iframeElement = document.querySelector(
+					'#radio-control-wc-payment-method-options-stripe__content > div:nth-child(6) > div > iframe:nth-child(1)'
+				);
+				iframeElement.onload = function () {
+					const iframeDocument =
+						iframeElement.contentDocument ||
+						iframeElement.contentWindow.document;
+
+					// TODO: Stirpe blocks the reading of the iframe content
+
+					const accordionItems =
+						iframeDocument.querySelectorAll( '.p-AccordionItem' );
+
+					console.log( accordionItems );
+				};
+			}
+		);
+
+		const clickEvent = new MouseEvent( 'click', {
+			bubbles: true,
+			cancelable: true,
+			view: window,
+		} );
+
+		const stripeLabel = document.querySelector(
+			'label[for="radio-control-wc-payment-method-options-stripe"]'
+		);
+
+		stripeLabel.dispatchEvent( clickEvent );
+	}
+);

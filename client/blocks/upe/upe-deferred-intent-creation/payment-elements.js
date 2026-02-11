@@ -36,6 +36,7 @@ const PaymentElements = ( {
 	api,
 	paymentMethodId,
 	supportsDeferredIntent,
+	renderOCS,
 	components: { LoadingMask },
 	...props
 } ) => {
@@ -131,6 +132,8 @@ const PaymentElements = ( {
 		fonts: getFontRulesFromPage(),
 	};
 
+	let OCSOptions = options;
+
 	if ( supportsDeferredIntent ) {
 		options = {
 			...options,
@@ -138,6 +141,16 @@ const PaymentElements = ( {
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
 				currency: stripeServerData?.currency.toLowerCase(),
+			},
+		};
+
+		OCSOptions = {
+			...options,
+			...{
+				paymentMethodConfiguration:
+					stripeServerData?.paymentMethodConfigurationId,
+				// Exclude unsupported payment methods - calculated dynamically on server side
+				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 			},
 		};
 
@@ -200,6 +213,18 @@ const PaymentElements = ( {
 					{ ...props }
 				/>
 			</Elements>
+			{ renderOCS && (
+				<Elements stripe={ stripe } options={ OCSOptions }>
+					<PaymentProcessor
+						api={ api }
+						paymentIntentId={ paymentIntentId }
+						paymentMethodId={ paymentMethodId }
+						onLoadError={ setPaymentProcessorLoadErrorMessage }
+						renderOCS={ true }
+						{ ...props }
+					/>
+				</Elements>
+			) }
 		</>
 	);
 };
@@ -215,6 +240,7 @@ const PaymentElements = ( {
  * @param {boolean}     showSaveOption
  * @param {boolean}     supportsDeferredIntent
  *
+ * @param               renderOCS
  * @return {JSX.Element} Rendered Payment elements.
  */
 export const getDeferredIntentCreationUPEFields = (
@@ -224,7 +250,8 @@ export const getDeferredIntentCreationUPEFields = (
 	description,
 	testingInstructions,
 	showSaveOption,
-	supportsDeferredIntent
+	supportsDeferredIntent,
+	renderOCS
 ) => {
 	return (
 		<PaymentElements
@@ -235,6 +262,7 @@ export const getDeferredIntentCreationUPEFields = (
 			testingInstructions={ testingInstructions }
 			showSaveOption={ showSaveOption }
 			supportsDeferredIntent={ supportsDeferredIntent }
+			renderOCS={ renderOCS }
 		/>
 	);
 };

@@ -37,9 +37,10 @@ const noop = () => null;
 /**
  * Gets the Stripe element options.
  *
+ * @param  renderOCS
  * @return {Object} The Stripe element options.
  */
-const getStripeElementOptions = () => {
+const getStripeElementOptions = ( renderOCS = false ) => {
 	let options = {
 		fields: {
 			billingDetails: {
@@ -84,7 +85,7 @@ const getStripeElementOptions = () => {
 		}
 	}
 
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
+	if ( renderOCS ) {
 		const layout = {
 			type:
 				getBlocksConfiguration()?.OCLayout ||
@@ -150,6 +151,7 @@ const PaymentProcessor = ( {
 	shouldSavePayment,
 	fingerprint,
 	billing,
+	renderOCS = false,
 	onLoadError = noop,
 } ) => {
 	const stripe = useStripe();
@@ -415,7 +417,7 @@ const PaymentProcessor = ( {
 				<BlikCodeElement />
 			) : (
 				<PaymentElement
-					options={ getStripeElementOptions() }
+					options={ getStripeElementOptions( renderOCS ) }
 					onChange={ onSelectedPaymentMethodChange }
 					onLoadError={ setHasLoadError }
 					className="wcstripe-payment-element"
