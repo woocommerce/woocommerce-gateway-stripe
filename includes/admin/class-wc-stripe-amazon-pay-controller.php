@@ -14,6 +14,8 @@ class WC_Stripe_Amazon_Pay_Controller {
 
 	/**
 	 * Load admin scripts.
+	 *
+	 * @return void
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
@@ -61,6 +63,8 @@ class WC_Stripe_Amazon_Pay_Controller {
 	/**
 	 * Prints the admin options for the gateway.
 	 * Remove this action once we're fully migrated to UPE and move the wrapper in the `admin_options` method of the UPE gateway.
+	 *
+	 * @return void
 	 */
 	public function admin_options() {
 		global $hide_save_button;

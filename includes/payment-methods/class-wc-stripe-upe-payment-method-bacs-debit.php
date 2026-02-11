@@ -90,6 +90,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 	/**
 	 * Conditionally hides the Bacs payment gateway for specific scenarios.
+	 *
+	 * @return void
 	 */
 	public function maybe_hide_bacs_payment_gateway() {
 		add_filter(
