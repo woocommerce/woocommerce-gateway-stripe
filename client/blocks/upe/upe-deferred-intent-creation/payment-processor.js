@@ -92,6 +92,7 @@ const getStripeElementOptions = () => {
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;
+			layout.spacedAccordionItems = false;
 		}
 		options = {
 			...options,
