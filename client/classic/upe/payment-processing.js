@@ -235,7 +235,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	};
 
 	let paymentElementOptions = {
-		...getUpeSettings(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -263,6 +262,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentElementOptions = {
 			...paymentElementOptions,
 			...getDefaultValues(),
+			...getUpeSettings(),
 		};
 		createdStripePaymentElement = elements.create(
 			'payment',
