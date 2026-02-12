@@ -33,9 +33,9 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
+		'_wcstripe_feature_upe'            => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME => 'no',
+		self::OC_FEATURE_FLAG_NAME         => 'no',
 	];
 
 	/**
@@ -172,6 +172,9 @@ class WC_Stripe_Feature_Flags {
 		 * @since 10.4.0
 		 * @param bool $enabled Whether Agentic Commerce is enabled. Default false.
 		 */
-		return (bool) apply_filters( 'wc_stripe_is_agentic_commerce_enabled', false );
+		return (bool) apply_filters(
+			'wc_stripe_is_agentic_commerce_enabled',
+			'yes' === self::get_option_with_default( 'stripe_agentic_commerce_enabled' )
+		);
 	}
 }

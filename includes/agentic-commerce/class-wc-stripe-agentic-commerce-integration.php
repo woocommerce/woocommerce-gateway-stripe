@@ -90,7 +90,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				'wc-stripe'
 			);
 
-			WC_Stripe_Logger::log( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / 60 ) . ' minutes' );
+			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / 60 ) . ' minutes' );
 		}
 	}
 
@@ -107,7 +107,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
 
-		WC_Stripe_Logger::log( 'Agentic Commerce: Canceled all scheduled feed syncs' );
+		WC_Stripe_Logger::info( 'Agentic Commerce: Canceled all scheduled feed syncs' );
 	}
 
 	/**
@@ -203,11 +203,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function sync_feed(): void {
 		if ( ! $this->is_enabled() ) {
-			WC_Stripe_Logger::log( 'Agentic Commerce: Sync skipped - feature not enabled' );
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
 			return;
 		}
 
-		WC_Stripe_Logger::log( 'Agentic Commerce: Starting feed sync' );
+		WC_Stripe_Logger::info( 'Agentic Commerce: Starting feed sync' );
 
 		$start_time = microtime( true );
 
@@ -219,14 +219,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Walk through products and generate feed.
 			$total_products = $walker->walk(
 				function ( WalkerProgress $progress ) {
-					WC_Stripe_Logger::log(
+					WC_Stripe_Logger::info(
 						'Agentic Commerce: Feed generation progress',
 						[
-							'batch'            => $progress->processed_batches,
-							'total_batches'    => $progress->total_batch_count,
-							'processed_items'  => $progress->processed_items,
-							'total_items'      => $progress->total_count,
-							'memory_available' => $progress->memory_manager->get_available_memory() . '%',
+							'batch'           => $progress->processed_batches,
+							'total_batches'   => $progress->total_batch_count,
+							'processed_items' => $progress->processed_items,
+							'total_items'     => $progress->total_count,
 						]
 					);
 				}
@@ -242,13 +241,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				$file_size = filesize( $file_path );
 			}
 
-			WC_Stripe_Logger::log(
+			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed generated successfully',
 				[
-					'total_products'   => $total_products,
-					'generation_time'  => round( $generation_time, 2 ) . 's',
-					'file_path'        => $file_path,
-					'file_size_mb'     => round( $file_size / 1024 / 1024, 2 ),
+					'total_products'  => $total_products,
+					'generation_time' => round( $generation_time, 2 ) . 's',
+					'file_path'       => $file_path,
+					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
 
@@ -257,7 +256,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				$delivery = $this->get_push_delivery_method();
 
 				if ( ! $delivery->check_setup() ) {
-					WC_Stripe_Logger::log( 'Agentic Commerce: Push delivery not configured, skipping upload' );
+					WC_Stripe_Logger::info( 'Agentic Commerce: Push delivery not configured, skipping upload' );
 					return;
 				}
 
@@ -265,18 +264,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				$result       = $delivery->deliver( $feed );
 				$upload_time  = microtime( true ) - $upload_start;
 
-				WC_Stripe_Logger::log(
+				WC_Stripe_Logger::info(
 					'Agentic Commerce: Feed uploaded successfully',
 					[
-						'file_id'        => $result['file_id'] ?? null,
-						'import_set_id'  => $result['import_set_id'] ?? null,
-						'upload_time'    => round( $upload_time, 2 ) . 's',
-						'total_time'     => round( microtime( true ) - $start_time, 2 ) . 's',
+						'file_id'       => $result['file_id'] ?? null,
+						'import_set_id' => $result['import_set_id'] ?? null,
+						'upload_time'   => round( $upload_time, 2 ) . 's',
+						'total_time'    => round( microtime( true ) - $start_time, 2 ) . 's',
 					]
 				);
 
 			} catch ( Exception $e ) {
-				WC_Stripe_Logger::log(
+				WC_Stripe_Logger::error(
 					'Agentic Commerce: Feed upload failed',
 					[
 						'error' => $e->getMessage(),
@@ -287,13 +286,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				);
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log(
+			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
 				[
-					'error'   => $e->getMessage(),
-					'code'    => $e->getCode(),
-					'file'    => $e->getFile(),
-					'line'    => $e->getLine(),
+					'error' => $e->getMessage(),
+					'code'  => $e->getCode(),
+					'file'  => $e->getFile(),
+					'line'  => $e->getLine(),
 				]
 			);
 		}
@@ -306,7 +305,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return string Stripe secret key.
 	 */
 	private function get_secret_key(): string {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings  = WC_Stripe_Helper::get_stripe_settings();
 		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
 
 		if ( $test_mode ) {
