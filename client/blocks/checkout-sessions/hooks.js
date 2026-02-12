@@ -1,6 +1,10 @@
 import { useEffect } from '@wordpress/element';
 
 /**
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
+ */
+
+/**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
  * @param {*} checkoutState     The checkout state.

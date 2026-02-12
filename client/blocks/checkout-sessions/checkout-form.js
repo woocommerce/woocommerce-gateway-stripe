@@ -7,10 +7,6 @@ import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 
 /**
- * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
- */
-
-/**
  * No operation function.
  *
  * @return {null} Returns null.
