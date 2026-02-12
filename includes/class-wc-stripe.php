@@ -206,14 +206,8 @@ class WC_Stripe {
 		if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-csv-feed.php';
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-schema.php';
-
-			if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface' ) ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php';
-			}
-
-			if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface' ) ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
-			}
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
 		}
 
 		new Allowed_Payment_Request_Button_Types_Update();
