@@ -645,13 +645,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 		$result = $mapper->map_product( $product );
 
-		// Check inventory fields if present.
-		if ( isset( $result['inventory_quantity'] ) ) {
-			$this->assertEquals( 50, $result['inventory_quantity'] );
-		}
-		if ( isset( $result['inventory_not_tracked'] ) ) {
-			$this->assertEquals( 'false', $result['inventory_not_tracked'] );
-		}
+		$this->assertEquals( 50, $result['inventory_quantity'] );
+		$this->assertEquals( 'false', $result['inventory_not_tracked'] );
 
 		$product->delete( true );
 	}

@@ -15,6 +15,11 @@ use WC_Stripe_UPE_Payment_Gateway;
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/**
+	 * Tests that the plugin constants are defined.
+	 *
+	 * @return void
+	 */
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );
 		$this->assertTrue( defined( 'WC_STRIPE_MIN_PHP_VER' ) );
@@ -150,7 +155,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
-				'update enable payment methods calls' => 1,
+				'update enable payment methods calls' => 0,
 			],
 		];
 	}
@@ -229,11 +234,12 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return void
 	 */
-	public function test_install_sets_fresh_install_flag(): void {
+	public function test_fresh_install_sets_correct_options(): void {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
-		// Ensure the flag is not set.
+		// Ensure the flags are not set.
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
+		delete_option( 'wc_stripe_amazon_pay_default_on' );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -248,7 +254,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+		// Test that we are NOT setting the flag for now.
+		// @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4979
+		$this->assertEquals( false, get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_amazon_pay_default_on' ) );
 	}
 
 	/**
@@ -294,6 +304,48 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests for `maybe_redirect_to_stripe_settings`.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_redirect_to_stripe_settings(): void {
+		$redirected_to      = '';
+		$wp_redirect_filter = function ( string $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+
+			// Throw exception to prevent exit() from being called after wp_safe_redirect().
+			throw new \Exception();
+		};
+
+		// Add filter to catch redirects.
+		add_filter( 'wp_redirect', $wp_redirect_filter );
+
+		// Set the transient to trigger redirection.
+		set_transient( 'wc_stripe_redirect_to_settings', true, 30 );
+
+		// Simulate activation by setting the 'activate' GET parameter.
+		$_GET['activate'] = 'true';
+
+		try {
+			WC_Stripe::get_instance()->maybe_redirect_to_stripe_settings();
+		} catch ( \Exception $e ) {
+			// Expected - this prevents exit() from killing the test.
+			unset( $e );
+		}
+
+		$redirect_to_settings_transient = get_transient( 'wc_stripe_redirect_to_settings' );
+
+		// Clean up.
+		remove_filter( 'wp_redirect', $wp_redirect_filter );
+
+		// Check that the transient has been deleted after redirection.
+		$this->assertFalse( $redirect_to_settings_transient );
+
+		// Check that the redirect location is the Stripe settings page.
+		$this->assertStringContainsString( 'admin.php?page=wc-settings&tab=checkout&section=stripe', $redirected_to );
+	}
+
+	/**
 	 * Removes the gateway_settings_update filter that merges defaults when saving settings.
 	 *
 	 * This filter adds default field values when saving settings for the first time,
@@ -311,10 +363,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array $payment_methods The payment methods to add.
 	 * @param array $expected_gateways The expected gateways.
 	 * @param bool $is_admin Whether the test is running in the admin.
+	 * @param bool $oc_enabled Whether the optimized checkout is enabled.
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false ): void {
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false ): void {
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
@@ -325,6 +378,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
+		$mock_main_gateway->method( 'get_option' )
+			->with( 'optimized_checkout_element', 'no' )
+			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -374,10 +430,17 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$klarna_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Klarna::class )
 			->disableOriginalConstructor()
 			->getMock();
+		$klarna_gateway->method( 'is_enabled_at_checkout' )->willReturn( true );
 
 		$afterpay_clearpay_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class )
 			->disableOriginalConstructor()
 			->getMock();
+		$afterpay_clearpay_gateway->method( 'is_enabled_at_checkout' )->willReturn( true );
+
+		$sepa_gateway = $this->getMockBuilder( \WC_Stripe_UPE_Payment_Method_Sepa::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$sepa_gateway->method( 'is_enabled_at_checkout' )->willReturn( false );
 
 		return [
 			'none active' => [
@@ -454,6 +517,31 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
+			],
+			'disabled at checkout payment methods are filtered out in admin' => [
+				'payment_methods'   => [
+					'card'              => $card_gateway,
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+					'link'              => $link_gateway,
+					'sepa_debit'        => $sepa_gateway,
+				],
+				// sepa is disabled at checkout, so it should be filtered out.
+				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
+				'is_admin'          => true,
+			],
+			'optimized checkout enabled admin' => [
+				'payment_methods'   => [
+					'card'              => $card_gateway,
+					'afterpay_clearpay' => $afterpay_clearpay_gateway,
+					'klarna'            => $klarna_gateway,
+					'amazon_pay'        => $amazon_pay_gateway,
+					'link'              => $link_gateway,
+				],
+				'expected_gateways' => [],
+				'is_admin'          => true,
+				'oc_enabled'        => true,
 			],
 		];
 	}

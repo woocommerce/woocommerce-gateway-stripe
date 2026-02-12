@@ -72,7 +72,6 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 			...globalValues,
 			key: 'pk_test_123',
 			locale: 'en',
-			is_ece_enabled: true,
 		};
 	} );
 

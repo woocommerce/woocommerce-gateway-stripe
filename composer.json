@@ -17,7 +17,7 @@
         "php-stubs/woocommerce-stubs": "^10.4",
         "php-stubs/wordpress-stubs": "^6.9",
         "phpstan/phpstan": "^2.1",
-        "phpunit/phpunit": "9.6.22",
+        "phpunit/phpunit": "9.6.34",
         "szepeviktor/phpstan-wordpress": "^2.0",
         "woocommerce/woocommerce-sniffs": "1.0.0",
         "wp-cli/wp-cli-bundle": "2.5.0",

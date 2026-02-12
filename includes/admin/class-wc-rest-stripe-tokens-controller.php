@@ -17,6 +17,8 @@ class WC_REST_Stripe_Tokens_Controller extends WC_Stripe_REST_Base_Controller {
 
 	/**
 	 * Register REST API routes for Stripe tokens.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(

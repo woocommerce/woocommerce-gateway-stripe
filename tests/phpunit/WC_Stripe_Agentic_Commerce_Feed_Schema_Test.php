@@ -373,10 +373,12 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 			'title'            => 150,
 			'description'      => 5000,
 			'brand'            => 70,
+			'mpn'              => 70,
 			'item_group_id'    => 70,
 			'item_group_title' => 150,
 			'color'            => 100,
 			'size'             => 20,
+			'size_system'      => 2,
 		];
 
 		foreach ( $fields_with_length as $field => $expected_length ) {
@@ -399,6 +401,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 			'age_group',
 			'gender',
 			'tax_behavior',
+			'shipping_cost_basis',
 		];
 
 		foreach ( $enum_fields as $field ) {
@@ -430,5 +433,18 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'stripe_product_tax_code', $schema );
 		$this->assertEquals( 'txcd_99999999', $schema['stripe_product_tax_code']['format'] );
+	}
+
+	/**
+	 * Test shipping_cost_basis enum has correct values.
+	 *
+	 * @return void
+	 */
+	public function test_shipping_cost_basis_enum_values() {
+		$schema = \WC_Stripe_Agentic_Commerce_Feed_Schema::get_schema();
+
+		$this->assertArrayHasKey( 'shipping_cost_basis', $schema );
+		$this->assertEquals( 'enum', $schema['shipping_cost_basis']['type'] );
+		$this->assertEquals( [ 'per_order', 'per_item' ], $schema['shipping_cost_basis']['values'] );
 	}
 }

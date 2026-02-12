@@ -1201,32 +1201,29 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_amazon_pay_is_available(): array {
 		return [
-			'feature flag disabled, payment method enabled, US account, USD currency' => [ false, true, 'US', 'USD', false ],
-			'feature flag enabled, payment method enabled, US account, USD currency'  => [ true, true, 'US', 'USD', true ],
-			'feature flag enabled, payment method disabled, US account, USD currency' => [ true, false, 'US', 'USD', false ],
-			'feature flag enabled, payment method enabled, US account, EUR currency'  => [ true, true, 'US', 'EUR', false ],
-			'feature flag disabled, payment method enabled, AT account, EUR currency' => [ false, true, 'AT', 'EUR', false ],
-			'feature flag enabled, payment method enabled, AT account, EUR currency'  => [ true, true, 'AT', 'EUR', true ],
-			'feature flag enabled, payment method disabled, AT account, EUR currency' => [ true, false, 'AT', 'EUR', false ],
-			'feature flag enabled, payment method enabled, AT account, USD currency'  => [ true, true, 'AT', 'USD', true ],
-			'feature flag enabled, payment method enabled, BE account, CAD currency'  => [ true, true, 'BE', 'CAD', false ],
-			'feature flag enabled, payment method enabled, CA account, USD currency'  => [ true, true, 'CA', 'USD', false ],
-			'feature flag enabled, payment method enabled, DE account, HKD currency'  => [ true, true, 'DE', 'HKD', true ],
-			'feature flag enabled, payment method enabled, HU account, HUF currency'  => [ true, true, 'HU', 'HUF', false ],
-			'feature flag enabled, payment method enabled, IE account, ZAR currency'  => [ true, true, 'IE', 'ZAR', true ],
-			'feature flag enabled, payment method enabled, IT account, JPY currency'  => [ true, true, 'IT', 'JPY', true ],
-			'feature flag enabled, payment method enabled, LU account, EUR currency'  => [ true, true, 'LU', 'EUR', true ],
-			'feature flag enabled, payment method enabled, NL account, EUR currency'  => [ true, true, 'NL', 'EUR', true ],
-			'feature flag enabled, payment method enabled, PT account, EUR currency'  => [ true, true, 'PT', 'EUR', true ],
-			'feature flag enabled, payment method enabled, ES account, EUR currency'  => [ true, true, 'ES', 'EUR', true ],
-			'feature flag enabled, payment method enabled, SE account, EUR currency'  => [ true, true, 'SE', 'EUR', true ],
+			'payment method enabled, US account, USD currency'  => [ true, 'US', 'USD', true ],
+			'payment method disabled, US account, USD currency' => [ false, 'US', 'USD', false ],
+			'payment method enabled, US account, EUR currency'  => [ true, 'US', 'EUR', false ],
+			'payment method enabled, AT account, EUR currency'  => [ true, 'AT', 'EUR', true ],
+			'payment method disabled, AT account, EUR currency' => [ false, 'AT', 'EUR', false ],
+			'payment method enabled, AT account, USD currency'  => [ true, 'AT', 'USD', true ],
+			'payment method enabled, BE account, CAD currency'  => [ true, 'BE', 'CAD', false ],
+			'payment method enabled, CA account, USD currency'  => [ true, 'CA', 'USD', false ],
+			'payment method enabled, DE account, HKD currency'  => [ true, 'DE', 'HKD', true ],
+			'payment method enabled, HU account, HUF currency'  => [ true, 'HU', 'HUF', false ],
+			'payment method enabled, IE account, ZAR currency'  => [ true, 'IE', 'ZAR', true ],
+			'payment method enabled, IT account, JPY currency'  => [ true, 'IT', 'JPY', true ],
+			'payment method enabled, LU account, EUR currency'  => [ true, 'LU', 'EUR', true ],
+			'payment method enabled, NL account, EUR currency'  => [ true, 'NL', 'EUR', true ],
+			'payment method enabled, PT account, EUR currency'  => [ true, 'PT', 'EUR', true ],
+			'payment method enabled, ES account, EUR currency'  => [ true, 'ES', 'EUR', true ],
+			'payment method enabled, SE account, EUR currency'  => [ true, 'SE', 'EUR', true ],
 		];
 	}
 
 	/**
 	 * Test the `is_amazon_pay_enabled()` method.
 	 *
-	 * @param bool   $feature_flag_enabled   Whether the feature flag is enabled.
 	 * @param bool   $payment_method_enabled Whether the payment method is enabled.
 	 * @param string $account_country        The country code for the Stripe account.
 	 * @param string $currency               The currency of the store.
@@ -1234,15 +1231,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_amazon_pay_is_available
 	 */
 	public function test_amazon_pay_is_available(
-		bool $feature_flag_enabled,
 		bool $payment_method_enabled,
 		string $account_country,
 		string $currency,
 		bool $expected_availability
 	): void {
-		$feature_flag_value = $feature_flag_enabled ? 'yes' : 'no';
-		update_option( \WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, $feature_flag_value );
-
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_upe_enabled_payment_method_ids' ] )

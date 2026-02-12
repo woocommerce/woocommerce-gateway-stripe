@@ -103,6 +103,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 				'required'      => false,
 				'required_when' => [ 'gtin' => '' ],
 				'type'          => 'string',
+				'max_length'    => 70,
 				'description'   => 'Manufacturer Part Number',
 			],
 
@@ -254,7 +255,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 			'size_system'               => [
 				'required'    => false,
 				'type'        => 'string',
-				'description' => 'Size system (US, EU, UK, etc.)',
+				'max_length'  => 2,
+				'description' => 'Size system (ISO 3166 country code)',
 			],
 			'gender'                    => [
 				'required'    => false,
@@ -294,6 +296,12 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 				'type'        => 'string',
 				'format'      => 'country:region:service:threshold',
 				'description' => 'Free shipping minimum order amount',
+			],
+			'shipping_cost_basis'       => [
+				'required'    => false,
+				'type'        => 'enum',
+				'values'      => [ 'per_order', 'per_item' ],
+				'description' => 'Shipping cost calculation method',
 			],
 
 			// Optional - Performance Signals.
