@@ -14,7 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Automattic\WooCommerce\ProductFeedForOpenAI\Integrations\FileDeliveryInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
 
 /**
@@ -24,7 +23,7 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
  *
  * @since 10.4.0
  */
-class WC_Stripe_Agentic_Commerce_Files_Api_Delivery implements FileDeliveryInterface {
+class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 
 	/**
 	 * Stripe secret key.

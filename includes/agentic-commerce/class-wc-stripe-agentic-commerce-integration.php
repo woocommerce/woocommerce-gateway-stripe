@@ -22,8 +22,6 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductWalker;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\WalkerProgress;
-use Automattic\WooCommerce\ProductFeedForOpenAI\Integrations\FileDeliveryInterface;
-
 /**
  * Stripe Agentic Commerce Product Feed Integration
  *
@@ -170,10 +168,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Get push delivery method for uploading to Stripe.
 	 *
 	 * @since 10.4.0
-	 * @return FileDeliveryInterface Stripe Files API delivery method.
+	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery Stripe Files API delivery method.
 	 * @throws RuntimeException If delivery method class doesn't exist.
 	 */
-	public function get_push_delivery_method(): FileDeliveryInterface {
+	public function get_push_delivery_method(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Files_Api_Delivery' ) ) {
 			throw new RuntimeException(
 				esc_html__( 'Stripe Files API delivery class not found. Please ensure all required files are loaded.', 'woocommerce-gateway-stripe' )
