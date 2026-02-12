@@ -113,26 +113,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_push_delivery_method returns delivery instance.
-	 *
-	 * @return void
-	 */
-	public function test_get_push_delivery_method() {
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'testmode'        => 'yes',
-				'test_secret_key' => 'sk_test_123',
-			]
-		);
-
-		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
-		$delivery    = $integration->get_push_delivery_method();
-
-		$this->assertInstanceOf( \WC_Stripe_Agentic_Commerce_Files_Api_Delivery::class, $delivery );
-	}
-
-	/**
 	 * Test is_enabled returns false by default.
 	 *
 	 * @return void

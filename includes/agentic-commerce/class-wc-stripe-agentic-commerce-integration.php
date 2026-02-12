@@ -196,7 +196,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Execute feed sync process.
 	 *
-	 * Generates product feed using ProductWalker, validates it, and uploads to Stripe.
+	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.4.0
 	 * @return void
@@ -250,41 +250,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
-
-			// Push to Stripe if delivery method is available.
-			try {
-				$delivery = $this->get_push_delivery_method();
-
-				if ( ! $delivery->check_setup() ) {
-					WC_Stripe_Logger::info( 'Agentic Commerce: Push delivery not configured, skipping upload' );
-					return;
-				}
-
-				$upload_start = microtime( true );
-				$result       = $delivery->deliver( $feed );
-				$upload_time  = microtime( true ) - $upload_start;
-
-				WC_Stripe_Logger::info(
-					'Agentic Commerce: Feed uploaded successfully',
-					[
-						'file_id'       => $result['file_id'] ?? null,
-						'import_set_id' => $result['import_set_id'] ?? null,
-						'upload_time'   => round( $upload_time, 2 ) . 's',
-						'total_time'    => round( microtime( true ) - $start_time, 2 ) . 's',
-					]
-				);
-
-			} catch ( Exception $e ) {
-				WC_Stripe_Logger::error(
-					'Agentic Commerce: Feed upload failed',
-					[
-						'error' => $e->getMessage(),
-						'code'  => $e->getCode(),
-						'file'  => $e->getFile(),
-						'line'  => $e->getLine(),
-					]
-				);
-			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
