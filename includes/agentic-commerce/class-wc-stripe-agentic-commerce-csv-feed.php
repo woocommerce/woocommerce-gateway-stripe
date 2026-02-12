@@ -92,7 +92,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * @param string $base_name The base name of the feed file.
 	 */
 	public function __construct( string $base_name ) {
-		$this->base_name = $base_name;
+		$this->base_name = sanitize_file_name( $base_name );
 	}
 
 	/**
