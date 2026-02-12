@@ -23,11 +23,27 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface;
  */
 class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterface {
 	/**
+	 * Variant attributes that must be consistent within an item group.
+	 *
+	 * Per Stripe spec, all variants in an item_group_id must use the same attribute set.
+	 */
+	private const VARIANT_ATTRIBUTES = [ 'color', 'size', 'material', 'gender', 'size_system' ];
+
+	/**
 	 * Stripe feed schema definition.
 	 *
 	 * @var array
 	 */
 	protected array $schema;
+
+	/**
+	 * Tracks which variant attributes are used per item_group_id.
+	 *
+	 * Maps item_group_id => list of attribute names that are non-empty.
+	 *
+	 * @var array<string, string[]>
+	 */
+	protected array $variant_attribute_sets = [];
 
 	/**
 	 * Initialize validator with schema.
@@ -57,6 +73,9 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 
 		// Validate business rules.
 		$errors = array_merge( $errors, $this->validate_business_rules( $row, $product ) );
+
+		// Validate variant attribute consistency across entries.
+		$errors = array_merge( $errors, $this->validate_variant_consistency( $row ) );
 
 		/**
 		 * Filter validation errors.
@@ -253,6 +272,19 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 			}
 		}
 
+		// Validate shipping_cost_basis enum.
+		if ( ! empty( $row['shipping_cost_basis'] ) ) {
+			$valid_values = [ 'per_order', 'per_item' ];
+			if ( ! in_array( $row['shipping_cost_basis'], $valid_values, true ) ) {
+				$errors[] = sprintf(
+					/* translators: 1: shipping_cost_basis value, 2: valid values list */
+					__( 'Invalid shipping_cost_basis value: "%1$s". Must be one of: %2$s', 'woocommerce-gateway-stripe' ),
+					$row['shipping_cost_basis'],
+					implode( ', ', $valid_values )
+				);
+			}
+		}
+
 		return $errors;
 	}
 
@@ -330,5 +362,57 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * Validate variant attribute consistency within item groups.
+	 *
+	 * Per Stripe spec, all variants sharing an item_group_id must use
+	 * the same set of variant-distinguishing attributes.
+	 *
+	 * @since 10.4.0
+	 * @param array $row Product data row.
+	 * @return array Validation errors.
+	 */
+	protected function validate_variant_consistency( array $row ): array {
+		if ( empty( $row['item_group_id'] ) ) {
+			return [];
+		}
+
+		$group_id = $row['item_group_id'];
+
+		// Determine which variant attributes are present (non-empty) in this row.
+		$present_attributes = [];
+		foreach ( self::VARIANT_ATTRIBUTES as $attr ) {
+			if ( ! empty( $row[ $attr ] ) ) {
+				$present_attributes[] = $attr;
+			}
+		}
+
+		// First variant in group: record its attribute set.
+		if ( ! isset( $this->variant_attribute_sets[ $group_id ] ) ) {
+			$this->variant_attribute_sets[ $group_id ] = $present_attributes;
+			return [];
+		}
+
+		// Subsequent variants: compare against the recorded set.
+		$expected = $this->variant_attribute_sets[ $group_id ];
+
+		if ( $present_attributes !== $expected ) {
+			$expected_str = empty( $expected ) ? 'none' : implode( ', ', $expected );
+			$actual_str   = empty( $present_attributes ) ? 'none' : implode( ', ', $present_attributes );
+
+			return [
+				sprintf(
+					/* translators: 1: item group ID, 2: expected attributes, 3: actual attributes */
+					__( 'Variant attribute mismatch in item_group_id "%1$s": expected attributes [%2$s], got [%3$s]. All variants in a group must use the same attribute set.', 'woocommerce-gateway-stripe' ),
+					$group_id,
+					$expected_str,
+					$actual_str
+				),
+			];
+		}
+
+		return [];
 	}
 }

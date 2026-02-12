@@ -542,12 +542,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get inventory_not_tracked flag.
 	 *
+	 * Returns 'true' for products without stock management (virtual, digital, etc.)
+	 * and 'false' for products that track inventory.
+	 *
 	 * @since 10.4.0
 	 * @param \WC_Product $product Product object.
-	 * @return string|null 'true' if inventory is not tracked, null otherwise.
+	 * @return bool Whether inventory is not tracked.
 	 */
-	protected function get_inventory_not_tracked( \WC_Product $product ): ?string {
-		return ! $product->managing_stock() ? 'true' : null;
+	protected function get_inventory_not_tracked( \WC_Product $product ): bool {
+		return ! $product->managing_stock();
 	}
 
 	/**

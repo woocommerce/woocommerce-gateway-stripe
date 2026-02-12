@@ -425,6 +425,167 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test consistent variant attributes pass validation.
+	 *
+	 * @return void
+	 */
+	public function test_consistent_variant_attributes_pass() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$base_row = [
+			'id'               => '101',
+			'title'            => 'T-Shirt - Red Large',
+			'description'      => 'A red t-shirt',
+			'link'             => 'https://example.com/product',
+			'brand'            => 'Test Brand',
+			'image_link'       => 'https://example.com/image.jpg',
+			'availability'     => 'in_stock',
+			'price'            => '19.99 USD',
+			'gtin'             => '1234567890123',
+			'product_category' => 'Apparel',
+			'item_group_id'    => '100',
+			'color'            => 'Red',
+			'size'             => 'Large',
+		];
+
+		$variant_2 = array_merge(
+			$base_row,
+			[
+				'id'    => '102',
+				'title' => 'T-Shirt - Blue Large',
+				'color' => 'Blue',
+				'size'  => 'Large',
+			]
+		);
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+
+		$errors1 = $validator->validate_entry( $base_row, $product );
+		$errors2 = $validator->validate_entry( $variant_2, $product );
+
+		$this->assertEmpty( $errors1, 'First variant should pass' );
+		$this->assertEmpty( $errors2, 'Second variant with same attributes should pass' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test inconsistent variant attributes produce error.
+	 *
+	 * @return void
+	 */
+	public function test_inconsistent_variant_attributes_produce_error() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$variant_1 = [
+			'id'               => '101',
+			'title'            => 'T-Shirt - Red Large',
+			'description'      => 'A red t-shirt',
+			'link'             => 'https://example.com/product',
+			'brand'            => 'Test Brand',
+			'image_link'       => 'https://example.com/image.jpg',
+			'availability'     => 'in_stock',
+			'price'            => '19.99 USD',
+			'gtin'             => '1234567890123',
+			'product_category' => 'Apparel',
+			'item_group_id'    => '200',
+			'color'            => 'Red',
+			'size'             => 'Large',
+		];
+
+		// Second variant has color but NOT size - mismatched attributes.
+		$variant_2 = [
+			'id'               => '102',
+			'title'            => 'T-Shirt - Blue',
+			'description'      => 'A blue t-shirt',
+			'link'             => 'https://example.com/product',
+			'brand'            => 'Test Brand',
+			'image_link'       => 'https://example.com/image.jpg',
+			'availability'     => 'in_stock',
+			'price'            => '19.99 USD',
+			'gtin'             => '1234567890124',
+			'product_category' => 'Apparel',
+			'item_group_id'    => '200',
+			'color'            => 'Blue',
+			// 'size' is missing.
+		];
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+
+		$errors1 = $validator->validate_entry( $variant_1, $product );
+		$errors2 = $validator->validate_entry( $variant_2, $product );
+
+		$this->assertEmpty( $errors1, 'First variant should pass' );
+		$this->assertNotEmpty( $errors2, 'Second variant with different attributes should fail' );
+		$this->assertStringContainsString( 'Variant attribute mismatch', $errors2[0] );
+		$this->assertStringContainsString( '200', $errors2[0] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test non-variant products skip consistency check.
+	 *
+	 * @return void
+	 */
+	public function test_non_variant_skips_consistency_check() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$row = [
+			'id'               => '123',
+			'title'            => 'Simple Product',
+			'description'      => 'Test Description',
+			'link'             => 'https://example.com/product',
+			'brand'            => 'Test Brand',
+			'image_link'       => 'https://example.com/image.jpg',
+			'availability'     => 'in_stock',
+			'price'            => '19.99 USD',
+			'gtin'             => '1234567890123',
+			'product_category' => 'Test Category',
+			'color'            => 'Red',
+			// No item_group_id - not a variant.
+		];
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( $row, $product );
+
+		$this->assertEmpty( $errors, 'Non-variant product should not trigger consistency check' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test invalid shipping_cost_basis enum produces error.
+	 *
+	 * @return void
+	 */
+	public function test_invalid_shipping_cost_basis_enum() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$row = [
+			'id'                  => '123',
+			'title'               => 'Test Product',
+			'description'         => 'Test Description',
+			'link'                => 'https://example.com/product',
+			'brand'               => 'Test Brand',
+			'image_link'          => 'https://example.com/image.jpg',
+			'availability'        => 'in_stock',
+			'price'               => '19.99 USD',
+			'gtin'                => '1234567890123',
+			'product_category'    => 'Test Category',
+			'shipping_cost_basis' => 'invalid_value',
+		];
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( $row, $product );
+
+		$this->assertNotEmpty( $errors );
+		$this->assertStringContainsString( 'Invalid shipping_cost_basis value', $errors[0] );
+
+		$product->delete( true );
+	}
+
+	/**
 	 * Test validation errors can be filtered.
 	 *
 	 * @return void
