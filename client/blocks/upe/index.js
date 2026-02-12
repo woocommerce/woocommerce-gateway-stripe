@@ -23,7 +23,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
-import { upeElement } from 'wcstripe/blocks/upe/upe-element';
+import { upePaymentMethod } from 'wcstripe/blocks/upe/upe-payment-method';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -55,7 +55,7 @@ if ( getBlocksConfiguration()?.hasKlarnaGatewayPlugin ) {
 Object.entries( paymentMethodsConfig )
 	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
 	.forEach( ( [ method, config ] ) => {
-		registerPaymentMethod( upeElement( method, api, config ) );
+		registerPaymentMethod( upePaymentMethod( method, api, config ) );
 	} );
 
 // Register Express Checkout Elements.

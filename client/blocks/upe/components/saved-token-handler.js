@@ -1,4 +1,4 @@
-import { usePaymentCompleteHandler } from './hooks';
+import { usePaymentCompleteHandler } from '../hooks';
 
 export const SavedTokenHandler = ( {
 	api,

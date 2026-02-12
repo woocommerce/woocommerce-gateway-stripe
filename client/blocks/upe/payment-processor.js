@@ -12,8 +12,8 @@ import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
-import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
-import BlikCodeElement from './blik-code-element';
+import { usePaymentCompleteHandler, usePaymentFailHandler } from './hooks';
+import BlikCodeElement from './components/blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';

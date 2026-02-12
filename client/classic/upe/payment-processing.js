@@ -230,7 +230,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	);
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
-	gatewayUPEComponents[ paymentMethodType ].upeElement =
+	gatewayUPEComponents[ paymentMethodType ].upePaymentMethod =
 		createdStripePaymentElement;
 
 	// When email or phone is updated and Link is enabled, we need to

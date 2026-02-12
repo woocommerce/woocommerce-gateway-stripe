@@ -32,7 +32,7 @@ import { getFontRulesFromPage } from 'wcstripe/styles/upe';
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
-const PaymentElements = ( {
+export const PaymentElements = ( {
 	api,
 	paymentMethodId,
 	supportsDeferredIntent,
@@ -201,40 +201,5 @@ const PaymentElements = ( {
 				/>
 			</Elements>
 		</>
-	);
-};
-
-/**
- * Renders a Stripe Payment elements component.
- *
- * @param {string}      paymentMethodId
- * @param {Array}       upeMethods
- * @param {WCStripeAPI} api
- * @param {string}      description
- * @param {string}      testingInstructions
- * @param {boolean}     showSaveOption
- * @param {boolean}     supportsDeferredIntent
- *
- * @return {JSX.Element} Rendered Payment elements.
- */
-export const getDeferredIntentCreationUPEFields = (
-	paymentMethodId,
-	upeMethods,
-	api,
-	description,
-	testingInstructions,
-	showSaveOption,
-	supportsDeferredIntent
-) => {
-	return (
-		<PaymentElements
-			paymentMethodId={ paymentMethodId }
-			upeMethods={ upeMethods }
-			api={ api }
-			description={ description }
-			testingInstructions={ testingInstructions }
-			showSaveOption={ showSaveOption }
-			supportsDeferredIntent={ supportsDeferredIntent }
-		/>
 	);
 };
