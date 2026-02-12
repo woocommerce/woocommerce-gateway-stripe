@@ -7,6 +7,7 @@
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
+* Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 
 = 10.4.0 - 2026-02-09 = 
