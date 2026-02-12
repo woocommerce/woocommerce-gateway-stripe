@@ -1,83 +1,63 @@
 import { render, screen } from '@testing-library/react';
-import { PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
+import {
+	CurrencySelectorElement,
+	PaymentElement,
+	useCheckout,
+} from '@stripe/react-stripe-js/checkout';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 
 jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
+	CurrencySelectorElement: jest.fn(),
 	PaymentElement: jest.fn(),
 	useCheckout: jest.fn(),
 } ) );
 
 describe( 'CheckoutForm', () => {
+	CurrencySelectorElement.mockReturnValue(
+		<div>Currency Selector Element</div>
+	);
 	PaymentElement.mockReturnValue( <div>Payment Element</div> );
 
-	const api = {
-		checkoutSessionsCreateSession: jest
-			.fn()
-			.mockResolvedValue( { client_secret: 'test_secret' } ),
+	const components = {
+		LoadingMask: ( { isLoading, showSpinner, screenReaderLabel } ) => (
+			<div>
+				{ isLoading && showSpinner && (
+					<span>{ screenReaderLabel }</span>
+				) }
+			</div>
+		),
 	};
-	const errorMessage = '';
-
-	const onPaymentSetup = jest.fn();
-	const onCheckoutSuccess = jest.fn();
-	const onCheckoutFail = jest.fn();
-	const eventRegistration = {
-		onPaymentSetup,
-		onCheckoutSuccess,
-		onCheckoutFail,
-	};
-
-	const emitResponse = jest.fn();
-
-	const billing = {
-		billingAddress: {
-			first_name: 'John',
-			last_name: 'Doe',
-			address_1: '123 Main St',
-			address_2: '',
-			city: 'Anytown',
-			state: 'CA',
-			postcode: '12345',
-			country: 'US',
-		},
-	};
+	const onLoadError = jest.fn();
 
 	it( 'should render loading state', () => {
 		useCheckout.mockReturnValue( {
-			checkoutState: {
-				type: 'loading',
-			},
+			type: 'loading',
 		} );
 
 		render(
 			<CheckoutForm
-				api={ api }
-				eventRegistration={ eventRegistration }
-				emitResponse={ emitResponse }
-				errorMessage={ errorMessage }
-				billing={ billing }
+				components={ components }
+				onLoadError={ onLoadError }
 			/>
 		);
 
-		expect( screen.getByText( 'Loading...' ) ).toBeInTheDocument();
+		expect(
+			screen.getByText( 'Loading payment method…' )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should render error state', () => {
 		useCheckout.mockReturnValue( {
-			checkoutState: {
-				type: 'error',
-				error: {
-					message: 'Test error',
-				},
+			type: 'error',
+			error: {
+				message: 'Test error',
 			},
 		} );
 
 		render(
 			<CheckoutForm
-				api={ api }
-				eventRegistration={ eventRegistration }
-				emitResponse={ emitResponse }
-				errorMessage={ errorMessage }
-				billing={ billing }
+				components={ components }
+				onLoadError={ onLoadError }
 			/>
 		);
 
@@ -96,11 +76,8 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
-				api={ api }
-				eventRegistration={ eventRegistration }
-				emitResponse={ emitResponse }
-				errorMessage={ errorMessage }
-				billing={ billing }
+				components={ components }
+				onLoadError={ onLoadError }
 			/>
 		);
 
