@@ -110,6 +110,7 @@ class WC_Stripe {
 	public function init() {
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
+			new WC_Stripe_Privacy();
 		}
 
 		if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php' ) ) {
@@ -203,6 +204,7 @@ class WC_Stripe {
 
 		new WC_Stripe_Order_Handler();
 		new WC_Stripe_Webhook_Handler();
+		new WC_Stripe_Inbox_Notes();
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
