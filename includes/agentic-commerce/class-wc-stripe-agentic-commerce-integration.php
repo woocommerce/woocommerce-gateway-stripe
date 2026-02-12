@@ -7,7 +7,7 @@
  * and sets up automated synchronization via Action Scheduler.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -22,10 +22,11 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductWalker;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\WalkerProgress;
+
 /**
  * Stripe Agentic Commerce Product Feed Integration
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
@@ -44,16 +45,24 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_feed';
 
 	/**
-	 * Sync interval in seconds (15 minutes).
+	 * Option name to track whether the sync is scheduled.
+	 *
+	 * @var string
+	 * @since 10.5.0
+	 */
+	const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
+
+	/**
+	 * Sync interval in seconds.
 	 *
 	 * @var int
 	 */
-	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS; // 15 * 60
+	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Get integration ID.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string Integration identifier.
 	 */
 	public function get_id(): string {
@@ -63,7 +72,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Register WordPress hooks.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function register_hooks(): void {
@@ -73,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Activate integration - schedule recurring sync.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function activate(): void {
@@ -90,14 +99,16 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				'wc-stripe'
 			);
 
-			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / 60 ) . ' minutes' );
+			WC_Stripe_Logger::info( 'Agentic Commerce: Scheduled recurring feed sync every ' . ( self::SYNC_INTERVAL / MINUTE_IN_SECONDS ) . ' minutes' );
 		}
+
+		update_option( self::SCHEDULED_OPTION, 'yes', true );
 	}
 
 	/**
 	 * Deactivate integration - cancel scheduled sync.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function deactivate(): void {
@@ -106,6 +117,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		delete_option( self::SCHEDULED_OPTION );
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Canceled all scheduled feed syncs' );
 	}
@@ -113,14 +125,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get product feed query arguments.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array WP_Query arguments for product selection.
 	 */
 	public function get_product_feed_query_args(): array {
 		/**
 		 * Filter product feed query arguments.
 		 *
-		 * @since 10.4.0
+		 * @since 10.5.0
 		 * @param array $args WP_Query arguments.
 		 */
 		return apply_filters(
@@ -135,7 +147,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Create feed instance.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return FeedInterface CSV feed instance.
 	 */
 	public function create_feed(): FeedInterface {
@@ -147,7 +159,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get product mapper instance.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return ProductMapperInterface Product mapper instance.
 	 */
 	public function get_product_mapper(): ProductMapperInterface {
@@ -157,7 +169,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get feed validator instance.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return FeedValidatorInterface Feed validator instance.
 	 */
 	public function get_feed_validator(): FeedValidatorInterface {
@@ -167,26 +179,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get push delivery method for uploading to Stripe.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery Stripe Files API delivery method.
-	 * @throws RuntimeException If delivery method class doesn't exist.
 	 */
 	public function get_push_delivery_method(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Files_Api_Delivery' ) ) {
-			throw new RuntimeException(
-				esc_html__( 'Stripe Files API delivery class not found. Please ensure all required files are loaded.', 'woocommerce-gateway-stripe' )
-			);
-		}
-
-		$secret_key = $this->get_secret_key();
-
-		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret_key );
+		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $this->get_secret_key() );
 	}
 
 	/**
 	 * Check if integration is enabled.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return bool True if enabled, false otherwise.
 	 */
 	public function is_enabled(): bool {
@@ -198,7 +201,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * Generates product feed using ProductWalker.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function sync_feed(): void {
@@ -250,6 +253,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
+
+			// TODO: Deliver feed to Stripe via Files API (STRIPE-896).
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
@@ -266,7 +271,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Get Stripe secret key from settings.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string Stripe secret key.
 	 */
 	private function get_secret_key(): string {

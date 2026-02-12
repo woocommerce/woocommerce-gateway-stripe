@@ -5,7 +5,7 @@
  * Handles uploading product feed CSV files to Stripe Files API and creating ImportSets.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -22,7 +22,7 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
  * Uploads CSV product feeds to Stripe Files API and creates ImportSets for processing.
  * Implementation will be added in STRIPE-896.
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 
@@ -43,7 +43,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	/**
 	 * Initialize delivery method.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string $secret_key Stripe secret key.
 	 * @param string $account_id Stripe account ID (optional).
 	 */
@@ -55,7 +55,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	/**
 	 * Check if delivery method is properly configured.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return bool True if configured, false otherwise.
 	 */
 	public function check_setup(): bool {
@@ -65,7 +65,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	/**
 	 * Upload feed to Stripe Files API and create ImportSet.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param FeedInterface $feed The feed to deliver.
 	 * @return array Response with file_id and import_set_id.
 	 * @throws Exception If upload fails.

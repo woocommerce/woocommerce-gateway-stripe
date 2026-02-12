@@ -860,7 +860,7 @@ class WC_Stripe {
 	 * Registers the integration with WooCommerce product feed system and
 	 * sets up Action Scheduler for automated sync.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function initialize_agentic_commerce() {
@@ -877,19 +877,21 @@ class WC_Stripe {
 		// Create integration instance.
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
 
-		$product_feed        = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
+		$product_feed = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
 		$product_feed->register_integration( $integration );
 
 		// Register hooks for scheduled actions.
 		$integration->register_hooks();
 
 		// Schedule recurring sync if not already scheduled.
-		$integration->activate();
+		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) ) {
+			$integration->activate();
+		}
 
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
 		 *
-		 * @since 10.4.0
+		 * @since 10.5.0
 		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration instance.
 		 */
 		do_action( 'wc_stripe_agentic_commerce_initialized', $integration );
