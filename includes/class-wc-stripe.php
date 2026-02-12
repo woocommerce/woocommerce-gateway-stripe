@@ -877,8 +877,16 @@ class WC_Stripe {
 		// Create integration instance.
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
 
-		$product_feed = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
-		$product_feed->register_integration( $integration );
+		try {
+			$product_feed = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
+			$product_feed->register_integration( $integration );
+		} catch ( \Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic Commerce: Failed to register integration with WooCommerce product feed',
+				[ 'error' => $e->getMessage() ]
+			);
+			return;
+		}
 
 		// Register hooks for scheduled actions.
 		$integration->register_hooks();
