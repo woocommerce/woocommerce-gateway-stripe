@@ -213,6 +213,10 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-cli.php';
+			}
 		}
 
 		new Allowed_Payment_Request_Button_Types_Update();
@@ -894,6 +898,10 @@ class WC_Stripe {
 		 * @since 10.5.0
 		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration instance.
 		 */
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
+		}
+
 		do_action( 'wc_stripe_agentic_commerce_initialized', $integration );
 	}
 
