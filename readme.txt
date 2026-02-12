@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 10.2.0
+Stable tag: 10.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,14 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.5.0
+   -  Remove deprecated feature flags for UPE, ECE, and OCS; remove various helpers including is_sepa_tokens_for_other_methods_enabled() validate_minimum_order_amount(), get_booking_id_from_cart(), get_owner_details(), lock_order_payment(), unlock_order_payment(), lock_order_refund(), unlock_order_refund() and remove AJAX pay for order handler
+* 10.4.0
+   - Optimized Checkout Suite no longer enabled by default for new installs
+   - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+   - Removed the deprecated WC_Stripe_Apple_Pay class
+* 10.3.0
+   - Removed legacy checkout payment method classes and settings retrieval methods
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
@@ -139,11 +147,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.4.0 - xxxx-xx-xx =
-* Update - Remove the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
-* Dev - Replace deprecated logger method calls with severity specific methods
-* Dev - Ensure PHPStan runs when pushing changes
-* Dev - Add PHPStan stub for WC_Subscription class
-* Dev - Remove the deprecated WC_Stripe_Apple_Pay class
+= 10.5.0 - xxxx-xx-xx =
+* Dev - Remove unused frontend code related to UPE
+* Update - Remove all deprecated code up to version 10.1.0
+* Tweak - Update PHPDoc in admin REST controllers and related code
+* Tweak - Improve PHPDoc for migration and notes; minor notes refactor
+* Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
+* Tweak - Update PHPDoc for UPE payment method classes
+* Dev - Fix WC beta version resolution in tests
+* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

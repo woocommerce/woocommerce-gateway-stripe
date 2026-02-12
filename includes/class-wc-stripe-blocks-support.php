@@ -7,8 +7,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * WC_Stripe_Blocks_Support class.
- *
- * @extends AbstractPaymentMethodType
  */
 final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
@@ -55,6 +53,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 	/**
 	 * Initializes the payment method type.
+	 *
+	 * @return void
 	 */
 	public function initialize() {
 		$this->settings = WC_Stripe_Helper::get_stripe_settings();
@@ -110,6 +110,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 	/**
 	 * Registers the UPE JS scripts.
+	 *
+	 * @return void
 	 */
 	private function register_upe_payment_method_script_handles() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe-blocks.asset.php';
@@ -147,6 +149,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 	/**
 	 * Registers the classic JS scripts.
+	 *
+	 * @return void
 	 */
 	private function register_legacy_payment_method_script_handles() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
@@ -275,8 +279,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private function get_show_save_option() {
 		$saved_cards = $this->get_show_saved_cards();
 		// This assumes that Stripe supports `tokenization` - currently this is true, based on
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/class-wc-gateway-stripe.php#L95 .
-		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/ad19168b63df86176cbe35c3e95203a245687640/includes/class-wc-gateway-stripe.php#L271 and
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L222.
+		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L905 and
 		// https://github.com/woocommerce/woocommerce/wiki/Payment-Token-API .
 		return apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $saved_cards, FILTER_VALIDATE_BOOLEAN ) );
 	}
@@ -334,6 +338,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 *
 	 * @param PaymentContext $context Holds context for the payment.
 	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @return void
 	 */
 	public function add_payment_request_order_meta( PaymentContext $context, PaymentResult &$result ) {
 		$data = $context->payment_data;
@@ -399,6 +405,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 *
 	 * @param PaymentContext $context Holds context for the payment.
 	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @return void
 	 */
 	public function add_stripe_intents( PaymentContext $context, PaymentResult &$result ) {
 		if ( 'stripe' === $context->payment_method
@@ -434,8 +442,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Handles adding information about the payment request type used to the order meta.
 	 *
-	 * @param \WC_Order $order The order being processed.
+	 * @param \WC_Order $order                The order being processed.
 	 * @param string    $payment_request_type The payment request type used for payment.
+	 *
+	 * @return void
 	 */
 	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
 		$payment_method_title = '';

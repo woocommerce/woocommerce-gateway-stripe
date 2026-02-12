@@ -691,4 +691,10 @@ export default class WCStripeAPI {
 			}
 		);
 	}
+
+	checkoutSessionsCreateSession() {
+		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
+			security: this.options?.createCheckoutSessionNonce,
+		} );
+	}
 }

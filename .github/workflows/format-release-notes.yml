@@ -1,0 +1,85 @@
+name: Format Release Notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to format release notes for (e.g., release/10.4.0)'
+        type: string
+        required: true
+
+run-name: Format release notes for ${{ inputs.branch }}
+
+jobs:
+  format-release-notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Format release notes with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Please reorganize the changelog entries in readme.txt for the upcoming release.
+
+            The changelog entries should be rearranged under these four headings (in this order):
+
+            **New Features**
+            - New functionality and capabilities
+            - New payment methods or integrations
+
+            **Important Fixes and Updates**
+            - Major bug fixes that prevent errors or crashes
+            - User-facing feature updates and changes
+            - Deprecation notices and breaking changes
+
+            **Other Fixes and Updates**
+            - Minor fixes and tweaks
+            - Small improvements that don't fit in the important category
+
+            **Internal Changes and Upcoming Features**
+            - All "Dev -" prefixed entries
+            - Internal tooling, testing, and CI changes
+            - Code refactoring that doesn't affect users
+
+            Rules:
+            1. Only modify the first changelog section (the one with "xxxx-xx-xx" date placeholder)
+            2. Keep the original entry text exactly as-is, just reorganize them
+            3. Add a blank line after the version header before the first section heading
+            4. Each section heading should be on its own line with entries following it
+            5. If a section would be empty, omit that section entirely
+
+            After making changes, commit them to the current branch with message:
+            "Reorganize changelog entries for release"
+
+          claude_args: "--allowedTools 'Edit,Read,Bash(git status),Bash(git add),Bash(git commit),Bash(git diff)' --max-turns 10"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 #v8.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: format-release-notes/${{ inputs.branch }}
+          base: ${{ inputs.branch }}
+          title: "Reorganize release notes for ${{ inputs.branch }}"
+          body: |
+            This PR reorganizes the changelog entries in `readme.txt` under the standard release note headings:
+
+            - **New Features**
+            - **Important Fixes and Updates**
+            - **Other Fixes and Updates**
+            - **Internal Changes and Upcoming Features**
+
+            Generated automatically by Claude Code.
+
+            ## Testing instructions
+            Review the contents of the various sections and ensure entries are under the right headings.
+          labels: changelog
