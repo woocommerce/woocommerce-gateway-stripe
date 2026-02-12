@@ -178,11 +178,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			);
 		}
 
-		$settings   = WC_Stripe_Helper::get_stripe_settings();
 		$secret_key = $this->get_secret_key();
-		$account_id = $settings['agentic_commerce_account_id'] ?? '';
 
-		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret_key, $account_id );
+		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret_key );
 	}
 
 	/**

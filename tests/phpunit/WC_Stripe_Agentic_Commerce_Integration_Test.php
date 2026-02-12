@@ -145,18 +145,17 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test is_enabled returns true when setting is active.
+	 * Test is_enabled returns true when filter enables it.
 	 *
 	 * @return void
 	 */
-	public function test_is_enabled_when_setting_active() {
-		update_option(
-			'woocommerce_stripe_settings',
-			[ 'agentic_commerce_enabled' => 'yes' ]
-		);
+	public function test_is_enabled_when_filter_active() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 		$this->assertTrue( $integration->is_enabled() );
+
+		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 	}
 
 	/**
