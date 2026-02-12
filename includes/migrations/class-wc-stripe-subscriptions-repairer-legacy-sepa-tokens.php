@@ -68,6 +68,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * Don't run if either of these conditions are met:
 	 *    - The WooCommerce Subscriptions extension isn't active.
 	 *    - The Legacy checkout experience is enabled (aka UPE is disabled).
+	 *
+	 * @return void
 	 */
 	public function maybe_update() {
 		if (
@@ -94,6 +96,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * This is the callback for the repair hook.
 	 *
 	 * @param int $subscription_id ID of the subscription to be processed.
+	 *
+	 * @return void
 	 */
 	public function repair_item( $subscription_id ) {
 		try {
@@ -119,6 +123,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * 3. Delete the transient which stores the progress of the repair.
 	 *
 	 * @param int $item The ID of the subscription to migrate.
+	 *
+	 * @return void
 	 */
 	protected function update_item( $item ) {
 		if ( ! as_next_scheduled_action( $this->repair_hook, [ 'repair_object' => $item ] ) ) {
@@ -163,6 +169,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 * This function is a backstop to prevent subscription renewals from failing if we haven't ran the repair yet.
 	 *
 	 * @param int $subscription_id The subscription ID which is about to renew.
+	 *
+	 * @return void
 	 */
 	public function maybe_migrate_before_renewal( $subscription_id ) {
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
@@ -202,6 +210,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 	 *
 	 * This notice is displayed on the Subscriptions list table page and includes information about the progress of the repair.
 	 * What % of the repair is complete, or when the next scheduled action is expected to run.
+	 *
+	 * @return void
 	 */
 	public function display_admin_notice() {
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
@@ -379,6 +389,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 
 	/**
 	 * Restarts the legacy token update process.
+	 *
+	 * @return void
 	 */
 	public function restart_update() {
 		// Clear the option to allow the update to be scheduled again.

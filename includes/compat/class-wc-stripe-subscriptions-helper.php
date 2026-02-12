@@ -45,18 +45,6 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
-	 *
-	 * @return array
-	 *
-	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
-	 */
-	public static function get_some_detached_subscriptions() {
-		_deprecated_function( __METHOD__, '9.6.0' );
-		return self::get_detached_subscriptions( 50 );
-	}
-
-	/**
 	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
@@ -143,7 +131,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Checks if a subscription's payment method is detached from the customer.
 	 *
-	 * @param $subscription WC_Subscription The subscription object to check.
+	 * @param WC_Subscription $subscription The subscription object to check.
 	 * @return bool True if the payment method is detached, false otherwise.
 	 */
 	public static function is_subscription_payment_method_detached( $subscription ) {
@@ -233,7 +221,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a string containing messages about subscriptions that are detached from the customer.
 	 *
-	 * @param $subscriptions array An array of subscriptions that are detached from the customer.
+	 * @param array $subscriptions An array of subscriptions that are detached from the customer.
 	 * @return string A string containing the messages to be displayed in the admin interface.
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
@@ -269,7 +257,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Builds a message for a single subscription that is detached from the customer.
 	 *
-	 * @param $subscription array An array containing the (single) subscription details.
+	 * @param array $subscription An array containing the (single) subscription details.
 	 * @return string
 	 */
 	public static function build_subscription_detached_message( $subscription ) {

@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "10.3.1",
+  "version": "10.4.0",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -74,7 +74,7 @@
     "jest": "^29.7.0",
     "jquery": "^3.6.0",
     "lint-staged": "11.1.2",
-    "lodash": "4.17.21",
+    "lodash": "4.17.23",
     "memize": "2.1.1",
     "mocha": "^11.7.2",
     "moment-timezone": "^0.6.0",
@@ -163,6 +163,7 @@
     "test:e2e-down": "./tests/e2e/bin/down.sh",
     "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
     "test:e2e": "./tests/e2e/bin/run-tests.sh --project=default",
+    "test:e2e-run": "./tests/e2e/bin/run-tests.sh",
     "test:e2e-debug": "npm run test:e2e -- --debug",
     "test:e2e-legacy": "./tests/e2e/bin/run-tests.sh --project=legacy",
     "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug",
