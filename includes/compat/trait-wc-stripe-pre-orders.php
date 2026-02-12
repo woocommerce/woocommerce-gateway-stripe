@@ -23,6 +23,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Initialize pre-orders hook.
 	 *
+	 * @return void
 	 * @since 5.8.0
 	 */
 	public function maybe_init_pre_orders() {
@@ -170,7 +171,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Remove order meta.
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order $order The order object.
+	 *
+	 * @return void
 	 */
 	public function remove_order_source_before_retry( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -183,7 +186,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 * Marks the order as pre-ordered.
 	 * The native function is wrapped so we can call it separately and more easily mock it in our tests.
 	 *
-	 * @param object $order
+	 * @param WC_Order $order The order object.
+	 * @return void
 	 */
 	public function mark_order_as_pre_ordered( $order ) {
 		if ( ! class_exists( 'WC_Pre_Orders_Order' ) ) {
@@ -317,6 +321,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Determines if an order contains a pre-order and if it is charged upon release.
 	 *
+	 * @param WC_Order $order The order object.
 	 * @return bool
 	 */
 	public function has_pre_order_charged_upon_release( $order ) {

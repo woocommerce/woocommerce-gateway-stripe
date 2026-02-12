@@ -17,14 +17,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	public $stripe_settings;
 
 	/**
 	 * Total label
 	 *
-	 * @var
+	 * @var string
 	 */
 	public $total_label;
 
@@ -336,7 +336,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * JS params data used by cart and checkout pages.
 	 *
-	 * @param array $data
+	 * @return array The checkout data.
 	 */
 	public function get_checkout_data() {
 		$data = [
@@ -377,7 +377,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Normalizes postal code in case of redacted data from Apple Pay.
 	 *
 	 * @param string $postcode Postal code.
-	 * @param string $country Country.
+	 * @param string $country  Country.
+	 *
+	 * @return string The normalized postal code.
 	 */
 	public function get_normalized_postal_code( $postcode, $country ) {
 		/**
@@ -948,9 +950,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Returns true if the provided product is supported, false otherwise.
 	 *
-	 * @param WC_Product $param  The product that's being checked for support.
+	 * @param WC_Product|null|bool $product The product to check if it is supported.
 	 *
-	 * @return boolean  True if the provided product is supported, false otherwise.
+	 * @return bool True if the provided product is supported, false otherwise.
 	 */
 	public function is_product_supported( $product ) {
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
@@ -1070,9 +1072,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Updates shipping method in WC session
+	 * Updates shipping method in WC session.
 	 *
 	 * @param array $shipping_methods Array of selected shipping methods ids.
+	 *
+	 * @return void
 	 */
 	public function update_shipping_method( $shipping_methods ) {
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
@@ -1265,6 +1269,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * The express checkout API provides its own validation for the address form.
 	 * For some countries, it might not provide a state field, so we need to return a more descriptive
 	 * error message, indicating that the express checkout button is not supported for that country.
+	 *
+	 * @return void
 	 */
 	public function validate_state() {
 		$wc_checkout     = WC_Checkout::instance();
@@ -1365,6 +1371,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Calculate and set shipping method.
 	 *
 	 * @param array $address Shipping address.
+	 *
+	 * @return void
 	 */
 	protected function calculate_shipping( $address = [] ) {
 		$country   = $address['country'];
@@ -1469,6 +1477,10 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Builds the shipping methods to pass to express checkout elements.
+	 *
+	 * @param array $shipping_methods The shipping methods data.
+	 *
+	 * @return array The formatted shipping methods for express checkout.
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
 		if ( empty( $shipping_methods ) ) {
@@ -1491,6 +1503,21 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Builds the line items to pass to express checkout elements.
+	 *
+	 * @param bool $itemized_display_items Whether to include itemized display items.
+	 *
+	 * @return array {
+	 *     The display items and total for express checkout.
+	 *
+	 *     @type array $displayItems The display items.
+	 *     @type array $total {
+	 *         The total for express checkout.
+	 *
+	 *         @type string    $label   The label for the total.
+	 *         @type float|int $amount  The amount for the total.
+	 *         @type bool      $pending Whether the total is pending.
+	 *     }
+	 * }
 	 */
 	public function build_display_items( $itemized_display_items = false ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
@@ -1685,18 +1712,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
-	}
-
-	/**
 	 * Restores the shipping methods previously chosen for each recurring cart after shipping was reset and recalculated
 	 * during the express checkout get_shipping_options flow.
 	 *
@@ -1710,6 +1725,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * This function needs to be called after `WC()->cart->calculate_totals()` is run, otherwise `WC()->cart->recurring_carts` won't exist yet.
 	 *
 	 * @param array $previous_chosen_methods The previously chosen shipping methods.
+	 *
+	 * @return void
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
 		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
@@ -1764,25 +1781,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function cart_prices_include_tax() {
 		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
-	}
-
-	/**
-	 * Gets the booking id from the cart.
-	 *
-	 * It's expected that the cart only contains one item which was added via ajax_add_to_cart.
-	 * Used to remove the booking from WC Bookings in-cart status.
-	 *
-	 * @return int|false
-	 *
-	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
-	 */
-	public function get_booking_id_from_cart() {
-		$booking_ids = $this->get_booking_ids_from_cart();
-		if ( ! empty( $booking_ids ) ) {
-			return $booking_ids[0];
-		}
-
-		return false;
 	}
 
 	/**

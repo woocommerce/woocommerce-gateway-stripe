@@ -39,10 +39,9 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Adds on-hold as accepted status during webhook handling on orders paid with Boleto
 	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
+	 * @param array    $allowed_statuses The allowed statuses.
+	 * @param WC_Order $order            The order object.
+	 * @return array
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
 		if ( WC_Stripe_Payment_Methods::BOLETO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {

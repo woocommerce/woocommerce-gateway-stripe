@@ -39,7 +39,8 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Output for the order received page.
 	 *
-	 * @param int $order_id
+	 * @param int $order_id The order ID.
+	 * @return void
 	 */
 	public function thankyou_page( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -71,8 +72,9 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Gets Multibanco payment instructions for the customer.
 	 *
-	 * @param WC_Order $order
-	 * @param bool     $plain_text
+	 * @param WC_Order $order      The order object.
+	 * @param bool     $plain_text Whether to output as plain text.
+	 * @return void
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
 		$data = WC_Stripe_Order_Helper::get_instance()->get_stripe_multibanco_data( $order );
@@ -116,8 +118,9 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Saves Multibanco information to the order meta for later use.
 	 *
-	 * @param WC_Order $order
-	 * @param object   $payment_intent. The PaymentIntent object.
+	 * @param WC_Order $order          The order object.
+	 * @param object   $payment_intent The PaymentIntent object.
+	 * @return void
 	 */
 	public function save_instructions( $order, $payment_intent ) {
 		if ( empty( $payment_intent->next_action->multibanco_display_details ) ) {
@@ -134,12 +137,11 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Adds on-hold as accepted status during webhook handling on orders paid with Mukltibanco
+	 * Adds on-hold as accepted status during webhook handling on orders paid with Multibanco
 	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
+	 * @param array    $allowed_statuses The allowed statuses.
+	 * @param WC_Order $order            The order object.
+	 * @return array
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
 		if ( WC_Stripe_Payment_Methods::MULTIBANCO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
