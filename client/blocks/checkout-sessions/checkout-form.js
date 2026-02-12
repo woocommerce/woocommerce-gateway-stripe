@@ -8,7 +8,6 @@ import { __ } from '@wordpress/i18n';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
- * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
  */
 
 /**
