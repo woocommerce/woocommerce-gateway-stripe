@@ -1,9 +1,8 @@
 import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
-import { useState } from '@wordpress/element';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
@@ -17,14 +16,13 @@ const stripePromise = loadStripe();
  */
 export const CheckoutSessionsContainer = ( props ) => {
 	const { api } = props;
-	const promise = useMemo( () => {
-		return api.checkoutSessionsCreateSession().then( ( response ) => {
-			const clientSecret = response.data?.client_secret;
-			if ( ! clientSecret ) {
-				throw new Error( 'Missing client secret in response' );
-			}
-			return clientSecret;
-		} );
+	const promise = useMemo( async () => {
+		const response = await api.checkoutSessionsCreateSession();
+		const clientSecret = response.data?.client_secret;
+		if ( ! clientSecret ) {
+			throw new Error( 'Missing client secret in response' );
+		}
+		return clientSecret;
 	}, [ api ] );
 	const [
 		paymentProcessorLoadErrorMessage,

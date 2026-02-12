@@ -13,11 +13,6 @@ jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
 } ) );
 
 describe( 'CheckoutForm', () => {
-	CurrencySelectorElement.mockReturnValue(
-		<div>Currency Selector Element</div>
-	);
-	PaymentElement.mockReturnValue( <div>Payment Element</div> );
-
 	const components = {
 		LoadingMask: ( { isLoading, showSpinner, screenReaderLabel } ) => (
 			<div>
@@ -28,6 +23,13 @@ describe( 'CheckoutForm', () => {
 		),
 	};
 	const onLoadError = jest.fn();
+
+	beforeEach( () => {
+		CurrencySelectorElement.mockReturnValue(
+			<div>Currency Selector Element</div>
+		);
+		PaymentElement.mockReturnValue( <div>Payment Element</div> );
+	} );
 
 	it( 'should render loading state', () => {
 		useCheckout.mockReturnValue( {
