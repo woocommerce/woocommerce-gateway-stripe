@@ -102,7 +102,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @return bool
 	 *
-	 * @deprecated 10.4.0 UPE is always enabled. This method will be removed in a future release.
+	 * @deprecated 10.5.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function did_merchant_disable_upe() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -115,7 +115,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @return bool Whether the APMs are deprecated.
 	 *
-	 * @deprecated 10.4.0 APMs are deprecated and the legacy checkout no longer exists. This method will be removed in a future release.
+	 * @deprecated 10.5.0 APMs are deprecated and the legacy checkout no longer exists. This method will be removed in a future release.
 	 */
 	public static function are_apms_deprecated() {
 		return false;
