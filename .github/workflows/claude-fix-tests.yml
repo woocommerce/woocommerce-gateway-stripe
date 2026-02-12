@@ -54,7 +54,7 @@ jobs:
                         return;
                       }
 
-                      // Check if this is a fork PR (security: skip fork PRs)
+                      // Check if this is a fork PR
                       const isFork = workflowRun.head_repository &&
                         workflowRun.head_repository.full_name !== `${owner}/${repo}`;
 
@@ -70,10 +70,10 @@ jobs:
                   echo "No PR associated with this workflow run. Skipping."
                   exit 0
 
-            - name: Skip fork PRs (security)
+            - name: Skip fork PRs
               if: steps.resolve_pr.outputs.is_fork == 'true'
               run: |
-                  echo "Fork PRs are skipped for security. Skipping."
+                  echo "Fork PRs are skipped"
                   exit 0
 
             # ──────────────────────────────────────────────
@@ -156,7 +156,7 @@ jobs:
                       core.setOutput('workflow_name', context.payload.workflow_run.name);
 
             # ──────────────────────────────────────────────
-            # Step 3: Checkout and run Phase 1 — Analysis
+            # Step 3: Checkout and run analysis
             # ──────────────────────────────────────────────
             - name: Checkout PR branch
               if: >
@@ -209,7 +209,7 @@ jobs:
                   additional_permissions: 'actions: read'
 
             # ──────────────────────────────────────────────
-            # Step 4: Post analysis comment (idempotent)
+            # Step 4: Post analysis comment
             # ──────────────────────────────────────────────
             - name: Post analysis comment
               if: >
@@ -313,7 +313,7 @@ jobs:
                       core.setOutput('will_fix', String(willFix));
 
             # ──────────────────────────────────────────────
-            # Step 5: Phase 2 - Fix tests and create PR
+            # Step 5: Fix tests and create PR
             # ──────────────────────────────────────────────
             - name: Fix tests and create PR (Phase 2)
               if: steps.comment.outputs.will_fix == 'true'
