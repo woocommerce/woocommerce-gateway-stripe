@@ -11,6 +11,7 @@ use WC_Stripe_UPE_Payment_Gateway;
 use WC_Subscription;
 use WC_Subscriptions_Switcher;
 use WC_Subscriptions_Helpers;
+use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
@@ -551,8 +552,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * Test that rate limiting works after a failed attempt.
 	 */
 	public function test_rate_limiting_on_consecutive_failed_calls() {
-		add_filter( 'wp_doing_ajax', '__return_true' );
-		add_filter( 'wp_die_ajax_handler', [ $this, 'wp_ajax_halt_handler_filter' ] );
+		Ajax_Test_Helper::init_hooks();
 
 		wp_set_current_user( 1 );
 		$_POST['wc-stripe-payment-method'] = 'pm_test_123';
@@ -580,25 +580,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'error', $response['data'] );
 		$this->assertEquals( 'You cannot add a new payment method so soon after the previous one.', $response['data']['error']['message'] );
 
-		remove_filter( 'wp_die_ajax_handler', [ $this, 'wp_ajax_halt_handler_filter' ] );
-		remove_filter( 'wp_doing_ajax', '__return_true' );
-	}
-
-	/**
-	 * Filter to return a custom handler for AJAX requests.
-	 *
-	 * @return callable The custom handler function.
-	 */
-	public function wp_ajax_halt_handler_filter() {
-		return [ $this, 'wp_ajax_print_handler' ];
-	}
-
-	/**
-	 * Custom handler function to output the message.
-	 *
-	 * @param string $message The message to print.
-	 */
-	public function wp_ajax_print_handler( $message ) {
-		echo wp_kses_post( $message );
+		Ajax_Test_Helper::remove_hooks();
 	}
 }

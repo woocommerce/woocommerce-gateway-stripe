@@ -22,6 +22,8 @@ class Sepa_Tokens_For_Other_Methods_Settings_Update {
 
 	/**
 	 * Only execute the migration if not applied yet.
+	 *
+	 * @return void
 	 */
 	public function maybe_migrate() {
 		$stripe_gateway = $this->get_gateway();

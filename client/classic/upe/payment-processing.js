@@ -14,13 +14,13 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
+	getExcludedPaymentMethodTypes,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
-	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
@@ -169,8 +169,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration:
 					stripeServerData?.paymentMethodConfigurationId,
-				// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
-				excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
+				// Exclude unsupported payment methods - calculated dynamically on server side
+				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 			};
 
 			const setupFutureUsage =
@@ -393,6 +393,35 @@ export async function mountStripePaymentElement( api, domElement ) {
 	}
 
 	return gatewayUPEComponents[ paymentMethodType ];
+}
+
+/**
+ * Gets the mounted UPE element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Object|null} The UPE element component object or null if not found.
+ */
+export function getMountedUPEComponent( paymentMethodType ) {
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return null;
+	}
+
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	if ( ! component.elements ) {
+		return null;
+	}
+
+	const domElement = document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+
+	// Only return if the Elements object exists and is mounted.
+	if ( domElement && domElement.children.length > 0 ) {
+		return component;
+	}
+
+	return null;
 }
 
 /**
