@@ -309,7 +309,7 @@ try {
     $feed->start();
 } catch ( Exception $e ) {
     // Cannot create temp file or uploads directory
-    WC_Stripe_Logger::log( 'Feed start failed: ' . $e->getMessage() );
+    WC_Stripe_Logger::error( 'Feed start failed: ' . $e->getMessage() );
 }
 ```
 
