@@ -16,8 +16,9 @@
 * Dev - Fix becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 
-= 10.4.0 - 2026-02-09 = 
+= 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
 * Add - New setting to control Adaptive Pricing
 * Add - Map Norwegian nb-NO to generic no-NO locale
