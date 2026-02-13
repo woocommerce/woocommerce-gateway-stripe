@@ -1,6 +1,7 @@
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
+	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 	isLinkEnabled,
@@ -566,45 +567,59 @@ export const processPayment = (
 				);
 			}
 
-			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-				validateBlikCode( jQueryForm );
-			} else {
-				await validateElements( elements );
-			}
+			if ( isAdaptivePricingSupported ) {
+				const loadActionsResult = await elements.loadActions();
+				const { actions } = loadActionsResult;
+				const confirmResult = await actions.confirm( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+				} );
 
-			const paymentMethodObject = await createStripePaymentMethod(
-				api,
-				elements,
-				jQueryForm,
-				paymentMethodType
-			);
-
-			appendPaymentMethodIdToForm(
-				jQueryForm,
-				paymentMethodObject.paymentMethod.id
-			);
-
-			// Append the intent ID to the form if it was previously created through a non-deferred intent.
-			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-				appendPaymentIntentIdToForm(
+				appendCheckoutSessionIdToForm(
 					jQueryForm,
-					gatewayUPEComponents[ paymentMethodType ].intentId
+					confirmResult.session.id
 				);
-			}
-
-			let stopFormSubmission = false;
-			await additionalActionsHandler(
-				paymentMethodObject.paymentMethod,
-				jQueryForm,
-				api,
-				() => {
-					// Provide a callback to flag that a redirect has occurred.
-					stopFormSubmission = true;
+			} else {
+				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+					validateBlikCode( jQueryForm );
+				} else {
+					await validateElements( elements );
 				}
-			);
 
-			if ( stopFormSubmission ) {
-				return;
+				const paymentMethodObject = await createStripePaymentMethod(
+					api,
+					elements,
+					jQueryForm,
+					paymentMethodType
+				);
+
+				appendPaymentMethodIdToForm(
+					jQueryForm,
+					paymentMethodObject.paymentMethod.id
+				);
+
+				// Append the intent ID to the form if it was previously created through a non-deferred intent.
+				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+					appendPaymentIntentIdToForm(
+						jQueryForm,
+						gatewayUPEComponents[ paymentMethodType ].intentId
+					);
+				}
+
+				let stopFormSubmission = false;
+				await additionalActionsHandler(
+					paymentMethodObject.paymentMethod,
+					jQueryForm,
+					api,
+					() => {
+						// Provide a callback to flag that a redirect has occurred.
+						stopFormSubmission = true;
+					}
+				);
+
+				if ( stopFormSubmission ) {
+					return;
+				}
 			}
 
 			hasCheckoutCompleted = true;
