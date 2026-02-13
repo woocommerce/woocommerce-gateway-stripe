@@ -110,7 +110,7 @@ class WC_Stripe_Autoloader {
 			'wc_stripe_admin_upe_compatibility_controller'          => __DIR__ . '/admin/class-wc-stripe-upe-compatibility-controller.php',
 			'wc_stripe_amazon_pay_controller'                       => __DIR__ . '/admin/class-wc-stripe-amazon-pay-controller.php',
 			'wc_stripe_subscription_detached_bulk_action'           => __DIR__ . '/admin/class-wc-stripe-subscription-detached-bulk-action.php',
-			'wc_stripe_subscription_repairer_legacy_sepa_tokens'    => __DIR__ . '/admin/class-wc-stripe-subscription-repairer-legacy-sepa-tokens.php',
+			'wc_stripe_subscriptions_repairer_legacy_sepa_tokens'   => __DIR__ . '/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php',
 			'wc_stripe_api'                                         => __DIR__ . '/class-wc-stripe-api.php',
 			'wc_stripe_apple_pay'                                   => __DIR__ . '/deprecated/class-wc-stripe-apple-pay.php',
 			'wc_stripe_apple_pay_registration'                      => __DIR__ . '/class-wc-stripe-apple-pay-registration.php',
@@ -149,6 +149,7 @@ class WC_Stripe_Autoloader {
 			'wc_stripe_order'                                       => __DIR__ . '/class-wc-stripe-order.php',
 			'wc_stripe_order_handler'                               => __DIR__ . '/class-wc-stripe-order-handler.php',
 			'wc_stripe_order_helper'                                => __DIR__ . '/class-wc-stripe-order-helper.php',
+			'wc_stripe_payment_request_button_states'               => __DIR__ . '/constants/class-wc-stripe-payment-request-button-states.php',
 			'wc_stripe_payment_gateway'                             => __DIR__ . '/abstracts/abstract-wc-stripe-payment-gateway.php',
 			'wc_stripe_payment_gateway_voucher'                     => __DIR__ . '/abstracts/abstract-wc-stripe-payment-gateway-voucher.php',
 			'wc_stripe_payment_gateways_controller'                 => __DIR__ . '/admin/class-wc-stripe-payment-gateways-controller.php',
@@ -216,6 +217,7 @@ class WC_Stripe_Autoloader {
 		return [
 			'wc_stripe_admin_inbox_notes'                           => __DIR__ . '/admin/class-wc-stripe-inbox-notes.php',
 			'wc_stripe_admin_notices'                               => __DIR__ . '/admin/class-wc-stripe-admin-notices.php',
+			'wc_stripe_payment_requests_controller'                 => __DIR__ . '/admin/class-wc-stripe-payment-requests-controller.php',
 			'wc_stripe_privacy'                                     => __DIR__ . '/admin/class-wc-stripe-privacy.php',
 		];
 	}
