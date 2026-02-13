@@ -103,6 +103,18 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * @return self
 	 */
 	public function set_columns( array $headers ): self {
+		foreach ( $headers as $index => $header ) {
+			if ( ! is_string( $header ) || '' === trim( $header ) ) {
+				throw new \Exception(
+					sprintf(
+						/* translators: %d: column index */
+						__( 'CSV header at index %d must be a non-empty string.', 'woocommerce-gateway-stripe' ),
+						$index
+					)
+				);
+			}
+		}
+
 		$this->headers = $headers;
 		return $this;
 	}

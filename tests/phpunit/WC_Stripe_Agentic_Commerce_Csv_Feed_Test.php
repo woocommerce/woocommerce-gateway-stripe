@@ -120,6 +120,20 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test set_columns rejects invalid header values.
+	 *
+	 * @return void
+	 */
+	public function test_set_columns_rejects_invalid_headers() {
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessageMatches( '/non-empty string/' );
+
+		$feed->set_columns( [ 'id', '', 'price' ] );
+	}
+
+	/**
 	 * Test start without headers throws exception.
 	 *
 	 * @return void
