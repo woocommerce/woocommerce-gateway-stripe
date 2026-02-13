@@ -1,8 +1,4 @@
-import {
-	CurrencySelectorElement,
-	PaymentElement,
-	useCheckout,
-} from '@stripe/react-stripe-js/checkout';
+import { PaymentElement, useCheckout } from '@stripe/react-stripe-js/checkout';
 import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 
@@ -55,7 +51,6 @@ const CheckoutForm = ( {
 
 	return (
 		<>
-			<CurrencySelectorElement />
 			<PaymentElement
 				options={ {
 					fields: {

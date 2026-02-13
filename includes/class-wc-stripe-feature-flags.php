@@ -71,6 +71,7 @@ class WC_Stripe_Feature_Flags {
 	 * @since 10.4.0
 	 */
 	public static function is_checkout_sessions_available() {
+		return true;
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
 		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
@@ -123,8 +124,9 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
+		return true;
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		$pmc_enabled     = 'yes';
 		if ( 'yes' !== $pmc_enabled ) {
 			return false;
 		}

@@ -2,6 +2,7 @@ import {
 	registerPaymentMethod,
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
+import { registerCheckoutBlock } from '@woocommerce/blocks-checkout';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
@@ -24,6 +25,11 @@ import {
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
+import { currencySelectorBlock } from 'wcstripe/blocks/checkout-sessions/currency-selector-block';
+
+if ( getBlocksConfiguration()?.isAdaptivePricingEnabled ) {
+	registerCheckoutBlock( currencySelectorBlock );
+}
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),

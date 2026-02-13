@@ -1,0 +1,28 @@
+{
+	"name": "woocommerce-gateway-stripe/currency-selector",
+	"version": "1.0.0",
+	"title": "Currency Selector",
+	"description": "Contains blocks that display the currency selector for checkout sessions.",
+	"category": "woocommerce-gateway-stripe",
+	"supports": {
+		"align": false,
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"inserter": false,
+		"lock": false
+	},
+	"attributes": {
+		"lock": {
+			"type": "object",
+			"default": {
+				"remove": true,
+				"move": true
+			}
+		}
+	},
+	"parent": [ "woocommerce/checkout-payment-block" ],
+	"textdomain": "woocommerce-gateway-stripe",
+	"apiVersion": 2,
+	"$schema": "https://schemas.wp.org/trunk/block.json"
+}
