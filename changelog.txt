@@ -15,6 +15,7 @@
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fix becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 
 = 10.4.0 - 2026-02-09 = 
 * Add - Introduce an endpoint to create Checkout Sessions tokens
