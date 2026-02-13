@@ -63,19 +63,16 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * @return array Array of validation error messages (empty if valid).
 	 */
 	public function validate_entry( array $row, \WC_Product $product ): array {
-		$errors = [];
-
-		// Validate required fields.
-		$errors = array_merge( $errors, $this->validate_required_fields( $row ) );
-
-		// Validate field formats.
-		$errors = array_merge( $errors, $this->validate_field_formats( $row ) );
-
-		// Validate business rules.
-		$errors = array_merge( $errors, $this->validate_business_rules( $row, $product ) );
-
-		// Validate variant attribute consistency across entries.
-		$errors = array_merge( $errors, $this->validate_variant_consistency( $row ) );
+		$errors = array_merge(
+			// Validate required fields.
+			$this->validate_required_fields( $row ),
+			// Validate field formats.
+			$this->validate_field_formats( $row ),
+			// Validate business rules.
+			$this->validate_business_rules( $row, $product ),
+			// Validate variant attribute consistency across entries.
+			$this->validate_variant_consistency( $row ),
+		);
 
 		/**
 		 * Filter validation errors.
