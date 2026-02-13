@@ -13,6 +13,7 @@
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Fix becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
 
 = 10.4.0 - 2026-02-09 = 
 * Add - Introduce an endpoint to create Checkout Sessions tokens

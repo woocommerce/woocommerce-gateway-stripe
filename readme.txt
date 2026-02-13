@@ -160,5 +160,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
