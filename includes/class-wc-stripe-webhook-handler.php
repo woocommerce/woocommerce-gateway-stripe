@@ -1443,7 +1443,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 
-			$amount = WC_Stripe_Helper::get_stripe_amount( $presentment_details->presentment_amount, $presentment_details->presentment_currency );
+			$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+				$presentment_details->presentment_amount,
+				$presentment_details->presentment_currency
+			);
 
 			$order->add_order_note(
 				sprintf(
