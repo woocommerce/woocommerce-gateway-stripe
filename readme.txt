@@ -156,5 +156,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc for UPE payment method classes
 * Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -9,6 +9,7 @@
 * Tweak - Update PHPDoc for UPE payment method classes
 * Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
 
 = 10.4.0 - 2026-02-09 = 
 * Add - Introduce an endpoint to create Checkout Sessions tokens
