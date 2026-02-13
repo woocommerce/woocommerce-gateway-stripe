@@ -592,11 +592,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_oc_settings( WP_REST_Request $request ) {
-		$attributes = [
+		$attributes                    = [
 			'is_oc_enabled' => 'optimized_checkout_element',
 			'is_ap_enabled' => 'adaptive_pricing',
 			'oc_layout'     => 'optimized_checkout_layout',
 		];
+		$adaptive_pricing_just_enabled = false;
+
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
 
@@ -610,6 +612,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			}
 			$current_value = $this->gateway->get_option( $attribute );
 
+			if ( 'is_ap_enabled' === $request_key && 'yes' === $value && 'yes' !== $current_value ) {
+				$adaptive_pricing_just_enabled = true;
+			}
+
 			$this->gateway->update_validated_option( $attribute, $value );
 
 			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
@@ -621,6 +627,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					]
 				);
 			}
+		}
+
+		// If Adaptive Pricing was just enabled, we may need to reconfigure the webhooks to include the checkout session events.
+		if ( $adaptive_pricing_just_enabled ) {
+			WC_Stripe::get_instance()->account->maybe_reconfigure_webhooks_on_update();
 		}
 	}
 
