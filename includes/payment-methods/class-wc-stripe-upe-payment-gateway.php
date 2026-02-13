@@ -945,7 +945,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		echo '<div id="currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
+		echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 	}
 
 	/**

@@ -301,7 +301,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
  */
 function mountCurrencySelectorElement( elements ) {
 	const currencySelector = elements.createCurrencySelectorElement();
-	currencySelector.mount( '#currency-selector' );
+	currencySelector.mount( '#wc-stripe-currency-selector' );
 }
 
 /**
