@@ -328,7 +328,7 @@ try {
 $feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test' );
 $feed->set_columns( ['id', 'name'] );
 $feed->start();
-// Exception thrown - destructor automatically cleans up temp file
+// Exception thrown - the temporary file is automatically cleaned up.
 unset( $feed );
 ```
 
