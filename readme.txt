@@ -148,6 +148,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Move class instantiations from their definition files to the plugin initialization code
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Dev - Remove unused frontend code related to UPE
 * Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
@@ -157,5 +159,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Fixes becs e2e tests
+* Add - Add the base CSV feed for agentic commerce
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
