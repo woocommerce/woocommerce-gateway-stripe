@@ -568,14 +568,11 @@ export const processPayment = (
 			}
 
 			if ( isAdaptivePricingSupported ) {
-				const userEmail =
-					document.getElementById( 'billing_email' )?.value ?? '';
 				const loadActionsResult = await elements.loadActions();
 				const { actions } = loadActionsResult;
 				const confirmResult = await actions.confirm( {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
-					email: userEmail,
 				} );
 
 				appendCheckoutSessionIdToForm(
