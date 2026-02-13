@@ -5,7 +5,7 @@
  * Defines Stripe's product catalog CSV specification.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Based on https://docs.stripe.com/agentic-commerce/product-catalog
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Feed_Schema {
 
@@ -33,7 +33,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	/**
 	 * Get the complete feed schema definition (cached).
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array Complete schema configuration.
 	 */
 	public static function get_schema(): array {
@@ -343,7 +343,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	/**
 	 * Get field configuration.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string $field Field name.
 	 * @return array|null Field configuration or null if not found.
 	 */
@@ -357,7 +357,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	 *
 	 * Handles both absolute requirements and conditional requirements.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string $field Field name to check.
 	 * @param array  $data  Product data for conditional checks. Not modified, passed by reference.
 	 * @return bool True if field is required, false otherwise.
@@ -407,7 +407,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	 *
 	 * Order matters for CSV output consistency.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array CSV column headers.
 	 */
 	public static function get_csv_headers(): array {
@@ -417,7 +417,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	/**
 	 * Get required fields list.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array List of absolutely required field names.
 	 */
 	public static function get_required_fields(): array {
@@ -433,7 +433,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 	/**
 	 * Get conditionally required fields list.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array List of conditionally required field names.
 	 */
 	public static function get_conditionally_required_fields(): array {

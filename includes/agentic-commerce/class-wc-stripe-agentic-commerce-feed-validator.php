@@ -3,7 +3,7 @@
  * Feed Validator class for Stripe Agentic Commerce.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -19,7 +19,7 @@ use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface;
  *
  * Ensures product data meets Stripe's requirements and format specifications.
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterface {
 	/**
@@ -48,7 +48,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Initialize validator with schema.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 */
 	public function __construct() {
 		$this->schema = WC_Stripe_Agentic_Commerce_Feed_Schema::get_schema();
@@ -57,30 +57,27 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Validate product feed entry.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array       $row     Product data row to validate.
 	 * @param \WC_Product $product Product object for context.
 	 * @return array Array of validation error messages (empty if valid).
 	 */
 	public function validate_entry( array $row, \WC_Product $product ): array {
-		$errors = [];
-
-		// Validate required fields.
-		$errors = array_merge( $errors, $this->validate_required_fields( $row ) );
-
-		// Validate field formats.
-		$errors = array_merge( $errors, $this->validate_field_formats( $row ) );
-
-		// Validate business rules.
-		$errors = array_merge( $errors, $this->validate_business_rules( $row, $product ) );
-
-		// Validate variant attribute consistency across entries.
-		$errors = array_merge( $errors, $this->validate_variant_consistency( $row ) );
+		$errors = array_merge(
+			// Validate required fields.
+			$this->validate_required_fields( $row ),
+			// Validate field formats.
+			$this->validate_field_formats( $row ),
+			// Validate business rules.
+			$this->validate_business_rules( $row, $product ),
+			// Validate variant attribute consistency across entries.
+			$this->validate_variant_consistency( $row ),
+		);
 
 		/**
 		 * Filter validation errors.
 		 *
-		 * @since 10.4.0
+		 * @since 10.5.0
 		 * @param array       $errors  Validation error messages.
 		 * @param array       $row     Product data row.
 		 * @param \WC_Product $product Product object.
@@ -91,7 +88,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Validate required fields are present.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $row Product data row.
 	 * @return array Validation errors.
 	 */
@@ -118,7 +115,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Validate conditionally required fields.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $row Product data row.
 	 * @return array Validation errors.
 	 */
@@ -167,7 +164,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Validate field formats.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $row Product data row.
 	 * @return array Validation errors.
 	 */
@@ -291,7 +288,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Validate business rules.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array       $row     Product data row.
 	 * @param \WC_Product $product Product object.
 	 * @return array Validation errors.
@@ -370,7 +367,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * Per Stripe spec, all variants sharing an item_group_id must use
 	 * the same set of variant-distinguishing attributes.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $row Product data row.
 	 * @return array Validation errors.
 	 */

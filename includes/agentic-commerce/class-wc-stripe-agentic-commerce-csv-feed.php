@@ -5,7 +5,7 @@
  * Streaming CSV feed implementation for large product catalogs.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -26,7 +26,7 @@ use Automattic\WooCommerce\Internal\Utilities\FilesystemUtil;
  * Implements WooCommerce's Product Catalog FeedInterface. Handles large catalogs (100k+ products)
  * via streaming writes to temporary files. See README.md for detailed documentation.
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
@@ -88,21 +88,33 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string $base_name The base name of the feed file.
 	 */
 	public function __construct( string $base_name ) {
-		$this->base_name = $base_name;
+		$this->base_name = sanitize_file_name( $base_name );
 	}
 
 	/**
 	 * Set CSV column headers.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $headers CSV column headers.
 	 * @return self
 	 */
 	public function set_columns( array $headers ): self {
+		foreach ( $headers as $index => $header ) {
+			if ( ! is_string( $header ) || '' === trim( $header ) ) {
+				throw new \Exception(
+					sprintf(
+						/* translators: %d: column index */
+						__( 'CSV header at index %d must be a non-empty string.', 'woocommerce-gateway-stripe' ),
+						$index
+					)
+				);
+			}
+		}
+
 		$this->headers = $headers;
 		return $this;
 	}
@@ -113,7 +125,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * Creates directory with security files if needed.
 	 * Pattern: wp-content/uploads/stripe-product-feeds/
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array {
 	 *     The upload directory for the feed. Both fields end with the right trailing slash.
 	 *
@@ -148,7 +160,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			);
 		}
 
-		$directory_url = $upload_dir['baseurl'] . '/stripe-agentic-commerce/product-feeds/';
+		$directory_url = $upload_dir['baseurl'] . '/stripe-product-feeds/';
 
 		// Follow the format returned by wp_upload_dir().
 		$prepared = [
@@ -163,7 +175,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Creates file in temp directory, opens file handle, writes UTF-8 BOM and headers.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @throws Exception If feed generation cannot be started.
 	 * @return void
 	 */
@@ -178,16 +190,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 		}
 
 		try {
-			// Generate filename using WooCommerce pattern.
-			/**
-			 * Allows the current time to be overridden before a feed is stored.
-			 *
-			 * @param int           $time The current time.
-			 * @param FeedInterface $feed The feed instance.
-			 * @return int The current time.
-			 * @since 10.4.0
-			 */
-			$current_time    = apply_filters( 'woocommerce_product_feed_time', time(), $this );
+			// Generate filename with date and unique hash.
+			$current_time    = time();
 			$hash_data       = $this->base_name . gmdate( 'r', $current_time );
 			$this->file_name = sprintf(
 				'%s-%s-%s.csv',
@@ -236,7 +240,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Sanitizes data, writes to file via fputcsv, and logs progress.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $entry Entry data (should match header count).
 	 * @throws Exception If entry cannot be added.
 	 * @return void
@@ -294,45 +298,49 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * according to Stripe's specification (e.g., "url1,url2,url3" for multiple values,
 	 * "US:CA:Express:1-2:12.99 USD" for structured data, "15.00 USD" for prices).
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $entry Raw entry data (must contain only scalar values or null).
 	 * @throws Exception If entry contains arrays or objects.
 	 * @return array Sanitized entry data.
 	 */
 	private function sanitize_entry( array $entry ) {
-		$sanitized = [];
+		return array_map( [ $this, 'sanitize_value' ], $entry, array_keys( $entry ) );
+	}
 
-		foreach ( $entry as $index => $value ) {
-			// Handle null values - Stripe spec: leave blank for optional fields.
-			if ( is_null( $value ) ) {
-				$sanitized[] = '';
-				continue;
-			}
-
-			// Handle boolean values - Stripe spec: must be literal "true" or "false".
-			// Without this, PHP's fputcsv would convert true->1 and false->0.
-			if ( is_bool( $value ) ) {
-				$sanitized[] = $value ? 'true' : 'false';
-				continue;
-			}
-
-			// Reject arrays and objects - caller must format these.
-			if ( is_array( $value ) || is_object( $value ) ) {
-				throw new Exception(
-					sprintf(
-						/* translators: %d: column index */
-						__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
-						$index
-					)
-				);
-			}
-
-			// For all other scalars (int, float, string), cast to string.
-			// fputcsv will handle these properly, but explicit casting ensures consistency.
-			$sanitized[] = (string) $value;
+	/**
+	 * Sanitize a single value for CSV output.
+	 *
+	 * @since 10.5.0
+	 * @param mixed $value The value to sanitize.
+	 * @param int   $index The column index (for error messages).
+	 * @throws Exception If value is not a scalar or null.
+	 * @return string The sanitized value.
+	 */
+	private function sanitize_value( $value, int $index ): string {
+		// Null values - Stripe spec: leave blank for optional fields.
+		if ( is_null( $value ) ) {
+			return '';
 		}
 
-		return $sanitized;
+		// Boolean values - Stripe spec: must be literal "true" or "false".
+		// Without this, PHP's fputcsv would convert true->1 and false->0.
+		if ( is_bool( $value ) ) {
+			return $value ? 'true' : 'false';
+		}
+
+		// Reject non-scalar values - caller must format these.
+		if ( ! is_scalar( $value ) ) {
+			throw new Exception(
+				sprintf(
+					/* translators: %d: column index */
+					__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
+					$index
+				)
+			);
+		}
+
+		// All other scalars (int, float, string) - cast to string.
+		return (string) $value;
 	}
 
 	/**
@@ -340,7 +348,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Closes file handle and marks feed as complete.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function end(): void {
@@ -373,7 +381,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Get file system path to finalized feed.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string|null Absolute file path, or null if not finalized.
 	 */
 	public function get_file_path(): ?string {
@@ -389,8 +397,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Moves file from temp directory to uploads directory if needed.
 	 *
-	 * @since 10.4.0
-	 * @throws Exception If the feed file cannot be moved to the upload directory.
+	 * @since 10.5.0
+	 * @throws Exception Stripe's feeds can only be pushed, the URL is not available.
 	 * @return string|null Public URL, or null if not finalized.
 	 */
 	public function get_file_url(): ?string {
@@ -400,9 +408,9 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Clean up temporary files and resources.
 	 *
-	 * Called on errors or object destruction.
+	 * Used for cleanup upon errors and unfinished feeds.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 */
 	private function cleanup(): void {
 		// Close file handle if still open.
