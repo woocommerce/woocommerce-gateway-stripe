@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { getSetting } from '@woocommerce/settings';
 import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
@@ -17,7 +16,6 @@ import {
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import {
-	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
