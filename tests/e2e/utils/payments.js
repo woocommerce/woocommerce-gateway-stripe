@@ -977,8 +977,10 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 		);
 		const stripeFrame = await frameHandle.contentFrame();
 
-		// Wait for the iFrame to load.
-		await stripeFrame.waitForLoadState( 'networkidle' );
+		// Wait for the BECS form fields to be available.
+		await expect(
+			stripeFrame.locator( '[name="auBankAccountNumber"]' )
+		).toBeVisible( { timeout: 30000 } );
 	}
 };
 
@@ -1001,8 +1003,10 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 
 	const stripeFrame = await frameHandle.contentFrame();
 
-	// Wait for the iFrame to load.
-	await stripeFrame.waitForLoadState( 'networkidle' );
+	// Wait for the BECS form fields to be available.
+	await expect(
+		stripeFrame.locator( '[name="auBankAccountNumber"]' )
+	).toBeVisible( { timeout: 30000 } );
 
 	await stripeFrame
 		.locator( '[name="auBankAccountNumber"]' )
