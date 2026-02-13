@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+
+reviews:
+  assess_linked_issues: false
+  collapse_walkthrough: true
+  high_level_summary: false
+  review_status: false
+  suggested_labels: false
+  suggested_reviewers: false
+  poem: false
+
+  profile: "assertive"
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "develop"
+
+  path_filters:
+    - "includes/**"
+    - "client/**"
+    - "tests/**"
+    - ".github/workflows/**"
+    - "composer.json"
+    - "composer.lock"
+    - "package.json"
+    - "package-lock.json"
+    - "!assets/**"
+    - "!build/**"
+    - "!**/*.min.js"
+    - "!**/*.map"
+
+  path_instructions:
+    - path: "includes/**/*.php"
+      instructions: |
+        This is payment-critical backend code.
+        Require capability/nonce checks on admin or REST entry points.
+        Require input validation/sanitization and proper output escaping.
+        For any order/subscription/customer mutation, require explicit state checks, ownership checks, and race-condition safety.
+        For webhooks, require signature verification and idempotent processing before mutating state.
+        Never expose secrets or sensitive payment/customer data in logs, notes, metadata, or errors.
+        Preserve backward compatibility for existing hooks/options and supported WordPress/WooCommerce versions.
+        Request PHPUnit coverage when behavior changes.
+    - path: "client/**/*.{js,jsx,ts,tsx}"
+      instructions: |
+        Ensure async checkout/admin payment flows handle failures and retries safely.
+        Ensure no secret keys or sensitive data are exposed client-side.
+        Request Jest/Playwright coverage for behavior changes.
+    - path: "tests/**/*.{php,js,ts,tsx}"
+      instructions: |
+        Prefer coverage of failure and edge cases: declines, duplicate webhooks, retry handling, partial refunds, stale order state.
