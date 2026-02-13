@@ -80,7 +80,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.card,
 				description: mockDescription,
 				label: 'Credit card / debit card',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )
@@ -118,7 +117,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.sepa_debit,
 				description: mockDescription,
 				label: 'Direct debit payment',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )
@@ -161,7 +159,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.sepa_debit,
 				description: mockDescription,
 				label: 'Direct debit payment',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )
