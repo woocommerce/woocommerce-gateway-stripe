@@ -320,8 +320,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 				continue;
 			}
 
-			// Reject arrays and objects - caller must format these.
-			if ( is_array( $value ) || is_object( $value ) ) {
+			// Reject non-scalar values - caller must format these.
+			if ( ! is_scalar( $value ) ) {
 				throw new Exception(
 					sprintf(
 						/* translators: %d: column index */
