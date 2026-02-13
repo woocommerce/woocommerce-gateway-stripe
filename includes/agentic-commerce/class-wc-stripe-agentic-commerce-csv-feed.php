@@ -304,39 +304,43 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * @return array Sanitized entry data.
 	 */
 	private function sanitize_entry( array $entry ) {
-		$sanitized = [];
+		return array_map( [ $this, 'sanitize_value' ], $entry, array_keys( $entry ) );
+	}
 
-		foreach ( $entry as $index => $value ) {
-			// Handle null values - Stripe spec: leave blank for optional fields.
-			if ( is_null( $value ) ) {
-				$sanitized[] = '';
-				continue;
-			}
-
-			// Handle boolean values - Stripe spec: must be literal "true" or "false".
-			// Without this, PHP's fputcsv would convert true->1 and false->0.
-			if ( is_bool( $value ) ) {
-				$sanitized[] = $value ? 'true' : 'false';
-				continue;
-			}
-
-			// Reject non-scalar values - caller must format these.
-			if ( ! is_scalar( $value ) ) {
-				throw new Exception(
-					sprintf(
-						/* translators: %d: column index */
-						__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
-						$index
-					)
-				);
-			}
-
-			// For all other scalars (int, float, string), cast to string.
-			// fputcsv will handle these properly, but explicit casting ensures consistency.
-			$sanitized[] = (string) $value;
+	/**
+	 * Sanitize a single value for CSV output.
+	 *
+	 * @since 10.5.0
+	 * @param mixed $value The value to sanitize.
+	 * @param int   $index The column index (for error messages).
+	 * @throws Exception If value is not a scalar or null.
+	 * @return string The sanitized value.
+	 */
+	private function sanitize_value( $value, int $index ): string {
+		// Null values - Stripe spec: leave blank for optional fields.
+		if ( is_null( $value ) ) {
+			return '';
 		}
 
-		return $sanitized;
+		// Boolean values - Stripe spec: must be literal "true" or "false".
+		// Without this, PHP's fputcsv would convert true->1 and false->0.
+		if ( is_bool( $value ) ) {
+			return $value ? 'true' : 'false';
+		}
+
+		// Reject non-scalar values - caller must format these.
+		if ( ! is_scalar( $value ) ) {
+			throw new Exception(
+				sprintf(
+					/* translators: %d: column index */
+					__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
+					$index
+				)
+			);
+		}
+
+		// All other scalars (int, float, string) - cast to string.
+		return (string) $value;
 	}
 
 	/**
