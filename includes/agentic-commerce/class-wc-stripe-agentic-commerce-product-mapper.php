@@ -3,7 +3,7 @@
  * Product Mapper class for Stripe Agentic Commerce.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -23,7 +23,7 @@ use Automattic\WooCommerce\Internal\ProductFeed\Utils\StringHelper;
  * Converts WooCommerce product data into Stripe Product Catalog CSV specification.
  * Uses schema-driven approach to ensure all required fields are mapped correctly.
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterface {
 	/**
@@ -50,7 +50,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Initialize mapper with schema.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 */
 	public function __construct() {
 		$this->schema = WC_Stripe_Agentic_Commerce_Feed_Schema::get_schema();
@@ -61,7 +61,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 *
 	 * Main entry point for converting a WooCommerce product into Stripe feed format.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product to map.
 	 * @return array Mapped product data array.
 	 * @throws RuntimeException If the parent product is not found.
@@ -92,7 +92,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		/**
 		 * Filter mapped product data before validation.
 		 *
-		 * @since 10.4.0
+		 * @since 10.5.0
 		 * @param array            $row             Mapped product data.
 		 * @param \WC_Product      $product         Product object.
 		 * @param \WC_Product|null $parent_product  Parent product for variations.
@@ -103,7 +103,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Map individual field based on configuration.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param string           $field          Field name to map.
 	 * @param array            $config         Field configuration from schema.
@@ -129,7 +129,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Convert value to appropriate type.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param mixed $value  Value to convert.
 	 * @param array $config Field configuration.
 	 * @return mixed Converted value.
@@ -161,7 +161,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product ID.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product ID as string.
 	 */
@@ -172,7 +172,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product title.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product title with HTML tags stripped.
 	 */
@@ -183,7 +183,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product description.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product description with HTML tags stripped.
 	 */
@@ -202,7 +202,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product permalink.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product permalink URL.
 	 */
@@ -213,7 +213,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product GTIN.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product GTIN or null.
 	 */
@@ -228,7 +228,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product MPN.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product MPN or null.
 	 */
@@ -248,7 +248,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Generate MPN using product ID and trimmed product name.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Generated MPN.
 	 */
@@ -269,7 +269,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * When a product has multiple categories, selects the one with the most levels.
 	 * Example: "Apparel & Accessories > Shoes > Running Shoes"
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for variations.
 	 * @return string|null Product category path or null.
@@ -316,7 +316,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product brand.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for fallback.
 	 * @return string|null Product brand or Generic.
@@ -341,7 +341,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product material.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product material or null.
 	 */
@@ -352,7 +352,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product condition.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product condition, defaults to 'new'.
 	 */
@@ -364,7 +364,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product age group.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product age group or null.
 	 */
@@ -375,7 +375,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product weight with unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product weight with unit or null.
 	 */
@@ -392,7 +392,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product length with unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product length with unit or null.
 	 */
@@ -403,7 +403,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product width with unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product width with unit or null.
 	 */
@@ -414,7 +414,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product height with unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product height with unit or null.
 	 */
@@ -425,7 +425,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product main image link.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for fallback.
 	 * @return string Product image URL.
@@ -437,7 +437,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product additional image links.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for fallback.
 	 * @return string|null Comma-separated product gallery image URLs.
@@ -459,7 +459,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product price with currency.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product price or null.
 	 */
@@ -470,7 +470,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product sale price with currency.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product sale price or null.
 	 */
@@ -481,7 +481,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product sale price effective date.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product sale price effective date or null.
 	 */
@@ -492,7 +492,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product availability status.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string Product availability status.
 	 */
@@ -500,11 +500,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		$stock_status = $product->get_stock_status();
 
 		switch ( $stock_status ) {
-			case 'instock':
+			case ProductStockStatus::IN_STOCK:
 				return 'in_stock';
-			case 'outofstock':
+			case ProductStockStatus::OUT_OF_STOCK:
 				return 'out_of_stock';
-			case 'onbackorder':
+			case ProductStockStatus::ON_BACKORDER:
 				return 'backorder';
 			default:
 				return 'out_of_stock';
@@ -514,7 +514,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product inventory quantity.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return int|null Product inventory quantity or null.
 	 */
@@ -529,7 +529,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			/**
 			 * Filters the inventory quantity for in-stock products without stock management enabled.
 			 *
-			 * @since 10.4.0
+			 * @since 10.5.0
 			 * @param int         $quantity Default quantity (1 for in-stock products).
 			 * @param \WC_Product $product  The product object.
 			 */
@@ -545,7 +545,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Returns 'true' for products without stock management (virtual, digital, etc.)
 	 * and 'false' for products that track inventory.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return bool Whether inventory is not tracked.
 	 */
@@ -556,7 +556,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product item group ID.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for group ID.
 	 * @return string|null Parent product ID or null.
@@ -571,7 +571,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product item group title.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for title.
 	 * @return string|null Parent product title or null.
@@ -583,7 +583,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product color.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product color or null.
 	 */
@@ -594,7 +594,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product size.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product size or null.
 	 */
@@ -605,7 +605,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product size system.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product size system or null.
 	 */
@@ -616,7 +616,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product gender.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Product gender or null.
 	 */
@@ -627,7 +627,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get Stripe product tax code.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Stripe tax code or null.
 	 */
@@ -637,7 +637,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		/**
 		 * Filter to map WooCommerce tax class to Stripe tax code.
 		 *
-		 * @since 10.4.0
+		 * @since 10.5.0
 		 * @param string|null $tax_code  Stripe tax code (format: txcd_99999999) or null.
 		 * @param string      $tax_class WooCommerce tax class.
 		 * @param \WC_Product $product   Product object.
@@ -648,7 +648,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get tax behavior (inclusive/exclusive).
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Tax behavior or null.
 	 */
@@ -660,7 +660,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product review count.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return int|null Number of reviews or null.
 	 */
@@ -672,7 +672,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get product review rating.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return float|null Average rating (1-5 scale) or null.
 	 */
@@ -687,7 +687,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Always returns null for products being included in the feed.
 	 * This field is used to mark products for removal from Stripe's catalog.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return null Always null for active products.
 	 */
@@ -701,7 +701,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Format: country:region:service:speed:price
 	 * Multiple entries separated by commas.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string|null Shipping data string or null.
 	 */
 	protected function get_shipping(): ?string {
@@ -780,7 +780,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get attribute or return null.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product   Product object.
 	 * @param string      $attribute Attribute name.
 	 * @return string|null Attribute value or null.
@@ -793,7 +793,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get weight unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string Weight unit.
 	 */
 	private function get_weight_unit(): string {
@@ -807,7 +807,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Format dimension with unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string|null $dimension Dimension value.
 	 * @return string|null Formatted dimension or null.
 	 */
@@ -822,7 +822,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get dimension unit.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string Dimension unit.
 	 */
 	private function get_dimension_unit(): string {
@@ -836,7 +836,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get main product image.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for fallback.
 	 * @return string Product image URL or empty string.
@@ -861,7 +861,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get currency code.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string Currency code.
 	 */
 	private function get_currency_code(): string {
@@ -875,7 +875,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Format price with currency.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string|null $price    Price value.
 	 * @param string      $currency Currency code.
 	 * @return string|null Formatted price or null.
@@ -891,7 +891,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get sale date range.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param \WC_Product $product Product object.
 	 * @return string|null Sale date range or null.
 	 */
@@ -921,7 +921,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Get cached shipping zones (prevents repeated API calls).
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array Shipping zones.
 	 */
 	private function get_cached_shipping_zones(): array {
