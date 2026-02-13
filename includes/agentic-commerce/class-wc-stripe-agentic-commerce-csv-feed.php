@@ -5,7 +5,7 @@
  * Streaming CSV feed implementation for large product catalogs.
  *
  * @package WooCommerce_Stripe
- * @since 10.4.0
+ * @since 10.5.0
  */
 
 declare(strict_types=1);
@@ -26,7 +26,7 @@ use Automattic\WooCommerce\Internal\Utilities\FilesystemUtil;
  * Implements WooCommerce's Product Catalog FeedInterface. Handles large catalogs (100k+ products)
  * via streaming writes to temporary files. See README.md for detailed documentation.
  *
- * @since 10.4.0
+ * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
@@ -88,7 +88,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param string $base_name The base name of the feed file.
 	 */
 	public function __construct( string $base_name ) {
@@ -98,7 +98,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Set CSV column headers.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $headers CSV column headers.
 	 * @return self
 	 */
@@ -113,7 +113,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * Creates directory with security files if needed.
 	 * Pattern: wp-content/uploads/stripe-product-feeds/
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return array {
 	 *     The upload directory for the feed. Both fields end with the right trailing slash.
 	 *
@@ -163,7 +163,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Creates file in temp directory, opens file handle, writes UTF-8 BOM and headers.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @throws Exception If feed generation cannot be started.
 	 * @return void
 	 */
@@ -185,7 +185,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			 * @param int           $time The current time.
 			 * @param FeedInterface $feed The feed instance.
 			 * @return int The current time.
-			 * @since 10.4.0
+			 * @since 10.5.0
 			 */
 			$current_time    = apply_filters( 'woocommerce_product_feed_time', time(), $this );
 			$hash_data       = $this->base_name . gmdate( 'r', $current_time );
@@ -236,7 +236,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Sanitizes data, writes to file via fputcsv, and logs progress.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $entry Entry data (should match header count).
 	 * @throws Exception If entry cannot be added.
 	 * @return void
@@ -294,7 +294,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * according to Stripe's specification (e.g., "url1,url2,url3" for multiple values,
 	 * "US:CA:Express:1-2:12.99 USD" for structured data, "15.00 USD" for prices).
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @param array $entry Raw entry data (must contain only scalar values or null).
 	 * @throws Exception If entry contains arrays or objects.
 	 * @return array Sanitized entry data.
@@ -340,7 +340,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Closes file handle and marks feed as complete.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return void
 	 */
 	public function end(): void {
@@ -373,7 +373,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Get file system path to finalized feed.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @return string|null Absolute file path, or null if not finalized.
 	 */
 	public function get_file_path(): ?string {
@@ -389,7 +389,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Moves file from temp directory to uploads directory if needed.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 * @throws Exception If the feed file cannot be moved to the upload directory.
 	 * @return string|null Public URL, or null if not finalized.
 	 */
@@ -402,7 +402,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 *
 	 * Called on errors or object destruction.
 	 *
-	 * @since 10.4.0
+	 * @since 10.5.0
 	 */
 	private function cleanup(): void {
 		// Close file handle if still open.
