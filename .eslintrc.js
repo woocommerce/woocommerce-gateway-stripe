@@ -62,6 +62,12 @@ module.exports = {
 		'testing-library/no-unnecessary-act': 'off',
 		'@typescript-eslint/no-empty-function': 'off',
 		'@typescript-eslint/no-var-requires': 'off',
+		'@wordpress/i18n-text-domain': [
+			'error',
+			{
+				allowedTextDomain: 'woocommerce-gateway-stripe',
+			},
+		],
 	},
 	settings: {
 		react: {
@@ -82,4 +88,11 @@ module.exports = {
 			'@wordpress/data',
 		],
 	},
+	ignorePatterns: [
+		'build/**',
+		'node_modules/**',
+		'phpunit-html/**',
+		'release/**',
+		'vendor/**',
+	],
 };

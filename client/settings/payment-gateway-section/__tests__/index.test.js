@@ -33,8 +33,11 @@ jest.mock( '../../../data/payment-gateway/hooks', () => ( {
 	usePaymentGatewayDescription: jest.fn(),
 } ) );
 
-jest.mock( '../../loadable-payment-gateway-section', () => ( { children } ) =>
-	children
+jest.mock(
+	'../../loadable-payment-gateway-section',
+	() =>
+		( { children } ) =>
+			children
 );
 
 describe( 'PaymentGatewaySection', () => {
@@ -65,7 +68,7 @@ describe( 'PaymentGatewaySection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should be possible to enable/disable the payment gateway', () => {
+	it( 'should be possible to enable/disable the payment gateway', async () => {
 		const enableGatewayMock = jest.fn();
 		useEnabledPaymentGateway.mockReturnValue( [
 			false,
@@ -81,12 +84,12 @@ describe( 'PaymentGatewaySection', () => {
 		expect( enableGatewayMock ).not.toHaveBeenCalled();
 		expect( enableCheckbox ).not.toBeChecked();
 
-		userEvent.click( enableCheckbox );
+		await userEvent.click( enableCheckbox );
 
 		expect( enableGatewayMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should be possible to update the gateway name', () => {
+	it( 'should be possible to update the gateway name', async () => {
 		const setGatewayNameMock = jest.fn();
 		usePaymentGatewayName.mockReturnValue( [ '', setGatewayNameMock ] );
 
@@ -99,12 +102,12 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayNameMock ).not.toHaveBeenCalled();
 		expect( nameInput.value ).toEqual( '' );
 
-		userEvent.type( nameInput, 'Buy with iDEAL' ); // 14 characters
+		await userEvent.type( nameInput, 'Buy with iDEAL' ); // 14 characters
 
 		expect( setGatewayNameMock ).toHaveBeenCalledTimes( 14 );
 	} );
 
-	it( 'should be possible to update the gateway description', () => {
+	it( 'should be possible to update the gateway description', async () => {
 		const setGatewayDescriptionMock = jest.fn();
 		usePaymentGatewayDescription.mockReturnValue( [
 			'',
@@ -120,7 +123,10 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayDescriptionMock ).not.toHaveBeenCalled();
 		expect( descriptionInput.value ).toEqual( '' );
 
-		userEvent.type( descriptionInput, 'You will be redirected to iDEAL' ); // 31 characters
+		await userEvent.type(
+			descriptionInput,
+			'You will be redirected to iDEAL'
+		); // 31 characters
 
 		expect( setGatewayDescriptionMock ).toHaveBeenCalledTimes( 31 );
 	} );

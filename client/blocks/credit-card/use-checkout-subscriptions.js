@@ -1,7 +1,7 @@
-import { useEffect, useCallback, useState } from '@wordpress/element';
 import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
 import { usePaymentIntents } from '../three-d-secure';
 import { usePaymentProcessing } from './use-payment-processing';
+import { useEffect, useCallback, useState } from '@wordpress/element';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EventRegistrationProps} EventRegistrationProps
@@ -75,9 +75,8 @@ export const useCheckoutSubscriptions = (
 			// so we don't break the observers.
 			return true;
 		};
-		const unsubscribeAfterProcessing = onCheckoutAfterProcessingWithError(
-			onError
-		);
+		const unsubscribeAfterProcessing =
+			onCheckoutAfterProcessingWithError( onError );
 		return () => {
 			unsubscribeAfterProcessing();
 		};

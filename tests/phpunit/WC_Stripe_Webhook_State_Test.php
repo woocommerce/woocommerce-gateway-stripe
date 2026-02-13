@@ -70,11 +70,13 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_SUCCESS_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_FAILURE_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_ERROR );
+		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_PENDING_WEBHOOKS );
 
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_MONITORING_BEGAN_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_SUCCESS_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_FAILURE_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR );
+		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_PENDING_WEBHOOKS );
 
 		parent::tear_down();
 	}
@@ -127,9 +129,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED === $validation_result ) {
 			$notification = json_decode( $this->request_body );
 			WC_Stripe_Webhook_State::set_last_webhook_success_at( $notification->created );
+			WC_Stripe_Webhook_State::set_pending_webhooks_count( 0 );
 		} else {
 			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
+			WC_Stripe_Webhook_State::set_pending_webhooks_count( 3 );
 		}
 	}
 
@@ -167,7 +171,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Case 3: Failure after success.
 	public function test_get_webhook_status_message_failure_after_success() {
 		$this->set_valid_request_data();
-		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped/';
+		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped (.*).\). There are approximately (\d+) webhooks pending./';
 		// Live
 		$this->set_testmode( 'no' );
 		// Process successful webhook.
@@ -193,7 +197,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Case 4: Failure with no prior success.
 	public function test_get_webhook_status_message_failure_with_no_prior_success() {
 		$this->set_valid_request_data();
-		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at/';
+		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at (.*).\). There are approximately (\d+) webhooks pending./';
 		// Live
 		$this->set_testmode( 'no' );
 		// Fail webhook.
@@ -208,6 +212,12 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
 		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
+
+		// Test that when pending webhooks count is 1 the message is singular.
+		$expected_message = '/Warning: (.*).\). There is at least 1 webhook pending./';
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( 1 );
+		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
+		$this->assertMatchesRegularExpression( $expected_message, $message );
 	}
 
 	// Test failure reason: no error.

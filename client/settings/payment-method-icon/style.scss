@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .woocommerce-gateway-stripe__payment-method-icon {
 	display: inline-flex;
@@ -6,7 +6,7 @@
 	vertical-align: middle;
 	max-width: 160px;
 
-	@include breakpoint( '>660px' ) {
+	@include styles.breakpoint( '>660px' ) {
 		max-width: inherit;
 	}
 

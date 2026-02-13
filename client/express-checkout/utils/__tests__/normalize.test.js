@@ -1,15 +1,21 @@
-import { select } from '@wordpress/data';
 import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( '@wordpress/data' );
 
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn( () => ( {
+		isCheckout: true,
+	} ) ),
 } ) );
 
 describe( 'Express checkout normalization', () => {
@@ -88,6 +94,44 @@ describe( 'Express checkout normalization', () => {
 			);
 		} );
 
+		test( 'normalizes line item properly where label is not set', () => {
+			const displayItems = [
+				{
+					name: 'Item 1',
+					label: null,
+					amount: 100,
+				},
+				{
+					name: 'Item 2',
+					label: undefined,
+					amount: 200,
+				},
+				{
+					name: 'Item 3',
+					amount: 300,
+				},
+			];
+
+			const expected = [
+				{
+					name: 'Item 1',
+					amount: 100,
+				},
+				{
+					name: 'Item 2',
+					amount: 200,
+				},
+				{
+					name: 'Item 3',
+					amount: 300,
+				},
+			];
+
+			expect( normalizeLineItems( displayItems ) ).toStrictEqual(
+				expected
+			);
+		} );
+
 		test( 'normalizes discount line item properly', () => {
 			const displayItems = [
 				{
@@ -135,69 +179,6 @@ describe( 'Express checkout normalization', () => {
 	} );
 
 	describe( 'normalizeOrderData', () => {
-		beforeEach( () => {
-			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
-			expectedNormalizedData.payment_data[ 2 ].value = '';
-
-			window.wc = {
-				wcBlocksData: {
-					checkoutStore: 'checkoutStore',
-					cartStore: 'cartStore',
-				},
-			};
-
-			select.mockImplementation( () => {
-				return {
-					getAdditionalFields: () => {
-						return {};
-					},
-					getCustomerData: () => {
-						return {};
-					},
-				};
-			} );
-
-			getExpressCheckoutData.mockImplementation( ( param ) => {
-				if ( param === 'has_block' ) {
-					return true;
-				}
-				if ( param === 'is_checkout_page' ) {
-					return true;
-				}
-				return undefined;
-			} );
-		} );
-		const event = {
-			billingDetails: {
-				name: 'John Doe',
-				email: 'john.doe@example.com',
-				address: {
-					organization: 'Some Company',
-					country: 'US',
-					line1: '123 Main St',
-					line2: 'Apt 4B',
-					city: 'New York',
-					state: 'NY',
-					postal_code: '10001',
-				},
-				phone: '(123) 456-7890',
-			},
-			shippingAddress: {
-				name: 'John Doe',
-				organization: 'Some Company',
-				address: {
-					country: 'US',
-					line1: '123 Main St',
-					line2: 'Apt 4B',
-					city: 'New York',
-					state: 'NY',
-					postal_code: '10001',
-				},
-			},
-			shippingRate: { id: 'rate_1' },
-			expressPaymentType: 'express',
-		};
-
 		const paymentMethodId = 'pm_123456';
 		const expectedNormalizedData = {
 			billing_address: {
@@ -253,6 +234,72 @@ describe( 'Express checkout normalization', () => {
 			additional_fields: {},
 		};
 
+		beforeEach( () => {
+			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
+			expectedNormalizedData.payment_data[ 2 ].value = '';
+
+			window.wc = {
+				wcBlocksData: {
+					checkoutStore: 'checkoutStore',
+					cartStore: 'cartStore',
+				},
+			};
+
+			select.mockImplementation( () => {
+				return {
+					getExtensionData: () => {
+						return {};
+					},
+					getAdditionalFields: () => {
+						return {};
+					},
+					getCustomerData: () => {
+						return {};
+					},
+				};
+			} );
+
+			getExpressCheckoutData.mockImplementation( ( param ) => {
+				if ( param === 'has_block' ) {
+					return true;
+				}
+				if ( param === 'is_checkout_page' ) {
+					return true;
+				}
+				return undefined;
+			} );
+		} );
+		const event = {
+			billingDetails: {
+				name: 'John Doe',
+				email: 'john.doe@example.com',
+				address: {
+					organization: 'Some Company',
+					country: 'US',
+					line1: '123 Main St',
+					line2: 'Apt 4B',
+					city: 'New York',
+					state: 'NY',
+					postal_code: '10001',
+				},
+				phone: '(123) 456-7890',
+			},
+			shippingAddress: {
+				name: 'John Doe',
+				organization: 'Some Company',
+				address: {
+					country: 'US',
+					line1: '123 Main St',
+					line2: 'Apt 4B',
+					city: 'New York',
+					state: 'NY',
+					postal_code: '10001',
+				},
+			},
+			shippingRate: { id: 'rate_1' },
+			expressPaymentType: 'express',
+		};
+
 		test( 'should normalize order data with complete event and payment information', () => {
 			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
 				expectedNormalizedData
@@ -264,7 +311,8 @@ describe( 'Express checkout normalization', () => {
 				...expectedNormalizedData,
 			};
 			expectedNormalizedData.payment_data[ 1 ].value = '';
-			expectedNormalizedData.payment_data[ 2 ].value = confirmationTokenId;
+			expectedNormalizedData.payment_data[ 2 ].value =
+				confirmationTokenId;
 
 			expect(
 				normalizeOrderData( { event, confirmationTokenId } )
@@ -280,6 +328,9 @@ describe( 'Express checkout normalization', () => {
 			};
 			select.mockImplementation( () => {
 				return {
+					getExtensionData: () => {
+						return {};
+					},
 					getAdditionalFields: () => {
 						return additionalFields;
 					},
@@ -299,6 +350,34 @@ describe( 'Express checkout normalization', () => {
 			);
 		} );
 
+		test( 'should include extension data in the normalized order data', () => {
+			const extensionData = {
+				'my-plugin': 'test',
+			};
+			select.mockImplementation( () => {
+				return {
+					getExtensionData: () => {
+						return extensionData;
+					},
+					getAdditionalFields: () => {
+						return {};
+					},
+					getCustomerData: () => {
+						return {};
+					},
+				};
+			} );
+
+			const expectedNormalizedDataWithAdditionalFields = {
+				...expectedNormalizedData,
+				extensions: extensionData,
+			};
+
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedDataWithAdditionalFields
+			);
+		} );
+
 		test( 'should include additional customer (address) fields in the normalized order data', () => {
 			const additionalCustomerData = {
 				custom_address_field1: 'test1',
@@ -306,6 +385,9 @@ describe( 'Express checkout normalization', () => {
 			};
 			select.mockImplementation( () => {
 				return {
+					getExtensionData: () => {
+						return {};
+					},
 					getAdditionalFields: () => {
 						return {};
 					},

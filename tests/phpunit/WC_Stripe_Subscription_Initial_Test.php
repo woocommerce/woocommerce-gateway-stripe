@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
@@ -13,7 +14,7 @@ use WP_UnitTestCase;
  *
  * The responses from HTTP requests are mocked using the WP filter `pre_http_request`.
  *
- * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
+ * There are a few methods that need to be mocked in the class WC_Stripe_UPE_Payment_Gateway, which is
  * why that class is mocked even though the method under test is part of that class.
  *
  * @package WooCommerce/Stripe/WC_Stripe_Subscription_Initial
@@ -41,10 +42,16 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'prepare_source', 'has_subscription' ] )
+			->setMethods( [ 'prepare_source', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
+
+		// Mock the UPE method to return card payment method
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'get_upe_enabled_at_checkout_payment_method_ids' )
+			->will( $this->returnValue( [ WC_Stripe_Payment_Methods::CARD ] ) );
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->statement_descriptor = 'This is a statement descriptor.';
@@ -206,7 +213,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'redirect', $result );
 
 		$order      = wc_get_order( $order_id );
-		$order_data = $order->get_meta( '_stripe_intent_id' );
+		$order_data = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order );
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 

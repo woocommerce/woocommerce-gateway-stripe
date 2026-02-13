@@ -14,6 +14,7 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getMountedUPEComponent,
 	initializeUPEComponents,
 	mountStripePaymentElement,
 	processPayment,
@@ -34,14 +35,55 @@ jQuery( function ( $ ) {
 	// Initialize the list of Stripe Elements to be mounted when UPE is enabled.
 	initializeUPEComponents();
 
+	function restrictPaymentMethodToLocation( upeElement ) {
+		if ( isPaymentMethodRestrictedToLocation( upeElement ) ) {
+			togglePaymentMethodForCountry( upeElement );
+
+			// This event only applies to the checkout form, but not "pay for order" or "add payment method" pages.
+			$( '#billing_country' ).on( 'change', function () {
+				togglePaymentMethodForCountry( upeElement );
+			} );
+		}
+	}
+
+	/**
+	 * Maybe mounts the Stripe Payment Element on the page.
+	 *
+	 * @return {Promise<void>}
+	 */
+	async function maybeMountStripePaymentElement() {
+		// If the card element selector doesn't exist, do nothing.
+		// For example, when a 100% discount coupon is applied.
+		if ( ! $( '.wc-stripe-upe-element' ).length ) {
+			return;
+		}
+
+		const selectedMethod = getSelectedUPEGatewayPaymentMethod();
+		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
+			// Maybe hide the payment method based on the billing country.
+			restrictPaymentMethodToLocation( upeElement );
+
+			// Don't mount if it's already mounted.
+			if ( $( upeElement ).children().length ) {
+				continue;
+			}
+
+			// Payment methods that don't support deferred intents don't need to be mounted unless they are selected.
+			if (
+				upeElement.dataset.paymentMethodType !== selectedMethod &&
+				! paymentMethodSupportsDeferredIntent( upeElement )
+			) {
+				continue;
+			}
+
+			await mountStripePaymentElement( api, upeElement );
+		}
+	}
+
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
 		maybeMountStripePaymentElement();
-	} );
-
-	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
-		return processPaymentIfNotUsingSavedMethod( $( this ) );
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
@@ -50,6 +92,10 @@ jQuery( function ( $ ) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
+
+	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
+		return processPaymentIfNotUsingSavedMethod( $( this ) );
+	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
 	if (
@@ -92,61 +138,6 @@ jQuery( function ( $ ) {
 	} );
 
 	/**
-	 * Maybe mounts the Stripe Payment Element on the page.
-	 *
-	 * @return {Promise<void>}
-	 */
-	async function maybeMountStripePaymentElement() {
-		// If the card element selector doesn't exist, do nothing.
-		// For example, when a 100% discount coupon is applied.
-		if ( ! $( '.wc-stripe-upe-element' ).length ) {
-			return;
-		}
-
-		const selectedMethod = getSelectedUPEGatewayPaymentMethod();
-		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
-			// Maybe hide the payment method based on the billing country.
-			restrictPaymentMethodToLocation( upeElement );
-
-			// Don't mount if it's already mounted.
-			if ( $( upeElement ).children().length ) {
-				continue;
-			}
-
-			// Payment methods that don't support deferred intents don't need to be mounted unless they are selected.
-			if (
-				upeElement.dataset.paymentMethodType !== selectedMethod &&
-				! paymentMethodSupportsDeferredIntent( upeElement )
-			) {
-				continue;
-			}
-
-			await mountStripePaymentElement( api, upeElement );
-		}
-	}
-
-	/**
-	 * Unmounts the Stripe Payment Elements from the page.
-	 */
-	function unmountStripePaymentElements() {
-		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
-			$( upeElement ).children().remove();
-		}
-		initializeUPEComponents();
-	}
-
-	function restrictPaymentMethodToLocation( upeElement ) {
-		if ( isPaymentMethodRestrictedToLocation( upeElement ) ) {
-			togglePaymentMethodForCountry( upeElement );
-
-			// This event only applies to the checkout form, but not "pay for order" or "add payment method" pages.
-			$( '#billing_country' ).on( 'change', function () {
-				togglePaymentMethodForCountry( upeElement );
-			} );
-		}
-	}
-
-	/**
 	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
 	 * should display the relevant confirmation modal.
 	 */
@@ -186,14 +177,25 @@ jQuery( function ( $ ) {
 
 	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
 	if ( getStripeServerData()?.isOCEnabled ) {
-		$( document ).on(
-			'change',
-			'#wc-stripe-new-payment-method',
-			async () => {
-				// Remove all children from the UPE elements to force a re-mount.
-				unmountStripePaymentElements();
-				await maybeMountStripePaymentElement();
+		$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+			const selectedMethod = getSelectedUPEGatewayPaymentMethod();
+			const component = getMountedUPEComponent( selectedMethod );
+
+			if ( component && component.elements ) {
+				const isChecked = $( '#wc-stripe-new-payment-method' ).is(
+					':checked'
+				);
+				const cartContainsSubscription =
+					getStripeServerData()?.cartContainsSubscription;
+
+				// Update only the setupFutureUsage on the Elements object and preserve user input.
+				component.elements.update( {
+					setupFutureUsage:
+						cartContainsSubscription || isChecked
+							? 'off_session'
+							: null,
+				} );
 			}
-		);
+		} );
 	}
 } );

@@ -5,7 +5,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 use Automattic\WooCommerce\Blocks\Package;
 use Exception;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_REST_Stripe_Settings_Controller;
 use WC_Stripe;
 use WC_Stripe_Feature_Flags;
@@ -21,7 +21,6 @@ use WP_REST_Response;
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
-
 	/**
 	 * Tested REST route.
 	 */
@@ -44,9 +43,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Gateway instance that the controller uses.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private static $gateway;
+
 	/**
 	 * Enable UPE and store gateway instance.
 	 *
@@ -55,28 +55,22 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * would contain another gateway instance than the controller.
 	 *
 	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 *
+	 * @return void
+	 * @throws Exception
 	 */
-	public static function set_up_before_class() {
+	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 
 		$upe_helper = new UPE_Test_Helper();
 
-		// Enable Bacs for tests.
-		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
-
-		// Enable ACH
-		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
-
 		// Enable Amazon Pay
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ];
 	}
 
 	/**
@@ -104,8 +98,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function tear_down() {
 		parent::tear_down();
 
-		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
-		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 	}
 
@@ -148,9 +140,14 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests for boolean fields.
+	 *
+	 * @param string $rest_key    REST API key.
+	 * @param string $option_name Option name.
+	 * @param bool   $inverse     Whether the option is inverse of the REST key.
 	 * @dataProvider boolean_field_provider
 	 */
-	public function test_boolean_fields( $rest_key, $option_name, $inverse = false ) {
+	public function test_boolean_fields( string $rest_key, string $option_name, bool $inverse = false ): void {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, 'yes' );
 		$response = $this->rest_get_settings();
@@ -192,6 +189,15 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests for enum fields.
+	 *
+	 * @param string       $rest_key             REST API key.
+	 * @param string       $option_name          Option name.
+	 * @param string|array $original_valid_value Original valid value.
+	 * @param string|array $new_valid_value      New valid value.
+	 * @param string|array $new_invalid_value    New invalid value.
+	 * @param bool         $is_upe_enabled       Whether UPE is enabled.
+	 *
 	 * @dataProvider enum_field_provider
 	 */
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
@@ -258,48 +264,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$this->assertEquals( 400, $response->get_status() );
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
-	}
-
-	public function test_individual_payment_method_settings() {
-		// Disable UPE and set up EPS gateway.
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled'     => 'yes',
-				'title'       => 'Credit card',
-				'description' => 'Pay with Credit card',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
-			]
-		);
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
-		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
-
-		$response                                = $this->rest_get_settings();
-		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $individual_payment_method_settings_data );
-		$this->assertEquals(
-			[
-				'name'        => 'EPS',
-				'description' => 'Pay with EPS',
-			],
-			$individual_payment_method_settings_data['eps'],
-		);
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
-		$request->set_param( 'payment_method_id', WC_Stripe_Payment_Methods::GIROPAY );
-		$request->set_param( 'is_enabled', true );
-		$request->set_param( 'title', 'Giropay' );
-		$request->set_param( 'description', 'Pay with Giropay' );
-
-		$response         = rest_do_request( $request );
-		$gateway_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'Giropay', $gateway_settings['title'] );
-		$this->assertEquals( 'Pay with Giropay', $gateway_settings['description'] );
 	}
 
 	public function test_get_settings_returns_available_payment_method_ids() {
@@ -419,6 +383,61 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests that Apple Pay and Google Pay can be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
+	public function test_update_settings_enables_apple_pay_google_pay() {
+		// Before the update: card and CashApp are enabled, Apple Pay and Google Pay are disabled
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		// After the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
+		$this->expect_payment_method_configurations_update(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ]
+		);
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		// Disable CashApp, keep card enabled.
+		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CARD ] );
+		$request->set_param( 'is_upe_enabled', true );
+		// Enable Apple Pay and Google Pay.
+		$request->set_param( 'is_payment_request_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Tests that Apple Pay and Google Pay can only be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
+	public function test_update_settings_enforces_apple_pay_google_pay_requires_card() {
+		// Before the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ]
+		);
+
+		// After the update: CashApp is enabled, card, Apple Pay, and Google Pay are disabled
+		$this->expect_payment_method_configurations_update(
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		// Disable card, enable CashApp.
+		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$request->set_param( 'is_upe_enabled', true );
+		// Enable Apple Pay and Google Pay -- this will be ignored because card is disabled
+		$request->set_param( 'is_payment_request_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
 	 * @param array $request_params The request parameters.
@@ -505,32 +524,16 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * @dataProvider is_payment_request_enabled_legacy_provider
+	 * Data provider for `test_boolean_fields`.
+	 *
+	 * @return array
 	 */
-	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
-		// Settings controller with non-UPE gateway.
-		$gateway = new WC_Gateway_Stripe();
-		$gateway->update_option( 'payment_request', $option_value );
-		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
-
-		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
-		$response = $controller->get_settings( $request );
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
-	}
-
-	public function is_payment_request_enabled_legacy_provider() {
-		return [
-			[ true, 'yes' ],
-			[ false, 'no' ],
-		];
-	}
-
-	public function boolean_field_provider() {
+	public function boolean_field_provider(): array {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_oc_enabled'                         => [ 'is_oc_enabled', 'optimized_checkout_element' ],
+			'is_ap_enabled'                         => [ 'is_ap_enabled', 'adaptive_pricing' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
 			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],
@@ -549,35 +552,48 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		];
 	}
 
+	/**
+	 * Data provider for `test_enum_fields`.
+	 *
+	 * @return array
+	 */
 	public function enum_field_provider() {
 		return [
 			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
-				'payment_request_button_theme',
+				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
 			'payment_request_button_size'      => [
 				'payment_request_button_size',
-				'payment_request_button_size',
+				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
 			'payment_request_button_type'      => [
 				'payment_request_button_type',
-				'payment_request_button_type',
+				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
 			'payment_request_button_locations' => [
 				'payment_request_button_locations',
-				'payment_request_button_locations',
+				'express_checkout_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
+			],
+			'optimized_checkout_layout' => [
+				'oc_layout',
+				'optimized_checkout_layout',
+				'accordion',
+				'tabs',
+				'foo',
+				true, // is_upe_enabled
 			],
 		];
 	}
@@ -624,7 +640,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * @return WC_Gateway_Stripe
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	private function get_gateway() {
 		return self::$gateway;

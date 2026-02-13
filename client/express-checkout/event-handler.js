@@ -1,3 +1,4 @@
+import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from '../stripe-utils/constants';
 import {
 	normalizeShippingAddress,
 	normalizeLineItems,
@@ -19,7 +20,10 @@ export const shippingAddressChangeHandler = async ( api, event, elements ) => {
 				amount: response.total.amount,
 			} );
 			event.resolve( {
-				shippingRates: response.shipping_options,
+				shippingRates: response.shipping_options?.slice(
+					0,
+					SHIPPING_RATES_UPPER_LIMIT_COUNT
+				),
 				lineItems: normalizeLineItems( response.displayItems ),
 			} );
 		} else {
@@ -50,14 +54,19 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 };
 
 export const onConfirmHandler = async ( params ) => {
-	const { abortPayment, elements, event } = params;
+	const { abortPayment, elements, event, hasFreeTrial } = params;
 
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
 		return abortPayment( event, submitResponse?.error?.message );
 	}
 
-	if ( ! isManualPaymentMethodCreation( event.expressPaymentType ) ) {
+	if (
+		! isManualPaymentMethodCreation(
+			event.expressPaymentType,
+			hasFreeTrial
+		)
+	) {
 		return handleConfirmationTokenFlow( params );
 	}
 

@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Admin\Features\OnboardingTasks\TaskLists;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,8 +45,8 @@ class WC_Stripe_Settings_Controller {
 
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
-		// Add AJAX handler for OAuth URLs
-		add_action( 'wp_ajax_wc_stripe_get_oauth_urls', [ $this, 'ajax_get_oauth_urls' ] );
+		// Add AJAX handler for OAuth URL generation
+		add_action( 'wp_ajax_wc_stripe_get_oauth_url', [ $this, 'ajax_get_oauth_url' ] );
 	}
 
 	/**
@@ -92,7 +94,7 @@ class WC_Stripe_Settings_Controller {
 				echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wp_kses_post( wc_help_tip( $no_refunds_tooltip ) ) . '</span>';
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order->get_id(), [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -119,50 +121,48 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	 * AJAX handler to get OAuth URLs for the configuration modal
+	 * Determines if the payments task is completed in WooCommerce onboarding flow.
+	 *
+	 * @return bool True if the payments task is completed, false otherwise.
 	 */
-	public function ajax_get_oauth_urls() {
+	private function is_payments_onboarding_task_completed(): bool {
+		$task_list = TaskLists::get_list( 'setup' );
+		if ( empty( $task_list ) ) {
+			return false;
+		}
+
+		$payments_task = $task_list->get_task( 'payments' );
+		if ( empty( $payments_task ) ) {
+			return false;
+		}
+
+		return $payments_task->is_complete();
+	}
+
+	/**
+	 * AJAX handler to generate OAuth URL on-demand
+	 */
+	public function ajax_get_oauth_url() {
 		// Check nonce and capabilities
-		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_urls', 'nonce', false ) ||
+		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_url', 'nonce', false ) ||
 			! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to do this.', 'woocommerce-gateway-stripe' ) ] );
 			return;
 		}
 
-		$oauth_url      = woocommerce_gateway_stripe()->connect->get_oauth_url();
-		$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
-
-		wp_send_json_success(
-			[
-				'oauth_url'      => is_wp_error( $oauth_url ) ? '' : $oauth_url,
-				'test_oauth_url' => is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url,
-			]
-		);
-	}
-
-	/**
-	 * Determines if OAuth URLs need to be generated.
-	 * URLs are needed for new accounts or accounts not connected via OAuth.
-	 *
-	 * @return bool True if OAuth URLs are needed
-	 */
-	public function needs_oauth_urls() {
-		$settings      = WC_Stripe_Helper::get_stripe_settings();
-		$has_live_keys = ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] );
-		$has_test_keys = ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] );
-
-		// If no keys at all, we need OAuth URLs for new account setup
-		if ( ! $has_live_keys && ! $has_test_keys ) {
-			return true;
+		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'test';
+		if ( ! in_array( $mode, [ 'live', 'test' ], true ) ) {
+			$mode = 'test';
 		}
 
-		$stripe_connect = woocommerce_gateway_stripe()->connect;
+		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
 
-		// Check each mode only if it has keys
-		$needs_live_oauth = $has_live_keys && ! $stripe_connect->is_connected_via_oauth( 'live' );
-		$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
+		if ( is_wp_error( $oauth_url ) ) {
+			wp_send_json_error( [ 'message' => $oauth_url->get_error_message() ] );
+			return;
+		}
 
-		return $needs_live_oauth || $needs_test_oauth;
+		wp_send_json_success( [ 'oauth_url' => $oauth_url ] );
 	}
 
 	/**
@@ -212,18 +212,6 @@ class WC_Stripe_Settings_Controller {
 			$script_asset['version']
 		);
 
-		$oauth_url      = '';
-		$test_oauth_url = '';
-
-		// Get URLs at page load only if account doesn't exist or if account exists but not connected via OAuth
-		if ( $this->needs_oauth_urls() ) {
-			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-			$oauth_url = is_wp_error( $oauth_url ) ? '' : $oauth_url;
-
-			$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
-			$test_oauth_url = is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url;
-		}
-
 		$message = sprintf(
 		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
 			esc_html__( '%1$sWarning:%2$s your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
@@ -236,27 +224,38 @@ class WC_Stripe_Settings_Controller {
 			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
 			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
 
+		$is_oc_enabled = $this->get_gateway()->is_oc_enabled();
+
+		$show_oc_promotion_banner = get_option( 'wc_stripe_show_oc_promotion_banner', 'yes' ) === 'yes'
+			// Show the OC promotional banner only if OC is disabled
+			&& ! $is_oc_enabled;
+
 		$params = [
-			'time'                         => time(),
-			'i18n_out_of_sync'             => $message,
-			'is_upe_checkout_enabled'      => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-			'is_ach_enabled'               => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
-			'is_acss_enabled'              => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
-			'is_bacs_enabled'              => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
-			'is_blik_enabled'              => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
-			'is_becs_debit_enabled'        => WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled(),
-			'stripe_oauth_url'             => $oauth_url,
-			'stripe_test_oauth_url'        => $test_oauth_url,
-			'show_customization_notice'    => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
-			'show_bnpl_promotional_banner' => $show_bnpl_promotion_banner,
-			'is_test_mode'                 => $this->get_gateway()->is_in_test_mode(),
-			'plugin_version'               => WC_STRIPE_VERSION,
-			'account_country'              => $this->account->get_account_country(),
-			'are_apms_deprecated'          => WC_Stripe_Feature_Flags::are_apms_deprecated(),
-			'is_amazon_pay_available'      => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_oc_available'              => WC_Stripe_Feature_Flags::is_oc_available(),
-			'oauth_nonce'                  => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
-			'is_sepa_tokens_enabled'       => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
+			'time'                                  => time(),
+			'i18n_out_of_sync'                      => $message,
+			'is_upe_checkout_enabled'               => true,
+			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
+			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
+			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
+			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
+			'plugin_version'                        => WC_STRIPE_VERSION,
+			'account_country'                       => $this->account->get_account_country(),
+			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
+			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
+			'is_oc_enabled'                         => $is_oc_enabled,
+			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available(),
+			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
+			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
+			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
+			'is_sepa_tokens_for_bancontact_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact', 'no' ),
+			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
+			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
+			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
+			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
+			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
@@ -287,18 +286,6 @@ class WC_Stripe_Settings_Controller {
 		$gateways_to_hide = [
 			// Hide all UPE payment methods.
 			WC_Stripe_UPE_Payment_Method::class,
-			// Hide all legacy payment methods.
-			WC_Gateway_Stripe_Alipay::class,
-			WC_Gateway_Stripe_Sepa::class,
-			WC_Gateway_Stripe_Giropay::class,
-			WC_Gateway_Stripe_Ideal::class,
-			WC_Gateway_Stripe_Bancontact::class,
-			WC_Gateway_Stripe_Eps::class,
-			WC_Gateway_Stripe_P24::class,
-			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_Oxxo::class,
-			WC_Gateway_Stripe_Sofort::class,
-			WC_Gateway_Stripe_Multibanco::class,
 		];
 
 		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {

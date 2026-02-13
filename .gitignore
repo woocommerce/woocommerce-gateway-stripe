@@ -46,3 +46,6 @@ docker/logs
 # PHPUnit coverage results files
 php-coverage.xml
 phpunit-html/
+
+# PHPStan temporary files
+phpstan-tmp/

@@ -1,6 +1,6 @@
-import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 export const useAccountKeys = () => {
 	const {
@@ -95,32 +95,27 @@ const makeAccountKeysValueHook = ( attribute ) => () => {
 	return [ value, handler ];
 };
 
-export const useAccountKeysPublishableKey = makeAccountKeysValueHook(
-	'publishable_key'
-);
+export const useAccountKeysPublishableKey =
+	makeAccountKeysValueHook( 'publishable_key' );
 
 export const useAccountKeysSecretKey = makeAccountKeysValueHook( 'secret_key' );
 
-export const useAccountKeysWebhookSecret = makeAccountKeysValueHook(
-	'webhook_secret'
-);
+export const useAccountKeysWebhookSecret =
+	makeAccountKeysValueHook( 'webhook_secret' );
 
 export const useAccountKeysTestPublishableKey = makeAccountKeysValueHook(
 	'test_publishable_key'
 );
 
-export const useAccountKeysTestSecretKey = makeAccountKeysValueHook(
-	'test_secret_key'
-);
+export const useAccountKeysTestSecretKey =
+	makeAccountKeysValueHook( 'test_secret_key' );
 
 export const useAccountKeysTestWebhookSecret = makeAccountKeysValueHook(
 	'test_webhook_secret'
 );
 
-export const useAccountKeysTestWebhookURL = makeAccountKeysValueHook(
-	'test_webhook_url'
-);
+export const useAccountKeysTestWebhookURL =
+	makeAccountKeysValueHook( 'test_webhook_url' );
 
-export const useAccountKeysWebhookURL = makeAccountKeysValueHook(
-	'webhook_url'
-);
+export const useAccountKeysWebhookURL =
+	makeAccountKeysValueHook( 'webhook_url' );

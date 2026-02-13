@@ -1,6 +1,6 @@
 import React from 'react';
-import { Modal } from '@wordpress/components';
 import classNames from 'classnames';
+import { Modal } from '@wordpress/components';
 import { HorizontalRule } from '@wordpress/primitives';
 
 import './style.scss';

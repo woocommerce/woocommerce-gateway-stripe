@@ -4,7 +4,11 @@ import config from 'config';
 import { api, payments, products } from '../../../utils';
 import { isPluginInstalled } from '../../../utils/plugin-utils';
 
-const { setupShortcodeCheckout, fillCreditCardDetailsShortcode } = payments;
+const {
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcode,
+	clickAddToCartButton,
+} = payments;
 
 let productId;
 
@@ -28,7 +32,7 @@ test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	page,
 } ) => {
 	await page.goto( `?p=${ productId }` );
-	await page.locator( 'button[name="add-to-cart"]' ).click();
+	await clickAddToCartButton( page, 'Pre-order now' );
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.

@@ -1,4 +1,3 @@
-import { useEffect } from '@wordpress/element';
 import {
 	CardElement,
 	CardNumberElement,
@@ -7,6 +6,7 @@ import {
 import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
 import { errorTypes, PAYMENT_METHOD_CARD } from '../../stripe-utils/constants';
 import { PAYMENT_METHOD_NAME } from './constants';
+import { useEffect } from '@wordpress/element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**

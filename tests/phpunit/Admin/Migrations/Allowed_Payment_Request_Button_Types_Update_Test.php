@@ -4,7 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
 use Allowed_Payment_Request_Button_Types_Update;
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WP_UnitTestCase;
 
 /**
@@ -17,7 +17,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe gateway mock.
 	 *
-	 * @var MockObject|WC_Gateway_Stripe
+	 * @var MockObject|WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway_mock;
 
@@ -34,7 +34,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 			return;
 		}
 
-		$this->gateway_mock = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$this->gateway_mock = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 								   ->disableOriginalConstructor()
 								   ->getMock();
 		$this->migration    = $this->getMockBuilder( Allowed_Payment_Request_Button_Types_Update::class )

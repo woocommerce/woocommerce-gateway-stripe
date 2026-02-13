@@ -1,6 +1,6 @@
+import { refreshAccount } from '../actions';
 import { select, dispatch } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
-import { refreshAccount } from '../actions';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );

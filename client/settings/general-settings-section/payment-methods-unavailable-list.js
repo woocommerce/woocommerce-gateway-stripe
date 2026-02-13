@@ -1,5 +1,5 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
+import { __, sprintf } from '@wordpress/i18n';
 import { useGetAvailablePaymentMethodIds } from 'wcstripe/data';
 import { useGetCapabilities } from 'wcstripe/data/account';
 import methodsConfiguration from 'wcstripe/payment-methods-map';

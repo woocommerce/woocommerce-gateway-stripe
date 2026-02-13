@@ -2,12 +2,8 @@ import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
-const {
-	emptyCart,
-	setupCart,
-	fillCreditCardDetails,
-	setupBlocksCheckout,
-} = payments;
+const { emptyCart, setupCart, fillCreditCardDetails, setupBlocksCheckout } =
+	payments;
 
 test( 'customer can checkout with a normal credit card @smoke @blocks', async ( {
 	page,

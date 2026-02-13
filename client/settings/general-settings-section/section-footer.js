@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
+import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import CardFooter from 'wcstripe/settings/card-footer';
 import PaymentMethodsUnavailableList from 'wcstripe/settings/general-settings-section/payment-methods-unavailable-list';

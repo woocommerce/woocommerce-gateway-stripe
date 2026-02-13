@@ -37,13 +37,8 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @return string
 	 */
 	public function get_display_name( $deprecated = '' ) {
-		$display = sprintf(
-			/* translators: customer email */
-			__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
-			$this->get_email()
-		);
-
-		return $display;
+		// Note that 'Stripe Link' is a branded product, and should not be translated.
+		return sprintf( 'Stripe Link (%s)', $this->get_email() );
 	}
 
 	/**
@@ -57,6 +52,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set Stripe payment method type.
 	 *
 	 * @param string $type Payment method type.
+	 * @return void
 	 */
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );
@@ -87,6 +83,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * Set the customer email.
 	 *
 	 * @param string $email Customer email.
+	 * @return void
 	 */
 	public function set_email( $email ) {
 		$this->set_prop( 'email', $email );
@@ -98,11 +95,10 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::LINK === $payment_method->type
-			&& ( $payment_method->link->email ?? null ) === $this->get_email() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::LINK !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		return ( $payment_method->link->email ?? null ) === $this->get_email();
 	}
 }

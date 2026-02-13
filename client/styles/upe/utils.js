@@ -3,8 +3,8 @@ import tinycolor from 'tinycolor2';
 /**
  * Generates hover colors from a background color and a text color.
  *
- * @param {string}  backgroundColor Background color, Any format accepted by tinyColor library
- * @param {string}  color Text color, any format accepted by tinyColor library
+ * @param {string} backgroundColor Background color, Any format accepted by tinyColor library
+ * @param {string} color           Text color, any format accepted by tinyColor library
  * @return {Object} Object with new background color and text color.
  */
 export const generateHoverColors = ( backgroundColor, color ) => {
@@ -46,7 +46,7 @@ export const generateHoverColors = ( backgroundColor, color ) => {
 /**
  * Generates hover rules for UPE using a set of appearance rules as a basis.
  *
- * @param {Object}  baseRules UPE appearance rules to use as a base to generate hover colors
+ * @param {Object} baseRules UPE appearance rules to use as a base to generate hover colors
  * @return {Object} Object with generated hover rules.
  */
 export const generateHoverRules = ( baseRules ) => {
@@ -72,9 +72,9 @@ export const generateHoverRules = ( baseRules ) => {
  * Generates outline style for UPE using outline width, style and color.
  * UPE does not accept the individual properties, we need to concat them.
  *
- * @param {string}  outlineWidth Outline width from computed styles.
- * @param {string}  outlineStyle Outline width from computed styles.
- * @param {string}  outlineColor Outline width from computed styles.
+ * @param {string} outlineWidth Outline width from computed styles.
+ * @param {string} outlineStyle Outline width from computed styles.
+ * @param {string} outlineColor Outline width from computed styles.
  * @return {string} Object with generated hover rules.
  */
 

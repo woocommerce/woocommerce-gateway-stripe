@@ -4,30 +4,37 @@ import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
 import {
 	useDebugLog,
-	useIsUpeEnabled,
-	useOCTitle,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
+	useIsAdaptivePricingEnabled,
+	useOCLayout,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
-	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
-	useOCTitle: jest.fn(),
+	useIsAdaptivePricingEnabled: jest.fn(),
+	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
 } ) );
 
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: jest.fn().mockReturnValue( {} ),
+} ) );
+
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = { is_oc_available: false };
+		global.wc_stripe_settings_params = {
+			is_cs_available: false,
+			is_oc_available: false,
+		};
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
-		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useOCTitle.mockReturnValue( 'Stripe' );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
@@ -40,20 +47,20 @@ describe( 'AdvancedSettings', () => {
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should enable debug mode when checkbox is clicked', () => {
+	it( 'should enable debug mode when checkbox is clicked', async () => {
 		const setIsLoggingCheckedMock = jest.fn();
 		useDebugLog.mockReturnValue( [ false, setIsLoggingCheckedMock ] );
 
 		render( <AdvancedSettings /> );
 
-		const debugModeCheckbox = screen.getByLabelText( 'Log error messages' );
+		const debugModeCheckbox = screen.getByLabelText( 'Log debug messages' );
 
 		expect( screen.getByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
-			screen.getByLabelText( 'Log error messages' )
+			screen.getByLabelText( 'Log debug messages' )
 		).not.toBeChecked();
 
-		userEvent.click( debugModeCheckbox );
+		await userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
@@ -80,8 +87,11 @@ describe( 'AdvancedSettings', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should display the Optimized Checkout title setting if the Optimized Checkout feature is enabled', () => {
-		global.wc_stripe_settings_params = { is_oc_available: true };
+	it( 'should display the Optimized Checkout layout and the Adaptive Pricing settings if the Optimized Checkout feature is enabled and checkout sessions available', () => {
+		global.wc_stripe_settings_params = {
+			is_cs_available: true,
+			is_oc_available: true,
+		};
 
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
@@ -89,9 +99,15 @@ describe( 'AdvancedSettings', () => {
 
 		expect(
 			screen.queryByText(
-				'This will appear as the title of the Optimized Checkout Suite payment element on checkout.'
+				'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
 			)
 		).toBeInTheDocument();
-		expect( screen.queryByLabelText( 'Title' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Layout' ) ).toBeInTheDocument();
+
+		expect(
+			screen.queryByText(
+				'Let customers pay in their local currency with Adaptive Pricing.'
+			)
+		).toBeInTheDocument();
 	} );
 } );

@@ -1,6 +1,6 @@
-import { __ } from '@wordpress/i18n';
 import { React, useRef, useState } from 'react';
 import styled from '@emotion/styled';
+import { __ } from '@wordpress/i18n';
 import { TabPanel } from '@wordpress/components';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';

@@ -52,45 +52,39 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 		page,
 	} ) => {
 		// First order - Save the payment method.
-		await test.step(
-			'Save payment method during first checkout',
-			async () => {
-				await user.login(
-					page,
-					username,
-					config.get( 'users.customer.password' )
-				);
-				await setupOptimizedCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
-				await fillOCDetails( page, config.get( 'cards.basic' ) );
-				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Save payment method during first checkout', async () => {
+			await user.login(
+				page,
+				username,
+				config.get( 'users.customer.password' )
+			);
+			await setupOptimizedCheckout( page, 'blocks' );
+			await page.getByLabel( 'Save payment information' ).click();
+			await fillOCDetails( page, config.get( 'cards.basic' ) );
+			await clickPlaceOrder( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 
 		// Second order - Use saved payment method.
-		await test.step(
-			'Use saved payment method for second checkout',
-			async () => {
-				await emptyCart( page );
-				await setupCart( page );
-				await setupBlocksCheckout(
-					page,
-					config.get( 'addresses.customer.billing' )
-				);
-				await page
-					.locator( 'label' )
-					.filter( { hasText: 'Visa ending in 4242 (expires' } )
-					.click();
-				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Use saved payment method for second checkout', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupBlocksCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+			await page
+				.locator( 'label' )
+				.filter( { hasText: 'Visa ending in 4242 (expires' } )
+				.click();
+			await clickPlaceOrder( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 	} );
 } );

@@ -1,11 +1,4 @@
-import { __, sprintf } from '@wordpress/i18n';
 import { React } from 'react';
-import {
-	Card,
-	CheckboxControl,
-	TextControl,
-	Button,
-} from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
@@ -18,8 +11,17 @@ import {
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
 } from '../../data/payment-gateway/hooks';
+import {
+	Card,
+	CheckboxControl,
+	TextControl,
+	Button,
+} from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
+import usePaymentMethodUnavailableReason from 'wcstripe/utils/use-payment-method-unavailable-reason';
+import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -37,11 +39,13 @@ const PaymentGatewaySection = () => {
 	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
-	const [
-		gatewayDescription,
-		setGatewayDescription,
-	] = usePaymentGatewayDescription();
+	const [ gatewayDescription, setGatewayDescription ] =
+		usePaymentGatewayDescription();
+	const unavailableReason = usePaymentMethodUnavailableReason( info.id );
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
+	const showMissingCurrencyPill =
+		PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY ===
+		unavailableReason;
 
 	return (
 		<StyledCard>
@@ -65,10 +69,12 @@ const PaymentGatewaySection = () => {
 									id={ info.id }
 									label={ info.title }
 								/>
-								<PaymentMethodMissingCurrencyPill
-									id={ info.id }
-									label={ info.title }
-								/>
+								{ showMissingCurrencyPill && (
+									<PaymentMethodMissingCurrencyPill
+										id={ info.id }
+										label={ info.title }
+									/>
+								) }
 							</StyledCheckboxLabel>
 						}
 						help={ sprintf(

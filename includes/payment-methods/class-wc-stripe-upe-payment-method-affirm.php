@@ -35,9 +35,9 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 			],
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
 				'US' => [
-					'min' => 5000,
+					'min' => 3500,
 					'max' => 3000000,
-				], // Represents USD 50 - 30,000 USD.
+				], // Represents USD 35 - 30,000 USD.
 			],
 		];
 	}
@@ -60,5 +60,19 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function requires_automatic_capture() {
 		return false;
+	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_available() {
+		// Affirm is only available if the official Affirm plugin is not active.
+		if ( WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ) ) {
+			return false;
+		}
+
+		return parent::is_available();
 	}
 }

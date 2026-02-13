@@ -1,16 +1,14 @@
-import { __ } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
-import LegacyExperienceTransitionNotice from '../notices/legacy-experience-transition';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { Card, VisuallyHidden } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
-import { useGetOrderedPaymentMethodIds } from 'wcstripe/data';
+import { useGetOrderedPaymentMethodIds, useIsPMCEnabled } from 'wcstripe/data';
 import './styles.scss';
 
 const AccountRefreshingOverlay = styled.div`
@@ -31,19 +29,13 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = ( {
-	onSaveChanges,
-	showLegacyExperienceTransitionNotice,
-} ) => {
-	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
-		false
-	);
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
+	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] =
+		useState( false );
 	const { isRefreshing } = useAccount();
-	const {
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
+	const isPMCEnabled = useIsPMCEnabled();
 
 	const [ initialOrder, setInitialOrder ] = useState( [] );
 
@@ -68,12 +60,6 @@ const GeneralSettingsSection = ( {
 
 	return (
 		<>
-			{ showLegacyExperienceTransitionNotice && (
-				<LegacyExperienceTransitionNotice
-					isUpeEnabled={ isUpeEnabled }
-					setIsUpeEnabled={ setIsUpeEnabled }
-				/>
-			) }
 			<Card>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
@@ -99,7 +85,7 @@ const GeneralSettingsSection = ( {
 							onCancel={ () => onChangeDisplayOrder( false ) }
 						/>
 					</AccountRefreshingOverlay>
-					{ isUpeEnabled && <SectionFooter /> }
+					{ ! isPMCEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
 			</Card>
 		</>

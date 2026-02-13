@@ -60,7 +60,7 @@ describe( 'AmazonPaySettingsSection', () => {
 		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
 	} );
 
-	it( 'triggers the hooks when the settings are being interacted with', () => {
+	it( 'triggers the hooks when the settings are being interacted with', async () => {
 		const setButtonSizeMock = jest.fn();
 
 		useAmazonPayButtonSize.mockReturnValue( [
@@ -73,7 +73,8 @@ describe( 'AmazonPaySettingsSection', () => {
 
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );
 } );

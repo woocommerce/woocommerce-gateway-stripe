@@ -1,5 +1,3 @@
-import { useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import {
 	CardElement,
 	CardNumberElement,
@@ -7,6 +5,8 @@ import {
 	CardCvcElement,
 } from '@stripe/react-stripe-js';
 import { useElementOptions } from './use-element-options';
+import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 /** @typedef {import('react')} React */
 
@@ -15,9 +15,9 @@ const baseTextInputStyles = 'wc-block-gateway-input';
 /**
  * InlineCard component
  *
- * @param {Object} props Incoming props for the component.
+ * @param {Object}             props                     Incoming props for the component.
  * @param {React.ReactElement} props.inputErrorComponent
- * @param {function(any):any} props.onChange
+ * @param {function(any):any}  props.onChange
  */
 export const InlineCard = ( {
 	inputErrorComponent: ValidationInputError,
@@ -63,8 +63,8 @@ export const InlineCard = ( {
 /**
  * CardElements component.
  *
- * @param {Object} props
- * @param {function(any):any} props.onChange
+ * @param {Object}             props
+ * @param {function(any):any}  props.onChange
  * @param {React.ReactElement} props.inputErrorComponent
  */
 export const CardElements = ( {

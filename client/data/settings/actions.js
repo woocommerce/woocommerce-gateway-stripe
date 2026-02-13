@@ -1,8 +1,8 @@
+import { NAMESPACE, STORE_NAME } from '../constants';
+import ACTION_TYPES from './action-types';
 import { dispatch, select } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
-import { NAMESPACE, STORE_NAME } from '../constants';
-import ACTION_TYPES from './action-types';
 
 export function updateSettingsValues( payload ) {
 	return {
@@ -32,13 +32,6 @@ export function updateIsSavingOrderedPaymentMethodIds(
 	return {
 		type: ACTION_TYPES.SET_IS_SAVING_ORDERED_PAYMENT_METHOD_IDS,
 		isSavingOrderedPaymentMethodIds,
-	};
-}
-
-export function updateIsCustomizingPaymentMethod( isCustomizingPaymentMethod ) {
-	return {
-		type: ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD,
-		isCustomizingPaymentMethod,
 	};
 }
 
@@ -78,9 +71,8 @@ export function* saveSettings() {
 
 export function* saveOrderedPaymentMethodIds() {
 	try {
-		const orderedPaymentMethodIds = select(
-			STORE_NAME
-		).getOrderedPaymentMethodIds();
+		const orderedPaymentMethodIds =
+			select( STORE_NAME ).getOrderedPaymentMethodIds();
 
 		yield updateIsSavingOrderedPaymentMethodIds( true );
 
@@ -101,35 +93,5 @@ export function* saveOrderedPaymentMethodIds() {
 		);
 	} finally {
 		yield updateIsSavingOrderedPaymentMethodIds( false );
-	}
-}
-
-export function* saveIndividualPaymentMethodSettings(
-	paymentMethodData = null
-) {
-	if ( ! paymentMethodData ) {
-		return;
-	}
-
-	try {
-		yield updateIsCustomizingPaymentMethod( true );
-
-		yield apiFetch( {
-			path: `${ NAMESPACE }/settings/payment_method`,
-			method: 'post',
-			data: {
-				is_enabled: paymentMethodData.isEnabled,
-				payment_method_id: paymentMethodData.method,
-				title: paymentMethodData.name,
-				description: paymentMethodData.description,
-				expiration: paymentMethodData.expiration,
-			},
-		} );
-	} catch ( e ) {
-		yield dispatch( 'core/notices' ).createErrorNotice(
-			__( 'Error saving payment method.', 'woocommerce-gateway-stripe' )
-		);
-	} finally {
-		yield updateIsCustomizingPaymentMethod( false );
 	}
 }

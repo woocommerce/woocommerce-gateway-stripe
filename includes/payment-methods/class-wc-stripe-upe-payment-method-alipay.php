@@ -10,8 +10,6 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Alipay::class;
-
 	/**
 	 * Constructor for alipay payment method
 	 */

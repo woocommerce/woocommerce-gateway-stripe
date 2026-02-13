@@ -1,7 +1,8 @@
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
 import {
+	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
@@ -11,10 +12,13 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
+			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
+
 			// Create the DIV container on the fly
 			const containerEl = document.createElement( 'div' );
 
@@ -23,21 +27,30 @@ export const checkPaymentMethodIsAvailable = memoize(
 
 			document.querySelector( 'body' ).appendChild( containerEl );
 
-			const root = ReactDOM.createRoot( containerEl );
+			const root = createRoot( containerEl );
+
+			const amount = transformPriceWithMinorUnits(
+				cart.cartTotals.total_price,
+				cart.cartTotals.currency_minor_unit
+			);
 
 			root.render(
 				<Elements
 					stripe={ api.loadStripe() }
 					options={ {
-						mode: 'payment',
-						...( isManualPaymentMethodCreation( paymentMethod ) && {
+						mode: hasFreeTrial ? 'subscription' : 'payment',
+						...( isManualPaymentMethodCreation(
+							paymentMethod,
+							hasFreeTrial
+						) && {
 							paymentMethodCreation: 'manual',
 						} ),
-						amount: Number( cart.cartTotals.total_price ),
+						amount: Number( amount ),
 						currency: cart.cartTotals.currency_code.toLowerCase(),
-						paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
-							paymentMethod
-						),
+						paymentMethodTypes:
+							getPaymentMethodTypesForExpressMethod(
+								paymentMethod
+							),
 					} }
 				>
 					<ExpressCheckoutElement

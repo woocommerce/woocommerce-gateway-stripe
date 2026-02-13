@@ -1,6 +1,6 @@
+import { saveAccountKeys } from '../actions';
 import { dispatch, select } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
-import { saveAccountKeys } from '../actions';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );

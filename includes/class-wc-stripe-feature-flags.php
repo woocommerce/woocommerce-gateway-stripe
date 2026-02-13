@@ -5,21 +5,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
-	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
-	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-	const OC_FEATURE_FLAG_NAME                = '_wcstripe_feature_oc';
-	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
-	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
-	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
-	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
-	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
 
 	/**
-	 * Feature flag to control SPE (Single Payment Element, now OC - Optimized CHeckout) feature availability.
+	 * Feature flag for Amazon Pay.
 	 *
-	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
+	 * @var string
+	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
-	const SPE_FEATURE_FLAG_NAME = '_wcstripe_feature_spe';
+	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
+
+	/**
+	 * Feature flag for Stripe Checkout Sessions.
+	 *
+	 * @var string
+	 * @since 10.4.0
+	 */
+	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
@@ -28,15 +29,8 @@ class WC_Stripe_Feature_Flags {
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                => 'yes',
-		self::ECE_FEATURE_FLAG_NAME            => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
-		self::LPM_ACH_FEATURE_FLAG_NAME        => 'yes',
-		self::LPM_ACSS_FEATURE_FLAG_NAME       => 'yes',
-		self::LPM_BACS_FEATURE_FLAG_NAME       => 'yes',
-		self::LPM_BECS_DEBIT_FEATURE_FLAG_NAME => 'yes',
-		self::LPM_BLIK_FEATURE_FLAG_NAME       => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
+		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
 	];
 
 	/**
@@ -61,93 +55,46 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Checks whether ACH LPM (Local Payment Method) feature flag is enabled.
-	 * ACH LPM is a feature that allows merchants to enable/disable the ACH payment method.
-	 *
-	 * @return bool
-	 */
-	public static function is_ach_lpm_enabled() {
-		return 'yes' === self::get_option_with_default( self::LPM_ACH_FEATURE_FLAG_NAME );
-	}
-
-	/**
-	 * Checks whether ACSS LPM (Local Payment Method) feature flag is enabled.
-	 * ACSS LPM is a feature that allows merchants to enable/disable the ACSS payment method.
-	 *
-	 * @return bool
-	 */
-	public static function is_acss_lpm_enabled() {
-		return 'yes' === self::get_option_with_default( self::LPM_ACSS_FEATURE_FLAG_NAME );
-	}
-
-	/**
 	 * Feature flag to control Amazon Pay feature availability.
 	 *
 	 * @return bool
+	 * @deprecated This method will be removed in a future version. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
 	public static function is_amazon_pay_available() {
-		return 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
+		return true;
 	}
 
 	/**
-	 * Checks whether Bacs LPM (Local Payment Method) feature flag is enabled.
-	 * Alows the merchant to enable/disable Bacs payment method.
+	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
 	 * @return bool
+	 * @since 10.4.0
 	 */
-	public static function is_bacs_lpm_enabled(): bool {
-		return 'yes' === self::get_option_with_default( self::LPM_BACS_FEATURE_FLAG_NAME );
-	}
+	public static function is_checkout_sessions_available() {
+		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
+		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
+		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
+		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
 
-	/**
-	 * Checks whether BLIK LPM (Local Payment Method) feature flag is enabled.
-	 * BLIK LPM is a feature that allows merchants to enable/disable the BLIK payment method.
-	 *
-	 * @return bool
-	 */
-	public static function is_blik_lpm_enabled(): bool {
-		return 'yes' === self::get_option_with_default( self::LPM_BLIK_FEATURE_FLAG_NAME );
-	}
+		// Stripe checkout sessions feature can only be available if:
+		// - PMC is enabled
+		// - OC Suite is enabled
+		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
+		// If any of the above conditions are not met, the feature is not available.
+		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+			return false;
+		}
 
-	/**
-	 * Checks whether BECS Debit LPM (Local Payment Method) feature flag is enabled.
-	 * https://docs.stripe.com/payments/au-becs-debit.
-	 *
-	 * @return bool
-	 */
-	public static function is_becs_debit_lpm_enabled(): bool {
-		return 'yes' === self::get_option_with_default( self::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
-	}
+		$is_checkout_sessions_available = 'yes' === self::get_option_with_default( self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME );
 
-	/**
-	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
-	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
-	 *
-	 * @return bool
-	 */
-	public static function is_stripe_ece_enabled() {
-		return 'yes' === self::get_option_with_default( self::ECE_FEATURE_FLAG_NAME );
-	}
-
-	/**
-	 * Checks whether UPE "preview" feature flag is enabled.
-	 * This allows the merchant to enable/disable UPE checkout.
-	 *
-	 * @return bool
-	 */
-	public static function is_upe_preview_enabled() {
-		return 'yes' === self::get_option_with_default( '_wcstripe_feature_upe' );
-	}
-
-	/**
-	 * Checks whether UPE is enabled.
-	 *
-	 * @return bool
-	 */
-	public static function is_upe_checkout_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] )
-			&& 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+		/**
+		 * Filter to control the availability of the Stripe Checkout Sessions feature.
+		 *
+		 * @since 10.4.0
+		 * Note: This filter will be removed when the feature rolls out.
+		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
+		 */
+		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', $is_checkout_sessions_available );
 	}
 
 	/**
@@ -167,31 +114,21 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool Whether the APMs are deprecated.
 	 */
 	public static function are_apms_deprecated() {
-		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-28' && ! self::is_upe_checkout_enabled();
+		return false;
 	}
 
 	/**
-	 * Whether the Single Payment Element (SPE) feature flag is enabled.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
-	 */
-	public static function is_spe_available() {
-		return self::is_oc_available();
-	}
-
-	/**
-	 * Whether the Optimized Checkout (OC, previously known as SPE) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature flag is enabled.
 	 *
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$default_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
-		return apply_filters(
-			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $default_value,
-			$default_value
-		);
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		if ( 'yes' !== $pmc_enabled ) {
+			return false;
+		}
+
+		return true;
 	}
 }

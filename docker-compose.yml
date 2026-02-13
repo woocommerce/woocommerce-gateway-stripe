@@ -17,6 +17,10 @@ services:
       - ./docker/logs/php/:/var/log/php
       - .:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
       - ./tests/phpunit:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/phpunit
+      - docker_directory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/docker
+      - node_modules:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/node_modules
+      - phpstan_stubs:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpstan-stubs
+      - release_directory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/release
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
       - ./docker/override-php-error-logging.ini:/usr/local/etc/php/conf.d/override-php-error-logging.ini
       - ./docker/bin:/var/scripts
@@ -38,3 +42,10 @@ services:
       - "8073:80"
     env_file:
       - default.env
+# Set up volumes to prevent files from the host machine being exposed to the container and possible external access.
+volumes:
+   docker_directory:
+   node_modules:
+   phpstan_stubs:
+   release_directory:
+

@@ -7,30 +7,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Bancontact Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
-
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Bancontact::class;
 
 	/**
 	 * Constructor for Bancontact payment method
 	 */
 	public function __construct() {
 		parent::__construct();
-		$is_sepa_tokens_for_other_methods_enabled = $this->is_sepa_tokens_for_other_methods_enabled();
+		$is_sepa_tokens_for_bancontact_enabled    = $this->is_sepa_tokens_for_bancontact_enabled();
 		$this->stripe_id                          = self::STRIPE_ID;
 		$this->title                              = 'Bancontact';
-		$this->is_reusable                        = $is_sepa_tokens_for_other_methods_enabled;
+		$this->is_reusable                        = $is_sepa_tokens_for_bancontact_enabled;
 		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                              = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->description                        = __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
 		);
-		if ( $is_sepa_tokens_for_other_methods_enabled ) {
-			$this->supports[] = 'subscriptions';
+		if ( $is_sepa_tokens_for_bancontact_enabled ) {
 			$this->supports[] = 'tokenization';
-			$this->supports[] = 'multiple_subscriptions';
+
+			// Check if subscriptions are enabled and add support for them.
+			$this->maybe_init_subscriptions();
 		}
 
 		// Add support for pre-orders.

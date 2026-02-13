@@ -7,17 +7,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The Klarna Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
-	 * Constructor for giropay payment method
+	 * Constructor for Klarna payment method
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
+		$this->is_reusable          = true;
+		$this->supports[]           = 'tokenization';
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -29,6 +31,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
@@ -41,6 +44,12 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// Klarna has complex rules around currencies and technically allows cross border transactions (like France to Norway). Currency and location rules will be enforced via checkout billing country validation.
 		$this->accept_only_domestic_payment = false;
+
+		// Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 
 	/**
@@ -83,6 +92,8 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 				return [ 'NO' ];
 			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
 				return [ 'PL' ];
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				return [ 'RO' ];
 			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				return [ 'SE' ];
 			case WC_Stripe_Currency_Code::POUND_STERLING:
@@ -133,6 +144,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 		];
 	}
@@ -140,7 +152,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
-	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, SE, CH, GB, US.
+	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, RO, SE, CH, GB, US.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
@@ -155,5 +167,52 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function requires_automatic_capture() {
 		return false;
+	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_available() {
+		// Klarna is only available if the official Klarna plugin is not active.
+		if ( WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ) ) {
+			return false;
+		}
+
+		return parent::is_available();
+	}
+
+	/**
+	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
+	 *
+	 * @return string The payment method type.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Creates a Klarna payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 *
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Stripe_Klarna_Payment_Token();
+
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+
+		if ( isset( $payment_method->klarna->dob ) ) {
+			$token->set_dob_from_object( $payment_method->klarna->dob );
+		}
+
+		$token->save();
+
+		return $token;
 	}
 }

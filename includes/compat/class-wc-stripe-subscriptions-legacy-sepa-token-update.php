@@ -51,6 +51,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @param int $subscription_id The ID of the subscription to update.
 	 * @throws \Exception When updating the payment method of the subscription was skipped.
+	 * @return void
 	 */
 	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
 		$subscription = $this->get_subscription_to_migrate( $subscription_id );
@@ -66,13 +67,14 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * Attempts to update the payment method for renewals from Sources to PaymentMethods.
 	 *
 	 * @param WC_Subscription $subscription The subscription for which the payment method must be updated.
+	 * @return void
 	 */
 	public function maybe_update_subscription_source( WC_Subscription $subscription ) {
 		try {
 			$this->set_subscription_updated_payment_method( $subscription );
 			$subscription->add_order_note( __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' ) );
 		} catch ( \Exception $e ) {
-			WC_Stripe_Logger::log( $e->getMessage() );
+			WC_Stripe_Logger::error( 'Exception when updating subscription payment method', [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -89,11 +91,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * @throws \Exception When the subscription can't be updated.
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) );
-		}
-
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The WooCommerce Subscriptions extension is not active.', $subscription_id ) );
@@ -118,6 +115,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @param WC_Subscription $subscription The subscription to update.
 	 * @throws \Exception When the subscription is already using a pm_ or its src_ hasn't been migrated to a pm_.
+	 * @return void
 	 */
 	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
 		$source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
@@ -155,16 +153,17 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * Sets the updated SEPA gateway ID for the subscription.
 	 *
 	 * @param WC_Subscription $subscription Subscription for which the payment method must be updated.
+	 * @return void
 	 */
 	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
 		// The subscription is not using the legacy SEPA gateway ID.
-		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
+		if ( WC_Stripe_Payment_Methods::LEGACY_SEPA !== $subscription->get_payment_method() ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription->get_id() ) );
 		}
 
 		// Add a meta to the subscription to flag that its token got updated.
-		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
+		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Stripe_Payment_Methods::LEGACY_SEPA );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
 
 		$subscription->save();

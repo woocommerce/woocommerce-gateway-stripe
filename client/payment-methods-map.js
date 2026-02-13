@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
+import { __ } from '@wordpress/i18n';
 import {
 	PAYMENT_METHOD_ACH,
 	PAYMENT_METHOD_ACSS,
@@ -27,14 +27,11 @@ import {
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
-const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
-const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
-const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
-const isBecsDebitEnabled =
-	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
-const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
-const isSepaTokensEnabled =
-	window.wc_stripe_settings_params?.is_sepa_tokens_enabled === '1';
+const isSepaTokensForIdealEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_ideal_enabled === '1';
+const isSepaTokensForBancontactEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_for_bancontact_enabled ===
+	'1';
 
 const paymentMethodsMap = {
 	card: {
@@ -78,20 +75,23 @@ const paymentMethodsMap = {
 			'NOK',
 			'NZD',
 			'PLN',
+			'RON',
 			'SEK',
 			'USD',
 		],
 		allows_manual_capture: true,
+		supportsRecurring: true,
 	},
 	affirm: {
 		id: PAYMENT_METHOD_AFFIRM,
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
-		// translators: %s is the store currency.
+		// translators: 1: store currency, 2: store currency, 3: the minimum amount, 4: store currency.
 		description: __(
-			'Allow customers to pay over time. Available to all customers paying in %s. Purchases from 50 %s to 30,000 %s are eligible for Affirm financing.',
+			'Allow customers to pay over time. Available to all customers paying in %1$s. Purchases from %2$s %3$s to 30,000 %4$s are eligible for Affirm financing.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
+		minAmounts: { USD: 35, CAD: 50 },
 		currencies: [ 'USD', 'CAD' ],
 		allows_manual_capture: true,
 	},
@@ -168,7 +168,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForBancontactEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
@@ -179,7 +179,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		supportsRecurring: isSepaTokensEnabled,
+		supportsRecurring: isSepaTokensForIdealEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,
@@ -278,11 +278,7 @@ const paymentMethodsMap = {
 		capability: 'cashapp_payments',
 		supportsRecurring: true,
 	},
-};
-
-// Enable ACH according to feature flag value.
-if ( isAchEnabled ) {
-	paymentMethodsMap.us_bank_account = {
+	us_bank_account: {
 		id: PAYMENT_METHOD_ACH,
 		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
@@ -292,12 +288,8 @@ if ( isAchEnabled ) {
 		Icon: icons.us_bank_account,
 		currencies: [ 'USD' ],
 		supportsRecurring: true,
-	};
-}
-
-// Enable ACSS according to feature flag value.
-if ( isAcssEnabled ) {
-	paymentMethodsMap.acss_debit = {
+	},
+	acss_debit: {
 		id: PAYMENT_METHOD_ACSS,
 		label: __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
@@ -307,12 +299,8 @@ if ( isAcssEnabled ) {
 		Icon: icons.acss_debit,
 		currencies: [ 'CAD' ],
 		supportsRecurring: true,
-	};
-}
-
-// Enable Bacs according to feature flag value.
-if ( isBacsEnabled ) {
-	paymentMethodsMap.bacs_debit = {
+	},
+	bacs_debit: {
 		id: PAYMENT_METHOD_BACS,
 		label: 'Bacs Direct Debit',
 		description: __(
@@ -322,12 +310,8 @@ if ( isBacsEnabled ) {
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
 		supportsRecurring: true,
-	};
-}
-
-// Enable BECS Debit according to feature flag value.
-if ( isBecsDebitEnabled ) {
-	paymentMethodsMap.au_becs_debit = {
+	},
+	au_becs_debit: {
 		id: PAYMENT_METHOD_BECS,
 		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
@@ -337,12 +321,8 @@ if ( isBecsDebitEnabled ) {
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
 		supportsRecurring: true,
-	};
-}
-
-// Enable BLIK according to feature flag value.
-if ( isBlikEnabled ) {
-	paymentMethodsMap.blik = {
+	},
+	blik: {
 		id: PAYMENT_METHOD_BLIK,
 		label: 'BLIK',
 		description: __(
@@ -351,7 +331,7 @@ if ( isBlikEnabled ) {
 		),
 		Icon: icons.blik,
 		currencies: [ 'PLN' ],
-	};
-}
+	},
+};
 
 export default paymentMethodsMap;

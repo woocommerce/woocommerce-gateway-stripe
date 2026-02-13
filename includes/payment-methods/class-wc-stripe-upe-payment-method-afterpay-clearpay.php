@@ -37,8 +37,8 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR    => [
 				'AU' => [
 					'min' => 100,
-					'max' => 200000,
-				], // Represents AUD 1 - 2,000 AUD.
+					'max' => 400000,
+				], // Represents AUD 1 - 4,000 AUD.
 			],
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR      => [
 				'CA' => [
@@ -49,8 +49,8 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR   => [
 				'NZ' => [
 					'min' => 100,
-					'max' => 200000,
-				], // Represents NZD 1 - 2,000 NZD.
+					'max' => 400000,
+				], // Represents NZD 1 - 4,000 NZD.
 			],
 			WC_Stripe_Currency_Code::POUND_STERLING       => [
 				'GB' => [

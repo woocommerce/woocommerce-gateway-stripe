@@ -1,6 +1,6 @@
+import { useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { useStripe, useElements } from '@stripe/react-stripe-js';
 import {
 	onAbortPaymentHandler,
 	onCancelHandler,
@@ -74,9 +74,10 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				const defaultShippingOption = getExpressCheckoutData(
-					'checkout'
-				)?.default_shipping_option;
+				const defaultShippingOption =
+					getExpressCheckoutData(
+						'checkout'
+					)?.default_shipping_option;
 				return defaultShippingOption ? [ defaultShippingOption ] : [];
 			};
 

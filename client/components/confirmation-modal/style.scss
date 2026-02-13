@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .wcstripe-confirmation-modal {
 	// increasing the specificity of the styles, to ensure it is honored
@@ -11,7 +11,7 @@
 
 	// to ensure that the separator extends all the way, even with different versions of Gutenberg
 	.components-modal__content {
-		padding: 0 $grid-unit-30 $grid-unit-30;
+		padding: 0 styles.$grid-unit-30 styles.$grid-unit-30;
 
 		@media ( max-width: 599px ) {
 			display: flex;
@@ -24,7 +24,7 @@
 	}
 
 	.components-modal__header {
-		padding: 0 $grid-unit-30;
+		padding: 0 styles.$grid-unit-30;
 		@media ( max-width: 599px ) {
 			button {
 				display: none;
@@ -33,7 +33,7 @@
 	}
 
 	&__separator {
-		margin: $grid-unit-30 -#{$grid-unit-30};
+		margin: styles.$grid-unit-30 -#{styles.$grid-unit-30};
 	}
 
 	&__footer {
@@ -42,7 +42,7 @@
 
 		> * {
 			&:not( :first-child ) {
-				margin-left: $grid-unit-20;
+				margin-left: styles.$grid-unit-20;
 			}
 		}
 	}

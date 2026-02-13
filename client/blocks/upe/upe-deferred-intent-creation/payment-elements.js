@@ -1,18 +1,19 @@
 /**
  * External dependencies
  */
-import { useEffect, useState } from '@wordpress/element';
-import { __, sprintf } from '@wordpress/i18n';
 import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { Elements } from '@stripe/react-stripe-js';
+import PaymentProcessor from './payment-processor';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import PaymentProcessor from './payment-processor';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	getExcludedPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
 import {
 	getBlocksConfiguration,
@@ -120,7 +121,8 @@ const PaymentElements = ( {
 	}
 
 	const stripe = api.getStripe();
-	const amount = Number( getBlocksConfiguration()?.cartTotal );
+	const stripeServerData = getBlocksConfiguration();
+	const amount = Number( stripeServerData?.cartTotal );
 
 	// Build options object.
 	let options = {
@@ -135,25 +137,26 @@ const PaymentElements = ( {
 			...{
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
-				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				currency: stripeServerData?.currency.toLowerCase(),
 			},
 		};
 
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.isOCEnabled ) {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: getBlocksConfiguration()
-						?.paymentMethodConfigurationParentId,
+					paymentMethodConfiguration:
+						stripeServerData?.paymentMethodConfigurationId,
+					// Exclude unsupported payment methods - calculated dynamically on server side
+					excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 				},
 			};
 		} else {
 			options = {
 				...options,
 				...{
-					paymentMethodTypes: getPaymentMethodTypes(
-						paymentMethodId
-					),
+					paymentMethodTypes:
+						getPaymentMethodTypes( paymentMethodId ),
 				},
 			};
 

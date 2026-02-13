@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Popover as PopoverComponent } from '@wordpress/components';
 import styled from '@emotion/styled';
+import { Popover as PopoverComponent } from '@wordpress/components';
 
 const StyledPopover = styled( PopoverComponent )`
 	top: -10px !important;

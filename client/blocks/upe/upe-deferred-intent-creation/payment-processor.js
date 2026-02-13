@@ -2,7 +2,6 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
 	useElements,
@@ -15,6 +14,8 @@ import { useEffect, useState, useRef } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
+import { __ } from '@wordpress/i18n';
+import { select } from '@wordpress/data';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -23,6 +24,7 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
+	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -83,12 +85,17 @@ const getStripeElementOptions = () => {
 	}
 
 	if ( getBlocksConfiguration()?.isOCEnabled ) {
+		const layout = {
+			type:
+				getBlocksConfiguration()?.OCLayout ||
+				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = false;
+		}
 		options = {
 			...options,
-			layout: {
-				type: 'accordion',
-				radios: false,
-			},
+			layout,
 		};
 	}
 
@@ -147,13 +154,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
-	const [
-		selectedPaymentMethodType,
-		setSelectedPaymentMethodType,
-	] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
-		false
-	);
+	const [ selectedPaymentMethodType, setSelectedPaymentMethodType ] =
+		useState( null );
+	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
+		useState( false );
 	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
 		? testingInstructions
 		: '';
@@ -192,6 +196,16 @@ const PaymentProcessor = ( {
 								'woocommerce-gateway-stripe'
 							),
 						};
+					}
+
+					const { validationStore } = window.wc?.wcBlocksData ?? {};
+					if ( validationStore ) {
+						const store = select( validationStore );
+						const hasValidationErrors = store.hasValidationErrors();
+						// Return if there is a validation error on the checkout fields.
+						if ( hasValidationErrors ) {
+							return;
+						}
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
@@ -333,7 +347,7 @@ const PaymentProcessor = ( {
 		} else {
 			removeCashAppLimitNotice();
 		}
-		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
+		// Apply single payment element styles if the selected payment method is card and OC is enabled.
 		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			applyStyles();
 

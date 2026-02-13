@@ -80,3 +80,52 @@ export const updateStoreCurrency = async ( browser, currency ) => {
 		await context.close();
 	}
 };
+
+/**
+ * Enable or disable the Optimized Checkout feature in Stripe settings.
+ *
+ * @param {Browser} browser      Playwright browser fixture.
+ * @param {boolean} shouldEnable Whether to enable or disable the Optimized Checkout element.
+ */
+export const initializeOptimizedCheckout = async (
+	browser,
+	shouldEnable = true
+) => {
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+
+	const page = await adminContext.newPage();
+
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+
+	const checkbox = page.getByTestId( 'optimized-checkout-element-checkbox' );
+	const isChecked = await checkbox.isChecked();
+
+	const updateNeeded =
+		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
+
+	if ( updateNeeded ) {
+		await checkbox.click();
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
+
+		if ( shouldEnable ) {
+			await expect(
+				page.getByTestId( 'optimized-checkout-element-checkbox' )
+			).toBeChecked();
+		} else {
+			await expect(
+				page.getByTestId( 'optimized-checkout-element-checkbox' )
+			).not.toBeChecked();
+		}
+	}
+
+	await adminContext.close();
+};

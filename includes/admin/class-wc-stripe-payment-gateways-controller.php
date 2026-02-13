@@ -19,7 +19,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
-		$upe_payment_requests_enabled = 'yes' === $stripe_settings['payment_request'];
+		$upe_payment_requests_enabled = 'yes' === ( $stripe_settings['express_checkout'] ?? 'no' );
 
 		if ( ( is_array( $enabled_upe_payment_methods ) && count( $enabled_upe_payment_methods ) > 0 ) || $upe_payment_requests_enabled ) {
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_payments_scripts' ] );
@@ -27,6 +27,11 @@ class WC_Stripe_Payment_Gateways_Controller {
 		}
 	}
 
+	/**
+	 * Register payment gateway scripts.
+	 *
+	 * @return void
+	 */
 	public function register_payments_scripts() {
 		$payment_gateways_script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment-gateways.asset.php';
 		$payment_gateways_script_asset      = file_exists( $payment_gateways_script_asset_path )
@@ -55,6 +60,11 @@ class WC_Stripe_Payment_Gateways_Controller {
 		);
 	}
 
+	/**
+	 * Enqueue payment gateway scripts on the payment methods page.
+	 *
+	 * @return void
+	 */
 	public function enqueue_payments_scripts() {
 		global $current_tab, $current_section;
 
@@ -75,6 +85,8 @@ class WC_Stripe_Payment_Gateways_Controller {
 	/**
 	 * Adds a container to the "payment gateways" page.
 	 * This is where the "Are you sure you want to disable Stripe?" confirmation dialog is rendered.
+	 *
+	 * @return void
 	 */
 	public function wc_stripe_gateway_container() {
 		?><div id="wc-stripe-payment-gateways-container" />
