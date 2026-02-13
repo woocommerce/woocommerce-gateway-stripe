@@ -12,7 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Automattic\WooCommerce\Enums\ProductStockStatus;
 use Automattic\WooCommerce\Enums\ProductType;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
 use Automattic\WooCommerce\Internal\ProductFeed\Utils\StringHelper;

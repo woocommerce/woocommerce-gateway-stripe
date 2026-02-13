@@ -881,6 +881,10 @@ class WC_Stripe {
 		// Create integration instance.
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
 
+		// Safe to call without try/catch: this method is only reachable when
+		// WC_Stripe_Agentic_Commerce_Integration exists, which is only loaded when
+		// FeedInterface exists (see init()), meaning the ProductFeed service is
+		// guaranteed to be registered in the WooCommerce DI container.
 		$product_feed = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
 		$product_feed->register_integration( $integration );
 
@@ -892,16 +896,16 @@ class WC_Stripe {
 			$integration->activate();
 		}
 
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
+		}
+
 		/**
 		 * Fires after Agentic Commerce integration is initialized.
 		 *
 		 * @since 10.5.0
 		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration instance.
 		 */
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
-		}
-
 		do_action( 'wc_stripe_agentic_commerce_initialized', $integration );
 	}
 

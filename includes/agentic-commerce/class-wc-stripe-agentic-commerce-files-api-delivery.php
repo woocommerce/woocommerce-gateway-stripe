@@ -52,6 +52,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 
 	/**
 	 * Stripe API version for Data Management (preview).
+	 * Remove udap_beta=v1 suffix once Data Management API is out of beta.
 	 *
 	 * @var string
 	 */
@@ -192,6 +193,12 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 			$headers[] = 'Stripe-Account: ' . $this->account_id;
 		}
 
+		if ( ! function_exists( 'curl_init' ) ) {
+			throw new Exception(
+				esc_html__( 'The cURL PHP extension is required for Stripe file uploads.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		$curl_handle = curl_init( self::FILES_API_ENDPOINT );
 		curl_setopt_array(
 			$curl_handle,
@@ -201,6 +208,8 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 				CURLOPT_CONNECTTIMEOUT => 10,
 				CURLOPT_TIMEOUT        => $timeout,
 				CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+				CURLOPT_SSL_VERIFYPEER => true,
+				CURLOPT_SSL_VERIFYHOST => 2,
 				CURLOPT_HTTPHEADER     => $headers,
 				CURLOPT_POSTFIELDS     => [
 					'purpose' => 'data_management_manual_upload',
@@ -221,7 +230,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 					sprintf(
 						'Stripe Files API returned HTTP %d: %s',
 						$http_code,
-						$response
+						$this->parse_stripe_error( (string) $response )
 					)
 				);
 			}
@@ -274,7 +283,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 				sprintf(
 					'Stripe ImportSet API returned HTTP %d: %s',
 					$http_code,
-					$body
+					$this->parse_stripe_error( $body )
 				)
 			);
 		}
@@ -312,6 +321,10 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * @throws Exception If the request fails.
 	 */
 	public function get_import_set( string $import_set_id ): array {
+		if ( ! preg_match( '/^impset_[a-zA-Z0-9_]+$/', $import_set_id ) ) {
+			throw new Exception( 'Invalid ImportSet ID format.' );
+		}
+
 		$response = wp_remote_get(
 			self::IMPORT_SETS_ENDPOINT . '/' . $import_set_id,
 			[
@@ -332,7 +345,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 				sprintf(
 					'Stripe ImportSet status API returned HTTP %d: %s',
 					$http_code,
-					$body
+					$this->parse_stripe_error( $body )
 				)
 			);
 		}
@@ -367,6 +380,10 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	public function get_error_report( array $import_set ): array {
 		$error_file_id = $import_set['result']['errors']['file'] ?? '';
 
+		if ( ! empty( $error_file_id ) && ! preg_match( '/^file_[a-zA-Z0-9_]+$/', $error_file_id ) ) {
+			throw new Exception( 'Invalid error file ID format.' );
+		}
+
 		if ( empty( $error_file_id ) ) {
 			throw new Exception(
 				esc_html__( 'No error report file available for this ImportSet.', 'woocommerce-gateway-stripe' )
@@ -395,7 +412,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 				sprintf(
 					'Stripe Files content API returned HTTP %d: %s',
 					$http_code,
-					$body
+					$this->parse_stripe_error( $body )
 				)
 			);
 		}
@@ -428,11 +445,30 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	}
 
 	/**
+	 * Extract error message from a Stripe API response body.
+	 *
+	 * Parses the JSON error object and returns only the error message,
+	 * avoiding leaking raw response data into logs or exceptions.
+	 *
+	 * @param string $body Raw response body.
+	 * @return string Extracted error message or 'Unknown error'.
+	 */
+	private function parse_stripe_error( string $body ): string {
+		$data = json_decode( $body, true );
+		if ( is_array( $data ) && ! empty( $data['error']['message'] ) ) {
+			return $data['error']['message'];
+		}
+
+		return 'Unknown error';
+	}
+
+	/**
 	 * Get common headers for Data Management API requests.
 	 *
 	 * @since 10.5.0
 	 * @return array Headers array for wp_remote_* functions.
 	 */
+
 	private function get_common_headers(): array {
 		$headers = [
 			'Authorization'  => 'Bearer ' . $this->secret_key,

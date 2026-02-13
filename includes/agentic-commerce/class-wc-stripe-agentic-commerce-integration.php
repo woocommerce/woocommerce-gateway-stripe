@@ -244,6 +244,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				}
 			);
 
+			if ( 0 === $total_products ) {
+				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
+				return;
+			}
+
 			$generation_time = microtime( true ) - $start_time;
 
 			// Get feed file info.
@@ -251,7 +256,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$file_size = 0;
 
 			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
-				$file_size = filesize( $file_path );
+				$file_size = (int) filesize( $file_path );
 			}
 
 			WC_Stripe_Logger::info(
@@ -275,6 +280,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'status'        => $result['status'] ?? 'unknown',
 				]
 			);
+
+			// Delete the file to prevent accumulation.
+			// Might be removed in favor of a scheduled job to allow debugging.
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',

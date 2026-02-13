@@ -342,7 +342,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 
 	public function test_get_import_set_returns_full_response() {
 		$import_set_data = [
-			'id'     => 'is_test_123',
+			'id'     => 'impset_test_123',
 			'status' => 'succeeded_with_errors',
 			'result' => [
 				'errors'          => [
@@ -358,7 +358,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $parsed_args, $url ) use ( $import_set_data ) {
-				if ( str_contains( $url, 'import_sets/is_test_123' ) ) {
+				if ( str_contains( $url, 'import_sets/impset_test_123' ) ) {
 					return [
 						'response' => [ 'code' => 200 ],
 						'body'     => wp_json_encode( $import_set_data ),
@@ -370,9 +370,9 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			3
 		);
 
-		$result = $this->sut->get_import_set( 'is_test_123' );
+		$result = $this->sut->get_import_set( 'impset_test_123' );
 
-		$this->assertEquals( 'is_test_123', $result['id'] );
+		$this->assertEquals( 'impset_test_123', $result['id'] );
 		$this->assertEquals( 'succeeded_with_errors', $result['status'] );
 		$this->assertEquals( 21, $result['result']['rows_processed'] );
 		$this->assertEquals( 5, $result['result']['errors']['row_count'] );
@@ -397,7 +397,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'ImportSet status API returned HTTP 404' );
-		$this->sut->get_import_set( 'is_nonexistent' );
+		$this->sut->get_import_set( 'impset_nonexistent' );
 	}
 
 	public function test_get_import_set_throws_on_wp_error() {
@@ -410,7 +410,13 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'ImportSet status check failed: DNS resolution failed' );
-		$this->sut->get_import_set( 'is_test_123' );
+		$this->sut->get_import_set( 'impset_test_123' );
+	}
+
+	public function test_get_import_set_throws_on_invalid_id_format() {
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Invalid ImportSet ID format.' );
+		$this->sut->get_import_set( 'invalid-id' );
 	}
 
 	// ---- Files API pre_request filter tests ----
