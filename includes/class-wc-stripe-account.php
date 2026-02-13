@@ -451,7 +451,7 @@ class WC_Stripe_Account {
 	}
 
 	/**
-	 * Reconfigures webhooks during plugin update.
+	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
