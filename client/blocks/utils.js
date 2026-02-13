@@ -1,11 +1,5 @@
 /* global wc */
 
-import {
-	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-} from 'wcstripe/stripe-utils/constants';
-
 export const getBlocksConfiguration = () => {
 	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
 
@@ -66,76 +60,6 @@ export const shouldSetupOffSessionPayment = (
 		( isPaymentMethodReusable &&
 			getBlocksConfiguration()?.forceSavePaymentMethod )
 	);
-};
-
-/**
- * Creates a payment request using cart data from WooCommerce.
- *
- * @param {Object} stripe - The Stripe JS object.
- * @param {Object} cart   - The cart data response from the store's AJAX API.
- *
- * @return {Object} A Stripe payment request.
- */
-export const createPaymentRequestUsingCart = ( stripe, cart ) => {
-	const disableWallets = [];
-
-	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
-	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
-		disableWallets.push( EXPRESS_PAYMENT_METHOD_SETTING_LINK );
-	}
-
-	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
-	if ( ! getBlocksConfiguration()?.stripe?.is_payment_request_enabled ) {
-		[
-			EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-			EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-		].forEach( function ( wallet ) {
-			disableWallets.push( wallet );
-		} );
-	}
-
-	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		country: cart.order_data.country_code,
-		requestPayerName: true,
-		requestPayerEmail: true,
-		requestPayerPhone:
-			getBlocksConfiguration()?.checkout?.needs_payer_phone,
-		requestShipping: cart.shipping_required ? true : false,
-		displayItems: cart.order_data.displayItems,
-		disableWallets,
-	};
-
-	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
-	// Since it's considered a US state by Stripe, we need to do some special mapping.
-	if ( options.country === 'PR' ) {
-		options.country = 'US';
-	}
-
-	// Reunion Island (RE) is a FR territory supported by Stripe.
-	// It's considered like FR by Stripe.
-	if ( options.country === 'RE' ) {
-		options.country = 'FR';
-	}
-
-	return stripe.paymentRequest( options );
-};
-
-/**
- * Updates the given PaymentRequest using the data in the cart object.
- *
- * @param {Object} paymentRequest The payment request object.
- * @param {Object} cart           The cart data response from the store's AJAX API.
- */
-export const updatePaymentRequestUsingCart = ( paymentRequest, cart ) => {
-	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		displayItems: cart.order_data.displayItems,
-	};
-
-	paymentRequest.update( options );
 };
 
 /**
