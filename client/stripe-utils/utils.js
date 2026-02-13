@@ -326,6 +326,12 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
 	);
 };
 
+export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
+	form.append(
+		`<input type="hidden" id="wc-stripe-checkout-session-id" name="wc-stripe-checkout-session-id" value="${ checkoutSessionId }" />`
+	);
+};
+
 /**
  * Gets the payment method name from the given payment method type.
  * For example, when passed 'card' returns 'stripe' and for 'ideal' returns 'stripe_ideal'.
