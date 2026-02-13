@@ -119,9 +119,9 @@ class WC_Stripe {
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
-		$this->api                           = new WC_Stripe_Connect_API();
-		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api     = new WC_Stripe_Connect_API();
+		$this->connect = new WC_Stripe_Connect( $this->api );
+		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded
 		add_action( 'init', [ $this, 'init_express_checkout' ], 11 );

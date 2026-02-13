@@ -205,6 +205,10 @@ class WC_Stripe_Autoloader {
 			'wc_stripe_webhook_handler'                             => __DIR__ . '/class-wc-stripe-webhook-handler.php',
 			'wc_stripe_webhook_state'                               => __DIR__ . '/class-wc-stripe-webhook-state.php',
 			'wc_stripe_woo_compat_utils'                            => __DIR__ . '/compat/class-wc-stripe-woo-compat-utils.php',
+			'wc_stripe_agentic_commerce_csv_feed'                   => __DIR__ . '/agentic-commerce/class-wc-stripe-agentic-commerce-csv-feed.php',
+			'wc_stripe_agentic_commerce_feed_schema'                => __DIR__ . '/agentic-commerce/class-wc-stripe-agentic-commerce-feed-schema.php',
+			'wc_stripe_agentic_commerce_product_mapper'             => __DIR__ . '/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php',
+			'wc_stripe_agentic_commerce_feed_validator'             => __DIR__ . '/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php',
 		];
 	}
 
