@@ -23,6 +23,7 @@ reviews:
     - "includes/**"
     - "client/**"
     - "tests/**"
+    - ".github/actions/**"
     - ".github/workflows/**"
     - "composer.json"
     - "composer.lock"
@@ -34,6 +35,40 @@ reviews:
     - "!**/*.map"
 
   path_instructions:
+    - path: "includes/payment-methods/**/*.php"
+      instructions: |
+        This is high-churn, payment-critical code.
+        Require null/empty guards before calling methods on orders, products, and tokens.
+        Require explicit state-transition checks for payment lifecycle updates.
+        Flag coupling risks between UPE gateway behavior and frontend checkout flows.
+    - path: "includes/class-wc-stripe-webhook-handler.php"
+      instructions: |
+        Require strict webhook signature validation and idempotent event handling.
+        Require safe handling for duplicate, delayed, or out-of-order events.
+        Require defensive payload/type checks to prevent fatal errors on unexpected data.
+    - path: "includes/class-wc-stripe-order-helper.php"
+      instructions: |
+        Treat order/refund metadata mapping as regression-prone.
+        Require consistency checks between Stripe IDs and Woo order/refund metadata.
+        Flag changes that can desynchronize refund or intent identifiers.
+    - path: "includes/admin/**/*.php"
+      instructions: |
+        For settings/admin changes, require capability and nonce checks.
+        Verify backward compatibility for existing options, defaults, and upgrade paths.
+    - path: "client/blocks/**/*.{js,jsx,ts,tsx}"
+      instructions: |
+        This area has repeated optimized/express checkout regressions.
+        Require robust async failure/retry handling and null-safe data access.
+        Flag frontend/backend contract mismatches with gateway/payment-method behavior.
+    - path: "client/classic/**/*.{js,jsx,ts,tsx}"
+      instructions: |
+        This area has repeated optimized/express checkout regressions.
+        Require robust async failure/retry handling and null-safe data access.
+        Flag frontend/backend contract mismatches with gateway/payment-method behavior.
+    - path: "client/settings/**/*.{js,jsx,ts,tsx}"
+      instructions: |
+        Ensure admin UI settings behavior remains in sync with backend settings semantics.
+        Flag changes that can desynchronize toggles/feature flags between UI and PHP.
     - path: "includes/**/*.php"
       instructions: |
         This is payment-critical backend code.
