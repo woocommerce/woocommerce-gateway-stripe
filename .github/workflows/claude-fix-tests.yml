@@ -360,7 +360,7 @@ jobs:
                       6. After creating the PR, verify with git diff --name-only HEAD~1 that ONLY test files were modified
                   anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
                   claude_args: >-
-                      --allowedTools "Edit,Write,Read,Glob,Grep,Bash(git:*),Bash(gh:*)"
+                      --allowedTools "Edit,Write,Read,Glob,Grep,Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git checkout:*),Bash(git diff:*),Bash(git branch:*),Bash(gh pr create:*)"
                       --max-turns 30
                   additional_permissions: 'actions: read'
 
