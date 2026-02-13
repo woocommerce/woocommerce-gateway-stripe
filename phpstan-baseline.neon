@@ -3739,12 +3739,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Class Automattic\\WooCommerce\\Internal\\ProductFeed\\ProductFeed not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:add_gateways\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10788,11 +10782,6 @@ parameters:
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 
-		-
-			message: '#^Call to method deactivate\(\) on an unknown class WC_Stripe_Agentic_Commerce_Integration\.$#'
-			identifier: class.notFound
-			count: 1
-			path: woocommerce-gateway-stripe.php
 
 		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
@@ -10830,8 +10819,3 @@ parameters:
 			count: 1
 			path: woocommerce-gateway-stripe.php
 
-		-
-			message: '#^Instantiated class WC_Stripe_Agentic_Commerce_Integration not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: woocommerce-gateway-stripe.php
