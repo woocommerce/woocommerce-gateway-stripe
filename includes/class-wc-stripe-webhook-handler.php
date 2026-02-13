@@ -1573,5 +1573,3 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		return null;
 	}
 }
-
-new WC_Stripe_Webhook_Handler();
