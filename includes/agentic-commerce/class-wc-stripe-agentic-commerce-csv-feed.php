@@ -400,7 +400,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	/**
 	 * Clean up temporary files and resources.
 	 *
-	 * Called on errors or object destruction.
+	 * Used for cleanup upon errors and unfinished feeds.
 	 *
 	 * @since 10.5.0
 	 */
