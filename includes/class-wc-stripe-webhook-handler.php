@@ -1097,6 +1097,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// Update the order with the payment method ID if it's not already set.
+		if ( isset( $intent->payment_method ) && empty( $order_helper->get_stripe_source_id( $order ) ) ) {
+			$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
+			$order->save_meta_data();
+		}
+
 		$order_id           = $order->get_id();
 		$payment_type_meta  = $order_helper->get_stripe_upe_payment_type( $order );
 		$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
