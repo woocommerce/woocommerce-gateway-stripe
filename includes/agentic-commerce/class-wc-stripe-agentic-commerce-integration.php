@@ -212,6 +212,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
+		// Check delivery setup before generating the feed.
+		$delivery = $this->get_push_delivery_method();
+
+		if ( ! $delivery->check_setup() ) {
+			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
+			return;
+		}
+
 		WC_Stripe_Logger::info( 'Agentic Commerce: Starting feed sync' );
 
 		$start_time = microtime( true );
@@ -257,13 +265,6 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			);
 
 			// Deliver feed to Stripe via Files API.
-			$delivery = $this->get_push_delivery_method();
-
-			if ( ! $delivery->check_setup() ) {
-				WC_Stripe_Logger::error( 'Agentic Commerce: Delivery skipped - Stripe API key not configured' );
-				return;
-			}
-
 			$result = $delivery->deliver( $feed );
 
 			WC_Stripe_Logger::info(
