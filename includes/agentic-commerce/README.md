@@ -118,7 +118,6 @@ $url = $feed->get_file_url(); // Moves temp → uploads, returns URL
 
 **File naming:** `{base-name}-{YYYY-MM-DD}-{hash}.csv`
 - Uses `wp_hash()` for uniqueness (like `JsonFileFeed`)
-- Supports `woocommerce_product_feed_time` filter
 
 **Security:**
 - `.htaccess` and `index.html` created automatically via `FilesystemUtil::mkdir_p_not_indexable()`

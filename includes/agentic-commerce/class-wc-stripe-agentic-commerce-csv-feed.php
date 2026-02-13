@@ -190,16 +190,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 		}
 
 		try {
-			// Generate filename using WooCommerce pattern.
-			/**
-			 * Allows the current time to be overridden before a feed is stored.
-			 *
-			 * @param int           $time The current time.
-			 * @param FeedInterface $feed The feed instance.
-			 * @return int The current time.
-			 * @since 10.5.0
-			 */
-			$current_time    = apply_filters( 'woocommerce_product_feed_time', time(), $this );
+			// Generate filename with date and unique hash.
+			$current_time    = time();
 			$hash_data       = $this->base_name . gmdate( 'r', $current_time );
 			$this->file_name = sprintf(
 				'%s-%s-%s.csv',
