@@ -784,15 +784,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function is_webhook_url_provider() {
 		return [
-			'webhook URLs with mismatched protocol should match'       => [ 'https://example.com/?wc-api=wc_stripe', 'http://example.com/?wc-api=wc_stripe', true ],
-			'webhook URLs with mismatched host should not match'       => [ 'https://example.com/?wc-api=wc_stripe', 'https://test.example.com/?wc-api=wc_stripe', false ],
-			'webhook URLs with mismatched path should not match'       => [ 'https://example.com/foo?wc-api=wc_stripe', 'https://example.com/bar?wc-api=wc_stripe', false ],
-			'webhook URL with empty path should match'                 => [ 'https://example.com/', 'https://example.com/?wc-api=wc_stripe', true ],
-			'webhook URL with empty query string should match'         => [ 'https://example.com/test/', 'https://example.com/test/', true ],
+			'webhook URLs with mismatched protocol should match' => [ 'https://example.com/?wc-api=wc_stripe', 'http://example.com/?wc-api=wc_stripe', true ],
+			'webhook URLs with mismatched host should not match' => [ 'https://example.com/?wc-api=wc_stripe', 'https://test.example.com/?wc-api=wc_stripe', false ],
+			'webhook URLs with mismatched path should not match' => [ 'https://example.com/foo?wc-api=wc_stripe', 'https://example.com/bar?wc-api=wc_stripe', false ],
+			'webhook URL with empty path should match' => [ 'https://example.com/', 'https://example.com/?wc-api=wc_stripe', true ],
+			'webhook URL with empty query string should match' => [ 'https://example.com/test/', 'https://example.com/test/', true ],
 			'webhook URL with empty comparison query should not match' => [ 'https://example.com/test/?foo=bar', 'https://example.com/test/', false ],
-			'webhook URL with missing parameter should not match'      => [ 'https://example.com/test/?wc-api=wc_stripe', 'https://example.com/test/?wc-api=wc_stripe&foo=bar', false ],
-			'webhook URL with wrong parameter should not match'        => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
-			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
+			'webhook URL with missing parameter should not match' => [ 'https://example.com/test/?wc-api=wc_stripe', 'https://example.com/test/?wc-api=wc_stripe&foo=bar', false ],
+			'webhook URL with wrong parameter should not match' => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
+			'webhook URL with extra parameters should match' => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
 		];
 	}
 
@@ -882,7 +882,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response(): array {
 		return [
-			'card_error with localized message'    => [
+			'card_error with localized message'     => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'invalid_cvc',
 				'error_message'    => 'Mock invalid CVC',
@@ -891,14 +891,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => "The card's security code is invalid.",
 			],
-			'card_error without localized message' => [
+			'card_error without localized message'  => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'unexpected_error_code',
 				'error_message'    => 'Unexpected error',
 				'localized_data'   => [],
 				'expected_message' => 'Unexpected error',
 			],
-			'other error with localized message'   => [
+			'other error with localized message'    => [
 				'error_type'       => 'invalid_request_error',
 				'error_code'       => 'amount_too_small',
 				'error_message'    => 'Amount too small',
@@ -936,23 +936,23 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
 		return [
-			'String response' => [
+			'String response'                   => [
 				'response'         => 'Unexpected data',
 				'expected_message' => '',
 			],
-			'Integer response' => [
+			'Integer response'                  => [
 				'response'         => 123,
 				'expected_message' => '',
 			],
-			'Float response' => [
+			'Float response'                    => [
 				'response'         => 123.45,
 				'expected_message' => '',
 			],
-			'Boolean response' => [
+			'Boolean response'                  => [
 				'response'         => true,
 				'expected_message' => '',
 			],
-			'Array response' => [
+			'Array response'                    => [
 				'response'         => [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
@@ -960,7 +960,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'response'         => (object) [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
-			'Object response with array error' => [
+			'Object response with array error'  => [
 				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
 				'expected_message' => '',
 			],
@@ -995,7 +995,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'Object response with object error, type, and object message property' => [
 				'response'         => (object) [
 					'error' => (object) [
-						'type' => 'card_error',
+						'type'    => 'card_error',
 						'message' => (object) [ 'test' => 'Unexpected error' ],
 					],
 				],
@@ -1096,13 +1096,132 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
+	 *
+	 * @param bool   $feature_flag Feature flag enabled.
+	 * @param bool   $is_checkout Checkout page.
+	 * @param string $adaptive_pricing Adaptive pricing setting.
+	 * @param string $cart_product_type Cart product type.
+	 * @param bool   $expected Expected result.
+	 * @return void
+	 * @dataProvider provide_is_adaptive_pricing_supported
+	 */
+	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, string $adaptive_pricing, ?string $cart_product_type, bool $expected ): void {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['adaptive_pricing']           = $adaptive_pricing;
+		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['capture']                    = 'yes';
+		$stripe_settings['pmc_enabled']                = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
+
+		$is_checkout_filter = function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
+		if ( 'subscription' === $cart_product_type ) {
+			\WC_Subscriptions_Product::set_is_subscription( true );
+		} else {
+			\WC_Subscriptions_Product::set_is_subscription( false );
+		}
+
+		if ( 'pre-order' === $cart_product_type ) {
+			\WC_Pre_Orders_Product::set_is_pre_order( true );
+		} else {
+			\WC_Pre_Orders_Product::set_is_pre_order( false );
+		}
+
+		WC()->cart->empty_cart();
+		$product = null;
+		if ( ! empty( $cart_product_type ) ) {
+			$product = WC_Helper_Product::create_simple_product();
+			WC()->cart->add_to_cart( $product->get_id(), 1 );
+		}
+
+		$actual = WC_Stripe_Helper::is_adaptive_pricing_supported();
+
+		// Cleanup.
+		WC()->cart->empty_cart();
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
+
+		if ( isset( $product ) && $product ) {
+			$product->delete( true );
+		}
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_is_adaptive_pricing_supported`.
+	 *
+	 * @return array
+	 */
+	public function provide_is_adaptive_pricing_supported(): array {
+		return [
+			'feature flag disabled'               => [
+				'feature_flag'      => false,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'simple',
+				'expected'          => false,
+			],
+			'adaptive pricing disabled' => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'no',
+				'cart_product_type' => 'simple',
+				'expected'          => false,
+			],
+			'not on checkout' => [
+				'feature_flag'      => true,
+				'is_checkout'       => false,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'simple',
+				'expected'          => false,
+			],
+			'empty cart'                          => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => null,
+				'expected'          => true,
+			],
+			'simple product only'                 => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'simple',
+				'expected'          => true,
+			],
+			'subscription in cart'                => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'subscription',
+				'expected'          => false,
+			],
+			'pre-order in cart'                    => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'pre-order',
+				'expected'          => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_build_line_items`.
 	 *
 	 * @return array
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'   => [
+			'itemized'     => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -1110,7 +1229,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'amount' => 1000,
 					],
 					[
-						'label' => 'Tax',
+						'label'  => 'Tax',
 						'amount' => 0,
 					],
 					[
@@ -1125,7 +1244,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized'            => [
+			'non-itemized' => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -1134,7 +1253,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 							'amount' => 1000,
 						],
 						[
-							'label' => 'Tax',
+							'label'  => 'Tax',
 							'amount' => 0,
 						],
 						[
