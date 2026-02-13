@@ -1462,6 +1462,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
 		}
 
+		$order->save();
+
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
 		$charge->is_webhook_response = true;

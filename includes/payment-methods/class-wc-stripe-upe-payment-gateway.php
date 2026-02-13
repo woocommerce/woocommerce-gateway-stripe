@@ -1296,6 +1296,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save();
 
 		// Remove cart.
 		if ( isset( WC()->cart ) ) {
