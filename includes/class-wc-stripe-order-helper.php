@@ -72,6 +72,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe checkout session ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -482,6 +489,35 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_setup_intent_id( ?WC_Order $order = null, string $intent_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_SETUP_INTENT, $intent_id );
+	}
+
+	/**
+	 * Gets the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		return $order->get_meta( self::META_STRIPE_CHECKOUT_SESSION_ID, true );
+	}
+
+	/**
+	 * Updates the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $checkout_session_id
+	 * @return false|void
+	 */
+	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
 	}
 
 	/**
