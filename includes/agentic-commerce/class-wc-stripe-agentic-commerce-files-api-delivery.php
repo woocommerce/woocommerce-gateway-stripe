@@ -44,6 +44,13 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	const IMPORT_SETS_ENDPOINT = 'https://api.stripe.com/v1/data_management/import_sets';
 
 	/**
+	 * Stripe Files API content endpoint.
+	 *
+	 * @var string
+	 */
+	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
+
+	/**
 	 * Stripe API version for Data Management (preview).
 	 *
 	 * @var string
@@ -219,6 +226,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 				);
 			}
 		} finally {
+			// Note: Intelephense falsely reports curl_close is deprecated.
 			curl_close( $curl_handle );
 		}
 
@@ -338,13 +346,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 
 		return $data;
 	}
-
-	/**
-	 * Stripe Files API content endpoint.
-	 *
-	 * @var string
-	 */
-	const FILES_CONTENT_ENDPOINT = 'https://files.stripe.com/v1/files/';
 
 	/**
 	 * Get the error report for an ImportSet.
