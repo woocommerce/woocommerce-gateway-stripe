@@ -390,7 +390,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * Moves file from temp directory to uploads directory if needed.
 	 *
 	 * @since 10.5.0
-	 * @throws Exception If the feed file cannot be moved to the upload directory.
+	 * @throws Exception Stripe's feeds can only be pushed, the URL is not available.
 	 * @return string|null Public URL, or null if not finalized.
 	 */
 	public function get_file_url(): ?string {
