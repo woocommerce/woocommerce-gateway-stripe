@@ -148,7 +148,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			);
 		}
 
-		$directory_url = $upload_dir['baseurl'] . '/stripe-agentic-commerce/product-feeds/';
+		$directory_url = $upload_dir['baseurl'] . '/stripe-product-feeds/';
 
 		// Follow the format returned by wp_upload_dir().
 		$prepared = [
