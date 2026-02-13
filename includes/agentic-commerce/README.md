@@ -118,7 +118,6 @@ $url = $feed->get_file_url(); // Moves temp → uploads, returns URL
 
 **File naming:** `{base-name}-{YYYY-MM-DD}-{hash}.csv`
 - Uses `wp_hash()` for uniqueness (like `JsonFileFeed`)
-- Supports `woocommerce_product_feed_time` filter
 
 **Security:**
 - `.htaccess` and `index.html` created automatically via `FilesystemUtil::mkdir_p_not_indexable()`
@@ -310,7 +309,7 @@ try {
     $feed->start();
 } catch ( Exception $e ) {
     // Cannot create temp file or uploads directory
-    WC_Stripe_Logger::log( 'Feed start failed: ' . $e->getMessage() );
+    WC_Stripe_Logger::error( 'Feed start failed: ' . $e->getMessage() );
 }
 ```
 
@@ -328,7 +327,7 @@ try {
 $feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test' );
 $feed->set_columns( ['id', 'name'] );
 $feed->start();
-// Exception thrown - destructor automatically cleans up temp file
+// Exception thrown - the temporary file is automatically cleaned up.
 unset( $feed );
 ```
 

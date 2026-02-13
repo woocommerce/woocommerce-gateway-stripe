@@ -60,6 +60,14 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 		if ( is_dir( $base_dir ) ) {
 			$this->delete_directory( $base_dir );
 		}
+
+		// Also clean up any temp files from tests.
+		$temp_files = glob( get_temp_dir() . 'test-feed*.csv' );
+		if ( $temp_files ) {
+			foreach ( $temp_files as $file ) {
+				unlink( $file );
+			}
+		}
 	}
 
 	/**
@@ -112,6 +120,20 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test set_columns rejects invalid header values.
+	 *
+	 * @return void
+	 */
+	public function test_set_columns_rejects_invalid_headers() {
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessageMatches( '/non-empty string/' );
+
+		$feed->set_columns( [ 'id', '', 'price' ] );
+	}
+
+	/**
 	 * Test start without headers throws exception.
 	 *
 	 * @return void
@@ -156,6 +178,12 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 
 		// CSV should properly escape quotes by doubling them.
 		$this->assertStringContainsString( '""quotes""', $content );
+
+		// CSV should enclose fields containing commas in quotes.
+		$this->assertStringContainsString( '"Description with ""quotes"" and, commas"', $content );
+
+		// CSV should enclose fields containing newlines in quotes.
+		$this->assertStringContainsString( "\"Line with\nnewline\"", $content );
 	}
 
 	/**
@@ -418,47 +446,43 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test temp files are cleaned up when errors occur.
+	 * Test that base_name is sanitized (path traversal prevention).
 	 *
 	 * @return void
 	 */
-	public function test_cleanup_on_error() {
-		$headers = [ 'id', 'title' ];
-		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
-		$feed->set_columns( $headers );
+	public function test_base_name_is_sanitized() {
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( '../../../etc/evil' );
+		$feed->set_columns( [ 'id' ] );
 		$feed->start();
+		$feed->end();
 
-		// Get temp directory to check for files.
-		$temp_dir = sys_get_temp_dir();
+		$file_path = $feed->get_file_path();
+		$filename  = basename( $file_path );
 
-		// Verify temp file was created by checking pattern.
-		$temp_files_before = glob( $temp_dir . '/test-feed-*.csv' );
-		$this->assertNotEmpty( $temp_files_before, 'Temp file should exist after start()' );
+		// sanitize_file_name strips path traversal characters.
+		$this->assertStringNotContainsString( '..', $filename );
+		$this->assertStringNotContainsString( '/', $filename );
+	}
 
-		try {
-			// Trigger an error by passing wrong column count.
-			$feed->add_entry( [ '1' ] ); // Only 1 value, expected 2.
-		} catch ( \Exception $e ) {
-			// Exception expected, cleanup happens in destructor or explicit cleanup.
-			// For now, we just verify the exception was thrown.
-			$this->assertStringContainsString( 'Entry column count', $e->getMessage() );
-		}
+	/**
+	 * Test empty feed (start then end with no entries).
+	 *
+	 * @return void
+	 */
+	public function test_empty_feed() {
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed->set_columns( [ 'id', 'title' ] );
+		$feed->start();
+		$feed->end();
 
-		// Cleanup happens when feed object is destroyed or manually.
-		// Since feed is still in scope and errored but not finalized,
-		// the file should still exist until object destruction.
-		unset( $feed );
+		$file_path = $feed->get_file_path();
+		$this->assertNotNull( $file_path );
+		$this->assertFileExists( $file_path );
 
-		// After unset, cleanup should have occurred (destructor behavior).
-		// Note: This tests implementation detail - cleanup on error/destruction.
-		$temp_files_after = glob( $temp_dir . '/test-feed-*.csv' );
-
-		// File might still exist if feed didn't implement destructor cleanup.
-		// This test documents expected behavior - manual cleanup of our test files.
-		foreach ( $temp_files_after as $temp_file ) {
-			if ( file_exists( $temp_file ) ) {
-				unlink( $temp_file );
-			}
-		}
+		// Should only contain headers.
+		$content = file_get_contents( $file_path );
+		$lines   = array_filter( explode( "\n", trim( $content ) ) );
+		$this->assertCount( 1, $lines, 'Empty feed should only contain the header row' );
+		$this->assertStringContainsString( 'id,title', $content );
 	}
 }
