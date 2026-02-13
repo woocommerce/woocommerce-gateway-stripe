@@ -212,15 +212,18 @@ class WC_Stripe {
 		// Requires WooCommerce 10.5.0+ with FeedInterface.
 		if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-csv-feed.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-schema.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
 		}
 
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
-		$this->api                           = new WC_Stripe_Connect_API();
-		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api     = new WC_Stripe_Connect_API();
+		$this->connect = new WC_Stripe_Connect( $this->api );
+		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded
 		add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
