@@ -510,7 +510,6 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 								? { address }
 								: {} ),
 						},
-						email: billingData.email.trim(),
 						phoneNumber: billingData.phone?.trim() || undefined,
 					},
 				};
@@ -542,12 +541,7 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 		document.getElementById( 'shipping_phone' )?.value;
 
 	if ( forCheckoutSession ) {
-		return {
-			defaultValues: {
-				email: userEmail,
-				phoneNumber: userPhone,
-			},
-		};
+		return {};
 	}
 
 	return {
