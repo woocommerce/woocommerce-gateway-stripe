@@ -1951,6 +1951,18 @@ parameters:
 			path: includes/class-wc-stripe-apple-pay-registration.php
 
 		-
+			message: '#^Method WC_Stripe_Autoloader\:\:init\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/class-wc-stripe-autoloader.php
+
+		-
+			message: '#^Parameter \#1 \$autoload_function of function spl_autoload_register expects callable\(string\)\: void, array\{''WC_Stripe_Autoloader'', ''autoload''\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-autoloader.php
+
+		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
 			count: 2
@@ -2073,12 +2085,6 @@ parameters:
 		-
 			message: '#^Cannot call method set_user_id\(\) on WC_Payment_Token_SEPA\|WC_Stripe_Payment_Token_CC\|false\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Class WC_Stripe_UPE_Payment_Method_Link referenced with incorrect case\: WC_Stripe_UPE_Payment_Method_LINK\.$#'
-			identifier: class.nameCase
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
