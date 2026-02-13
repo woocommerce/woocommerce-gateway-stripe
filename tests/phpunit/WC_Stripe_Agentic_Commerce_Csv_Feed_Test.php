@@ -164,6 +164,12 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 
 		// CSV should properly escape quotes by doubling them.
 		$this->assertStringContainsString( '""quotes""', $content );
+
+		// CSV should enclose fields containing commas in quotes.
+		$this->assertStringContainsString( '"Description with ""quotes"" and, commas"', $content );
+
+		// CSV should enclose fields containing newlines in quotes.
+		$this->assertStringContainsString( "\"Line with\nnewline\"", $content );
 	}
 
 	/**
