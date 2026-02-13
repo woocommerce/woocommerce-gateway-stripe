@@ -32,7 +32,7 @@ class WC_Stripe_Autoloader {
 	 * @param string $class The class to autoload.
 	 * @return boolean True if the class was autoloaded, false otherwise.
 	 */
-	public static function autoload( $class ) {
+	public static function autoload( string $class ): bool {
 		// We're not using namespaces, so skip if the class name contains a namespace.
 		if ( str_contains( $class, '\\' ) ) {
 			return false;
@@ -70,8 +70,10 @@ class WC_Stripe_Autoloader {
 
 	/**
 	 * Constructor.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		spl_autoload_register( [ __CLASS__, 'autoload' ] );
 	}
 
@@ -80,7 +82,7 @@ class WC_Stripe_Autoloader {
 	 *
 	 * @return array
 	 */
-	private static function get_classmap() {
+	private static function get_classmap(): array {
 		return [
 			'allowed_payment_request_button_types_update'           => __DIR__ . '/migrations/class-allowed-payment-request-button-types-update.php',
 			'migrate_payment_request_data_to_express_checkout_data' => __DIR__ . '/migrations/class-migrate-payment-request-data-to-express-checkout-data.php',
@@ -209,7 +211,7 @@ class WC_Stripe_Autoloader {
 	 *
 	 * @return array
 	 */
-	private static function get_admin_classmap() {
+	private static function get_admin_classmap(): array {
 		return [
 			'wc_stripe_admin_inbox_notes'                           => __DIR__ . '/admin/class-wc-stripe-inbox-notes.php',
 			'wc_stripe_admin_notices'                               => __DIR__ . '/admin/class-wc-stripe-admin-notices.php',
