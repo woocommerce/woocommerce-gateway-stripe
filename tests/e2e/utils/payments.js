@@ -528,12 +528,18 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in blocks checkout
+		// Select ACH in blocks checkout via the associated label, since the
+		// underlying input can be covered by parent elements during animation.
 		const achOption = page.locator(
 			'#radio-control-wc-payment-method-options-stripe_us_bank_account'
 		);
 		await achOption.waitFor( { state: 'attached' } );
-		await achOption.check();
+		await page
+			.locator(
+				"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
+			)
+			.click();
+		await expect( achOption ).toBeChecked();
 	} else {
 		paymentMethodContentSelector =
 			'.wc_payment_method.payment_method_stripe_us_bank_account';
@@ -544,12 +550,16 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in shortcode checkout
+		// Select ACH in shortcode checkout via the associated label, since direct
+		// clicks on the hidden radio input can be intercepted.
 		const achOption = page.locator(
 			'#payment_method_stripe_us_bank_account'
 		);
 		await achOption.waitFor( { state: 'attached' } );
-		await achOption.check();
+		await page
+			.locator( "label[for='payment_method_stripe_us_bank_account']" )
+			.click();
+		await expect( achOption ).toBeChecked();
 	}
 
 	await expect( page.locator( paymentMethodContentSelector ) ).toBeVisible();
@@ -563,7 +573,6 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.first();
 
 		await expect( testInstitutionButton ).toBeVisible();
-		await testInstitutionButton.scrollIntoViewIfNeeded();
 		await testInstitutionButton.dispatchEvent( 'click' );
 	} );
 };
