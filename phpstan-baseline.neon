@@ -3745,6 +3745,12 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
+			message: '#^Class Automattic\\WooCommerce\\Internal\\ProductFeed\\ProductFeed not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
 			message: '#^Method WC_Stripe\:\:add_gateways\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -5289,24 +5295,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_selected_payment_method_type\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_upe_checkout_experience_accepted_payments_field\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_upe_checkout_experience_accepted_payments_field\(\) has parameter \$key with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:validate_upe_checkout_experience_accepted_payments_field\(\) has parameter \$value with no type specified\.$#'
-			identifier: missingType.parameter
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -10855,6 +10843,12 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 
 		-
+			message: '#^Call to method deactivate\(\) on an unknown class WC_Stripe_Agentic_Commerce_Integration\.$#'
+			identifier: class.notFound
+			count: 1
+			path: woocommerce-gateway-stripe.php
+
+		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -10887,5 +10881,11 @@ parameters:
 		-
 			message: '#^Function woocommerce_stripe_wc_not_supported\(\) has no return type specified\.$#'
 			identifier: missingType.return
+			count: 1
+			path: woocommerce-gateway-stripe.php
+
+		-
+			message: '#^Instantiated class WC_Stripe_Agentic_Commerce_Integration not found\.$#'
+			identifier: class.notFound
 			count: 1
 			path: woocommerce-gateway-stripe.php
