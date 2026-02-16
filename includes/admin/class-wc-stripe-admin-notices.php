@@ -694,5 +694,3 @@ class WC_Stripe_Admin_Notices {
 		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_subscription_post_type;
 	}
 }
-
-new WC_Stripe_Admin_Notices();

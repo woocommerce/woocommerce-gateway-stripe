@@ -58,10 +58,8 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 			);
 			await setupBECSCheckout( page, 'shortcode' );
 			await page
-				.getByRole( 'checkbox', {
-					name: 'Save payment information to',
-				} )
-				.click();
+				.locator( '#wc-stripe_au_becs_debit-new-payment-method' )
+				.check();
 			await fillBECSDetails( page, 'shortcode' );
 			await clickPlaceOrder( page );
 			await page.waitForURL( '**/checkout/order-received/**' );
