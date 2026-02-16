@@ -21,8 +21,7 @@ test.describe( 'Affirm payment tests @shortcode', () => {
 		const externalCheckoutUrl = /.*(affirm\.com|stripe\.com)/;
 		const topLevelRedirectPromise = page
 			.waitForURL( externalCheckoutUrl, { timeout: 30000 } )
-			.then( () => true )
-			.catch( () => false );
+			.then( () => true );
 		const popupRedirectPromise = page
 			.context()
 			.waitForEvent( 'page', { timeout: 30000 } )
@@ -32,14 +31,13 @@ test.describe( 'Affirm payment tests @shortcode', () => {
 					timeout: 30000,
 				} );
 				return true;
-			} )
-			.catch( () => false );
+			} );
 
-		const [ topLevelRedirected, popupRedirected ] = await Promise.all( [
+		const redirected = await Promise.any( [
 			topLevelRedirectPromise,
 			popupRedirectPromise,
-		] );
+		] ).catch( () => false );
 
-		expect( topLevelRedirected || popupRedirected ).toBeTruthy();
+		expect( redirected ).toBeTruthy();
 	} );
 } );

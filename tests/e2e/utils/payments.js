@@ -533,12 +533,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const achOption = page.locator(
 			'#radio-control-wc-payment-method-options-stripe_us_bank_account'
 		);
+		const achOptionLabel = page.locator(
+			"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
+		);
 		await achOption.waitFor( { state: 'attached' } );
-		await page
-			.locator(
-				"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
-			)
-			.click();
+		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
+		await achOptionLabel.click();
 		await expect( achOption ).toBeChecked();
 	} else {
 		paymentMethodContentSelector =
@@ -555,10 +555,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const achOption = page.locator(
 			'#payment_method_stripe_us_bank_account'
 		);
+		const achOptionLabel = page.locator(
+			"label[for='payment_method_stripe_us_bank_account']"
+		);
 		await achOption.waitFor( { state: 'attached' } );
-		await page
-			.locator( "label[for='payment_method_stripe_us_bank_account']" )
-			.click();
+		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
+		await achOptionLabel.click();
 		await expect( achOption ).toBeChecked();
 	}
 
