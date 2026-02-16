@@ -1,6 +1,5 @@
 <?php
 
-use Automattic\Jetpack\Constants;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
