@@ -300,8 +300,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
  * @param {Object} elements The Stripe elements object.
  */
 function mountCurrencySelectorElement( elements ) {
+	const currencySelectorContainer = document.getElementById(
+		'wc-stripe-currency-selector'
+	);
+	if ( ! currencySelectorContainer ) {
+		return;
+	}
 	const currencySelector = elements.createCurrencySelectorElement();
-	currencySelector.mount( '#wc-stripe-currency-selector' );
+	currencySelector.mount( currencySelectorContainer );
 }
 
 /**
