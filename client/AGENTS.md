@@ -10,7 +10,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - **CRITICAL:** If you change user-facing behavior, add or update tests (Jest and/or E2E as appropriate).
 - **CRITICAL:** Keep payment method availability, labels, and icons aligned across UI surfaces.
 - **CRITICAL:** Payment method availability rules must come from a single source of truth shared across PHP config and frontend rendering.
-- **CRITICAL:** Use shared amount/minor-unit normalization utilities; do not compute Stripe-facing amounts ad hoc.
+- **CRITICAL:** Use shared amount/minor-unit normalization utilities; do not compute Stripe-facing or user-facing amounts ad hoc.
 - **CRITICAL:** Prefer incremental updates in existing modules over broad rewrites.
 
 ## Structure and Ownership
