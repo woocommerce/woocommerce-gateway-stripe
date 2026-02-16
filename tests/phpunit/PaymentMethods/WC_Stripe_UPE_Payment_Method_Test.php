@@ -1140,7 +1140,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'add method page - reusable, saved cards disabled'         => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
 			'add method page - reusable, saved cards enabled'          => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
 			'not add method page - reusable, saved cards disabled'     => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
-			'not add method page - reusable, saved cards enabled'      => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+			'not add method page - reusable, saved cards enabled'      => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
 		];
 
 		$test_cases = [];
