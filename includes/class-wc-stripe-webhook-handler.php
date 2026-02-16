@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\Jetpack\Constants;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -1675,6 +1676,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_agentic_checkout_session( $checkout_session ) {
+		// phpcs:ignore Generic.Commenting.Todo.TaskFound
+		// todo: Remove this once we have a proper way to force agentic checkout sessions.
+		if ( defined( 'WC_STRIPE_FORCE_AGENTIC_CHECKOUT_SESSION' ) && true === WC_STRIPE_FORCE_AGENTIC_CHECKOUT_SESSION ) {
+			return true;
+		}
+
 		if ( isset( $checkout_session->ui_mode ) && 'agentic' === $checkout_session->ui_mode ) {
 			return true;
 		}
