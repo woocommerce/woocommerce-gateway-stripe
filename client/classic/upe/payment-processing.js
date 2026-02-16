@@ -197,6 +197,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response.data?.client_secret;
 
+			if ( ! clientSecret ) {
+				throw new Error(
+					__(
+						'Failed to load payment method due to missing client secret.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+
 			elements = await api.getStripe().initCheckout( {
 				clientSecret,
 				elementsOptions: {
