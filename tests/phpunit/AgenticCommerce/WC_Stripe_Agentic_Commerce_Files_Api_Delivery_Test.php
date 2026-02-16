@@ -12,6 +12,9 @@ use WC_Stripe_Agentic_Commerce_Files_Api_Delivery;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
 use Exception;
 
+
+// phpcs:disable WordPress.WP.AlternativeFunctions
+
 /**
  * Class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test
  *
@@ -74,7 +77,9 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 	 * @return string File path.
 	 */
 	private function create_temp_csv(): string {
-		$this->temp_file = tempnam( sys_get_temp_dir(), 'stripe_test_feed_' ) . '.csv';
+		$base            = tempnam( sys_get_temp_dir(), 'stripe_test_feed_' );
+		$this->temp_file = $base . '.csv';
+		wp_delete_file( $base ); // Remove the file created by tempnam().
 		file_put_contents( $this->temp_file, "id,title,description\n1,\"Test Product\",\"A test product\"\n" );
 		return $this->temp_file;
 	}
