@@ -416,7 +416,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		}
 
 		// Parse CSV content.
-		$lines = array_filter( explode( "\n", $body ), static fn( $s ) => '' !== $s );
+		$lines = array_filter( explode( "\n", str_replace( "\r\n", "\n", $body ) ), static fn( $s ) => '' !== $s );
 		if ( empty( $lines ) ) {
 			return [
 				'error_count' => 0,
