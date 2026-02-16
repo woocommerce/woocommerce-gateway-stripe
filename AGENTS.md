@@ -26,7 +26,7 @@ Use the smallest command set needed for the task:
 
 | Task | Command | Notes |
 | --- | --- | --- |
-| Install dependencies | `npm install` | Runs Composer install and Playwright install. |
+| Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
 | Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
 | Stop local environment | `npm run down` | Preserves local Docker state. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
