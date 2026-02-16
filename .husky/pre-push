@@ -78,15 +78,21 @@ do
 		fi
 	fi
 
-	has_readme_update=$(echo "$changed_files" | awk '/^readme\.txt$/ { found=1 } END { print found+0 }')
-	has_changelog_update=$(echo "$changed_files" | awk '/^changelog\.txt$/ { found=1 } END { print found+0 }')
-
-	if [ "$has_readme_update" -ne 1 ] || [ "$has_changelog_update" -ne 1 ]
+	if [ "$remote_ref" = "refs/heads/develop" ] && [ -n "$range" ]
 	then
-		echo "Error: Missing changelog files in this push."
-		echo "Both readme.txt and changelog.txt must be updated before pushing."
-		echo "Run: npm run changelog"
-		exit 1
+		if [ -n "$changed_files" ]
+		then
+			has_readme_update=$(echo "$changed_files" | awk '/^readme\.txt$/ { found=1 } END { print found+0 }')
+			has_changelog_update=$(echo "$changed_files" | awk '/^changelog\.txt$/ { found=1 } END { print found+0 }')
+
+			if [ "$has_readme_update" -ne 1 ] || [ "$has_changelog_update" -ne 1 ]
+			then
+				echo "Error: Missing changelog files in this push to develop."
+				echo "Both readme.txt and changelog.txt must be updated before pushing to develop."
+				echo "Run: npm run changelog"
+				exit 1
+			fi
+		fi
 	fi
 
 	if [ 'yes' = "$run_phpstan" ]
