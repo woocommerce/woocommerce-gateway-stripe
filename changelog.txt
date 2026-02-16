@@ -17,6 +17,7 @@
 * Add - Add the base CSV feed for agentic commerce
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Dev - Require changelogs on git push
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
