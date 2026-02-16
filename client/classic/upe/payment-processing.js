@@ -236,10 +236,13 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		elements = api.getStripe().elements( options );
 	}
 
-	const attachDefaultValuesUpdateEvent = ( element ) => {
+	const attachDefaultValuesUpdateEvent = (
+		element,
+		forCheckoutSession = false
+	) => {
 		if ( document.getElementById( element ) ) {
 			document.getElementById( element ).onblur = function () {
-				updatePaymentElementDefaultValues( true );
+				updatePaymentElementDefaultValues( forCheckoutSession );
 			};
 		}
 	};
@@ -296,8 +299,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		isLinkEnabled() &&
 		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
-		attachDefaultValuesUpdateEvent( 'billing_email' );
-		attachDefaultValuesUpdateEvent( 'billing_phone' );
+		attachDefaultValuesUpdateEvent(
+			'billing_email',
+			! shouldLoadStripeElements
+		);
+		attachDefaultValuesUpdateEvent(
+			'billing_phone',
+			! shouldLoadStripeElements
+		);
 	}
 
 	return createdStripePaymentElement;
