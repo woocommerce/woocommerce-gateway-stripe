@@ -246,6 +246,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
+				$file_path = $feed->get_file_path();
+				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
 				return;
 			}
 
