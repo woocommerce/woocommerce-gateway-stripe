@@ -1464,6 +1464,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.succeeded':
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
+				break;
+
+			case 'checkout.session.completed':
+				$this->process_checkout_session_completed( $notification );
+				break;
 
 		}
 
@@ -1568,6 +1573,137 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( isset( $charge->payment_method_details->type ) ) {
 			return $charge->payment_method_details->type;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Processes the checkout.session.completed webhook for agentic commerce.
+	 *
+	 * When an AI agent completes a purchase via Stripe's hosted checkout,
+	 * no WooCommerce order exists yet. This method delegates to the order
+	 * mapper to create one from the checkout session data.
+	 *
+	 * @since 10.5.0
+	 * @param object $notification The webhook notification from Stripe.
+	 */
+	public function process_checkout_session_completed( $notification ): void {
+		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			return;
+		}
+
+		$checkout_session = $notification->data->object; // @phpstan-ignore property.notFound
+
+		if ( ! $this->is_agentic_checkout_session( $checkout_session ) ) {
+			return;
+		}
+
+		$payment_intent_id = $this->get_payment_intent_id_from_checkout_session( $checkout_session );
+
+		WC_Stripe_Logger::info(
+			'Agentic checkout.session.completed received.',
+			[
+				'session_id'        => $checkout_session->id ?? 'unknown',
+				'payment_intent_id' => $payment_intent_id ?? 'unknown',
+			]
+		);
+
+		// Idempotency: look up existing order by payment intent ID.
+		if ( $payment_intent_id ) {
+			$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			if ( $existing_order instanceof WC_Order ) {
+				WC_Stripe_Logger::info(
+					'Agentic checkout session already processed.',
+					[
+						'session_id'        => $checkout_session->id,
+						'payment_intent_id' => $payment_intent_id,
+						'order_id'          => $existing_order->get_id(),
+					]
+				);
+				$this->resolved_order = $existing_order;
+				return;
+			}
+		}
+
+		try {
+			$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+			$order                = $order_mapper->create_order_from_checkout_session( $checkout_session );
+			$this->resolved_order = $order;
+
+			WC_Stripe_Logger::info(
+				'Agentic order created from checkout session.',
+				[
+					'session_id' => $checkout_session->id,
+					'order_id'   => $order->get_id(),
+				]
+			);
+
+			/**
+			 * Fires after an agentic commerce order is created from a checkout session.
+			 *
+			 * @since 10.5.0
+			 * @param WC_Order $order            The created order.
+			 * @param object   $checkout_session The Stripe checkout session object.
+			 */
+			do_action( 'wc_stripe_agentic_order_created', $order, $checkout_session );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Failed to create agentic order from checkout session.',
+				[
+					'session_id' => $checkout_session->id ?? 'unknown',
+					'error'      => $e->getMessage(),
+				]
+			);
+
+			/**
+			 * Fires when agentic commerce order creation fails.
+			 *
+			 * @since 10.5.0
+			 * @param Exception $e                The exception that was thrown.
+			 * @param object    $checkout_session The Stripe checkout session object.
+			 */
+			do_action( 'wc_stripe_agentic_order_creation_failed', $e, $checkout_session );
+		}
+	}
+
+	/**
+	 * Checks whether a checkout session originates from agentic commerce.
+	 *
+	 * @since 10.5.0
+	 * @param object $checkout_session The Stripe checkout session object.
+	 * @return bool
+	 */
+	public function is_agentic_checkout_session( $checkout_session ) {
+		if ( isset( $checkout_session->ui_mode ) && 'agentic' === $checkout_session->ui_mode ) {
+			return true;
+		}
+
+		if ( isset( $checkout_session->metadata->agentic ) && 'true' === $checkout_session->metadata->agentic ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Extracts the payment intent ID from a checkout session.
+	 *
+	 * The payment_intent field can be either a string ID or an expanded object.
+	 *
+	 * @since 10.5.0
+	 * @param object $checkout_session The Stripe checkout session object.
+	 * @return string|null The payment intent ID, or null if not available.
+	 */
+	public function get_payment_intent_id_from_checkout_session( $checkout_session ) {
+		$payment_intent = $checkout_session->payment_intent ?? null;
+
+		if ( is_object( $payment_intent ) && isset( $payment_intent->id ) ) {
+			return $payment_intent->id;
+		}
+
+		if ( is_string( $payment_intent ) && '' !== $payment_intent ) {
+			return $payment_intent;
 		}
 
 		return null;
