@@ -37,8 +37,8 @@ Use the smallest command set needed for the task:
 | E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
 | PHP lint | `npm run lint:php` | Use `npm run lint:php-fix` when appropriate. |
 | JS lint | `npm run lint:js` | Use `npm run lint:js-fix` when appropriate. |
-| PHPStan | `npm run phpstan` | Level 8 static analysis. |
-| Refresh PHPStan baseline | `npm run phpstan:baseline` | Only after triaging `npm run phpstan` results. |
+| PHP static analysis | `npm run phpstan` | Level 8 static analysis for PHP files. |
+| Refresh PHP static analysis baseline | `npm run phpstan:baseline` | Only after triaging `npm run phpstan` results. |
 | Stripe webhook listener | `npm run listen` | For local webhook forwarding. |
 
 ## Common Pitfalls
