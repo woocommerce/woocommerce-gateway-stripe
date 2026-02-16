@@ -2203,12 +2203,6 @@ parameters:
 			path: includes/class-wc-stripe-database-cache-prefetch.php
 
 		-
-			message: '#^Parameter \#2 \$args of function as_unschedule_all_actions expects array, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-database-cache.php
-
-		-
 			message: '#^@param string \$order_id does not accept actual type of parameter\: string\|null\.$#'
 			identifier: parameter.phpDocType
 			count: 1
