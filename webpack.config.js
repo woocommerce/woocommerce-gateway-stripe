@@ -112,7 +112,6 @@ module.exports = {
 		},
 	},
 	entry: {
-		index: './client/blocks/index.js',
 		'upe-classic': './client/classic/upe/index.js',
 		'upe-blocks': './client/blocks/upe/index.js',
 		'upe-settings': './client/settings/index.js',
