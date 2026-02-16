@@ -288,7 +288,7 @@ class WC_Stripe_Account {
 	public function configure_webhooks( $mode = 'live' ) {
 
 		$request = [
-			'enabled_events' => self::WEBHOOK_EVENTS,
+			'enabled_events' => self::get_webhook_events(),
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
@@ -415,12 +415,30 @@ class WC_Stripe_Account {
 	 * @return bool True if events differ, false if they match.
 	 */
 	private function do_webhook_events_differ( $existing_webhook ) {
-		$desired_events = self::WEBHOOK_EVENTS;
+		$desired_events = self::get_webhook_events();
 		sort( $desired_events );
 		$existing_events = $existing_webhook->enabled_events;
 		sort( $existing_events );
 
 		return $desired_events !== $existing_events;
+	}
+
+	/**
+	 * Returns the list of webhook events that this plugin needs to listen to.
+	 *
+	 * Includes conditional events based on enabled features.
+	 *
+	 * @since 10.5.0
+	 * @return array List of Stripe webhook event types.
+	 */
+	public static function get_webhook_events() {
+		$events = self::WEBHOOK_EVENTS;
+
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$events[] = 'checkout.session.completed';
+		}
+
+		return $events;
 	}
 
 	/**
