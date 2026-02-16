@@ -393,9 +393,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		$response = wp_remote_get(
 			self::FILES_CONTENT_ENDPOINT . $error_file_id . '/contents',
 			[
-				'headers' => [
-					'Authorization' => 'Bearer ' . $this->secret_key,
-				],
+				'headers' => $this->get_common_headers(),
 				'timeout' => 30,
 			]
 		);
