@@ -15,8 +15,11 @@
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fix becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 
-= 10.4.0 - 2026-02-09 = 
+= 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
 * Add - New setting to control Adaptive Pricing
 * Add - Map Norwegian nb-NO to generic no-NO locale

@@ -162,5 +162,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
