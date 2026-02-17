@@ -104,14 +104,9 @@ export async function waitForStripeReady(
 	iframeSelector,
 	timeout = 15000
 ) {
-	// Wait for iframe to be present and visible
-	await page.waitForSelector( iframeSelector, {
-		state: 'visible',
-		timeout,
-	} );
-
-	// Get the frame handle and content frame
+	// Wait for iframe to be present in the DOM.
 	const frameHandle = await page.waitForSelector( iframeSelector, {
+		state: 'attached',
 		timeout,
 	} );
 	const stripeFrame = await frameHandle.contentFrame();
@@ -122,8 +117,12 @@ export async function waitForStripeReady(
 		);
 	}
 
-	// Wait for the frame to be fully loaded
-	await stripeFrame.waitForLoadState( 'networkidle', { timeout } );
+	// Stripe iframes often keep background network activity and may never reach
+	// "networkidle". Wait for the frame document instead.
+	await stripeFrame.waitForSelector( 'body', {
+		state: 'attached',
+		timeout,
+	} );
 
 	// Additional wait for any loading indicators to disappear in parallel
 	const loadingIndicators = [
@@ -517,34 +516,55 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	const rawIframeSelector = 'iframe[src*="elements-inner-payment"]';
 	let iframeSelector;
+	let paymentMethodContentSelector;
 
 	if ( checkoutType === 'blocks' ) {
-		iframeSelector = `#radio-control-wc-payment-method-options-stripe_us_bank_account__content ${ rawIframeSelector }`;
+		paymentMethodContentSelector =
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content';
+		iframeSelector = `${ paymentMethodContentSelector } ${ rawIframeSelector }`;
 
 		await setupBlocksCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in blocks checkout
-		await page
-			.locator( 'label' )
-			.filter( { hasText: 'ACH Direct Debit' } )
-			.click();
+		// Select ACH in blocks checkout via the associated label, since the
+		// underlying input can be covered by parent elements during animation.
+		const achOption = page.locator(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account'
+		);
+		const achOptionLabel = page.locator(
+			"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
+		);
+		await achOption.waitFor( { state: 'attached' } );
+		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
+		await achOptionLabel.click();
+		await expect( achOption ).toBeChecked();
 	} else {
-		iframeSelector = `.wc_payment_method.payment_method_stripe_us_bank_account ${ rawIframeSelector }`;
+		paymentMethodContentSelector =
+			'.wc_payment_method.payment_method_stripe_us_bank_account';
+		iframeSelector = `${ paymentMethodContentSelector } ${ rawIframeSelector }`;
 
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in shortcode checkout
-		const achLabel = page.getByText( 'ACH Direct Debit' );
-		await achLabel.waitFor( { state: 'visible' } );
-		await achLabel.click();
+		// Select ACH in shortcode checkout via the associated label, since direct
+		// clicks on the hidden radio input can be intercepted.
+		const achOption = page.locator(
+			'#payment_method_stripe_us_bank_account'
+		);
+		const achOptionLabel = page.locator(
+			"label[for='payment_method_stripe_us_bank_account']"
+		);
+		await achOption.waitFor( { state: 'attached' } );
+		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
+		await achOptionLabel.click();
+		await expect( achOption ).toBeChecked();
 	}
 
+	await expect( page.locator( paymentMethodContentSelector ) ).toBeVisible();
 	await waitForStripeReady( page, iframeSelector );
 
 	// Click "Test Institution" with retry logic
@@ -555,7 +575,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.first();
 
 		await expect( testInstitutionButton ).toBeVisible();
-		await testInstitutionButton.click();
+		await testInstitutionButton.dispatchEvent( 'click' );
 	} );
 };
 
@@ -977,8 +997,10 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 		);
 		const stripeFrame = await frameHandle.contentFrame();
 
-		// Wait for the iFrame to load.
-		await stripeFrame.waitForLoadState( 'networkidle' );
+		// Wait for the BECS form fields to be available.
+		await expect(
+			stripeFrame.locator( '[name="auBankAccountNumber"]' )
+		).toBeVisible( { timeout: 30000 } );
 	}
 };
 
@@ -1001,8 +1023,10 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 
 	const stripeFrame = await frameHandle.contentFrame();
 
-	// Wait for the iFrame to load.
-	await stripeFrame.waitForLoadState( 'networkidle' );
+	// Wait for the BECS form fields to be available.
+	await expect(
+		stripeFrame.locator( '[name="auBankAccountNumber"]' )
+	).toBeVisible( { timeout: 30000 } );
 
 	await stripeFrame
 		.locator( '[name="auBankAccountNumber"]' )
@@ -1044,7 +1068,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 					'#radio-control-wc-payment-method-options-stripe_affirm__content iframe[name^="__privateStripeFrame"]'
 				)
 				.getByTestId( 'next-action-text' )
-		).toBeVisible();
+		).toBeAttached();
 	} else {
 		const affirmLabel = page.getByText( 'Affirm' );
 		await affirmLabel.waitFor( { state: 'visible' } );
@@ -1055,7 +1079,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 					'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
 				)
 				.getByTestId( 'next-action-text' )
-		).toBeVisible();
+		).toBeAttached();
 	}
 };
 

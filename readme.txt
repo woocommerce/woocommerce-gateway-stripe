@@ -148,6 +148,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Remove unused frontend code related to block checkout
+* Update - Move class instantiations from their definition files to the plugin initialization code
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Dev - Remove unused frontend code related to UPE
 * Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
@@ -157,5 +160,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
+* Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
+* Dev - Fixes becs e2e tests
+* Add - Add the base CSV feed for agentic commerce
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

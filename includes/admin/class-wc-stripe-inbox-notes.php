@@ -263,5 +263,3 @@ class WC_Stripe_Inbox_Notes {
 		}
 	}
 }
-
-new WC_Stripe_Inbox_Notes();

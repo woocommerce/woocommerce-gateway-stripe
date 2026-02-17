@@ -110,6 +110,7 @@ class WC_Stripe {
 	public function init() {
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
+			new WC_Stripe_Privacy();
 		}
 
 		if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php' ) ) {
@@ -137,6 +138,8 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-action-scheduler-service.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
+		new WC_Stripe_Webhook_Handler();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
@@ -190,24 +193,42 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
+		new WC_Stripe_Order_Handler();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
+		new WC_Stripe_Inbox_Notes();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
+		// Load Agentic Commerce classes.
+		// Requires WooCommerce 10.5.0+ with FeedInterface.
+		if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-csv-feed.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-schema.php';
+
+			// Load delivery method and integration.
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-files-api-delivery.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
+
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+		}
+
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
 
-		$this->api                           = new WC_Stripe_Connect_API();
-		$this->connect                       = new WC_Stripe_Connect( $this->api );
-		$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api     = new WC_Stripe_Connect_API();
+		$this->connect = new WC_Stripe_Connect( $this->api );
+		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 		// Initialize Express Checkout after translations are loaded
 		add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
@@ -220,6 +241,8 @@ class WC_Stripe {
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
+			new WC_Stripe_Admin_Notices();
+
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
 			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
@@ -268,6 +291,9 @@ class WC_Stripe {
 		add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
+
+		// Initialize Agentic Commerce integration.
+		add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
 
 		// Check for payment methods that should be toggled, e.g. unreleased,
 		// BNPLs when official plugins are active,
@@ -835,6 +861,57 @@ class WC_Stripe {
 
 		$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
 		$wcstripe_status->init_hooks();
+	}
+
+	/**
+	 * Initialize Agentic Commerce product feed integration.
+	 *
+	 * Registers the integration with WooCommerce product feed system and
+	 * sets up Action Scheduler for automated sync.
+	 *
+	 * @since 10.5.0
+	 * @return void
+	 */
+	public function initialize_agentic_commerce() {
+		// Check if required classes exist.
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+			return;
+		}
+
+		// Check if feature is enabled.
+		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			return;
+		}
+
+		// Create integration instance.
+		$integration = new WC_Stripe_Agentic_Commerce_Integration();
+
+		try {
+			$product_feed = wc_get_container()->get( \Automattic\WooCommerce\Internal\ProductFeed\ProductFeed::class );
+			$product_feed->register_integration( $integration );
+		} catch ( \Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic Commerce: Failed to register integration with WooCommerce product feed',
+				[ 'error' => $e->getMessage() ]
+			);
+			return;
+		}
+
+		// Register hooks for scheduled actions.
+		$integration->register_hooks();
+
+		// Schedule recurring sync if not already scheduled.
+		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) ) {
+			$integration->activate();
+		}
+
+		/**
+		 * Fires after Agentic Commerce integration is initialized.
+		 *
+		 * @since 10.5.0
+		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration instance.
+		 */
+		do_action( 'wc_stripe_agentic_commerce_initialized', $integration );
 	}
 
 	/**
