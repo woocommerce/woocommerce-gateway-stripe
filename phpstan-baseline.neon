@@ -1789,18 +1789,6 @@ parameters:
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Function as_schedule_single_action not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/class-wc-stripe-action-scheduler-service.php
-
-		-
-			message: '#^Function as_unschedule_action not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/class-wc-stripe-action-scheduler-service.php
-
-		-
 			message: '#^Call to function method_exists\(\) with ''WCS_Staging'' and ''is_duplicate_site'' will always evaluate to false\.$#'
 			identifier: function.impossibleType
 			count: 1
@@ -3745,12 +3733,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Class Automattic\\WooCommerce\\Internal\\ProductFeed\\ProductFeed not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Method WC_Stripe\:\:add_gateways\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -4135,18 +4117,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Function as_schedule_single_action not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Function as_unschedule_all_actions not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
 			message: '#^Method WC_Stripe_Connect\:\:connect_oauth\(\) should return string\|WP_Error but returns stdObject\|WP_Error\.$#'
 			identifier: return.type
 			count: 1
@@ -4255,18 +4225,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Access to constant STATUS_COMPLETE on an unknown class ActionScheduler_Store\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Access to constant STATUS_PENDING on an unknown class ActionScheduler_Store\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
 			message: '#^Binary operation "\+" between string and 120 results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1
@@ -4285,12 +4243,6 @@ parameters:
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
-			message: '#^Call to static method store\(\) on an unknown class ActionScheduler\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
 			message: '#^Cannot access offset ''complete'' on non\-empty\-array\|true\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
@@ -4300,24 +4252,6 @@ parameters:
 			message: '#^Cannot access offset ''pending'' on non\-empty\-array\|true\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Function as_next_scheduled_action not found\.$#'
-			identifier: function.notFound
-			count: 4
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Function as_schedule_single_action not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
-			message: '#^Function as_unschedule_action not found\.$#'
-			identifier: function.notFound
-			count: 1
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
@@ -10842,11 +10776,6 @@ parameters:
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 
-		-
-			message: '#^Call to method deactivate\(\) on an unknown class WC_Stripe_Agentic_Commerce_Integration\.$#'
-			identifier: class.notFound
-			count: 1
-			path: woocommerce-gateway-stripe.php
 
 		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
@@ -10884,8 +10813,3 @@ parameters:
 			count: 1
 			path: woocommerce-gateway-stripe.php
 
-		-
-			message: '#^Instantiated class WC_Stripe_Agentic_Commerce_Integration not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: woocommerce-gateway-stripe.php
