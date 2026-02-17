@@ -26,9 +26,10 @@ class WC_Subscriptions_Product {
 	/**
 	 * Get the length of the trial period for a subscription product.
 	 *
+	 * @param \WC_Product|null $product The product to get the trial length for.
 	 * @return int
 	 */
-	public static function get_trial_length(): int {
+	public static function get_trial_length( $product = null ): int {
 		return self::$get_trial_length_result;
 	}
 
@@ -43,9 +44,10 @@ class WC_Subscriptions_Product {
 	/**
 	 * Determine if a product is a subscription.
 	 *
+	 * @param \WC_Product|null $product The product to check if it is a subscription.
 	 * @return bool
 	 */
-	public static function is_subscription(): bool {
+	public static function is_subscription( $product = null ): bool {
 		return self::$is_subscription_result;
 	}
 

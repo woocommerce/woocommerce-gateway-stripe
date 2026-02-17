@@ -1107,12 +1107,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
 	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, string $adaptive_pricing, ?string $cart_product_type, bool $expected ): void {
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['adaptive_pricing']           = $adaptive_pricing;
-		$stripe_settings['optimized_checkout_element'] = 'yes';
-		$stripe_settings['capture']                    = 'yes';
-		$stripe_settings['pmc_enabled']                = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$new_stripe_settings                               = $original_stripe_settings;
+		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
+		$new_stripe_settings['optimized_checkout_element'] = 'yes';
+		$new_stripe_settings['capture']                    = 'yes';
+		$new_stripe_settings['pmc_enabled']                = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
 		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
 
@@ -1145,7 +1146,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// Cleanup.
 		WC()->cart->empty_cart();
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		\WC_Subscriptions_Product::set_is_subscription( false );
+		\WC_Pre_Orders_Product::set_is_pre_order( false );
 		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		if ( isset( $product ) && $product ) {
