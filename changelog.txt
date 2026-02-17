@@ -18,6 +18,7 @@
 * Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Fix - Prevent fatal error when order ID in webhook references a refund
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
