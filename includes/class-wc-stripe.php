@@ -220,6 +220,10 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-cli.php';
+			}
 		}
 
 		// Order mapper is used by the webhook handler and does not depend on FeedInterface.
@@ -906,6 +910,10 @@ class WC_Stripe {
 		// Schedule recurring sync if not already scheduled.
 		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) ) {
 			$integration->activate();
+		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::add_command( 'stripe agentic-commerce', 'WC_Stripe_Agentic_Commerce_CLI' );
 		}
 
 		/**
