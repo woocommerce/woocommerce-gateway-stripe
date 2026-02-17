@@ -1099,14 +1099,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
 	 * @param bool   $feature_flag Feature flag enabled.
-	 * @param bool   $is_checkout Checkout page.
+	 * @param bool   $is_checkout Whether is classic checkout page.
+	 * @param bool   $has_block Whether is block checkout page.
 	 * @param string $adaptive_pricing Adaptive pricing setting.
 	 * @param string $cart_product_type Cart product type.
 	 * @param bool   $expected Expected result.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, string $adaptive_pricing, ?string $cart_product_type, bool $expected ): void {
+	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?string $cart_product_type, bool $expected ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1121,6 +1122,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return $is_checkout;
 		};
 		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
+		if ( $has_block ) {
+			// Mock has_block( 'woocommerce/checkout' ) via global $post so the helper sees the expected value.
+			global $post;
+			$saved_post = $post;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test isolation for has_block().
+			$post               = new stdClass();
+			$post->post_content = '<!-- wp:woocommerce/checkout -->';
+		}
 
 		if ( 'subscription' === $cart_product_type ) {
 			\WC_Subscriptions_Product::set_is_subscription( true );
@@ -1155,6 +1165,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$product->delete( true );
 		}
 
+		if ( $has_block ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring $post after test isolation.
+			$post = $saved_post;
+		}
+
 		$this->assertSame( $expected, $actual );
 	}
 
@@ -1165,51 +1180,66 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_is_adaptive_pricing_supported(): array {
 		return [
-			'feature flag disabled'               => [
+			'feature flag disabled'                     => [
 				'feature_flag'      => false,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'simple',
 				'expected'          => false,
 			],
-			'adaptive pricing disabled' => [
+			'adaptive pricing disabled'                 => [
 				'feature_flag'      => true,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'no',
 				'cart_product_type' => 'simple',
 				'expected'          => false,
 			],
-			'not on checkout' => [
+			'not on classic checkout or block checkout' => [
 				'feature_flag'      => true,
 				'is_checkout'       => false,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'simple',
 				'expected'          => false,
 			],
-			'empty cart'                          => [
+			'on block checkout'                         => [
+				'feature_flag'      => true,
+				'is_checkout'       => false,
+				'has_block'         => true,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'simple',
+				'expected'          => true,
+			],
+			'empty cart'                                => [
 				'feature_flag'      => true,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => null,
 				'expected'          => true,
 			],
-			'simple product only'                 => [
+			'simple product only'                       => [
 				'feature_flag'      => true,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'simple',
 				'expected'          => true,
 			],
-			'subscription in cart'                => [
+			'subscription in cart'                      => [
 				'feature_flag'      => true,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'subscription',
 				'expected'          => false,
 			],
-			'pre-order in cart'                    => [
+			'pre-order in cart'                         => [
 				'feature_flag'      => true,
 				'is_checkout'       => true,
+				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'pre-order',
 				'expected'          => false,
