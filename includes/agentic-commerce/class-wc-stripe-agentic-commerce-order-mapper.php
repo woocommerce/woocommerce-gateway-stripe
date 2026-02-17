@@ -256,55 +256,51 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			$product = $this->resolve_product( $product_id, $line_item );
 
-			if ( $product ) {
-				$item_id = $order->add_product(
-					$product,
-					$quantity,
+			// Let WooCommerce calculate totals from product price × quantity.
+			$item_id = $order->add_product( $product, $quantity );
+
+			if ( ! $item_id ) {
+				throw new Exception(
+					sprintf(
+						'Failed to add product %d to order for session %s.',
+						$product_id,
+						$checkout_session->id // @phpstan-ignore property.notFound
+					)
+				);
+			}
+
+			$item = $order->get_item( $item_id );
+			if ( ! $item instanceof WC_Order_Item_Product ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s is not a product.',
+						$line_item->id
+					)
+				);
+			}
+
+			// Verify WC-calculated total matches Stripe's pre-tax line total.
+			$wc_line_total = (float) $item->get_total();
+
+			if ( abs( $wc_line_total - $line_total ) > 0.01 ) {
+				throw new Exception(
+					sprintf(
+						'Line item price mismatch for product %d: WC calculated %.2f, Stripe expected %.2f.',
+						$product_id,
+						$wc_line_total,
+						$line_total
+					)
+				);
+			}
+
+			if ( $line_tax > 0 ) {
+				$item->set_taxes(
 					[
-						'subtotal' => $line_subtotal,
-						'total'    => $line_total,
+						'total'    => [ $line_tax ],
+						'subtotal' => [ $line_tax ],
 					]
 				);
-
-				if ( $line_tax > 0 && $item_id ) {
-					$item = $order->get_item( $item_id );
-					if ( $item instanceof WC_Order_Item_Product ) {
-						$item->set_taxes(
-							[
-								'total'    => [ $line_tax ],
-								'subtotal' => [ $line_tax ],
-							]
-						);
-						$item->save();
-					}
-				}
-			} else {
-				// No lookup_key was provided by Stripe — this line item has no
-				// WooCommerce product association. Create a placeholder item.
-				$item = new WC_Order_Item_Product();
-				$item->set_name( $line_item->description ?? __( 'Unknown product', 'woocommerce-gateway-stripe' ) );
-				$item->set_quantity( $quantity );
-				$item->set_subtotal( (string) $line_subtotal );
-				$item->set_total( (string) $line_total );
-
-				if ( $line_tax > 0 ) {
-					$item->set_taxes(
-						[
-							'total'    => [ $line_tax ],
-							'subtotal' => [ $line_tax ],
-						]
-					);
-				}
-
-				$order->add_item( $item );
-
-				WC_Stripe_Logger::info(
-					'Agentic order mapper: line item has no lookup_key, added without product.',
-					[
-						'description' => $line_item->description ?? '',
-						'session_id'  => $checkout_session->id, // @phpstan-ignore property.notFound
-					]
-				);
+				$item->save();
 			}
 		}
 	}
@@ -317,12 +313,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * indicate the line item has no product association.
 	 *
 	 * @since 10.5.0
-	 * @param int         $product_id The parsed product ID.
-	 * @param object      $line_item  The Stripe line item (for error context).
-	 * @return WC_Product|null The product, or null when product_id is absent.
+	 * @param int    $product_id The parsed product ID.
+	 * @param object $line_item  The Stripe line item (for error context).
+	 * @return WC_Product The product, or null when product_id is absent.
 	 * @throws Exception When product_id is present but no matching product exists.
 	 */
-	private function resolve_product( int $product_id, object $line_item ): ?WC_Product {
+	private function resolve_product( int $product_id, object $line_item ): WC_Product {
 		$product = wc_get_product( $product_id );
 
 		if ( ! $product || ! $product->exists() ) {

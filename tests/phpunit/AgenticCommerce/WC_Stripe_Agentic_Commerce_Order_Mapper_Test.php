@@ -29,6 +29,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private $mapper;
 
 	/**
+	 * A default product used by build_checkout_session when no line_items override is provided.
+	 *
+	 * @var \WC_Product
+	 */
+	private $default_product;
+
+	/**
 	 * Setup test environment before each test.
 	 *
 	 * @return void
@@ -40,7 +47,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Order_Mapper class not loaded' );
 		}
 
-		$this->mapper = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+		$this->mapper          = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+		$this->default_product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+			]
+		);
+	}
+
+	/**
+	 * Cleanup after each test.
+	 *
+	 * @return void
+	 */
+	public function tearDown(): void {
+		if ( $this->default_product ) {
+			$this->default_product->delete( true );
+		}
+		parent::tearDown();
 	}
 
 	/**
@@ -358,11 +384,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that line items without a lookup_key are added as placeholder items.
+	 * Test that an exception is thrown when a line item has no product ID.
 	 *
 	 * @return void
 	 */
-	public function test_line_items_without_lookup_key_added_as_placeholder() {
+	public function test_exception_thrown_when_line_item_has_no_product_id() {
 		$session = $this->build_checkout_session(
 			[
 				'amount_total'    => 999,
@@ -388,17 +414,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
-		$items = $order->get_items();
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'has no integer (product ID) lookup_key' );
 
-		$this->assertCount( 1, $items );
-
-		$item = reset( $items );
-		$this->assertInstanceOf( WC_Order_Item_Product::class, $item );
-		$this->assertEquals( 'Ad-hoc Item', $item->get_name() );
-		$this->assertEquals( '9.99', wc_format_decimal( $item->get_total(), 2 ) );
-
-		$order->delete( true );
+		$this->mapper->create_order_from_checkout_session( $session );
 	}
 
 	/**
@@ -500,14 +519,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	/**
 	 * Test currency conversion from Stripe amounts.
 	 *
+	 * Each case creates a product whose WC price matches the expected converted
+	 * Stripe amount, then verifies the order total after the mapper runs.
+	 *
 	 * @dataProvider data_provider_currency_conversion
 	 *
-	 * @param int    $stripe_amount   The Stripe amount.
+	 * @param float  $product_price   The WC product price.
+	 * @param int    $stripe_amount   The Stripe amount in smallest currency unit.
 	 * @param string $currency        The currency code.
-	 * @param float  $expected_amount The expected WC amount.
+	 * @param float  $expected_amount The expected WC order total.
 	 * @return void
 	 */
-	public function test_currency_conversion( int $stripe_amount, string $currency, float $expected_amount ) {
+	public function test_currency_conversion( float $product_price, int $stripe_amount, string $currency, float $expected_amount ) {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => (string) $product_price,
+				'price'         => (string) $product_price,
+			]
+		);
+
 		$session = $this->build_checkout_session(
 			[
 				'currency'        => $currency,
@@ -516,7 +547,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => null,
+							'lookup_key'      => (string) $product->get_id(),
 							'description'     => 'Test',
 							'quantity'        => 1,
 							'unit_amount'     => $stripe_amount,
@@ -543,20 +574,20 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 
 		$order->delete( true );
+		$product->delete( true );
 	}
 
 	/**
 	 * Data provider for currency conversion tests.
 	 *
-	 * @return array<string, array{int, string, float}>
+	 * @return array<string, array{float, int, string, float}>
 	 */
 	public function data_provider_currency_conversion(): array {
 		return [
-			'USD standard'      => [ 1000, 'usd', 10.00 ],
-			'EUR cents'         => [ 99, 'eur', 0.99 ],
-			'USD zero'          => [ 0, 'usd', 0.00 ],
-			'JPY no-decimal'    => [ 1000, 'jpy', 1000.00 ],
-			'BHD three-decimal' => [ 1000, 'bhd', 1.00 ],
+			'USD standard'      => [ 10.00, 1000, 'usd', 10.00 ],
+			'EUR cents'         => [ 0.99, 99, 'eur', 0.99 ],
+			'JPY no-decimal'    => [ 1000.00, 1000, 'jpy', 1000.00 ],
+			'BHD three-decimal' => [ 1.00, 1000, 'bhd', 1.00 ],
 		];
 	}
 
@@ -995,7 +1026,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			'line_items'       => $this->build_line_items(
 				[
 					[
-						'lookup_key'      => null,
+						'lookup_key'      => (string) $this->default_product->get_id(),
 						'description'     => 'Default Product',
 						'quantity'        => 1,
 						'unit_amount'     => 1000,
@@ -1021,17 +1052,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private function build_line_items( array $items ): object {
 		$data = [];
 
-		foreach ( $items as $item ) {
+		foreach ( $items as $index => $item ) {
 			$data[] = (object) [
+				'id'              => $item['id'] ?? 'li_test_' . $index,
 				'description'     => $item['description'] ?? 'Test Product',
 				'quantity'        => $item['quantity'] ?? 1,
 				'amount_total'    => $item['amount_total'] ?? 0,
 				'amount_subtotal' => $item['amount_subtotal'] ?? $item['amount_total'] ?? 0,
 				'amount_tax'      => $item['amount_tax'] ?? 0,
 				'price'           => (object) [
-					'unit_amount' => $item['unit_amount'] ?? 0,
-					'lookup_key'  => $item['lookup_key'] ?? null,
-					'currency'    => $item['currency'] ?? 'usd',
+					'unit_amount'        => $item['unit_amount'] ?? 0,
+					'external_reference' => $item['lookup_key'] ?? null,
+					'currency'           => $item['currency'] ?? 'usd',
 				],
 			];
 		}
