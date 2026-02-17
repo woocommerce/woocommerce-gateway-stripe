@@ -86,7 +86,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return void
 	 */
 	public function activate(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) ) {
+			// Action Scheduler not ready yet — defer to when it initializes.
+			add_action( 'action_scheduler_init', [ $this, 'activate' ] );
 			return;
 		}
 
@@ -210,6 +212,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
+		// Check delivery setup before generating the feed.
+		$delivery = $this->get_push_delivery_method();
+
+		if ( ! $delivery->check_setup() ) {
+			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
+			return;
+		}
+
 		WC_Stripe_Logger::info( 'Agentic Commerce: Starting feed sync' );
 
 		$start_time = microtime( true );
@@ -234,14 +244,23 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				}
 			);
 
+			if ( 0 === $total_products ) {
+				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
+				$file_path = $feed->get_file_path();
+				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
+				return;
+			}
+
 			$generation_time = microtime( true ) - $start_time;
 
 			// Get feed file info.
 			$file_path = $feed->get_file_path();
 			$file_size = 0;
 
-			if ( ! empty( $file_path ) && is_string( $file_path ) && file_exists( $file_path ) ) {
-				$file_size = filesize( $file_path );
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				$file_size = (int) filesize( $file_path );
 			}
 
 			WC_Stripe_Logger::info(
@@ -254,7 +273,23 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				]
 			);
 
-			// TODO: Deliver feed to Stripe via Files API (STRIPE-896).
+			// Deliver feed to Stripe via Files API.
+			$result = $delivery->deliver( $feed );
+
+			WC_Stripe_Logger::info(
+				'Agentic Commerce: Feed delivered to Stripe',
+				[
+					'file_id'       => $result['file_id'] ?? '',
+					'import_set_id' => $result['import_set_id'] ?? '',
+					'status'        => $result['status'] ?? 'unknown',
+				]
+			);
+
+			// Delete the file to prevent accumulation.
+			// Might be removed in favor of a scheduled job to allow debugging.
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',

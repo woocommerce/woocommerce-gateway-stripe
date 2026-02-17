@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { admin, payments } from '../../../utils';
 
-const { setupAffirmCheckout } = payments;
+const { setupAffirmCheckout, clickPlaceOrder } = payments;
 
 test.describe( 'Affirm payment tests @shortcode', () => {
 	test.beforeAll( async ( { browser } ) => {
@@ -15,10 +15,29 @@ test.describe( 'Affirm payment tests @shortcode', () => {
 
 	test( 'customer can pay with Affirm @smoke', async ( { page } ) => {
 		await setupAffirmCheckout( page, 'shortcode' );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		// Since we don't have control over the Affirm payment flow,
-		// verifying the redirect to Stripe or Affirm is all we can do consistently
-		// without introducing a flaky test.
-		await expect( page ).toHaveURL( /.*(affirm\.com|stripe\.com)/ );
+		// verify that either the current page or a popup redirects externally.
+		const externalCheckoutUrl = /.*(affirm\.com|stripe\.com)/;
+		const topLevelRedirectPromise = page
+			.waitForURL( externalCheckoutUrl, { timeout: 30000 } )
+			.then( () => true );
+		const popupRedirectPromise = page
+			.context()
+			.waitForEvent( 'page', { timeout: 30000 } )
+			.then( async ( popupPage ) => {
+				await popupPage.waitForLoadState( 'domcontentloaded' );
+				await expect( popupPage ).toHaveURL( externalCheckoutUrl, {
+					timeout: 30000,
+				} );
+				return true;
+			} );
+
+		const redirected = await Promise.any( [
+			topLevelRedirectPromise,
+			popupRedirectPromise,
+		] ).catch( () => false );
+
+		expect( redirected ).toBeTruthy();
 	} );
 } );
