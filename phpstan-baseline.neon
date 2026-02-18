@@ -5179,12 +5179,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Offset string does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
@@ -10601,7 +10595,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
 
 		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
