@@ -482,6 +482,37 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'             => 'we_123',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'enabled_events' => [ 'charge.succeeded', 'charge.failed' ],
+			'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
+			'status'         => 'enabled',
+		];
+
+		// Setup the account mock
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->getMock();
+
+		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
+		$this->account->expects( $this->once() )
+			->method( 'configure_webhooks' )
+			->with(
+				$this->equalTo( 'test' )
+			);
+
+		// Run the update
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
+	 * Test webhook reconfiguration on update with existing webhooks that are up to date.
+	 */
+	public function test_reconfigure_webhooks_on_update_with_outdated_api_version() {
+		// Mock an existing webhook with current events but outdated API version
+		$outdated_webhook = (object) [
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => '2020-01-01',
 			'status'         => 'enabled',
 		];
 
@@ -506,11 +537,12 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Test webhook reconfiguration on update with existing webhooks that are up to date.
 	 */
 	public function test_reconfigure_webhooks_on_update_with_current_webhooks() {
-		// Mock an existing webhook with current events
+		// Mock an existing webhook with current events and API version
 		$current_webhook = (object) [
 			'id'             => 'we_123',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
 			'status'         => 'enabled',
 		];
 
