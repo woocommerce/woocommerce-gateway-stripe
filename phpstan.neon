@@ -12,15 +12,12 @@ parameters:
 	bootstrapFiles:
 		- vendor/autoload.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
 	scanDirectories:
 		- phpstan-stubs
 	treatPhpDocTypesAsCertain: false
 	parallel:
 		maximumNumberOfProcesses: 4
-	excludePaths:
-		# Exclude Agentic Commerce files that depend on external WooCommerce ProductFeed plugin
-		- includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php
-		- includes/agentic-commerce/class-wc-stripe-agentic-commerce-files-api-delivery.php
 	ignoreErrors:
 		-
 			identifier: missingType.iterableValue
