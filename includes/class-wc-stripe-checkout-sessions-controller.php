@@ -99,7 +99,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 							'state'       => $wc_customer->get_shipping_state(),
 						],
 					],
-					'statement_descriptor_suffix',
 				],
 				'mode'                 => 'payment',
 				'adaptive_pricing'     => [
