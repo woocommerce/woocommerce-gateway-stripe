@@ -375,7 +375,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -949,7 +949,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -6111,7 +6111,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -6193,7 +6193,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -6459,7 +6459,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -6535,7 +6535,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -6807,7 +6807,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -6883,7 +6883,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -7155,7 +7155,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -7237,7 +7237,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -7497,7 +7497,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -7573,7 +7573,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -7833,7 +7833,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -7915,7 +7915,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -8199,7 +8199,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -8275,7 +8275,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -8541,7 +8541,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -8617,7 +8617,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -8895,7 +8895,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -8971,7 +8971,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -9231,7 +9231,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -9307,7 +9307,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -9621,7 +9621,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -9709,7 +9709,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -9981,7 +9981,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -10063,7 +10063,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -10323,7 +10323,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:stripe_request\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -10399,7 +10399,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_mandate_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_source_id\(\) expects WC_Order\|null, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -10757,7 +10757,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
-
 
 		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
