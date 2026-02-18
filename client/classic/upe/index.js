@@ -8,6 +8,7 @@ import {
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import { getStripePaymentElement } from './payment-processing';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -16,6 +17,7 @@ import {
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_OXXO,
+	PAYMENT_METHOD_CARD,
 } from 'wcstripe/stripe-utils/constants';
 
 jQuery( function ( $ ) {
@@ -334,6 +336,72 @@ jQuery( function ( $ ) {
 			} );
 		}
 	} );
+
+	if ( getStripeServerData()?.isOCEnabled ) {
+		const getStripePaymentBox = () =>
+			$( 'div.payment_box.payment_method_stripe' );
+		const keepPaymentBoxVisible = () => {
+			const $stripePaymentMethod = getStripePaymentBox();
+			if ( ! $stripePaymentMethod.length ) {
+				return;
+			}
+			// Stop animation - clear the animation queue and stop jumpToEnd.
+			// Then immediately (re)show the element.
+			$stripePaymentMethod.stop( true, false ).show();
+		};
+
+		$( document.body ).on(
+			'payment_method_selected',
+			keepPaymentBoxVisible
+		);
+		$( document.body ).on( 'updated_checkout', keepPaymentBoxVisible );
+		$( document.body ).on( 'init_checkout', keepPaymentBoxVisible );
+
+		const selectStripePaymentMethod = () => {
+			const stripeRadioButton = document.getElementById(
+				'payment_method_stripe'
+			);
+			if ( stripeRadioButton && ! stripeRadioButton.checked ) {
+				stripeRadioButton.click();
+			}
+		};
+		/**
+		 * Ensure that the Stripe payment method is marked as selected when the following events occur:
+		 * - User clicks on the Stripe payment box - this only includes content outside the Stripe iframe.
+		 * - User focuses on the Stripe payment element within the iframe.
+		 */
+		const reconfigureStripePaymentSelection = () => {
+			const stripePaymentBox = getStripePaymentBox();
+			stripePaymentBox.on( 'click', selectStripePaymentMethod );
+
+			const upePaymentElement =
+				getStripePaymentElement( PAYMENT_METHOD_CARD );
+			if ( upePaymentElement ) {
+				upePaymentElement.on( 'focus', selectStripePaymentMethod );
+			}
+		};
+
+		$( document.body ).on(
+			'init_checkout',
+			reconfigureStripePaymentSelection
+		);
+		$( document.body ).on(
+			'updated_checkout',
+			reconfigureStripePaymentSelection
+		);
+
+		const addOcsRootClass = () => {
+			const stripePaymentMethodRoot = document.querySelector(
+				'#payment .payment_methods .wc_payment_method.payment_method_stripe'
+			);
+			stripePaymentMethodRoot?.classList.add(
+				'wc-stripe-optimized-checkout'
+			);
+		};
+
+		$( document.body ).on( 'init_checkout', addOcsRootClass );
+		$( document.body ).on( 'updated_checkout', addOcsRootClass );
+	}
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.

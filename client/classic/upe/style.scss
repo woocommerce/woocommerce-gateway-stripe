@@ -17,6 +17,34 @@
 	}
 }
 
+#payment .payment_methods li.wc-stripe-optimized-checkout {
+	label[for='payment_method_stripe'] {
+		display: none;
+	}
+	.payment_box.payment_method_stripe {
+		padding: 0;
+		padding-bottom: inherit;
+
+		> :not( #wc-stripe-upe-form ) {
+			padding-left: 1.41575em;
+			padding-right: 1.41575em;
+		}
+
+		.wc-stripe-payment-method-instruction {
+			padding-top: 0.5em;
+			padding-bottom: 0.5em;
+		}
+
+		ul.wc-saved-payment-methods[data-count='0'] {
+			display: none;
+		}
+
+		fieldset#wc-stripe-upe-form {
+			padding-top: 0;
+		}
+	}
+}
+
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon {
 	max-height: 30px;
 }

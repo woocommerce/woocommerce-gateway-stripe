@@ -424,6 +424,10 @@ export function getMountedUPEComponent( paymentMethodType ) {
 	return null;
 }
 
+export function getStripePaymentElement( paymentMethodType ) {
+	return gatewayUPEComponents?.[ paymentMethodType ]?.upeElement ?? null;
+}
+
 /**
  * Handles the checkout process for the provided jQuery form and Stripe payment method type. The function blocks the
  * form UI to prevent duplicate submission and validates the Stripe elements. It then creates a Stripe payment method
