@@ -128,7 +128,7 @@ class WC_Stripe_Feature_Flags {
 	 * @deprecated 10.5.0 APMs are deprecated and the legacy checkout no longer exists. This method will be removed in a future release.
 	 */
 	public static function are_apms_deprecated() {
-		wc_deprecated_function( __FUNCTION__, '10.5.0' );
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 
 		return false;
 	}
