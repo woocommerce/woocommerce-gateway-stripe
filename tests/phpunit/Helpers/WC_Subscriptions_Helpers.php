@@ -49,7 +49,6 @@ function wcs_is_subscription( $object ) {
  * A helper class for setting up mocks for WC_Subscriptions functions.
  */
 class WC_Subscriptions_Helpers {
-
 	/**
 	 * Mock for wcs_get_subscriptions_for_order.
 	 *
@@ -67,7 +66,7 @@ class WC_Subscriptions_Helpers {
 	/**
 	 * Mock for wcs_is_subscription.
 	 *
-	 * @var bool
+	 * @var bool|null
 	 */
 	public static $wcs_is_subscription = null;
 }

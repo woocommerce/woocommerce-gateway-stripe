@@ -904,17 +904,17 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		return [
 			'not a subscription'                             => [
 				'is subscription'  => false,
-				'mandate'          => [],
+				'payment method'   => [],
 				'expected'         => true,
 			],
 			'missing payment method ID meta'                 => [
 				'is subscription'  => true,
-				'mandate'          => [],
+				'payment method'   => [],
 				'expected'         => true,
 			],
 			'payment method is not card'                      => [
 				'is subscription'  => true,
-				'mandate'          => [
+				'payment method'   => [
 					'id'                     => 'pm_123',
 					'type'       => 'sepa_debit',
 					'sepa_debit' => [
@@ -926,7 +926,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'method is card, but not indian'                 => [
 				'is subscription'  => true,
-				'mandate'          => [
+				'payment method'   => [
 					'id'                     => 'pm_456',
 					'type' => 'card',
 					'card' => [
@@ -938,7 +938,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'method is indian card'                          => [
 				'is subscription'  => true,
-				'mandate'          => [
+				'payment method'   => [
 					'id'                     => 'pm_789',
 					'type' => 'card',
 					'card' => [
