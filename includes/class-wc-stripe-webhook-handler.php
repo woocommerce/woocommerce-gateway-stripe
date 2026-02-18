@@ -1472,6 +1472,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
 
+		// Store remaining metadata for the checkout session object.
+		$request = [
+			'metadata' => [
+				'order_id'   => $order->get_order_number(),
+				'order_key'  => $order->get_order_key(),
+				'signature'  => $this->get_order_signature( $order ),
+				'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+			],
+		];
+
+		$response = WC_Stripe_API::request( $request, 'checkout/sessions/' . $checkout_session->id, 'POST' );
+		if ( ! empty( $response->error ) ) {
+			WC_Stripe_Logger::error( 'Failed to update checkout session metadata: ' . $response->error->message );
+		}
+
 		// Unlock the order
 		$order_helper->unlock_order_payment( $order );
 	}
