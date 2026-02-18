@@ -21,6 +21,10 @@
 	label[for='payment_method_stripe'] {
 		display: none;
 	}
+	/* Some themes show the radio, while others don't. Make sure it's hidden. */
+	input#payment_method_stripe { // stylelint-disable-line selector-id-pattern
+		display: none;
+	}
 	.payment_box.payment_method_stripe {
 		padding: 0;
 		padding-bottom: inherit;
