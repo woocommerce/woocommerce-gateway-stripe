@@ -10758,7 +10758,6 @@ parameters:
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-sepa-payment-token.php
 
-
 		-
 			message: '#^Function add_woocommerce_inbox_variant\(\) has no return type specified\.$#'
 			identifier: missingType.return
