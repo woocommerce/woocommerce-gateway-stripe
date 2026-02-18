@@ -114,7 +114,7 @@ class WC_Stripe_Feature_Flags {
 	 * @deprecated 10.5.0 UPE is always enabled. This method will be removed in a future release.
 	 */
 	public static function did_merchant_disable_upe() {
-		wc_deprecated_function( __FUNCTION__, '10.5.0' );
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'disabled' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
