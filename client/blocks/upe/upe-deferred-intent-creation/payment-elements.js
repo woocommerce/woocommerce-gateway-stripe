@@ -13,12 +13,12 @@ import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	getExcludedPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
 import {
 	getBlocksConfiguration,
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
-import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 /**
@@ -147,8 +147,8 @@ const PaymentElements = ( {
 				...{
 					paymentMethodConfiguration:
 						stripeServerData?.paymentMethodConfigurationId,
-					// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
-					excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
+					// Exclude unsupported payment methods - calculated dynamically on server side
+					excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 				},
 			};
 		} else {

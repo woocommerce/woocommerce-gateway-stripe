@@ -148,6 +148,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @param string $method    The method name.
 	 * @param array  $arguments The method arguments.
+	 * @return mixed
 	 */
 	public function __call( $method, $arguments ) {
 		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
@@ -402,6 +403,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns string representing payment method type
 	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @return string
 	 */
 	public function get_retrievable_type() {
 		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
@@ -464,6 +467,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Wrapper function for get_woocommerce_currency global function
+	 *
+	 * @return string
 	 */
 	public function get_woocommerce_currency() {
 		return get_woocommerce_currency();
@@ -620,6 +625,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Renders the UPE payment fields.
+	 *
+	 * @return void
 	 */
 	public function payment_fields() {
 		try {
@@ -654,7 +661,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error in UPE payment fields', [ 'error_message' => $e->getMessage() ] );
 			?>
 			<div>
 				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
@@ -670,17 +677,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_saved_cards_enabled() {
 		return 'yes' === $this->get_option( 'saved_cards' );
-	}
-
-	/**
-	 * Returns true if the SEPA tokens for iDEAL feature is enabled.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
-	 */
-	public function is_sepa_tokens_for_other_methods_enabled() {
-		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
 	}
 
 	/**
@@ -775,6 +771,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Displays the save to account checkbox.
 	 *
 	 * @param bool $force_checked Whether the checkbox should be checked by default.
+	 *
+	 * @return void
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -825,7 +823,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns the title for the card wallet type.
 	 * This is used to display the title for Apple Pay and Google Pay.
 	 *
-	 * @param $express_payment_type string The type of express payment method.
+	 * @param string $express_payment_type The type of express payment method.
 	 *
 	 * @return string The title for the card wallet type.
 	 */

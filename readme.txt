@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 10.1.0
+Stable tag: 10.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,14 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.5.0
+   -  Remove deprecated feature flags for UPE, ECE, and OCS; remove various helpers including is_sepa_tokens_for_other_methods_enabled() validate_minimum_order_amount(), get_booking_id_from_cart(), get_owner_details(), lock_order_payment(), unlock_order_payment(), lock_order_refund(), unlock_order_refund() and remove AJAX pay for order handler
+* 10.4.0
+   - Optimized Checkout Suite no longer enabled by default for new installs
+   - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
+   - Removed the deprecated WC_Stripe_Apple_Pay class
+* 10.3.0
+   - Removed legacy checkout payment method classes and settings retrieval methods
 * 10.2.0
    - Optimized Checkout Suite enabled by default for all new installations
    - Add minimum transaction amounts for BRL, INR, NZD, THB, CZK, HUF, AED, MYR, PLN, RON
@@ -139,29 +147,26 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.3.0 - xxxx-xx-xx =
+= 10.5.0 - xxxx-xx-xx =
 * Add - Support express checkout for free trial subscription products that require shipping
-* Update - Remove legacy checkout payment method classes
-* Dev - Renames the express checkout frontend main setting key
-* Update - Deprecates and replaces Payment Request Button classes with Express Checkout equivalents
-* Dev - Renames the express checkout customization route
-* Dev - Renames all express checkout related frontend hooks
-* Dev - Removes deprecated legacy checkout settings retrieval methods
-* Fix - Error when using Puerto Rico addresses with express checkouts
-* Dev - Removes all references to the UPE-enabled feature flag
-* Dev - Removes deprecated promotional banners (related to legacy checkout)
-* Tweak - Improve error messages when Stripe API requests fail to better distinguish between request and retrieval errors
-* Fix - Resolve Level3 data validation error caused by rounding precision when shipping rates have 3+ decimal places
-* Tweak - Changes BLIK confirmation webhook processing from deferred to immediate
-* Fix - Preserve express checkout button location settings when upgrading from older plugin versions
-* Fix - Fix some initialization bugs for reconnections
-* Fix - Update Ukraine state mapping list
-* Fix - Use same default locations for Amazon Pay express checkout
-* Dev - Add configuration and workflow for PHPStan
-* Fix - Calculate subtotal correctly in express checkout
-* Dev - Improve PHPStan handling of plugin constants
-* Fix - Ensure that 'Link' and 'Stripe Link' are not translated
-* Fix - Fix situation where Stripe errors were not translated
-* Dev - Ensure multiple subdirectories are not exposed via Docker container
+* Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
+* Dev - Remove unused frontend code related to block checkout
+* Update - Move class instantiations from their definition files to the plugin initialization code
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
+* Dev - Remove unused frontend code related to UPE
+* Update - Remove all deprecated code up to version 10.1.0
+* Tweak - Update PHPDoc in admin REST controllers and related code
+* Tweak - Improve PHPDoc for migration and notes; minor notes refactor
+* Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
+* Tweak - Update PHPDoc for UPE payment method classes
+* Dev - Fix WC beta version resolution in tests
+* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
+* Dev - Fixes becs e2e tests
+* Add - Add the base CSV feed for agentic commerce
+* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Fix - Prevent fatal error when order ID in webhook references a refund
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

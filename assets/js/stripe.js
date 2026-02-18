@@ -960,7 +960,7 @@ jQuery( function($ ) {
 		 * in order to allow customers to confirm an 3DS/SCA authorization, or stripe.handleCardSetup if
 		 * what needs to be confirmed is a SetupIntent.
 		 *
-		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
+		 * Those redirects/hashes are generated in `WC_Stripe_UPE_Payment_Gateway::process_payment`.
 		 */
 		onHashChange: function() {
 			var partials = window.location.hash.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );

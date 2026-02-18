@@ -84,6 +84,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -101,6 +103,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -118,6 +122,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -147,6 +153,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -163,6 +171,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -181,6 +191,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -210,6 +222,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -226,6 +240,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -1173,6 +1189,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
+
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
@@ -1289,6 +1307,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
@@ -1329,6 +1349,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
+
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1347,6 +1369,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
+
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
@@ -1414,19 +1438,6 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
-	}
-
-	/**
-	 * Verifies if the provided order contains the identifier for a wallet method.
-	 *
-	 * @param WC_Order $order The order.
-	 * @return bool
-	 *
-	 * @deprecated 8.9.0
-	 */
-	public static function is_wallet_payment_method( $order ) {
-		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1629,7 +1640,7 @@ class WC_Stripe_Helper {
 				$log_data[ $header ] = isset( $_SERVER[ $header ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) : 'not set';
 			}
 
-			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
+			WC_Stripe_Logger::warning( 'Invalid IP address detected.', $log_data );
 		}
 	}
 
@@ -1805,6 +1816,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_intent_for_order()' );
+
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
 			$intent_id = $intent;
@@ -1911,6 +1924,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_stripe_gateway_order()' );
+
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
@@ -1930,5 +1945,94 @@ class WC_Stripe_Helper {
 		 * @return bool True if enabled, false otherwise.
 		*/
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
+	}
+
+	/**
+	 * Builds the line items to pass to express checkout elements and to checkout sessions creation request.
+	 *
+	 * @param bool $itemized_display_items Whether to force itemized display items.
+	 * @return array The display items.
+	 */
+	public static function build_line_items( bool $itemized_display_items = false ): array {
+		$items         = [];
+		$lines         = [];
+		$subtotal      = 0;
+		$discounts     = 0;
+		$has_deposits  = false;
+
+		if ( $itemized_display_items ) {
+			foreach ( WC()->cart->get_cart() as $cart_item ) {
+				// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
+				if ( ! empty( $cart_item['is_deposit'] ) ) {
+					$has_deposits = true;
+					continue;
+				}
+
+				$subtotal      += $cart_item['line_subtotal'];
+				$amount         = $cart_item['line_subtotal'];
+				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+				$product_name   = $cart_item['data']->get_name();
+
+				$lines[] = [
+					'label'  => $product_name . $quantity_label,
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
+				];
+			}
+		} else {
+			$subtotal = WC()->cart->get_subtotal();
+		}
+
+		if ( $itemized_display_items && ! $has_deposits ) {
+			$items = array_merge( $items, $lines );
+		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
+			$items[] = [
+				'label'  => esc_html( __( 'Subtotal', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
+			];
+		}
+
+		$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
+		foreach ( $applied_coupons as $amount ) {
+			$discounts += (float) $amount;
+		}
+
+		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+
+		if ( wc_tax_enabled() ) {
+			$items[] = [
+				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
+			];
+		}
+
+		if ( WC()->cart->needs_shipping() ) {
+			$items[] = [
+				'key'    => 'total_shipping',
+				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
+			];
+		}
+
+		if ( WC()->cart->has_discount() ) {
+			$items[] = [
+				'key'    => 'total_discount',
+				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
+			];
+		}
+
+		$cart_fees = WC()->cart->get_fees();
+
+		// Include fees and taxes as display items.
+		foreach ( $cart_fees as $fee ) {
+			$items[] = [
+				'label'  => $fee->name,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
+			];
+		}
+
+		return $items;
 	}
 }

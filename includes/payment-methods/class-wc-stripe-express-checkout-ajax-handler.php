@@ -40,12 +40,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
-		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 	}
 
 	/**
 	 * Get cart details.
+	 *
+	 * @return void
 	 */
 	public function ajax_get_cart_details() {
 		check_ajax_referer( 'wc-stripe-get-cart-details', 'security' );
@@ -87,9 +88,15 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product      = wc_get_product( $product_id );
+		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+		$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+		$product    = wc_get_product( $product_id );
+
+		if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
+			/* translators: 1) The product Id */
+			throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+		}
+
 		$product_type = $product->get_type();
 
 		$booking_ids = [];
@@ -131,6 +138,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Clears cart.
+	 *
+	 * @return void
 	 */
 	public function ajax_clear_cart() {
 		check_ajax_referer( 'wc-stripe-clear-cart', 'security' );
@@ -151,6 +160,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Normalizes address fields in WooCommerce supported format.
+	 *
+	 * @return void
 	 */
 	public function ajax_normalize_address() {
 		check_ajax_referer( 'wc-stripe-express-checkout-normalize-address', 'security' );
@@ -184,6 +195,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 * @see WC_Cart::get_shipping_packages().
 	 * @see WC_Shipping::calculate_shipping().
 	 * @see WC_Shipping::get_packages().
+	 *
+	 * @return void
 	 */
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
@@ -208,6 +221,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Update shipping method.
+	 *
+	 * @return void
 	 */
 	public function ajax_update_shipping_method() {
 		check_ajax_referer( 'wc-stripe-update-shipping-method', 'security' );
@@ -249,7 +264,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$is_deposit      = isset( $_POST['wc_deposit_option'] ) ? 'yes' === sanitize_text_field( wp_unslash( $_POST['wc_deposit_option'] ) ) : null;
 			$deposit_plan_id = isset( $_POST['wc_deposit_payment_plan'] ) ? absint( $_POST['wc_deposit_payment_plan'] ) : 0;
 
-			if ( ! is_a( $product, 'WC_Product' ) ) {
+			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
@@ -330,86 +345,28 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Product data error in express checkout: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Product data error in express checkout.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
 	}
 
 	/**
 	 * Log errors coming from express checkout elements
+	 *
+	 * @return void
 	 */
 	public function ajax_log_errors() {
 		check_ajax_referer( 'wc-stripe-log-errors', 'security' );
 
 		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
 
-		WC_Stripe_Logger::log( $errors );
+		if ( is_array( $errors ) ) {
+			$errors = wp_json_encode( $errors );
+		}
+
+		WC_Stripe_Logger::error( (string) $errors );
 
 		exit;
-	}
-
-	/**
-	 * Processes the Pay for Order AJAX request from the Express Checkout.
-	 *
-	 * @deprecated 9.2.0 Payment is processed using the Blocks API by default.
-	 */
-	public function ajax_pay_for_order() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		check_ajax_referer( 'wc-stripe-pay-for-order' );
-
-		if (
-			! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method']
-			|| ! isset( $_POST['order'] ) || ! intval( $_POST['order'] )
-			|| ! isset( $_POST['wc-stripe-payment-method'] ) || empty( $_POST['wc-stripe-payment-method'] )
-		) {
-			// Incomplete request.
-			$response = [
-				'result'   => 'error',
-				'messages' => __( 'Invalid request', 'woocommerce-gateway-stripe' ),
-			];
-			wp_send_json( $response, 400 );
-			return;
-		}
-
-		$order_id = intval( $_POST['order'] );
-		try {
-			// Set up an environment, similar to core checkout.
-			wc_maybe_define_constant( 'WOOCOMMERCE_CHECKOUT', true );
-			wc_set_time_limit( 0 );
-
-			// Load the order.
-			$order = wc_get_order( $order_id );
-
-			if ( ! is_a( $order, WC_Order::class ) ) {
-				throw new Exception( __( 'Invalid order!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			if ( ! $order->needs_payment() ) {
-				throw new Exception( __( 'This order does not require payment!', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Process the payment.
-			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
-
-			// process_payment() should only return `success` or throw an exception.
-			if ( ! is_array( $result ) || ! isset( $result['result'] ) || 'success' !== $result['result'] || ! isset( $result['redirect'] ) ) {
-				throw new Exception( __( 'Unable to determine payment success.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// Include the order ID in the result.
-			$result['order_id'] = $order_id;
-
-			$result = apply_filters( 'woocommerce_payment_successful_result', $result, $order_id );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Pay for order failed for order ' . $order_id . ' with express checkout: ' . $e );
-
-			$result = [
-				'result'   => 'error',
-				'messages' => $e->getMessage(),
-			];
-		}
-
-		wp_send_json( $result );
 	}
 
 	/**

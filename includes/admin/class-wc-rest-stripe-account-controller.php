@@ -28,17 +28,19 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Stripe payment gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
-	public function __construct( WC_Gateway_Stripe $gateway, WC_Stripe_Account $account ) {
+	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway, WC_Stripe_Account $account ) {
 		$this->gateway = $gateway;
 		$this->account = $account;
 	}
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(

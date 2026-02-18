@@ -11,13 +11,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	class WC_Stripe_Connect {
 
 		/**
-		 * The option name for the Stripe gateway settings.
-		 *
-		 * @deprecated 8.7.0
-		 */
-		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
-
-		/**
 		 * Stripe connect api.
 		 *
 		 * @var object $api
@@ -512,7 +505,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
 				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
 
-				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				WC_Stripe_Logger::error( 'OAuth connection refresh failed.', [ 'response' => $response ] );
 
 				// If after 10 attempts we are unable to refresh the connection keys, we don't re-schedule anymore,
 				// in this case an error message is show in the account status indicating that the API keys are not

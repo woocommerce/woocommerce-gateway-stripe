@@ -174,7 +174,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @return WC_Stripe_Order_Helper
 	 */
-	public static function get_instance(): ?self {
+	public static function get_instance(): self {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
 		}
