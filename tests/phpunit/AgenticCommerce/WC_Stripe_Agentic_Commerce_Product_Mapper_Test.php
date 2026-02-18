@@ -548,9 +548,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 		$result = $mapper->map_product( $product );
 
-		// Default WooCommerce unit is 'lbs'.
-		$this->assertStringContainsString( '2.5', $result['weight'] );
-		$this->assertStringContainsString( 'lbs', $result['weight'] );
+		// WooCommerce uses 'lbs' but Stripe expects 'lb'.
+		$this->assertSame( '2.5 lb', $result['weight'] );
 
 		$product->delete( true );
 	}

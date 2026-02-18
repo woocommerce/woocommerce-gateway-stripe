@@ -241,7 +241,7 @@ class WC_Stripe_Settings_Controller {
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
-			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'are_apms_deprecated'                   => false,
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
