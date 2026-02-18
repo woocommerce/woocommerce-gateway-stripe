@@ -1732,6 +1732,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return void
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
+		// If there are no recurring carts, or the `WC_Subscriptions_Cart::get_recurring_shipping_package_key` method doesn't exist, or if the cart contains a free trial (which doesn't require shipping), we skip this step.
+		// That's because this logic overrides the selected shipping method with the previously chosen shipping method.
 		if (
 			empty( WC()->cart->recurring_carts )
 			|| ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' )
