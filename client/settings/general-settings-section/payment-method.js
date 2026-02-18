@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -6,7 +5,6 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
-import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
 import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
@@ -79,12 +77,6 @@ const PaymentMethod = ( { method, data } ) => {
 		return null;
 	}
 
-	// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-	const deprecated =
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.are_apms_deprecated &&
-		method !== PAYMENT_METHOD_CARD;
-
 	// If the payment method is unavailable and enabled, we should not disable so it can be unchecked.
 	const isDisabled =
 		paymentMethodUnavailableReason !== null &&
@@ -103,7 +95,7 @@ const PaymentMethod = ( { method, data } ) => {
 					id={ method }
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
-					disabled={ deprecated || isDisabled }
+					disabled={ isDisabled }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription
@@ -114,7 +106,6 @@ const PaymentMethod = ( { method, data } ) => {
 							data.account?.default_currency
 						) }
 						label={ label }
-						deprecated={ deprecated }
 						supportsRecurring={ supportsRecurring }
 					/>
 					<StyledFees id={ method } />

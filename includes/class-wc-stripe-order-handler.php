@@ -481,5 +481,3 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		return $cancel_order;
 	}
 }
-
-new WC_Stripe_Order_Handler();

@@ -7,6 +7,7 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
+	clickPlaceOrder,
 	handleCheckout3DSChallenge,
 } = payments;
 
@@ -20,7 +21,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 		config.get( 'addresses.customer.billing' )
 	);
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
-	await page.locator( 'text=Place order' ).click();
+	await clickPlaceOrder( page );
 
 	await handleCheckout3DSChallenge( page );
 
