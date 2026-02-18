@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
 * Dev - Remove unused frontend code related to block checkout
 * Update - Move class instantiations from their definition files to the plugin initialization code
 * Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
@@ -165,5 +166,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Fix - Prevent fatal error when order ID in webhook references a refund
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
