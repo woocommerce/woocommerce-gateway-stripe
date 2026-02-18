@@ -1278,18 +1278,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
-		// If the order doesn't have a parent order, we can't check the payment method, so allow editing.
-		$parent_order = wc_get_order( $order->get_parent_id() );
-		if ( ! $parent_order ) {
-			return $editable;
-		}
-
-		// Retrieve the payment method object from Stripe.
-		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $parent_order );
+		// Not using the helper class here since $order is actually a subscription.
+		$source_id = $order->get_meta( '_stripe_source_id', true );
 		if ( empty( $source_id ) ) {
 			return $editable;
 		}
 
+		// Retrieve the payment method object from Stripe.
 		$cache_key      = 'payment_method_for_source_' . $source_id;
 		$payment_method = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( ! $payment_method ) {

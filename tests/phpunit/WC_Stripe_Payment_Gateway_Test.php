@@ -850,7 +850,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Tests for the `disable_subscription_edit_for_india` method.
 	 *
 	 * @param bool  $is_subscription  Whether the order is a subscription.
-	 * @param bool  $order_has_parent Whether the order has a parent order.
 	 * @param array $payment_method   The payment method data to mock.
 	 * @param bool  $expected         The expected result.
 	 * @return void
@@ -859,20 +858,13 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_disable_subscription_edit_for_india(
 		bool $is_subscription,
-		bool $order_has_parent,
 		array $payment_method,
 		bool $expected
 	): void {
 		$order = WC_Helper_Order::create_order();
-
-		if ( $order_has_parent ) {
-			$parent_order = WC_Helper_Order::create_order();
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $parent_order, $payment_method['id'] ?? '' );
-			$parent_order->save_meta_data();
-
-			$order->set_parent_id( $parent_order->get_id() );
-			$order->save();
-		}
+		$order->update_meta_data( '_stripe_source_id', $payment_method['id'] ?? '' );
+		$order->save_meta_data();
+		$order->save();
 
 		WC_Subscriptions_Helpers::$wcs_is_subscription = $is_subscription;
 
@@ -912,25 +904,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		return [
 			'not a subscription'                             => [
 				'is subscription'  => false,
-				'order has parent' => true,
-				'mandate'          => [],
-				'expected'         => true,
-			],
-			'parent order not found'                         => [
-				'is subscription'  => true,
-				'order has parent' => false,
 				'mandate'          => [],
 				'expected'         => true,
 			],
 			'missing payment method ID meta'                 => [
 				'is subscription'  => true,
-				'order has parent' => true,
 				'mandate'          => [],
 				'expected'         => true,
 			],
 			'payment method is not card'                      => [
 				'is subscription'  => true,
-				'order has parent' => true,
 				'mandate'          => [
 					'id'                     => 'pm_123',
 					'type'       => 'sepa_debit',
@@ -943,7 +926,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'method is card, but not indian'                 => [
 				'is subscription'  => true,
-				'order has parent' => true,
 				'mandate'          => [
 					'id'                     => 'pm_456',
 					'type' => 'card',
@@ -956,7 +938,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'method is indian card'                          => [
 				'is subscription'  => true,
-				'order has parent' => true,
 				'mandate'          => [
 					'id'                     => 'pm_789',
 					'type' => 'card',
