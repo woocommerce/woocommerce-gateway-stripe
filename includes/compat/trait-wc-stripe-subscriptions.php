@@ -1267,7 +1267,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Disables the ability to edit a subscription for Indian orders with fixed amount mandates.
+	 * Disables the ability to edit a subscription for Indian orders.
 	 *
 	 * @param bool     $editable The current editability of the subscription.
 	 * @param WC_Order $order    The order object.
@@ -1278,33 +1278,18 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
+		// If the order doesn't have a parent order, we can't check the payment method, so allow editing.
 		$parent_order = wc_get_order( $order->get_parent_id() );
 		if ( ! $parent_order ) {
 			return $editable;
 		}
 
-		$mandate_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order );
-		if ( empty( $mandate_id ) ) {
-			return $editable;
-		}
+		// Retrieve the payment method object from Stripe.
+		$payment_method_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $parent_order );
+		$payment_method    = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
-		$subscription_id = $order->get_id();
-		$cache_key       = 'mandate_for_subscription_' . $subscription_id;
-
-		$mandate = WC_Stripe_Database_Cache::get( $cache_key );
-		if ( ! $mandate ) {
-			$mandate = WC_Stripe_API::retrieve( 'mandates/' . $mandate_id );
-			WC_Stripe_Database_Cache::set( $cache_key, $mandate, HOUR_IN_SECONDS );
-		}
-
-		$method_details = $mandate->payment_method_details;
-		if ( WC_Stripe_Payment_Methods::CARD !== ( $method_details->type ?? '' ) ) {
-			return $editable;
-		}
-
-		$amount_type     = $method_details->card->amount_type ?? '';
-		$supported_types = $method_details->card->supported_types ?? [];
-		if ( 'fixed' !== $amount_type || empty( $supported_types ) || 'india' !== $supported_types[0] ) {
+		// If the payment method is not a card or the card is not issued in India, allow editing.
+		if ( ! $payment_method || WC_Stripe_Payment_Methods::CARD !== ( $payment_method->type ?? '' ) || 'IN' !== ( $payment_method->card->country ?? '' ) ) {
 			return $editable;
 		}
 
