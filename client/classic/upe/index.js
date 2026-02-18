@@ -339,7 +339,7 @@ jQuery( function ( $ ) {
 
 	if ( getStripeServerData()?.isOCEnabled ) {
 		const getStripePaymentBox = () =>
-			$( 'div.payment_box.payment_method_stripe' );
+			$( '.payment_methods .payment_box.payment_method_stripe' );
 		const keepPaymentBoxVisible = () => {
 			const $stripePaymentMethod = getStripePaymentBox();
 			if ( ! $stripePaymentMethod.length ) {
@@ -357,6 +357,24 @@ jQuery( function ( $ ) {
 		$( document.body ).on( 'updated_checkout', keepPaymentBoxVisible );
 		$( document.body ).on( 'init_checkout', keepPaymentBoxVisible );
 
+		const contractOtherPaymentMethods = () => {
+			const paymentMethodsRoot = document.querySelector(
+				'#payment .payment_methods'
+			);
+			const allPaymentMethodBoxes = Array.from(
+				paymentMethodsRoot?.getElementsByClassName( 'payment_box' ) ??
+					[]
+			);
+			const otherPaymentMethodBoxes = allPaymentMethodBoxes.filter(
+				( paymentMethodBox ) =>
+					! paymentMethodBox.classList.contains(
+						'payment_method_stripe'
+					)
+			);
+			const $wrappedPaymentMethodBoxes = $( otherPaymentMethodBoxes );
+			$wrappedPaymentMethodBoxes.filter( ':visible' ).slideUp( 230 );
+		};
+
 		const selectStripePaymentMethod = () => {
 			const stripeRadioButton = document.getElementById(
 				'payment_method_stripe'
@@ -364,7 +382,10 @@ jQuery( function ( $ ) {
 			if ( stripeRadioButton && ! stripeRadioButton.checked ) {
 				stripeRadioButton.click();
 			}
+			// Now contract the other payment methods.
+			contractOtherPaymentMethods();
 		};
+
 		/**
 		 * Ensure that the Stripe payment method is marked as selected when the following events occur:
 		 * - User clicks on the Stripe payment box - this only includes content outside the Stripe iframe.
