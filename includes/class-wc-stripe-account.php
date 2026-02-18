@@ -290,7 +290,7 @@ class WC_Stripe_Account {
 		$request = [
 			'enabled_events' => self::get_webhook_events(),
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
-			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'api_version'    => self::get_webhooks_api_version(),
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
@@ -424,6 +424,16 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Checks if the API version of an existing webhook differs from our desired API version.
+	 *
+	 * @param object $existing_webhook The existing webhook object from Stripe.
+	 * @return bool True if API version differs, false if they match.
+	 */
+	private function does_webhooks_api_version_differ( $existing_webhook ) {
+		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
+	}
+
+	/**
 	 * Returns the list of webhook events that this plugin needs to listen to.
 	 *
 	 * Includes conditional events based on enabled features.
@@ -439,6 +449,27 @@ class WC_Stripe_Account {
 		}
 
 		return $events;
+	}
+
+	/**
+	 * Returns the API version for the webhooks.
+	 *
+	 * @return string The API version.
+	 */
+	private static function get_webhooks_api_version() {
+		$version = WC_Stripe_API::STRIPE_API_VERSION;
+
+		/**
+		 * Agentic Commerce uses a different API version for webhooks.
+		 *
+		 * This method should be removed once we switch to
+		 * AGENTIC_COMMERCE_API_VERSION or higher.
+		 */
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$version = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
+		}
+
+		return $version;
 	}
 
 	/**
@@ -496,7 +527,10 @@ class WC_Stripe_Account {
 				}
 
 				// Check if events differ
-				if ( ! $this->do_webhook_events_differ( $existing_webhook ) ) {
+				if (
+					! $this->do_webhook_events_differ( $existing_webhook )
+					&& ! $this->does_webhooks_api_version_differ( $existing_webhook )
+				) {
 					continue;
 				}
 
