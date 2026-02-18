@@ -3389,7 +3389,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check if the status of the intent still allows update.
-		if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::CANCELED, WC_Stripe_Intent_Status::SUCCEEDED ], true ) ) {
+		// Per Stripe API 2025-09-30.clover: do not reuse client secrets for intents in succeeded, canceled,
+		// processing, requires_capture, or requires_action when initializing Elements.
+		if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::CANCELED, WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::PROCESSING, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true ) ) {
 			return null;
 		}
 
