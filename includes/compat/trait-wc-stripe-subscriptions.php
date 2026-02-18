@@ -1285,11 +1285,20 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Retrieve the payment method object from Stripe.
-		$payment_method_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $parent_order );
-		$payment_method    = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $parent_order );
+		if ( empty( $source_id ) ) {
+			return $editable;
+		}
+
+		$cache_key      = 'payment_method_for_source_' . $source_id;
+		$payment_method = WC_Stripe_Database_Cache::get( $cache_key );
+		if ( ! $payment_method ) {
+			$payment_method = $this->stripe_request( 'payment_methods/' . $source_id );
+			WC_Stripe_Database_Cache::set( $cache_key, $payment_method, HOUR_IN_SECONDS );
+		}
 
 		// If the payment method is not a card or the card is not issued in India, allow editing.
-		if ( ! $payment_method || WC_Stripe_Payment_Methods::CARD !== ( $payment_method->type ?? '' ) || 'IN' !== ( $payment_method->card->country ?? '' ) ) {
+		if ( ! $payment_method || 'IN' !== ( $payment_method->card->country ?? '' ) ) {
 			return $editable;
 		}
 
