@@ -1135,6 +1135,9 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' );
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' );
+
 		// We loop through cart items instead of using WC_Pre_Orders_Cart::cart_contains_pre_order()
 		// and WC_Subscriptions_Cart::cart_contains_subscription() because we need to detect pre-orders
 		// that are charged upon release specifically (WC_Pre_Orders_Product::product_is_charged_upon_release),
@@ -1148,12 +1151,12 @@ class WC_Stripe_Helper {
 			}
 
 			// Subscriptions are not supported with adaptive pricing.
-			if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $product ) ) {
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return false;
 			}
 
 			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
 				return false;
 			}
 		}
