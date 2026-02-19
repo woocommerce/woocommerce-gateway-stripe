@@ -11,7 +11,6 @@ use WP_UnitTestCase;
  *
  * @covers WC_Stripe_Webhook_Handler::process_checkout_session_completed
  * @covers WC_Stripe_Webhook_Handler::is_agentic_checkout_session
- * @covers WC_Stripe_Webhook_Handler::get_payment_intent_id_from_checkout_session
  */
 class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
@@ -38,92 +37,99 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	/**
 	 * Provider for `test_is_agentic_checkout_session`.
 	 *
+	 * The production code checks for line_items with a price.external_reference
+	 * that resolves to a nonzero integer (product ID).
+	 *
 	 * @return array
 	 */
 	public function provide_test_is_agentic_checkout_session() {
 		return [
-			'ui_mode agentic'              => [
+			'has external_reference product ID'  => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_1',
-					'ui_mode'  => 'agentic',
-					'metadata' => (object) [],
+					'id'         => 'cs_test_1',
+					'line_items' => (object) [
+						'data' => [
+							(object) [
+								'price' => (object) [
+									'external_reference' => '42',
+								],
+							],
+						],
+					],
 				],
 				'expected'         => true,
 			],
-			'metadata agentic flag'        => [
+			'multiple items one with reference'  => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_2',
-					'metadata' => (object) [ 'agentic' => 'true' ],
+					'id'         => 'cs_test_2',
+					'line_items' => (object) [
+						'data' => [
+							(object) [
+								'price' => (object) [
+									'external_reference' => null,
+								],
+							],
+							(object) [
+								'price' => (object) [
+									'external_reference' => '99',
+								],
+							],
+						],
+					],
 				],
 				'expected'         => true,
 			],
-			'regular checkout session'     => [
+			'no external_reference'              => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_3',
-					'ui_mode'  => 'hosted',
-					'metadata' => (object) [],
+					'id'         => 'cs_test_3',
+					'line_items' => (object) [
+						'data' => [
+							(object) [
+								'price' => (object) [],
+							],
+						],
+					],
 				],
 				'expected'         => false,
 			],
-			'empty metadata no ui_mode'    => [
+			'external_reference is zero string'  => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_4',
-					'metadata' => (object) [],
+					'id'         => 'cs_test_4',
+					'line_items' => (object) [
+						'data' => [
+							(object) [
+								'price' => (object) [
+									'external_reference' => '0',
+								],
+							],
+						],
+					],
 				],
 				'expected'         => false,
 			],
-			'metadata agentic false'       => [
+			'empty line items'                   => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_5',
-					'metadata' => (object) [ 'agentic' => 'false' ],
+					'id'         => 'cs_test_5',
+					'line_items' => (object) [
+						'data' => [],
+					],
 				],
 				'expected'         => false,
 			],
-			'both ui_mode and metadata'    => [
+			'external_reference is non-numeric'  => [
 				'checkout_session' => (object) [
-					'id'       => 'cs_test_6',
-					'ui_mode'  => 'agentic',
-					'metadata' => (object) [ 'agentic' => 'true' ],
+					'id'         => 'cs_test_6',
+					'line_items' => (object) [
+						'data' => [
+							(object) [
+								'price' => (object) [
+									'external_reference' => 'not-a-number',
+								],
+							],
+						],
+					],
 				],
-				'expected'         => true,
-			],
-		];
-	}
-
-	/**
-	 * @dataProvider provide_test_get_payment_intent_id_from_checkout_session
-	 */
-	public function test_get_payment_intent_id_from_checkout_session( $checkout_session, $expected ) {
-		$this->assertSame(
-			$expected,
-			$this->handler->get_payment_intent_id_from_checkout_session( $checkout_session )
-		);
-	}
-
-	/**
-	 * Provider for `test_get_payment_intent_id_from_checkout_session`.
-	 *
-	 * @return array
-	 */
-	public function provide_test_get_payment_intent_id_from_checkout_session() {
-		return [
-			'string payment intent'   => [
-				'checkout_session' => (object) [ 'payment_intent' => 'pi_test_123' ],
-				'expected'         => 'pi_test_123',
-			],
-			'expanded object'         => [
-				'checkout_session' => (object) [
-					'payment_intent' => (object) [ 'id' => 'pi_test_456' ],
-				],
-				'expected'         => 'pi_test_456',
-			],
-			'null payment intent'     => [
-				'checkout_session' => (object) [],
-				'expected'         => null,
-			],
-			'empty string'            => [
-				'checkout_session' => (object) [ 'payment_intent' => '' ],
-				'expected'         => null,
+				'expected'         => false,
 			],
 		];
 	}
@@ -151,7 +157,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_completed_skips_non_agentic() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
-		$notification = $this->build_notification( 'cs_test_non_agentic', false );
+		$notification  = $this->build_notification( 'cs_test_non_agentic', false );
+		$mock_session  = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
+		$http_filter   = $this->mock_stripe_api_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -163,6 +171,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		);
 		$this->assertEmpty( $orders );
 
+		remove_filter( 'pre_http_request', $http_filter );
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 	}
 
@@ -179,6 +188,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$existing_order->save();
 
 		$notification = $this->build_notification( 'cs_test_duplicate', true );
+		$mock_session = $this->build_checkout_session_response( 'cs_test_duplicate', true );
+		$mock_session->payment_intent = (object) [
+			'id'            => 'pi_test_cs_test_duplicate',
+			'agent_details' => (object) [],
+		];
+		$http_filter = $this->mock_stripe_api_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -193,14 +208,16 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->assertEquals( $existing_order->get_id(), $orders[0]->get_id() );
 
 		$existing_order->delete( true );
+		remove_filter( 'pre_http_request', $http_filter );
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 	}
 
 	/**
 	 * Tests that the mapper is called and errors are handled gracefully.
 	 *
-	 * The order mapper stub throws an exception, which the webhook handler
-	 * should catch and log without crashing.
+	 * The order mapper will fail because the mock session references
+	 * a non-existent product, and the handler should catch and log
+	 * without crashing.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
@@ -214,17 +231,45 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		);
 
 		$notification = $this->build_notification( 'cs_test_mapper_fail', true );
+		$mock_session = $this->build_checkout_session_response( 'cs_test_mapper_fail', true );
+		$http_filter  = $this->mock_stripe_api_response( $mock_session );
 
 		// Should not throw — the handler catches the mapper's exception.
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
 		$this->assertTrue( $failure_action_fired );
 
+		remove_filter( 'pre_http_request', $http_filter );
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 	}
 
 	/**
-	 * Builds a checkout.session.completed notification object.
+	 * Intercepts HTTP requests to the Stripe API and returns a mock response.
+	 *
+	 * @param object $response_body The mock response body object.
+	 * @return callable The filter callback (for later removal).
+	 */
+	private function mock_stripe_api_response( $response_body ) {
+		$callback = function ( $preempt, $args, $url ) use ( $response_body ) {
+			if ( false !== strpos( $url, 'api.stripe.com' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode( $response_body ),
+				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		return $callback;
+	}
+
+	/**
+	 * Builds a checkout.session.completed notification object (webhook payload).
 	 *
 	 * @param string $session_id The checkout session ID.
 	 * @param bool   $agentic    Whether to mark the session as agentic.
@@ -238,13 +283,81 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'currency'       => 'usd',
 			'amount_total'   => 2000,
 			'metadata'       => (object) [],
-			'ui_mode'        => $agentic ? 'agentic' : 'hosted',
 		];
 
 		return (object) [
 			'type' => 'checkout.session.completed',
 			'data' => (object) [
 				'object' => (object) $session,
+			],
+		];
+	}
+
+	/**
+	 * Builds a mock Stripe API response for a checkout session retrieval.
+	 *
+	 * @param string $session_id The checkout session ID.
+	 * @param bool   $agentic    Whether to include agentic line items.
+	 * @return object
+	 */
+	private function build_checkout_session_response( $session_id, $agentic ) {
+		$line_items_data = [];
+
+		if ( $agentic ) {
+			// Line item with an external_reference pointing to a non-existent product.
+			$line_items_data[] = (object) [
+				'id'              => 'li_test_1',
+				'description'     => 'Test Product',
+				'quantity'        => 1,
+				'amount_total'    => 2000,
+				'amount_subtotal' => 2000,
+				'amount_tax'      => 0,
+				'price'           => (object) [
+					'unit_amount'        => 2000,
+					'external_reference' => '99999999',
+					'currency'           => 'usd',
+				],
+			];
+		} else {
+			// Line item without external_reference (not agentic).
+			$line_items_data[] = (object) [
+				'id'              => 'li_test_1',
+				'description'     => 'Test Product',
+				'quantity'        => 1,
+				'amount_total'    => 2000,
+				'amount_subtotal' => 2000,
+				'amount_tax'      => 0,
+				'price'           => (object) [
+					'unit_amount' => 2000,
+					'currency'    => 'usd',
+				],
+			];
+		}
+
+		return (object) [
+			'id'               => $session_id,
+			'payment_intent'   => (object) [
+				'id'            => 'pi_test_' . $session_id,
+				'agent_details' => (object) [],
+			],
+			'customer'         => 'cus_test_789',
+			'customer_email'   => 'test@example.com',
+			'currency'         => 'usd',
+			'amount_total'     => 2000,
+			'amount_subtotal'  => 2000,
+			'customer_details' => (object) [
+				'email' => 'test@example.com',
+				'name'  => 'John Smith',
+				'phone' => '+1234567890',
+			],
+			'shipping_details' => null,
+			'total_details'    => (object) [
+				'amount_shipping' => 0,
+				'amount_tax'      => 0,
+				'amount_discount' => 0,
+			],
+			'line_items'       => (object) [
+				'data' => $line_items_data,
 			],
 		];
 	}

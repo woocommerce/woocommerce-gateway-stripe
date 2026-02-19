@@ -876,7 +876,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$session->line_items = (object) [ 'data' => [] ];
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'has no line items' );
+		$this->expectExceptionMessage( 'Line item total mismatch' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
