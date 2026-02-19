@@ -216,7 +216,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
+			layout.radios = true;
 		}
 		paymentElementOptions = {
 			...paymentElementOptions,
