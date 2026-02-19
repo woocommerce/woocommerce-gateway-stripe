@@ -455,7 +455,7 @@ class WC_Stripe_Account {
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
-	 * @param string $update_type The type of update that is happening. Default is 'plugin_update'.
+	 * @param string $update_type The type of update that is happening. Default is 'plugin'.
 	 * Possible values are:
 	 *  - 'plugin': Reconfigures webhooks during plugin update.
 	 *  - 'settings': Reconfigures webhooks when Adaptive Pricing is enabled in the settings.
