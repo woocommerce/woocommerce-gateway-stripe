@@ -477,7 +477,7 @@ class WC_Stripe_Account {
 			return;
 		}
 
-		$this->maybe_reconfigure_webhooks_on_update();
+		$this->maybe_reconfigure_webhooks_on_update( 'settings' );
 	}
 
 	/**
@@ -485,9 +485,13 @@ class WC_Stripe_Account {
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
+	 * @param string $update_type The type of update that is happening. Default is 'plugin_update'.
+	 * Possible values are:
+	 *  - 'plugin': Reconfigures webhooks during plugin update.
+	 *  - 'settings': Reconfigures webhooks when Adaptive Pricing is enabled in the settings.
 	 * @return void
 	 */
-	public function maybe_reconfigure_webhooks_on_update() {
+	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$modes    = [ 'live', 'test' ];
 
@@ -519,7 +523,7 @@ class WC_Stripe_Account {
 				// Events differ, reconfigure webhook
 				WC_Stripe_Logger::info( "Webhook events need updating for {$mode} mode - reconfiguring." );
 				$this->configure_webhooks( $mode );
-				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after {$update_type} update." );
 
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
