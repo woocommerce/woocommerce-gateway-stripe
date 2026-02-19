@@ -1632,13 +1632,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 		$raw_session = WC_Stripe_API::retrieve( $url );
 		remove_filter( 'wc_stripe_request_headers', $override_version );
-		if ( is_wp_error( $raw_session ) ) {
+		if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
 			WC_Stripe_Logger::error(
 				'Failed to retrieve checkout session with expand params.',
 				[
 					'url'      => $url,
 					'expanded' => $expand,
-					'error'    => $raw_session->get_error_message(),
+					'error'    => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
 				]
 			);
 			return;

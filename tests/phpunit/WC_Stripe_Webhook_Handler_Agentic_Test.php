@@ -3,6 +3,8 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Order;
+use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Webhook_Handler;
 use WP_UnitTestCase;
 
@@ -24,6 +26,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		$this->handler = new WC_Stripe_Webhook_Handler();
+
+		// Clear any invalid API key cache left by other tests so that
+		// WC_Stripe_API::retrieve() actually fires HTTP requests.
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	/**
