@@ -568,9 +568,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$stripe->account = $mock_account;
 
-		do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value );
-
-		$stripe->account = $original_account;
+		try {
+			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value );
+		} finally {
+			$stripe->account = $original_account;
+		}
 	}
 
 	/**
@@ -669,6 +671,26 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'old value not array, AP disabled in new value' => [
 				'old_value'   => false,
+				'new_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => false,
+			],
+			'old value missing AP key, AP enabled in new value' => [
+				'old_value'   => [
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'old value missing AP key, AP disabled in new value' => [
+				'old_value'   => [
+					'optimized_checkout_element' => 'yes',
+				],
 				'new_value'   => [
 					'adaptive_pricing'           => 'no',
 					'optimized_checkout_element' => 'yes',
