@@ -1154,17 +1154,17 @@ class WC_Stripe_Helper {
 			}
 
 			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore-line (optional plugin class, guarded by class_exists above)
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore-line (guarded by class_exists above)
 				return false;
 			}
 
 			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore-line (optional plugin class, guarded by class_exists above)
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore-line (guarded by class_exists above)
 				return false;
 			}
 
 			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) { // @phpstan-ignore-line (optional plugin class, guarded by class_exists above)
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) { // @phpstan-ignore-line (guarded by class_exists above)
 				return false;
 			}
 		}
