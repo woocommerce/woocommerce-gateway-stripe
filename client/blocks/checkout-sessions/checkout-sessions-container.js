@@ -30,7 +30,7 @@ export const CheckoutSessionsContainer = ( props ) => {
 	] = useState( null );
 
 	const providerOptions = {
-		clientSecret: promise,
+		clientSecret: checkoutSessionPromise,
 		adaptivePricing: { allowed: true },
 		elementsOptions: {
 			appearance: initializeUPEAppearance( api, 'true' ),
