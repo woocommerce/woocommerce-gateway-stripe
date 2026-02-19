@@ -6,17 +6,7 @@ import {
 import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 
-/**
- * No operation function.
- *
- * @return {null} Returns null.
- */
-const noop = () => null;
-
-const CheckoutForm = ( {
-	components: { LoadingMask },
-	onLoadError = noop,
-} ) => {
+const CheckoutForm = ( { components: { LoadingMask }, onLoadError } ) => {
 	const checkoutState = useCheckout();
 	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
