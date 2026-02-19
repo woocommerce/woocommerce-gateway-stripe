@@ -1109,7 +1109,9 @@ class WC_Stripe_Helper {
 	 * Returns whether adaptive pricing is supported for the current checkout.
 	 *
 	 * When on the checkout page, adaptive pricing is not supported if the cart contains
-	 * any of: subscription products or pre-order (charge upon release) products.
+	 * any of the following:
+	 * - A subscription product.
+	 * - A pre-order product that will be charged upon release.
 	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.5.0
