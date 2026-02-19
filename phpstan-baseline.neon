@@ -3397,12 +3397,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_order_from_intent\(\) should return WC_Order\|false but returns WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:get_order_from_intent\(\) should return WC_Order\|false but returns bool\|WC_Order\.$#'
 			identifier: return.type
 			count: 1
@@ -3559,12 +3553,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_intent_id_from_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_status_final\(\) expects WC_Order\|null, WC_Order\|true given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3578,12 +3566,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_order_signature\(\) expects Automattic\\WooCommerce\\Admin\\Overrides\\OrderRefund\|WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
