@@ -15,7 +15,7 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutSessionsContainer = ( props ) => {
-	const { api } = props;
+	const { api, testingInstructions } = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response.data?.client_secret;
@@ -53,6 +53,7 @@ export const CheckoutSessionsContainer = ( props ) => {
 			>
 				<CheckoutForm
 					onLoadError={ setPaymentProcessorLoadErrorMessage }
+					testingInstructions={ testingInstructions }
 					{ ...props }
 				/>
 			</CheckoutProvider>

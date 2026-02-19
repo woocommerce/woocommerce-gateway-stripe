@@ -159,9 +159,6 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
@@ -409,7 +406,7 @@ const PaymentProcessor = ( {
 			<p
 				className="content"
 				dangerouslySetInnerHTML={ {
-					__html: testingInstructionsIfAppropriate,
+					__html: testingInstructions,
 				} }
 			/>
 			{ isBlikSelected ? (

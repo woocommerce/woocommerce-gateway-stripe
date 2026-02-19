@@ -14,9 +14,14 @@ import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/
  * @param {Object}      props.components             Object containing components to be used in the checkout form.
  * @param {JSX.Element} props.components.LoadingMask LoadingMask component to display while loading.
  * @param {Function}    props.onLoadError            Callback function to handle load errors.
+ * @param {string}      props.testingInstructions    Instructions to display in test mode.
  * @return {JSX.Element} The Checkout Form component.
  */
-const CheckoutForm = ( { components: { LoadingMask }, onLoadError } ) => {
+const CheckoutForm = ( {
+	components: { LoadingMask },
+	onLoadError,
+	testingInstructions,
+} ) => {
 	const checkoutState = useCheckout();
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const hasLoadErrorRef = useRef( false );
@@ -24,7 +29,6 @@ const CheckoutForm = ( { components: { LoadingMask }, onLoadError } ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
-
 	const onSelectedPaymentMethodChange = ( { value } ) => {
 		handleDisplayOfPaymentInstructions( value.type );
 	};
@@ -52,6 +56,12 @@ const CheckoutForm = ( { components: { LoadingMask }, onLoadError } ) => {
 
 	return (
 		<>
+			<p
+				className="content"
+				dangerouslySetInnerHTML={ {
+					__html: testingInstructions,
+				} }
+			/>
 			<CurrencySelectorElement />
 			<PaymentElement
 				options={ {

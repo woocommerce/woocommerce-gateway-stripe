@@ -56,6 +56,9 @@ const getUpeElementIcon = ( paymentMethod ) => {
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
 	const Icon = getUpeElementIcon( paymentMethod );
+	const testingInstructions = getBlocksConfiguration()?.testMode
+		? upeConfig.testingInstructions
+		: '';
 	const supports = {
 		// Use `false` as fallback values in case server provided configuration is missing.
 		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
@@ -68,14 +71,19 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 
 	let paymentMethodComponent;
 	if ( getBlocksConfiguration()?.isAdaptivePricingEnabled ) {
-		paymentMethodComponent = <CheckoutSessionsContainer api={ api } />;
+		paymentMethodComponent = (
+			<CheckoutSessionsContainer
+				api={ api }
+				testingInstructions={ testingInstructions }
+			/>
+		);
 	} else {
 		paymentMethodComponent = getDeferredIntentCreationUPEFields(
 			paymentMethod,
 			upeMethods,
 			api,
 			upeConfig.description,
-			upeConfig.testingInstructions,
+			testingInstructions,
 			upeConfig.showSaveOption ?? false,
 			upeConfig.supportsDeferredIntent
 		);
