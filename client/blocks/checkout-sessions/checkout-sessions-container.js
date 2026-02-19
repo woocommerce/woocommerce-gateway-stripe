@@ -16,11 +16,12 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutSessionsContainer = ( props ) => {
-	const { api, testingInstructions } = props;
+	const { api, setShouldLoadStripeElements } = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response.data?.client_secret;
 		if ( ! clientSecret ) {
+			setShouldLoadStripeElements( true );
 			throw new Error(
 				__(
 					'Unable to initialize a checkout session. Please refresh the page and try again.',
@@ -29,7 +30,7 @@ export const CheckoutSessionsContainer = ( props ) => {
 			);
 		}
 		return clientSecret;
-	}, [ api ] );
+	}, [ api, setShouldLoadStripeElements ] );
 	const [
 		paymentProcessorLoadErrorMessage,
 		setPaymentProcessorLoadErrorMessage,
@@ -59,7 +60,6 @@ export const CheckoutSessionsContainer = ( props ) => {
 			>
 				<CheckoutForm
 					onLoadError={ setPaymentProcessorLoadErrorMessage }
-					testingInstructions={ testingInstructions }
 					{ ...props }
 				/>
 			</CheckoutProvider>

@@ -20,6 +20,9 @@ import {
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
+import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
+
+const stripeServerData = getBlocksConfiguration();
 
 /**
  * Renders a Stripe Payment elements component.
@@ -42,13 +45,18 @@ const PaymentElements = ( {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
-
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [
 		paymentProcessorLoadErrorMessage,
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
+		! stripeServerData?.isAdaptivePricingEnabled
+	);
+
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
+	const isAdaptivePricingSupported =
+		stripeServerData?.isAdaptivePricingEnabled;
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -57,10 +65,10 @@ const PaymentElements = ( {
 
 		async function createIntent() {
 			try {
-				const paymentNeeded = getBlocksConfiguration()?.isPaymentNeeded;
+				const paymentNeeded = stripeServerData?.isPaymentNeeded;
 				const response = paymentNeeded
 					? await api.createIntent(
-							getBlocksConfiguration()?.orderId,
+							stripeServerData?.orderId,
 							paymentMethodId
 					  )
 					: await api.initSetupIntent( paymentMethodId );
@@ -69,9 +77,8 @@ const PaymentElements = ( {
 				setPaymentIntentId( response.id );
 			} catch ( error ) {
 				const paymentMethodTitle =
-					getBlocksConfiguration()?.paymentMethodsConfig?.[
-						paymentMethodId
-					]?.title ?? '';
+					stripeServerData?.paymentMethodsConfig?.[ paymentMethodId ]
+						?.title ?? '';
 				setErrorMessage(
 					error?.message ??
 						sprintf(
@@ -95,6 +102,17 @@ const PaymentElements = ( {
 		paymentMethodId,
 		supportsDeferredIntent,
 	] );
+
+	if ( isAdaptivePricingSupported && ! shouldLoadStripeElements ) {
+		return (
+			<CheckoutSessionsContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+				LoadingMask={ LoadingMask }
+				{ ...props }
+			/>
+		);
+	}
 
 	if ( errorMessage ) {
 		return (
@@ -121,7 +139,6 @@ const PaymentElements = ( {
 	}
 
 	const stripe = api.getStripe();
-	const stripeServerData = getBlocksConfiguration();
 	const amount = Number( stripeServerData?.cartTotal );
 
 	// Build options object.
@@ -206,6 +223,8 @@ const PaymentElements = ( {
 
 /**
  * Renders a Stripe Payment elements component.
+ *
+ * TODO: Remove this middle function and use PaymentElements directly (exporting it).
  *
  * @param {string}      paymentMethodId
  * @param {Array}       upeMethods

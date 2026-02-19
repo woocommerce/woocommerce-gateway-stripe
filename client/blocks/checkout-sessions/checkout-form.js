@@ -11,16 +11,17 @@ import { getStripeElementOptions } from 'wcstripe/blocks/utils';
 /**
  * Checkout Form component.
  *
- * @param {Object}      props                        Component props.
- * @param {Object}      props.components             Object containing components to be used in the checkout form.
- * @param {JSX.Element} props.components.LoadingMask LoadingMask component to display while loading.
- * @param {Function}    props.onLoadError            Callback function to handle load errors.
- * @param {string}      props.testingInstructions    Instructions to display in test mode.
+ * @param {Object}      props                             Component props.
+ * @param {JSX.Element} props.LoadingMask                 LoadingMask component to display while loading.
+ * @param {Function}    props.onLoadError                 Callback function to handle load errors.
+ * @param {Function}    props.setShouldLoadStripeElements Callback function to set whether Stripe Elements should be loaded instead.
+ * @param {string}      props.testingInstructions         Instructions to display in test mode.
  * @return {JSX.Element} The Checkout Form component.
  */
 const CheckoutForm = ( {
-	components: { LoadingMask },
+	LoadingMask,
 	onLoadError,
+	setShouldLoadStripeElements,
 	testingInstructions,
 } ) => {
 	const checkoutState = useCheckout();
@@ -46,6 +47,7 @@ const CheckoutForm = ( {
 			/>
 		);
 	} else if ( checkoutState.type === 'error' ) {
+		setShouldLoadStripeElements( true ); // If there was an error loading the checkout session, we fallback to loading Stripe Elements.
 		return <div>Error: { checkoutState.error.message }</div>;
 	} else if (
 		checkoutState.type === 'success' &&

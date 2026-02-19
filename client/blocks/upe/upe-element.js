@@ -12,7 +12,6 @@ import {
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
-import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
 import WCStripeAPI from 'wcstripe/api';
 
 // Initialize checkout icons
@@ -69,30 +68,20 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		supports.style = getBlocksConfiguration()?.style ?? [];
 	}
 
-	let paymentMethodComponent;
-	if ( getBlocksConfiguration()?.isAdaptivePricingEnabled ) {
-		paymentMethodComponent = (
-			<CheckoutSessionsContainer
-				api={ api }
-				testingInstructions={ testingInstructions }
-			/>
-		);
-	} else {
-		paymentMethodComponent = getDeferredIntentCreationUPEFields(
-			paymentMethod,
-			upeMethods,
-			api,
-			upeConfig.description,
-			testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		);
-	}
+	const PaymentMethodComponent = getDeferredIntentCreationUPEFields(
+		paymentMethod,
+		upeMethods,
+		api,
+		upeConfig.description,
+		testingInstructions,
+		upeConfig.showSaveOption ?? false,
+		upeConfig.supportsDeferredIntent
+	);
 
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: paymentMethodComponent,
-		edit: paymentMethodComponent,
+		content: PaymentMethodComponent,
+		edit: PaymentMethodComponent,
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
 			const billingCountry = cartData.billingAddress.country;
