@@ -549,9 +549,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test that the update_option_woocommerce_stripe_settings action triggers webhook reconfiguration when AP/OC is enabled.
 	 *
-	 * @param array $old_value          Previous option value.
-	 * @param array $new_value          New option value.
-	 * @param bool  $should_reconfigure Whether maybe_reconfigure_webhooks_on_update is expected to be called on the account.
+	 * @param array|null $old_value          Previous option value.
+	 * @param array|null $new_value          New option value.
+	 * @param bool       $should_reconfigure Whether maybe_reconfigure_webhooks_on_update is expected to be called on the account.
 	 * @dataProvider provider_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled
 	 */
 	public function test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $new_value, $should_reconfigure ) {
@@ -656,6 +656,22 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				[
 					'adaptive_pricing'           => 'no',
 					'optimized_checkout_element' => 'no',
+				],
+				false,
+			],
+			'old value not array, AP enabled in new value' => [
+				null,
+				[
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				true,
+			],
+			'old value not array, AP disabled in new value' => [
+				null,
+				[
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
 				],
 				false,
 			],
