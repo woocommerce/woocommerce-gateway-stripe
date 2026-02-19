@@ -16,7 +16,7 @@ const stripePromise = loadStripe();
  */
 export const CheckoutSessionsContainer = ( props ) => {
 	const { api } = props;
-	const promise = useMemo( async () => {
+	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response.data?.client_secret;
 		if ( ! clientSecret ) {
