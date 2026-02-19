@@ -784,15 +784,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function is_webhook_url_provider() {
 		return [
-			'webhook URLs with mismatched protocol should match' => [ 'https://example.com/?wc-api=wc_stripe', 'http://example.com/?wc-api=wc_stripe', true ],
-			'webhook URLs with mismatched host should not match' => [ 'https://example.com/?wc-api=wc_stripe', 'https://test.example.com/?wc-api=wc_stripe', false ],
-			'webhook URLs with mismatched path should not match' => [ 'https://example.com/foo?wc-api=wc_stripe', 'https://example.com/bar?wc-api=wc_stripe', false ],
-			'webhook URL with empty path should match' => [ 'https://example.com/', 'https://example.com/?wc-api=wc_stripe', true ],
-			'webhook URL with empty query string should match' => [ 'https://example.com/test/', 'https://example.com/test/', true ],
+			'webhook URLs with mismatched protocol should match'       => [ 'https://example.com/?wc-api=wc_stripe', 'http://example.com/?wc-api=wc_stripe', true ],
+			'webhook URLs with mismatched host should not match'       => [ 'https://example.com/?wc-api=wc_stripe', 'https://test.example.com/?wc-api=wc_stripe', false ],
+			'webhook URLs with mismatched path should not match'       => [ 'https://example.com/foo?wc-api=wc_stripe', 'https://example.com/bar?wc-api=wc_stripe', false ],
+			'webhook URL with empty path should match'                 => [ 'https://example.com/', 'https://example.com/?wc-api=wc_stripe', true ],
+			'webhook URL with empty query string should match'         => [ 'https://example.com/test/', 'https://example.com/test/', true ],
 			'webhook URL with empty comparison query should not match' => [ 'https://example.com/test/?foo=bar', 'https://example.com/test/', false ],
-			'webhook URL with missing parameter should not match' => [ 'https://example.com/test/?wc-api=wc_stripe', 'https://example.com/test/?wc-api=wc_stripe&foo=bar', false ],
-			'webhook URL with wrong parameter should not match' => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
-			'webhook URL with extra parameters should match' => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
+			'webhook URL with missing parameter should not match'      => [ 'https://example.com/test/?wc-api=wc_stripe', 'https://example.com/test/?wc-api=wc_stripe&foo=bar', false ],
+			'webhook URL with wrong parameter should not match'        => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
+			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
 		];
 	}
 
@@ -882,7 +882,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response(): array {
 		return [
-			'card_error with localized message'     => [
+			'card_error with localized message'    => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'invalid_cvc',
 				'error_message'    => 'Mock invalid CVC',
@@ -891,14 +891,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => "The card's security code is invalid.",
 			],
-			'card_error without localized message'  => [
+			'card_error without localized message' => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'unexpected_error_code',
 				'error_message'    => 'Unexpected error',
 				'localized_data'   => [],
 				'expected_message' => 'Unexpected error',
 			],
-			'other error with localized message'    => [
+			'other error with localized message'   => [
 				'error_type'       => 'invalid_request_error',
 				'error_code'       => 'amount_too_small',
 				'error_message'    => 'Amount too small',
@@ -936,23 +936,23 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
 		return [
-			'String response'                   => [
+			'String response' => [
 				'response'         => 'Unexpected data',
 				'expected_message' => '',
 			],
-			'Integer response'                  => [
+			'Integer response' => [
 				'response'         => 123,
 				'expected_message' => '',
 			],
-			'Float response'                    => [
+			'Float response' => [
 				'response'         => 123.45,
 				'expected_message' => '',
 			],
-			'Boolean response'                  => [
+			'Boolean response' => [
 				'response'         => true,
 				'expected_message' => '',
 			],
-			'Array response'                    => [
+			'Array response' => [
 				'response'         => [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
@@ -960,7 +960,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'response'         => (object) [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
-			'Object response with array error'  => [
+			'Object response with array error' => [
 				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
 				'expected_message' => '',
 			],
@@ -995,7 +995,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'Object response with object error, type, and object message property' => [
 				'response'         => (object) [
 					'error' => (object) [
-						'type'    => 'card_error',
+						'type' => 'card_error',
 						'message' => (object) [ 'test' => 'Unexpected error' ],
 					],
 				],
@@ -1059,43 +1059,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests for `build_line_items`.
-	 *
-	 * @param bool  $itemized       Whether itemized line items are enabled.
-	 * @param array $expected_items The expected line items.
-	 * @return void
-	 * @dataProvider provide_test_build_line_items
-	 */
-	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
-		update_option( 'woocommerce_calc_taxes', 'yes' );
-
-		$product = WC_Helper_Product::create_simple_product();
-		$product->save();
-
-		$coupon = new \WC_Coupon();
-		$coupon->set_code( 'TESTDISCOUNT' );
-		$coupon->set_amount( 1 );
-		$coupon->set_discount_type( 'fixed_cart' );
-		$coupon->save();
-
-		WC()->session->init();
-		WC()->cart->empty_cart();
-
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->add_discount( 'TESTDISCOUNT' );
-
-		$actual = WC_Stripe_Helper::build_line_items( $itemized );
-
-		// Clean up.
-		WC()->cart->empty_cart();
-		$product->delete( true );
-		$coupon->delete();
-		delete_option( 'woocommerce_calc_taxes' );
-
-		$this->assertSame( $expected_items, $actual );
-	}
-
-	/**
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
 	 * @param bool   $feature_flag Feature flag enabled.
@@ -1123,6 +1086,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		};
 		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
+		$saved_post = null;
 		if ( $has_block ) {
 			// Mock has_block( 'woocommerce/checkout' ) via global $post so the helper sees the expected value.
 			global $post;
@@ -1248,13 +1212,50 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests for `build_line_items`.
+	 *
+	 * @param bool  $itemized       Whether itemized line items are enabled.
+	 * @param array $expected_items The expected line items.
+	 * @return void
+	 * @dataProvider provide_test_build_line_items
+	 */
+	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$coupon = new \WC_Coupon();
+		$coupon->set_code( 'TESTDISCOUNT' );
+		$coupon->set_amount( 1 );
+		$coupon->set_discount_type( 'fixed_cart' );
+		$coupon->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->add_discount( 'TESTDISCOUNT' );
+
+		$actual = WC_Stripe_Helper::build_line_items( $itemized );
+
+		// Clean up.
+		WC()->cart->empty_cart();
+		$product->delete( true );
+		$coupon->delete();
+		delete_option( 'woocommerce_calc_taxes' );
+
+		$this->assertSame( $expected_items, $actual );
+	}
+
+	/**
 	 * Data provider for `test_build_line_items`.
 	 *
 	 * @return array
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'     => [
+			'itemized'   => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -1262,7 +1263,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'amount' => 1000,
 					],
 					[
-						'label'  => 'Tax',
+						'label' => 'Tax',
 						'amount' => 0,
 					],
 					[
@@ -1277,7 +1278,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized' => [
+			'non-itemized'            => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -1286,7 +1287,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 							'amount' => 1000,
 						],
 						[
-							'label'  => 'Tax',
+							'label' => 'Tax',
 							'amount' => 0,
 						],
 						[
