@@ -6,6 +6,7 @@ import {
 import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
+import { getStripeElementOptions } from 'wcstripe/blocks/utils';
 
 /**
  * Checkout Form component.
@@ -64,23 +65,7 @@ const CheckoutForm = ( {
 			/>
 			<CurrencySelectorElement />
 			<PaymentElement
-				options={ {
-					fields: {
-						billingDetails: {
-							name: 'never',
-							email: 'never',
-							phone: 'auto',
-							address: {
-								country: 'never',
-								line1: 'never',
-								line2: 'never',
-								city: 'never',
-								state: 'never',
-								postalCode: 'never',
-							},
-						},
-					},
-				} }
+				options={ getStripeElementOptions() }
 				onChange={ onSelectedPaymentMethodChange }
 				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"
