@@ -1599,41 +1599,75 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$checkout_session = $notification->data->object; // @phpstan-ignore property.notFound
+		WC_Stripe_Logger::info(
+			'Webhook checkout.session.completed received.',
+			[
+				'session_id'        => $notification->data->object->id ?? 'unknown',
+				'payment_intent_id' => $notification->data->object->payment_intent ?? 'unknown',
+			]
+		);
+
+		$order_mapper = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+
+		// Temporarily override the API version to get the right fields.
+		$override_version = function ( $headers ) {
+			$headers['Stripe-Version'] = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
+			return $headers;
+		};
+		add_filter( 'wc_stripe_request_headers', $override_version );
+
+		/**
+		 * Immediately fetch the intent and expand details:
+		 * - The intent's `agent_details` field indicates if agentic checkout is used.
+		 * - The order mapper needs to expand fields like line items, tax, shipping, etc.
+		 *
+		 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
+		 */
+		$url    = 'checkout/sessions/' . $notification->data->object->id;
+		$expand = array_merge( [ 'payment_intent.agent_details' ], $order_mapper->get_fields_to_expand() );
+		if ( ! empty( $expand ) ) {
+			$params = [];
+			foreach ( $expand as $field ) {
+				$params[] = 'expand[]=' . $field;
+			}
+			$url .= '?' . implode( '&', $params );
+		}
+		$checkout_session = WC_Stripe_API::retrieve( $url );
+		remove_filter( 'wc_stripe_request_headers', $override_version );
+		if ( is_wp_error( $checkout_session ) ) {
+			WC_Stripe_Logger::error(
+				'Failed to retrieve checkout session with expand params.',
+				[
+					'url'      => $url,
+					'expanded' => $expand,
+					'error'    => $checkout_session->get_error_message(),
+				]
+			);
+			return;
+		}
 
 		if ( ! $this->is_agentic_checkout_session( $checkout_session ) ) {
 			return;
 		}
 
-		$payment_intent_id = $this->get_payment_intent_id_from_checkout_session( $checkout_session );
-
-		WC_Stripe_Logger::info(
-			'Agentic checkout.session.completed received.',
-			[
-				'session_id'        => $checkout_session->id ?? 'unknown',
-				'payment_intent_id' => $payment_intent_id ?? 'unknown',
-			]
-		);
+		$payment_intent_id = $checkout_session->payment_intent->id;
 
 		// Idempotency: look up existing order by payment intent ID.
-		if ( $payment_intent_id ) {
-			$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
-			if ( $existing_order instanceof WC_Order ) {
-				WC_Stripe_Logger::info(
-					'Agentic checkout session already processed.',
-					[
-						'session_id'        => $checkout_session->id,
-						'payment_intent_id' => $payment_intent_id,
-						'order_id'          => $existing_order->get_id(),
-					]
-				);
-				$this->resolved_order = $existing_order;
-				return;
-			}
+		$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+		if ( $existing_order instanceof WC_Order ) {
+			WC_Stripe_Logger::info(
+				'Agentic checkout session already processed.',
+				[
+					'session_id'        => $checkout_session->id,
+					'payment_intent_id' => $payment_intent_id,
+					'order_id'          => $existing_order->get_id(),
+				]
+			);
+			$this->resolved_order = $existing_order;
+			return;
 		}
 
 		try {
-			$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
 			$order                = $order_mapper->create_order_from_checkout_session( $checkout_session );
 			$this->resolved_order = $order;
 
@@ -1681,43 +1715,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_agentic_checkout_session( $checkout_session ) {
-		// phpcs:ignore Generic.Commenting.Todo.TaskFound
-		// todo: Remove this once we have a proper way to force agentic checkout sessions.
-		if ( defined( 'WC_STRIPE_FORCE_AGENTIC_CHECKOUT_SESSION' ) && true === WC_STRIPE_FORCE_AGENTIC_CHECKOUT_SESSION ) {
-			return true;
-		}
-
-		if ( isset( $checkout_session->ui_mode ) && 'agentic' === $checkout_session->ui_mode ) {
-			return true;
-		}
-
-		if ( isset( $checkout_session->metadata->agentic ) && 'true' === $checkout_session->metadata->agentic ) {
-			return true;
+		foreach ( $checkout_session->line_items->data as $line_item ) {
+			if (
+				property_exists( $line_item->price, 'external_reference' )
+				&& intval( $line_item->price->external_reference )
+			) {
+				return true;
+			}
 		}
 
 		return false;
-	}
-
-	/**
-	 * Extracts the payment intent ID from a checkout session.
-	 *
-	 * The payment_intent field can be either a string ID or an expanded object.
-	 *
-	 * @since 10.5.0
-	 * @param object $checkout_session The Stripe checkout session object.
-	 * @return string|null The payment intent ID, or null if not available.
-	 */
-	public function get_payment_intent_id_from_checkout_session( $checkout_session ) {
-		$payment_intent = $checkout_session->payment_intent ?? null;
-
-		if ( is_object( $payment_intent ) && isset( $payment_intent->id ) ) {
-			return $payment_intent->id;
-		}
-
-		if ( is_string( $payment_intent ) && '' !== $payment_intent ) {
-			return $payment_intent;
-		}
-
-		return null;
 	}
 }

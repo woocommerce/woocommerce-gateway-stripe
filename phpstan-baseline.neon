@@ -3255,13 +3255,19 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 39
+			count: 40
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 7
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$line_items\.$#'
+			identifier: property.notFound
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-

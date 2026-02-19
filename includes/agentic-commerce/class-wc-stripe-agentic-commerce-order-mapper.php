@@ -20,7 +20,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 	/**
+	 * Returns the fields to expand while loading the checkout session.
+	 *
+	 * @since 10.5.0
+	 * @return array The fields to expand.
+	 */
+	public function get_fields_to_expand(): array {
+		return [
+			'line_items.data.price.product',
+		];
+	}
+
+	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
+	 *
+	 * The session must be expanded with payment intent details, as
+	 * well as the fields from `get_fields_to_expand()`.
 	 *
 	 * @since 10.5.0
 	 * @param object $checkout_session The Stripe checkout session object.
@@ -29,9 +44,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 */
 	public function create_order_from_checkout_session( object $checkout_session ): WC_Order {
 		$this->validate_checkout_session( $checkout_session );
-
-		// Line items are not included in the webhook payload — fetch them from Stripe.
-		$this->fetch_line_items( $checkout_session );
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: starting order creation.',
@@ -103,63 +115,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				)
 			);
 		}
-	}
-
-	/**
-	 * Fetches line items from the Stripe API if they are not already present.
-	 *
-	 * Line items are not included in the checkout.session.completed webhook
-	 * payload and must be retrieved separately.
-	 *
-	 * @since 10.5.0
-	 * @param object $checkout_session The Stripe checkout session object (modified in place).
-	 * @throws Exception When line items cannot be fetched or are empty.
-	 */
-	private function fetch_line_items( object $checkout_session ): void {
-		// If line items are already present (e.g. in tests), skip the API call.
-		if ( isset( $checkout_session->line_items->data )
-			&& is_array( $checkout_session->line_items->data )
-			&& ! empty( $checkout_session->line_items->data )
-		) {
-			return;
-		}
-
-		$session_id = $checkout_session->id; // @phpstan-ignore property.notFound
-
-		WC_Stripe_Logger::info(
-			'Agentic order mapper: fetching line items from Stripe API.',
-			[ 'session_id' => $session_id ]
-		);
-
-		$override_version = function ( $headers ) {
-			$headers['Stripe-Version'] = '2025-12-15.preview';
-			return $headers;
-		};
-		add_filter( 'wc_stripe_request_headers', $override_version );
-
-		$response = WC_Stripe_API::retrieve(
-			'checkout/sessions/' . $session_id . '/line_items?expand[]=data.price.product'
-		);
-		remove_filter( 'wc_stripe_request_headers', $override_version );
-
-		if ( is_wp_error( $response ) ) {
-			throw new Exception(
-				sprintf(
-					'Failed to fetch line items for checkout session %s: %s',
-					$session_id,
-					$response->get_error_message()
-				)
-			);
-		}
-
-		if ( ! isset( $response->data ) || ! is_array( $response->data ) || empty( $response->data ) ) {
-			throw new Exception(
-				sprintf( 'Checkout session %s has no line items.', $session_id )
-			);
-		}
-
-		// todo: We should return an updated session here, not assign stuff to the old one.
-		$checkout_session->line_items = $response; // @phpstan-ignore property.notFound
 	}
 
 	/**
