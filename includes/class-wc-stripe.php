@@ -226,7 +226,8 @@ class WC_Stripe {
 			}
 		}
 
-		// Order mapper is used by the webhook handler and does not depend on FeedInterface.
+		// Order mapper and session wrapper are used by the webhook handler and do not depend on FeedInterface.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-checkout-session.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-order-mapper.php';
 
 		new Allowed_Payment_Request_Button_Types_Update();

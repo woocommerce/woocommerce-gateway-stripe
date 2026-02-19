@@ -9,9 +9,9 @@ namespace WooCommerce\Stripe\Tests;
 
 use WP_UnitTestCase;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
+use WC_Stripe_Agentic_Checkout_Session;
 use WC_Stripe_Agentic_Commerce_Order_Mapper;
 use WC_Order_Item_Product;
-use WC_Order_Item_Shipping;
 use Exception;
 
 /**
@@ -84,7 +84,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 		$session = $this->build_checkout_session(
 			[
-				'amount_total'    => 3000,
+				'amount_total'    => 2500,
 				'amount_subtotal' => 2500,
 				'line_items'      => $this->build_line_items(
 					[
@@ -100,7 +100,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 					]
 				),
 				'total_details'   => (object) [
-					'amount_shipping' => 500,
+					'amount_shipping' => 0,
 					'amount_tax'      => 0,
 					'amount_discount' => 0,
 				],
@@ -111,7 +111,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( 'WC_Order', $order );
 		$this->assertGreaterThan( 0, $order->get_id() );
-		$this->assertEquals( '30.00', $order->get_total() );
+		$this->assertEquals( '25.00', $order->get_total() );
 		$this->assertEquals( 'processing', $order->get_status() );
 
 		$order->delete( true );
@@ -253,9 +253,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'customer_email'   => 'existing@example.com',
 				'customer_details' => (object) [
-					'email' => 'existing@example.com',
-					'name'  => 'Existing User',
-					'phone' => null,
+					'email'   => 'existing@example.com',
+					'name'    => 'Existing User',
+					'phone'   => null,
+					'address' => (object) [
+						'line1'       => '123 Main St',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'postal_code' => '90210',
+						'country'     => 'US',
+					],
 				],
 			]
 		);
@@ -278,9 +285,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'customer_email'   => 'nonexistent@example.com',
 				'customer_details' => (object) [
-					'email' => 'nonexistent@example.com',
-					'name'  => 'Guest User',
-					'phone' => null,
+					'email'   => 'nonexistent@example.com',
+					'name'    => 'Guest User',
+					'phone'   => null,
+					'address' => (object) [
+						'line1'       => '123 Main St',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'postal_code' => '90210',
+						'country'     => 'US',
+					],
 				],
 			]
 		);
@@ -561,9 +575,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$session = $this->build_checkout_session(
 			[
 				'customer_details' => (object) [
-					'email' => 'test@example.com',
-					'name'  => $full_name,
-					'phone' => null,
+					'email'   => 'test@example.com',
+					'name'    => $full_name,
+					'phone'   => null,
+					'address' => (object) [
+						'line1'       => '123 Main St',
+						'city'        => 'Anytown',
+						'state'       => 'CA',
+						'postal_code' => '90210',
+						'country'     => 'US',
+					],
 				],
 			]
 		);
@@ -768,11 +789,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that addresses handle missing fields gracefully.
+	 * Test that missing billing address throws an exception.
 	 *
 	 * @return void
 	 */
-	public function test_addresses_handle_missing_fields_gracefully() {
+	public function test_exception_thrown_when_billing_address_missing() {
 		$session = $this->build_checkout_session(
 			[
 				'customer_details' => (object) [
@@ -780,70 +801,31 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 					'name'  => 'Test',
 					'phone' => null,
 				],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'no billing address' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * Test that missing shipping details throws an exception.
+	 *
+	 * @return void
+	 */
+	public function test_exception_thrown_when_shipping_details_missing() {
+		$session = $this->build_checkout_session(
+			[
 				'shipping_details' => null,
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'no shipping address' );
 
-		$this->assertEquals( 'Test', $order->get_billing_first_name() );
-		$this->assertEquals( '', $order->get_shipping_first_name() );
-
-		$order->delete( true );
-	}
-
-	/**
-	 * Test that a shipping item is added when shipping amount is present.
-	 *
-	 * @return void
-	 */
-	public function test_shipping_item_added_when_shipping_amount_present() {
-		$session = $this->build_checkout_session(
-			[
-				'amount_total'    => 1500,
-				'amount_subtotal' => 1000,
-				'total_details'   => (object) [
-					'amount_shipping' => 500,
-					'amount_tax'      => 0,
-					'amount_discount' => 0,
-				],
-			]
-		);
-
-		$order          = $this->mapper->create_order_from_checkout_session( $session );
-		$shipping_items = $order->get_items( 'shipping' );
-
-		$this->assertCount( 1, $shipping_items );
-
-		$shipping = reset( $shipping_items );
-		$this->assertInstanceOf( WC_Order_Item_Shipping::class, $shipping );
-		$this->assertEquals( '5.00', wc_format_decimal( $shipping->get_total(), 2 ) );
-
-		$order->delete( true );
-	}
-
-	/**
-	 * Test that no shipping item is added when shipping amount is zero.
-	 *
-	 * @return void
-	 */
-	public function test_no_shipping_item_when_zero_shipping() {
-		$session = $this->build_checkout_session(
-			[
-				'total_details' => (object) [
-					'amount_shipping' => 0,
-					'amount_tax'      => 0,
-					'amount_discount' => 0,
-				],
-			]
-		);
-
-		$order          = $this->mapper->create_order_from_checkout_session( $session );
-		$shipping_items = $order->get_items( 'shipping' );
-
-		$this->assertCount( 0, $shipping_items );
-
-		$order->delete( true );
+		$this->mapper->create_order_from_checkout_session( $session );
 	}
 
 	/**
@@ -852,8 +834,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_exception_thrown_when_session_id_missing() {
-		$session     = $this->build_checkout_session();
-		$session->id = null;
+		$session = $this->build_checkout_session( [ 'id' => null ] );
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'missing the id field' );
@@ -867,8 +848,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_exception_thrown_when_currency_missing() {
-		$session           = $this->build_checkout_session();
-		$session->currency = null;
+		$session = $this->build_checkout_session( [ 'currency' => null ] );
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'missing the currency field' );
@@ -883,8 +863,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_exception_thrown_when_line_items_empty() {
-		$session             = $this->build_checkout_session();
-		$session->line_items = (object) [ 'data' => [] ];
+		$session = $this->build_checkout_session(
+			[
+				'line_items' => (object) [ 'data' => [] ],
+			]
+		);
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'has no line items' );
@@ -959,12 +942,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Builds a Stripe checkout session object for testing.
+	 * Builds a Stripe checkout session wrapper for testing.
 	 *
 	 * @param array<string, mixed> $overrides Fields to override on the default session.
-	 * @return object The checkout session object.
+	 * @return WC_Stripe_Agentic_Checkout_Session The checkout session wrapper.
 	 */
-	private function build_checkout_session( array $overrides = [] ): object {
+	private function build_checkout_session( array $overrides = [] ): WC_Stripe_Agentic_Checkout_Session {
 		$defaults = [
 			'id'               => 'cs_test_123',
 			'payment_intent'   => (object) [ 'id' => 'pi_test_456' ],
@@ -1019,7 +1002,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$merged = array_merge( $defaults, $overrides );
 
-		return (object) $merged;
+		return new WC_Stripe_Agentic_Checkout_Session( (object) $merged );
 	}
 
 	/**

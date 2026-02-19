@@ -10,7 +10,6 @@ use WP_UnitTestCase;
  * Tests for agentic commerce checkout.session.completed webhook handling.
  *
  * @covers WC_Stripe_Webhook_Handler::process_checkout_session_completed
- * @covers WC_Stripe_Webhook_Handler::is_agentic_checkout_session
  */
 class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
@@ -25,113 +24,6 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		$this->handler = new WC_Stripe_Webhook_Handler();
-	}
-
-	/**
-	 * @dataProvider provide_test_is_agentic_checkout_session
-	 */
-	public function test_is_agentic_checkout_session( $checkout_session, $expected ) {
-		$this->assertSame( $expected, $this->handler->is_agentic_checkout_session( $checkout_session ) );
-	}
-
-	/**
-	 * Provider for `test_is_agentic_checkout_session`.
-	 *
-	 * The production code checks for line_items with a price.external_reference
-	 * that resolves to a nonzero integer (product ID).
-	 *
-	 * @return array
-	 */
-	public function provide_test_is_agentic_checkout_session() {
-		return [
-			'has external_reference product ID'  => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_1',
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [
-									'external_reference' => '42',
-								],
-							],
-						],
-					],
-				],
-				'expected'         => true,
-			],
-			'multiple items one with reference'  => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_2',
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [
-									'external_reference' => null,
-								],
-							],
-							(object) [
-								'price' => (object) [
-									'external_reference' => '99',
-								],
-							],
-						],
-					],
-				],
-				'expected'         => true,
-			],
-			'no external_reference'              => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_3',
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [],
-							],
-						],
-					],
-				],
-				'expected'         => false,
-			],
-			'external_reference is zero string'  => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_4',
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [
-									'external_reference' => '0',
-								],
-							],
-						],
-					],
-				],
-				'expected'         => false,
-			],
-			'empty line items'                   => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_5',
-					'line_items' => (object) [
-						'data' => [],
-					],
-				],
-				'expected'         => false,
-			],
-			'external_reference is non-numeric'  => [
-				'checkout_session' => (object) [
-					'id'         => 'cs_test_6',
-					'line_items' => (object) [
-						'data' => [
-							(object) [
-								'price' => (object) [
-									'external_reference' => 'not-a-number',
-								],
-							],
-						],
-					],
-				],
-				'expected'         => false,
-			],
-		];
 	}
 
 	/**
@@ -157,9 +49,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_completed_skips_non_agentic() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
-		$notification  = $this->build_notification( 'cs_test_non_agentic', false );
-		$mock_session  = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
-		$http_filter   = $this->mock_stripe_api_response( $mock_session );
+		$notification = $this->build_notification( 'cs_test_non_agentic', false );
+		$mock_session = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
+		$http_filter  = $this->mock_stripe_api_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -187,13 +79,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$existing_order->update_meta_data( '_stripe_intent_id', 'pi_test_cs_test_duplicate' );
 		$existing_order->save();
 
-		$notification = $this->build_notification( 'cs_test_duplicate', true );
-		$mock_session = $this->build_checkout_session_response( 'cs_test_duplicate', true );
+		$notification                 = $this->build_notification( 'cs_test_duplicate', true );
+		$mock_session                 = $this->build_checkout_session_response( 'cs_test_duplicate', true );
 		$mock_session->payment_intent = (object) [
 			'id'            => 'pi_test_cs_test_duplicate',
 			'agent_details' => (object) [],
 		];
-		$http_filter = $this->mock_stripe_api_response( $mock_session );
+		$http_filter                  = $this->mock_stripe_api_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 

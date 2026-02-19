@@ -3264,11 +3264,6 @@ parameters:
 			count: 7
 			path: includes/class-wc-stripe-webhook-handler.php
 
-		-
-			message: '#^Access to an undefined property object\:\:\$line_items\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$token_id\.$#'
