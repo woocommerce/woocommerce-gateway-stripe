@@ -85,6 +85,8 @@ class WC_Stripe_Account {
 	public function __construct( WC_Stripe_Connect $connect, $stripe_api ) {
 		$this->connect    = $connect;
 		$this->stripe_api = $stripe_api;
+
+		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 	}
 
 	/**
@@ -448,6 +450,34 @@ class WC_Stripe_Account {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Runs after Stripe gateway settings option is updated. Reconfigures webhooks only when Adaptive Pricing was is enabled.
+	 * Adaptive Pricing and Optimized Checkout both must be enabled in the new value for webhooks to be reconfigured.
+	 *
+	 * @param array $old_value Previous option value.
+	 * @param array $value     New option value.
+	 * @return void
+	 */
+	public function maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $value ) {
+		$is_oc_enabled = 'yes' === ( $value['optimized_checkout_element'] ?? '' );
+		$is_ap_enabled = 'yes' === ( $value['adaptive_pricing'] ?? '' );
+
+		// If Adaptive Pricing or Optimized Checkout is disabled in the new value, do nothing.
+		if ( ! $is_ap_enabled || ! $is_oc_enabled ) {
+			return;
+		}
+
+		$was_oc_enabled = 'yes' === ( $old_value['optimized_checkout_element'] ?? '' );
+		$was_ap_enabled = 'yes' === ( $old_value['adaptive_pricing'] ?? '' );
+
+		// If Adaptive Pricing and Optimized Checkout are both unchanged in the new value, do nothing.
+		if ( $was_ap_enabled === $is_ap_enabled && $was_oc_enabled === $is_oc_enabled ) {
+			return;
+		}
+
+		$this->maybe_reconfigure_webhooks_on_update();
 	}
 
 	/**
