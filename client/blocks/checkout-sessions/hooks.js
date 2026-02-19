@@ -21,7 +21,7 @@ export const usePaymentCompleteHandler = (
 					if ( checkoutState.type !== 'success' ) {
 						return {
 							type: 'error',
-							message: 'Checkout is not ready for confirmation.',
+							message: __( 'Checkout is not ready for confirmation.', 'woocommerce-gateway-stripe' ),
 						};
 					}
 
