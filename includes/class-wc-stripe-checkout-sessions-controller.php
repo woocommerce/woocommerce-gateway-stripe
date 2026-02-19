@@ -48,6 +48,9 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			$gateways = WC()->payment_gateways()->payment_gateways();
+			$gateway  = $gateways[ WC_Stripe_UPE_Payment_Gateway::ID ];
+
 			$currency   = get_woocommerce_currency();
 			$line_items = [];
 			foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
@@ -69,13 +72,14 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			}
 
 			$request = [
-				'ui_mode'              => 'custom',
-				'customer'             => $stripe_customer->get_id(),
-				'line_items'           => $line_items,
-				'payment_method_types' => $enabled_payment_methods,
-				'payment_intent_data'  => [], // @todo Pass additional data if needed.
-				'mode'                 => 'payment',
-				'adaptive_pricing'     => [
+				'ui_mode'                       => 'custom',
+				'customer'                      => $stripe_customer->get_id(),
+				'line_items'                    => $line_items,
+				'payment_method_types'          => $enabled_payment_methods,
+				'excluded_payment_method_types' => $gateway->get_excluded_payment_method_types(),
+				'payment_intent_data'           => [], // @todo Pass additional data if needed.
+				'mode'                          => 'payment',
+				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];
