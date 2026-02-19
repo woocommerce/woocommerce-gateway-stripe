@@ -214,7 +214,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	public function test_stripe_metadata_is_stored() {
 		$session = $this->build_checkout_session(
 			[
-				'payment_intent' => 'pi_test_metadata',
+				'payment_intent' => (object) [ 'id' => 'pi_test_metadata' ],
 				'customer'       => 'cus_test_metadata',
 			]
 		);
@@ -882,38 +882,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that the payment intent ID is extracted from a string.
-	 *
-	 * @return void
-	 */
-	public function test_payment_intent_id_extracted_from_string() {
-		$session = $this->build_checkout_session( [ 'payment_intent' => 'pi_test_string' ] );
-		$order   = $this->mapper->create_order_from_checkout_session( $session );
-
-		$this->assertEquals( 'pi_test_string', $order->get_meta( '_stripe_intent_id', true ) );
-
-		$order->delete( true );
-	}
-
-	/**
-	 * Test that the payment intent ID is extracted from an expanded object.
-	 *
-	 * @return void
-	 */
-	public function test_payment_intent_id_extracted_from_object() {
-		$session = $this->build_checkout_session(
-			[
-				'payment_intent' => (object) [ 'id' => 'pi_test_object' ],
-			]
-		);
-		$order   = $this->mapper->create_order_from_checkout_session( $session );
-
-		$this->assertEquals( 'pi_test_object', $order->get_meta( '_stripe_intent_id', true ) );
-
-		$order->delete( true );
-	}
-
-	/**
 	 * Test creating an order with multiple line items.
 	 *
 	 * @return void
@@ -988,7 +956,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	private function build_checkout_session( array $overrides = [] ): object {
 		$defaults = [
 			'id'               => 'cs_test_123',
-			'payment_intent'   => 'pi_test_456',
+			'payment_intent'   => (object) [ 'id' => 'pi_test_456' ],
 			'customer'         => 'cus_test_789',
 			'customer_email'   => 'test@example.com',
 			'currency'         => 'usd',

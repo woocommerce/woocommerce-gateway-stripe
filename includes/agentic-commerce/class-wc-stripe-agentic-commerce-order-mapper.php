@@ -419,10 +419,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Store payment intent ID (also adds an order note).
-		$payment_intent_id = $this->get_payment_intent_id( $checkout_session );
-		if ( $payment_intent_id ) {
-			$order_helper->add_payment_intent_to_order( $payment_intent_id, $order );
-		}
+		$order_helper->add_payment_intent_to_order( $checkout_session->payment_intent->id, $order ); // @phpstan-ignore property.notFound
 
 		// Store Stripe customer ID.
 		$customer_id = $checkout_session->customer ?? null;
@@ -478,29 +475,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		);
 
 		$order->save();
-	}
-
-	/**
-	 * Extracts the payment intent ID from a checkout session.
-	 *
-	 * The payment_intent field can be either a string ID or an expanded object.
-	 *
-	 * @since 10.5.0
-	 * @param object $checkout_session The Stripe checkout session object.
-	 * @return string|null The payment intent ID, or null if not available.
-	 */
-	private function get_payment_intent_id( object $checkout_session ): ?string {
-		$pi = $checkout_session->payment_intent ?? null;
-
-		if ( is_object( $pi ) && isset( $pi->id ) ) {
-			return $pi->id;
-		}
-
-		if ( is_string( $pi ) && '' !== $pi ) {
-			return $pi;
-		}
-
-		return null;
 	}
 
 	/**
