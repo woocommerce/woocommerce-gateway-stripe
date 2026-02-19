@@ -1108,6 +1108,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		}
 
+		if ( 'deposits' === $cart_product_type ) {
+			\WC_Deposits_Product_Manager::set_deposits_enabled( true );
+		} else {
+			\WC_Deposits_Product_Manager::set_deposits_enabled( false );
+		}
+
 		WC()->cart->empty_cart();
 		$product = null;
 		if ( ! empty( $cart_product_type ) ) {
@@ -1123,6 +1129,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 		\WC_Subscriptions_Product::set_is_subscription( false );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
+		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
 		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		if ( isset( $product ) && $product ) {
@@ -1206,6 +1213,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'has_block'         => false,
 				'adaptive_pricing'  => 'yes',
 				'cart_product_type' => 'pre-order',
+				'expected'          => false,
+			],
+			'deposits in cart'                          => [
+				'feature_flag'      => true,
+				'is_checkout'       => true,
+				'has_block'         => false,
+				'adaptive_pricing'  => 'yes',
+				'cart_product_type' => 'deposits',
 				'expected'          => false,
 			],
 		];

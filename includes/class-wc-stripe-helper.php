@@ -1139,6 +1139,7 @@ class WC_Stripe_Helper {
 
 		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' );
 		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' );
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' );
 
 		// We loop through cart items instead of using WC_Pre_Orders_Cart::cart_contains_pre_order()
 		// and WC_Subscriptions_Cart::cart_contains_subscription() because we need to detect pre-orders
@@ -1159,6 +1160,11 @@ class WC_Stripe_Helper {
 
 			// Pre-order (charge upon release) is not supported with adaptive pricing.
 			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+				return false;
+			}
+
+			// Deposits are not supported with adaptive pricing.
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) {
 				return false;
 			}
 		}
