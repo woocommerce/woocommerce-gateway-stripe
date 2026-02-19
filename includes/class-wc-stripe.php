@@ -655,8 +655,8 @@ class WC_Stripe {
 	 * Runs after Stripe gateway settings option is updated. Reconfigures webhooks only when Adaptive Pricing becomes enabled.
 	 * Adaptive Pricing and Optimized Checkout both must be enabled in the new value for webhooks to be reconfigured.
 	 *
-	 * @param array $old_value Previous option value.
-	 * @param array $value     New option value.
+	 * @param array|false $old_value Previous option value.
+	 * @param array       $value     New option value.
 	 * @return void
 	 */
 	public function maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $value ) {
