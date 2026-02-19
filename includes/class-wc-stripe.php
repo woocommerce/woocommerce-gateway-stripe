@@ -679,8 +679,8 @@ class WC_Stripe {
 		$was_oc_enabled = is_array( $old_value ) && 'yes' === ( $old_value['optimized_checkout_element'] ?? '' );
 		$was_ap_enabled = is_array( $old_value ) && 'yes' === ( $old_value['adaptive_pricing'] ?? '' );
 
-		// If Adaptive Pricing and Optimized Checkout are both unchanged in the new value, do nothing.
-		if ( $was_ap_enabled === $is_ap_enabled && $was_oc_enabled === $is_oc_enabled ) {
+		// If Adaptive Pricing and Optimized Checkout were both enabled before, do nothing.
+		if ( $was_ap_enabled && $was_oc_enabled ) {
 			return;
 		}
 
