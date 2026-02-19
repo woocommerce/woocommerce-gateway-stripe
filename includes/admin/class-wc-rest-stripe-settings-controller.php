@@ -597,7 +597,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'is_ap_enabled' => 'adaptive_pricing',
 			'oc_layout'     => 'optimized_checkout_layout',
 		];
-
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
 
