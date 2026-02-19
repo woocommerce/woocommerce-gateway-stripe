@@ -37,7 +37,7 @@ export const usePaymentCompleteHandler = (
 						};
 					}
 
-					// If no error, we assume success for now. This return value is never used the `confirm` is success.
+					// If no error, we assume success for now. This return value is never used, as the `confirm` call indicates success.
 					return {
 						type: 'success',
 					};
