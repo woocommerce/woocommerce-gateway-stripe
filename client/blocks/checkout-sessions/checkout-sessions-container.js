@@ -5,6 +5,7 @@ import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
+import { __ } from '@wordpress/i18n';
 
 const stripePromise = loadStripe();
 
@@ -20,7 +21,12 @@ export const CheckoutSessionsContainer = ( props ) => {
 		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response.data?.client_secret;
 		if ( ! clientSecret ) {
-			throw new Error( 'Missing client secret in response' );
+			throw new Error(
+				__(
+					'Unable to initialize a checkout session. Please refresh the page and try again.',
+					'woocommerce-gateway-stripe'
+				)
+			);
 		}
 		return clientSecret;
 	}, [ api ] );
