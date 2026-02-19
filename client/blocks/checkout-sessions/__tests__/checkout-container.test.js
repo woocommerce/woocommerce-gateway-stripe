@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
@@ -63,22 +63,5 @@ describe( 'CheckoutSessionsContainer', () => {
 			} ),
 			{}
 		);
-	} );
-
-	it( 'should render an error notice if there is a payment processor load error', () => {
-		useState.mockReturnValue( [
-			{ error: { message: 'Failed to load payment processor' } },
-			jest.fn(),
-		] );
-		render(
-			<CheckoutContainer
-				api={ api }
-				setShouldLoadStripeElements={ setShouldLoadStripeElements }
-			/>
-		);
-
-		expect(
-			screen.getByText( 'Failed to load payment processor' )
-		).toBeInTheDocument();
 	} );
 } );

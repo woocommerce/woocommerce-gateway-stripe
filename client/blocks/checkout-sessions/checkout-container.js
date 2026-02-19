@@ -1,4 +1,3 @@
-import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo, useState } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
@@ -31,10 +30,7 @@ export const CheckoutContainer = ( props ) => {
 		}
 		return clientSecret;
 	}, [ api, setShouldLoadStripeElements ] );
-	const [
-		paymentProcessorLoadErrorMessage,
-		setPaymentProcessorLoadErrorMessage,
-	] = useState( null );
+	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
 	const providerOptions = {
 		clientSecret: checkoutSessionPromise,
@@ -46,23 +42,11 @@ export const CheckoutContainer = ( props ) => {
 	};
 
 	return (
-		<>
-			{ paymentProcessorLoadErrorMessage?.error?.message && (
-				<div className="wc-block-components-notices">
-					<StoreNotice status="error" isDismissible={ false }>
-						{ paymentProcessorLoadErrorMessage.error.message }
-					</StoreNotice>
-				</div>
-			) }
-			<CheckoutProvider
-				stripe={ stripePromise }
-				options={ providerOptions }
-			>
-				<CheckoutForm
-					onLoadError={ setPaymentProcessorLoadErrorMessage }
-					{ ...props }
-				/>
-			</CheckoutProvider>
-		</>
+		<CheckoutProvider stripe={ stripePromise } options={ providerOptions }>
+			<CheckoutForm
+				onLoadError={ setPaymentProcessorLoadErrorMessage }
+				{ ...props }
+			/>
+		</CheckoutProvider>
 	);
 };
