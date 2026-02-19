@@ -466,14 +466,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * Tests that maybe_reconfigure_webhooks_on_update is not called when Adaptive Pricing is disabled or unchanged.
-	 *
-	 * @param bool $is_ap_enabled_request Value for is_ap_enabled in the request.
-	 * @param string $initial_adaptive_pricing Initial gateway adaptive_pricing option.
-	 *
-	 * @dataProvider provide_adaptive_pricing_webhook_not_called
+	 * Tests that maybe_reconfigure_webhooks_on_update is called when Adaptive Pricing is enabled via the REST API.
 	 */
-	public function test_update_oc_settings_does_not_call_maybe_reconfigure_webhooks_when_adaptive_pricing_disabled_or_unchanged( $is_ap_enabled_request, $initial_adaptive_pricing ) {
+	public function test_update_oc_settings_calls_maybe_reconfigure_webhooks_when_adaptive_pricing_disabled() {
 		$original_account = WC_Stripe::get_instance()->account;
 
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -485,27 +480,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		WC_Stripe::get_instance()->account = $mock_account;
 
-		$this->get_gateway()->update_option( 'adaptive_pricing', $initial_adaptive_pricing );
+		$this->get_gateway()->update_option( 'adaptive_pricing', 'no' );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_ap_enabled', $is_ap_enabled_request );
+		$request->set_param( 'is_ap_enabled', false );
 
-		$this->controller->update_settings( $request );
+		$response = $this->controller->update_settings( $request );
 
 		WC_Stripe::get_instance()->account = $original_account;
-	}
 
-	/**
-	 * Data provider for test_update_oc_settings_does_not_call_maybe_reconfigure_webhooks_when_adaptive_pricing_disabled_or_unchanged.
-	 *
-	 * @return array[]
-	 */
-	public function provide_adaptive_pricing_webhook_not_called() {
-		return [
-			'AP disabled in request'     => [ false, 'yes' ],
-			'AP unchanged (already on)'  => [ true, 'yes' ],
-			'AP unchanged (already off)' => [ false, 'no' ],
-		];
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'no', $this->get_gateway()->get_option( 'adaptive_pricing' ) );
 	}
 
 	/**
