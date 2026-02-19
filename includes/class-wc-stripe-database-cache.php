@@ -495,7 +495,7 @@ class WC_Stripe_Database_Cache {
 			return;
 		}
 
-		as_unschedule_all_actions( self::ASYNC_CLEANUP_ACTION, null, 'woocommerce-gateway-stripe' );
+		as_unschedule_all_actions( self::ASYNC_CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Logger::info( 'Unscheduled daily asynchronous cache cleanup' );
 	}

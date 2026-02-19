@@ -77,7 +77,6 @@ describe( 'GeneralSettingsSection', () => {
 
 	beforeEach( () => {
 		mockCurrencyCode( 'EUR' );
-		global.wc_stripe_settings_params = { are_apms_deprecated: false };
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			alipay_payments: 'active',
