@@ -205,9 +205,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$amount_tax      = (int) ( $line_item->amount_tax ?? 0 );
 			$amount_subtotal = (int) ( $line_item->amount_subtotal ?? $amount_total );
 
-			$line_total    = self::convert_from_stripe_amount( $amount_total - $amount_tax, $currency );
-			$line_subtotal = self::convert_from_stripe_amount( $amount_subtotal - $amount_tax, $currency );
-			$line_tax      = self::convert_from_stripe_amount( $amount_tax, $currency );
+			$line_total    = WC_Stripe_Helper::convert_from_stripe_amount( $amount_total - $amount_tax, $currency );
+			$line_subtotal = WC_Stripe_Helper::convert_from_stripe_amount( $amount_subtotal - $amount_tax, $currency );
+			$line_tax      = WC_Stripe_Helper::convert_from_stripe_amount( $amount_tax, $currency );
 
 			$product = $this->resolve_product( $product_id, $line_item );
 
@@ -301,7 +301,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the line item totals do not match.
 	 */
 	private function verify_line_item_totals( WC_Order $order, object $checkout_session ): void {
-		$stripe_subtotal = self::convert_from_stripe_amount(
+		$stripe_subtotal = WC_Stripe_Helper::convert_from_stripe_amount(
 			(int) ( $checkout_session->amount_subtotal ?? $checkout_session->amount_total ), // @phpstan-ignore property.notFound
 			$checkout_session->currency // @phpstan-ignore property.notFound
 		);
@@ -404,7 +404,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$item     = new WC_Order_Item_Shipping();
 		$item->set_method_title( __( 'Shipping', 'woocommerce-gateway-stripe' ) );
 		$item->set_method_id( 'agentic_commerce' );
-		$item->set_total( (string) self::convert_from_stripe_amount( $shipping_amount, $currency ) );
+		$item->set_total( (string) WC_Stripe_Helper::convert_from_stripe_amount( $shipping_amount, $currency ) );
 		$order->add_item( $item );
 	}
 
@@ -453,7 +453,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order->calculate_totals( false );
 
 		// Verify total matches Stripe.
-		$expected_total = self::convert_from_stripe_amount(
+		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
 			(int) $checkout_session->amount_total, // @phpstan-ignore property.notFound
 			$checkout_session->currency // @phpstan-ignore property.notFound
 		);
@@ -501,28 +501,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
-	 *
-	 * @since 10.5.0
-	 * @param int    $amount   The amount in Stripe's smallest currency unit.
-	 * @param string $currency The three-letter currency code.
-	 * @return float The decimal amount for WooCommerce.
-	 */
-	private static function convert_from_stripe_amount( int $amount, string $currency ): float {
-		$currency = strtolower( $currency );
-
-		if ( in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			return (float) $amount;
-		}
-
-		if ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
-			return round( $amount / 1000, 3 );
-		}
-
-		return round( $amount / 100, 2 );
 	}
 
 	/**

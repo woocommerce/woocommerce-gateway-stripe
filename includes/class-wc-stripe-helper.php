@@ -278,6 +278,30 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
+	 *
+	 * This is the inverse of `get_stripe_amount()`.
+	 *
+	 * @since 10.5.0
+	 * @param int    $amount   The amount in Stripe's smallest currency unit.
+	 * @param string $currency The three-letter currency code.
+	 * @return float The decimal amount for WooCommerce.
+	 */
+	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			return (float) $amount;
+		}
+
+		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			return round( $amount / 1000, 3 );
+		}
+
+		return round( $amount / 100, 2 );
+	}
+
+	/**
 	 * Localize Stripe messages based on code
 	 *
 	 * @since 3.0.6
