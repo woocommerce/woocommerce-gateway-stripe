@@ -1,4 +1,5 @@
 import { useEffect } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -21,7 +22,10 @@ export const usePaymentCompleteHandler = (
 					if ( checkoutState.type !== 'success' ) {
 						return {
 							type: 'error',
-							message: __( 'Checkout is not ready for confirmation.', 'woocommerce-gateway-stripe' ),
+							message: __(
+								'Checkout is not ready for confirmation.',
+								'woocommerce-gateway-stripe'
+							),
 						};
 					}
 

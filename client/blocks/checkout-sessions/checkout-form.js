@@ -5,21 +5,28 @@ import {
 } from '@stripe/react-stripe-js/checkout';
 import { useRef, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 
+/**
+ * Checkout Form component.
+ *
+ * @param {Object}      props                        Component props.
+ * @param {Object}      props.components             Object containing components to be used in the checkout form.
+ * @param {JSX.Element} props.components.LoadingMask LoadingMask component to display while loading.
+ * @param {Function}    props.onLoadError            Callback function to handle load errors.
+ * @return {JSX.Element} The Checkout Form component.
+ */
 const CheckoutForm = ( { components: { LoadingMask }, onLoadError } ) => {
 	const checkoutState = useCheckout();
-	const [ , setSelectedPaymentMethodType ] = useState( null );
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const [ , setIsPaymentElementComplete ] = useState( false );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
 
-	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
-		setSelectedPaymentMethodType( value.type );
-		setIsPaymentElementComplete( complete );
+	const onSelectedPaymentMethodChange = ( { value } ) => {
+		handleDisplayOfPaymentInstructions( value.type );
 	};
 
 	if ( checkoutState.type === 'loading' ) {
