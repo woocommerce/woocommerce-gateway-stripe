@@ -1,18 +1,9 @@
 import { randomUUID } from 'crypto';
 import { expect, test } from '@playwright/test';
-import { api, payments } from '../../utils';
+import { admin, api, payments } from '../../utils';
+import { assertLinkModalLoads } from './utils';
 
 const { clickAddToCartButton, emptyCart } = payments;
-
-const getLinkButtonOnBlockPage = async ( page ) => {
-	const frameLocator = await page.frameLocator(
-		'#express-payment-method-express_checkout_element_link iframe[name^="__privateStripeFrame"]'
-	);
-
-	return frameLocator.getByRole( 'button', {
-		name: 'Pay with Link',
-	} );
-};
 
 const addProductToCartById = async ( page, productId ) => {
 	await page.goto( `?p=${ productId }` );
@@ -22,31 +13,29 @@ const addProductToCartById = async ( page, productId ) => {
 	).toBeVisible();
 };
 
-const assertLinkModalLoads = async ( page ) => {
-	const linkButton = await getLinkButtonOnBlockPage( page );
-	await expect( linkButton ).toBeVisible();
-	await expect( linkButton ).toBeEnabled();
-
-	const context = await page.context();
-	const [ popup ] = await Promise.all( [
-		context.waitForEvent( 'page' ),
-		linkButton.dispatchEvent( 'click' ),
-	] );
-
-	await popup.waitForLoadState();
-
-	await expect(
-		page.getByRole( 'button', {
-			name: 'Continue payment',
-		} )
-	).toBeVisible();
-};
-
 let lowAmountProductId;
 let highAmountProductId;
 
 test.describe( 'express checkout with ISK in block cart/checkout', () => {
-	test.beforeAll( async () => {
+	test.beforeAll( async ( { browser } ) => {
+		await admin.updateStoreCurrency( browser, 'ISK' );
+
+		const adminContext = await browser.newContext( {
+			storageState: process.env.ADMINSTATE,
+		} );
+		const page = await adminContext.newPage();
+
+		await page.goto(
+			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+		);
+		await page.getByLabel( 'Link by Stripe' ).check();
+		await page.click( 'text=Save changes' );
+		await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+		await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
+
+		await adminContext.close();
+		await admin.initializeOptimizedCheckout( browser, false );
+
 		lowAmountProductId = await api.create.product( {
 			name: `ISK ECE Low ${ randomUUID() }`,
 			type: 'simple',
@@ -62,7 +51,7 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 		} );
 	} );
 
-	test.afterAll( async () => {
+	test.afterAll( async ( { browser } ) => {
 		if ( lowAmountProductId ) {
 			await api.deletePost.product( lowAmountProductId );
 		}
@@ -70,6 +59,9 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 		if ( highAmountProductId ) {
 			await api.deletePost.product( highAmountProductId );
 		}
+
+		await admin.updateStoreCurrency( browser, 'USD' );
+		await admin.initializeOptimizedCheckout( browser, false );
 	} );
 
 	test.beforeEach( async ( { page } ) => {
@@ -81,7 +73,7 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, lowAmountProductId );
 		await page.goto( '/cart' );
-		await assertLinkModalLoads( page );
+		await assertLinkModalLoads( page, true );
 	} );
 
 	test( 'loads Link express checkout in block checkout for high ISK amount @blocks @express-checkout @isk', async ( {
@@ -89,6 +81,6 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, highAmountProductId );
 		await page.goto( '/checkout' );
-		await assertLinkModalLoads( page );
+		await assertLinkModalLoads( page, true );
 	} );
 } );

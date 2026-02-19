@@ -30,6 +30,15 @@ export const useExpressCheckout = ( {
 	const elements = useElements();
 
 	const buttonOptions = getExpressCheckoutButtonStyleSettings();
+	const transformAmountForStripe = useCallback(
+		( amount ) =>
+			transformPriceWithMinorUnits( amount, billing.currency.minorUnit ),
+		[ billing.currency.minorUnit ]
+	);
+	const parseAndTransformAmount = useCallback(
+		( amount ) => transformAmountForStripe( parseInt( amount, 10 ) ),
+		[ transformAmountForStripe ]
+	);
 
 	const onCancel = () => {
 		onCancelHandler();
@@ -55,12 +64,6 @@ export const useExpressCheckout = ( {
 
 	const onButtonClick = useCallback(
 		async ( event ) => {
-			const transformAmountForStripe = ( amount ) =>
-				transformPriceWithMinorUnits(
-					amount,
-					billing.currency.minorUnit
-				);
-
 			const getShippingRates = () => {
 				// shippingData.shippingRates[ 0 ].shipping_rates will be non-empty
 				// only when the express checkout element's default shipping address
@@ -72,9 +75,7 @@ export const useExpressCheckout = ( {
 						( r ) => {
 							return {
 								id: r.rate_id,
-								amount: transformAmountForStripe(
-									parseInt( r.price, 10 )
-								),
+								amount: parseAndTransformAmount( r.price ),
 								displayName: r.name,
 							};
 						}
@@ -93,9 +94,7 @@ export const useExpressCheckout = ( {
 			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(
 				( lineItem ) => ( {
 					...lineItem,
-					amount: transformAmountForStripe(
-						parseInt( lineItem.amount, 10 )
-					),
+					amount: parseAndTransformAmount( lineItem.amount ),
 				} )
 			);
 			const transformedTotalAmount = transformAmountForStripe(
@@ -150,7 +149,8 @@ export const useExpressCheckout = ( {
 			onClick,
 			billing.cartTotalItems,
 			billing.cartTotal.value,
-			billing.currency.minorUnit,
+			parseAndTransformAmount,
+			transformAmountForStripe,
 			shippingData.needsShipping,
 			shippingData.shippingRates,
 		]
