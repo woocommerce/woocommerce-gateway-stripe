@@ -65,7 +65,7 @@ const CheckoutForm = ( {
 			/>
 			<CurrencySelectorElement />
 			<PaymentElement
-				options={ getStripeElementOptions() }
+				options={ getStripeElementOptions( true ) }
 				onChange={ onSelectedPaymentMethodChange }
 				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"

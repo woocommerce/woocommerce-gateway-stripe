@@ -149,9 +149,10 @@ export const getStripeImageUrl = ( imageName ) => {
 /**
  * Gets the Stripe element options.
  *
+ * @param {boolean} forCheckoutSession Whether the options are for a checkout session. If true, it will remove options not supported by checkout sessions.
  * @return {Object} The Stripe element options.
  */
-export const getStripeElementOptions = () => {
+export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 	let options = {
 		fields: {
 			billingDetails: {
@@ -177,7 +178,7 @@ export const getStripeElementOptions = () => {
 	};
 
 	// Prefill Link customer data if available.
-	if ( isLinkEnabled() ) {
+	if ( isLinkEnabled() && ! forCheckoutSession ) {
 		const userEmail = document.getElementById( 'email' )?.value;
 		if ( userEmail ) {
 			const userPhone =
