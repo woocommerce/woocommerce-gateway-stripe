@@ -56,11 +56,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order = $this->create_order( $checkout_session );
 		$this->map_customer( $order, $checkout_session );
 		$this->map_line_items( $order, $checkout_session );
-		$this->verify_line_item_totals( $order, $checkout_session );
 		$this->map_addresses( $order, $checkout_session );
 		$this->map_shipping( $order, $checkout_session );
 		$this->store_stripe_metadata( $order, $checkout_session );
-		$this->finalize_order( $order, $checkout_session );
+		$this->verify_order_total( $order, $checkout_session );
+
+		$order->set_status( 'processing' );
+		$order->save();
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
@@ -103,7 +105,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the currency is not supported.
 	 */
 	private function validate_currency( object $checkout_session ): void {
-		$currency            = strtoupper( $checkout_session->currency ); // @phpstan-ignore property.notFound
+		$currency             = strtoupper( $checkout_session->currency ); // @phpstan-ignore property.notFound
 		$supported_currencies = array_keys( get_woocommerce_currencies() );
 
 		if ( ! in_array( $currency, $supported_currencies, true ) ) {
@@ -139,6 +141,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		$order->set_currency( strtoupper( $checkout_session->currency ) ); // @phpstan-ignore property.notFound
+		$order->set_payment_method( 'stripe' );
+		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		$order->add_order_note(
+			__( 'Order created from Stripe agentic commerce checkout session.', 'woocommerce-gateway-stripe' )
+		);
 
 		return $order;
 	}
@@ -187,9 +194,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When a product cannot be found for a line item.
 	 */
 	private function map_line_items( WC_Order $order, object $checkout_session ): void {
-		$currency = $checkout_session->currency; // @phpstan-ignore property.notFound
+		$currency   = $checkout_session->currency; // @phpstan-ignore property.notFound
+		$line_items = $checkout_session->line_items->data ?? [];
 
-		foreach ( $checkout_session->line_items->data as $line_item ) { // @phpstan-ignore property.notFound
+		if ( empty( $line_items ) ) {
+			throw new Exception(
+				sprintf(
+					'Checkout session %s has no line items.',
+					$checkout_session->id // @phpstan-ignore property.notFound
+				)
+			);
+		}
+
+		foreach ( $line_items as $line_item ) {
 			$product_id = intval( $line_item->price->external_reference ?? '' );
 			if ( 0 === $product_id ) {
 				throw new Exception(
@@ -290,38 +307,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
-	 * Verifies that the sum of WooCommerce line item totals matches the
-	 * Stripe checkout session subtotal. Throws if they diverge.
-	 *
-	 * This catches mapping errors before the order is finalized.
+	 * Maps an address from the checkout session to the order.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Order $order            The WooCommerce order.
-	 * @param object   $checkout_session The Stripe checkout session object.
-	 * @throws Exception When the line item totals do not match.
+	 * @param WC_Order $order The WooCommerce order.
+	 * @param object   $address The Stripe address object.
+	 * @param string   $type The type of address to map ('billing' or 'shipping').
 	 */
-	private function verify_line_item_totals( WC_Order $order, object $checkout_session ): void {
-		$stripe_subtotal = WC_Stripe_Helper::convert_from_stripe_amount(
-			(int) ( $checkout_session->amount_subtotal ?? $checkout_session->amount_total ), // @phpstan-ignore property.notFound
-			$checkout_session->currency // @phpstan-ignore property.notFound
-		);
+	private function map_address( WC_Order $order, object $address, string $type = 'billing' ): void {
+		$map = [
+			'city'        => 'city',
+			'country'     => 'country',
+			'line1'       => 'address_1',
+			'line2'       => 'address_2',
+			'postal_code' => 'postcode',
+			'state'       => 'state',
+		];
 
-		$wc_items_total = 0.0;
-		foreach ( $order->get_items() as $item ) {
-			if ( $item instanceof WC_Order_Item_Product ) {
-				$wc_items_total += (float) $item->get_total() + (float) $item->get_total_tax();
-			}
-		}
-
-		if ( abs( $wc_items_total - $stripe_subtotal ) > 0.01 ) {
-			throw new Exception(
-				sprintf(
-					'Line item total mismatch for session %s: WC items total %.2f, Stripe subtotal %.2f.',
-					$checkout_session->id, // @phpstan-ignore property.notFound
-					$wc_items_total,
-					$stripe_subtotal
-				)
-			);
+		foreach ( $map as $received_key => $order_key ) {
+			$method_name = sprintf( 'set_%s_%s', $type, $order_key );
+			$order->$method_name( $address->$received_key ?? '' );
 		}
 	}
 
@@ -338,15 +343,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @param object   $checkout_session The Stripe checkout session object.
 	 */
 	private function map_addresses( WC_Order $order, object $checkout_session ): void {
-		// Billing address from customer_details.
+		// Resolve shipping details: top-level shipping_details or collected_information.shipping_details.
+		$shipping_details = $checkout_session->shipping_details
+			?? $checkout_session->collected_information->shipping_details
+			?? null;
+
+		// Billing from customer_details.
 		if ( isset( $checkout_session->customer_details ) ) {
 			$details = $checkout_session->customer_details;
 
-			// customer_details.name can be null — fall back to shipping_details.name.
+			// customer_details.name can be null — fall back to shipping name.
 			$billing_name = $details->name
-				?? $checkout_session->shipping_details->name
-				?? '';
-			$name = self::split_full_name( $billing_name );
+				?? ( $shipping_details->name ?? '' );
+			$name         = self::split_full_name( $billing_name );
 
 			$order->set_billing_first_name( $name['first'] );
 			$order->set_billing_last_name( $name['last'] );
@@ -356,32 +365,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			}
 
 			if ( isset( $details->address ) ) {
-				$addr = $details->address;
-				$order->set_billing_address_1( $addr->line1 ?? '' );
-				$order->set_billing_address_2( $addr->line2 ?? '' );
-				$order->set_billing_city( $addr->city ?? '' );
-				$order->set_billing_state( $addr->state ?? '' );
-				$order->set_billing_postcode( $addr->postal_code ?? '' );
-				$order->set_billing_country( $addr->country ?? '' );
+				$this->map_address( $order, $details->address, 'billing' );
 			}
 		}
 
-		// Shipping address from shipping_details.
-		if ( isset( $checkout_session->shipping_details ) ) {
-			$shipping = $checkout_session->shipping_details;
-			$name     = self::split_full_name( $shipping->name ?? '' );
+		// Shipping from resolved shipping details.
+		if ( $shipping_details ) {
+			$name = self::split_full_name( $shipping_details->name ?? '' );
 
 			$order->set_shipping_first_name( $name['first'] );
 			$order->set_shipping_last_name( $name['last'] );
 
-			if ( isset( $shipping->address ) ) {
-				$addr = $shipping->address;
-				$order->set_shipping_address_1( $addr->line1 ?? '' );
-				$order->set_shipping_address_2( $addr->line2 ?? '' );
-				$order->set_shipping_city( $addr->city ?? '' );
-				$order->set_shipping_state( $addr->state ?? '' );
-				$order->set_shipping_postcode( $addr->postal_code ?? '' );
-				$order->set_shipping_country( $addr->country ?? '' );
+			$shipping_phone = $shipping_details->phone
+				?? $checkout_session->customer_details->phone
+				?? '';
+			if ( ! empty( $shipping_phone ) ) {
+				$order->set_shipping_phone( $shipping_phone );
+			}
+
+			if ( isset( $shipping_details->address ) ) {
+				$this->map_address( $order, $shipping_details->address, 'shipping' );
 			}
 		}
 	}
@@ -435,46 +438,35 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
-	 * Finalizes the order: sets payment method, calculates totals, verifies
-	 * the total matches Stripe, sets order status, and saves.
+	 * Verifies that the WC order total matches the Stripe session total.
+	 *
+	 * Called after all components (line items, shipping, tax) are mapped
+	 * so the comparison covers the full order amount.
 	 *
 	 * @since 10.5.0
 	 * @param WC_Order $order            The WooCommerce order.
 	 * @param object   $checkout_session The Stripe checkout session object.
+	 * @throws Exception When the totals diverge beyond rounding tolerance.
 	 */
-	private function finalize_order( WC_Order $order, object $checkout_session ): void {
-		$order->set_payment_method( 'stripe' );
-		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
-
-		// Calculate totals without recalculating taxes (we trust Stripe's amounts).
+	private function verify_order_total( WC_Order $order, object $checkout_session ): void {
 		$order->calculate_totals( false );
 
-		// Verify total matches Stripe.
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
 			(int) $checkout_session->amount_total, // @phpstan-ignore property.notFound
 			$checkout_session->currency // @phpstan-ignore property.notFound
 		);
-		$order_total = (float) $order->get_total();
+		$order_total    = (float) $order->get_total();
 
 		if ( abs( $order_total - $expected_total ) > 0.01 ) {
-			WC_Stripe_Logger::info(
-				'Agentic order mapper: total mismatch, overriding with Stripe total.',
-				[
-					'order_total'    => $order_total,
-					'expected_total' => $expected_total,
-					'session_id'     => $checkout_session->id, // @phpstan-ignore property.notFound
-				]
+			throw new Exception(
+				sprintf(
+					'Order total mismatch for session %s: WC total %.2f, Stripe total %.2f.',
+					$checkout_session->id, // @phpstan-ignore property.notFound
+					$order_total,
+					$expected_total
+				)
 			);
-			$order->set_total( (string) $expected_total );
 		}
-
-		$order->set_status( 'processing' );
-
-		$order->add_order_note(
-			__( 'Order created from Stripe agentic commerce checkout session.', 'woocommerce-gateway-stripe' )
-		);
-
-		$order->save();
 	}
 
 	/**

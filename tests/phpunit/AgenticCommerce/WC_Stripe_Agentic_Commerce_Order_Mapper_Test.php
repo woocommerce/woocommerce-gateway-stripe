@@ -421,53 +421,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that an exception is thrown when line item totals do not match Stripe subtotal.
-	 *
-	 * @return void
-	 */
-	public function test_exception_thrown_when_line_item_totals_mismatch() {
-		$product = WC_Helper_Product::create_simple_product(
-			true,
-			[
-				'regular_price' => '10.00',
-				'price'         => '10.00',
-			]
-		);
-		$session = $this->build_checkout_session(
-			[
-				// Stripe says subtotal is $50 but the single line item only totals $10.
-				'amount_total'    => 5000,
-				'amount_subtotal' => 5000,
-				'line_items'      => $this->build_line_items(
-					[
-						[
-							'lookup_key'      => (string) $product->get_id(),
-							'description'     => 'Test Product',
-							'quantity'        => 1,
-							'unit_amount'     => 1000,
-							'amount_total'    => 1000,
-							'amount_subtotal' => 1000,
-							'amount_tax'      => 0,
-						],
-					]
-				),
-				'total_details'   => (object) [
-					'amount_shipping' => 0,
-					'amount_tax'      => 0,
-					'amount_discount' => 0,
-				],
-			]
-		);
-
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'Line item total mismatch' );
-
-		$this->mapper->create_order_from_checkout_session( $session );
-
-		$product->delete( true );
-	}
-
-	/**
 	 * Test that line item quantity is preserved.
 	 *
 	 * @return void
@@ -682,6 +635,64 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that billing name and shipping address fall back to
+	 * collected_information.shipping_details when top-level
+	 * shipping_details is absent.
+	 *
+	 * @return void
+	 */
+	public function test_addresses_fall_back_to_collected_information() {
+		$session = $this->build_checkout_session(
+			[
+				'customer_details'      => (object) [
+					'email'   => 'test@example.com',
+					'name'    => null,
+					'phone'   => '+12015550134',
+					'address' => (object) [
+						'line1'       => '1017 Wealthy Street Southeast',
+						'line2'       => null,
+						'city'        => 'Grand Rapids',
+						'state'       => 'MI',
+						'postal_code' => '49506',
+						'country'     => 'US',
+					],
+				],
+				'shipping_details'      => null,
+				'collected_information' => (object) [
+					'shipping_details' => (object) [
+						'name'    => 'Radoslav Georgiev',
+						'address' => (object) [
+							'line1'       => '500 Market St',
+							'line2'       => null,
+							'city'        => 'San Francisco',
+							'state'       => 'CA',
+							'postal_code' => '94105',
+							'country'     => 'US',
+						],
+					],
+				],
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		// Billing name falls back to collected_information.shipping_details.name.
+		$this->assertEquals( 'Radoslav', $order->get_billing_first_name() );
+		$this->assertEquals( 'Georgiev', $order->get_billing_last_name() );
+
+		// Shipping address comes from collected_information.shipping_details.
+		$this->assertEquals( 'Radoslav', $order->get_shipping_first_name() );
+		$this->assertEquals( 'Georgiev', $order->get_shipping_last_name() );
+		$this->assertEquals( '500 Market St', $order->get_shipping_address_1() );
+		$this->assertEquals( 'San Francisco', $order->get_shipping_city() );
+		$this->assertEquals( 'CA', $order->get_shipping_state() );
+		$this->assertEquals( '94105', $order->get_shipping_postcode() );
+		$this->assertEquals( 'US', $order->get_shipping_country() );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Test that the billing address is mapped from customer_details.
 	 *
 	 * @return void
@@ -876,7 +887,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$session->line_items = (object) [ 'data' => [] ];
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'Line item total mismatch' );
+		$this->expectExceptionMessage( 'has no line items' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
