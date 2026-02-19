@@ -175,6 +175,8 @@
     "test:e2e-lpm-blik-debug": "npm run test:e2e-lpm-blik -- --debug",
     "test:e2e-lpm-becs": "./tests/e2e/bin/run-tests.sh --project=becs",
     "test:e2e-lpm-becs-debug": "npm run test:e2e-lpm-becs -- --debug",
+    "test:e2e-isk": "./tests/e2e/bin/run-tests.sh --project=isk",
+    "test:e2e-isk-debug": "npm run test:e2e-isk -- --debug",
     "changelog": "node bin/changelog.js"
   },
   "engines": {

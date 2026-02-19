@@ -14,6 +14,7 @@ import {
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
@@ -54,6 +55,12 @@ export const useExpressCheckout = ( {
 
 	const onButtonClick = useCallback(
 		async ( event ) => {
+			const transformAmountForStripe = ( amount ) =>
+				transformPriceWithMinorUnits(
+					amount,
+					billing.currency.minorUnit
+				);
+
 			const getShippingRates = () => {
 				// shippingData.shippingRates[ 0 ].shipping_rates will be non-empty
 				// only when the express checkout element's default shipping address
@@ -65,7 +72,9 @@ export const useExpressCheckout = ( {
 						( r ) => {
 							return {
 								id: r.rate_id,
-								amount: parseInt( r.price, 10 ),
+								amount: transformAmountForStripe(
+									parseInt( r.price, 10 )
+								),
 								displayName: r.name,
 							};
 						}
@@ -81,7 +90,17 @@ export const useExpressCheckout = ( {
 				return defaultShippingOption ? [ defaultShippingOption ] : [];
 			};
 
-			const lineItems = normalizeLineItems( billing.cartTotalItems );
+			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(
+				( lineItem ) => ( {
+					...lineItem,
+					amount: transformAmountForStripe(
+						parseInt( lineItem.amount, 10 )
+					),
+				} )
+			);
+			const transformedTotalAmount = transformAmountForStripe(
+				billing.cartTotal.value
+			);
 			const totalAmountOfLineItems = lineItems.reduce(
 				( acc, lineItem ) => {
 					return acc + lineItem.amount;
@@ -96,7 +115,7 @@ export const useExpressCheckout = ( {
 				// if that happens, let's just not return any of the line items.
 				// This way, just the total amount will be displayed to the customer.
 				lineItems:
-					billing.cartTotal.value < totalAmountOfLineItems
+					transformedTotalAmount < totalAmountOfLineItems
 						? []
 						: lineItems,
 				emailRequired: true,
@@ -131,6 +150,7 @@ export const useExpressCheckout = ( {
 			onClick,
 			billing.cartTotalItems,
 			billing.cartTotal.value,
+			billing.currency.minorUnit,
 			shippingData.needsShipping,
 			shippingData.shippingRates,
 		]

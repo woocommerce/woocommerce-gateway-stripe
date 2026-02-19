@@ -87,6 +87,7 @@ const config = {
 			testMatch: '**/*.spec.js',
 			testIgnore: [
 				'**/acss.spec.js',
+				'**/isk.spec.js',
 				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
@@ -97,6 +98,23 @@ const config = {
 		{
 			name: 'acss-setup',
 			testMatch: '/acss.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'isk-setup',
+			testMatch: '/isk.setup.js',
+			teardown: 'isk-teardown',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'isk',
+			testMatch: '**/isk.spec.js',
+			dependencies: [ 'isk-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'isk-teardown',
+			testMatch: '/isk.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
