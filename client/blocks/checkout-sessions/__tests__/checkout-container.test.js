@@ -40,6 +40,7 @@ describe( 'CheckoutSessionsContainer', () => {
 			data: { client_secret: 'test_secret' },
 		} ),
 	};
+	const setShouldLoadStripeElements = jest.fn();
 
 	beforeEach( () => {
 		initializeUPEAppearance.mockReturnValue( {} );
@@ -48,7 +49,12 @@ describe( 'CheckoutSessionsContainer', () => {
 	} );
 
 	it( 'should render the container', () => {
-		render( <CheckoutContainer api={ api } /> );
+		render(
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+			/>
+		);
 
 		expect( CheckoutProvider ).toHaveBeenCalledWith(
 			expect.objectContaining( {
@@ -64,7 +70,12 @@ describe( 'CheckoutSessionsContainer', () => {
 			{ error: { message: 'Failed to load payment processor' } },
 			jest.fn(),
 		] );
-		render( <CheckoutContainer api={ api } /> );
+		render(
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+			/>
+		);
 
 		expect(
 			screen.getByText( 'Failed to load payment processor' )
