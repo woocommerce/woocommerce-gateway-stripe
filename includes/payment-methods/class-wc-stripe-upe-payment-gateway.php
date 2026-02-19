@@ -966,6 +966,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 		$save_payment_method   = $this->should_save_payment_method_from_request( $order_id, $selected_payment_type );
 
+		if ( ! is_string( $checkout_session_id ) ) {
+			$checkout_session_id = '';
+		}
+
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
 			// Adds customer and metadata to PaymentIntent.
 			// These parameters cannot be added upon updating the intent via the `/confirm` API.
@@ -1293,13 +1297,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function process_payment_with_checkout_session( int $order_id, string $checkout_session_id ) {
 		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			WC_Stripe_Logger::error( 'Could not find order in process_payment_with_checkout_session: ' . $order_id );
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save();
 
 		// Remove cart.
-		if ( isset( WC()->cart ) ) {
+		if ( WC()->cart ) {
 			WC()->cart->empty_cart();
 		}
 

@@ -986,6 +986,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_order_by_checkout_session_id( $checkout_session_id ) {
 		global $wpdb;
+		$order = false;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
@@ -1008,7 +1009,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
+		if ( $order instanceof WC_Order && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 

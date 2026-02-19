@@ -1402,12 +1402,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param object $notification The notification from Stripe
 	 */
-	public function process_checkout_session( $notification ) {
+	public function process_checkout_session( $notification ): void {
+		if ( ! isset( $notification->data->object ) || ! is_object( $notification->data->object ) ) {
+			WC_Stripe_Logger::error( 'Checkout session webhook payload is missing data.object.' );
+			return;
+		}
+
 		$checkout_session = $notification->data->object;
+
+		if ( empty( $checkout_session->id ) || ! is_string( $checkout_session->id ) ) {
+			WC_Stripe_Logger::error( 'Checkout session webhook payload is missing a valid session ID.' );
+			return;
+		}
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			WC_Stripe_Logger::error( 'Could not find order via checkout session ID: ' . $checkout_session->id );
 			return;
 		}
@@ -1422,73 +1432,97 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$intent_id = isset( $checkout_session->payment_intent ) && is_string( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : '';
+		if ( '' === $intent_id ) {
+			WC_Stripe_Logger::error( 'Checkout session webhook payload is missing a valid payment intent ID.' );
+			return;
+		}
+
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Lock the order
+		// Lock the order.
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
 		}
 
-		$intent_id = $checkout_session->payment_intent;
+		try {
+			// Store the payment intent ID on the order.
+			$order_helper->add_payment_intent_to_order( $intent_id, $order );
 
-		// Store the payment intent ID on the order.
-		$order_helper->add_payment_intent_to_order( $intent_id, $order );
+			// Add presentment details if available.
+			if (
+				! empty( $checkout_session->presentment_details )
+				&& is_object( $checkout_session->presentment_details )
+				&& isset( $checkout_session->presentment_details->presentment_currency, $checkout_session->presentment_details->presentment_amount )
+			) {
+				$presentment_details = $checkout_session->presentment_details;
+				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 
-		// Add presentment details if available.
-		if ( ! empty( $checkout_session->presentment_details ) ) {
-			$presentment_details = $checkout_session->presentment_details;
-			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
-			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+					$presentment_details->presentment_amount,
+					$presentment_details->presentment_currency
+				);
 
-			$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-				$presentment_details->presentment_amount,
-				$presentment_details->presentment_currency
-			);
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1) presentment currency 2) presentment amount */
+						__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						strtoupper( $presentment_details->presentment_currency ),
+						$amount
+					)
+				);
+			}
 
-			$order->add_order_note(
-				sprintf(
-					/* translators: 1) presentment currency 2) presentment amount */
-					__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-					strtoupper( $presentment_details->presentment_currency ),
-					$amount
-				)
-			);
+			$intent = $this->get_intent_from_order( $order );
+			if ( ! is_object( $intent ) ) {
+				WC_Stripe_Logger::error( 'Could not find payment intent for checkout session ID: ' . $checkout_session->id );
+				return;
+			}
+
+			// Update the order with the payment method ID if it's not already set.
+			if (
+				! $order_helper->get_stripe_source_id( $order )
+				&& isset( $intent->payment_method )
+				&& is_object( $intent->payment_method )
+				&& isset( $intent->payment_method->id )
+				&& is_string( $intent->payment_method->id )
+			) {
+				$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
+			}
+
+			$order->save();
+
+			$charge = $this->get_latest_charge_from_intent( $intent );
+			if ( ! is_object( $charge ) ) {
+				WC_Stripe_Logger::error( 'Could not find charge for checkout session ID: ' . $checkout_session->id );
+				return;
+			}
+
+			$charge = (object) array_merge( (array) $charge, [ 'is_webhook_response' => true ] );
+			$this->process_response( $charge, $order );
+
+			// Store remaining metadata for the checkout session object.
+			$request = [
+				'metadata' => [
+					'order_id'   => $order->get_order_number(),
+					'order_key'  => $order->get_order_key(),
+					'signature'  => $this->get_order_signature( $order ),
+					'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+				],
+			];
+
+			$response = WC_Stripe_API::request( $request, 'checkout/sessions/' . $checkout_session->id, 'POST' );
+			if ( is_object( $response ) && isset( $response->error ) && is_object( $response->error ) && ! empty( $response->error->message ) ) {
+				WC_Stripe_Logger::error( 'Failed to update checkout session metadata: ' . $response->error->message );
+			}
+		} finally {
+			// Unlock the order.
+			$order_helper->unlock_order_payment( $order );
 		}
-
-		$intent = $this->get_intent_from_order( $order );
-
-		// Update the order with the payment method ID if it's not already set.
-		if ( ! $order_helper->get_stripe_source_id( $order ) ) {
-			$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
-		}
-
-		$order->save();
-
-		$charge = $this->get_latest_charge_from_intent( $intent );
-
-		$charge->is_webhook_response = true;
-		$this->process_response( $charge, $order );
-
-		// Store remaining metadata for the checkout session object.
-		$request = [
-			'metadata' => [
-				'order_id'   => $order->get_order_number(),
-				'order_key'  => $order->get_order_key(),
-				'signature'  => $this->get_order_signature( $order ),
-				'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
-			],
-		];
-
-		$response = WC_Stripe_API::request( $request, 'checkout/sessions/' . $checkout_session->id, 'POST' );
-		if ( ! empty( $response->error ) ) {
-			WC_Stripe_Logger::error( 'Failed to update checkout session metadata: ' . $response->error->message );
-		}
-
-		// Unlock the order
-		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**
