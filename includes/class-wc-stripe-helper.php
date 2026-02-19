@@ -1135,6 +1135,11 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
+		// We loop through cart items instead of using WC_Pre_Orders_Cart::cart_contains_pre_order()
+		// and WC_Subscriptions_Cart::cart_contains_subscription() because we need to detect pre-orders
+		// that are charged upon release specifically (WC_Pre_Orders_Product::product_is_charged_upon_release),
+		// and there is no cart-level helper for that. Looping also lets us check both subscription and
+		// pre-order in a single pass.
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
