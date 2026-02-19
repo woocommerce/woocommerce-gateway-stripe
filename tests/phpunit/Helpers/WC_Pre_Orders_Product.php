@@ -23,7 +23,7 @@ class WC_Pre_Orders_Product {
 	 * @param bool $result The value to return from product_is_charged_upon_release().
 	 * @return void
 	 */
-	public static function set_is_pre_order( bool $result ): void {
+	public static function set_is_pre_order_charged_upon_release( bool $result ): void {
 		self::$product_is_charged_upon_release_result = $result;
 	}
 

@@ -1103,9 +1103,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		if ( 'pre-order' === $cart_product_type ) {
-			\WC_Pre_Orders_Product::set_is_pre_order( true );
+			\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( true );
 		} else {
-			\WC_Pre_Orders_Product::set_is_pre_order( false );
+			\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		}
 
 		WC()->cart->empty_cart();
@@ -1122,7 +1122,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 		\WC_Subscriptions_Product::set_is_subscription( false );
-		\WC_Pre_Orders_Product::set_is_pre_order( false );
+		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		if ( isset( $product ) && $product ) {
