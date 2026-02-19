@@ -47,7 +47,11 @@ test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	await setupShortcodeCheckout( page, customerData );
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
 
-	await page.locator( 'text="Place pre-order now"' ).click();
+	const placePreOrderButton = page.getByRole( 'button', {
+		name: 'Place pre-order now',
+	} );
+	await expect( placePreOrderButton ).toBeEnabled();
+	await placePreOrderButton.dispatchEvent( 'click' );
 	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

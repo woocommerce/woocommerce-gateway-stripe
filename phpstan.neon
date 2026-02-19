@@ -12,6 +12,7 @@ parameters:
 	bootstrapFiles:
 		- vendor/autoload.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
 	scanDirectories:
 		- phpstan-stubs
 	treatPhpDocTypesAsCertain: false
