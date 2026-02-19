@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
-import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
+import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
@@ -48,7 +48,7 @@ describe( 'CheckoutSessionsContainer', () => {
 	} );
 
 	it( 'should render the container', () => {
-		render( <CheckoutSessionsContainer api={ api } /> );
+		render( <CheckoutContainer api={ api } /> );
 
 		expect( CheckoutProvider ).toHaveBeenCalledWith(
 			expect.objectContaining( {
@@ -64,7 +64,7 @@ describe( 'CheckoutSessionsContainer', () => {
 			{ error: { message: 'Failed to load payment processor' } },
 			jest.fn(),
 		] );
-		render( <CheckoutSessionsContainer api={ api } /> );
+		render( <CheckoutContainer api={ api } /> );
 
 		expect(
 			screen.getByText( 'Failed to load payment processor' )

@@ -20,7 +20,7 @@ import {
 	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
+import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 
 const stripeServerData = getBlocksConfiguration();
 
@@ -105,7 +105,7 @@ const PaymentElements = ( {
 
 	if ( isAdaptivePricingSupported && ! shouldLoadStripeElements ) {
 		return (
-			<CheckoutSessionsContainer
+			<CheckoutContainer
 				api={ api }
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }
 				LoadingMask={ LoadingMask }

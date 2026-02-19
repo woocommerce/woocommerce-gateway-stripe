@@ -15,7 +15,7 @@ const stripePromise = loadStripe();
  * @param {Object} props Component props.
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
-export const CheckoutSessionsContainer = ( props ) => {
+export const CheckoutContainer = ( props ) => {
 	const { api, setShouldLoadStripeElements } = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
