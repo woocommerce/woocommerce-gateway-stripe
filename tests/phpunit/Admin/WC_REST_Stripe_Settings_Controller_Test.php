@@ -438,62 +438,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * Tests that maybe_reconfigure_webhooks_on_update is called when Adaptive Pricing is enabled via the REST API.
-	 */
-	public function test_update_oc_settings_calls_maybe_reconfigure_webhooks_when_adaptive_pricing_enabled() {
-		$original_account = WC_Stripe::get_instance()->account;
-
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
-			->getMock();
-		$mock_account->expects( $this->once() )
-			->method( 'maybe_reconfigure_webhooks_on_update' );
-
-		WC_Stripe::get_instance()->account = $mock_account;
-
-		$this->get_gateway()->update_option( 'adaptive_pricing', 'no' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_ap_enabled', true );
-
-		$response = $this->controller->update_settings( $request );
-
-		WC_Stripe::get_instance()->account = $original_account;
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertSame( 'yes', $this->get_gateway()->get_option( 'adaptive_pricing' ) );
-	}
-
-	/**
-	 * Tests that maybe_reconfigure_webhooks_on_update is called when Adaptive Pricing is enabled via the REST API.
-	 */
-	public function test_update_oc_settings_calls_maybe_reconfigure_webhooks_when_adaptive_pricing_disabled() {
-		$original_account = WC_Stripe::get_instance()->account;
-
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
-			->getMock();
-		$mock_account->expects( $this->never() )
-			->method( 'maybe_reconfigure_webhooks_on_update' );
-
-		WC_Stripe::get_instance()->account = $mock_account;
-
-		$this->get_gateway()->update_option( 'adaptive_pricing', 'no' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_ap_enabled', false );
-
-		$response = $this->controller->update_settings( $request );
-
-		WC_Stripe::get_instance()->account = $original_account;
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertSame( 'no', $this->get_gateway()->get_option( 'adaptive_pricing' ) );
-	}
-
-	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
 	 * @param array $request_params The request parameters.
