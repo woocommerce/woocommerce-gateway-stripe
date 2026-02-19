@@ -1,7 +1,7 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
+import { getAppearance, getFontRulesFromPage } from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -45,6 +45,8 @@ const getStripeServerData = () => {
 
 	return data;
 };
+
+const stripeServerData = getStripeServerData();
 
 const isNonFriendlyError = ( type ) =>
 	[
@@ -462,7 +464,6 @@ export const getUpeSettings = () => {
  * @return {Object} The defaultValues object for the Payment Element.
  */
 export const getDefaultValues = () => {
-	const stripeServerData = getStripeServerData();
 	const isOrderPay = stripeServerData?.isOrderPay;
 	const isChangingPayment = stripeServerData?.isChangingPayment;
 	const isAddPaymentMethod = stripeServerData?.isAddPaymentMethod;
@@ -543,9 +544,7 @@ export const getDefaultValues = () => {
  * @return {Array<string>} Array of payment method types to exclude.
  */
 export const getExcludedPaymentMethodTypes = () => {
-	const stripeServerData = getStripeServerData();
 	const excludedTypes = stripeServerData?.excludedPaymentMethodTypes;
-
 	if ( ! Array.isArray( excludedTypes ) || excludedTypes.length === 0 ) {
 		return [ PAYMENT_METHOD_AMAZON_PAY ];
 	}
@@ -936,4 +935,130 @@ export const getFontSizeBase = ( defaultFontSize ) => {
 	}
 
 	return defaultFontSize;
+};
+
+/**
+ * Whether manual renewal is required based on the payment method's reusability.
+ *
+ * It is considered required if:
+ * - The payment method is not reusable and manual renewal is enabled in the configuration.
+ * - The configuration explicitly requires manual renewal.
+ *
+ * @param {boolean} isReusablePaymentMethod
+ * @return {boolean} True if manual renewal is required, false otherwise.
+ */
+const isManualRenewalRequired = ( isReusablePaymentMethod ) => {
+	return (
+		( ! isReusablePaymentMethod &&
+			stripeServerData?.subscriptionManualRenewalEnabled ) ||
+		stripeServerData?.subscriptionRequiresManualRenewal
+	);
+};
+
+/**
+ * Checks if the cart contains an auto-renewing subscription.
+ *
+ * @param {boolean} isReusablePaymentMethod Indicates if the payment method is reusable.
+ * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
+ */
+const hasAutoRenewingSubscription = ( isReusablePaymentMethod ) => {
+	return (
+		stripeServerData?.cartContainsSubscription &&
+		! isManualRenewalRequired( isReusablePaymentMethod )
+	);
+};
+
+/**
+ * Determines if off-session payment should be set up.
+ *
+ * @param {boolean} shouldShowSaveOption    - Whether to show the save option.
+ * @param {boolean} isPaymentMethodReusable - Whether the payment method is reusable.
+ * @return {boolean} True if off-session payment should be set up, false otherwise.
+ */
+export const shouldSetupOffSessionPayment = (
+	shouldShowSaveOption,
+	isPaymentMethodReusable
+) => {
+	return (
+		shouldShowSaveOption ||
+		hasAutoRenewingSubscription( isPaymentMethodReusable ) ||
+		( isPaymentMethodReusable && stripeServerData?.forceSavePaymentMethod )
+	);
+};
+
+/**
+ * Gets the Stripe provider options for initializing the Stripe Elements provider.
+ *
+ * @param {Object}  api                    The Stripe API object.
+ * @param {string}  clientSecret           The client secret for the payment or setup intent, if available.
+ * @param {boolean} isReusable             Whether the payment method is reusable.
+ * @param {string}  paymentMethodId        The payment method ID.
+ * @param {boolean} showSaveOption         Whether to show the save payment method option.
+ * @param {boolean} supportsDeferredIntent Whether the payment method supports deferred intent creation.
+ *
+ * @return {Object} The Stripe provider options.
+ */
+export const getStripeProviderOptions = (
+	api,
+	clientSecret,
+	isReusable,
+	paymentMethodId,
+	showSaveOption,
+	supportsDeferredIntent
+) => {
+	let options = {
+		appearance: initializeUPEAppearance( api, 'true' ),
+		paymentMethodCreation: 'manual',
+		fonts: getFontRulesFromPage(),
+	};
+
+	const amount = Number( stripeServerData?.cartTotal );
+
+	if ( supportsDeferredIntent ) {
+		options = {
+			...options,
+			...{
+				mode: amount < 1 ? 'setup' : 'payment',
+				amount,
+				currency: stripeServerData?.currency.toLowerCase(),
+			},
+		};
+
+		if ( stripeServerData?.isOCEnabled ) {
+			options = {
+				...options,
+				...{
+					paymentMethodConfiguration:
+						stripeServerData?.paymentMethodConfigurationId,
+					// Exclude unsupported payment methods - calculated dynamically on server side
+					excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
+				},
+			};
+		} else {
+			options = {
+				...options,
+				...{
+					paymentMethodTypes:
+						getPaymentMethodTypes( paymentMethodId ),
+				},
+			};
+
+			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
+			if ( shouldSetupOffSessionPayment( showSaveOption, isReusable ) ) {
+				options = {
+					...options,
+					...{
+						setupFutureUsage: 'off_session',
+					},
+				};
+			}
+		}
+	} else {
+		options = {
+			...options,
+			...{ clientSecret },
+		};
+	}
+
+	return options;
 };

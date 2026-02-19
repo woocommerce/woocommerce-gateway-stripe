@@ -2,25 +2,15 @@
  * External dependencies
  */
 import { StoreNotice } from '@woocommerce/blocks-checkout';
-import { Elements } from '@stripe/react-stripe-js';
-import PaymentProcessor from './payment-processor';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
 import WCStripeAPI from 'wcstripe/api';
-import {
-	getPaymentMethodTypes,
-	initializeUPEAppearance,
-	getExcludedPaymentMethodTypes,
-} from 'wcstripe/stripe-utils';
-import {
-	getBlocksConfiguration,
-	shouldSetupOffSessionPayment,
-} from 'wcstripe/blocks/utils';
-import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-import { CheckoutSessionsContainer } from 'wcstripe/blocks/checkout-sessions/checkout-sessions-container';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
+import { ElementsContainer } from 'wcstripe/blocks/payment-intents/elements-container';
 
 const stripeServerData = getBlocksConfiguration();
 
@@ -35,26 +25,22 @@ const stripeServerData = getBlocksConfiguration();
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
-const PaymentElements = ( {
+export const PaymentElements = ( {
 	api,
 	paymentMethodId,
 	supportsDeferredIntent,
 	components: { LoadingMask },
 	...props
 } ) => {
-	const [ clientSecret, setClientSecret ] = useState( null );
+	const [ , setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
-	const [
-		paymentProcessorLoadErrorMessage,
-		setPaymentProcessorLoadErrorMessage,
-	] = useState( null );
+	const [ paymentProcessorLoadErrorMessage ] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
 		! stripeServerData?.isAdaptivePricingEnabled
 	);
 
-	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 	const isAdaptivePricingSupported =
 		stripeServerData?.isAdaptivePricingEnabled;
 
@@ -103,17 +89,6 @@ const PaymentElements = ( {
 		supportsDeferredIntent,
 	] );
 
-	if ( isAdaptivePricingSupported && ! shouldLoadStripeElements ) {
-		return (
-			<CheckoutSessionsContainer
-				api={ api }
-				setShouldLoadStripeElements={ setShouldLoadStripeElements }
-				LoadingMask={ LoadingMask }
-				{ ...props }
-			/>
-		);
-	}
-
 	if ( errorMessage ) {
 		return (
 			<div className="wc-block-components-notices">
@@ -124,79 +99,24 @@ const PaymentElements = ( {
 		);
 	}
 
-	// If a client secret is required, wait until it is available.
-	if ( ! supportsDeferredIntent && ! clientSecret ) {
-		return (
-			<LoadingMask
-				isLoading={ true }
-				showSpinner={ true }
-				screenReaderLabel={ __(
-					'Loading payment method…',
-					'woocommerce-gateway-stripe'
-				) }
+	let containerComponent;
+	if ( isAdaptivePricingSupported && ! shouldLoadStripeElements ) {
+		containerComponent = (
+			<CheckoutContainer
+				api={ api }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+				LoadingMask={ LoadingMask }
+				{ ...props }
 			/>
 		);
-	}
-
-	const stripe = api.getStripe();
-	const amount = Number( stripeServerData?.cartTotal );
-
-	// Build options object.
-	let options = {
-		appearance: initializeUPEAppearance( api, 'true' ),
-		paymentMethodCreation: 'manual',
-		fonts: getFontRulesFromPage(),
-	};
-
-	if ( supportsDeferredIntent ) {
-		options = {
-			...options,
-			...{
-				mode: amount < 1 ? 'setup' : 'payment',
-				amount,
-				currency: stripeServerData?.currency.toLowerCase(),
-			},
-		};
-
-		if ( stripeServerData?.isOCEnabled ) {
-			options = {
-				...options,
-				...{
-					paymentMethodConfiguration:
-						stripeServerData?.paymentMethodConfigurationId,
-					// Exclude unsupported payment methods - calculated dynamically on server side
-					excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
-				},
-			};
-		} else {
-			options = {
-				...options,
-				...{
-					paymentMethodTypes:
-						getPaymentMethodTypes( paymentMethodId ),
-				},
-			};
-
-			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-			if (
-				shouldSetupOffSessionPayment(
-					props.showSaveOption,
-					paymentMethodsConfig[ paymentMethodId ].isReusable
-				)
-			) {
-				options = {
-					...options,
-					...{
-						setupFutureUsage: 'off_session',
-					},
-				};
-			}
-		}
 	} else {
-		options = {
-			...options,
-			...{ clientSecret },
-		};
+		containerComponent = (
+			<ElementsContainer
+				api={ api }
+				LoadingMask={ LoadingMask }
+				{ ...props }
+			/>
+		);
 	}
 
 	return (
@@ -208,52 +128,7 @@ const PaymentElements = ( {
 					</StoreNotice>
 				</div>
 			) }
-			<Elements stripe={ stripe } options={ options }>
-				<PaymentProcessor
-					api={ api }
-					paymentIntentId={ paymentIntentId }
-					paymentMethodId={ paymentMethodId }
-					onLoadError={ setPaymentProcessorLoadErrorMessage }
-					{ ...props }
-				/>
-			</Elements>
+			{ containerComponent }
 		</>
-	);
-};
-
-/**
- * Renders a Stripe Payment elements component.
- *
- * TODO: Remove this middle function and use PaymentElements directly (exporting it).
- *
- * @param {string}      paymentMethodId
- * @param {Array}       upeMethods
- * @param {WCStripeAPI} api
- * @param {string}      description
- * @param {string}      testingInstructions
- * @param {boolean}     showSaveOption
- * @param {boolean}     supportsDeferredIntent
- *
- * @return {JSX.Element} Rendered Payment elements.
- */
-export const getDeferredIntentCreationUPEFields = (
-	paymentMethodId,
-	upeMethods,
-	api,
-	description,
-	testingInstructions,
-	showSaveOption,
-	supportsDeferredIntent
-) => {
-	return (
-		<PaymentElements
-			paymentMethodId={ paymentMethodId }
-			upeMethods={ upeMethods }
-			api={ api }
-			description={ description }
-			testingInstructions={ testingInstructions }
-			showSaveOption={ showSaveOption }
-			supportsDeferredIntent={ supportsDeferredIntent }
-		/>
 	);
 };

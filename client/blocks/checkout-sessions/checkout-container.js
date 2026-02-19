@@ -1,4 +1,3 @@
-import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
 import React, { useMemo, useState } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
@@ -15,7 +14,7 @@ const stripePromise = loadStripe();
  * @param {Object} props Component props.
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
-export const CheckoutSessionsContainer = ( props ) => {
+export const CheckoutContainer = ( props ) => {
 	const { api, setShouldLoadStripeElements } = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
@@ -31,10 +30,7 @@ export const CheckoutSessionsContainer = ( props ) => {
 		}
 		return clientSecret;
 	}, [ api, setShouldLoadStripeElements ] );
-	const [
-		paymentProcessorLoadErrorMessage,
-		setPaymentProcessorLoadErrorMessage,
-	] = useState( null );
+	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
 	const providerOptions = {
 		clientSecret: checkoutSessionPromise,
@@ -47,13 +43,6 @@ export const CheckoutSessionsContainer = ( props ) => {
 
 	return (
 		<>
-			{ paymentProcessorLoadErrorMessage?.error?.message && (
-				<div className="wc-block-components-notices">
-					<StoreNotice status="error" isDismissible={ false }>
-						{ paymentProcessorLoadErrorMessage.error.message }
-					</StoreNotice>
-				</div>
-			) }
 			<CheckoutProvider
 				stripe={ stripePromise }
 				options={ providerOptions }

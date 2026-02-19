@@ -1,8 +1,6 @@
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
-	getPaymentMethodTypes,
-	initializeUPEAppearance,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -14,9 +12,8 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
-	getExcludedPaymentMethodTypes,
+	getStripeProviderOptions,
 } from '../../stripe-utils';
-import { getFontRulesFromPage } from '../../styles/upe';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -104,15 +101,9 @@ function updatePaymentElementDefaultValues() {
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
 async function createStripePaymentElement( api, paymentMethodType ) {
-	const { supportsDeferredIntent } =
+	const { isReusable, supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
-	let intent, options;
-
-	options = {
-		appearance: initializeUPEAppearance( api ),
-		paymentMethodCreation: 'manual',
-		fonts: getFontRulesFromPage(),
-	};
+	let intent;
 
 	const stripeServerData = getStripeServerData();
 
@@ -148,49 +139,21 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
-
-		options = {
-			...options,
-			clientSecret: intent.client_secret,
-		};
-	} else {
-		const amount = Number( stripeServerData?.cartTotal );
-		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
-
-		options = {
-			...options,
-			mode: amount < 1 ? 'setup' : 'payment',
-			currency: stripeServerData?.currency.toLowerCase(),
-			amount,
-		};
-
-		if ( stripeServerData?.isOCEnabled ) {
-			options = {
-				...options,
-				paymentMethodConfiguration:
-					stripeServerData?.paymentMethodConfigurationId,
-				// Exclude unsupported payment methods - calculated dynamically on server side
-				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
-			};
-
-			const setupFutureUsage =
-				document.getElementById( 'wc-stripe-new-payment-method' )
-					?.checked || stripeServerData?.cartContainsSubscription;
-			if ( setupFutureUsage ) {
-				options = {
-					...options,
-					setupFutureUsage: 'off_session',
-				};
-			}
-		} else {
-			options = {
-				...options,
-				paymentMethodTypes,
-			};
-		}
 	}
 
-	const elements = api.getStripe().elements( options );
+	const elements = api
+		.getStripe()
+		.elements(
+			getStripeProviderOptions(
+				api,
+				intent?.client_secret,
+				isReusable,
+				paymentMethodType,
+				document.getElementById( 'wc-stripe-new-payment-method' )
+					?.checked,
+				supportsDeferredIntent
+			)
+		);
 
 	const attachDefaultValuesUpdateEvent = ( element ) => {
 		if ( document.getElementById( element ) ) {

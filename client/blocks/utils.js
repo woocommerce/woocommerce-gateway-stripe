@@ -4,66 +4,16 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 
 export const getBlocksConfiguration = () => {
-	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
+	const stripeData = wc?.wcSettings?.getSetting( 'stripe_data', null );
 
-	if ( ! stripeServerData ) {
+	if ( ! stripeData ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}
 
-	return stripeServerData;
+	return stripeData;
 };
 
-/**
- * Whether manual renewal is required based on the payment method's reusability.
- *
- * It is considered required if:
- * - The payment method is not reusable and manual renewal is enabled in the configuration.
- * - The configuration explicitly requires manual renewal.
- *
- * @param {boolean} isReusablePaymentMethod
- * @return {boolean} True if manual renewal is required, false otherwise.
- */
-const isManualRenewalRequired = ( isReusablePaymentMethod ) => {
-	const config = getBlocksConfiguration();
-	return (
-		( ! isReusablePaymentMethod &&
-			config?.subscriptionManualRenewalEnabled ) ||
-		config?.subscriptionRequiresManualRenewal
-	);
-};
-
-/**
- * Checks if the cart contains an auto-renewing subscription.
- *
- * @param {boolean} isReusablePaymentMethod Indicates if the payment method is reusable.
- * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
- */
-const hasAutoRenewingSubscription = ( isReusablePaymentMethod ) => {
-	const config = getBlocksConfiguration();
-	return (
-		config?.cartContainsSubscription &&
-		! isManualRenewalRequired( isReusablePaymentMethod )
-	);
-};
-
-/**
- * Determines if off-session payment should be set up.
- *
- * @param {boolean} shouldShowSaveOption    - Whether to show the save option.
- * @param {boolean} isPaymentMethodReusable - Whether the payment method is reusable.
- * @return {boolean} True if off-session payment should be set up, false otherwise.
- */
-export const shouldSetupOffSessionPayment = (
-	shouldShowSaveOption,
-	isPaymentMethodReusable
-) => {
-	return (
-		shouldShowSaveOption ||
-		hasAutoRenewingSubscription( isPaymentMethodReusable ) ||
-		( isPaymentMethodReusable &&
-			getBlocksConfiguration()?.forceSavePaymentMethod )
-	);
-};
+const stripeServerData = getBlocksConfiguration();
 
 /**
  * Returns the public api key for the stripe payment method
@@ -72,7 +22,7 @@ export const shouldSetupOffSessionPayment = (
  * @return {string} The public api key for the stripe payment method.
  */
 export const getApiKey = () => {
-	const apiKey = getBlocksConfiguration()?.key;
+	const apiKey = stripeServerData?.key;
 	if ( ! apiKey ) {
 		throw new Error(
 			'There is no api key available for stripe. Make sure it is available on the wc.stripe_data.stripe.key property.'
@@ -142,8 +92,7 @@ export const addOrderAttributionInputsIfNotExists = () => {
  * @return {string} The full URL to the image
  */
 export const getStripeImageUrl = ( imageName ) => {
-	const config = getBlocksConfiguration();
-	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
+	return `${ stripeServerData?.plugin_url }/assets/images/${ imageName }.svg`;
 };
 
 /**
@@ -197,11 +146,10 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		}
 	}
 
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
+	if ( stripeServerData?.isOCEnabled ) {
 		const layout = {
 			type:
-				getBlocksConfiguration()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;

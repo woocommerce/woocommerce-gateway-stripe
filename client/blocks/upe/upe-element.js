@@ -1,4 +1,4 @@
-import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
+import { PaymentElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
 	getPaymentMethodsConstants,
@@ -68,20 +68,22 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		supports.style = getBlocksConfiguration()?.style ?? [];
 	}
 
-	const PaymentMethodComponent = getDeferredIntentCreationUPEFields(
-		paymentMethod,
-		upeMethods,
-		api,
-		upeConfig.description,
-		testingInstructions,
-		upeConfig.showSaveOption ?? false,
-		upeConfig.supportsDeferredIntent
+	const paymentMethodComponent = (
+		<PaymentElements
+			paymentMethodId={ paymentMethod }
+			upeMethods={ upeMethods }
+			api={ api }
+			description={ upeConfig.description }
+			testingInstructions={ testingInstructions }
+			showSaveOption={ upeConfig.showSaveOption ?? false }
+			supportsDeferredIntent={ upeConfig.supportsDeferredIntent }
+		/>
 	);
 
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: PaymentMethodComponent,
-		edit: PaymentMethodComponent,
+		content: paymentMethodComponent,
+		edit: paymentMethodComponent,
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
 			const billingCountry = cartData.billingAddress.country;

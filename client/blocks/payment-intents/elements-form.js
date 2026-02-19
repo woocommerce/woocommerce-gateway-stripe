@@ -12,8 +12,8 @@ import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
-import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
-import BlikCodeElement from './blik-code-element';
+import { usePaymentCompleteHandler, usePaymentFailHandler } from '../upe/hooks';
+import BlikCodeElement from '../upe/upe-deferred-intent-creation/blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
 import {
@@ -70,7 +70,7 @@ export function validateElements( elements ) {
  *
  * @return {JSX.Element} Rendered payment processor.
  */
-const PaymentProcessor = ( {
+const ElementsForm = ( {
 	api,
 	paymentIntentId,
 	activePaymentMethod,
@@ -356,4 +356,4 @@ const PaymentProcessor = ( {
 	);
 };
 
-export default PaymentProcessor;
+export default ElementsForm;
