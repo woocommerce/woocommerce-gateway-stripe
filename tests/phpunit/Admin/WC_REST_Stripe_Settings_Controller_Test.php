@@ -445,7 +445,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
+			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
 			->getMock();
 		$mock_account->expects( $this->once() )
 			->method( 'maybe_reconfigure_webhooks_on_update' );
@@ -478,7 +478,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
+			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
 			->getMock();
 		$mock_account->expects( $this->never() )
 			->method( 'maybe_reconfigure_webhooks_on_update' );
