@@ -24,6 +24,23 @@ class WC_Subscriptions_Product {
 	public static bool $is_subscription_result;
 
 	/**
+	 * When non-empty, is_subscription() returns true only for these product IDs. Used for mixed cart (e.g. multiple simple + one subscription).
+	 *
+	 * @var int[]
+	 */
+	public static array $subscription_product_ids = [];
+
+	/**
+	 * Set product IDs that should be treated as subscriptions. When non-empty, is_subscription( $product ) returns true only for these IDs.
+	 *
+	 * @param int[] $product_ids Product IDs.
+	 * @return void
+	 */
+	public static function set_subscription_product_ids( array $product_ids ): void {
+		self::$subscription_product_ids = $product_ids;
+	}
+
+	/**
 	 * Get the length of the trial period for a subscription product.
 	 *
 	 * @param \WC_Product|null $product The product to get the trial length for.
@@ -48,6 +65,9 @@ class WC_Subscriptions_Product {
 	 * @return bool
 	 */
 	public static function is_subscription( $product = null ): bool {
+		if ( ! empty( self::$subscription_product_ids ) && $product instanceof \WC_Product ) {
+			return in_array( $product->get_id(), self::$subscription_product_ids, true );
+		}
 		return self::$is_subscription_result;
 	}
 
