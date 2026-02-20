@@ -107,7 +107,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 						WC_Stripe_Payment_Methods::CARD => (object) [
 							'brand'    => 'visa',
 							'exp_month' => 12,
-							'exp_year'  => 2024,
+							'exp_year'  => 2034,
 							'last4'    => '4242',
 						],
 						'customer'        => $customer,
