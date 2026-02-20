@@ -181,29 +181,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		foreach ( $line_items as $line_item ) {
-			if ( ! isset( $line_item->price ) || ! is_object( $line_item->price ) ) {
-				throw new Exception(
-					sprintf(
-						'Line item %s has no price object.',
-						$line_item->id ?? 'unknown'
-					)
-				);
-			}
-
-			$product_id = intval( $line_item->price->external_reference ?? '' );
+			$product_id = $line_item->get_product_id();
 			if ( 0 === $product_id ) {
 				throw new Exception(
 					sprintf(
 						'Line item %s has no integer (product ID) lookup_key.',
-						$line_item->id
+						$line_item->get_id()
 					)
 				);
 			}
 
-			$quantity     = (int) ( $line_item->quantity ?? 1 );
-			$amount_total = (int) ( $line_item->amount_total ?? 0 );
-			$amount_tax   = (int) ( $line_item->amount_tax ?? 0 );
-			$line_total   = WC_Stripe_Helper::convert_from_stripe_amount( $amount_total - $amount_tax, $currency );
+			$quantity   = $line_item->get_quantity();
+			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
+				$line_item->get_amount_total() - $line_item->get_amount_tax(),
+				$currency
+			);
 
 			$product = $this->resolve_product( $product_id, $line_item );
 
@@ -265,12 +257,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Resolves a WooCommerce product from a line item's external_reference.
 	 *
 	 * @since 10.5.0
-	 * @param int    $product_id The parsed product ID.
-	 * @param object $line_item  The Stripe line item (for error context).
+	 * @param int                          $product_id The parsed product ID.
+	 * @param WC_Stripe_Agentic_Line_Item  $line_item  The line item (for error context).
 	 * @return WC_Product The product.
 	 * @throws Exception When no matching product exists.
 	 */
-	private function resolve_product( int $product_id, object $line_item ): WC_Product {
+	private function resolve_product( int $product_id, WC_Stripe_Agentic_Line_Item $line_item ): WC_Product {
 		$product = wc_get_product( $product_id );
 
 		if ( ! $product || ! $product->exists() ) {
@@ -278,7 +270,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				sprintf(
 					'Product not found for lookup_key "%d" (line item: %s).',
 					$product_id,
-					$line_item->description ?? 'unknown'
+					$line_item->get_description()
 				)
 			);
 		}

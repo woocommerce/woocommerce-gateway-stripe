@@ -322,7 +322,12 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				'line_items' => (object) [ 'data' => $items ],
 			]
 		);
-		$this->assertCount( 2, $session->get_line_items() );
+		$line_items = $session->get_line_items();
+		$this->assertCount( 2, $line_items );
+		$this->assertInstanceOf( \WC_Stripe_Agentic_Line_Item::class, $line_items[0] );
+		$this->assertInstanceOf( \WC_Stripe_Agentic_Line_Item::class, $line_items[1] );
+		$this->assertSame( 'li_1', $line_items[0]->get_id() );
+		$this->assertSame( 'li_2', $line_items[1]->get_id() );
 	}
 
 	/**

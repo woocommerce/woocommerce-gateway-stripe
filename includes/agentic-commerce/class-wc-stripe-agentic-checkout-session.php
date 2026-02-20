@@ -188,10 +188,17 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the line items array.
 	 *
 	 * @since 10.5.0
-	 * @return array
+	 * @return WC_Stripe_Agentic_Line_Item[]
 	 */
 	public function get_line_items(): array {
-		return $this->session->line_items->data ?? [];
+		$raw_items = $this->session->line_items->data ?? [];
+
+		return array_map(
+			function ( $item ) {
+				return new WC_Stripe_Agentic_Line_Item( $item );
+			},
+			$raw_items
+		);
 	}
 
 	/**
@@ -236,12 +243,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 */
 	public function is_agentic(): bool {
 		foreach ( $this->get_line_items() as $line_item ) {
-			if (
-				isset( $line_item->price )
-				&& is_object( $line_item->price )
-				&& property_exists( $line_item->price, 'external_reference' )
-				&& intval( $line_item->price->external_reference )
-			) {
+			if ( $line_item->has_product_id() ) {
 				return true;
 			}
 		}
