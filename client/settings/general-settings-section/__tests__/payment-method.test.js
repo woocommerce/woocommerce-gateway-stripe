@@ -34,7 +34,6 @@ describe( 'PaymentMethod', () => {
 
 		global.wc_stripe_settings_params = {
 			...globalSettingsParams,
-			are_apms_deprecated: false,
 		};
 
 		useManualCapture.mockReturnValue( [ false ] );
@@ -81,7 +80,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.card,
 				description: mockDescription,
 				label: 'Credit card / debit card',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )
@@ -119,7 +117,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.sepa_debit,
 				description: mockDescription,
 				label: 'Direct debit payment',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )
@@ -162,7 +159,6 @@ describe( 'PaymentMethod', () => {
 				Icon: icons.sepa_debit,
 				description: mockDescription,
 				label: 'Direct debit payment',
-				deprecated: false,
 				supportsRecurring: true,
 			} ),
 			expect.any( Object )

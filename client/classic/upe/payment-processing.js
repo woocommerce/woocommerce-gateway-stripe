@@ -198,6 +198,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response.data?.client_secret;
 
+			if ( ! clientSecret ) {
+				throw new Error(
+					__(
+						'Failed to load payment method due to missing client secret.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+
 			elements = await api.getStripe().initCheckout( {
 				clientSecret,
 				elementsOptions: {
@@ -210,8 +219,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...getDefaultValues( true ),
 			} );
 
-			if ( elements.error ) {
-				throw elements.error;
+			const result = await elements.loadActions();
+
+			if ( result.type === 'error' ) {
+				throw result.error;
 			}
 
 			shouldLoadStripeElements = false;
@@ -228,10 +239,13 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		elements = api.getStripe().elements( options );
 	}
 
-	const attachDefaultValuesUpdateEvent = ( element ) => {
+	const attachDefaultValuesUpdateEvent = (
+		element,
+		forCheckoutSession = false
+	) => {
 		if ( document.getElementById( element ) ) {
 			document.getElementById( element ).onblur = function () {
-				updatePaymentElementDefaultValues( true );
+				updatePaymentElementDefaultValues( forCheckoutSession );
 			};
 		}
 	};
@@ -288,8 +302,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		isLinkEnabled() &&
 		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
-		attachDefaultValuesUpdateEvent( 'billing_email' );
-		attachDefaultValuesUpdateEvent( 'billing_phone' );
+		attachDefaultValuesUpdateEvent(
+			'billing_email',
+			! shouldLoadStripeElements
+		);
+		attachDefaultValuesUpdateEvent(
+			'billing_phone',
+			! shouldLoadStripeElements
+		);
 	}
 
 	return createdStripePaymentElement;
@@ -301,8 +321,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
  * @param {Object} elements The Stripe elements object.
  */
 function mountCurrencySelectorElement( elements ) {
+	const currencySelectorContainer = document.getElementById(
+		'wc-stripe-currency-selector'
+	);
+	if ( ! currencySelectorContainer ) {
+		return;
+	}
 	const currencySelector = elements.createCurrencySelectorElement();
-	currencySelector.mount( '#wc-stripe-currency-selector' );
+	currencySelector.mount( currencySelectorContainer );
 }
 
 /**

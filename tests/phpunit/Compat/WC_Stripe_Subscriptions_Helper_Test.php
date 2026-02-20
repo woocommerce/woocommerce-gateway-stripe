@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\Compat;
 
+use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Subscriptions_Helper;
 use WC_Subscription;
@@ -188,6 +189,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_subscription_payment_method_detached
 	 */
 	public function test_is_subscription_payment_method_detached( $payment_method, $source_meta, $mocked_response, $expected ) {
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
 
 		$subscription = new WC_Subscription();

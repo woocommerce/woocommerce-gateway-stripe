@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 10.3.1
+Stable tag: 10.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -148,12 +148,26 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
+* Dev - Remove unused frontend code related to block checkout
+* Update - Move class instantiations from their definition files to the plugin initialization code
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
+* Dev - Remove unused frontend code related to UPE
 * Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
+* Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
+* Dev - Fixes becs e2e tests
+* Add - Add the base CSV feed for agentic commerce
+* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
+* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Fix - Prevent fatal error when order ID in webhook references a refund
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
