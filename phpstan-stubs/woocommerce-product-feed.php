@@ -85,6 +85,118 @@ interface FeedValidatorInterface {
 	public function validate_entry( array $row, \WC_Product $product ): array;
 }
 
+/**
+ * Walker Progress value object.
+ *
+ * @since 10.5.0
+ */
+class WalkerProgress {
+	/** @var int */
+	public int $total_count;
+	/** @var int */
+	public int $total_batch_count;
+	/** @var int */
+	public int $processed_items = 0;
+	/** @var int */
+	public int $processed_batches = 0;
+
+	/**
+	 * @param \stdClass $result
+	 * @return self
+	 */
+	public static function from_wc_get_products_result( \stdClass $result ): self {
+		return new self();
+	}
+}
+
+/**
+ * Product Walker.
+ *
+ * @since 10.5.0
+ */
+class ProductWalker {
+	/**
+	 * @param \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface $integration
+	 * @param FeedInterface $feed
+	 * @return self
+	 */
+	public static function from_integration(
+		\Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface $integration,
+		FeedInterface $feed
+	): self {
+		return new self();
+	}
+
+	/**
+	 * @param int $batch_size
+	 * @return self
+	 */
+	public function set_batch_size( int $batch_size ): self {
+		return $this;
+	}
+
+	/**
+	 * @param int $time_limit
+	 * @return self
+	 */
+	public function add_time_limit( int $time_limit ): self {
+		return $this;
+	}
+
+	/**
+	 * @param callable|null $callback
+	 * @return int
+	 */
+	public function walk( ?callable $callback = null ): int {
+		return 0;
+	}
+}
+
+namespace Automattic\WooCommerce\Internal\ProductFeed\Integrations;
+
+use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
+use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
+use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedValidatorInterface;
+
+/**
+ * Integration Interface.
+ *
+ * @since 10.5.0
+ */
+interface IntegrationInterface {
+	/** @return string */
+	public function get_id(): string;
+	/** @return void */
+	public function register_hooks(): void;
+	/** @return void */
+	public function activate(): void;
+	/** @return void */
+	public function deactivate(): void;
+	/** @return array */
+	public function get_product_feed_query_args(): array;
+	/** @return FeedInterface */
+	public function create_feed(): FeedInterface;
+	/** @return ProductMapperInterface */
+	public function get_product_mapper(): ProductMapperInterface;
+	/** @return FeedValidatorInterface */
+	public function get_feed_validator(): FeedValidatorInterface;
+}
+
+namespace Automattic\WooCommerce\Internal\ProductFeed;
+
+/**
+ * Product Feed service.
+ *
+ * @since 10.5.0
+ */
+class ProductFeed {
+	/**
+	 * @param \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface $integration
+	 * @return void
+	 */
+	public function register_integration( \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface $integration ): void {}
+}
+
 namespace Automattic\WooCommerce\Internal\ProductFeed\Utils;
 
 /**

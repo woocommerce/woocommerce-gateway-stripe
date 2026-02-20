@@ -519,24 +519,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return int|null Product inventory quantity or null.
 	 */
 	protected function get_inventory_quantity( \WC_Product $product ): ?int {
-		$stock_quantity = $product->get_stock_quantity();
-		if ( null !== $stock_quantity ) {
-			return $stock_quantity;
+		// When stock is not tracked, inventory_quantity must be blank per Stripe spec.
+		if ( ! $product->managing_stock() ) {
+			return null;
 		}
 
-		// If stock management is disabled and product is in stock, return default quantity.
-		if ( ProductStockStatus::IN_STOCK === $product->get_stock_status() ) {
-			/**
-			 * Filters the inventory quantity for in-stock products without stock management enabled.
-			 *
-			 * @since 10.5.0
-			 * @param int         $quantity Default quantity (1 for in-stock products).
-			 * @param \WC_Product $product  The product object.
-			 */
-			return (int) apply_filters( 'wc_stripe_agentic_commerce_inventory_quantity_without_stock_management', 1, $product );
-		}
-
-		return null;
+		return $product->get_stock_quantity();
 	}
 
 	/**
@@ -799,7 +787,18 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	private function get_weight_unit(): string {
 		static $cached;
 		if ( ! isset( $cached ) ) {
-			$cached = get_option( 'woocommerce_weight_unit' );
+			$wc_unit = get_option( 'woocommerce_weight_unit' );
+
+			// Stripe accepts: lb, oz, g, kg. WooCommerce uses 'lbs' for pounds.
+			$unit_map = [
+				'lbs' => 'lb',
+				'lb'  => 'lb',
+				'oz'  => 'oz',
+				'g'   => 'g',
+				'kg'  => 'kg',
+			];
+
+			$cached = $unit_map[ $wc_unit ] ?? $wc_unit;
 		}
 		return $cached;
 	}

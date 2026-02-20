@@ -59,12 +59,15 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 				config.get( 'users.customer.password' )
 			);
 			await setupOptimizedCheckout( page, 'shortcode' );
-			// Click the checkbox to save payment information.
+			// Toggle via label to avoid flaky direct checkbox interactions.
+			const savePaymentMethodCheckbox = page.locator(
+				'#wc-stripe-new-payment-method'
+			);
+			await expect( savePaymentMethodCheckbox ).toBeAttached();
 			await page
-				.getByRole( 'checkbox', {
-					name: 'Save payment information to',
-				} )
-				.check( { force: true } );
+				.locator( "label[for='wc-stripe-new-payment-method']" )
+				.click();
+			await expect( savePaymentMethodCheckbox ).toBeChecked();
 			// Then fill in the payment details.
 			// This order is needed because, if we fill in the payment details and then click the checkbox, payment element will refresh and the fields will be cleared.
 			await fillOCDetails(
