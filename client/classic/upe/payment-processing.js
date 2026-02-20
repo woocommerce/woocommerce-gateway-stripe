@@ -191,12 +191,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	}
 
 	let elements;
-	let shouldLoadStripeElements = ! isAdaptivePricingSupported;
+	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	if ( isAdaptivePricingSupported ) {
+	if ( isAdaptivePricingSupported && supportsDeferredIntent ) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
-			const clientSecret = response.data?.client_secret;
+			const clientSecret = response?.data?.client_secret;
 
 			if ( ! clientSecret ) {
 				throw new Error(
@@ -219,11 +219,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...getDefaultValues( true ),
 			} );
 
-			const result = await elements.loadActions();
+			// TODO: Handle error in the follow up PR for payment processing.
+			// const result = await elements.loadActions();
 
-			if ( result.type === 'error' ) {
-				throw result.error;
-			}
+			// if ( result.type === 'error' ) {
+			// 	throw result.error;
+			// }
 
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
