@@ -849,11 +849,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the `disable_subscription_edit_for_india` method.
 	 *
-	 * @param bool  $is_subscription    Whether the order is a subscription.
-	 * @param bool  $has_parent_order   Whether the subscription has a parent order.
-	 * @param string $parent_mandate_id The mandate ID of the parent order (if applicable).
-	 * @param array $payment_method     The payment method data to mock.
-	 * @param bool  $expected           The expected result.
+	 * @param bool   $is_subscription            Whether the order is a subscription.
+	 * @param bool   $is_subscriptions_edit_page Whether the current page is the subscriptions edit page.
+	 * @param bool   $has_parent_order           Whether the subscription has a parent order.
+	 * @param string $parent_mandate_id          The mandate ID of the parent order (if applicable).
+	 * @param array  $payment_method             The payment method data to mock.
+	 * @param bool   $expected                   The expected result.
 	 * @return void
 	 * @dataProvider provide_test_disable_subscription_edit_for_india
 	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
