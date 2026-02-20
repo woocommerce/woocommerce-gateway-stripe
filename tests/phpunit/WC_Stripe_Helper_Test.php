@@ -1115,7 +1115,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			foreach ( $cart_product_types as $type ) {
 				$product    = WC_Helper_Product::create_simple_product();
 				$products[] = $product;
-				WC()->cart->add_to_cart( $product->get_id(), 1 );
+				$cart_item_data = 'deposits' === $type ? [ 'is_deposit' => true ] : [];
+				WC()->cart->add_to_cart( $product->get_id(), 1, 0, [], $cart_item_data );
 				if ( 'subscription' === $type ) {
 					$subscription_product_ids[] = $product->get_id();
 				}
@@ -1212,12 +1213,20 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'cart_product_types' => [ 'simple', 'simple' ],
 				'expected'           => true,
 			],
-			'simple and subscription products mixed'     => [
+			'simple and subscription products mixed'    => [
 				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
 				'cart_product_types' => [ 'simple', 'simple', 'subscription' ],
+				'expected'           => false,
+			],
+			'simple and deposits products mixed'        => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple', 'deposits' ],
 				'expected'           => false,
 			],
 			'subscription in cart'                      => [
@@ -1302,11 +1311,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'label' => 'Tax',
 						'amount' => 0,
 					],
-					[
-						'key'    => 'total_shipping',
-						'label'  => 'Shipping',
-						'amount' => 0,
-					],
+					// Shipping line only added when WC()->cart->needs_shipping(); test cart has no address/methods.
 					[
 						'key'    => 'total_discount',
 						'label'  => 'Discount',

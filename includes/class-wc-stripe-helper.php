@@ -1112,6 +1112,7 @@ class WC_Stripe_Helper {
 	 * any of the following:
 	 * - A subscription product.
 	 * - A pre-order product that will be charged upon release.
+	 * - A deposit product.
 	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
 	 * @since 10.5.0
@@ -1124,7 +1125,7 @@ class WC_Stripe_Helper {
 		}
 
 		// False if adaptive pricing option is disabled.
-		if ( 'yes' !== WC_Stripe_Helper::get_settings( null, 'adaptive_pricing' ) ) {
+		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
 			return false;
 		}
 
@@ -1164,7 +1165,7 @@ class WC_Stripe_Helper {
 			}
 
 			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) { // @phpstan-ignore-line (guarded by class_exists above)
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore-line (guarded by class_exists above)
 				return false;
 			}
 		}
