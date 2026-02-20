@@ -70,10 +70,12 @@ export const usePaymentFailHandler = (
 			onCheckoutFail( ( { processingResponse: { paymentDetails } } ) => {
 				return {
 					type: 'failure',
-					message: paymentDetails.errorMessage,
+					message:
+						paymentDetails?.errorMessage ??
+						'An error occurred during payment processing.',
 					messageContext: emitResponse.noticeContexts.PAYMENTS,
 				};
 			} ),
-		[ checkoutState, onCheckoutFail, emitResponse.noticeContexts.PAYMENTS ]
+		[ checkoutState, onCheckoutFail, emitResponse ]
 	);
 };
