@@ -214,7 +214,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			return [
 				'headers'  => [],
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
-				'body'     => file_get_contents( __DIR__ . '/DummyData/subscription_renewal_response_success.json' ),
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
 				'response' => [
 					'code'    => 200,
 					'message' => 'OK',
@@ -335,7 +335,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			return [
 				'headers'  => [],
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
-				'body'     => file_get_contents( __DIR__ . '/DummyData/subscription_renewal_response_authentication_required.json' ),
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_authentication_required.json' ),
 				'response' => [
 					'code'    => 402,
 					'message' => 'Payment Required',
