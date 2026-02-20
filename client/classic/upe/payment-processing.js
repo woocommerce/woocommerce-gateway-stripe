@@ -218,8 +218,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...getDefaultValues( true ),
 			} );
 
-			if ( elements.error ) {
-				throw elements.error;
+			const result = await elements.loadActions();
+
+			if ( result.type === 'error' ) {
+				throw result.error;
 			}
 
 			shouldLoadStripeElements = false;
