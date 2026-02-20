@@ -33,9 +33,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
-			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
-
 			// TODO: Test guest checkout flow.
 			try {
 				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
@@ -75,7 +72,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				'ui_mode'                       => 'custom',
 				'customer'                      => $stripe_customer->get_id(),
 				'line_items'                    => $line_items,
-				'payment_method_types'          => $enabled_payment_methods,
 				'excluded_payment_method_types' => $gateway->get_excluded_payment_method_types(),
 				'payment_intent_data'           => [], // @todo Pass additional data if needed.
 				'mode'                          => 'payment',
