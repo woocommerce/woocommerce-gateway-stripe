@@ -32,14 +32,17 @@ export const CheckoutContainer = ( props ) => {
 	}, [ api, setShouldLoadStripeElements ] );
 	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
-	const providerOptions = {
-		clientSecret: checkoutSessionPromise,
-		adaptivePricing: { allowed: true },
-		elementsOptions: {
-			appearance: initializeUPEAppearance( api, 'true' ),
-			fonts: getFontRulesFromPage(),
-		},
-	};
+	const providerOptions = useMemo(
+		() => ( {
+			clientSecret: checkoutSessionPromise,
+			adaptivePricing: { allowed: true },
+			elementsOptions: {
+				appearance: initializeUPEAppearance( api, 'true' ),
+				fonts: getFontRulesFromPage(),
+			},
+		} ),
+		[ checkoutSessionPromise, api ]
+	);
 
 	return (
 		<CheckoutProvider stripe={ stripePromise } options={ providerOptions }>
