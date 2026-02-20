@@ -917,6 +917,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$actual = $helper->has_free_trial();
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( false );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 0 );
 
 		$this->assertSame( $expected, $actual );
 	}
