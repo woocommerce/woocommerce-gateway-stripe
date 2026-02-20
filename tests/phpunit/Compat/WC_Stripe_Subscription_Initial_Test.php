@@ -80,7 +80,8 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$order_helper->update_stripe_customer_id( $initial_order, $customer );
 		$initial_order->save_meta_data();
 
-		$_POST = [
+		$old_post = $_POST;
+		$_POST    = [
 			'payment_method'           => 'stripe',
 			'wc-stripe-payment-method' => 'pm_test_123',
 		];
@@ -126,16 +127,19 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		// We need to use `wc_gateway_stripe` here because we mocked this class earlier.
 		$result = $wc_gateway_stripe->process_payment( $order_id );
 
-		// Clean up.
-		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
-		WC_Stripe_Helper::delete_main_stripe_settings();
-
 		// Assert: nothing was returned.
 		$this->assertEquals( 'success', $result['result'] );
 		$this->assertArrayHasKey( 'redirect', $result );
 
 		$order = wc_get_order( $order_id );
 
-		$this->assertEquals( 'pi_123abc', $order_helper->get_stripe_intent_id( $order ) );
+		$actual = $order_helper->get_stripe_intent_id( $order );
+
+		// Clean up.
+		remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		$_POST = $old_post;
+		WC_Stripe_Helper::delete_main_stripe_settings();
+
+		$this->assertEquals( 'pi_123abc', $actual );
 	}
 }
