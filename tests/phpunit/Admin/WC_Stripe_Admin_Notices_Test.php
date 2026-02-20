@@ -17,13 +17,6 @@ use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
  */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
-	 * The original value of the HPOS option.
-	 *
-	 * @var string
-	 */
-	private static $original_hpos_value;
-
-	/**
 	 * The original `WC_Stripe_Connect` instance, to be restored after tests.
 	 *
 	 * @var WC_Stripe_Connect
@@ -81,22 +74,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Restoring the original `WC_Stripe_Connect` instance.
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public static function set_up_before_class() {
-		parent::set_up_before_class();
-		self::$original_hpos_value = get_option( 'woocommerce_custom_orders_table_enabled' );
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public static function tear_down_after_class() {
-		parent::tear_down_after_class();
-		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
 	}
 
 	/**
@@ -677,15 +654,29 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `subscription_check_detachment`.
 	 *
+	 * @param bool $is_edit_page Whether to simulate being on the subscription edit page.
+	 * @param WC_Subscription $subscription Subscription to use for the test.
+	 * @param WC_Subscription|null $theorder_global Optional. Subscription to set as global `$theorder`, or null to leave unchanged.
+	 * @param array $post_globals Optional. Array of global variables to set, where the key is the global name and the value is the value to set.
 	 * @return void
 	 * @dataProvider provide_test_subscription_check_detachment
 	 */
-	public function test_subscription_check_detachment( $hpos_enabled, $theorder_global, $request_params, $post_globals ) {
+	public function test_subscription_check_detachment(
+		bool $is_edit_page,
+		WC_Subscription $subscription,
+		?WC_Subscription $theorder_global = null,
+		array $post_globals = []
+	): void {
 		global $theorder;
 		$original_order = $theorder;
 
-		if ( count( $request_params ) > 0 ) {
-			$_REQUEST = $request_params;
+		if ( $is_edit_page ) {
+			$_REQUEST = [
+				'page'   => 'wc-orders--shop_subscription',
+				'id'     => $subscription->get_id(),
+				'post'   => $subscription,
+				'action' => 'edit',
+			];
 		}
 
 		if ( count( $post_globals ) > 0 ) {
@@ -699,12 +690,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					);
 				}
 			}
-		}
-
-		if ( $hpos_enabled ) {
-			update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
-		} else {
-			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		}
 
 		if ( ! is_null( $theorder_global ) ) {
@@ -745,9 +730,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$theorder = $original_order;
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_123' );
 
-		$this->assertCount( 1, $actual );
-		$this->assertArrayHasKey( 'subscription_detached', $actual );
-		$this->assertStringContainsString( 'The payment method for this subscription has been detached', $actual['subscription_detached']['message'] );
+		if ( $is_edit_page ) {
+			$this->assertCount( 1, $actual );
+			$this->assertArrayHasKey( 'subscription_detached', $actual );
+			$this->assertStringContainsString( 'The payment method for this subscription has been detached', $actual['subscription_detached']['message'] );
+		} else {
+			$this->assertCount( 0, $actual );
+		}
 	}
 
 	/**
@@ -770,24 +759,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription->save_meta_data();
 
 		return [
-			'HPOS enabled, theorder global' => [
-				'hpos enabled'    => true,
+			'not edit page'   => [
+				'is edit page'    => false,
+				'subscription'    => $subscription,
 				'theorder global' => $subscription,
-				'request params'  => [
-					'page' => 'wc-orders--shop_subscription',
-					'id'   => $subscription->get_id(),
-				],
 				'post globals'    => [],
 			],
-			'HPOS disabled, post globals'   => [
-				'hpos enabled'    => false,
+			'theorder global' => [
+				'is edit page'    => true,
+				'subscription'    => $subscription,
+				'theorder global' => $subscription,
+				'post globals'    => [],
+			],
+			'post globals'   => [
+				'is edit page'    => true,
+				'subscription'    => $subscription,
 				'theorder global' => null,
-				'request params'  => [
-					'page'   => 'wc-orders--shop_subscription',
-					'id'     => $subscription->get_id(),
-					'post'   => $subscription,
-					'action' => 'edit',
-				],
 				'post globals'    => [
 					'post' => $subscription,
 				],
