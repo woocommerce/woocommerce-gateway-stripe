@@ -17,7 +17,7 @@ let lowAmountProductId;
 let highAmountProductId;
 let linkByStripeInitiallyEnabled;
 
-test.describe( 'express checkout with ISK in block cart/checkout', () => {
+test.describe( 'express checkout with ISK in cart/checkout', () => {
 	test.beforeAll( async ( { browser } ) => {
 		await admin.updateStoreCurrency( browser, 'ISK' );
 
@@ -79,16 +79,26 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 				await api.deletePost.product( highAmountProductId );
 			}
 		} finally {
+			let togglePaymentMethodError;
+
 			if ( undefined !== linkByStripeInitiallyEnabled ) {
-				await admin.togglePaymentMethod(
-					browser,
-					'Link by Stripe',
-					linkByStripeInitiallyEnabled
-				);
+				try {
+					await admin.togglePaymentMethod(
+						browser,
+						'Link by Stripe',
+						linkByStripeInitiallyEnabled
+					);
+				} catch ( error ) {
+					togglePaymentMethodError = error;
+				}
 			}
 
 			await admin.updateStoreCurrency( browser, 'USD' );
 			await admin.initializeOptimizedCheckout( browser, false );
+
+			if ( togglePaymentMethodError ) {
+				throw togglePaymentMethodError;
+			}
 		}
 	} );
 
@@ -110,5 +120,21 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 		await addProductToCartById( page, highAmountProductId );
 		await page.goto( '/checkout' );
 		await assertLinkModalLoads( page, true );
+	} );
+
+	test( 'loads Link express checkout in classic cart for low ISK amount @shortcode @express-checkout @isk', async ( {
+		page,
+	} ) => {
+		await addProductToCartById( page, lowAmountProductId );
+		await page.goto( '/cart-shortcode' );
+		await assertLinkModalLoads( page, false );
+	} );
+
+	test( 'loads Link express checkout in classic checkout for high ISK amount @shortcode @express-checkout @isk', async ( {
+		page,
+	} ) => {
+		await addProductToCartById( page, highAmountProductId );
+		await page.goto( '/checkout-shortcode' );
+		await assertLinkModalLoads( page, false );
 	} );
 } );
