@@ -1303,11 +1303,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// If the payment method is not a card or the card is not issued in India, allow editing.
-		if ( ! $payment_method || 'IN' !== ( $payment_method->card->country ?? '' ) ) {
-			return $editable;
+		if ( $payment_method && 'card' === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
+			return false;
 		}
 
-		return false;
+		return $editable;
 	}
 
 	/**
