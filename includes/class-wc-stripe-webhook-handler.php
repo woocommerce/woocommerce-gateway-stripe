@@ -1470,6 +1470,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_checkout_session_completed( $notification );
 				break;
 
+			case 'v1.delegated_checkout.customize_checkout':
+				$this->process_customize_checkout( $notification );
+				break;
+
 		}
 
 		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
@@ -1582,6 +1586,68 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Processes the v1.delegated_checkout.customize_checkout webhook for agentic commerce.
+	 *
+	 * This is a synchronous webhook: Stripe expects a JSON response body
+	 * containing tax rates (and/or shipping options) within 4 seconds.
+	 * Uses wp_send_json() to output the response and exit immediately.
+	 *
+	 * @since 10.5.0
+	 * @param object $notification The webhook notification from Stripe.
+	 */
+	public function process_customize_checkout( $notification ): void {
+		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			wp_send_json( [] );
+		}
+
+		$event = new WC_Stripe_Agentic_Customize_Checkout_Event( $notification );
+
+		WC_Stripe_Logger::info(
+			'Agentic customize_checkout webhook received.',
+			[
+				'event_id'      => $event->get_id(),
+				'currency'      => $event->get_currency(),
+				'line_items'    => count( $event->get_line_items() ),
+				'automatic_tax' => $event->is_automatic_tax_enabled(),
+			]
+		);
+
+		// When Stripe Tax is enabled, Stripe handles tax calculation.
+		if ( $event->is_automatic_tax_enabled() ) {
+			WC_Stripe_Logger::info(
+				'Agentic customize_checkout: automatic_tax enabled, returning empty response.',
+				[ 'event_id' => $event->get_id() ]
+			);
+			wp_send_json( [] );
+		}
+
+		$response = [];
+
+		try {
+			$calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+			$response   = $calculator->calculate( $event );
+
+			WC_Stripe_Logger::info(
+				'Agentic customize_checkout: tax calculation complete.',
+				[
+					'event_id'    => $event->get_id(),
+					'line_items'  => count( $response['line_items'] ?? [] ),
+				]
+			);
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic customize_checkout: tax calculation failed.',
+				[
+					'event_id' => $event->get_id(),
+					'error'    => $e->getMessage(),
+				]
+			);
+		}
+
+		wp_send_json( $response );
 	}
 
 	/**
