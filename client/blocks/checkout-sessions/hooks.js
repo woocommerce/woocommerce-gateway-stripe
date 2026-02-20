@@ -18,7 +18,7 @@ export const usePaymentCompleteHandler = (
 	useEffect(
 		() =>
 			onCheckoutSuccess(
-				( { processingResponse: { paymentDetails } } ) => {
+				async ( { processingResponse: { paymentDetails } } ) => {
 					if ( checkoutState.type !== 'success' ) {
 						return {
 							type: 'error',
@@ -31,13 +31,15 @@ export const usePaymentCompleteHandler = (
 
 					const { redirect } = paymentDetails;
 					const { checkout } = checkoutState;
-					const confirmResult = checkout.confirm( {
+					const confirmResult = await checkout.confirm( {
 						returnUrl: redirect,
 					} );
 					if ( confirmResult?.type === 'error' ) {
 						return {
 							type: 'error',
-							message: confirmResult.error.message,
+							message:
+								confirmResult.error?.message ??
+								'Payment confirmation failed.',
 						};
 					}
 
