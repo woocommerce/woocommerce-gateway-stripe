@@ -61,12 +61,13 @@ class WC_Subscriptions_Product {
 	/**
 	 * Determine if a product is a subscription.
 	 *
-	 * @param \WC_Product|null $product The product to check if it is a subscription.
+	 * @param \WC_Product|int|null $product The product or product ID to check if it is a subscription.
 	 * @return bool
 	 */
 	public static function is_subscription( $product = null ): bool {
-		if ( ! empty( self::$subscription_product_ids ) && $product instanceof \WC_Product ) {
-			return in_array( $product->get_id(), self::$subscription_product_ids, true );
+		if ( ! empty( self::$subscription_product_ids ) && null !== $product ) {
+			$product_id = $product instanceof \WC_Product ? $product->get_id() : $product;
+			return in_array( $product_id, self::$subscription_product_ids, true );
 		}
 		return self::$is_subscription_result;
 	}
