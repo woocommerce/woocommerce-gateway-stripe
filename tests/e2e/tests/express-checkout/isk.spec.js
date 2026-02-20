@@ -29,8 +29,8 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
 		);
 		await page.getByLabel( 'Link by Stripe' ).check();
-		await page.click( 'text=Save changes' );
-		await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+		await page.getByRole( 'button', { name: /Save changes/i } ).click();
+		await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
 		await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
 
 		await adminContext.close();

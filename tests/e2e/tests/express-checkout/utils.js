@@ -20,7 +20,7 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 	const context = page.context();
 	const [ popup ] = await Promise.all( [
 		context.waitForEvent( 'page' ),
-		linkButton.dispatchEvent( 'click' ),
+		linkButton.click(),
 	] );
 
 	await popup.waitForLoadState();
