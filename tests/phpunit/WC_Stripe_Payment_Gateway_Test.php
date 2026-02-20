@@ -849,15 +849,19 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the `disable_subscription_edit_for_india` method.
 	 *
-	 * @param bool  $is_subscription  Whether the order is a subscription.
-	 * @param array $payment_method   The payment method data to mock.
-	 * @param bool  $expected         The expected result.
+	 * @param bool  $is_subscription    Whether the order is a subscription.
+	 * @param bool  $has_parent_order   Whether the subscription has a parent order.
+	 * @param string $parent_mandate_id The mandate ID of the parent order (if applicable).
+	 * @param array $payment_method     The payment method data to mock.
+	 * @param bool  $expected           The expected result.
 	 * @return void
 	 * @dataProvider provide_test_disable_subscription_edit_for_india
 	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
 	 */
 	public function test_disable_subscription_edit_for_india(
 		bool $is_subscription,
+		bool $has_parent_order,
+		string $parent_mandate_id,
 		array $payment_method,
 		bool $expected
 	): void {
@@ -865,6 +869,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->update_meta_data( '_stripe_source_id', $payment_method['id'] ?? '' );
 		$order->save_meta_data();
 		$order->save();
+
+		if ( $has_parent_order ) {
+			$parent_order = WC_Helper_Order::create_order();
+			if ( $parent_mandate_id ) {
+				$parent_order->update_meta_data( '_stripe_mandate_id', $parent_mandate_id );
+				$parent_order->save_meta_data();
+			}
+			$order->set_parent_id( $parent_order->get_id() );
+			$order->save();
+		}
 
 		WC_Subscriptions_Helpers::$wcs_is_subscription = $is_subscription;
 
@@ -903,18 +917,38 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function provide_test_disable_subscription_edit_for_india(): array {
 		return [
 			'not a subscription'                             => [
-				'is subscription'  => false,
-				'payment method'   => [],
-				'expected'         => true,
+				'is subscription'   => false,
+				'has parent order'  => false,
+				'parent mandate ID' => '',
+				'payment method'    => [],
+				'expected'          => true,
+			],
+			'missing parent order'                           => [
+				'is subscription'   => true,
+				'has parent order'  => false,
+				'parent mandate ID' => '',
+				'payment method'    => [],
+				'expected'          => true,
+			],
+			'parent order lacks mandate ID'                  => [
+				'is subscription'   => true,
+				'has parent order'  => true,
+				'parent mandate ID' => '',
+				'payment method'    => [],
+				'expected'          => true,
 			],
 			'missing payment method ID meta'                 => [
-				'is subscription'  => true,
-				'payment method'   => [],
-				'expected'         => true,
+				'is subscription'   => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [],
+				'expected'          => true,
 			],
 			'payment method is not card'                      => [
-				'is subscription'  => true,
-				'payment method'   => [
+				'is subscription'   => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
 					'id'                     => 'pm_123',
 					'type'       => 'sepa_debit',
 					'sepa_debit' => [
@@ -925,8 +959,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'         => true,
 			],
 			'method is card, but not indian'                 => [
-				'is subscription'  => true,
-				'payment method'   => [
+				'is subscription'   => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
 					'id'                     => 'pm_456',
 					'type' => 'card',
 					'card' => [
@@ -934,18 +970,20 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'supported_types' => [],
 					],
 				],
-				'expected'         => true,
+				'expected'          => true,
 			],
 			'method is indian card'                          => [
-				'is subscription'  => true,
-				'payment method'   => [
+				'is subscription'   => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
 					'id'                     => 'pm_789',
 					'type' => 'card',
 					'card' => [
 						'country' => 'IN',
 					],
 				],
-				'expected'         => false,
+				'expected'          => false,
 			],
 		];
 	}

@@ -1277,13 +1277,16 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! $this->is_subscription( $order ) ) {
 			return $editable;
 		}
-		
-	// Bail if subscription does not have a mandate ID
-	if ( empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) {
-			return $editable
-			}
-	 	
-		
+
+		$parent_order = wc_get_order( $order->get_parent_id() );
+		if ( ! $parent_order ) {
+			return $editable;
+		}
+
+		// Bail if subscription's parent order does not have a mandate ID
+		if ( empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
+			return $editable;
+		}
 
 		// Not using the helper class here since $order is actually a subscription.
 		$source_id = $order->get_meta( '_stripe_source_id', true );
