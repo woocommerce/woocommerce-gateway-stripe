@@ -1302,11 +1302,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			WC_Stripe_Database_Cache::set( $cache_key, $payment_method, HOUR_IN_SECONDS );
 		}
 
-		// If the payment method is not a card or the card is not issued in India, allow editing.
-		if ( $payment_method && 'card' === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
+		// If the payment method is a card and the card's country is India, disable subscription editing.
+		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
 			return false;
 		}
 
+		// Fallback to the default behavior.
 		return $editable;
 	}
 
