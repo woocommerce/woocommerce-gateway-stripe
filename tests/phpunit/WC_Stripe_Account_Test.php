@@ -534,6 +534,56 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that get_webhook_events does not include checkout.session.completed by default.
+	 */
+	public function test_get_webhook_events_excludes_checkout_session_by_default() {
+		$events = WC_Stripe_Account::get_webhook_events();
+		$this->assertNotContains( 'checkout.session.completed', $events );
+	}
+
+	/**
+	 * Tests that get_webhook_events includes checkout.session.completed when agentic commerce is enabled.
+	 */
+	public function test_get_webhook_events_includes_checkout_session_when_agentic_enabled() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		$events = WC_Stripe_Account::get_webhook_events();
+		$this->assertContains( 'checkout.session.completed', $events );
+
+		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+	}
+
+	/**
+	 * Tests that webhook reconfiguration is triggered when the agentic flag adds a new event.
+	 */
+	public function test_reconfigure_webhooks_on_update_with_agentic_flag_enabled() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		// Mock a webhook that has the base events but not the agentic one.
+		$outdated_webhook = (object) [
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => \WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION,
+			'status'         => 'enabled',
+		];
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->getMock();
+
+		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
+		$this->account->expects( $this->once() )
+			->method( 'configure_webhooks' )
+			->with( $this->equalTo( 'test' ) );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+	}
+
+	/**
 	 * Test webhook reconfiguration on update with existing webhooks that are up to date.
 	 */
 	public function test_reconfigure_webhooks_on_update_with_current_webhooks() {

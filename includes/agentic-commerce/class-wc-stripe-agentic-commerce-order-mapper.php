@@ -117,6 +117,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
+		if ( ! $order instanceof WC_Order ) {
+			throw new Exception(
+				sprintf(
+					'wc_create_order() returned an unexpected type for session %s.',
+					$session->get_id()
+				)
+			);
+		}
+
 		$order->set_currency( $session->get_currency() );
 		$order->set_payment_method( 'stripe' );
 		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
