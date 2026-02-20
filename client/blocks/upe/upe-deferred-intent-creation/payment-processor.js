@@ -330,18 +330,22 @@ const PaymentProcessor = ( {
 
 	return (
 		<>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: description,
-				} }
-			/>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: testingInstructions,
-				} }
-			/>
+			{ description && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: description,
+					} }
+				/>
+			) }
+			{ testingInstructions && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
+				/>
+			) }
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (

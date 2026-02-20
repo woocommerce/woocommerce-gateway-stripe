@@ -3,7 +3,7 @@ import {
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { getStripeElementOptions } from 'wcstripe/blocks/utils';
@@ -26,9 +26,7 @@ const CheckoutForm = ( {
 } ) => {
 	const checkoutState = useCheckout();
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
-	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
-		hasLoadErrorRef.current = true;
 		onLoadError( event );
 	};
 	const onSelectedPaymentMethodChange = ( { value } ) => {
@@ -48,10 +46,10 @@ const CheckoutForm = ( {
 		);
 	} else if ( checkoutState.type === 'error' ) {
 		setShouldLoadStripeElements( true ); // If there was an error loading the checkout session, we fallback to loading Stripe Elements.
-		return <div>Error: { checkoutState.error.message }</div>;
+		return <div>Error: { checkoutState.error?.message }</div>;
 	} else if (
 		checkoutState.type === 'success' &&
-		checkoutSessionId !== checkoutState.checkout.id
+		checkoutSessionId !== checkoutState.checkout?.id
 	) {
 		const { checkout } = checkoutState;
 		setCheckoutSessionId( checkout.id );
@@ -59,12 +57,14 @@ const CheckoutForm = ( {
 
 	return (
 		<>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: testingInstructions,
-				} }
-			/>
+			{ testingInstructions && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
+				/>
+			) }
 			<CurrencySelectorElement />
 			<PaymentElement
 				options={ getStripeElementOptions( true ) }
