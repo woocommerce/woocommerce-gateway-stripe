@@ -1401,13 +1401,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Processes the checkout session completed event.
 	 *
 	 * @param object $notification The notification from Stripe
+	 * @return void
 	 */
 	public function process_checkout_session( $notification ) {
 		$checkout_session = $notification->data->object;
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof \WC_Order ) {
 			WC_Stripe_Logger::error( 'Could not find order via checkout session ID: ' . $checkout_session->id );
 			return;
 		}

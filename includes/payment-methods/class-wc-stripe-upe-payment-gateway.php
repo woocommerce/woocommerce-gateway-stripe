@@ -982,7 +982,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( $checkout_session_id ) {
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id );
 		}
 
@@ -1300,12 +1300,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	private function process_payment_with_checkout_session( int $order_id, string $checkout_session_id ) {
 		$order = wc_get_order( $order_id );
 
+		if ( ! $order instanceof \WC_Order ) {
+			return [];
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save();
 
 		// Remove cart.
-		if ( isset( WC()->cart ) ) {
+		if ( WC()->cart ) {
 			WC()->cart->empty_cart();
 		}
 

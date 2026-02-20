@@ -1004,11 +1004,16 @@ class WC_Stripe_Helper {
 			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
 		}
 
+		$order = null;
 		if ( ! empty( $order_id ) ) {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+
+		if ( $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 
