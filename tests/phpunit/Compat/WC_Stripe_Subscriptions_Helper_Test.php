@@ -7,6 +7,7 @@ use WC_Stripe_Database_Cache;
 use WC_Stripe_Subscriptions_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Helpers;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**
@@ -17,6 +18,29 @@ use WP_UnitTestCase;
  * Class WC_Stripe_Subscriptions_Helper tests.
  */
 class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
+	/**
+	 * The original value of the HPOS option.
+	 *
+	 * @var string
+	 */
+	private static $original_hpos_value;
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+		self::$original_hpos_value = get_option( 'woocommerce_custom_orders_table_enabled' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function tear_down_after_class() {
+		parent::tear_down_after_class();
+		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
+	}
+
 	/**
 	 * Test for `is_subscriptions_enabled`.
 	 *
@@ -334,5 +358,73 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$actual = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
 
 		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Tests for `is_subscription_edit_page`.
+	 *
+	 * @param bool $hpos_enabled Whether HPOS is enabled or not.
+	 * @param array $query_params The query parameters to set for the test.
+	 * @param bool $expected The expected result of the check.
+	 * @return void
+	 * @dataProvider provide_test_is_subscription_edit_page
+	 */
+	public function test_is_subscription_edit_page( bool $hpos_enabled, array $query_params, bool $expected ): void {
+		update_option( 'woocommerce_custom_orders_table_enabled', $hpos_enabled ? 'yes' : 'no' );
+
+		$_REQUEST = $query_params;
+
+		$actual = WC_Stripe_Subscriptions_Helper::is_subscription_edit_page();
+
+		// Clean up.
+		unset( $_REQUEST );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_is_subscription_edit_page`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_subscription_edit_page(): array {
+		$order = WC_Helper_Order::create_order();
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 123 );
+		$subscription->save();
+
+		return [
+			'HPOS enabled, not subscriptions edit page'  => [
+				'HPOS enabled' => true,
+				'query params' => [
+					'page' => 'not-subscription-edit',
+				],
+				'expected'     => false,
+			],
+			'HPOS enabled, subscriptions edit page'      => [
+				'HPOS enabled' => true,
+				'query params' => [
+					'page' => 'wc-orders--shop_subscription',
+					'id'   => 123,
+				],
+				'expected'     => true,
+			],
+			'HPOS disabled, not subscriptions edit page' => [
+				'HPOS enabled' => false,
+				'query params' => [
+					'post' => $order,
+				],
+				'expected'     => false,
+			],
+			'HPOS disabled, subscriptions edit page'     => [
+				'HPOS enabled' => false,
+				'query params' => [
+					'post'   => $subscription,
+					'action' => 'edit',
+				],
+				'expected'     => true,
+			],
+		];
 	}
 }

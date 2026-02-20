@@ -1278,6 +1278,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
+		// Only disable editing if we're on the subscription edit page.
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_edit_page() ) {
+			return $editable;
+		}
+
 		$parent_order = wc_get_order( $order->get_parent_id() );
 		if ( ! $parent_order ) {
 			return $editable;
