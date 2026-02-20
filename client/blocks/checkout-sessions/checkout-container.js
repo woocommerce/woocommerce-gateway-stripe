@@ -47,8 +47,8 @@ export const CheckoutContainer = ( props ) => {
 	return (
 		<CheckoutProvider stripe={ stripePromise } options={ providerOptions }>
 			<CheckoutForm
-				onLoadError={ setPaymentProcessorLoadErrorMessage }
 				{ ...props }
+				onLoadError={ setPaymentProcessorLoadErrorMessage }
 			/>
 		</CheckoutProvider>
 	);
