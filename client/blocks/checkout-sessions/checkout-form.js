@@ -3,7 +3,7 @@ import {
 	PaymentElement,
 	useCheckout,
 } from '@stripe/react-stripe-js/checkout';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { getStripeElementOptions } from 'wcstripe/blocks/utils';
@@ -32,6 +32,14 @@ const CheckoutForm = ( {
 	const onSelectedPaymentMethodChange = ( { value } ) => {
 		handleDisplayOfPaymentInstructions( value.type );
 	};
+
+	const elementOptions = useMemo( () => {
+		try {
+			return getStripeElementOptions( true );
+		} catch {
+			return {};
+		}
+	}, [] );
 
 	if ( checkoutState.type === 'loading' ) {
 		return (
@@ -67,7 +75,7 @@ const CheckoutForm = ( {
 			) }
 			<CurrencySelectorElement />
 			<PaymentElement
-				options={ getStripeElementOptions( true ) }
+				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }
 				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"
