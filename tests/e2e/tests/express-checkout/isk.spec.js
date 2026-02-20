@@ -70,24 +70,26 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 	} );
 
 	test.afterAll( async ( { browser } ) => {
-		if ( lowAmountProductId ) {
-			await api.deletePost.product( lowAmountProductId );
-		}
+		try {
+			if ( lowAmountProductId ) {
+				await api.deletePost.product( lowAmountProductId );
+			}
 
-		if ( highAmountProductId ) {
-			await api.deletePost.product( highAmountProductId );
-		}
+			if ( highAmountProductId ) {
+				await api.deletePost.product( highAmountProductId );
+			}
+		} finally {
+			if ( undefined !== linkByStripeInitiallyEnabled ) {
+				await admin.togglePaymentMethod(
+					browser,
+					'Link by Stripe',
+					linkByStripeInitiallyEnabled
+				);
+			}
 
-		if ( undefined !== linkByStripeInitiallyEnabled ) {
-			await admin.togglePaymentMethod(
-				browser,
-				'Link by Stripe',
-				linkByStripeInitiallyEnabled
-			);
+			await admin.updateStoreCurrency( browser, 'USD' );
+			await admin.initializeOptimizedCheckout( browser, false );
 		}
-
-		await admin.updateStoreCurrency( browser, 'USD' );
-		await admin.initializeOptimizedCheckout( browser, false );
 	} );
 
 	test.beforeEach( async ( { page } ) => {
