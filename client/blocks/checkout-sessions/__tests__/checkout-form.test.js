@@ -93,11 +93,9 @@ describe( 'CheckoutForm', () => {
 
 	it( 'should render the payment element', () => {
 		useCheckout.mockReturnValue( {
-			checkoutState: {
-				type: 'success',
-				checkout: {
-					id: 'test_checkout_id',
-				},
+			type: 'success',
+			checkout: {
+				id: 'test_checkout_id',
 			},
 		} );
 
