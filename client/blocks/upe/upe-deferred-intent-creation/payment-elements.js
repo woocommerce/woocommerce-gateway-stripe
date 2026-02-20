@@ -22,8 +22,6 @@ import {
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
 
-const stripeServerData = getBlocksConfiguration();
-
 /**
  * Renders a Stripe Elements component for payment processing.
  *
@@ -33,14 +31,15 @@ const stripeServerData = getBlocksConfiguration();
  * @return {JSX.Element} The Stripe Elements component.
  */
 const ElementsContainer = ( props ) => {
+	const { api, LoadingMask, paymentMethodId, supportsDeferredIntent } = props;
+	const stripeServerData = getBlocksConfiguration();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
+
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ setErrorMessage ] = useState( null );
 	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
-
-	const { api, LoadingMask, paymentMethodId, supportsDeferredIntent } = props;
-	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -90,6 +89,7 @@ const ElementsContainer = ( props ) => {
 		paymentIntentId,
 		paymentMethodId,
 		setErrorMessage,
+		stripeServerData,
 		supportsDeferredIntent,
 	] );
 
@@ -199,14 +199,15 @@ const PaymentElements = ( {
 	components: { LoadingMask },
 	...props
 } ) => {
+	const stripeServerData = getBlocksConfiguration();
+	const isAdaptivePricingSupported =
+		stripeServerData?.isAdaptivePricingEnabled;
+
 	const [ errorMessage ] = useState( null );
 	const [ paymentProcessorLoadErrorMessage ] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
 		! stripeServerData?.isAdaptivePricingEnabled
 	);
-
-	const isAdaptivePricingSupported =
-		stripeServerData?.isAdaptivePricingEnabled;
 
 	if ( errorMessage ) {
 		return (
