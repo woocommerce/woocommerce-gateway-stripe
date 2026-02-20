@@ -15,6 +15,7 @@ const addProductToCartById = async ( page, productId ) => {
 
 let lowAmountProductId;
 let highAmountProductId;
+let linkByStripeInitiallyEnabled;
 
 test.describe( 'express checkout with ISK in block cart/checkout', () => {
 	test.beforeAll( async ( { browser } ) => {
@@ -25,19 +26,32 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 		} );
 		const page = await adminContext.newPage();
 
-		await page.goto(
-			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
-		);
-		await page.getByLabel( 'Link by Stripe' ).check();
-		await page.getByRole( 'button', { name: /Save changes/i } ).click();
-		await expect(
-			page.locator(
-				'.components-snackbar__content:has-text("Settings saved.")'
-			)
-		).toBeVisible();
-		await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
+		try {
+			await page.goto(
+				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+			);
 
-		await adminContext.close();
+			const linkByStripeCheckbox = page.getByLabel( 'Link by Stripe' );
+			linkByStripeInitiallyEnabled =
+				await linkByStripeCheckbox.isChecked();
+
+			if ( ! linkByStripeInitiallyEnabled ) {
+				await linkByStripeCheckbox.check();
+				await page
+					.getByRole( 'button', { name: /Save changes/i } )
+					.click();
+				await expect(
+					page.locator(
+						'.components-snackbar__content:has-text("Settings saved.")'
+					)
+				).toBeVisible();
+			}
+
+			await expect( linkByStripeCheckbox ).toBeChecked();
+		} finally {
+			await adminContext.close();
+		}
+
 		await admin.initializeOptimizedCheckout( browser, false );
 
 		lowAmountProductId = await api.create.product( {
@@ -62,6 +76,14 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 
 		if ( highAmountProductId ) {
 			await api.deletePost.product( highAmountProductId );
+		}
+
+		if ( undefined !== linkByStripeInitiallyEnabled ) {
+			await admin.togglePaymentMethod(
+				browser,
+				'Link by Stripe',
+				linkByStripeInitiallyEnabled
+			);
 		}
 
 		await admin.updateStoreCurrency( browser, 'USD' );
