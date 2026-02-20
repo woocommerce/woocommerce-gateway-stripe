@@ -219,13 +219,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...getDefaultValues( true ),
 			} );
 
-			// TODO: Handle error in the follow up PR for payment processing.
-			// const result = await elements.loadActions();
-
-			// if ( result.type === 'error' ) {
-			// 	throw result.error;
-			// }
-
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
 			// eslint-disable-next-line no-console
@@ -477,7 +470,27 @@ export async function mountStripePaymentElement( api, domElement ) {
 		} );
 	}
 
-	return gatewayUPEComponents[ paymentMethodType ];
+	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
+	const component = gatewayUPEComponents[ paymentMethodType ];
+	const elements = component.elements;
+	if (
+		isAdaptivePricingSupported &&
+		elements &&
+		typeof elements.loadActions === 'function'
+	) {
+		const loadActionsResult = await elements.loadActions();
+
+		if ( loadActionsResult.type === 'error' ) {
+			showErrorPaymentMethod(
+				loadActionsResult?.error?.message,
+				domElement
+			);
+			// Setting the flag to true to prevent the form from being submitted.
+			component.hasLoadError = true;
+		}
+	}
+
+	return component;
 }
 
 /**
@@ -596,7 +609,13 @@ export const processPayment = (
 
 			if ( isAdaptivePricingSupported ) {
 				const loadActionsResult = await elements.loadActions();
+
+				if ( loadActionsResult.type === 'error' ) {
+					throw new Error( loadActionsResult.error.message );
+				}
+
 				const { actions } = loadActionsResult;
+
 				const confirmResult = await actions.confirm( {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
