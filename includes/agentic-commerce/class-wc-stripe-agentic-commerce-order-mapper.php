@@ -39,14 +39,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		);
 
 		$order = $this->create_order( $session );
-		$this->map_customer( $order, $session );
-		$this->map_line_items( $order, $session );
-		$this->map_addresses( $order, $session );
-		$this->store_stripe_metadata( $order, $session );
-		$this->verify_order_total( $order, $session );
 
-		$order->set_status( 'processing' );
-		$order->save();
+		try {
+			$this->map_customer( $order, $session );
+			$this->map_line_items( $order, $session );
+			$this->map_addresses( $order, $session );
+			$this->store_stripe_metadata( $order, $session );
+			$this->verify_order_total( $order, $session );
+
+			$order->payment_complete( $session->get_payment_intent_id() );
+		} catch ( Exception $e ) {
+			$order->delete( true );
+			throw $e;
+		}
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
