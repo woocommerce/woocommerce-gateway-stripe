@@ -30,7 +30,11 @@ test.describe( 'express checkout with ISK in block cart/checkout', () => {
 		);
 		await page.getByLabel( 'Link by Stripe' ).check();
 		await page.getByRole( 'button', { name: /Save changes/i } ).click();
-		await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
 		await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
 
 		await adminContext.close();
