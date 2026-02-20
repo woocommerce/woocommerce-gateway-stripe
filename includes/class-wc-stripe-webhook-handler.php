@@ -1630,8 +1630,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 			$url .= '?' . implode( '&', $params );
 		}
-		$raw_session = WC_Stripe_API::retrieve( $url );
-		remove_filter( 'wc_stripe_request_headers', $override_version );
+		try {
+			$raw_session = WC_Stripe_API::retrieve( $url );
+		} finally {
+			remove_filter( 'wc_stripe_request_headers', $override_version );
+		}
 		if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
 			WC_Stripe_Logger::error(
 				'Failed to retrieve checkout session with expand params.',

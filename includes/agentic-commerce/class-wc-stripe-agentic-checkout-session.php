@@ -237,7 +237,9 @@ class WC_Stripe_Agentic_Checkout_Session {
 	public function is_agentic(): bool {
 		foreach ( $this->get_line_items() as $line_item ) {
 			if (
-				property_exists( $line_item->price, 'external_reference' )
+				isset( $line_item->price )
+				&& is_object( $line_item->price )
+				&& property_exists( $line_item->price, 'external_reference' )
 				&& intval( $line_item->price->external_reference )
 			) {
 				return true;

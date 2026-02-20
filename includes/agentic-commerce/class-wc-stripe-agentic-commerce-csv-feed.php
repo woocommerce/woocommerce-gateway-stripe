@@ -332,8 +332,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 		if ( ! is_scalar( $value ) ) {
 			throw new Exception(
 				sprintf(
-					/* translators: %d: column index */
-					__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
+					/* translators: %s: column key */
+					__( 'CSV entry at column "%s" contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
 					$key
 				)
 			);

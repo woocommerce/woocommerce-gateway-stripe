@@ -176,6 +176,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		foreach ( $line_items as $line_item ) {
+			if ( ! isset( $line_item->price ) || ! is_object( $line_item->price ) ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has no price object.',
+						$line_item->id ?? 'unknown'
+					)
+				);
+			}
+
 			$product_id = intval( $line_item->price->external_reference ?? '' );
 			if ( 0 === $product_id ) {
 				throw new Exception(
