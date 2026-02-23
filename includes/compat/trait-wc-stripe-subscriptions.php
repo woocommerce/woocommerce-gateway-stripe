@@ -1267,7 +1267,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Disables the ability to edit a subscription for Indian orders.
+	 * Disable edits for subscriptions that have a mandate and a card payment method from India.
 	 *
 	 * @param bool     $editable The current editability of the subscription.
 	 * @param WC_Order $order    The order object.
