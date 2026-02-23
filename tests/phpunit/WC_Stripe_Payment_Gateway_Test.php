@@ -987,11 +987,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'has parent order'  => true,
 				'parent mandate ID' => 'mandate_123',
 				'payment method'    => [
-					'id'                     => 'pm_456',
+					'id'   => 'pm_456',
 					'type' => 'card',
 					'card' => [
-						'amount_type'     => '',
-						'supported_types' => [],
+						'country' => 'US',
 					],
 				],
 				'expected'          => true,
@@ -1002,7 +1001,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'has parent order'  => true,
 				'parent mandate ID' => 'mandate_123',
 				'payment method'    => [
-					'id'                     => 'pm_789',
+					'id'   => 'pm_789',
 					'type' => 'card',
 					'card' => [
 						'country' => 'IN',
