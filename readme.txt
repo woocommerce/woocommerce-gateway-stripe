@@ -159,6 +159,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
+* Add - Process payment with adaptive pricing in classic checkout
 * Dev - Fix WC beta version resolution in tests
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
