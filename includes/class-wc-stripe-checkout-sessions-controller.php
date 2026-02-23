@@ -79,18 +79,25 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			$full_name = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
 			$email     = $wc_customer->get_email();
 
+			$payment_intent_metadata = apply_filters(
+				'wc_stripe_payment_metadata',
+				[
+					'customer_name'  => $full_name,
+					'customer_email' => $email,
+					'site_url'       => esc_url_raw( get_site_url() ),
+					'payment_type'   => 'single',
+				],
+				null,
+				null
+			);
+
 			$request = [
 				'ui_mode'              => 'custom',
 				'customer'             => $stripe_customer->get_id(),
 				'line_items'           => $line_items,
 				'payment_method_types' => $enabled_payment_methods,
 				'payment_intent_data'  => [
-					'metadata' => [
-						'customer_name'  => $full_name,
-						'customer_email' => $email,
-						'site_url'       => esc_url_raw( get_site_url() ),
-						'payment_type'   => 'single',
-					],
+					'metadata' => $payment_intent_metadata,
 					'receipt_email' => $email,
 					'shipping'      => [
 						'name'    => $full_name,
