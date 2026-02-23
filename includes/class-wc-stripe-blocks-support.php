@@ -380,10 +380,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			}
 		}
 
-		if ( $is_upe && $is_using_saved_token ) {
-			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
-		}
-
 		// Hook into Stripe error processing so that we can capture the error to payment details.
 		// This error would have been registered via wc_add_notice() and thus is not helpful for block checkout processing.
 		add_action(
