@@ -1316,7 +1316,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Check if the order is still in a valid state to process the webhook.
-					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
+					// Include cancelled and on-hold: after 3DS the customer may cancel or the order may be on-hold,
+					// but if Stripe sends a payment_intent.succeeded webhook event we should still mark the order as paid.
+					$allowed_statuses = apply_filters(
+						'wc_stripe_allowed_payment_processing_statuses',
+						[ OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED, OrderStatus::ON_HOLD ],
+						$order
+					);
+					if ( ! $order->has_status( $allowed_statuses ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
@@ -1375,8 +1382,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
 		);
 
+		$should_update_status = false;
+		if ( OrderStatus::CANCELLED === $order->get_status() ) {
+			$should_update_status = true;
+		}
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
+
+		// process_response() will update the order status to 'processing' or 'completed'.
+		// If the order was cancelled, update the order status to on hold and add an order note.
+		if ( $should_update_status ) {
+			$order->update_status( OrderStatus::ON_HOLD, __( 'Payment was received via Stripe after it was cancelled. Please confirm with the customer whether to fulfill or refund.', 'woocommerce-gateway-stripe' ) );
+		}
 	}
 
 	/**
