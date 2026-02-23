@@ -297,6 +297,91 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that deferred webhook processes when order is in a valid status
+	 *
+	 * @param string $order_status Order status before deferred webhook runs.
+	 * @dataProvider provide_order_statuses_for_deferred_webhook
+	 */
+	public function test_deferred_webhook_processes_when_order_is_in_valid_status( $order_status ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'process_response' )
+			->with(
+				$this->anything(),
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				)
+			);
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * Data provider for test_deferred_webhook_processes_when_order_cancelled_or_on_hold.
+	 *
+	 * @return array[]
+	 */
+	public function provide_order_statuses_for_deferred_webhook() {
+		return [
+			'pending'   => [ OrderStatus::PENDING ],
+			'failed'    => [ OrderStatus::FAILED ],
+			'cancelled' => [ OrderStatus::CANCELLED ],
+			'on-hold'   => [ OrderStatus::ON_HOLD ],
+		];
+	}
+
+	/**
+	 * Test that deferred webhook is skipped when order is already paid (processing/completed).
+	 */
+	public function test_deferred_webhook_skipped_when_order_already_paid() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
 	 * Test for `process_webhook_charge_failed`.
 	 *
 	 * @param string $order_status       The order status.
