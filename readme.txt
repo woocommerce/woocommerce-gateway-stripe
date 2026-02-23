@@ -169,5 +169,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 * Fix - Prevent fatal error when order ID in webhook references a refund
+* Fix - Deferred payment_intent.succeeded webhook now processes cancelled or on-hold orders so they are updated with Stripe transaction data when payment succeeded in Stripe
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
