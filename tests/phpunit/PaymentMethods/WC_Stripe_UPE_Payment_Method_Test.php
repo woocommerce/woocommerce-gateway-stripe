@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
+use Closure;
 use stdClass;
 use WC_Payment_Token_ACH;
 use WC_Payment_Token_ACSS;
@@ -1036,5 +1037,140 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $link_upe_method->is_enabled() );
 		$this->assertTrue( $cashapp_upe_method->is_enabled() );
 		$this->assertFalse( $wechat_upe_method->is_enabled() );
+	}
+
+	/**
+	 * Test that is_available() returns the expected results in various situations.
+	 *
+	 * @dataProvider provide_test_is_available_cases
+	 *
+	 * @param bool   $is_on_add_method_page Whether to simulate the add payment method page.
+	 * @param string $payment_method_class  The payment method class to test.
+	 * @param bool   $saved_cards_enabled   Whether saved cards are enabled on the gateway.
+	 * @param bool   $expected              The expected result of is_available().
+	 */
+	public function test_is_available(
+		bool $is_on_add_method_page,
+		string $payment_method_class,
+		bool $saved_cards_enabled,
+		bool $expected
+	) {
+		// Configure saved_cards setting.
+		$settings               = WC_Stripe_Helper::get_stripe_settings();
+		$settings['saved_cards'] = $saved_cards_enabled ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// Reset the stripe gateway so it re-reads settings.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$my_account_page_id_to_reset = false;
+
+		// Simulate the add payment method page if needed.
+		if ( $is_on_add_method_page ) {
+			$my_account_page_id_to_reset = get_option( 'woocommerce_myaccount_page_id' );
+
+			$test_my_account_page_id = $this->factory->post->create( [ 'post_type' => 'page' ] );
+			update_option( 'woocommerce_myaccount_page_id', $test_my_account_page_id );
+			$this->go_to( get_permalink( $test_my_account_page_id ) );
+
+			global $wp;
+			$wp->query_vars['add-payment-method'] = true;
+		}
+
+		$mocked_methods = [
+			'get_capabilities_response',
+			'get_woocommerce_currency',
+			'is_subscription_item_in_cart',
+			'get_current_order_amount',
+			'is_inside_currency_limits',
+			'is_enabled_at_checkout',
+		];
+
+		/** @var \WC_Stripe_UPE_Payment_Method $mocked_payment_method */
+		$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods( $mocked_methods )
+			->getMock();
+
+		$mocked_payment_method->method( 'is_enabled_at_checkout' )
+			->willReturn( true );
+
+		// Ensure the gateway is considered enabled so parent::is_available() returns true.
+		$mocked_payment_method->enabled = 'yes';
+
+		$result = $mocked_payment_method->is_available();
+
+		// Cleanup add payment method page simulation.
+		if ( $is_on_add_method_page ) {
+			if ( $my_account_page_id_to_reset ) {
+				update_option( 'woocommerce_myaccount_page_id', $my_account_page_id_to_reset );
+			} else {
+				delete_option( 'woocommerce_myaccount_page_id' );
+			}
+
+			global $wp;
+			unset( $wp->query_vars['add-payment-method'] );
+		}
+
+		// Reset the Stripe gateway instance so it will be picked up fresh by future tests.
+		$reset_stripe_gateway();
+
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for {@see test_is_available()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_available_cases() {
+		$non_reusable_cases = [
+			'add method page - non-reusable, saved cards enabled'      => [ true, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, true, false ],
+			'add method page - non-reusable, saved cards disabled'     => [ true, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, false, false ],
+			'not add method page - non-reusable, saved cards disabled' => [ false, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, false, true ],
+			'not add method page - non-reusable, saved cards enabled'  => [ false, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, true, true ],
+		];
+		$reusable_cases = [
+			'add method page - reusable, saved cards disabled'         => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
+			'add method page - reusable, saved cards enabled'          => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+			'not add method page - reusable, saved cards disabled'     => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
+			'not add method page - reusable, saved cards enabled'      => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+		];
+
+		$test_cases = [];
+
+		$all_payment_method_classes = array_values(
+			array_filter(
+				WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS,
+				function ( $payment_method_class ) {
+					// Filter out Amazon Pay and Link as they are never shown as normal payment methods.
+					return WC_Stripe_UPE_Payment_Method_Amazon_Pay::class !== $payment_method_class && WC_Stripe_UPE_Payment_Method_Link::class !== $payment_method_class;
+				}
+			)
+		);
+
+		foreach ( $all_payment_method_classes as $payment_method_class ) {
+			$payment_method_instance = new $payment_method_class();
+
+			if ( $payment_method_instance->is_reusable() ) {
+				foreach ( $reusable_cases as $case_name => $case_data ) {
+					$test_cases[ $case_name . ' - ' . $payment_method_class ]    = $case_data;
+					$test_cases[ $case_name . ' - ' . $payment_method_class ][1] = $payment_method_class;
+				}
+			} else {
+				foreach ( $non_reusable_cases as $case_name => $case_data ) {
+					$test_cases[ $case_name . ' - ' . $payment_method_class ]    = $case_data;
+					$test_cases[ $case_name . ' - ' . $payment_method_class ][1] = $payment_method_class;
+				}
+			}
+		}
+
+		return $test_cases;
 	}
 }
