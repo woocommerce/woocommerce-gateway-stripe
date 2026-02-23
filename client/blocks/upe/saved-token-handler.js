@@ -1,5 +1,22 @@
 import { usePaymentCompleteHandler } from './hooks';
+import WCStripeAPI from 'wcstripe/api';
 
+/**
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EventRegistrationProps} EventRegistrationProps
+ */
+
+/**
+ * Component to handle the payment completion process for saved tokens in the UPE block.
+ *
+ * @param {Object}                 props                   Component props.
+ * @param {WCStripeAPI}            props.api               API client for making requests to the server.
+ * @param {Object}                 props.stripe            Stripe.js instance for handling Stripe-related operations.
+ * @param {Object}                 props.elements          Stripe Elements instance for handling payment elements.
+ * @param {EventRegistrationProps} props.eventRegistration Object containing event registration functions, including onCheckoutAfterProcessingWithSuccess.
+ * @param {EmitResponseProps}      props.emitResponse      Function to emit response back to the parent component.
+ * @return {JSX.Element} The SavedTokenHandler component, which handles payment completion for saved tokens.
+ */
 export const SavedTokenHandler = ( {
 	api,
 	stripe,
