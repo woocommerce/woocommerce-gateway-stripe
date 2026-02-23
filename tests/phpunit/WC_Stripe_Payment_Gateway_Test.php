@@ -929,9 +929,15 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'not a subscription'               => [
 				'is subscription'   => false,
 				'edit page'         => false,
-				'has parent order'  => false,
-				'parent mandate ID' => '',
-				'payment method'    => [],
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+				],
 				'expected'          => true,
 			],
 			'not subscriptions edit page'      => [
