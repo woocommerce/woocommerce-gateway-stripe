@@ -84,7 +84,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 					'metadata' => [
 						'customer_name'  => $full_name,
 						'customer_email' => $email,
-'site_url'       => esc_url_raw( get_site_url() ),
+						'site_url'       => esc_url_raw( get_site_url() ),
 						'payment_type'   => 'single',
 					],
 					'receipt_email' => $email,
