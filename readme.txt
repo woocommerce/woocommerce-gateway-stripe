@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
 * Dev - Remove unused frontend code related to block checkout
 * Update - Move class instantiations from their definition files to the plugin initialization code
@@ -164,6 +165,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
+* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
 * Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files

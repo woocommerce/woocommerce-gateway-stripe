@@ -1298,7 +1298,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return bool
 	 */
 	public function update_payment_after_deferred_intent( $update_payment_method, $new_payment_method, $subscription ) {
-		if ( ! $this->is_changing_payment_method_for_subscription() || $new_payment_method !== $this->id || empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+		if ( ! $this->is_changing_payment_method_for_subscription() || $new_payment_method !== $this->id ) {
 			return $update_payment_method;
 		}
 
