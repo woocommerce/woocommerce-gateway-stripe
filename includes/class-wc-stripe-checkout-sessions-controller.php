@@ -80,18 +80,18 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				],
 			];
 
-			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
+			$checkout_session = new WC_Stripe_Checkout_Session( WC_Stripe_API::request( $request, 'checkout/sessions' ) );
 
-			if ( ! empty( $checkout_session->error ) ) {
-				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+			if ( ! empty( $checkout_session->get_error() ) ) {
+				$message = empty( $checkout_session->get_error()->get_message() ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
 				throw new Exception( $message );
 			}
 
-			if ( empty( $checkout_session->client_secret ) ) {
+			if ( empty( $checkout_session->get_client_secret() ) ) {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
+			wp_send_json_success( [ 'client_secret' => $checkout_session->get_client_secret() ] );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
