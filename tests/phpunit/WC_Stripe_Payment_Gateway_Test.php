@@ -926,7 +926,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_disable_subscription_edit_for_india(): array {
 		return [
-			'not a subscription'                             => [
+			'not a subscription'               => [
 				'is subscription'   => false,
 				'edit page'         => false,
 				'has parent order'  => false,
@@ -934,7 +934,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'payment method'    => [],
 				'expected'          => true,
 			],
-			'not subscriptions edit page'                    => [
+			'not subscriptions edit page'      => [
 				'is subscription'   => true,
 				'edit page'         => false,
 				'has parent order'  => false,
@@ -942,7 +942,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'payment method'    => [],
 				'expected'          => true,
 			],
-			'missing parent order'                           => [
+			'missing parent order'             => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => false,
@@ -950,7 +950,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'payment method'    => [],
 				'expected'          => true,
 			],
-			'parent order lacks mandate ID'                  => [
+			'parent order lacks mandate ID'    => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => true,
@@ -958,7 +958,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'payment method'    => [],
 				'expected'          => true,
 			],
-			'missing payment method ID meta'                 => [
+			'missing payment method ID meta'   => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => true,
@@ -966,13 +966,13 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'payment method'    => [],
 				'expected'          => true,
 			],
-			'payment method is not card'                      => [
+			'payment method is sepa debit'     => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => true,
 				'parent mandate ID' => 'mandate_123',
 				'payment method'    => [
-					'id'                     => 'pm_123',
+					'id'         => 'pm_123',
 					'type'       => 'sepa_debit',
 					'sepa_debit' => [
 						'amount_type'     => '',
@@ -981,7 +981,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'         => true,
 			],
-			'method is card, but not indian'                 => [
+			'method is card, but not indian'   => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => true,
@@ -995,7 +995,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'          => true,
 			],
-			'method is indian card'                          => [
+			'method is indian card'            => [
 				'is subscription'   => true,
 				'edit page'         => true,
 				'has parent order'  => true,
@@ -1005,6 +1005,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'type' => 'card',
 					'card' => [
 						'country' => 'IN',
+					],
+				],
+				'expected'          => false,
+			],
+			'method is indian Google Pay card' => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+					'wallet' => [
+						'type' => 'google_pay',
 					],
 				],
 				'expected'          => false,
