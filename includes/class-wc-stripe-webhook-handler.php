@@ -1599,6 +1599,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// Acquire a transient-based lock to prevent duplicate order creation from concurrent webhooks.
+		$session_id = $notification->data->object->id ?? '';
+		$lock_key   = 'wc_stripe_agentic_lock_' . $session_id;
+		if ( false !== get_transient( $lock_key ) ) {
+			WC_Stripe_Logger::info(
+				'Agentic checkout session is already being processed.',
+				[ 'session_id' => $session_id ]
+			);
+			return;
+		}
+		set_transient( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
+
+		try {
+			$this->handle_agentic_checkout_session( $notification );
+		} finally {
+			delete_transient( $lock_key );
+		}
+	}
+
+	/**
+	 * Processes an agentic checkout session after the concurrency lock is acquired.
+	 *
+	 * @since 10.5.0
+	 * @param object $notification The webhook notification from Stripe.
+	 */
+	private function handle_agentic_checkout_session( $notification ): void {
 		WC_Stripe_Logger::info(
 			'Webhook checkout.session.completed received.',
 			[
