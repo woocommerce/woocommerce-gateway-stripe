@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.5.0 - xxxx-xx-xx =
+* Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
 * Dev - Remove unused frontend code related to block checkout
@@ -23,6 +24,8 @@
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 * Fix - Prevent fatal error when order ID in webhook references a refund
+* Dev - Update dependencies for building translations
+* Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens

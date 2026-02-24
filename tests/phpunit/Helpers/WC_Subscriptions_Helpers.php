@@ -32,10 +32,23 @@ function wcs_get_subscriptions( $args ) {
 }
 
 /**
+ * A function to mock wcs_is_subscription.
+ *
+ * @param $object mixed The object to check.
+ * @return bool|null
+ */
+function wcs_is_subscription( $object ) {
+	if ( null === WC_Subscriptions_Helpers::$wcs_is_subscription ) {
+		return false;
+	}
+
+	return WC_Subscriptions_Helpers::$wcs_is_subscription;
+}
+
+/**
  * A helper class for setting up mocks for WC_Subscriptions functions.
  */
 class WC_Subscriptions_Helpers {
-
 	/**
 	 * Mock for wcs_get_subscriptions_for_order.
 	 *
@@ -49,4 +62,11 @@ class WC_Subscriptions_Helpers {
 	 * @var array
 	 */
 	public static $wcs_get_subscriptions = null;
+
+	/**
+	 * Mock for wcs_is_subscription.
+	 *
+	 * @var bool|null
+	 */
+	public static $wcs_is_subscription = null;
 }
