@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
+	const ADDRESS_TYPE_BILLING  = 'billing';
+	const ADDRESS_TYPE_SHIPPING = 'shipping';
+
 	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
@@ -320,7 +323,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		object $address,
 		string $name,
 		string $phone,
-		string $type = 'billing'
+		string $type = self::ADDRESS_TYPE_BILLING
 	): void {
 		$name = self::split_full_name( $name );
 
@@ -375,7 +378,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$billing_address,
 			$session->get_customer_name(),
 			$session->get_billing_phone(),
-			'billing'
+			self::ADDRESS_TYPE_BILLING
 		);
 
 		// Shipping name, phone, and address (optional — not collected for digital goods).
@@ -389,7 +392,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$shipping_address,
 			$session->get_shipping_name(),
 			$session->get_shipping_phone(),
-			'shipping'
+			self::ADDRESS_TYPE_SHIPPING
 		);
 	}
 
