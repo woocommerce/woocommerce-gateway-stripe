@@ -41,12 +41,24 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order = $this->create_order( $session );
 
 		try {
+			// Map basic data first.
 			$this->map_customer( $order, $session );
 			$this->map_line_items( $order, $session );
 			$this->map_addresses( $order, $session );
 			$this->store_stripe_metadata( $order, $session );
+
+			// Save everything we've got so far.
+			$order->save();
+
+			// Coming soon: Add logic for taxes and shipping based on the saved order.
+			// $this->map_shipping();
+			// $this->map_taxes();
+			// $order->save(); // When we add shipping and taxes.
+
+			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
 
+			// Complete the order payment.
 			$order->payment_complete( $session->get_payment_intent_id() );
 		} catch ( Exception $e ) {
 			$order->delete( true );
