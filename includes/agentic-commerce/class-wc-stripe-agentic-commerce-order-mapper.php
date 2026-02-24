@@ -89,6 +89,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception( 'Checkout session is missing the id field.' );
 		}
 
+		if ( '' === $session->get_payment_intent_id() ) {
+			throw new Exception(
+				sprintf( 'Checkout session %s is missing the payment_intent id.', $session->get_id() )
+			);
+		}
+
 		if ( '' === $session->get_currency() ) {
 			throw new Exception(
 				sprintf( 'Checkout session %s is missing the currency field.', $session->get_id() )
