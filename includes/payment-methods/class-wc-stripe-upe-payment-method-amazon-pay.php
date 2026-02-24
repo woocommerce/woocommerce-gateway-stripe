@@ -52,14 +52,6 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Returns the currencies this UPE method supports for the Stripe account.
 	 *
 	 * Amazon Pay has restrictions for US accounts, as they can only transact in USD.
@@ -75,19 +67,6 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 		}
 
 		return $this->supported_currencies;
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Amazon Pay is available for the following countries: AT, BE, CY, DK, FR, DE, HU, IE, IT, LU, NL, PT, ES, SE, CH, GB, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		$account_country = WC_Stripe::get_instance()->account->get_account_country();
-
-		return in_array( $account_country, $this->supported_countries, true );
 	}
 
 	/**

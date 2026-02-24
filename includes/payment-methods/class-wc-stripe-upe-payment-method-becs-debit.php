@@ -39,23 +39,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Checks if BECS is available for the Stripe account's country.
-	 *
-	 * @return bool True if AU-based account; false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
-	}
-
-	/**
 	 * Creates a BECS Debit payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.

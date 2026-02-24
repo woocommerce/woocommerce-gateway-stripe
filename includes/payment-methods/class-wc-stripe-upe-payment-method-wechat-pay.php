@@ -98,15 +98,4 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 
 		return $currency;
 	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * WeChat Pay is available for the following countries: AT, AU, BE, CA, CH, DE, DK, ES, FI, FR, HK, IE, IT, JP, LU, NL, NO, PT, SE, SG, UK, US.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
 }

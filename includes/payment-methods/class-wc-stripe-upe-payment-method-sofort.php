@@ -33,4 +33,14 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 		// Init subscription so it can process subscription payments.
 		$this->maybe_init_subscriptions();
 	}
+
+	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @return string
+	 */
+	public function get_retrievable_type() {
+		return WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+	}
 }

@@ -42,30 +42,12 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Determines if the Stripe Account country supports Bacs Direct Debit.
-	 *
-	 * @return bool
-	 */
-	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
 	 * Returns true if Bacs Direct Debit is available for processing payments.
 	 *
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @return string The payment method type.
-	 */
-	public function get_retrievable_type() {
-		return $this->get_id();
 	}
 
 	/**
