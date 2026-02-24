@@ -141,7 +141,6 @@ export const useCheckoutSuccessHandler = (
 						};
 					}
 
-					// If no error, we assume success for now. This return value is never used, as the `confirm` call indicates success.
 					return {
 						type: 'success',
 					};
@@ -154,15 +153,10 @@ export const useCheckoutSuccessHandler = (
 /**
  * Handles the Block Checkout onCheckoutFail event for the Checkout Sessions integration.
  *
- * @param {*}                 checkoutState  The checkout state.
  * @param {*}                 onCheckoutFail The onCheckoutFail event.
  * @param {EmitResponseProps} emitResponse   Various helpers for usage with observer.
  */
-export const usePaymentFailHandler = (
-	checkoutState,
-	onCheckoutFail,
-	emitResponse
-) => {
+export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
 	useEffect(
 		() =>
 			onCheckoutFail( ( { processingResponse: { paymentDetails } } ) => {
@@ -174,6 +168,6 @@ export const usePaymentFailHandler = (
 					messageContext: emitResponse.noticeContexts.PAYMENTS,
 				};
 			} ),
-		[ checkoutState, onCheckoutFail, emitResponse ]
+		[ onCheckoutFail, emitResponse ]
 	);
 };
