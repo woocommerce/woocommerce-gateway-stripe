@@ -1640,22 +1640,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		};
 		add_filter( 'wc_stripe_request_headers', $override_version );
 
-		/**
-		 * Immediately fetch the intent and expand details:
-		 * - The intent's `agent_details` field indicates if agentic checkout is used.
-		 * - The order mapper needs to expand fields like line items, tax, shipping, etc.
-		 *
-		 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
-		 */
-		$url    = 'checkout/sessions/' . $notification->data->object->id;
-		$expand = array_merge( [ 'payment_intent.agent_details' ], WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand() );
-		if ( ! empty( $expand ) ) {
-			$params = [];
-			foreach ( $expand as $field ) {
-				$params[] = 'expand[]=' . $field;
-			}
-			$url .= '?' . implode( '&', $params );
-		}
+		$url = $this->build_checkout_session_retrieve_url(
+			$notification->data->object->id,
+			WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
+		);
+
 		try {
 			$raw_session = WC_Stripe_API::retrieve( $url );
 		} finally {
@@ -1665,9 +1654,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::error(
 				'Failed to retrieve checkout session with expand params.',
 				[
-					'url'      => $url,
-					'expanded' => $expand,
-					'error'    => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
+					'url'   => $url,
+					'error' => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
 				]
 			);
 			return;
@@ -1735,5 +1723,30 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			 */
 			do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
 		}
+	}
+
+	/**
+	 * Builds the Stripe API URL for retrieving a checkout session with expanded fields.
+	 *
+	 * Expands the payment intent's agent_details (to detect agentic sessions)
+	 * and any additional fields required by the checkout session wrapper.
+	 *
+	 * @since 10.5.0
+	 * @param string   $session_id       The Stripe checkout session ID.
+	 * @param string[] $additional_expand Additional fields to expand beyond payment_intent.agent_details.
+	 * @return string The API URL with expand query parameters.
+	 *
+	 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
+	 */
+	private function build_checkout_session_retrieve_url( string $session_id, array $additional_expand = [] ): string {
+		$url    = 'checkout/sessions/' . $session_id;
+		$expand = array_merge( [ 'payment_intent.agent_details' ], $additional_expand );
+
+		$params = [];
+		foreach ( $expand as $field ) {
+			$params[] = 'expand[]=' . $field;
+		}
+
+		return $url . '?' . implode( '&', $params );
 	}
 }
