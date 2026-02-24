@@ -162,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Dev - Fix WC beta version resolution in tests
+* Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
