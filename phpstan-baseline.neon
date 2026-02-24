@@ -3255,7 +3255,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 39
+			count: 40
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3279,6 +3279,12 @@ parameters:
 		-
 			message: '#^Binary operation "\." between non\-falsy\-string and non\-empty\-array results in an error\.$#'
 			identifier: binaryOp.invalid
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Call to an undefined static method WC_Stripe_Helper\:\:get_order_by_checkout_session_id\(\)\.$#'
+			identifier: staticMethod.notFound
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -3315,7 +3321,13 @@ parameters:
 		-
 			message: '#^Cannot access property \$is_webhook_response on object\|string\.$#'
 			identifier: property.nonObject
-			count: 2
+			count: 3
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Cannot access property \$payment_method on object\|false\.$#'
+			identifier: property.nonObject
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3547,6 +3559,12 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, object\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3597,7 +3615,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
