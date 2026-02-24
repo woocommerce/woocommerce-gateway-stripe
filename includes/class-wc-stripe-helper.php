@@ -278,6 +278,31 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
+	 *
+	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
+	 * @param string $currency      Currency code (e.g. 'eur', 'usd').
+	 * @return string Formatted amount for display.
+	 */
+	public static function get_woocommerce_amount_from_stripe_amount( $stripe_amount, $currency = '' ) {
+		if ( ! $currency ) {
+			$currency = get_woocommerce_currency();
+		}
+		$currency = strtolower( $currency );
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			$amount   = (float) absint( $stripe_amount );
+			$decimals = 0;
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$amount   = (float) $stripe_amount / 1000;
+			$decimals = 3;
+		} else {
+			$amount   = (float) $stripe_amount / 100;
+			$decimals = 2;
+		}
+		return wc_format_decimal( $amount, $decimals );
+	}
+
+	/**
 	 * Localize Stripe messages based on code
 	 *
 	 * @since 3.0.6
