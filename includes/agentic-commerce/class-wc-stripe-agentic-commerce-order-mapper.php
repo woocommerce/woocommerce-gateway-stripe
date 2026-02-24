@@ -372,15 +372,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			'billing'
 		);
 
-		// Shipping name, phone, and address.
+		// Shipping name, phone, and address (optional — not collected for digital goods).
 		$shipping_address = $session->get_shipping_address();
 		if ( ! $session->get_shipping_details() || ! $shipping_address ) {
-			throw new Exception(
-				sprintf(
-					'Checkout session %s has no shipping address.',
-					$session->get_id()
-				)
-			);
+			return;
 		}
 
 		$this->map_address(
