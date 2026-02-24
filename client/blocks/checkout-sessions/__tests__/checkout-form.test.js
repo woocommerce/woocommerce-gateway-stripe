@@ -23,9 +23,12 @@ jest.mock( 'wcstripe/blocks/checkout-sessions/hooks', () => ( {
 	usePaymentFailHandler: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/optimized-checkout/handle-display-of-payment-instructions', () => ( {
-	handleDisplayOfPaymentInstructions: jest.fn(),
-} ) );
+jest.mock(
+	'wcstripe/optimized-checkout/handle-display-of-payment-instructions',
+	() => ( {
+		handleDisplayOfPaymentInstructions: jest.fn(),
+	} )
+);
 
 describe( 'CheckoutForm', () => {
 	const LoadingMask = ( { isLoading, showSpinner, screenReaderLabel } ) => (
