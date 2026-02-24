@@ -189,6 +189,29 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					setupFutureUsage: 'off_session',
 				};
 			}
+
+			options = {
+				...options,
+				appearance: {
+					...options.appearance,
+					rules: {
+						...options.appearance.rules,
+						'.AccordionItem': {
+							...( options.appearance.rules?.[
+								'.AccordionItem'
+							] || {} ),
+							fontWeight: '500',
+							...( options.appearance?.variables?.fontSizeBase
+								? {
+										fontSize:
+											options.appearance.variables
+												.fontSizeBase,
+								  }
+								: {} ),
+						},
+					},
+				},
+			};
 		} else {
 			options = {
 				...options,
@@ -272,7 +295,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
+			layout.radios = true;
 			layout.spacedAccordionItems = false;
 		}
 		paymentElementOptions = {
