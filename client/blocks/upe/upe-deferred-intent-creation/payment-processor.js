@@ -34,6 +34,11 @@ import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/
 import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
+/**
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
+ * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EventRegistrationProps} EventRegistrationProps
+ */
+
 const noop = () => null;
 
 /**
@@ -53,19 +58,19 @@ export function validateElements( elements ) {
 /**
  * Renders the payment processor for the Stripe UPE payment method with deferred intent creation.
  *
- * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
- * @param {WCStripeAPI} args.api                 The Stripe API object.
- * @param {string}      args.paymentIntentId     The payment intent ID.
- * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
- * @param {string}      args.description         The payment method description to display.
- * @param {string}      args.testingInstructions The testing instructions to display.
- * @param {Object}      args.eventRegistration   The checkout event emitter registration object.
- * @param {Object}      args.emitResponse        Various helpers for usage with observer response objects.
- * @param {string}      args.paymentMethodId     The UPE payment method ID.
- * @param {Array}       args.upeMethods          The UPE methods.
- * @param {string}      args.errorMessage        The error message to display.
- * @param {boolean}     args.shouldSavePayment   Whether or not to save the payment method.
- * @param {Object}      args.billing             The checkout billing data.
+ * @param {*}                      props                     Additional arguments passed for payment processing on the Block Checkout.
+ * @param {WCStripeAPI}            props.api                 The Stripe API object.
+ * @param {string}                 props.paymentIntentId     The payment intent ID.
+ * @param {string}                 props.activePaymentMethod The currently selected/active payment method ID.
+ * @param {string}                 props.description         The payment method description to display.
+ * @param {string}                 props.testingInstructions The testing instructions to display.
+ * @param {EventRegistrationProps} props.eventRegistration   The checkout event emitter registration object.
+ * @param {EmitResponseProps}      props.emitResponse        Various helpers for usage with observer response objects.
+ * @param {string}                 props.paymentMethodId     The UPE payment method ID.
+ * @param {Array}                  props.upeMethods          The UPE methods.
+ * @param {string}                 props.errorMessage        The error message to display.
+ * @param {boolean}                props.shouldSavePayment   Whether or not to save the payment method.
+ * @param {Object}                 props.billing             The checkout billing data.
  *
  * @return {JSX.Element} Rendered payment processor.
  */
