@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
