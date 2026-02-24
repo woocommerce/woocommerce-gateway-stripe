@@ -1,4 +1,4 @@
-import { usePaymentCompleteHandler } from './hooks';
+import { useCheckoutSuccessHandler } from './hooks';
 
 export const SavedTokenHandler = ( {
 	api,
@@ -8,7 +8,7 @@ export const SavedTokenHandler = ( {
 	emitResponse,
 } ) => {
 	// Once the server has completed payment processing, confirm the intent of necessary.
-	usePaymentCompleteHandler(
+	useCheckoutSuccessHandler(
 		api,
 		stripe,
 		elements,
