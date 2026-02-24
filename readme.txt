@@ -172,6 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 * Fix - Prevent fatal error when order ID in webhook references a refund
 * Dev - Update dependencies for building translations
-* Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
+* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

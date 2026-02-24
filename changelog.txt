@@ -26,6 +26,7 @@
 * Fix - Prevent fatal error when order ID in webhook references a refund
 * Dev - Update dependencies for building translations
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
+* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
