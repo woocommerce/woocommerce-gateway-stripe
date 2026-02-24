@@ -60,13 +60,14 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
-
-			// Complete the order payment.
-			$order->payment_complete( $session->get_payment_intent_id() );
 		} catch ( Exception $e ) {
 			$order->delete( true );
 			throw $e;
 		}
+
+		// Complete payment outside the delete-on-failure block, since
+		// payment_complete() fires hooks/emails that cannot be rolled back.
+		$order->payment_complete( $session->get_payment_intent_id() );
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
