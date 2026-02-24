@@ -80,7 +80,6 @@ export default class WCStripeAPI {
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
-			apiVersion: this.options.apiVersion,
 		};
 
 		if ( betas.length ) {
