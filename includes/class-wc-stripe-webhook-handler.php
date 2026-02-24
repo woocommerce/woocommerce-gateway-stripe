@@ -1392,6 +1392,86 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Processes the checkout session completed event.
+	 *
+	 * @param object $notification The notification from Stripe
+	 * @return void
+	 */
+	public function process_checkout_session( $notification ) {
+		$checkout_session = $notification->data->object;
+
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::error( 'Could not find order via checkout session ID: ' . $checkout_session->id );
+			return;
+		}
+
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_stripe_allowed_payment_processing_statuses',
+				[ OrderStatus::PENDING, OrderStatus::FAILED ],
+				$order
+			)
+		) ) {
+			return;
+		}
+
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
+		$this->resolved_order = $order;
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// Lock the order
+		if ( $order_helper->lock_order_payment( $order ) ) {
+			return;
+		}
+
+		$intent_id = $checkout_session->payment_intent;
+
+		// Store the payment intent ID on the order.
+		$order_helper->add_payment_intent_to_order( $intent_id, $order );
+
+		// Add presentment details if available.
+		if ( ! empty( $checkout_session->presentment_details ) ) {
+			$presentment_details = $checkout_session->presentment_details;
+			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+
+			$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+				$presentment_details->presentment_amount,
+				$presentment_details->presentment_currency
+			);
+
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) presentment currency 2) presentment amount */
+					__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+					strtoupper( $presentment_details->presentment_currency ),
+					$amount
+				)
+			);
+		}
+
+		$intent = $this->get_intent_from_order( $order );
+
+		// Update the order with the payment method ID if it's not already set.
+		if ( ! $order_helper->get_stripe_source_id( $order ) ) {
+			$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
+		}
+
+		$order->save();
+
+		$charge = $this->get_latest_charge_from_intent( $intent );
+
+		$charge->is_webhook_response = true;
+		$this->process_response( $charge, $order );
+
+		// Unlock the order
+		$order_helper->unlock_order_payment( $order );
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -1464,6 +1544,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.succeeded':
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
+				break;
+			case 'checkout.session.completed':
+				$this->process_checkout_session( $notification );
 
 		}
 
