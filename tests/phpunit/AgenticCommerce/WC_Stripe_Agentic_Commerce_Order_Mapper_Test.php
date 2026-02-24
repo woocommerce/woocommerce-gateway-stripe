@@ -811,21 +811,25 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that missing shipping details throws an exception.
+	 * Test that missing shipping details creates an order without shipping address (digital goods).
 	 *
 	 * @return void
 	 */
-	public function test_exception_thrown_when_shipping_details_missing() {
+	public function test_order_created_without_shipping_details() {
 		$session = $this->build_checkout_session(
 			[
 				'shipping_details' => null,
 			]
 		);
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'no shipping address' );
+		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->mapper->create_order_from_checkout_session( $session );
+		$this->assertInstanceOf( \WC_Order::class, $order );
+		$this->assertEmpty( $order->get_shipping_first_name() );
+		$this->assertEmpty( $order->get_shipping_address_1() );
+		$this->assertNotEmpty( $order->get_billing_first_name() );
+
+		$order->delete( true );
 	}
 
 	/**
