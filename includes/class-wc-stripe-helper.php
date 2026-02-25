@@ -978,6 +978,49 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the order by Stripe checkout session ID.
+	 *
+	 * @since 10.5.0
+	 * @param string $checkout_session_id The ID of the checkout session.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_checkout_session_id',
+							'value' => $checkout_session_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
+		}
+
+		$order = null;
+		if ( ! empty( $order_id ) ) {
+			$order = wc_get_order( $order_id );
+		}
+
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+
+		if ( $order->get_status() !== OrderStatus::TRASH ) {
+			return $order;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Gets the dynamic bank statement descriptor suffix.
 	 *
 	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
