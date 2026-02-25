@@ -3103,12 +3103,6 @@ parameters:
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Cannot call method get_meta\(\) on WC_Order\|null\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-order-helper.php
-
-		-
 			message: '#^Method WC_Stripe_Order_Helper\:\:delete_stripe_fee\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3122,6 +3116,18 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) should return string but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) should return string but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) should return string but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
@@ -3160,6 +3166,18 @@ parameters:
 			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 2
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_fee\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_net\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
