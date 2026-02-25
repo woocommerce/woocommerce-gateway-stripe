@@ -148,6 +148,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Include additional customer information when creating checkout sessions
+* Fix - Allow subscription edits when mandates are present, except for mandates from India
+* Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
 * Dev - Remove unused frontend code related to block checkout
 * Update - Move class instantiations from their definition files to the plugin initialization code
@@ -160,6 +163,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
 * Dev - Fix WC beta version resolution in tests
+* Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
@@ -169,5 +173,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
 * Fix - Prevent fatal error when order ID in webhook references a refund
+* Dev - Update dependencies for building translations
+* Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
+* Fix - Fix currency formatting issue with ISK for express checkouts
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
