@@ -9,7 +9,6 @@ use WC_Stripe_Connect;
 use WC_Stripe_Helper;
 use WC_Stripe_Inbox_Notes;
 use WC_Stripe_Payment_Methods;
-use WC_Stripe_UPE_Availability_Note;
 use WC_Stripe_UPE_StripeLink_Note;
 
 /**
@@ -81,27 +80,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CARD ] );
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
-	}
-
-	public function test_create_upe_notes_does_not_create_availability_note_when_upe_is_enabled() {
-		$upe_helper = new UPE_Test_Helper();
-		$upe_helper->enable_upe();
-		$upe_helper->reload_payment_gateways();
-
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'yes',
-				'connection_type'                 => 'connect',
-			]
-		);
-
-		$this->set_stripe_account_data( [ 'country' => 'US' ] );
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CARD ] );
-		WC_Stripe_Inbox_Notes::create_upe_notes();
-
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
