@@ -7,57 +7,9 @@ parameters:
 			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
 
 		-
-			message: '#^Call to method get_id\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\WC_Stripe_Customer\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Call to method maybe_create_customer\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\WC_Stripe_Customer\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Call to static method build_line_items\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\WC_Stripe_Helper\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Call to static method error\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\WC_Stripe_Logger\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Call to static method request\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\WC_Stripe_API\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
 			message: '#^Caught class WC_Stripe\\Ajax_Handlers\\Exception not found\.$#'
 			identifier: class.notFound
-			count: 2
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Instantiated class WC_Stripe\\Ajax_Handlers\\Exception not found\.$#'
-			identifier: class.notFound
-			count: 6
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Instantiated class WC_Stripe\\Ajax_Handlers\\WC_Stripe_Customer not found\.$#'
-			identifier: class.notFound
 			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Throwing object of an unknown class WC_Stripe\\Ajax_Handlers\\Exception\.$#'
-			identifier: class.notFound
-			count: 6
 			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
 
 		-
