@@ -3261,7 +3261,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 7
+			count: 8
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
+			identifier: property.notFound
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3279,12 +3285,6 @@ parameters:
 		-
 			message: '#^Binary operation "\." between non\-falsy\-string and non\-empty\-array results in an error\.$#'
 			identifier: binaryOp.invalid
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Call to an undefined static method WC_Stripe_Helper\:\:get_order_by_checkout_session_id\(\)\.$#'
-			identifier: staticMethod.notFound
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
@@ -3322,12 +3322,6 @@ parameters:
 			message: '#^Cannot access property \$is_webhook_response on object\|string\.$#'
 			identifier: property.nonObject
 			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot access property \$payment_method on object\|false\.$#'
-			identifier: property.nonObject
-			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
