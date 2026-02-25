@@ -1425,6 +1425,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
 
+		// Add the subscription shipping package filter back after calculating shipping packages to avoid affecting other parts of the checkout process.
+		if ( $this->cart_contains_free_trial() ) {
+			add_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', - 10 );
+		}
+
 		WC()->shipping->calculate_shipping( $packages );
 	}
 
