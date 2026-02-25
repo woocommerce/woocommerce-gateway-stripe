@@ -27,16 +27,16 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
-		it( 'checkoutState.type is not success', () => {
+		it( 'checkoutState.type is not success', async () => {
 			const checkoutState = { type: 'error' };
 			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( onCheckoutSuccessResult ).toEqual( {
+			expect( await onCheckoutSuccessResult ).toEqual( {
 				type: 'error',
 				message: 'Checkout is not ready for confirmation.',
 			} );
 		} );
 
-		it( 'error confirming the session', () => {
+		it( 'error confirming the session', async () => {
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -47,13 +47,13 @@ describe( 'CheckoutSessions hook tests', () => {
 				},
 			};
 			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( onCheckoutSuccessResult ).toEqual( {
+			expect( await onCheckoutSuccessResult ).toEqual( {
 				type: 'error',
 				message: 'Test error.',
 			} );
 		} );
 
-		it( 'success', () => {
+		it( 'success', async () => {
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -63,7 +63,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				},
 			};
 			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( onCheckoutSuccessResult ).toEqual( {
+			expect( await onCheckoutSuccessResult ).toEqual( {
 				type: 'success',
 			} );
 		} );
@@ -91,14 +91,14 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
-		it( 'calls onCheckoutFail and returns error object', () => {
+		it( 'calls onCheckoutFail and returns error object', async () => {
 			const checkoutState = {};
 			usePaymentFailHandler(
 				checkoutState,
 				onCheckoutFail,
 				emitResponse
 			);
-			expect( onCheckoutFailResult ).toEqual( {
+			expect( await onCheckoutFailResult ).toEqual( {
 				type: 'failure',
 				messageContext: 'payments',
 				message:
