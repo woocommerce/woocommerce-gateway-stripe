@@ -1,13 +1,15 @@
 <?php
 
+namespace WC_Stripe\Ajax_Handlers;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * WC_Stripe_Checkout_Sessions_Controller class.
+ * WC_Stripe_Checkout_Sessions_Ajax_Handler class.
  */
-class WC_Stripe_Checkout_Sessions_Controller {
+class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Initialize hooks.
 	 *
@@ -76,7 +78,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			$first_name = get_user_meta( $user_id, 'first_name', true );
 			$last_name = get_user_meta( $user_id, 'last_name', true );
-			$full_name = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
+			$full_name = trim( sanitize_text_field( $first_name ) . ' class-wc-stripe-checkout-sessions-controller.php' . sanitize_text_field( $last_name ) );
 			$email     = $wc_customer->get_email();
 
 			$payment_intent_metadata = apply_filters(

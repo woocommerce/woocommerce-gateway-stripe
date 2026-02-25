@@ -23,6 +23,11 @@
         "wp-cli/wp-cli-bundle": "^2.12",
         "yoast/phpunit-polyfills": "^2.0"
     },
+	  "autoload": {
+		  "psr-4": {
+			  "WC_Stripe\\": "includes/"
+		  }
+	  },
     "autoload-dev": {
       "psr-4": {
         "WooCommerce\\Stripe\\Tests\\": "tests/phpunit/"
