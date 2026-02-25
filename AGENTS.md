@@ -45,6 +45,7 @@ Use the smallest command set needed for the task:
 
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
+- E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
 - Updating only backend or frontend for UPE changes: most payment method work spans PHP (`includes/payment-methods/`) and Blocks/UI (`client/blocks/upe/`, icons).
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.

@@ -1267,21 +1267,52 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Disables the ability to edit a subscription for orders with mandates.
+	 * Disable edits for subscriptions that have a mandate and a card payment method from India.
 	 *
 	 * @param bool     $editable The current editability of the subscription.
 	 * @param WC_Order $order    The order object.
 	 * @return bool Returns true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
-		$parent_order = wc_get_order( $order->get_parent_id() );
-		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
-			&& $this->is_subscription( $order )
-			&& $parent_order
-			&& ! empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
-			$editable = false;
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! $this->is_subscription( $order ) ) {
+			return $editable;
 		}
 
+		// Only disable editing if we're on the subscription edit page.
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscription_edit_page() ) {
+			return $editable;
+		}
+
+		$parent_order = wc_get_order( $order->get_parent_id() );
+		if ( ! $parent_order ) {
+			return $editable;
+		}
+
+		// Bail if subscription's parent order does not have a mandate ID
+		if ( empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
+			return $editable;
+		}
+
+		// Not using the helper class here since $order is actually a subscription.
+		$source_id = $order->get_meta( '_stripe_source_id', true );
+		if ( empty( $source_id ) ) {
+			return $editable;
+		}
+
+		// Retrieve the payment method object from Stripe.
+		$cache_key      = 'payment_method_for_source_' . $source_id;
+		$payment_method = WC_Stripe_Database_Cache::get( $cache_key );
+		if ( ! $payment_method ) {
+			$payment_method = $this->stripe_request( 'payment_methods/' . $source_id );
+			WC_Stripe_Database_Cache::set( $cache_key, $payment_method, HOUR_IN_SECONDS );
+		}
+
+		// If the payment method is a card and the card's country is India, disable subscription editing.
+		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
+			return false;
+		}
+
+		// Fallback to the default behavior.
 		return $editable;
 	}
 
