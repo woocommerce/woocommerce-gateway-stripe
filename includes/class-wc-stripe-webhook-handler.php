@@ -1427,45 +1427,79 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$intent_id = $checkout_session->payment_intent;
+		try {
 
-		// Store the payment intent ID on the order.
-		$order_helper->add_payment_intent_to_order( $intent_id, $order );
+			$intent_id = $checkout_session->payment_intent;
 
-		// Add presentment details if available.
-		if ( ! empty( $checkout_session->presentment_details ) ) {
-			$presentment_details = $checkout_session->presentment_details;
-			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
-			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+			// Store the payment intent ID on the order.
+			if ( ! empty( $intent_id ) ) {
+				$order_helper->add_payment_intent_to_order( $intent_id, $order );
+			}
 
-			$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-				$presentment_details->presentment_amount,
-				$presentment_details->presentment_currency
+			// Add presentment details if available.
+			if ( ! empty( $checkout_session->presentment_details ) ) {
+				$presentment_details = $checkout_session->presentment_details;
+				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+
+				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+					$presentment_details->presentment_amount,
+					$presentment_details->presentment_currency
+				);
+
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1) presentment currency 2) presentment amount */
+						__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						strtoupper( $presentment_details->presentment_currency ),
+						$amount
+					)
+				);
+			}
+
+			$intent = $this->get_intent_from_order( $order );
+
+			// Update the order with the payment method ID if it's not already set.
+			if ( ! empty( $intent ) && ! $order_helper->get_stripe_source_id( $order ) ) {
+				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
+				if ( ! empty( $payment_method_id ) ) {
+					$order_helper->update_stripe_source_id( $order, $payment_method_id );
+				}
+			}
+
+			$order->save();
+
+			$charge = $this->get_latest_charge_from_intent( $intent );
+
+			$charge->is_webhook_response = true;
+			$this->process_response( $charge, $order );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Error processing checkout session for order: ' . $order->get_id(),
+				[ 'error_message' => $e->getMessage() ]
 			);
 
-			$order->add_order_note(
-				sprintf(
-					/* translators: 1) presentment currency 2) presentment amount */
-					__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-					strtoupper( $presentment_details->presentment_currency ),
-					$amount
-				)
-			);
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
+
+			$status_update = [];
+			if ( ! $order_helper->is_stripe_status_final( $order ) ) {
+				/* translators: 1) Error message from the exception */
+				$message               = sprintf( __( 'Checkout session could not be processed. %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+				$status_update['from'] = $order->get_status();
+				$status_update['to']   = OrderStatus::FAILED;
+				$order->update_status( OrderStatus::FAILED, $message );
+			} else {
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1) Error message from the exception */
+						__( 'Checkout session processing error: %s', 'woocommerce-gateway-stripe' ),
+						$e->getMessage()
+					)
+				);
+			}
+
+			$this->send_failed_order_email( $order->get_id(), $status_update );
 		}
-
-		$intent = $this->get_intent_from_order( $order );
-
-		// Update the order with the payment method ID if it's not already set.
-		if ( ! $order_helper->get_stripe_source_id( $order ) ) {
-			$order_helper->update_stripe_source_id( $order, $intent->payment_method->id );
-		}
-
-		$order->save();
-
-		$charge = $this->get_latest_charge_from_intent( $intent );
-
-		$charge->is_webhook_response = true;
-		$this->process_response( $charge, $order );
 
 		// Unlock the order
 		$order_helper->unlock_order_payment( $order );
