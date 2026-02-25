@@ -131,7 +131,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			}
 
 			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			\WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		}
