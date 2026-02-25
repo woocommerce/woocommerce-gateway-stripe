@@ -454,7 +454,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$cron_filter_return = $is_cron_request ? '__return_true' : '__return_false';
 		add_filter( 'wp_doing_cron', $cron_filter_return, 10, 1 );
 
-		require_once __DIR__ . '/Helpers/WCS_Staging.php';
+		require_once __DIR__ . '/helpers/class-wcs-staging.php';
 		\WCS_Staging::set_is_duplicate_site( $is_wc_sub_staging_site );
 
 		$result = \WC_Stripe_API::should_detach_payment_method_from_customer();
