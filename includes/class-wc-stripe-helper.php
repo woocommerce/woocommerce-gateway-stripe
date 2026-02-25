@@ -1142,11 +1142,8 @@ class WC_Stripe_Helper {
 		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
 		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
 
-		// We loop through cart items instead of using WC_Pre_Orders_Cart::cart_contains_pre_order()
-		// and WC_Subscriptions_Cart::cart_contains_subscription() because we need to detect pre-orders
-		// that are charged upon release specifically (WC_Pre_Orders_Product::product_is_charged_upon_release),
-		// and there is no cart-level helper for that. Looping also lets us check both subscription and
-		// pre-order in a single pass.
+		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+		// subscriptions, pre-orders charged upon release, and deposits.
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
