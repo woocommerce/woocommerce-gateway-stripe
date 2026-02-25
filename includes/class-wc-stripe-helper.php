@@ -1138,9 +1138,9 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' ); // @phpstan-ignore function.impossibleType
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' ); // @phpstan-ignore function.impossibleType
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' ); // @phpstan-ignore function.impossibleType
 
 		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
 		// subscriptions, pre-orders charged upon release, and deposits.
@@ -1152,17 +1152,17 @@ class WC_Stripe_Helper {
 			}
 
 			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore-line (guarded by class_exists above)
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists above)
 				return false;
 			}
 
 			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore-line (guarded by class_exists above)
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists above)
 				return false;
 			}
 
 			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore-line (guarded by class_exists above)
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore class.notFound (guarded by class_exists above)
 				return false;
 			}
 		}
