@@ -1437,7 +1437,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Add presentment details if available.
-			if ( ! empty( $checkout_session->presentment_details ) ) {
+			if ( isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$presentment_details = $checkout_session->presentment_details;
 				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
