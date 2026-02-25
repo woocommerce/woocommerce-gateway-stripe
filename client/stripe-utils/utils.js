@@ -459,9 +459,10 @@ export const getUpeSettings = () => {
  * On order pay and change payment method pages, also preloads all billing details
  * from the customer billing data passed from the server.
  *
+ * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
  * @return {Object} The defaultValues object for the Payment Element.
  */
-export const getDefaultValues = () => {
+export const getDefaultValues = ( forCheckoutSession = false ) => {
 	const stripeServerData = getStripeServerData();
 	const isOrderPay = stripeServerData?.isOrderPay;
 	const isChangingPayment = stripeServerData?.isChangingPayment;
@@ -500,6 +501,20 @@ export const getDefaultValues = () => {
 				address.postal_code = postalCode;
 			}
 
+			if ( forCheckoutSession ) {
+				return {
+					defaultValues: {
+						billingAddress: {
+							name: billingData.name?.trim() || undefined,
+							...( Object.keys( address ).length > 0
+								? { address }
+								: {} ),
+						},
+						phoneNumber: billingData.phone?.trim() || undefined,
+					},
+				};
+			}
+
 			return {
 				defaultValues: {
 					billingDetails: {
@@ -524,6 +539,10 @@ export const getDefaultValues = () => {
 	const userPhone =
 		document.getElementById( 'billing_phone' )?.value ||
 		document.getElementById( 'shipping_phone' )?.value;
+
+	if ( forCheckoutSession ) {
+		return {};
+	}
 
 	return {
 		defaultValues: {
