@@ -1,5 +1,5 @@
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
@@ -15,7 +15,11 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const { api, setShouldLoadStripeElements } = props;
+	const {
+		api,
+		setPaymentProcessorLoadErrorMessage,
+		setShouldLoadStripeElements,
+	} = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response.data?.client_secret;
@@ -30,7 +34,6 @@ export const CheckoutContainer = ( props ) => {
 		}
 		return clientSecret;
 	}, [ api, setShouldLoadStripeElements ] );
-	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
 	const providerOptions = useMemo(
 		() => ( {

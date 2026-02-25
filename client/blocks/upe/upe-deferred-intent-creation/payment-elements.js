@@ -31,15 +31,20 @@ import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-co
  * @return {JSX.Element} The Stripe Elements component.
  */
 const ElementsContainer = ( props ) => {
-	const { api, LoadingMask, paymentMethodId, supportsDeferredIntent } = props;
+	const {
+		api,
+		LoadingMask,
+		paymentMethodId,
+		setErrorMessage,
+		setPaymentProcessorLoadErrorMessage,
+		supportsDeferredIntent,
+	} = props;
 	const stripeServerData = getBlocksConfiguration();
 	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
-	const [ setErrorMessage ] = useState( null );
-	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -203,8 +208,11 @@ const PaymentElements = ( {
 	const isAdaptivePricingSupported =
 		stripeServerData?.isAdaptivePricingEnabled;
 
-	const [ errorMessage ] = useState( null );
-	const [ paymentProcessorLoadErrorMessage ] = useState( null );
+	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [
+		paymentProcessorLoadErrorMessage,
+		setPaymentProcessorLoadErrorMessage,
+	] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
 		! stripeServerData?.isAdaptivePricingEnabled
 	);
@@ -224,6 +232,9 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
+				setPaymentProcessorLoadErrorMessage={
+					setPaymentProcessorLoadErrorMessage
+				}
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }
 				LoadingMask={ LoadingMask }
 				{ ...props }
@@ -234,6 +245,10 @@ const PaymentElements = ( {
 			<ElementsContainer
 				api={ api }
 				paymentMethodId={ paymentMethodId }
+				setErrorMessage={ setErrorMessage }
+				setPaymentProcessorLoadErrorMessage={
+					setPaymentProcessorLoadErrorMessage
+				}
 				supportsDeferredIntent={ supportsDeferredIntent }
 				LoadingMask={ LoadingMask }
 				{ ...props }
