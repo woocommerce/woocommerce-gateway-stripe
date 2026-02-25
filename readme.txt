@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Include additional customer information when creating checkout sessions
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
@@ -173,5 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatal error when order ID in webhook references a refund
 * Dev - Update dependencies for building translations
 * Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
+* Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
+* Fix - Fix currency formatting issue with ISK for express checkouts
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
