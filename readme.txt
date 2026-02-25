@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Remove unit tests that no longer make sense after recent file removals
 * Update - Include additional customer information when creating checkout sessions
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
