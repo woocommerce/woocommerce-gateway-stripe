@@ -1138,9 +1138,9 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' );
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' );
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' );
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
 
 		// We loop through cart items instead of using WC_Pre_Orders_Cart::cart_contains_pre_order()
 		// and WC_Subscriptions_Cart::cart_contains_subscription() because we need to detect pre-orders
