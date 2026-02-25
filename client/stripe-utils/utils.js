@@ -46,6 +46,13 @@ const getStripeServerData = () => {
 	return data;
 };
 
+/**
+ * Determines whether the given error type is considered non-friendly (i.e. not directly
+ * displayable to the end user).
+ *
+ * @param {string} type The Stripe error type.
+ * @return {boolean} True if the error type is non-friendly, false otherwise.
+ */
 const isNonFriendlyError = ( type ) =>
 	[
 		errorTypes.INVALID_REQUEST,
@@ -55,6 +62,13 @@ const isNonFriendlyError = ( type ) =>
 		errorTypes.RATE_LIMIT_ERROR,
 	].includes( type );
 
+/**
+ * Returns a user-facing error message for a given Stripe error code, or null if no
+ * specific message is available for that code.
+ *
+ * @param {string} code The Stripe error code.
+ * @return {string|null} The error message, or null if not found.
+ */
 const getErrorMessageForCode = ( code ) => {
 	const messages = {
 		[ errorCodes.INVALID_NUMBER ]: __(
@@ -121,6 +135,13 @@ const getErrorMessageForCode = ( code ) => {
 	return messages[ code ] || null;
 };
 
+/**
+ * Returns a user-facing error message for a given Stripe error type and optional code.
+ *
+ * @param {string} type The Stripe error type.
+ * @param {string} code The Stripe error code.
+ * @return {string|null} The error message, or null if not found.
+ */
 const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	switch ( type ) {
 		case errorTypes.INVALID_EMAIL:
@@ -264,6 +285,12 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	return paymentMethodTypes;
 };
 
+/**
+ * Determines whether the Stripe payment element terms should be included
+ * (i.e. displayed as 'always') based on the current cart and user selections.
+ *
+ * @return {boolean} True if terms should be included, false otherwise.
+ */
 function shouldIncludeTerms() {
 	if ( getStripeServerData()?.cartContainsSubscription ) {
 		return ! getStripeServerData()?.subscriptionRequiresManualRenewal;
@@ -314,12 +341,24 @@ export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	);
 };
 
+/**
+ * Appends a payment intent ID to the form as a hidden input.
+ *
+ * @param {Object} form            The jQuery form object.
+ * @param {string} paymentIntentId The payment intent ID to append to the form.
+ */
 export const appendPaymentIntentIdToForm = ( form, paymentIntentId ) => {
 	form.append(
 		`<input type="hidden" id="wc_payment_intent_id" name="wc_payment_intent_id" value="${ paymentIntentId }" />`
 	);
 };
 
+/**
+ * Appends a setup intent ID to the form as a hidden input.
+ *
+ * @param {Object} form         The jQuery form object.
+ * @param {Object} setupIntent  The Stripe setup intent object whose ID will be appended.
+ */
 export const appendSetupIntentToForm = ( form, setupIntent ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-setup-intent" name="wc-stripe-setup-intent" value="${ setupIntent.id }" />`
@@ -394,6 +433,13 @@ export const getSelectedUPEGatewayPaymentMethod = () => {
 	return selectedPaymentMethod;
 };
 
+/**
+ * Returns the billing fields visibility configuration for the Stripe Payment Element
+ * based on which WooCommerce billing fields are enabled.
+ *
+ * @param {string[]} enabledBillingFields List of enabled WooCommerce billing field names.
+ * @return {Object} Billing details fields configuration object for the Stripe Payment Element.
+ */
 export const getHiddenBillingFields = ( enabledBillingFields ) => {
 	return {
 		name:
@@ -430,6 +476,12 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 	};
 };
 
+/**
+ * Builds the settings object for the Stripe UPE Payment Element,
+ * including terms visibility and billing field configuration.
+ *
+ * @return {Object} The settings object for the Stripe UPE Payment Element.
+ */
 export const getUpeSettings = () => {
 	const upeSettings = {};
 	const showTerms = shouldIncludeTerms() ? 'always' : 'never';

@@ -93,6 +93,11 @@ export const displayLoginConfirmation = ( expressPaymentType ) => {
 	}
 };
 
+/**
+ * Returns the default border radius in pixels for Express Checkout buttons.
+ *
+ * @return {number} The default border radius value.
+ */
 export const getDefaultBorderRadius = () => {
 	return 4;
 };
@@ -198,6 +203,13 @@ export const getCustomerNote = () => {
 	return '';
 };
 
+/**
+ * Collects required field values from the WooCommerce Blocks checkout form and
+ * merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( '.wc-block-checkout' );
 	// Return if cart page.
@@ -231,6 +243,13 @@ const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
 	return data;
 };
 
+/**
+ * Collects required field values from the WooCommerce shortcode checkout form and
+ * merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( 'form.checkout' );
 	// Return if cart page.
@@ -285,6 +304,13 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 	return data;
 };
 
+/**
+ * Collects required field values from the checkout form (Blocks or shortcode)
+ * and merges them into the provided data object.
+ *
+ * @param {Object} data The existing form data to augment.
+ * @return {Object} The data object enriched with required field values.
+ */
 export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 	return getExpressCheckoutData( 'has_block' )
 		? getRequiredFieldDataFromBlockCheckoutForm( data )
