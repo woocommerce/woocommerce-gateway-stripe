@@ -37,6 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 10.5.0
    -  Remove deprecated feature flags for UPE, ECE, and OCS; remove various helpers including is_sepa_tokens_for_other_methods_enabled() validate_minimum_order_amount(), get_booking_id_from_cart(), get_owner_details(), lock_order_payment(), unlock_order_payment(), lock_order_refund(), unlock_order_refund() and remove AJAX pay for order handler
+   - Deprecated `get_retrievable_type()` and `is_available_for_account_country()` overrides in UPE payment method subclasses (ACH, ACSS, Amazon Pay, Bacs Debit, BECS Debit, BLIK, Cash App Pay, CC, Klarna, Link, SEPA, Affirm, Afterpay/Clearpay, Multibanco, WeChat Pay); the consolidated logic now lives in `WC_Stripe_UPE_Payment_Method`
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
@@ -175,5 +176,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update dependencies for building translations
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
+* Dev - Deprecate duplicate `get_retrievable_type` and `is_available_for_account_country` overrides in UPE payment method subclasses; consolidated logic now lives in the base class
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

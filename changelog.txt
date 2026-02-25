@@ -28,6 +28,7 @@
 * Dev - Update dependencies for building translations
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
+* Dev - Deprecate duplicate `get_retrievable_type` and `is_available_for_account_country` overrides in UPE payment method subclasses; consolidated logic now lives in the base class
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens

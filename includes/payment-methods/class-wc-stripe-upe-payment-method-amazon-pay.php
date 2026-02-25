@@ -52,6 +52,29 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * @return bool
+	 *
+	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::is_available_for_account_country() instead.
+	 */
+	public function is_available_for_account_country() {
+		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
+		return parent::is_available_for_account_country();
+	}
+
+	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::get_retrievable_type() instead.
+	 */
+	public function get_retrievable_type() {
+		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
+		return parent::get_retrievable_type();
+	}
+
+	/**
 	 * Returns the currencies this UPE method supports for the Stripe account.
 	 *
 	 * Amazon Pay has restrictions for US accounts, as they can only transact in USD.
