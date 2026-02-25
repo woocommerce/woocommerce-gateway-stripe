@@ -985,6 +985,10 @@ class WC_Stripe_Helper {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
+		if ( empty( $checkout_session_id ) ) {
+			return false;
+		}
+
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {

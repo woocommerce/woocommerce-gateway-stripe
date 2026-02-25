@@ -364,8 +364,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Test for `get_woocommerce_amount_from_stripe_amount` with empty currency (uses store currency).
 	 */
 	public function test_get_woocommerce_amount_from_stripe_amount_falls_back_to_store_currency(): void {
+		$original_currency = get_option( 'woocommerce_currency' );
 		update_option( 'woocommerce_currency', 'EUR' );
+
 		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 19999, '' );
+
+		// Restore original currency.
+		update_option( 'woocommerce_currency', $original_currency );
+
 		$this->assertIsString( $result );
 		$this->assertSame( '199.99', $result );
 	}
