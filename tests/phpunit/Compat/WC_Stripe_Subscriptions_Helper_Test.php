@@ -7,6 +7,7 @@ use WC_Stripe_Database_Cache;
 use WC_Stripe_Subscriptions_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Helpers;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**
@@ -17,6 +18,29 @@ use WP_UnitTestCase;
  * Class WC_Stripe_Subscriptions_Helper tests.
  */
 class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
+	/**
+	 * The original value of the HPOS option.
+	 *
+	 * @var string
+	 */
+	private static $original_hpos_value;
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+		self::$original_hpos_value = get_option( 'woocommerce_custom_orders_table_enabled' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function tear_down_after_class() {
+		parent::tear_down_after_class();
+		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
+	}
+
 	/**
 	 * Test for `is_subscriptions_enabled`.
 	 *
