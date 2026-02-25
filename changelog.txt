@@ -28,6 +28,7 @@
 * Dev - Update dependencies for building translations
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
+* Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens
