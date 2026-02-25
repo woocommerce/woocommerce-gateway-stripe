@@ -243,7 +243,7 @@ class WC_Stripe_Order_Helper {
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_FEE, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_FEE );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -295,7 +295,7 @@ class WC_Stripe_Order_Helper {
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_NET, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_NET );
 
 			// If found update to new name.
 			if ( $amount ) {
