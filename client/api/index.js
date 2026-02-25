@@ -706,7 +706,7 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Creates a new Amazon Pay checkout session.
+	 * Creates a new checkout session.
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
