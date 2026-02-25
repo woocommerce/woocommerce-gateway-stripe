@@ -1,5 +1,11 @@
 /* global wc */
 
+/**
+ * Retrieves the Stripe blocks configuration from the WooCommerce settings.
+ *
+ * @throws {Error} If Stripe initialization data is not available.
+ * @return {Object} The Stripe blocks configuration object.
+ */
 export const getBlocksConfiguration = () => {
 	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
 
