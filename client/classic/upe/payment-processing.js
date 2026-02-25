@@ -98,6 +98,14 @@ function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
 /**
  * Creates a Stripe payment element with the specified payment method type and options.
  *
+ * If the payment method doesn't support deferred intent, the intent must be created first.
+ *
+ * When Adaptive Pricing is enabled, a Checkout Session is created first and
+ * the element is loaded via initCheckout.
+ * Otherwise, the payment element is created with the intent's client secret.
+ *
+ * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
+ *
  * @param {Object} api               The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
