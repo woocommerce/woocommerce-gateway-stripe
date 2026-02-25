@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Remove unit tests that no longer make sense after recent file removals
 * Update - Include additional customer information when creating checkout sessions
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
@@ -161,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
+* Add - Display adaptive pricing currency selector on classic checkout page
 * Dev - Fix WC beta version resolution in tests
 * Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility

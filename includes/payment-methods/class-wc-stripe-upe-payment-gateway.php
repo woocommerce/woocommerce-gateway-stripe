@@ -282,6 +282,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
+		// Attach the currency selector div to the classic checkout page.
+		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
+
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
 
@@ -528,6 +531,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
 		}
+
+		// Adaptive Pricing feature flag and setting.
+		$stripe_params['isAdaptivePricingSupported'] = WC_Stripe_Feature_Flags::is_checkout_sessions_available() && 'yes' === $this->get_option( 'adaptive_pricing', 'no' );
 
 		// Checking for other BNPL extensions.
 		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
@@ -925,6 +931,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Attaches the currency selector div to the classic checkout page.
+	 * This is used to render the currency selector element in the checkout page.
+	 *
+	 * @return void
+	 */
+	public function attach_currency_selector_element() {
+		// Bail if checkout sessionsfeature flag is not enabled.
+		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return;
+		}
+
+		// Bail if not on the checkout page.
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 	}
 
 	/**
