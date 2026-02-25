@@ -18,7 +18,7 @@ export const CheckoutContainer = ( props ) => {
 	const { api, setShouldLoadStripeElements } = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
-		const clientSecret = response.data?.client_secret;
+		const clientSecret = response?.data?.client_secret;
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
 			throw new Error(
