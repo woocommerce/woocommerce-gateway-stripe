@@ -28,7 +28,7 @@ class WC_Subscriptions_Product {
 	 *
 	 * @var int[]
 	 */
-	public static array $subscription_product_ids = [];
+	private static array $subscription_product_ids = [];
 
 	/**
 	 * Set product IDs that should be treated as subscriptions. When non-empty, is_subscription( $product ) returns true only for these IDs.

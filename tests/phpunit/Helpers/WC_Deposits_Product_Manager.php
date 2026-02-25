@@ -11,7 +11,7 @@ class WC_Deposits_Product_Manager {
 	 *
 	 * @var bool
 	 */
-	public static bool $deposits_enabled_result = false;
+	private static bool $deposits_enabled_result = false;
 
 	/**
 	 * Set the value to be returned from deposits_enabled().

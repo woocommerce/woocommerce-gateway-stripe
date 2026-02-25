@@ -15,7 +15,7 @@ class WC_Pre_Orders_Product {
 	 *
 	 * @var bool
 	 */
-	public static bool $product_is_charged_upon_release_result = false;
+	private static bool $product_is_charged_upon_release_result = false;
 
 	/**
 	 * Set the value to be returned from product_is_charged_upon_release().
