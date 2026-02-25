@@ -19,6 +19,7 @@ import {
  *
  * @param {Object} paymentMethodEvent - The payment method event that triggered the creation of the order.
  * @param {string} paymentRequestType - The payment request type.
+ * @return {Object} The normalized order data object ready to be sent to the server.
  */
 const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
 	const paymentMethod = paymentMethodEvent.paymentMethod;

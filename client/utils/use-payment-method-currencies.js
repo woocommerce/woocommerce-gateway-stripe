@@ -9,9 +9,14 @@ import {
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
 
-// When UPE is disabled returns the list of all the currencies supported by AliPay.
-// When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/alipay#supported-currencies.
+/**
+ * Returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
+ * When UPE is disabled returns the list of all the currencies supported by AliPay.
+ * When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/alipay#supported-currencies
+ * @return {string[]} Array of currency codes supported by AliPay for the current account.
+ */
 const getAliPayCurrencies = () => {
 	let upeCurrencies = [];
 	switch ( accountCountry ) {
@@ -81,8 +86,12 @@ const getAliPayCurrencies = () => {
 	return upeCurrencies;
 };
 
-// Returns the specific currencies WeChat Pay supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/wechat-pay/accept-a-payment?ui=direct-api#supported-currencies.
+/**
+ * Returns the specific currencies WeChat Pay supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/wechat-pay/accept-a-payment?ui=direct-api#supported-currencies
+ * @return {string[]} Array of currency codes supported by WeChat Pay for the current account.
+ */
 const getWechatPayCurrencies = () => {
 	let upeCurrencies = [];
 	switch ( accountCountry ) {
@@ -144,8 +153,12 @@ const getWechatPayCurrencies = () => {
 	return upeCurrencies;
 };
 
-// Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
-// Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
+/**
+ * Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
+ *
+ * @see https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability
+ * @return {string[]} Array of currency codes supported by Klarna for the current account.
+ */
 const getKlarnaCurrencies = () => {
 	// Accounts can transact in their local currency.
 	switch ( accountCountry ) {
@@ -214,6 +227,11 @@ const getKlarnaCurrencies = () => {
 	return [];
 };
 
+/**
+ * Returns the specific currencies Amazon Pay supports for the corresponding Stripe account based on location.
+ *
+ * @return {string[]} Array of currency codes supported by Amazon Pay for the current account.
+ */
 const getAmazonPayCurrencies = () => {
 	switch ( accountCountry ) {
 		case 'US':
