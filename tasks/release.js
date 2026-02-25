@@ -17,6 +17,7 @@ const filesToCopy = [
 	'includes',
 	'languages',
 	'templates',
+	'vendor',
 	'woocommerce-gateway-stripe.php',
 	'changelog.txt',
 	'readme.txt',

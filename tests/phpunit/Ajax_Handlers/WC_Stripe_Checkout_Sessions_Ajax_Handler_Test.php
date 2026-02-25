@@ -1,22 +1,21 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
+namespace WooCommerce\Stripe\Tests\Ajax_Handlers;
 
-use Automattic\WooCommerce\Enums\ProductTaxStatus;
+use WC_Stripe\Ajax_Handlers\WC_Stripe_Checkout_Sessions_Ajax_Handler;
 use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
-use WC_Stripe_Checkout_Sessions_Controller;
 
 /**
- * These tests make assertions against the WC_Stripe_Checkout_Sessions_Controller class.
+ * These tests make assertions against the WC_Stripe_Checkout_Sessions_Ajax_Handler class.
  */
-class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
+class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Test that hooks are initialized correctly.
 	 */
 	public function test_init_hooks(): void {
-		$controller = new WC_Stripe_Checkout_Sessions_Controller();
+		$controller = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 		$controller->init_hooks();
 
 		$this->assertTrue(
