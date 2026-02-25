@@ -1437,8 +1437,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Add presentment details if available.
-			if ( isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
-				$presentment_details = $checkout_session->presentment_details;
+			$presentment_details = $checkout_session->presentment_details ?? null;
+			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 
@@ -1460,7 +1460,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$intent = $this->get_intent_from_order( $order );
 
 			// Update the order with the payment method ID if it's not already set.
-			if ( ! empty( $intent ) && ! $order_helper->get_stripe_source_id( $order ) ) {
+			if ( $intent && ! $order_helper->get_stripe_source_id( $order ) ) {
 				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
 				if ( ! empty( $payment_method_id ) ) {
 					$order_helper->update_stripe_source_id( $order, $payment_method_id );
