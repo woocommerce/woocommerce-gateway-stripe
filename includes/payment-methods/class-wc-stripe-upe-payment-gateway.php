@@ -415,9 +415,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/v3/',
+			'https://js.stripe.com/clover/stripe.js',
 			[],
-			'3.0',
+			null,
 			true
 		);
 
@@ -2405,17 +2405,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string The error message.
 	 */
 	private function get_payment_intent_error_message( $payment_intent ) {
-		if ( isset( $payment_intent->error->payment_intent->payment_method_types[0] ) &&
-			'amazon_pay' === $payment_intent->error->payment_intent->payment_method_types[0] &&
-			isset( $payment_intent->error->decline_code ) &&
-			'generic_decline' === $payment_intent->error->decline_code
-		) {
-			return __(
-				'Amazon Pay is not compatible for this order. Please try a different payment method.',
-				'woocommerce-gateway-stripe'
-			);
-		}
-
 		// This error indicates that the saved payment method is no longer valid.
 		// This can happen if the payment method was removed in Stripe dashboard, or if it expired.
 		// In this case, we want to show a specific message to the user.
