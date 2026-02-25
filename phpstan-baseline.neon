@@ -1,18 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to method getMessage\(\) on an unknown class WC_Stripe\\Ajax_Handlers\\Exception\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
-			message: '#^Caught class WC_Stripe\\Ajax_Handlers\\Exception not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/Ajax_Handlers/WC_Stripe_Checkout_Sessions_Ajax_Handler.php
-
-		-
 			message: '#^Property WC_Stripe_Connect_REST_Controller\:\:\$api is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
