@@ -320,6 +320,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Tests basic properties for payment methods.
 	 */
 	public function test_payment_methods_show_correct_default_outputs() {
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_BLIK::get_retrievable_type' );
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_CC::get_retrievable_type' );
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Sepa::get_retrievable_type' );
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_ACH::get_retrievable_type' );
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_ACSS::get_retrievable_type' );
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Becs_Debit::get_retrievable_type' );
+
 		$mock_alipay_details     = [
 			'type' => WC_Stripe_Payment_Methods::ALIPAY,
 		];

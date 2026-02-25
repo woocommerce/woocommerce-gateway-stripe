@@ -109,6 +109,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 	 * @dataProvider provide_test_is_available_for_account_country
 	 */
 	public function test_is_available_for_account_country( string $account_country, bool $expected_availability ): void {
+		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_available_for_account_country' );
+
 		$mock_account = $this->createMock( \WC_Stripe_Account::class );
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
