@@ -573,10 +573,10 @@ class WC_Stripe_Order_Helper {
 	 * @since 10.5.0
 	 *
 	 * @param WC_Order|null $order
-	 * @param string $presentment_amount
+	 * @param int           $presentment_amount Stripe minor-unit integer (e.g. 7800 for $78.00)
 	 * @return false|void
 	 */
-	public function update_stripe_presentment_amount( ?WC_Order $order = null, string $presentment_amount = '' ) {
+	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
 	}
 
