@@ -33,9 +33,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
-			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
-			$wc_customer             = WC()->customer;
+			$wc_customer = WC()->customer;
 			if ( ! $wc_customer ) {
 				throw new Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
 			}
