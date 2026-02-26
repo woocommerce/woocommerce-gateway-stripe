@@ -190,28 +190,56 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				};
 			}
 
-			options = {
-				...options,
-				appearance: {
-					...options.appearance,
-					rules: {
-						...options.appearance.rules,
-						'.AccordionItem': {
-							...( options.appearance.rules?.[
-								'.AccordionItem'
-							] || {} ),
-							fontWeight: '500',
-							...( options.appearance?.variables?.fontSizeBase
-								? {
-										fontSize:
-											options.appearance.variables
-												.fontSizeBase,
-								  }
-								: {} ),
+			// Look at the payment method label to pick up styles that should specifically apply to the Stripe equivalents.
+			const paymentMethodLabel = document.querySelector(
+				'.wc_payment_methods .payment_method_stripe label[for="payment_method_stripe"]'
+			);
+			if ( paymentMethodLabel ) {
+				const styleOverrides = {};
+				const paymentMethodLabelStyles =
+					window.getComputedStyle( paymentMethodLabel );
+
+				// Bump font weight by 100 to make them visually look closer. (Not sure why they are diverging!)
+				if (
+					paymentMethodLabelStyles.fontWeight &&
+					/^[1-8]00$/.test( paymentMethodLabelStyles.fontWeight )
+				) {
+					styleOverrides.fontWeight = String(
+						100 +
+							parseInt( paymentMethodLabelStyles.fontWeight, 10 )
+					);
+				}
+
+				if ( paymentMethodLabelStyles.fontSize ) {
+					styleOverrides.fontSize = paymentMethodLabelStyles.fontSize;
+				}
+
+				// For left padding, add the left padding and margin, and then subtract 1px to account for the left border.
+				const leftPaddingPx =
+					parseFloat( paymentMethodLabelStyles.paddingLeft || '0' ) +
+					parseFloat( paymentMethodLabelStyles.marginLeft || '0' );
+				if ( leftPaddingPx > 1 ) {
+					styleOverrides.paddingLeft = `${ leftPaddingPx - 1 }px`;
+				}
+
+				if ( Object.keys( styleOverrides ).length > 0 ) {
+					options = {
+						...options,
+						appearance: {
+							...options.appearance,
+							rules: {
+								...options.appearance.rules,
+								'.AccordionItem': {
+									...( options.appearance.rules?.[
+										'.AccordionItem'
+									] || {} ),
+									...styleOverrides,
+								},
+							},
 						},
-					},
-				},
-			};
+					};
+				}
+			}
 		} else {
 			options = {
 				...options,
