@@ -2113,6 +2113,12 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
+			message: '#^Method WC_Stripe_Customer\:\:maybe_create_customer\(\) should return string but returns int\|WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
 			message: '#^Method WC_Stripe_Customer\:\:recreate_customer\(\) should return string but returns int\|WP_Error\.$#'
 			identifier: return.type
 			count: 1
@@ -2201,6 +2207,12 @@ parameters:
 			identifier: parameter.notFound
 			count: 1
 			path: includes/class-wc-stripe-database-cache-prefetch.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
+			path: includes/class-wc-stripe-feature-flags.php
 
 		-
 			message: '#^@param string \$order_id does not accept actual type of parameter\: string\|null\.$#'
