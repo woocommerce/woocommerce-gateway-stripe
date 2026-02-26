@@ -48,6 +48,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		Ajax_Test_Helper::init_hooks();
 
 		// Set up a logged-in user with billing details.
+		wp_set_current_user( 1 );
 		WC()->customer = new \WC_Customer( 1 );
 
 		foreach ( $customer_data as $key => $value ) {
@@ -159,7 +160,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 			'missing customer data'    => [
 				'is valid nonce'             => true,
 				'customer data'              => [],
-				'is cart empty'              => true,
+				'is cart empty'              => false,
 				'checkout session response'  => null,
 				'expected response'          => (object) [
 					'success' => false,
