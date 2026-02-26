@@ -76,11 +76,11 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
  * Validates the Elements, then delegates to the appropriate payment method flow
  * (confirmation token or manual payment method creation).
  *
- * @param {Object}   params                The handler parameters.
- * @param {Function} params.abortPayment   Callback to abort the payment with an error message.
- * @param {Object}   params.elements       The Stripe Elements instance.
- * @param {Object}   params.event          The Stripe confirm event.
- * @param {boolean}  params.hasFreeTrial   Whether the cart contains a free trial item.
+ * @param {Object}   params              The handler parameters.
+ * @param {Function} params.abortPayment Callback to abort the payment with an error message.
+ * @param {Object}   params.elements     The Stripe Elements instance.
+ * @param {Object}   params.event        The Stripe confirm event.
+ * @param {boolean}  params.hasFreeTrial Whether the cart contains a free trial item.
  * @return {Promise<void>} Resolves when the payment has been confirmed or aborted.
  */
 export const onConfirmHandler = async ( params ) => {

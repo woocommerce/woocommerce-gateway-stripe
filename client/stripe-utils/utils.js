@@ -356,8 +356,8 @@ export const appendPaymentIntentIdToForm = ( form, paymentIntentId ) => {
 /**
  * Appends a setup intent ID to the form as a hidden input.
  *
- * @param {Object} form         The jQuery form object.
- * @param {Object} setupIntent  The Stripe setup intent object whose ID will be appended.
+ * @param {Object} form        The jQuery form object.
+ * @param {Object} setupIntent The Stripe setup intent object whose ID will be appended.
  */
 export const appendSetupIntentToForm = ( form, setupIntent ) => {
 	form.append(
