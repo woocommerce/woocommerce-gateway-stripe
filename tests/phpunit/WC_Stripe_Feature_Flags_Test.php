@@ -224,18 +224,4 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
-
-	public function test_legacy_payment_methods_supported_by_upe_are_not_loaded_when_upe_is_enabled() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
-		$this->upe_helper->reload_payment_gateways();
-
-		$loaded_gateway_classes = array_map(
-			function ( $gateway ) {
-				return get_class( $gateway );
-			},
-			WC()->payment_gateways->payment_gateways()
-		);
-
-		$this->assertContains( WC_Stripe_UPE_Payment_Gateway::class, $loaded_gateway_classes );
-	}
 }

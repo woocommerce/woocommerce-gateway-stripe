@@ -184,6 +184,20 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Meta key for lock payment to prevent multiple simultaneous payment attempts.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
+
+	/**
+	 * Meta key for lock refund to prevent multiple simultaneous refund attempts.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
+
+	/**
 	 * Singleton instance of the class.
 	 *
 	 * @var null|WC_Stripe_Order_Helper
@@ -222,11 +236,7 @@ class WC_Stripe_Order_Helper {
 	 * @return string $currency
 	 */
 	public function get_stripe_currency( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CURRENCY, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CURRENCY );
 	}
 
 	/**
@@ -250,15 +260,11 @@ class WC_Stripe_Order_Helper {
 	 * @return string $amount
 	 */
 	public function get_stripe_fee( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_STRIPE_FEE, true );
+		$amount = $this->get_order_meta( $order, self::META_STRIPE_FEE );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_FEE, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_FEE );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -306,15 +312,11 @@ class WC_Stripe_Order_Helper {
 	 * @return string $amount
 	 */
 	public function get_stripe_net( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( self::META_STRIPE_NET, true );
+		$amount = $this->get_order_meta( $order, self::META_STRIPE_NET );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_STRIPE_NET, true );
+			$amount = $this->get_order_meta( $order, self::LEGACY_META_STRIPE_NET );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -362,11 +364,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_source_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_SOURCE_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -403,11 +401,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_refund_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_REFUND_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -444,11 +438,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_intent_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_INTENT_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_INTENT_ID );
 	}
 
 	/**
@@ -485,11 +475,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_setup_intent_id( ?WC_Order $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_SETUP_INTENT, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_SETUP_INTENT );
 	}
 
 	/**
@@ -589,11 +575,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_customer_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CUSTOMER_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -630,11 +612,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_card_id( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_CARD_ID, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_CARD_ID );
 	}
 
 	/**
@@ -835,11 +813,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|string|null
 	 */
 	public function get_stripe_upe_payment_type( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_PAYMENT_TYPE, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_PAYMENT_TYPE );
 	}
 
 	/**
@@ -864,11 +838,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_waiting_for_redirect( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
 	}
 
 	/**
@@ -905,11 +875,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool|null
 	 */
 	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
-		if ( null === $order ) {
-			return false;
-		}
-
-		return $order->get_meta( self::META_STRIPE_UPE_REDIRECT_PROCESSED, true );
+		return $this->get_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED );
 	}
 
 	/**
@@ -1192,7 +1158,7 @@ class WC_Stripe_Order_Helper {
 
 		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
 
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1206,7 +1172,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
 	}
 
@@ -1220,7 +1186,7 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_order_existing_payment_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
-		return $order->get_meta( '_stripe_lock_payment', true );
+		return $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
 	}
 
 	/**
@@ -1239,7 +1205,7 @@ class WC_Stripe_Order_Helper {
 
 		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
 
-		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->update_meta_data( self::META_STRIPE_LOCK_REFUND, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1255,7 +1221,7 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_order_existing_refund_lock( WC_Order $order ) {
 		$order->read_meta_data( true );
-		return $order->get_meta( '_stripe_lock_refund', true );
+		return $order->get_meta( self::META_STRIPE_LOCK_REFUND, true );
 	}
 
 	/**
@@ -1266,7 +1232,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_refund( WC_Order $order ): void {
-		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->delete_meta_data( self::META_STRIPE_LOCK_REFUND );
 		$order->save_meta_data();
 	}
 
