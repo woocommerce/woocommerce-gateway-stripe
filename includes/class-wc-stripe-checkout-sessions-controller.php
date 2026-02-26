@@ -59,7 +59,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 					throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				$request['customer'] = WC()->customer->get_id();
+				$request['customer'] = $stripe_customer->get_id();
 			}
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
