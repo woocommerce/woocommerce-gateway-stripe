@@ -1101,6 +1101,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
 
+		$saved_shipping_methods = WC()->shipping()->shipping_methods;
+
 		WC()->cart->empty_cart();
 		$products = [];
 
@@ -1130,6 +1132,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Cleanup.
 		WC()->cart->empty_cart();
+		WC()->shipping()->shipping_methods = $saved_shipping_methods;
+
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
 		\WC_Subscriptions_Product::set_is_subscription( false );
