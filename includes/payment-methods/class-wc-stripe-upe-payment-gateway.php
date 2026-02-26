@@ -1029,6 +1029,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC()->cart->empty_cart();
 		}
 
+		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
+		// the order is updated to paid when the checkout.session.completed webhook fires.
+		// Here we only link the session to the order, clear the cart, and redirect the customer to the thank-you page.
 		return [
 			'result'   => 'success',
 			'redirect' => $this->get_return_url( $order ),
