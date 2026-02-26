@@ -284,7 +284,7 @@ class WC_Stripe_Helper {
 	 * @param string $currency      Currency code (e.g. 'eur', 'usd').
 	 * @return string Formatted amount for display.
 	 */
-	public static function get_woocommerce_amount_from_stripe_amount( $stripe_amount, $currency = '' ) {
+	public static function get_woocommerce_amount_from_stripe_amount( int $stripe_amount, string $currency = '' ): string {
 		if ( ! $currency ) {
 			$currency = get_woocommerce_currency();
 		}
