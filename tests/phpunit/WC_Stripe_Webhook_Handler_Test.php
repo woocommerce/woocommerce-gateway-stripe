@@ -892,8 +892,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test that `process_checkout_session_metadata` makes the correct API request on success.
+	 *
+	 * @return void
 	 */
-	public function test_process_checkout_session_metadata_success() {
+	public function test_process_checkout_session_metadata_success(): void {
 		$checkout_session_id = 'cs_test_abc123';
 		$metadata            = [
 			'order_id'   => '100',
@@ -914,7 +916,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			return [
 				'headers'  => [],
 				'body'     => wp_json_encode( [ 'id' => $checkout_session_id ] ),
-				'response' => [ 'code' => 200, 'message' => 'OK' ],
+				'response' => [
+					'code' => 200,
+					'message' => 'OK',
+				],
 				'cookies'  => [],
 				'filename' => null,
 			];
@@ -932,8 +937,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test that `process_checkout_session_metadata` throws an exception when the API returns an error response.
+	 *
+	 * @return void
 	 */
-	public function test_process_checkout_session_metadata_api_error_response() {
+	public function test_process_checkout_session_metadata_api_error_response(): void {
 		$checkout_session_id = 'cs_test_abc123';
 		$metadata            = [
 			'order_id'   => '100',
@@ -946,8 +953,17 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$pre_http_filter = function () use ( $error_message ) {
 			return [
 				'headers'  => [],
-				'body'     => wp_json_encode( [ 'error' => [ 'message' => $error_message ] ] ),
-				'response' => [ 'code' => 404, 'message' => 'Not Found' ],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'message' => $error_message,
+						],
+					]
+				),
+				'response' => [
+					'code' => 404,
+					'message' => 'Not Found',
+				],
 				'cookies'  => [],
 				'filename' => null,
 			];
@@ -971,8 +987,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test that `process_checkout_session` schedules the metadata job with the correct arguments.
+	 *
+	 * @return void
 	 */
-	public function test_process_checkout_session_schedules_metadata_job() {
+	public function test_process_checkout_session_schedules_metadata_job(): void {
 		$checkout_session_id = 'cs_test_schedule123';
 
 		// Create an order and associate it with the checkout session.
@@ -1045,8 +1063,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test that `process_checkout_session` does not schedule the metadata job when an exception is thrown during processing.
+	 *
+	 * @return void
 	 */
-	public function test_process_checkout_session_does_not_schedule_metadata_job_on_exception() {
+	public function test_process_checkout_session_does_not_schedule_metadata_job_on_exception(): void {
 		$checkout_session_id = 'cs_test_exception123';
 
 		// Create an order and associate it with the checkout session.
