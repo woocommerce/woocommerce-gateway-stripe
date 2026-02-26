@@ -416,7 +416,9 @@ class WC_Stripe_Customer {
 	 */
 	public function maybe_create_customer() {
 		if ( ! $this->get_id() ) {
-			return $this->set_id( $this->create_customer() );
+			$customer_id = $this->create_customer();
+			$this->set_id( $customer_id );
+			return $customer_id;
 		}
 
 		$response = WC_Stripe_API::retrieve( 'customers/' . $this->get_id() );
