@@ -1018,8 +1018,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
+		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
 
 		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
 			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
@@ -1075,8 +1076,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
+		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
 
 		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
 			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
