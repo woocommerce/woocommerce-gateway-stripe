@@ -1,10 +1,9 @@
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-import { __ } from '@wordpress/i18n';
 
 const stripePromise = loadStripe();
 
@@ -15,22 +14,23 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const { api, setShouldLoadStripeElements } = props;
+	const {
+		api,
+		setPaymentProcessorLoadErrorMessage,
+		setShouldLoadStripeElements,
+	} = props;
 	const checkoutSessionPromise = useMemo( async () => {
 		const response = await api.checkoutSessionsCreateSession();
-		const clientSecret = response.data?.client_secret;
+		const clientSecret = response?.data?.client_secret;
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
-			throw new Error(
-				__(
-					'Unable to initialize a checkout session. Please refresh the page and try again.',
-					'woocommerce-gateway-stripe'
-				)
+			// eslint-disable-next-line no-console
+			console.error(
+				'Unable to initialize a checkout session. Please refresh the page and try again.'
 			);
 		}
 		return clientSecret;
 	}, [ api, setShouldLoadStripeElements ] );
-	const [ setPaymentProcessorLoadErrorMessage ] = useState( null );
 
 	const providerOptions = useMemo(
 		() => ( {

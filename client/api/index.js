@@ -42,6 +42,12 @@ export default class WCStripeAPI {
 			?.replace( '%%endpoint%%', prefix + endpoint );
 	}
 
+	/**
+	 * Returns a user-friendly error message for a jQuery XHR error object.
+	 *
+	 * @param {Object} error A jQuery XHR error object with a statusText property.
+	 * @return {string} A user-friendly error message.
+	 */
 	getFriendlyErrorMessage( error ) {
 		// error is a jqXHR and statusText is one of "timeout", "error", "abort", and "parsererror".
 		switch ( error.statusText ) {
@@ -77,6 +83,14 @@ export default class WCStripeAPI {
 		return this.stripe;
 	}
 
+	/**
+	 * Creates a new Stripe instance with the given key and locale.
+	 *
+	 * @param {string}   key    The Stripe publishable API key.
+	 * @param {string}   locale The locale to use for Stripe UI elements.
+	 * @param {string[]} betas  Optional list of Stripe beta features to enable.
+	 * @return {Object} The Stripe instance.
+	 */
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
@@ -691,6 +705,11 @@ export default class WCStripeAPI {
 		);
 	}
 
+	/**
+	 * Creates a new checkout session.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
 	checkoutSessionsCreateSession() {
 		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
 			security: this.options?.createCheckoutSessionNonce,
