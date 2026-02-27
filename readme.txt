@@ -149,6 +149,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.5.0 - xxxx-xx-xx =
 * Add - Support express checkout for free trial subscription products that require shipping
+* Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
+* Add - Display adaptive pricing currency selector on blocks checkout page
 * Dev - Remove unit tests that no longer make sense after recent file removals
 * Update - Include additional customer information when creating checkout sessions
 * Fix - Allow subscription edits when mandates are present, except for mandates from India

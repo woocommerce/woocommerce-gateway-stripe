@@ -841,7 +841,7 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {
