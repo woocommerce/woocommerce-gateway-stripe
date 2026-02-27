@@ -348,6 +348,14 @@ jQuery( function ( $ ) {
 			// Stop animation - clear the animation queue and stop jumpToEnd.
 			// Then immediately (re)show the element.
 			$stripePaymentMethod.stop( true, false ).show();
+
+			// If we selected a different payment method, collapse the Stripe payment element.
+			const selectedPaymentMethod = document.querySelector(
+				'.woocommerce-checkout input[name="payment_method"]:checked'
+			);
+			if ( selectedPaymentMethod?.id !== 'payment_method_stripe' ) {
+				getStripePaymentElement( PAYMENT_METHOD_CARD )?.collapse();
+			}
 		};
 
 		$( document.body ).on(
