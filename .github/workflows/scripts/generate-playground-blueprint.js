@@ -15,8 +15,8 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 		steps: [
 			{
 				step: 'installPlugin',
-				pluginZipFile: {
-					resource: 'wordpress.org',
+				pluginData: {
+					resource: 'wordpress.org/plugins',
 					slug: 'woocommerce',
 				},
 				options: {
@@ -25,7 +25,7 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 			},
 			{
 				step: 'installPlugin',
-				pluginZipFile: {
+				pluginData: {
 					resource: 'url',
 					url: `https://playground.wordpress.net/plugin-proxy.php?org=woocommerce&repo=woocommerce-gateway-stripe&workflow=Build%20Live%20Branch&artifact=plugins-${ runId }&pr=${ prNumber }`,
 				},
