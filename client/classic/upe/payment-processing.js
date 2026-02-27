@@ -199,6 +199,20 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				const paymentMethodLabelStyles =
 					window.getComputedStyle( paymentMethodLabel );
 
+				const paymentMethodRoot = document.querySelector(
+					'.wc_payment_methods .payment_method_stripe'
+				);
+				const paymentMethodRootStyles = paymentMethodRoot
+					? window.getComputedStyle( paymentMethodRoot )
+					: {};
+
+				const paymentMethodBox = document.querySelector(
+					'.wc_payment_methods .payment_method_stripe .payment_box.payment_method_stripe'
+				);
+				const paymentMethodBoxStyles = paymentMethodBox
+					? window.getComputedStyle( paymentMethodBox )
+					: {};
+
 				// Bump font weight by 100 to make them visually look closer. (Not sure why they are diverging!)
 				if (
 					paymentMethodLabelStyles.fontWeight &&
@@ -210,9 +224,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					);
 				}
 
-				if ( paymentMethodLabelStyles.fontSize ) {
-					styleOverrides.fontSize = paymentMethodLabelStyles.fontSize;
-				}
+				styleOverrides.fontSize = paymentMethodLabelStyles.fontSize;
 
 				// For left padding, add the left padding and margin, and then subtract 1px to account for the left border.
 				const leftPaddingPx =
@@ -220,23 +232,71 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					parseFloat( paymentMethodLabelStyles.marginLeft || '0' );
 				if ( leftPaddingPx > 1 ) {
 					styleOverrides.paddingLeft = `${ leftPaddingPx - 1 }px`;
+				} else {
+					styleOverrides.paddingLeft = '0px';
 				}
 
-				if ( Object.keys( styleOverrides ).length > 0 ) {
-					options = {
-						...options,
-						appearance: {
-							...options.appearance,
-							rules: {
-								...options.appearance.rules,
-								'.AccordionItem': {
-									...( options.appearance.rules?.[
-										'.AccordionItem'
-									] || {} ),
-									...styleOverrides,
-								},
+				if ( paymentMethodRootStyles.borderWidth === '0px' ) {
+					styleOverrides.borderWidth =
+						paymentMethodRootStyles.borderWidth;
+				} else {
+					styleOverrides.border = paymentMethodRootStyles.border;
+				}
+
+				styleOverrides.borderRadius =
+					paymentMethodRootStyles.borderRadius;
+
+				const transparentColor =
+					/^rgba\( *[0-9]+, *[0-9]+, *[0-9]+, *0 *\)$/;
+				const isTransparentColor = ( color ) => {
+					return color && transparentColor.test( color );
+				};
+
+				if (
+					paymentMethodLabelStyles.backgroundColor &&
+					! isTransparentColor(
+						paymentMethodLabelStyles.backgroundColor
+					)
+				) {
+					styleOverrides.backgroundColor =
+						paymentMethodLabelStyles.backgroundColor;
+				} else if (
+					paymentMethodRootStyles.backgroundColor &&
+					! isTransparentColor(
+						paymentMethodRootStyles.backgroundColor
+					)
+				) {
+					styleOverrides.backgroundColor =
+						paymentMethodRootStyles.backgroundColor;
+				}
+
+				options = {
+					...options,
+					appearance: {
+						...options.appearance,
+						rules: {
+							...options.appearance.rules,
+							'.AccordionItem': {
+								...( options.appearance.rules?.[
+									'.AccordionItem'
+								] || {} ),
+								...styleOverrides,
 							},
 						},
+					},
+				};
+
+				if (
+					paymentMethodBoxStyles.backgroundColor &&
+					! isTransparentColor(
+						paymentMethodBoxStyles.backgroundColor
+					)
+				) {
+					options.appearance.rules[ '.AccordionItem--selected' ] = {
+						...( options.appearance.rules?.[
+							'.AccordionItem--selected'
+						] || {} ),
+						backgroundColor: paymentMethodBoxStyles.backgroundColor,
 					};
 				}
 			}
