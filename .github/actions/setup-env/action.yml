@@ -3,7 +3,6 @@ description: Composite Action with steps to setup PHP and Node
 
 inputs:
   php-version:
-    type: string
     default: '7.4'
     
 runs:
