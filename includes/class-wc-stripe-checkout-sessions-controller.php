@@ -33,20 +33,17 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
-			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
-
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$request = [
-				'ui_mode'              => 'custom',
-				'line_items'           => $this->build_line_items(),
-				'payment_method_types' => $enabled_payment_methods,
-				'payment_intent_data'  => $this->build_payment_intent_data(),
-				'mode'                 => 'payment',
-				'adaptive_pricing'     => [
+				'ui_mode'                       => 'custom',
+				'line_items'                    => $this->build_line_items(),
+				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
+				'payment_intent_data'           => $this->build_payment_intent_data(),
+				'mode'                          => 'payment',
+				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];

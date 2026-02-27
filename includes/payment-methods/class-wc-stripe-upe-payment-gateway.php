@@ -530,6 +530,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+			$stripe_params['isAdaptivePricingEnabled']     = WC_Stripe_Feature_Flags::is_checkout_sessions_available() && 'yes' === $this->get_option( 'adaptive_pricing', 'no' );
 		}
 
 		// Adaptive Pricing feature flag and setting.
@@ -635,7 +636,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] List of payment method types to exclude.
 	 */
-	private function get_excluded_payment_method_types(): array {
+	public function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
