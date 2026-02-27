@@ -179,5 +179,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Fix - Clear customer cache after saving a new payment method and setting default payment method so the Stripe payment method list has correct data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
