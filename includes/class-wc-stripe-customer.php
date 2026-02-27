@@ -960,8 +960,10 @@ class WC_Stripe_Customer {
 			'POST'
 		);
 
+		// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
+		$this->clear_cache();
+
 		if ( empty( $response->error ) ) {
-			$this->clear_cache();
 			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
 
 			return true;
@@ -986,8 +988,10 @@ class WC_Stripe_Customer {
 			'POST'
 		);
 
+		// Clear cache so that the payment methods list from Stripe is refreshed to have the correct default payment method.
+		$this->clear_cache();
+
 		if ( empty( $response->error ) ) {
-			$this->clear_cache();
 			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
 
 			return true;
