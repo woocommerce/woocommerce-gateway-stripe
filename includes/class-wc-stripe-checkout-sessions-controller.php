@@ -33,9 +33,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
-			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
-			$wc_customer             = WC()->customer;
+			$wc_customer = WC()->customer;
 			if ( ! $wc_customer ) {
 				throw new Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -92,10 +90,10 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			);
 
 			$request = [
-				'ui_mode'              => 'custom',
-				'customer'             => $stripe_customer->get_id(),
-				'line_items'           => $line_items,
-				'payment_method_types' => $enabled_payment_methods,
+				'ui_mode'                       => 'custom',
+				'customer'                      => $stripe_customer->get_id(),
+				'line_items'                    => $line_items,
+				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
 				'payment_intent_data'  => [
 					'metadata' => $payment_intent_metadata,
 					'receipt_email' => $email,
@@ -111,8 +109,8 @@ class WC_Stripe_Checkout_Sessions_Controller {
 						],
 					],
 				],
-				'mode'                 => 'payment',
-				'adaptive_pricing'     => [
+				'mode'                          => 'payment',
+				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];
