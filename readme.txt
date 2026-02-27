@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Dev - Add WordPress Playground preview workflow for PRs to enable one-click browser testing
 * Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
 * Add - Display adaptive pricing currency selector on blocks checkout page
 * Dev - Remove unit tests that no longer make sense after recent file removals
