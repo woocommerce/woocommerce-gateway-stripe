@@ -1,0 +1,87 @@
+name: Build Live Branch
+on:
+    pull_request:
+        types:
+            - opened
+            - reopened
+            - synchronize
+            - ready_for_review
+        paths-ignore:
+            - 'docs/**'
+            - '**/changelog/**'
+            - '**/changelog.txt'
+            - '**/readme.txt'
+            - '.gitignore'
+            - '**/*.md'
+            - '.github/**'
+            - '!.github/workflows/pr-build-live-branch.yml'
+            - '**/tests/**'
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+    build:
+        if: github.event.pull_request.draft == false && github.event.pull_request.user.login != 'github-actions[bot]'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Get current version
+              id: version
+              run: |
+                  current_version=$( grep -oP '(?<=Version: )(.+)' woocommerce-gateway-stripe.php | head -n1 )
+                  echo "Detected version: $current_version"
+                  echo "version=$current_version" >> $GITHUB_OUTPUT
+
+            - name: Setup PHP and Node
+              uses: ./.github/actions/setup-env
+
+            - name: Build plugin zip
+              id: build
+              env:
+                  CURRENT_VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  # Append run ID and short SHA to make each build version unique and sortable.
+                  VERSUFFIX="${GITHUB_RUN_ID}-g$(git rev-parse --short HEAD)"
+                  CURRENT_VERSION="${CURRENT_VERSION}-${VERSUFFIX}"
+
+                  # Stamp the version into the plugin header and constant.
+                  sed -i "s/Version: .*$/Version: ${CURRENT_VERSION}/" woocommerce-gateway-stripe.php
+                  sed -i "s/define( 'WC_STRIPE_VERSION', '.*' )/define( 'WC_STRIPE_VERSION', '${CURRENT_VERSION}' )/" woocommerce-gateway-stripe.php
+
+                  # Build the release zip.
+                  npm run build
+
+                  # Prepare the artifact directory for Playground (needs nested plugin dir).
+                  mkdir -p playground-artifact/woocommerce-gateway-stripe
+                  unzip -qq woocommerce-gateway-stripe.zip -d playground-artifact/woocommerce-gateway-stripe
+
+            - name: Upload plugin zip artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: woocommerce-gateway-stripe
+                  path: woocommerce-gateway-stripe.zip
+                  retention-days: 1
+
+            - name: Upload Playground artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: plugins-${{ github.run_id }}
+                  path: playground-artifact/woocommerce-gateway-stripe
+                  retention-days: 30
+
+            - name: Comment on PR with WordPress Playground link
+              if: "! github.event.pull_request.head.repo.fork"
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+              with:
+                  script: |
+                      const { run } = require('./.github/workflows/scripts/generate-playground-blueprint');
+                      run({ github, context, core });
