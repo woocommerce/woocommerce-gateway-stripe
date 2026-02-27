@@ -8,16 +8,34 @@ describe( 'SavedTokenHandler', () => {
 	const api = {};
 	const stripe = {};
 	const elements = {};
-	const onCheckoutAfterProcessingWithSuccess = jest.fn();
 	const emitResponse = {};
+	const onCheckoutSuccess = jest.fn();
 
-	it( 'renders without error and calls usePaymentCompleteHandler with correct args', () => {
+	beforeEach( () => {
+		usePaymentCompleteHandler.mockImplementation( () => {} );
+	} );
+
+	it( 'renders without errors', () => {
+		expect( () =>
+			render(
+				<SavedTokenHandler
+					api={ api }
+					stripe={ stripe }
+					elements={ elements }
+					eventRegistration={ { onCheckoutSuccess } }
+					emitResponse={ emitResponse }
+				/>
+			)
+		).not.toThrow();
+	} );
+
+	it( 'calls usePaymentCompleteHandler with onCheckoutSuccess', () => {
 		render(
 			<SavedTokenHandler
 				api={ api }
 				stripe={ stripe }
 				elements={ elements }
-				eventRegistration={ { onCheckoutAfterProcessingWithSuccess } }
+				eventRegistration={ { onCheckoutSuccess } }
 				emitResponse={ emitResponse }
 			/>
 		);
@@ -26,9 +44,25 @@ describe( 'SavedTokenHandler', () => {
 			api,
 			stripe,
 			elements,
-			onCheckoutAfterProcessingWithSuccess,
+			onCheckoutSuccess,
 			emitResponse,
 			false
 		);
+	} );
+
+	it( 'does not save the payment when handling a saved token', () => {
+		render(
+			<SavedTokenHandler
+				api={ api }
+				stripe={ stripe }
+				elements={ elements }
+				eventRegistration={ { onCheckoutSuccess } }
+				emitResponse={ emitResponse }
+			/>
+		);
+
+		const [ , , , , , shouldSavePayment ] =
+			usePaymentCompleteHandler.mock.calls[ 0 ];
+		expect( shouldSavePayment ).toBe( false );
 	} );
 } );
