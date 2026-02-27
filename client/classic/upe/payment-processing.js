@@ -383,8 +383,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = true;
 			layout.spacedAccordionItems = false;
+			layout.radios = shouldShowStripeRadioIcons();
 		}
 		paymentElementOptions = {
 			...paymentElementOptions,
@@ -449,6 +449,67 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
+}
+
+/**
+ * Helper method to determine whether we should show the Stripe radio icons.
+ *
+ * @return {boolean} Whether we should show the Stripe radio icons.
+ */
+function shouldShowStripeRadioIcons() {
+	const otherPaymentMethodRadio = document.querySelector(
+		'.woocommerce-checkout input[name="payment_method"][type="radio"]:not([id="payment_method_stripe"]'
+	);
+
+	if ( ! otherPaymentMethodRadio ) {
+		// No need to show radio icons if we don't have any other payment methods.
+		return false;
+	}
+
+	const otherPaymentMethodRadioStyles = window.getComputedStyle(
+		otherPaymentMethodRadio
+	);
+
+	const hiddenLengths = [ '0px', '1px' ];
+
+	// If the radio inputs are not hidden and are not set to 0x0 or 1x1, show the radios.
+	if (
+		otherPaymentMethodRadioStyles.display !== 'none' &&
+		! hiddenLengths.includes( otherPaymentMethodRadioStyles.width ) &&
+		! hiddenLengths.includes( otherPaymentMethodRadioStyles.height )
+	) {
+		return true;
+	}
+
+	// Check if there is label::before content that provides a custom radio icon.
+	const otherPaymentMethodLabel =
+		otherPaymentMethodRadio.parentElement.querySelector( 'label' );
+
+	if ( ! otherPaymentMethodLabel ) {
+		return false;
+	}
+
+	const otherPaymentMethodLabelBeforeStyles = window.getComputedStyle(
+		otherPaymentMethodLabel,
+		'::before'
+	);
+	// If the ::before content is empty or the display is none, assume no radio icon.
+	if (
+		otherPaymentMethodLabelBeforeStyles.content === '' ||
+		otherPaymentMethodLabelBeforeStyles.display === 'none'
+	) {
+		return false;
+	}
+
+	if (
+		hiddenLengths.includes( otherPaymentMethodLabelBeforeStyles.width ) ||
+		hiddenLengths.includes( otherPaymentMethodLabelBeforeStyles.height )
+	) {
+		return false;
+	}
+
+	// Otherwise assume we have a custom radio icon.
+	return true;
 }
 
 /**
