@@ -15,7 +15,7 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 		steps: [
 			{
 				step: 'installPlugin',
-				pluginData: {
+				pluginZipFile: {
 					resource: 'wordpress.org',
 					slug: 'woocommerce',
 				},
