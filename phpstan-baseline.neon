@@ -3115,19 +3115,31 @@ parameters:
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) should return string but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) should return string but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) should return string but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_upe_redirect_processed\(\) should return bool\|null but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_upe_waiting_for_redirect\(\) should return bool\|null but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
@@ -3154,6 +3166,18 @@ parameters:
 			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 2
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_fee\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_net\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
