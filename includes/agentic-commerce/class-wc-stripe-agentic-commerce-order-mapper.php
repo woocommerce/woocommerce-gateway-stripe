@@ -150,7 +150,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		$order->set_currency( $session->get_currency() ?? '' );
 		$order->set_payment_method( 'stripe' );
-		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		$order->set_payment_method_title( __( 'Stripe (Agentic Checkout)', 'woocommerce-gateway-stripe' ) );
 		$order->add_order_note(
 			__( 'Order created from Stripe agentic commerce checkout session.', 'woocommerce-gateway-stripe' )
 		);
