@@ -67,7 +67,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		// Complete payment outside the delete-on-failure block, since
 		// payment_complete() fires hooks/emails that cannot be rolled back.
-		$order->payment_complete( $session->get_payment_intent_id() );
+		$order->payment_complete( $session->get_payment_intent_id() ?? '' );
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
@@ -89,17 +89,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When required fields are missing or invalid.
 	 */
 	private function validate_checkout_session( WC_Stripe_Agentic_Checkout_Session $session ): void {
-		if ( '' === $session->get_id() ) {
+		if ( null === $session->get_id() ) {
 			throw new Exception( 'Checkout session is missing the id field.' );
 		}
 
-		if ( '' === $session->get_payment_intent_id() ) {
+		if ( null === $session->get_payment_intent_id() ) {
 			throw new Exception(
 				sprintf( 'Checkout session %s is missing the payment_intent id.', $session->get_id() )
 			);
 		}
 
-		if ( '' === $session->get_currency() ) {
+		if ( null === $session->get_currency() ) {
 			throw new Exception(
 				sprintf( 'Checkout session %s is missing the currency field.', $session->get_id() )
 			);
@@ -148,7 +148,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		$order->set_currency( $session->get_currency() );
+		$order->set_currency( $session->get_currency() ?? '' );
 		$order->set_payment_method( 'stripe' );
 		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 		$order->add_order_note(
@@ -169,7 +169,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the email is not present or invalid.
 	 */
 	private function map_customer( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$email = $session->get_customer_email();
+		$email = $session->get_customer_email() ?? '';
 
 		if ( ! is_email( $email ) ) {
 			throw new Exception(
@@ -199,7 +199,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When a product cannot be found for a line item.
 	 */
 	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$currency   = $session->get_currency();
+		$currency   = $session->get_currency() ?? '';
 		$line_items = $session->get_line_items();
 
 		if ( empty( $line_items ) ) {
@@ -231,7 +231,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$product = $this->resolve_product( $product_id, $line_item );
 
 			// Let WooCommerce calculate totals from product price × quantity.
-			$item = $this->add_product_to_order( $order, $product, $quantity, $session->get_id() );
+			$item = $this->add_product_to_order( $order, $product, $quantity, $session->get_id() ?? '' );
 
 			// Verify WC-calculated total matches Stripe's pre-tax line total.
 			$wc_line_total = (float) $item->get_total();
@@ -377,8 +377,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$this->map_address(
 			$order,
 			$billing_address,
-			$session->get_customer_name(),
-			$session->get_billing_phone(),
+			$session->get_customer_name() ?? '',
+			$session->get_billing_phone() ?? '',
 			self::ADDRESS_TYPE_BILLING
 		);
 
@@ -391,8 +391,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$this->map_address(
 			$order,
 			$shipping_address,
-			$session->get_shipping_name(),
-			$session->get_shipping_phone(),
+			$session->get_shipping_name() ?? '',
+			$session->get_shipping_phone() ?? '',
 			self::ADDRESS_TYPE_SHIPPING
 		);
 	}
@@ -408,19 +408,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Store payment intent ID (also adds an order note).
-		$order_helper->add_payment_intent_to_order( $session->get_payment_intent_id(), $order );
+		$order_helper->add_payment_intent_to_order( $session->get_payment_intent_id() ?? '', $order );
 
 		// Store Stripe customer ID.
 		$customer_id = $session->get_customer_id();
-		if ( '' !== $customer_id ) {
+		if ( null !== $customer_id ) {
 			$order_helper->update_stripe_customer_id( $order, $customer_id );
 		}
 
 		// Store Stripe currency.
-		$order_helper->update_stripe_currency( $order, $session->get_currency_lowercase() );
+		$order_helper->update_stripe_currency( $order, $session->get_currency_lowercase() ?? '' );
 
 		// Store checkout session ID for traceability.
-		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() );
+		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() ?? '' );
 	}
 
 	/**
@@ -438,8 +438,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order->calculate_totals( false );
 
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
-			$session->get_amount_total(),
-			$session->get_currency()
+			$session->get_amount_total() ?? 0,
+			$session->get_currency() ?? ''
 		);
 		$order_total    = (float) $order->get_total();
 

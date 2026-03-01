@@ -854,7 +854,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	public function test_exception_thrown_when_payment_intent_id_missing() {
 		$session = $this->build_checkout_session(
 			[
-				'payment_intent' => (object) [ 'id' => '' ],
+				'payment_intent' => (object) [ 'id' => null ],
 			]
 		);
 
