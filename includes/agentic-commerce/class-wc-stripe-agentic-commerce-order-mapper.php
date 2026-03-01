@@ -222,13 +222,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				);
 			}
 
+			$product = $this->resolve_product( $product_id, $line_item );
+
 			$quantity   = $line_item->get_quantity();
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
 				$line_item->get_amount_total() - $line_item->get_amount_tax(),
 				$currency
 			);
-
-			$product = $this->resolve_product( $product_id, $line_item );
 
 			// Let WooCommerce calculate totals from product price × quantity.
 			$item = $this->add_product_to_order( $order, $product, $quantity, $session->get_id() ?? '' );
