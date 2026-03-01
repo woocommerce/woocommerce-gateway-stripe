@@ -235,13 +235,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			// Verify WC-calculated total matches Stripe's pre-tax line total.
 			$wc_line_total = (float) $item->get_total();
-			if ( abs( $wc_line_total - $line_total ) > 0.01 ) {
+			if ( abs( $wc_line_total - $line_total ) > 0.001 ) {
 				throw new Exception(
 					sprintf(
-						'Line item price mismatch for product %d: WC calculated %.2f, Stripe expected %.2f.',
+						'Line item price mismatch for product %d: WC calculated %s, Stripe expected %s.',
 						$product_id,
-						$wc_line_total,
-						$line_total
+						wc_format_decimal( $wc_line_total ),
+						wc_format_decimal( $line_total )
 					)
 				);
 			}
@@ -443,13 +443,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		);
 		$order_total    = (float) $order->get_total();
 
-		if ( abs( $order_total - $expected_total ) > 0.01 ) {
+		if ( abs( $order_total - $expected_total ) > 0.001 ) {
 			throw new Exception(
 				sprintf(
-					'Order total mismatch for session %s: WC total %.2f, Stripe total %.2f.',
+					'Order total mismatch for session %s: WC total %s, Stripe total %s.',
 					$session->get_id(),
-					$order_total,
-					$expected_total
+					wc_format_decimal( $order_total ),
+					wc_format_decimal( $expected_total )
 				)
 			);
 		}
