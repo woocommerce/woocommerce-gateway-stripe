@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
-	const ADDRESS_TYPE_BILLING  = 'billing';
-	const ADDRESS_TYPE_SHIPPING = 'shipping';
+	private const ADDRESS_TYPE_BILLING  = 'billing';
+	private const ADDRESS_TYPE_SHIPPING = 'shipping';
 
 	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
