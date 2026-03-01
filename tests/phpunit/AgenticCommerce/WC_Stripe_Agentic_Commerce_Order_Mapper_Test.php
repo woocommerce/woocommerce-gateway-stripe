@@ -833,6 +833,60 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that an order note is added when a shippable product has no shipping address.
+	 *
+	 * @return void
+	 */
+	public function test_order_note_added_when_shippable_product_has_no_shipping_address() {
+		$session = $this->build_checkout_session(
+			[ 'shipping_details' => null ],
+			$this->default_product
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = array_map( fn( $note ) => $note->content, $notes );
+		$this->assertNotEmpty(
+			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
+		);
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Test that no order note is added when a virtual product has no shipping address.
+	 *
+	 * @return void
+	 */
+	public function test_no_order_note_when_virtual_product_has_no_shipping_address() {
+		$virtual_product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'virtual'       => true,
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+			]
+		);
+
+		$session = $this->build_checkout_session(
+			[ 'shipping_details' => null ],
+			$virtual_product
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = array_map( fn( $note ) => $note->content, $notes );
+		$this->assertEmpty(
+			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
+		);
+
+		$order->delete( true );
+		$virtual_product->delete( true );
+	}
+
+	/**
 	 * Test that an exception is thrown when session ID is missing.
 	 *
 	 * @return void
@@ -984,10 +1038,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	/**
 	 * Builds a Stripe checkout session wrapper for testing.
 	 *
-	 * @param array<string, mixed> $overrides Fields to override on the default session.
+	 * @param array<string, mixed>  $overrides Fields to override on the default session.
+	 * @param \WC_Product|null      $product   Product to use for the default line item. Defaults to $this->default_product.
 	 * @return WC_Stripe_Agentic_Checkout_Session The checkout session wrapper.
 	 */
-	private function build_checkout_session( array $overrides = [] ): WC_Stripe_Agentic_Checkout_Session {
+	private function build_checkout_session( array $overrides = [], ?\WC_Product $product = null ): WC_Stripe_Agentic_Checkout_Session {
+		$product  = $product ?? $this->default_product;
 		$defaults = [
 			'id'               => 'cs_test_123',
 			'payment_intent'   => (object) [ 'id' => 'pi_test_456' ],
@@ -1028,7 +1084,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			'line_items'       => $this->build_line_items(
 				[
 					[
-						'lookup_key'      => (string) $this->default_product->get_id(),
+						'lookup_key'      => (string) $product->get_id(),
 						'description'     => 'Default Product',
 						'quantity'        => 1,
 						'unit_amount'     => 1000,

@@ -385,6 +385,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		// Shipping name, phone, and address (optional — not collected for digital goods).
 		$shipping_address = $session->get_shipping_address();
 		if ( ! $session->get_shipping_details() || ! $shipping_address ) {
+			foreach ( $order->get_items() as $item ) {
+				if ( ! $item instanceof WC_Order_Item_Product ) {
+					continue;
+				}
+				$product = $item->get_product();
+				if ( $product instanceof WC_Product && $product->needs_shipping() ) {
+					$order->add_order_note(
+						__( 'Order contains shippable items but no shipping address was provided in the checkout session.', 'woocommerce-gateway-stripe' )
+					);
+					break;
+				}
+			}
 			return;
 		}
 
