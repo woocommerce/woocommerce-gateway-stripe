@@ -46,6 +46,7 @@ export function initializeUPEComponents() {
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
+			mountedDomElement: null,
 		};
 	}
 }
@@ -423,6 +424,11 @@ function createStripePaymentMethod(
  * Mounts the existing Stripe Payment Element to the DOM element.
  * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
+ * When the page is built with a page builder (Divi, Elementor, etc.), the builder may re-initialize
+ * sections and trigger a second mount on the same Element instance. To avoid Stripe's
+ * "This Element is already mounted" IntegrationError, we unmount from any previous container
+ * before mounting to the current one, and skip mount when already mounted to the same container.
+ *
  * @param {Object} api        The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
@@ -450,11 +456,36 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
+	const component = gatewayUPEComponents[ paymentMethodType ];
 	const upeElement =
-		gatewayUPEComponents[ paymentMethodType ].upeElement ||
+		component.upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
 
+	if ( ! upeElement ) {
+		return;
+	}
+
+	// Already mounted to this container (e.g. same node, avoid double-mount).
+	if ( component.mountedDomElement === domElement ) {
+		return component;
+	}
+
+	// Unmount from any previous container before mounting to the new one.
+	// Needed when page builders replace or re-initialize the checkout section,
+	// which can trigger a second mount on the same Element instance and cause
+	// IntegrationError: This Element is already mounted.
+	if ( component.mountedDomElement !== null ) {
+		try {
+			upeElement.unmount();
+		} catch ( unmountError ) {
+			// Element may not have been mounted (e.g. detached from DOM).
+		}
+		component.mountedDomElement = null;
+	}
+
 	upeElement.mount( domElement );
+	component.mountedDomElement = domElement;
+
 	upeElement.on( 'loaderror', ( e ) => {
 		showErrorPaymentMethod( e.error.message, domElement );
 		// Setting the flag to true to prevent the form from being submitted.
