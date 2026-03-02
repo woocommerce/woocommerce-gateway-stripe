@@ -1467,8 +1467,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$intent = $this->get_intent_from_order( $order );
 
+			if ( ! $intent ) {
+				WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
+				return;
+			}
+
 			// Update the order with the payment method ID if it's not already set.
-			if ( $intent && ! $order_helper->get_stripe_source_id( $order ) ) {
+			if ( ! $order_helper->get_stripe_source_id( $order ) ) {
 				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
 				if ( ! empty( $payment_method_id ) ) {
 					$order_helper->update_stripe_source_id( $order, $payment_method_id );
