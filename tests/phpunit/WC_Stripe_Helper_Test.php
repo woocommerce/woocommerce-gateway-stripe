@@ -342,7 +342,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'currency'      => 'jpy',
 				'expected'      => '0',
 			],
-			'BHD three-decimal: 1 fil (single unit)' => [
+			'BHD three-decimal: 5 fil (single unit)' => [
 				'stripe_amount' => 5,
 				'currency'      => 'bhd',
 				'expected'      => '0.005',
