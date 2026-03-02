@@ -1397,7 +1397,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The notification from Stripe
 	 * @return void
 	 */
-	public function process_checkout_session( $notification ) {
+	public function process_checkout_session( object $notification ): void {
 		$checkout_session = $notification->data->object;
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
