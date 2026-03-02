@@ -5,7 +5,7 @@ import { info } from '@wordpress/icons';
 import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
 import { Icon, Notice } from '@wordpress/components';
-import apiFetch from '@wordpress/api-fetch';
+import { dismissNotice } from 'wcstripe/utils';
 
 const NoticeWrapper = styled( Notice )`
 	margin: 0 0 24px 0;
@@ -32,11 +32,7 @@ const OptimizedCheckoutNotice = ( { isOCEnabled } ) => {
 	}
 
 	const handleDismissNotice = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_optimized_checkout_notice: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_optimized_checkout_notice', () => {
 			setShowNotice( false );
 		} );
 	};
