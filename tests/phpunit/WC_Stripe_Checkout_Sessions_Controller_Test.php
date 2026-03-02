@@ -33,6 +33,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 * @param bool        $is_valid_nonce             Whether the AJAX nonce is valid.
 	 * @param bool        $is_cart_empty              Whether the cart is empty.
 	 * @param array       $customer_data              The customer billing data to set.
+	 * @param bool        $is_cart_empty              Whether the cart is empty.
 	 * @param object|null $checkout_session_response  The mocked response from the Stripe API.
 	 * @param object      $expected_response          The expected AJAX response, if any.
 	 * @return void
