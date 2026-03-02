@@ -50,6 +50,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $deferred_webhook_action = 'wc_stripe_deferred_webhook';
 
 	/**
+	 * How long to wait before processing checkout session metadata after a webhook.
+	 *
+	 * @var int
+	 */
+	protected $process_checkout_session_metadata_delay = 2 * MINUTE_IN_SECONDS;
+
+	/**
 	 * The Action Scheduler hook to use when processing checkout session metadata after a webhook.
 	 *
 	 * @var string
@@ -1505,7 +1512,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Schedule a job to store the remaining metadata to the checkout session.
 			$this->action_scheduler_service->schedule_job(
-				time() + $this->deferred_webhook_delay,
+				time() + $this->process_checkout_session_metadata_delay,
 				$this->process_checkout_session_metadata_action,
 				[
 					'checkout_session_id' => $checkout_session->id,
