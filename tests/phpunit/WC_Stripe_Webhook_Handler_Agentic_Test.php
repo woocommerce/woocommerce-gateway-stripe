@@ -82,7 +82,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_completed_skips_non_agentic() {
 		$notification = $this->build_notification( 'cs_test_non_agentic' );
 		$mock_session = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
-		$this->mock_stripe_api_response( $mock_session );
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -111,7 +111,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'id'            => 'pi_test_cs_test_duplicate',
 			'agent_details' => (object) [],
 		];
-		$this->mock_stripe_api_response( $mock_session );
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -146,7 +146,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$notification = $this->build_notification( 'cs_test_mapper_fail' );
 		$mock_session = $this->build_checkout_session_response( 'cs_test_mapper_fail', true );
-		$this->mock_stripe_api_response( $mock_session );
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Should not throw — the handler catches the mapper's exception.
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
@@ -178,7 +178,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$notification = $this->build_notification( 'cs_test_happy' );
 		$mock_session = $this->build_checkout_session_response( 'cs_test_happy', true, (string) $product->get_id() );
-		$this->mock_stripe_api_response( $mock_session );
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
@@ -212,13 +212,51 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a session with a missing payment intent ID is skipped without creating an order.
+	 */
+	public function test_process_checkout_session_completed_skips_when_payment_intent_missing() {
+		$notification                 = $this->build_notification( 'cs_test_no_intent' );
+		$mock_session                 = $this->build_checkout_session_response( 'cs_test_no_intent', true );
+		$mock_session->payment_intent = (object) [
+			'id'            => null,
+			'agent_details' => (object) [],
+		];
+		$this->mock_stripe_checkout_sessions_response( $mock_session );
+
+		$this->handler->process_webhook( wp_json_encode( $notification ) );
+
+		$orders = wc_get_orders(
+			[
+				'meta_key'   => '_stripe_intent_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value' => 'pi_test_cs_test_no_intent', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			]
+		);
+		$this->assertEmpty( $orders );
+	}
+
+	/**
+	 * Tests that the wc_stripe_request_headers filter is always removed after processing,
+	 * even when an error occurs before order creation.
+	 */
+	public function test_request_headers_filter_is_removed_after_processing_failure() {
+		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
+
+		$notification = $this->build_notification( 'cs_test_filter_cleanup' );
+		$this->mock_stripe_api_error();
+
+		$this->handler->process_webhook( wp_json_encode( $notification ) );
+
+		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
+	}
+
+	/**
 	 * Intercepts HTTP requests to the Stripe checkout sessions API and returns a mock response.
 	 *
 	 * @param object $response_body The mock response body object.
 	 */
-	private function mock_stripe_api_response( $response_body ) {
+	private function mock_stripe_checkout_sessions_response( $response_body ) {
 		$this->http_filter = function ( $preempt, $args, $url ) use ( $response_body ) {
-			if ( false !== strpos( $url, 'api.stripe.com' ) && false !== strpos( $url, 'checkout/sessions/' ) ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions/' ) ) {
 				return [
 					'response' => [
 						'code'    => 200,

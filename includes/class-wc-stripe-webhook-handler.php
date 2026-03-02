@@ -1664,7 +1664,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			$payment_intent_id = $session->get_payment_intent_id() ?? '';
+			$payment_intent_id = $session->get_payment_intent_id();
+			if ( null === $payment_intent_id || empty( $payment_intent_id ) ) {
+				WC_Stripe_Logger::error(
+					'Checkout session is missing the payment intent id.',
+					[
+						'session_id' => $session->get_id(),
+					]
+				);
+				return;
+			}
 
 			// Idempotency: look up existing order by payment intent ID.
 			$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
