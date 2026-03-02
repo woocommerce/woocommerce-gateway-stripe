@@ -4,7 +4,7 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe',
 
 		preferredVersions: {
-			php: '8.0',
+			php: '8.4',
 			wp: 'latest',
 		},
 
