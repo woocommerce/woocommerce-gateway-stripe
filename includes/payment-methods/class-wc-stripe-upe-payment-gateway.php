@@ -1026,6 +1026,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				WC()->cart->empty_cart();
 			}
 
+			// If the order is already completed, redirect user to the order received page.
 			return [
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $order ),
