@@ -1113,7 +1113,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_checkout_session( $notification );
 
-		// Assertions are handled by the mock expectation (never called).
+		// Needed to avoid flagging the test as `risky`. Actual assertions happen in the mock expectations above.
 		$this->assertTrue( true );
 	}
 }
