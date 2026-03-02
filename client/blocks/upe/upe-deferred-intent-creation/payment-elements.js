@@ -132,7 +132,10 @@ const ElementsContainer = ( props ) => {
 			},
 		};
 
-		if ( stripeServerData?.isOCEnabled ) {
+		if (
+			stripeServerData?.isOCEnabled &&
+			! stripeServerData?.isAddPaymentMethod
+		) {
 			options = {
 				...options,
 				...{

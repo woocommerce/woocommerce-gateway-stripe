@@ -523,8 +523,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
+		$is_add_payment_method               = is_wc_endpoint_url( 'add-payment-method' );
+		$stripe_params['isAddPaymentMethod'] = $is_add_payment_method;
+
 		// Optimized Checkout feature flag + setting.
-		$stripe_params['isOCEnabled'] = $this->oc_enabled;
+		$stripe_params['isOCEnabled']                 = $this->oc_enabled;
+		$stripe_params['shouldShowOptimizedCheckout'] = $this->oc_enabled && ! $is_add_payment_method;
 
 		if ( $this->oc_enabled ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
@@ -548,7 +552,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
 
 		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order, Change Payment Method, and Add Payment Method pages.
-		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
+		if ( $is_add_payment_method || $is_pay_for_order || $is_change_payment_method ) {
 			// Get billing details from the current user's customer data instead of the order.
 			$customer = WC()->customer;
 			if ( $customer ) {
@@ -611,8 +615,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					)
 				);
 			}
-		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
-			$stripe_params['isAddPaymentMethod'] = true;
+		} elseif ( $is_add_payment_method ) {
 			$stripe_params['cartTotal']    = 0;
 			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
@@ -685,7 +688,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled ) {
+		if ( $this->oc_enabled && ! is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
