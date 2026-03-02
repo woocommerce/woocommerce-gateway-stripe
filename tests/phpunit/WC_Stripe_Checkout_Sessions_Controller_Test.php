@@ -30,8 +30,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for the `create_checkout_session` method.
 	 *
+	 * @param bool        $user_is_logged_in          Whether the user is logged in or not.
 	 * @param bool        $is_valid_nonce             Whether the AJAX nonce is valid.
-	 * @param bool        $is_cart_empty              Whether the cart is empty.
 	 * @param array       $customer_data              The customer billing data to set.
 	 * @param bool        $is_cart_empty              Whether the cart is empty.
 	 * @param object|null $checkout_session_response  The mocked response from the Stripe API.
@@ -40,6 +40,7 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_create_checkout_session
 	 */
 	public function test_create_checkout_session(
+		bool $user_is_logged_in,
 		bool $is_valid_nonce,
 		array $customer_data,
 		bool $is_cart_empty,
@@ -48,12 +49,14 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 	): void {
 		Ajax_Test_Helper::init_hooks();
 
-		// Set up a logged-in user with billing details.
-		wp_set_current_user( 1 );
-		WC()->customer = new \WC_Customer( 1 );
+		if ( $user_is_logged_in ) {
+			// Set up a logged-in user with billing details.
+			wp_set_current_user( 1 );
+			WC()->customer = new \WC_Customer( 1 );
 
-		foreach ( $customer_data as $key => $value ) {
-			update_user_meta( 1, $key, $value );
+			foreach ( $customer_data as $key => $value ) {
+				update_user_meta( 1, $key, $value );
+			}
 		}
 
 		// Set up the cart contents.
@@ -146,7 +149,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'invalid nonce'            => [
+			'invalid nonce'              => [
+				'user is logged-in'          => true,
 				'is valid nonce'             => false,
 				'customer data'              => [],
 				'is cart empty'              => true,
@@ -158,7 +162,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'missing customer data'    => [
+			'missing customer data'      => [
+				'user is logged-in'          => true,
 				'is valid nonce'             => true,
 				'customer data'              => [],
 				'is cart empty'              => false,
@@ -170,7 +175,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'cart is empty'            => [
+			'cart is empty'              => [
+				'user is logged-in'          => true,
 				'is valid nonce'             => true,
 				'customer data'              => $customer_data,
 				'is cart empty'              => true,
@@ -182,7 +188,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'error creating session'   => [
+			'error creating session'     => [
+				'user is logged-in'          => true,
 				'is valid nonce'             => true,
 				'customer data'              => $customer_data,
 				'is cart empty'              => false,
@@ -194,7 +201,8 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'client secret is missing' => [
+			'client secret is missing'   => [
+				'user is logged-in'          => true,
 				'is valid nonce'             => true,
 				'customer data'              => $customer_data,
 				'is cart empty'              => false,
@@ -206,7 +214,21 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'successful creation'      => [
+			'successful creation'        => [
+				'user is logged-in'          => true,
+				'is valid nonce'             => true,
+				'customer data'              => $customer_data,
+				'is cart empty'              => false,
+				'checkout session response'  => $checkout_session_success,
+				'expected response'          => (object) [
+					'success' => true,
+					'data'    => (object) [
+						'client_secret' => $mocked_secret,
+					],
+				],
+			],
+			'successful creation (guest)' => [
+				'user is logged-in'          => false,
 				'is valid nonce'             => true,
 				'customer data'              => $customer_data,
 				'is cart empty'              => false,

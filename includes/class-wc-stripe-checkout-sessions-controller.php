@@ -48,7 +48,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				],
 			];
 
-			if ( is_user_logged_in() ) {
+			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 				try {
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 					$stripe_customer->maybe_create_customer();
@@ -118,7 +118,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 			'payment_type' => 'single',
 		];
 
-		if ( is_user_logged_in() ) {
+		if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 			$wc_customer = WC()->customer;
 			$user_id     = $wc_customer->get_id();
 			$email       = $wc_customer->get_email();
