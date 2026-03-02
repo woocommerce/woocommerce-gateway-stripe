@@ -980,19 +980,23 @@ class WC_Stripe_Helper {
 	/**
 	 * Gets the order by Stripe checkout session ID.
 	 *
+	 * When HPOS is enabled we use wc_get_orders() with meta_query.
+	 * When HPOS is disabled, meta_query in wc_get_orders() is not supported (WooCommerce
+	 * only supports it for the custom orders table), so we use a direct meta query for legacy.
+	 *
 	 * @since 10.5.0
 	 * @param string $checkout_session_id The ID of the checkout session.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
-		if ( empty( $checkout_session_id ) ) {
+		if ( '' === $checkout_session_id ) {
 			return false;
 		}
 
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders = wc_get_orders(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -1003,14 +1007,10 @@ class WC_Stripe_Helper {
 					],
 				]
 			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+			$order  = current( $orders ) ? current( $orders ) : null;
 		} else {
 			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
-		}
-
-		$order = null;
-		if ( ! empty( $order_id ) ) {
-			$order = wc_get_order( $order_id );
+			$order    = ! empty( $order_id ) ? wc_get_order( $order_id ) : null;
 		}
 
 		if ( ! $order instanceof \WC_Order ) {
