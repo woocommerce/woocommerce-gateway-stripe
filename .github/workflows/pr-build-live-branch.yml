@@ -1,4 +1,4 @@
-name: Build Live Branch
+name: Build plugin and Playground artifacts
 on:
     pull_request:
         types:
