@@ -3555,79 +3555,70 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that payment_scripts() only enqueues Stripe JS on product pages when ECE is disabled.
+	 * Data provider for test_payment_scripts_enqueues_correct_assets.
+	 *
+	 * @return array[]
 	 */
-	public function test_payment_scripts_enqueues_only_stripe_js_on_product_page_when_ece_disabled() {
-		$product = WC_Helper_Product::create_simple_product();
-		$this->go_to( get_permalink( $product->get_id() ) );
-
-		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
-		$original_settings                                     = $stripe_settings;
-		$stripe_settings['enabled']                            = 'yes';
-		$stripe_settings['express_checkout']                   = 'no';
-		$stripe_settings['express_checkout_button_locations']  = [];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		try {
-			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-			$gateway->enabled = 'yes';
-
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
-
-			$gateway->payment_scripts();
-
-			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
-			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
-		} finally {
-			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-			$product->delete( true );
-		}
+	public function provider_payment_scripts_enqueue_scenarios() {
+		return [
+			'Product page with ECE off'      => [
+				'page_type'                        => 'product',
+				'express_checkout'                 => 'no',
+				'express_checkout_button_locations' => [],
+				'expected_stripe'                  => true,
+				'expected_upe_classic'             => false,
+			],
+			'Cart page with ECE off'         => [
+				'page_type'                        => 'cart',
+				'express_checkout'                 => 'no',
+				'express_checkout_button_locations' => [],
+				'expected_stripe'                  => true,
+				'expected_upe_classic'             => false,
+			],
+			'Cart page with ECE on at cart'  => [
+				'page_type'                        => 'cart',
+				'express_checkout'                 => 'yes',
+				'express_checkout_button_locations' => [ 'cart' ],
+				'expected_stripe'                  => true,
+				'expected_upe_classic'             => true,
+			],
+			'Product page with ECE on at product' => [
+				'page_type'                        => 'product',
+				'express_checkout'                 => 'yes',
+				'express_checkout_button_locations' => [ 'product' ],
+				'expected_stripe'                  => true,
+				'expected_upe_classic'             => true,
+			],
+		];
 	}
 
 	/**
-	 * Test that payment_scripts() only enqueues Stripe JS on cart page when ECE is disabled.
+	 * Test that payment_scripts() enqueues the correct assets based on page type and ECE settings.
+	 *
+	 * @dataProvider provider_payment_scripts_enqueue_scenarios
+	 *
+	 * @param string $page_type                        Page type: 'product' or 'cart'.
+	 * @param string $express_checkout                 Express checkout enabled: 'yes' or 'no'.
+	 * @param array  $express_checkout_button_locations Express checkout button locations.
+	 * @param bool   $expected_stripe                  Whether 'stripe' script should be enqueued.
+	 * @param bool   $expected_upe_classic             Whether 'wc-stripe-upe-classic' script should be enqueued.
 	 */
-	public function test_payment_scripts_enqueues_only_stripe_js_on_cart_page_when_ece_disabled() {
-		\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $expected_stripe, $expected_upe_classic ) {
+		$product = null;
 
-		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
-		$original_settings                                     = $stripe_settings;
-		$stripe_settings['enabled']                            = 'yes';
-		$stripe_settings['express_checkout']                   = 'no';
-		$stripe_settings['express_checkout_button_locations']  = [];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		try {
-			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-			$gateway->enabled = 'yes';
-
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
-
-			$gateway->payment_scripts();
-
-			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
-			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
-		} finally {
-			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-			\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+		if ( 'product' === $page_type ) {
+			$product = WC_Helper_Product::create_simple_product();
+			$this->go_to( get_permalink( $product->get_id() ) );
+		} else {
+			\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
 		}
-	}
 
-	/**
-	 * Test that payment_scripts() enqueues full UPE bundle on cart page when ECE is enabled.
-	 */
-	public function test_payment_scripts_enqueues_full_bundle_on_cart_page_when_ece_enabled() {
-		\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
-		$original_settings                                     = $stripe_settings;
-		$stripe_settings['enabled']                            = 'yes';
-		$stripe_settings['express_checkout']                   = 'yes';
-		$stripe_settings['express_checkout_button_locations']  = [ 'cart' ];
+		$stripe_settings                                      = $original_settings;
+		$stripe_settings['enabled']                           = 'yes';
+		$stripe_settings['express_checkout']                  = $express_checkout;
+		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		try {
@@ -3640,43 +3631,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 			$gateway->payment_scripts();
 
-			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
-			$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at cart location.' );
+			$this->assertSame( $expected_stripe, wp_script_is( 'stripe', 'enqueued' ), 'Unexpected enqueue state for stripe JS.' );
+			$this->assertSame( $expected_upe_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'Unexpected enqueue state for wc-stripe-upe-classic.' );
 		} finally {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-			\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
-		}
-	}
 
-	/**
-	 * Test that payment_scripts() enqueues full UPE bundle on product pages when ECE is enabled.
-	 */
-	public function test_payment_scripts_enqueues_full_bundle_on_product_page_when_ece_enabled() {
-		$product = WC_Helper_Product::create_simple_product();
-		$this->go_to( get_permalink( $product->get_id() ) );
-
-		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
-		$original_settings                                     = $stripe_settings;
-		$stripe_settings['enabled']                            = 'yes';
-		$stripe_settings['express_checkout']                   = 'yes';
-		$stripe_settings['express_checkout_button_locations']  = [ 'product' ];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		try {
-			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-			$gateway->enabled = 'yes';
-
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
-
-			$gateway->payment_scripts();
-
-			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
-			$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at product location.' );
-		} finally {
-			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-			$product->delete( true );
+			if ( $product ) {
+				$product->delete( true );
+			} else {
+				\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+			}
 		}
 	}
 }
