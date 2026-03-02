@@ -119,6 +119,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 
 		remove_filter( 'pre_http_request', $callback );
+		\WC_Stripe_Database_Cache::delete( \WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	public function test_are_keys_set_returns_true_in_test_mode() {
