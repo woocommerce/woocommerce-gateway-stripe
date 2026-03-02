@@ -267,12 +267,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
-
-		$this->assertEquals( $user_id, $order->get_customer_id() );
+		$order       = $this->mapper->create_order_from_checkout_session( $session );
+		$customer_id = $order->get_customer_id();
 
 		$order->delete( true );
 		wp_delete_user( $user_id );
+
+		$this->assertEquals( $user_id, $customer_id );
 	}
 
 	/**
@@ -345,19 +346,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
-		$items = $order->get_items();
-
-		$this->assertCount( 1, $items );
-
-		$item = reset( $items );
-		$this->assertInstanceOf( WC_Order_Item_Product::class, $item );
-		$this->assertEquals( $product->get_id(), $item->get_product_id() );
-		$this->assertEquals( 1, $item->get_quantity() );
-		$this->assertEquals( '15.00', wc_format_decimal( $item->get_total(), 2 ) );
+		$expected_product_id = $product->get_id();
+		$order               = $this->mapper->create_order_from_checkout_session( $session );
+		$items               = $order->get_items();
+		$item                = reset( $items );
+		$product_id          = $item instanceof WC_Order_Item_Product ? $item->get_product_id() : null;
+		$quantity            = $item instanceof WC_Order_Item_Product ? $item->get_quantity() : null;
+		$total               = $item instanceof WC_Order_Item_Product ? wc_format_decimal( $item->get_total(), 2 ) : null;
 
 		$order->delete( true );
 		$product->delete( true );
+
+		$this->assertCount( 1, $items );
+		$this->assertInstanceOf( WC_Order_Item_Product::class, $item );
+		$this->assertEquals( $expected_product_id, $product_id );
+		$this->assertEquals( 1, $quantity );
+		$this->assertEquals( '15.00', $total );
 	}
 
 	/**

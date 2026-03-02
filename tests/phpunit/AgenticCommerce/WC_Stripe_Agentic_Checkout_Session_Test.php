@@ -72,10 +72,22 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	 */
 	public function provide_amount_total_cases(): array {
 		return [
-			'integer value'         => [ (object) [ 'amount_total' => 2500 ], 2500 ],
-			'string float truncated' => [ (object) [ 'amount_total' => '2500.3' ], 2500 ],
-			'zero is zero'          => [ (object) [ 'amount_total' => 0 ], 0 ],
-			'missing is null'       => [ (object) [], null ],
+			'integer value'          => [
+				(object) [ 'amount_total' => 2500 ],
+				2500,
+			],
+			'string float truncated' => [
+				(object) [ 'amount_total' => '2500.3' ],
+				2500,
+			],
+			'zero is zero'           => [
+				(object) [ 'amount_total' => 0 ],
+				0,
+			],
+			'missing is null'        => [
+				(object) [],
+				null,
+			],
 		];
 	}
 
@@ -324,8 +336,8 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	 * Test get_line_items.
 	 */
 	public function test_get_line_items() {
-		$items   = [ (object) [ 'id' => 'li_1' ], (object) [ 'id' => 'li_2' ] ];
-		$session = new WC_Stripe_Agentic_Checkout_Session(
+		$items      = [ (object) [ 'id' => 'li_1' ], (object) [ 'id' => 'li_2' ] ];
+		$session    = new WC_Stripe_Agentic_Checkout_Session(
 			(object) [
 				'line_items' => (object) [ 'data' => $items ],
 			]

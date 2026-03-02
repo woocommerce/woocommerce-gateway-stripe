@@ -182,15 +182,19 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$this->handler->process_webhook( wp_json_encode( $notification ) );
 
-		$this->assertTrue( $success_action_fired );
-		$this->assertInstanceOf( WC_Order::class, $created_order );
-		$this->assertEquals( 'processing', $created_order->get_status() );
-		$this->assertEquals( '20.00', $created_order->get_total() );
-		$this->assertEquals( 'stripe', $created_order->get_payment_method() );
-		$this->assertEquals( 'pi_test_cs_test_happy', $created_order->get_meta( '_stripe_intent_id', true ) );
-
-		$created_order->delete( true );
-		$product->delete( true );
+		try {
+			$this->assertTrue( $success_action_fired );
+			$this->assertInstanceOf( WC_Order::class, $created_order );
+			$this->assertEquals( 'processing', $created_order->get_status() );
+			$this->assertEquals( '20.00', $created_order->get_total() );
+			$this->assertEquals( 'stripe', $created_order->get_payment_method() );
+			$this->assertEquals( 'pi_test_cs_test_happy', $created_order->get_meta( '_stripe_intent_id', true ) );
+		} finally {
+			if ( $created_order instanceof WC_Order ) {
+				$created_order->delete( true );
+			}
+			$product->delete( true );
+		}
 	}
 
 	/**
