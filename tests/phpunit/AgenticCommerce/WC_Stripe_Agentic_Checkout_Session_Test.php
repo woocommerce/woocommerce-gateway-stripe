@@ -156,6 +156,10 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 				null,
 			],
+			'null for empty object'             => [
+				(object) [],
+				null,
+			],
 		];
 	}
 
