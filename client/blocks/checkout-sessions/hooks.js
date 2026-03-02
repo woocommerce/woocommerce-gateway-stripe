@@ -49,6 +49,13 @@ export const usePaymentSetupHandler = (
 						}
 					}
 
+					if ( errorMessage ) {
+						return {
+							type: 'error',
+							message: errorMessage,
+						};
+					}
+
 					if ( ! isPaymentElementComplete ) {
 						return {
 							type: 'error',
@@ -56,13 +63,6 @@ export const usePaymentSetupHandler = (
 								'Your payment information is incomplete.',
 								'woocommerce-gateway-stripe'
 							),
-						};
-					}
-
-					if ( errorMessage ) {
-						return {
-							type: 'error',
-							message: errorMessage,
 						};
 					}
 
