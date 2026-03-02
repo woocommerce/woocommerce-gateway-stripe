@@ -1433,7 +1433,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The notification from Stripe
 	 * @return void
 	 */
-	public function process_checkout_session( $notification ) {
+	public function process_checkout_session( object $notification ): void {
 		$checkout_session = $notification->data->object;
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
@@ -1443,13 +1443,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status(
-			apply_filters(
-				'wc_stripe_allowed_payment_processing_statuses',
-				[ OrderStatus::PENDING, OrderStatus::FAILED ],
-				$order
-			)
-		) ) {
+		/**
+		 * Filters the valid order statuses for payment processing.
+		 *
+		 * @since 9.7.0
+		 *
+		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses.
+		 * @param WC_Order $order The order object.
+		 */
+		$allowed_payment_processing_statuses = apply_filters(
+			'wc_stripe_allowed_payment_processing_statuses',
+			[ OrderStatus::PENDING, OrderStatus::FAILED ],
+			$order
+		);
+
+		if ( ! $order->has_status( $allowed_payment_processing_statuses ) ) {
 			return;
 		}
 
@@ -1486,7 +1494,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->add_order_note(
 					sprintf(
 						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 						strtoupper( $presentment_details->presentment_currency ),
 						$amount
 					)
@@ -1495,8 +1503,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$intent = $this->get_intent_from_order( $order );
 
+			if ( ! $intent ) {
+				WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
+				return;
+			}
+
 			// Update the order with the payment method ID if it's not already set.
-			if ( $intent && ! $order_helper->get_stripe_source_id( $order ) ) {
+			if ( ! $order_helper->get_stripe_source_id( $order ) ) {
 				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
 				if ( ! empty( $payment_method_id ) ) {
 					$order_helper->update_stripe_source_id( $order, $payment_method_id );
@@ -1550,10 +1563,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
+		} finally {
+			// Unlock the order
+			$order_helper->unlock_order_payment( $order );
 		}
-
-		// Unlock the order
-		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**

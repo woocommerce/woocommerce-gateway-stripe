@@ -530,10 +530,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
-		}
 
-		// Adaptive Pricing feature flag and setting.
-		$stripe_params['isAdaptivePricingSupported'] = WC_Stripe_Feature_Flags::is_checkout_sessions_available() && 'yes' === $this->get_option( 'adaptive_pricing', 'no' );
+			// Adaptive Pricing support for checkout.
+			$stripe_params['isAdaptivePricingEnabled'] = WC_Stripe_Helper::is_adaptive_pricing_supported();
+		}
 
 		// Checking for other BNPL extensions.
 		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
@@ -635,7 +635,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] List of payment method types to exclude.
 	 */
-	private function get_excluded_payment_method_types(): array {
+	public function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
@@ -1020,6 +1020,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			];
 		}
 
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) ) {
+			// Remove cart.
+			if ( WC()->cart ) {
+				WC()->cart->empty_cart();
+			}
+
+			// If the order is already completed, redirect user to the order received page.
+			return [
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			];
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
@@ -1029,6 +1042,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC()->cart->empty_cart();
 		}
 
+		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
+		// the order is updated to paid when the checkout.session.completed webhook fires.
+		// Here we only link the session to the order, clear the cart, and redirect the customer to the thank-you page.
 		return [
 			'result'   => 'success',
 			'redirect' => $this->get_return_url( $order ),
