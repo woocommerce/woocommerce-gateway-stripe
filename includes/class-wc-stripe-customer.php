@@ -461,7 +461,7 @@ class WC_Stripe_Customer {
 	 * @param string|null   $current_context The context we are creating the customer in (optional).
 	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return WP_Error|int
+	 * @return string
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
