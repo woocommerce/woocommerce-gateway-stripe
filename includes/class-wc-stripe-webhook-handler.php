@@ -1428,15 +1428,56 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		/**
+		 * Filters whether to process the checkout.session.completed webhook asynchronously.
+		 *
+		 * When true (default), the webhook is deferred via Action Scheduler so it runs
+		 * after the customer's browser has completed the redirect back to the thank-you page.
+		 *
+		 * @since 10.5.0
+		 *
+		 * @param bool     $process_async Whether to process asynchronously. Default true.
+		 * @param WC_Order $order         The order being processed.
+		 * @param object   $notification  The Stripe notification object.
+		 */
+		$process_webhook_async = apply_filters( 'wc_stripe_process_checkout_session_webhook_async', true, $order, $notification );
 
-		// Lock the order
+		if ( $process_webhook_async ) {
+			WC_Stripe_Logger::debug( "Processing checkout.session.completed ({$checkout_session->id}) asynchronously for order {$order->get_id()}." );
+
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'            => $order->get_id(),
+					'checkout_session_id' => $checkout_session->id,
+				]
+			);
+			return;
+		}
+
+		$this->handle_checkout_session_completed( $order, $notification );
+		$this->run_webhook_received_action( $notification->type, $notification );
+	}
+
+	/**
+	 * Handles the core processing logic for a checkout.session.completed event.
+	 *
+	 * Called directly from process_checkout_session (non-deferred path) and
+	 * from process_deferred_webhook (deferred path via Action Scheduler).
+	 *
+	 * @param WC_Order $order        The order to process.
+	 * @param object   $notification The Stripe notification containing the checkout session data.
+	 */
+	protected function handle_checkout_session_completed( WC_Order $order, object $notification ): void {
+		$checkout_session = $notification->data->object;
+		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+
+		// Lock the order.
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
 		}
 
 		try {
-
 			$intent_id = $checkout_session->payment_intent;
 
 			// Store the payment intent ID on the order.
@@ -1513,7 +1554,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
 		} finally {
-			// Unlock the order
+			// Unlock the order.
 			$order_helper->unlock_order_payment( $order );
 		}
 	}
