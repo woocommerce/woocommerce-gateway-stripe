@@ -1397,7 +1397,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The notification from Stripe
 	 * @return void
 	 */
-	public function process_checkout_session( object $notification ): void {
+	public function process_checkout_session_completed( object $notification ): void {
 		$checkout_session = $notification->data->object;
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
@@ -1440,7 +1440,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order $order         The order being processed.
 		 * @param object   $notification  The Stripe notification object.
 		 */
-		$process_webhook_async = apply_filters( 'wc_stripe_process_checkout_session_webhook_async', true, $order, $notification );
+		$process_webhook_async = apply_filters( 'wc_stripe_process_checkout_session_completed_webhook_async', true, $order, $notification );
 
 		if ( $process_webhook_async ) {
 			WC_Stripe_Logger::debug( "Processing checkout.session.completed ({$checkout_session->id}) asynchronously for order {$order->get_id()}." );
@@ -1462,7 +1462,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Handles the core processing logic for a checkout.session.completed event.
 	 *
-	 * Called directly from process_checkout_session (non-deferred path) and
+	 * Called directly from process_checkout_session_completed (non-deferred path) and
 	 * from process_deferred_webhook (deferred path via Action Scheduler).
 	 *
 	 * @param WC_Order $order        The order to process.
@@ -1634,7 +1634,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 				break;
 			case 'checkout.session.completed':
-				$this->process_checkout_session( $notification );
+				$this->process_checkout_session_completed( $notification );
 
 		}
 
