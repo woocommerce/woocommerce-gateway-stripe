@@ -1429,6 +1429,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'location'         => 'cart',
 				'expected'         => false,
 			],
+			'ECE enabled, button_locations missing falls back to defaults' => [
+				'express_checkout' => 'yes',
+				'button_locations' => null,
+				'location'         => 'product',
+				'expected'         => true,
+			],
 		];
 	}
 }

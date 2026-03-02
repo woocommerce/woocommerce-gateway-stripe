@@ -3568,21 +3568,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stripe_settings['express_checkout_button_locations']  = [];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->enabled = 'yes';
+		try {
+			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway->enabled = 'yes';
 
-		wp_deregister_script( 'stripe' );
-		wp_deregister_script( 'wc-stripe-upe-classic' );
-		wp_deregister_style( 'wc-stripe-upe-classic' );
+			wp_deregister_script( 'stripe' );
+			wp_deregister_script( 'wc-stripe-upe-classic' );
+			wp_deregister_style( 'wc-stripe-upe-classic' );
 
-		$gateway->payment_scripts();
+			$gateway->payment_scripts();
 
-		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
-		$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
-
-		// Cleanup.
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		$product->delete( true );
+			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
+			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
+		} finally {
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			$product->delete( true );
+		}
 	}
 
 	/**
@@ -3598,21 +3599,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stripe_settings['express_checkout_button_locations']  = [];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->enabled = 'yes';
+		try {
+			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway->enabled = 'yes';
 
-		wp_deregister_script( 'stripe' );
-		wp_deregister_script( 'wc-stripe-upe-classic' );
-		wp_deregister_style( 'wc-stripe-upe-classic' );
+			wp_deregister_script( 'stripe' );
+			wp_deregister_script( 'wc-stripe-upe-classic' );
+			wp_deregister_style( 'wc-stripe-upe-classic' );
 
-		$gateway->payment_scripts();
+			$gateway->payment_scripts();
 
-		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
-		$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
-
-		// Cleanup.
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
+			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
+		} finally {
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+		}
 	}
 
 	/**
@@ -3628,21 +3630,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stripe_settings['express_checkout_button_locations']  = [ 'cart' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->enabled = 'yes';
+		try {
+			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway->enabled = 'yes';
 
-		wp_deregister_script( 'stripe' );
-		wp_deregister_script( 'wc-stripe-upe-classic' );
-		wp_deregister_style( 'wc-stripe-upe-classic' );
+			wp_deregister_script( 'stripe' );
+			wp_deregister_script( 'wc-stripe-upe-classic' );
+			wp_deregister_style( 'wc-stripe-upe-classic' );
 
-		$gateway->payment_scripts();
+			$gateway->payment_scripts();
 
-		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
-		$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at cart location.' );
-
-		// Cleanup.
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
+			$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at cart location.' );
+		} finally {
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+		}
 	}
 
 	/**
@@ -3659,20 +3662,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stripe_settings['express_checkout_button_locations']  = [ 'product' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->enabled = 'yes';
+		try {
+			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway->enabled = 'yes';
 
-		wp_deregister_script( 'stripe' );
-		wp_deregister_script( 'wc-stripe-upe-classic' );
-		wp_deregister_style( 'wc-stripe-upe-classic' );
+			wp_deregister_script( 'stripe' );
+			wp_deregister_script( 'wc-stripe-upe-classic' );
+			wp_deregister_style( 'wc-stripe-upe-classic' );
 
-		$gateway->payment_scripts();
+			$gateway->payment_scripts();
 
-		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
-		$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at product location.' );
-
-		// Cleanup.
-		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		$product->delete( true );
+			$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
+			$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at product location.' );
+		} finally {
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			$product->delete( true );
+		}
 	}
 }
