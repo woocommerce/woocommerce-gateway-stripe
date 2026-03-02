@@ -1232,7 +1232,7 @@ class WC_Stripe_Helper {
 	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
 	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
 	 */
-	private static function should_load_scripts_for_ece_location( $location ) {
+	public static function should_load_scripts_for_ece_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
 		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';

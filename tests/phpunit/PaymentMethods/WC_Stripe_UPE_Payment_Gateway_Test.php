@@ -44,6 +44,7 @@ use WC_Subscriptions_Helpers;
 use MockAction;
 use WC_Stripe_API;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
@@ -3551,5 +3552,127 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_not_excluded' => [ 'fpx', 'naver_pay' ],
 			],
 		];
+	}
+
+	/**
+	 * Test that payment_scripts() only enqueues Stripe JS on product pages when ECE is disabled.
+	 */
+	public function test_payment_scripts_enqueues_only_stripe_js_on_product_page_when_ece_disabled() {
+		$product = WC_Helper_Product::create_simple_product();
+		$this->go_to( get_permalink( $product->get_id() ) );
+
+		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings                                     = $stripe_settings;
+		$stripe_settings['enabled']                            = 'yes';
+		$stripe_settings['express_checkout']                   = 'no';
+		$stripe_settings['express_checkout_button_locations']  = [];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->enabled = 'yes';
+
+		wp_deregister_script( 'stripe' );
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$gateway->payment_scripts();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
+		$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
+
+		// Cleanup.
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that payment_scripts() only enqueues Stripe JS on cart page when ECE is disabled.
+	 */
+	public function test_payment_scripts_enqueues_only_stripe_js_on_cart_page_when_ece_disabled() {
+		\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+
+		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings                                     = $stripe_settings;
+		$stripe_settings['enabled']                            = 'yes';
+		$stripe_settings['express_checkout']                   = 'no';
+		$stripe_settings['express_checkout_button_locations']  = [];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->enabled = 'yes';
+
+		wp_deregister_script( 'stripe' );
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$gateway->payment_scripts();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued for fraud detection.' );
+		$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should not be enqueued when ECE is disabled.' );
+
+		// Cleanup.
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+	}
+
+	/**
+	 * Test that payment_scripts() enqueues full UPE bundle on cart page when ECE is enabled.
+	 */
+	public function test_payment_scripts_enqueues_full_bundle_on_cart_page_when_ece_enabled() {
+		\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+
+		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings                                     = $stripe_settings;
+		$stripe_settings['enabled']                            = 'yes';
+		$stripe_settings['express_checkout']                   = 'yes';
+		$stripe_settings['express_checkout_button_locations']  = [ 'cart' ];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->enabled = 'yes';
+
+		wp_deregister_script( 'stripe' );
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$gateway->payment_scripts();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
+		$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at cart location.' );
+
+		// Cleanup.
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+	}
+
+	/**
+	 * Test that payment_scripts() enqueues full UPE bundle on product pages when ECE is enabled.
+	 */
+	public function test_payment_scripts_enqueues_full_bundle_on_product_page_when_ece_enabled() {
+		$product = WC_Helper_Product::create_simple_product();
+		$this->go_to( get_permalink( $product->get_id() ) );
+
+		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
+		$original_settings                                     = $stripe_settings;
+		$stripe_settings['enabled']                            = 'yes';
+		$stripe_settings['express_checkout']                   = 'yes';
+		$stripe_settings['express_checkout_button_locations']  = [ 'product' ];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$gateway          = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->enabled = 'yes';
+
+		wp_deregister_script( 'stripe' );
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$gateway->payment_scripts();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'enqueued' ), 'Stripe JS should be enqueued.' );
+		$this->assertTrue( wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'UPE bundle should be enqueued when ECE is enabled at product location.' );
+
+		// Cleanup.
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		$product->delete( true );
 	}
 }

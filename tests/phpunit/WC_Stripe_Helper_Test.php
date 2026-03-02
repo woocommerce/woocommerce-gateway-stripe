@@ -1349,4 +1349,86 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::should_load_scripts_for_ece_location()} returns the expected result.
+	 *
+	 * @dataProvider provide_test_should_load_scripts_for_ece_location
+	 * @param string $express_checkout     Whether express checkout is enabled ('yes' or 'no').
+	 * @param mixed  $button_locations     The express checkout button locations setting.
+	 * @param string $location             The location to check ('product', 'cart', or invalid).
+	 * @param bool   $expected             The expected result.
+	 */
+	public function test_should_load_scripts_for_ece_location( string $express_checkout, $button_locations, string $location, bool $expected ) {
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		$new_settings      = $original_settings;
+
+		$new_settings['express_checkout'] = $express_checkout;
+
+		if ( null !== $button_locations ) {
+			$new_settings['express_checkout_button_locations'] = $button_locations;
+		} else {
+			unset( $new_settings['express_checkout_button_locations'] );
+		}
+
+		WC_Stripe_Helper::update_main_stripe_settings( $new_settings );
+
+		$result = WC_Stripe_Helper::should_load_scripts_for_ece_location( $location );
+
+		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for {@see test_should_load_scripts_for_ece_location()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_load_scripts_for_ece_location(): array {
+		return [
+			'ECE enabled, product in locations, checking product' => [
+				'express_checkout' => 'yes',
+				'button_locations' => [ 'product', 'cart' ],
+				'location'         => 'product',
+				'expected'         => true,
+			],
+			'ECE enabled, product not in locations, checking product' => [
+				'express_checkout' => 'yes',
+				'button_locations' => [ 'cart' ],
+				'location'         => 'product',
+				'expected'         => false,
+			],
+			'ECE disabled, checking product' => [
+				'express_checkout' => 'no',
+				'button_locations' => [ 'product', 'cart' ],
+				'location'         => 'product',
+				'expected'         => false,
+			],
+			'ECE enabled, button_locations is non-array' => [
+				'express_checkout' => 'yes',
+				'button_locations' => '',
+				'location'         => 'product',
+				'expected'         => false,
+			],
+			'ECE enabled, invalid location' => [
+				'express_checkout' => 'yes',
+				'button_locations' => [ 'product', 'cart' ],
+				'location'         => 'invalid',
+				'expected'         => false,
+			],
+			'ECE enabled, cart in locations, checking cart' => [
+				'express_checkout' => 'yes',
+				'button_locations' => [ 'product', 'cart' ],
+				'location'         => 'cart',
+				'expected'         => true,
+			],
+			'ECE enabled, cart not in locations, checking cart' => [
+				'express_checkout' => 'yes',
+				'button_locations' => [ 'product' ],
+				'location'         => 'cart',
+				'expected'         => false,
+			],
+		];
+	}
 }
