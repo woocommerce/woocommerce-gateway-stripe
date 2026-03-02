@@ -1748,12 +1748,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
 	 */
 	private function build_checkout_session_retrieve_url( string $session_id, array $additional_expand = [] ): string {
-		$url    = 'checkout/sessions/' . $session_id;
+		$url    = 'checkout/sessions/' . rawurlencode( $session_id );
 		$expand = array_merge( [ 'payment_intent.agent_details' ], $additional_expand );
 
 		$params = [];
 		foreach ( $expand as $field ) {
-			$params[] = 'expand[]=' . $field;
+			$params[] = 'expand[]=' . rawurlencode( $field );
 		}
 
 		return $url . '?' . implode( '&', $params );
