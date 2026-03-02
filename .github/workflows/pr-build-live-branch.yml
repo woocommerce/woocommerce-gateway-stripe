@@ -16,6 +16,11 @@ on:
             - '.github/**'
             - '!.github/workflows/pr-build-live-branch.yml'
             - '**/tests/**'
+            - 'docker/**'
+            - '*.md'
+            - 'phpstan-stubs/**'
+            - 'phpstan*.*'
+            - 'phpunit.xml.dist'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
