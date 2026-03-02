@@ -1458,7 +1458,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->add_order_note(
 					sprintf(
 						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Presentment amount: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 						strtoupper( $presentment_details->presentment_currency ),
 						$amount
 					)
