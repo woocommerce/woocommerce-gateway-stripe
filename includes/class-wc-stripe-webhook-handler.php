@@ -1640,88 +1640,88 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		};
 		add_filter( 'wc_stripe_request_headers', $override_version );
 
-		$url = $this->build_checkout_session_retrieve_url(
-			$notification->data->object->id,
-			WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
-		);
-
 		try {
+			$url         = $this->build_checkout_session_retrieve_url(
+				$notification->data->object->id,
+				WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
+			);
 			$raw_session = WC_Stripe_API::retrieve( $url );
+
+			if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
+				WC_Stripe_Logger::error(
+					'Failed to retrieve checkout session with expand params.',
+					[
+						'url'   => $url,
+						'error' => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
+					]
+				);
+				return;
+			}
+
+			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
+
+			if ( ! $session->is_agentic() ) {
+				return;
+			}
+
+			$payment_intent_id = $session->get_payment_intent_id() ?? '';
+
+			// Idempotency: look up existing order by payment intent ID.
+			$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			if ( $existing_order instanceof WC_Order ) {
+				WC_Stripe_Logger::info(
+					'Agentic checkout session already processed.',
+					[
+						'session_id'        => $session->get_id(),
+						'payment_intent_id' => $payment_intent_id,
+						'order_id'          => $existing_order->get_id(),
+					]
+				);
+				$this->resolved_order = $existing_order;
+				return;
+			}
+
+			try {
+				$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+				$order                = $order_mapper->create_order_from_checkout_session( $session );
+				$this->resolved_order = $order;
+
+				WC_Stripe_Logger::info(
+					'Agentic order created from checkout session.',
+					[
+						'session_id' => $session->get_id(),
+						'order_id'   => $order->get_id(),
+					]
+				);
+
+				/**
+				 * Fires after an agentic commerce order is created from a checkout session.
+				 *
+				 * @since 10.5.0
+				 * @param WC_Order                           $order   The created order.
+				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 */
+				do_action( 'wc_stripe_agentic_order_created', $order, $session );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Failed to create agentic order from checkout session.',
+					[
+						'session_id' => $session->get_id(),
+						'error'      => $e->getMessage(),
+					]
+				);
+
+				/**
+				 * Fires when agentic commerce order creation fails.
+				 *
+				 * @since 10.5.0
+				 * @param Exception                          $e       The exception that was thrown.
+				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 */
+				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
+			}
 		} finally {
 			remove_filter( 'wc_stripe_request_headers', $override_version );
-		}
-		if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
-			WC_Stripe_Logger::error(
-				'Failed to retrieve checkout session with expand params.',
-				[
-					'url'   => $url,
-					'error' => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
-				]
-			);
-			return;
-		}
-
-		$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
-
-		if ( ! $session->is_agentic() ) {
-			return;
-		}
-
-		$payment_intent_id = $session->get_payment_intent_id() ?? '';
-
-		// Idempotency: look up existing order by payment intent ID.
-		$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
-		if ( $existing_order instanceof WC_Order ) {
-			WC_Stripe_Logger::info(
-				'Agentic checkout session already processed.',
-				[
-					'session_id'        => $session->get_id(),
-					'payment_intent_id' => $payment_intent_id,
-					'order_id'          => $existing_order->get_id(),
-				]
-			);
-			$this->resolved_order = $existing_order;
-			return;
-		}
-
-		try {
-			$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
-			$order                = $order_mapper->create_order_from_checkout_session( $session );
-			$this->resolved_order = $order;
-
-			WC_Stripe_Logger::info(
-				'Agentic order created from checkout session.',
-				[
-					'session_id' => $session->get_id(),
-					'order_id'   => $order->get_id(),
-				]
-			);
-
-			/**
-			 * Fires after an agentic commerce order is created from a checkout session.
-			 *
-			 * @since 10.5.0
-			 * @param WC_Order                           $order   The created order.
-			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-			 */
-			do_action( 'wc_stripe_agentic_order_created', $order, $session );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error(
-				'Failed to create agentic order from checkout session.',
-				[
-					'session_id' => $session->get_id(),
-					'error'      => $e->getMessage(),
-				]
-			);
-
-			/**
-			 * Fires when agentic commerce order creation fails.
-			 *
-			 * @since 10.5.0
-			 * @param Exception                          $e       The exception that was thrown.
-			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-			 */
-			do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
 		}
 	}
 
