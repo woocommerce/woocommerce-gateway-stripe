@@ -168,6 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix WC beta version resolution in tests
 * Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
