@@ -1512,10 +1512,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
+		} finally {
+			// Unlock the order
+			$order_helper->unlock_order_payment( $order );
 		}
-
-		// Unlock the order
-		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**
