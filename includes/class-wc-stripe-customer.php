@@ -100,7 +100,9 @@ class WC_Stripe_Customer {
 	/**
 	 * Set Stripe customer ID.
 	 *
-	 * @param [type] $id [description]
+	 * @param string|array $id The Stripe customer ID, or an array containing the customer ID for backwards compatibility with pre-3.0 data storage.
+	 *
+	 * @return void
 	 */
 	public function set_id( $id ) {
 		// Backwards compat for customer ID stored in array format. (Pre 3.0)
@@ -461,7 +463,7 @@ class WC_Stripe_Customer {
 	 * @param string|null   $current_context The context we are creating the customer in (optional).
 	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return string
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -521,7 +523,7 @@ class WC_Stripe_Customer {
 	 * @param bool          $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
 	 * @param WC_Order|null $order    The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return string Customer ID
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -568,7 +570,7 @@ class WC_Stripe_Customer {
 	 * @param string|null   $current_context The context we are creating the customer in (optional).
 	 * @param WC_Order|null $order           The order object (optional). If provided, billing details will be retrieved from the order.
 	 *
-	 * @return string Customer ID
+	 * @return string Stripe customer ID in the format `cus_XXXXXXXXXXXXXX`
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
