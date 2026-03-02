@@ -3577,12 +3577,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, object\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
