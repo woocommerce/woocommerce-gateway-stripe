@@ -465,8 +465,13 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
-	// Already mounted to this container (e.g. same node, avoid double-mount).
-	if ( component.mountedDomElement === domElement ) {
+	// Already mounted to this container; avoid double-mount. If the container was
+	// cleared by a checkout update but the same node is reused,
+	// allow remount by only skipping when it still has children.
+	if (
+		component.mountedDomElement === domElement &&
+		domElement.children.length > 0
+	) {
 		return component;
 	}
 
