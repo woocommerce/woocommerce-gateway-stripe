@@ -1,7 +1,6 @@
 const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 	return {
-		landingPage:
-			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe',
+		landingPage: '/wp-admin/admin.php?page=wc-settings&tab=checkout',
 
 		preferredVersions: {
 			php: '8.4',
@@ -41,7 +40,6 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 				password: 'password',
 			},
 		],
-		plugins: [],
 	};
 };
 
