@@ -38,7 +38,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			WC_Stripe_Currency_Code::SOUTH_AFRICAN_RAND,
 		];
-		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::HUNGARY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::AT, WC_Stripe_Country_Code::BE, WC_Stripe_Country_Code::CY, WC_Stripe_Country_Code::DK, WC_Stripe_Country_Code::FR, WC_Stripe_Country_Code::DE, WC_Stripe_Country_Code::HU, WC_Stripe_Country_Code::IE, WC_Stripe_Country_Code::IT, WC_Stripe_Country_Code::LU, WC_Stripe_Country_Code::NL, WC_Stripe_Country_Code::PT, WC_Stripe_Country_Code::ES, WC_Stripe_Country_Code::SE, WC_Stripe_Country_Code::CH, WC_Stripe_Country_Code::GB, WC_Stripe_Country_Code::US ];
 		$this->is_reusable          = true;
 		$this->label                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -70,7 +70,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public function get_supported_currencies() {
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
 
-		if ( WC_Stripe_Country_Code::UNITED_STATES === $account_country ) {
+		if ( WC_Stripe_Country_Code::US === $account_country ) {
 			return [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		}
 

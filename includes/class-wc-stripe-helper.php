@@ -1387,36 +1387,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_european_economic_area_countries() {
 		return [
-			WC_Stripe_Country_Code::AUSTRIA,        // Austria.
-			WC_Stripe_Country_Code::BELGIUM,        // Belgium.
-			WC_Stripe_Country_Code::BULGARIA,       // Bulgaria.
-			WC_Stripe_Country_Code::CROATIA,        // Croatia.
-			WC_Stripe_Country_Code::CYPRUS,         // Cyprus.
-			WC_Stripe_Country_Code::CZECH_REPUBLIC, // Czech Republic.
-			WC_Stripe_Country_Code::DENMARK,        // Denmark.
-			WC_Stripe_Country_Code::ESTONIA,        // Estonia.
-			WC_Stripe_Country_Code::FINLAND,        // Finland.
-			WC_Stripe_Country_Code::FRANCE,         // France.
-			WC_Stripe_Country_Code::GERMANY,        // Germany.
-			WC_Stripe_Country_Code::GREECE,         // Greece.
-			WC_Stripe_Country_Code::HUNGARY,        // Hungary.
-			WC_Stripe_Country_Code::IRELAND,        // Ireland.
-			WC_Stripe_Country_Code::ICELAND,        // Iceland.
-			WC_Stripe_Country_Code::ITALY,          // Italy.
-			WC_Stripe_Country_Code::LATVIA,         // Latvia.
-			WC_Stripe_Country_Code::LIECHTENSTEIN,  // Liechtenstein.
-			WC_Stripe_Country_Code::LITHUANIA,      // Lithuania.
-			WC_Stripe_Country_Code::LUXEMBOURG,     // Luxembourg.
-			WC_Stripe_Country_Code::MALTA,          // Malta.
-			WC_Stripe_Country_Code::NORWAY,         // Norway.
-			WC_Stripe_Country_Code::NETHERLANDS,    // Netherlands.
-			WC_Stripe_Country_Code::POLAND,         // Poland.
-			WC_Stripe_Country_Code::PORTUGAL,       // Portugal.
-			WC_Stripe_Country_Code::ROMANIA,        // Romania.
-			WC_Stripe_Country_Code::SLOVAKIA,       // Slovakia.
-			WC_Stripe_Country_Code::SLOVENIA,       // Slovenia.
-			WC_Stripe_Country_Code::SPAIN,          // Spain.
-			WC_Stripe_Country_Code::SWEDEN,         // Sweden.
+			WC_Stripe_Country_Code::AT,        // Austria.
+			WC_Stripe_Country_Code::BE,        // Belgium.
+			WC_Stripe_Country_Code::BG,       // Bulgaria.
+			WC_Stripe_Country_Code::HR,        // Croatia.
+			WC_Stripe_Country_Code::CY,         // Cyprus.
+			WC_Stripe_Country_Code::CZ, // Czech Republic.
+			WC_Stripe_Country_Code::DK,        // Denmark.
+			WC_Stripe_Country_Code::EE,        // Estonia.
+			WC_Stripe_Country_Code::FI,        // Finland.
+			WC_Stripe_Country_Code::FR,         // France.
+			WC_Stripe_Country_Code::DE,        // Germany.
+			WC_Stripe_Country_Code::GR,         // Greece.
+			WC_Stripe_Country_Code::HU,        // Hungary.
+			WC_Stripe_Country_Code::IE,        // Ireland.
+			WC_Stripe_Country_Code::IS,        // Iceland.
+			WC_Stripe_Country_Code::IT,          // Italy.
+			WC_Stripe_Country_Code::LV,         // Latvia.
+			WC_Stripe_Country_Code::LI,  // Liechtenstein.
+			WC_Stripe_Country_Code::LT,      // Lithuania.
+			WC_Stripe_Country_Code::LU,     // Luxembourg.
+			WC_Stripe_Country_Code::MT,          // Malta.
+			WC_Stripe_Country_Code::NO,         // Norway.
+			WC_Stripe_Country_Code::NL,    // Netherlands.
+			WC_Stripe_Country_Code::PL,         // Poland.
+			WC_Stripe_Country_Code::PT,       // Portugal.
+			WC_Stripe_Country_Code::RO,        // Romania.
+			WC_Stripe_Country_Code::SK,       // Slovakia.
+			WC_Stripe_Country_Code::SI,       // Slovenia.
+			WC_Stripe_Country_Code::ES,          // Spain.
+			WC_Stripe_Country_Code::SE,         // Sweden.
 		];
 	}
 
@@ -1548,29 +1548,29 @@ class WC_Stripe_Helper {
 	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
 		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
 		$supported_locales = [
-			WC_Stripe_Country_Code::AUSTRALIA      => [ 'en-AU' ],
-			WC_Stripe_Country_Code::AUSTRIA        => [ 'de-AT', 'en-AT' ],
-			WC_Stripe_Country_Code::BELGIUM        => [ 'nl-BE', 'fr-BE', 'en-BE' ],
-			WC_Stripe_Country_Code::CANADA         => [ 'en-CA', 'fr-CA' ],
-			WC_Stripe_Country_Code::CZECH_REPUBLIC => [ 'en-CZ', 'cs-CZ' ],
-			WC_Stripe_Country_Code::DENMARK        => [ 'da-DK', 'en-DK' ],
-			WC_Stripe_Country_Code::FINLAND        => [ 'fi-FI', 'sv-FI', 'en-FI' ],
-			WC_Stripe_Country_Code::FRANCE         => [ 'fr-FR', 'en-FR' ],
-			WC_Stripe_Country_Code::GERMANY        => [ 'de-DE', 'en-DE' ],
-			WC_Stripe_Country_Code::GREECE         => [ 'en-GR', 'el-GR' ],
-			WC_Stripe_Country_Code::IRELAND        => [ 'en-IE' ],
-			WC_Stripe_Country_Code::ITALY          => [ 'it-IT', 'en-IT' ],
-			WC_Stripe_Country_Code::NETHERLANDS    => [ 'nl-NL', 'en-NL' ],
-			WC_Stripe_Country_Code::NEW_ZEALAND    => [ 'en-NZ' ],
-			WC_Stripe_Country_Code::NORWAY         => [ 'nb-NO', 'en-NO' ],
-			WC_Stripe_Country_Code::POLAND         => [ 'pl-PL', 'en-PL' ],
-			WC_Stripe_Country_Code::PORTUGAL       => [ 'pt-PT', 'en-PT' ],
-			WC_Stripe_Country_Code::ROMANIA        => [ 'ro-RO', 'en-RO' ],
-			WC_Stripe_Country_Code::SPAIN          => [ 'es-ES', 'en-ES' ],
-			WC_Stripe_Country_Code::SWEDEN         => [ 'sv-SE', 'en-SE' ],
-			WC_Stripe_Country_Code::SWITZERLAND    => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
-			WC_Stripe_Country_Code::UNITED_KINGDOM => [ 'en-GB' ],
-			WC_Stripe_Country_Code::UNITED_STATES  => [ 'en-US', 'es-US' ],
+			WC_Stripe_Country_Code::AU      => [ 'en-AU' ],
+			WC_Stripe_Country_Code::AT        => [ 'de-AT', 'en-AT' ],
+			WC_Stripe_Country_Code::BE        => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			WC_Stripe_Country_Code::CA         => [ 'en-CA', 'fr-CA' ],
+			WC_Stripe_Country_Code::CZ => [ 'en-CZ', 'cs-CZ' ],
+			WC_Stripe_Country_Code::DK        => [ 'da-DK', 'en-DK' ],
+			WC_Stripe_Country_Code::FI        => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			WC_Stripe_Country_Code::FR         => [ 'fr-FR', 'en-FR' ],
+			WC_Stripe_Country_Code::DE        => [ 'de-DE', 'en-DE' ],
+			WC_Stripe_Country_Code::GR         => [ 'en-GR', 'el-GR' ],
+			WC_Stripe_Country_Code::IE        => [ 'en-IE' ],
+			WC_Stripe_Country_Code::IT          => [ 'it-IT', 'en-IT' ],
+			WC_Stripe_Country_Code::NL    => [ 'nl-NL', 'en-NL' ],
+			WC_Stripe_Country_Code::NZ    => [ 'en-NZ' ],
+			WC_Stripe_Country_Code::NO         => [ 'nb-NO', 'en-NO' ],
+			WC_Stripe_Country_Code::PL         => [ 'pl-PL', 'en-PL' ],
+			WC_Stripe_Country_Code::PT       => [ 'pt-PT', 'en-PT' ],
+			WC_Stripe_Country_Code::RO        => [ 'ro-RO', 'en-RO' ],
+			WC_Stripe_Country_Code::ES          => [ 'es-ES', 'en-ES' ],
+			WC_Stripe_Country_Code::SE         => [ 'sv-SE', 'en-SE' ],
+			WC_Stripe_Country_Code::CH    => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			WC_Stripe_Country_Code::GB => [ 'en-GB' ],
+			WC_Stripe_Country_Code::US  => [ 'en-US', 'es-US' ],
 		];
 
 		$region = strtoupper( $billing_country );

@@ -51,38 +51,38 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 		$currency = [];
 
 		switch ( $country ) {
-			case WC_Stripe_Country_Code::AUSTRALIA:
+			case WC_Stripe_Country_Code::AU:
 				$currency = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::CANADA:
+			case WC_Stripe_Country_Code::CA:
 				$currency = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::UNITED_KINGDOM:
+			case WC_Stripe_Country_Code::GB:
 				$currency = [ WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::HONG_KONG:
+			case WC_Stripe_Country_Code::HK:
 				$currency = [ WC_Stripe_Currency_Code::HONG_KONG_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::JAPAN:
+			case WC_Stripe_Country_Code::JP:
 				$currency = [ WC_Stripe_Currency_Code::JAPANESE_YEN, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::MALAYSIA:
+			case WC_Stripe_Country_Code::MY:
 				$currency = [ WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::NEW_ZEALAND:
+			case WC_Stripe_Country_Code::NZ:
 				$currency = [ WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::SINGAPORE:
+			case WC_Stripe_Country_Code::SG:
 				$currency = [ WC_Stripe_Currency_Code::SINGAPORE_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
-			case WC_Stripe_Country_Code::UNITED_STATES:
+			case WC_Stripe_Country_Code::US:
 				$currency = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			default:
 				$currency = [ WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
-		$euro_supported_countries = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND ];
+		$euro_supported_countries = [ WC_Stripe_Country_Code::AT, WC_Stripe_Country_Code::BE, WC_Stripe_Country_Code::BG, WC_Stripe_Country_Code::CY, WC_Stripe_Country_Code::CZ, WC_Stripe_Country_Code::DK, WC_Stripe_Country_Code::EE, WC_Stripe_Country_Code::FI, WC_Stripe_Country_Code::FR, WC_Stripe_Country_Code::DE, WC_Stripe_Country_Code::GR, WC_Stripe_Country_Code::IE, WC_Stripe_Country_Code::IT, WC_Stripe_Country_Code::LV, WC_Stripe_Country_Code::LT, WC_Stripe_Country_Code::LU, WC_Stripe_Country_Code::MT, WC_Stripe_Country_Code::NL, WC_Stripe_Country_Code::NO, WC_Stripe_Country_Code::PT, WC_Stripe_Country_Code::RO, WC_Stripe_Country_Code::SK, WC_Stripe_Country_Code::SI, WC_Stripe_Country_Code::ES, WC_Stripe_Country_Code::SE, WC_Stripe_Country_Code::CH ];
 		if ( in_array( $country, $euro_supported_countries, true ) ) {
 			$currency = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}

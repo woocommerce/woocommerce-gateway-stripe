@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::HUNGARY, WC_Stripe_Country_Code::ICELAND, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LIECHTENSTEIN, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN ];
+		$this->supported_countries      = [ WC_Stripe_Country_Code::AT, WC_Stripe_Country_Code::BE, WC_Stripe_Country_Code::BG, WC_Stripe_Country_Code::HR, WC_Stripe_Country_Code::CY, WC_Stripe_Country_Code::CZ, WC_Stripe_Country_Code::DK, WC_Stripe_Country_Code::EE, WC_Stripe_Country_Code::FI, WC_Stripe_Country_Code::FR, WC_Stripe_Country_Code::DE, WC_Stripe_Country_Code::GR, WC_Stripe_Country_Code::HU, WC_Stripe_Country_Code::IS, WC_Stripe_Country_Code::IE, WC_Stripe_Country_Code::IT, WC_Stripe_Country_Code::LV, WC_Stripe_Country_Code::LI, WC_Stripe_Country_Code::LT, WC_Stripe_Country_Code::LU, WC_Stripe_Country_Code::MT, WC_Stripe_Country_Code::NL, WC_Stripe_Country_Code::NO, WC_Stripe_Country_Code::PL, WC_Stripe_Country_Code::PT, WC_Stripe_Country_Code::RO, WC_Stripe_Country_Code::SK, WC_Stripe_Country_Code::SI, WC_Stripe_Country_Code::ES, WC_Stripe_Country_Code::SE ];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -120,7 +120,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		return [ WC_Stripe_Country_Code::POLAND ];
+		return [ WC_Stripe_Country_Code::PL ];
 	}
 
 	/**
