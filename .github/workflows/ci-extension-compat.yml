@@ -58,14 +58,12 @@ jobs:
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build-project:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     needs: [setup-matrix]
     uses: ./.github/workflows/build-upload-zip.yml
     with:
       artifact: 'extension-compat-test-package'
 
   activation-tests:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     name: "Activation: ${{ matrix['name'] }}"
     needs: [setup-matrix, build-project]
     strategy:
