@@ -545,4 +545,158 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Test that the update_option_woocommerce_stripe_settings action triggers webhook reconfiguration when AP/OC is enabled.
+	 *
+	 * @param array|false $old_value   Previous option value.
+	 * @param array       $new_value   New option value.
+	 * @param bool        $expect_call Whether maybe_reconfigure_webhooks_on_update is expected to be called on the account.
+	 * @dataProvider provide_test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled
+	 */
+	public function test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $new_value, $expect_call ) {
+		$stripe           = WC_Stripe::get_instance();
+		$original_account = $stripe->account;
+
+		$mock_account = $this->getMockBuilder( \WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
+			->getMock();
+		$mock_account->expects( $expect_call ? $this->once() : $this->never() )
+			->method( 'maybe_reconfigure_webhooks_on_update' )
+			->with( 'settings' );
+
+		$stripe->account = $mock_account;
+
+		try {
+			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value );
+		} finally {
+			$stripe->account = $original_account;
+		}
+	}
+
+	/**
+	 * Data provider for maybe_reconfigure_webhooks_after_adaptive_pricing_enabled tests.
+	 * Covers the update_option_woocommerce_stripe_settings hook behavior: reconfigure only when
+	 * both AP and OC are enabled in the new value and at least one of them changed from the old value.
+	 *
+	 * @return array[] Old value, new value, whether reconfigure is expected, and scenario name.
+	 */
+	public function provide_test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled() {
+		return [
+			'AP and OC newly enabled'                      => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'no',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'AP newly enabled, OC already enabled'         => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'OC newly enabled, AP already enabled'         => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'AP and OC unchanged and both enabled'         => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => false,
+			],
+			'AP disabled in new value'                     => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => false,
+			],
+			'OC disabled in new value'                     => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expect_call' => false,
+			],
+			'both disabled in new value'                   => [
+				'old_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'no',
+				],
+				'expect_call' => false,
+			],
+			'old value not array, AP enabled in new value' => [
+				'old_value'   => false,
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'old value not array, AP disabled in new value' => [
+				'old_value'   => false,
+				'new_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => false,
+			],
+			'old value missing AP key, AP enabled in new value' => [
+				'old_value'   => [
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => true,
+			],
+			'old value missing AP key, AP disabled in new value' => [
+				'old_value'   => [
+					'optimized_checkout_element' => 'yes',
+				],
+				'new_value'   => [
+					'adaptive_pricing'           => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expect_call' => false,
+			],
+		];
+	}
 }

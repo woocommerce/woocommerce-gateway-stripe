@@ -506,68 +506,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test basic checkout process_payment flow.
-	 */
-	public function test_process_payment_returns_valid_response() {
-		$payment_intent_id = 'pi_mock';
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
-		$order_id          = $order->get_id();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
-		$order_helper->update_stripe_upe_payment_type( $order, '' );
-		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
-		$order->save();
-
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
-
-		$expected_request = [
-			'amount'      => $amount,
-			'currency'    => $currency,
-			'description' => $description,
-			'customer'    => $customer_id,
-			'metadata'    => $metadata,
-		];
-
-		$_POST = [
-			'payment_method'       => 'stripe',
-			'wc_payment_intent_id' => $payment_intent_id,
-		];
-
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'get_stripe_customer_from_order' )
-			->with( wc_get_order( $order_id ) )
-			->will(
-				$this->returnValue( $this->mock_stripe_customer )
-			);
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'stripe_request' )
-			->with(
-				"payment_intents/$payment_intent_id",
-				$expected_request,
-				$this->callback(
-					function ( $passed_order ) use ( $order ) {
-						return $order->get_id() === $passed_order->get_id();
-					}
-				)
-			)
-			->will(
-				$this->returnValue( [] )
-			);
-
-		$response = $this->mock_gateway->process_payment( $order_id );
-
-		$this->assertEquals( 'success', $response['result'] );
-		$this->assertTrue( $response['payment_needed'] );
-		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/save_payment_method=no/', $response['redirect_url'] );
-	}
-
-	/**
 	 * Test basic checkout process_payment flow with deferred intent.
 	 *
 	 * @dataProvider provide_process_payment_deferred_intent_returns_valid_response
@@ -594,7 +532,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = $post_vars;
 
 		$this->mock_gateway->intent_controller
@@ -627,7 +564,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'stripe',
 					'wc-stripe-payment-method'     => 'pm_mock',
 					'wc-stripe-confirmation-token' => '',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 			'with-confirmation-token' => [
@@ -635,7 +571,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'stripe',
 					'wc-stripe-payment-method'     => '',
 					'wc-stripe-confirmation-token' => 'ctoken_mock',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 		];
@@ -668,11 +603,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
 		];
 
 		$this->mock_gateway->intent_controller
@@ -741,11 +674,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			self::MOCK_WECHAT_PAY_PAYMENT_INTENT_TEMPLATE
 		);
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'stripe_' . $payment_method,
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
+			'payment_method'           => 'stripe_' . $payment_method,
+			'wc-stripe-payment-method' => 'pm_mock',
 		];
 
 		if ( $saved_token ) {
@@ -878,7 +809,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'stripe',
 					'wc-stripe-payment-method'     => 'pm_mock',
 					'wc-stripe-confirmation-token' => '',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 			'with-confirmation-token' => [
@@ -886,7 +816,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'stripe',
 					'wc-stripe-payment-method'     => '',
 					'wc-stripe-confirmation-token' => 'ctoken_mock',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 		];
@@ -947,7 +876,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => '',
 					'wc-stripe-payment-method'     => 'pm_mock',
 					'wc-stripe-confirmation-token' => '',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 			'with-confirmation-token' => [
@@ -955,7 +883,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => '',
 					'wc-stripe-payment-method'     => '',
 					'wc-stripe-confirmation-token' => 'ctoken_mock',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 		];
@@ -1016,7 +943,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'some_invalid_type',
 					'wc-stripe-payment-method'     => 'pm_mock',
 					'wc-stripe-confirmation-token' => '',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 			'with-confirmation-token' => [
@@ -1024,7 +950,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'payment_method'               => 'some_invalid_type',
 					'wc-stripe-payment-method'     => '',
 					'wc-stripe-confirmation-token' => 'ctoken_mock',
-					'wc-stripe-is-deferred-intent' => '1',
 				],
 			],
 		];
@@ -1617,10 +1542,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_process_payment_with_saved_method_returns_valid_response() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1705,10 +1628,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_sca_checkout_with_saved_payment_method_redirects_client() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1789,10 +1710,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_checkout_with_saved_payment_method_non_retryable_error_throws_exception() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1850,10 +1769,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_checkout_with_saved_payment_method_retries_error_when_possible() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1954,10 +1871,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_checkout_with_saved_payment_method_fails_after_six_attempts() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -2037,114 +1952,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * TESTS FOR SUBSCRIPTIONS.
 	 */
-
-	/**
-	 * Initial subscription test.
-	 */
-	public function test_if_order_has_subscription_payment_method_will_be_saved() {
-		$payment_intent_id = 'pi_mock';
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
-		$order_id          = $order->get_id();
-
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-		$order_helper->update_stripe_intent_id( $order, $payment_intent_id );
-		$order_helper->update_stripe_upe_payment_type( $order, '' );
-		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
-		$order->save();
-
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
-
-		// When the order contains a subscription, the payment type is expected to be "recurring".
-		$metadata['payment_type'] = 'recurring';
-
-		$expected_request = [
-			'amount'             => $amount,
-			'currency'           => $currency,
-			'description'        => $description,
-			'customer'           => $customer_id,
-			'metadata'           => $metadata,
-			'setup_future_usage' => 'off_session',
-		];
-
-		$_POST = [
-			'payment_method'       => 'stripe',
-			'wc_payment_intent_id' => $payment_intent_id,
-		];
-
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'has_subscription' )
-			->will( $this->returnValue( true ) );
-
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'get_stripe_customer_from_order' )
-			->with( wc_get_order( $order_id ) )
-			->will(
-				$this->returnValue( $this->mock_stripe_customer )
-			);
-
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'stripe_request' )
-			->with(
-				"payment_intents/$payment_intent_id",
-				$expected_request,
-				$this->callback(
-					function ( $passed_order ) use ( $order ) {
-						return $order->get_id() === $passed_order->get_id();
-					}
-				)
-			)
-			->will(
-				$this->returnValue( [] )
-			);
-
-		$response = $this->mock_gateway->process_payment( $order_id );
-
-		$this->assertEquals( 'success', $response['result'] );
-		$this->assertTrue( $response['payment_needed'] );
-		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
-	}
-
-	/**
-	 * Initial subscription test with free-trial.
-	 */
-	public function test_if_free_trial_subscription_will_not_update_intent() {
-		$setup_intent_id = 'seti_mock';
-		$order           = WC_Helper_Order::create_order();
-		$order_id        = $order->get_id();
-
-		$order->set_total( 0 );
-		$order->save();
-
-		$_POST = [
-			'payment_method'       => 'stripe',
-			'wc_payment_intent_id' => $setup_intent_id,
-		];
-
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'has_subscription' )
-			->will( $this->returnValue( true ) );
-
-		$this->mock_gateway->expects( $this->never() )
-			->method( 'get_stripe_customer_from_order' );
-
-		$this->mock_gateway->expects( $this->never() )
-			->method( 'stripe_request' );
-
-		$response = $this->mock_gateway->process_payment( $order_id );
-
-		$this->assertEquals( 'success', $response['result'] );
-		$this->assertFalse( $response['payment_needed'] );
-		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
-	}
 
 	/**
 	 * Test successful subscription renewal.
@@ -2553,11 +2360,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
 		];
 
 		$this->mock_gateway->intent_controller
@@ -2628,11 +2433,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
 		];
 
 		// Mock that we find an existing successful intent on the order
@@ -2719,11 +2522,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
 
-		// Set the appropriate POST flag to trigger a deferred intent request
+		// Set the appropriate POST data for the payment request
 		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
 		];
 
 		// Save the failed intent ID to the order
@@ -2779,10 +2581,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$token = $this->set_postvars_for_saved_payment_method();
 
-		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'stripe';
-		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -2946,7 +2746,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$_POST['payment_method']               = 'stripe';
 		$_POST['wc-stripe-confirmation-token'] = $confirmation_token_id;
 		$_POST['wc-stripe-payment-method']     = $payment_method_id;
-		$_POST['wc-stripe-is-deferred-intent'] = '1';
 		$_POST['express_payment_type']         = $express_payment_method;
 
 		$this->mock_gateway->oc_enabled = $optimized_checkout_enabled;
