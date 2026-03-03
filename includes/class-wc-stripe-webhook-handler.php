@@ -1272,8 +1272,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Each Webhook type which is deferred should be supported by @see process_deferred_webhook().
 	 *
-	 * @param stdClass $webhook_notification The webhook payload received from Stripe.
-	 * @param array    $additional_data      Additional data to pass to the scheduled job.
+	 * @param object $webhook_notification The webhook payload received from Stripe.
+	 * @param array  $additional_data      Additional data to pass to the scheduled job.
 	 */
 	protected function defer_webhook_processing( $webhook_notification, $additional_data ) {
 		$this->action_scheduler_service->schedule_job(
