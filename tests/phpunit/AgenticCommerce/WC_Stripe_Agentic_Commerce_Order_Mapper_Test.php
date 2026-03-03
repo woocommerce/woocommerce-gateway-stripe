@@ -851,11 +851,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
 		$contents = array_map( fn( $note ) => $note->content, $notes );
+
+		$order->delete( true );
+
 		$this->assertNotEmpty(
 			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
 		);
-
-		$order->delete( true );
 	}
 
 	/**
@@ -882,12 +883,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
 		$contents = array_map( fn( $note ) => $note->content, $notes );
-		$this->assertEmpty(
-			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
-		);
 
 		$order->delete( true );
 		$virtual_product->delete( true );
+
+		$this->assertEmpty(
+			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
+		);
 	}
 
 	/**
