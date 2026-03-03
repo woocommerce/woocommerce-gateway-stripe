@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                              = __( 'iDEAL | Wero', 'woocommerce-gateway-stripe' );
 		$this->description                        = __(
-			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		);
 		if ( $is_sepa_tokens_for_ideal_enabled ) {
