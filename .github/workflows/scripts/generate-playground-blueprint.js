@@ -27,6 +27,8 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 				step: 'installPlugin',
 				pluginData: {
 					resource: 'url',
+					/* The plugin proxy helper fetches the artifact produced by the specified workflow in the target GitHub repo. 
+					In this case, it fetches the `plugins-<runId>-<pr>` artifact from the Build Live Branch workflow in the woocommerce/woocommerce-gateway-stripe repo. */
 					url: `https://playground.wordpress.net/plugin-proxy.php?org=woocommerce&repo=woocommerce-gateway-stripe&workflow=Build%20Live%20Branch&artifact=plugins-${ runId }&pr=${ prNumber }`,
 				},
 				options: {
