@@ -1560,6 +1560,119 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Processes checkout session failure events.
+	 * This includes:
+	 * - checkout.session.expired event; Fires when a Stripe Checkout session expires before the customer completes payment.
+	 * - checkout.session.async_payment_failed event; Fires when an asynchronous payment method on a Stripe Checkout session fails.
+	 * Marks the associated WooCommerce order as failed.
+	 *
+	 * @param object $notification The Stripe notification containing the checkout session data.
+	 */
+	public function process_checkout_session_failure( object $notification ): void {
+		$checkout_session = $notification->data->object;
+		$order            = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::debug( 'Could not find order via checkout session ID: ' . $checkout_session->id );
+			return;
+		}
+
+		$this->resolved_order = $order;
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->is_stripe_status_final( $order ) ) {
+			return;
+		}
+
+		$message = __( 'The payment session has expired.', 'woocommerce-gateway-stripe' );
+
+		$status_update = [];
+		if ( ! $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
+			$status_update['from'] = $order->get_status();
+			$status_update['to']   = OrderStatus::FAILED;
+			$order->update_status( OrderStatus::FAILED, $message );
+		} else {
+			$order->add_order_note( $message );
+		}
+
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+		$this->send_failed_order_email( $order->get_id(), $status_update );
+	}
+
+	/**
+	 * Processes the checkout.session.async_payment_succeeded event.
+	 *
+	 * Fires when an asynchronous payment method (e.g. ACH debit, SEPA Direct Debit) on a
+	 * Stripe Checkout session eventually succeeds. Completes the WooCommerce order.
+	 *
+	 * @param object $notification The notification from Stripe.
+	 */
+	public function process_checkout_session_async_payment_succeeded( object $notification ): void {
+		$checkout_session = $notification->data->object;
+		$order            = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::error( 'checkout.session.async_payment_succeeded: could not find order via checkout session ID: ' . $checkout_session->id );
+			return;
+		}
+
+		$this->resolved_order = $order;
+
+		// Async payment methods move the order to ON_HOLD after checkout.session.completed.
+		// Accept PENDING and FAILED as well to cover edge cases.
+		$allowed_statuses = apply_filters(
+			'wc_stripe_allowed_payment_processing_statuses',
+			[ OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::ON_HOLD ],
+			$order
+		);
+
+		if ( ! $order->has_status( $allowed_statuses ) ) {
+			return;
+		}
+
+		$this->handle_checkout_session_completed( $order, $notification );
+	}
+
+	/**
+	 * Processes the checkout.session.async_payment_failed event.
+	 *
+	 * Fires when an asynchronous payment method on a Stripe Checkout session fails.
+	 * Marks the associated WooCommerce order as failed.
+	 *
+	 * @param object $notification The notification from Stripe.
+	 */
+	public function process_checkout_session_async_payment_failed( object $notification ): void {
+		$checkout_session = $notification->data->object;
+		$order            = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::debug( 'checkout.session.async_payment_failed: could not find order via checkout session ID: ' . $checkout_session->id );
+			return;
+		}
+
+		$this->resolved_order = $order;
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$message = __( 'The async payment for this order has failed.', 'woocommerce-gateway-stripe' );
+
+		$status_update = [];
+		if ( ! $order_helper->is_stripe_status_final( $order ) ) {
+			$status_update['from'] = $order->get_status();
+			$status_update['to']   = OrderStatus::FAILED;
+			$order->update_status( OrderStatus::FAILED, $message );
+		} else {
+			$order->add_order_note( $message );
+		}
+
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+		$this->send_failed_order_email( $order->get_id(), $status_update );
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -1635,11 +1748,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'checkout.session.completed':
 				$this->process_checkout_session_completed( $notification );
+				break;
+			case 'checkout.session.async_payment_succeeded':
+				$this->process_checkout_session_async_payment_succeeded( $notification );
+				break;
+			case 'checkout.session.expired':
+			case 'checkout.session.async_payment_failed':
+				$this->process_checkout_session_failure( $notification );
+				break;
 
 		}
 
 		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
-		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
+		if ( in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated', 'checkout.session.completed' ], true ) ) {
 			return;
 		}
 
