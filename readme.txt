@@ -183,5 +183,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix currency formatting issue with ISK for express checkouts
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Update - Add iDEAL | Wero co-branding as Stripe iDEAL-to-Wero migration Phase 1
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
