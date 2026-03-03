@@ -3555,8 +3555,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_currency_information returns unchanged total when no checkout session is associated with the order.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_currency_information_returns_unchanged_total_when_no_checkout_session() {
+	public function test_add_converted_currency_information_returns_unchanged_total_when_no_checkout_session(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3569,8 +3571,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_currency_information returns unchanged total when checkout session has no presentment details.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_currency_information_returns_unchanged_total_when_no_presentment_details() {
+	public function test_add_converted_currency_information_returns_unchanged_total_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3596,8 +3600,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_currency_information appends the converted currency info when presentment details are present.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_currency_information_appends_converted_currency_info() {
+	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3628,8 +3634,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_total_table_row returns unchanged total rows when no checkout session is associated with the order.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_total_table_row_returns_unchanged_rows_when_no_checkout_session() {
+	public function test_add_converted_total_table_row_returns_unchanged_rows_when_no_checkout_session(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3648,8 +3656,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_total_table_row returns unchanged total rows when checkout session has no presentment details.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_total_table_row_returns_unchanged_rows_when_no_presentment_details() {
+	public function test_add_converted_total_table_row_returns_unchanged_rows_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3681,8 +3691,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_converted_total_table_row adds a converted_total row when presentment details are present.
+	 *
+	 * @return void
 	 */
-	public function test_add_converted_total_table_row_adds_converted_total_row() {
+	public function test_add_converted_total_table_row_adds_converted_total_row(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3721,8 +3733,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_currency_conversion_notice outputs nothing when no checkout session is associated with the order.
+	 *
+	 * @return void
 	 */
-	public function test_add_currency_conversion_notice_outputs_nothing_when_no_checkout_session() {
+	public function test_add_currency_conversion_notice_outputs_nothing_when_no_checkout_session(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3736,8 +3750,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_currency_conversion_notice outputs nothing when checkout session has no presentment details.
+	 *
+	 * @return void
 	 */
-	public function test_add_currency_conversion_notice_outputs_nothing_when_no_presentment_details() {
+	public function test_add_currency_conversion_notice_outputs_nothing_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -3764,8 +3780,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that add_currency_conversion_notice outputs a notice with the correct converted amount and exchange rate.
+	 *
+	 * @return void
 	 */
-	public function test_add_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate() {
+	public function test_add_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
