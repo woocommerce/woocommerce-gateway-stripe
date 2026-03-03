@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
 * Add - Display adaptive pricing currency selector on blocks checkout page
