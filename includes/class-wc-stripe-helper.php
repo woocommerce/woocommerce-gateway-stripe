@@ -1106,6 +1106,71 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns whether adaptive pricing is supported for the current checkout.
+	 *
+	 * When on the checkout page, adaptive pricing is not supported if the cart contains
+	 * any of the following:
+	 * - A subscription product.
+	 * - A pre-order product that will be charged upon release.
+	 * - A deposit product.
+	 *
+	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
+	 * @since 10.5.0
+	 */
+	public static function is_adaptive_pricing_supported(): bool {
+
+		// False if checkout session feature flag is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if adaptive pricing option is disabled.
+		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// False if not on the checkout page.
+		if ( ! is_checkout() && ! has_block( 'woocommerce/checkout' ) ) {
+			return false;
+		}
+
+		if ( ! WC()->cart || WC()->cart->is_empty() ) {
+			return true;
+		}
+
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' ); // @phpstan-ignore function.impossibleType
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' ); // @phpstan-ignore function.impossibleType
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' ); // @phpstan-ignore function.impossibleType
+
+		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+		// subscriptions, pre-orders charged upon release, and deposits.
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+				continue;
+			}
+
+			// Subscriptions are not supported with adaptive pricing.
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+
+			// Pre-order (charge upon release) is not supported with adaptive pricing.
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+
+			// Deposits are not supported with adaptive pricing.
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Return true if the current_tab and current_section match the ones we want to check against.
 	 *
 	 * @param string $tab

@@ -148,6 +148,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
+* Add - Display adaptive pricing currency selector on blocks checkout page
 * Dev - Remove unit tests that no longer make sense after recent file removals
 * Update - Include additional customer information when creating checkout sessions
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
@@ -166,6 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix WC beta version resolution in tests
 * Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
 * Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
@@ -178,6 +181,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Update dependencies for building translations
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
+* Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
