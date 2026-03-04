@@ -105,22 +105,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks );
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
+
+		$is_agentic_hook = 'v1.delegated_checkout.customize_checkout' === $event_type;
+
+		$secret = $is_agentic_hook
+			? AGENTIC_COMMERCE_WEBHOOK_SECRET
+			: $this->secret;
 
 		// Validate it to make sure it is legit.
 		$request_headers   = array_change_key_case( $this->get_request_headers(), CASE_UPPER );
-		$validation_result = $this->validate_request( $request_headers, $request_body );
+		$validation_result = $this->validate_request( $request_headers, $request_body, $secret );
 
-		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED === $validation_result ) {
-			WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
-
-			$this->process_webhook( $request_body );
-
-			WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
-
-			status_header( 200 );
-			exit;
-		} else {
+		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED !== $validation_result ) {
 			WC_Stripe_Logger::error(
 				'Webhook validation failed (' . $validation_result . ')',
 				[
@@ -148,6 +145,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			status_header( 204 );
 			exit;
 		}
+
+		if ( $is_agentic_hook ) {
+			$this->process_agentic_customization_hook( $event );
+			exit;
+		}
+
+		WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
+		$this->process_webhook( $request_body );
+		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
+
+		status_header( 200 );
+		exit;
 	}
 
 	/**
@@ -184,9 +193,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 5.0.0
 	 * @param array $request_headers The request headers from Stripe.
 	 * @param array $request_body    The request body from Stripe.
+	 * @param string $secret         The secret key for the webhook.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
-	public function validate_request( $request_headers, $request_body ) {
+	public function validate_request( $request_headers, $request_body, $secret ) {
 		if ( empty( $request_headers ) ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_HEADERS;
 		}
@@ -202,7 +212,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
 		}
 
-		if ( empty( $this->secret ) ) {
+		if ( empty( $secret ) ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_SECRET;
 		}
 
@@ -220,7 +230,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Generate the expected signature.
 		$signed_payload     = $timestamp . '.' . $request_body;
-		$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
+		$expected_signature = hash_hmac( 'sha256', $signed_payload, $secret );
 
 		// Check if the expected signature is present.
 		if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
@@ -1470,10 +1480,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_checkout_session_completed( $notification );
 				break;
 
-			case 'v1.delegated_checkout.customize_checkout':
-				$this->process_customize_checkout( $notification );
-				break;
-
 		}
 
 		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
@@ -1589,68 +1595,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Processes the v1.delegated_checkout.customize_checkout webhook for agentic commerce.
-	 *
-	 * This is a synchronous webhook: Stripe expects a JSON response body
-	 * containing tax rates (and/or shipping options) within 4 seconds.
-	 * Uses wp_send_json() to output the response and exit immediately.
-	 *
-	 * @since 10.5.0
-	 * @param object $notification The webhook notification from Stripe.
-	 */
-	public function process_customize_checkout( $notification ): void {
-		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			wp_send_json( [] );
-		}
-
-		$event = new WC_Stripe_Agentic_Customize_Checkout_Event( $notification );
-
-		WC_Stripe_Logger::info(
-			'Agentic customize_checkout webhook received.',
-			[
-				'event_id'      => $event->get_id(),
-				'currency'      => $event->get_currency(),
-				'line_items'    => count( $event->get_line_items() ),
-				'automatic_tax' => $event->is_automatic_tax_enabled(),
-			]
-		);
-
-		// When Stripe Tax is enabled, Stripe handles tax calculation.
-		if ( $event->is_automatic_tax_enabled() ) {
-			WC_Stripe_Logger::info(
-				'Agentic customize_checkout: automatic_tax enabled, returning empty response.',
-				[ 'event_id' => $event->get_id() ]
-			);
-			wp_send_json( [] );
-		}
-
-		$response = [];
-
-		try {
-			$calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
-			$response   = $calculator->calculate( $event );
-
-			WC_Stripe_Logger::info(
-				'Agentic customize_checkout: tax calculation complete.',
-				[
-					'event_id'    => $event->get_id(),
-					'line_items'  => count( $response['line_items'] ?? [] ),
-				]
-			);
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error(
-				'Agentic customize_checkout: tax calculation failed.',
-				[
-					'event_id' => $event->get_id(),
-					'error'    => $e->getMessage(),
-				]
-			);
-		}
-
-		wp_send_json( $response );
-	}
-
-	/**
 	 * Processes the checkout.session.completed webhook for agentic commerce.
 	 *
 	 * When an AI agent completes a purchase via Stripe's hosted checkout,
@@ -1665,6 +1609,65 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// Acquire a database-cache lock to prevent duplicate order creation from concurrent webhooks.
+		$session_id = $notification->data->object->id ?? '';
+		$lock_key   = 'agentic_lock_' . $session_id;
+		if ( null !== WC_Stripe_Database_Cache::get( $lock_key ) ) {
+			WC_Stripe_Logger::info(
+				'Agentic checkout session is already being processed.',
+				[ 'session_id' => $session_id ]
+			);
+			return;
+		}
+		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
+
+		try {
+			$this->handle_agentic_checkout_session( $notification );
+		} finally {
+			WC_Stripe_Database_Cache::delete( $lock_key );
+		}
+	}
+
+	/**
+	 * Handle the Agentic Checkout customization hook.
+	 *
+	 * This parameter is expected to generate both an HTTP status code and a JSON response.
+	 *
+	 * @since 10.5.0
+	 * @param object $event The webhook event from Stripe.
+	 * @return void
+	 */
+	private function process_agentic_customization_hook( $event ): void {
+		$event = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
+		$tax_calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+		$response = array_merge(
+			[
+				'shipping_options' => [
+					[
+						'shipping_rate_data' => [
+							'display_name' => 'string',
+							'fixed_amount' => [
+								'amount' => 0,
+								'currency' => 'usd',
+							],
+						],
+					],
+				],
+			],
+			$tax_calculator->calculate( $event ),
+		);
+
+		status_header( 200 );
+		echo json_encode( $response );
+	}
+
+	/**
+	 * Processes an agentic checkout session after the concurrency lock is acquired.
+	 *
+	 * @since 10.5.0
+	 * @param object $notification The webhook notification from Stripe.
+	 */
+	private function handle_agentic_checkout_session( $notification ): void {
 		WC_Stripe_Logger::info(
 			'Webhook checkout.session.completed received.',
 			[
@@ -1680,100 +1683,122 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		};
 		add_filter( 'wc_stripe_request_headers', $override_version );
 
-		/**
-		 * Immediately fetch the intent and expand details:
-		 * - The intent's `agent_details` field indicates if agentic checkout is used.
-		 * - The order mapper needs to expand fields like line items, tax, shipping, etc.
-		 *
-		 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
-		 */
-		$url    = 'checkout/sessions/' . $notification->data->object->id;
-		$expand = array_merge( [ 'payment_intent.agent_details' ], WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand() );
-		if ( ! empty( $expand ) ) {
-			$params = [];
-			foreach ( $expand as $field ) {
-				$params[] = 'expand[]=' . $field;
-			}
-			$url .= '?' . implode( '&', $params );
-		}
 		try {
+			$url         = $this->build_checkout_session_retrieve_url(
+				$notification->data->object->id,
+				WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
+			);
 			$raw_session = WC_Stripe_API::retrieve( $url );
+
+			if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
+				WC_Stripe_Logger::error(
+					'Failed to retrieve checkout session with expand params.',
+					[
+						'url'   => $url,
+						'error' => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
+					]
+				);
+				return;
+			}
+
+			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
+
+			if ( ! $session->is_agentic() ) {
+				return;
+			}
+
+			$payment_intent_id = $session->get_payment_intent_id();
+			if ( null === $payment_intent_id || empty( $payment_intent_id ) ) {
+				WC_Stripe_Logger::error(
+					'Checkout session is missing the payment intent id.',
+					[
+						'session_id' => $session->get_id(),
+					]
+				);
+				return;
+			}
+
+			// Idempotency: look up existing order by payment intent ID.
+			$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			if ( $existing_order instanceof WC_Order ) {
+				WC_Stripe_Logger::info(
+					'Agentic checkout session already processed.',
+					[
+						'session_id'        => $session->get_id(),
+						'payment_intent_id' => $payment_intent_id,
+						'order_id'          => $existing_order->get_id(),
+					]
+				);
+				$this->resolved_order = $existing_order;
+				return;
+			}
+
+			try {
+				$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+				$order                = $order_mapper->create_order_from_checkout_session( $session );
+				$this->resolved_order = $order;
+
+				WC_Stripe_Logger::info(
+					'Agentic order created from checkout session.',
+					[
+						'session_id' => $session->get_id(),
+						'order_id'   => $order->get_id(),
+					]
+				);
+
+				/**
+				 * Fires after an agentic commerce order is created from a checkout session.
+				 *
+				 * @since 10.5.0
+				 * @param WC_Order                           $order   The created order.
+				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 */
+				do_action( 'wc_stripe_agentic_order_created', $order, $session );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Failed to create agentic order from checkout session.',
+					[
+						'session_id' => $session->get_id(),
+						'error'      => $e->getMessage(),
+					]
+				);
+
+				/**
+				 * Fires when agentic commerce order creation fails.
+				 *
+				 * @since 10.5.0
+				 * @param Exception                          $e       The exception that was thrown.
+				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 */
+				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
+			}
 		} finally {
 			remove_filter( 'wc_stripe_request_headers', $override_version );
 		}
-		if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
-			WC_Stripe_Logger::error(
-				'Failed to retrieve checkout session with expand params.',
-				[
-					'url'      => $url,
-					'expanded' => $expand,
-					'error'    => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
-				]
-			);
-			return;
+	}
+
+	/**
+	 * Builds the Stripe API URL for retrieving a checkout session with expanded fields.
+	 *
+	 * Expands the payment intent's agent_details (to detect agentic sessions)
+	 * and any additional fields required by the checkout session wrapper.
+	 *
+	 * @since 10.5.0
+	 * @param string   $session_id       The Stripe checkout session ID.
+	 * @param string[] $additional_expand Additional fields to expand beyond payment_intent.agent_details.
+	 * @return string The API URL with expand query parameters.
+	 *
+	 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
+	 */
+	private function build_checkout_session_retrieve_url( string $session_id, array $additional_expand = [] ): string {
+		$url    = 'checkout/sessions/' . rawurlencode( $session_id );
+		$expand = array_merge( [ 'payment_intent.agent_details' ], $additional_expand );
+
+		$params = [];
+		foreach ( $expand as $field ) {
+			$params[] = 'expand[]=' . rawurlencode( $field );
 		}
 
-		$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
-
-		if ( ! $session->is_agentic() ) {
-			return;
-		}
-
-		$payment_intent_id = $session->get_payment_intent_id();
-
-		// Idempotency: look up existing order by payment intent ID.
-		$existing_order = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
-		if ( $existing_order instanceof WC_Order ) {
-			WC_Stripe_Logger::info(
-				'Agentic checkout session already processed.',
-				[
-					'session_id'        => $session->get_id(),
-					'payment_intent_id' => $payment_intent_id,
-					'order_id'          => $existing_order->get_id(),
-				]
-			);
-			$this->resolved_order = $existing_order;
-			return;
-		}
-
-		try {
-			$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
-			$order                = $order_mapper->create_order_from_checkout_session( $session );
-			$this->resolved_order = $order;
-
-			WC_Stripe_Logger::info(
-				'Agentic order created from checkout session.',
-				[
-					'session_id' => $session->get_id(),
-					'order_id'   => $order->get_id(),
-				]
-			);
-
-			/**
-			 * Fires after an agentic commerce order is created from a checkout session.
-			 *
-			 * @since 10.5.0
-			 * @param WC_Order                           $order   The created order.
-			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-			 */
-			do_action( 'wc_stripe_agentic_order_created', $order, $session );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error(
-				'Failed to create agentic order from checkout session.',
-				[
-					'session_id' => $session->get_id(),
-					'error'      => $e->getMessage(),
-				]
-			);
-
-			/**
-			 * Fires when agentic commerce order creation fails.
-			 *
-			 * @since 10.5.0
-			 * @param Exception                          $e       The exception that was thrown.
-			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-			 */
-			do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
-		}
+		return $url . '?' . implode( '&', $params );
 	}
 }

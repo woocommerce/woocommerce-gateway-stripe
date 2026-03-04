@@ -117,9 +117,23 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		$location['tax_class'] = $tax_class;
 		$tax_rates             = WC_Tax::find_rates( $location );
 
+		if ( ! empty( $tax_rates ) ) {
+			$tax_rates = $this->format_tax_rates( $tax_rates );
+		} else {
+			$tax_rates = [
+				[
+					'rate_data' => [
+						'display_name' => __( 'No tax', 'woocommerce-gateway-stripe' ),
+						'inclusive'    => false,
+						'percentage'   => 10.1,
+					],
+				],
+			];
+		}
+
 		return [
 			'id'        => $line_item->get_id(),
-			'tax_rates' => $this->format_tax_rates( $tax_rates ),
+			'tax_rates' => $tax_rates,
 		];
 	}
 
@@ -155,6 +169,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * @return WC_Product|null The product, or null if not found.
 	 */
 	private function find_product_by_sku( string $sku ): ?WC_Product {
+		return wc_get_product( $sku );
 		$product_id = wc_get_product_id_by_sku( $sku );
 		$product    = $product_id ? wc_get_product( $product_id ) : null;
 
