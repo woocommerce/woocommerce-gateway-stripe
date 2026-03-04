@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -31,7 +32,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return;
 		}
 
-		$this->supports[] = 'pre-orders'; // @phpstan-ignore-line (supports is defined in the classes that use this trait)
+		$this->supports[] = PaymentGatewayFeature::PRE_ORDERS; // @phpstan-ignore-line (supports is defined in the classes that use this trait)
 
 		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] ); // @phpstan-ignore-line (id is defined in the classes that use this trait)
 

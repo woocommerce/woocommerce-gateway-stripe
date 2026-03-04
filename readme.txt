@@ -184,6 +184,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
 * Fix - Only load Stripe JS (not the full UPE bundle) on product and cart pages when express checkout is disabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
