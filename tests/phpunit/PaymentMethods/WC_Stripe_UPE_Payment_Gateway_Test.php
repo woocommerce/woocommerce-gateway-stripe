@@ -3606,7 +3606,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
 			],
-			'Checkout page with ECE off'               => [
+			'Checkout page with ECE off and Amazon Pay off'               => [
 				'page_type'                                => 'checkout',
 				'express_checkout'                         => 'no',
 				'express_checkout_button_locations'         => [],
