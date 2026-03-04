@@ -2035,8 +2035,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True if the caller should return after enqueuing Stripe JS only.
 	 */
 	protected function should_skip_full_payment_scripts() {
-		return ( is_product() || is_cart() )
-			&& ! ( new WC_Stripe_Express_Checkout_Helper() )->is_express_checkout_enabled();
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+
+		return ( $express_checkout_helper->is_product() || $express_checkout_helper->is_cart() )
+			&& ! $express_checkout_helper->is_express_checkout_enabled();
 	}
 
 	/**
