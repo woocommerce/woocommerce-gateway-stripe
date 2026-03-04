@@ -222,7 +222,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				);
 			}
 
-			$product = $this->resolve_product( $product_id, $line_item );
+			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id, $line_item );
 
 			$quantity   = $line_item->get_quantity();
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
@@ -282,31 +282,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		return $item;
-	}
-
-	/**
-	 * Resolves a WooCommerce product from a line item's external_reference.
-	 *
-	 * @since 10.5.0
-	 * @param int                          $product_id The parsed product ID.
-	 * @param WC_Stripe_Agentic_Line_Item  $line_item  The line item (for error context).
-	 * @return WC_Product The product.
-	 * @throws Exception When no matching product exists.
-	 */
-	private function resolve_product( int $product_id, WC_Stripe_Agentic_Line_Item $line_item ): WC_Product {
-		$product = wc_get_product( $product_id );
-
-		if ( ! $product || ! $product->exists() ) {
-			throw new Exception(
-				sprintf(
-					'Product not found for lookup_key "%d" (line item: %s).',
-					$product_id,
-					$line_item->get_description()
-				)
-			);
-		}
-
-		return $product;
 	}
 
 	/**

@@ -1641,20 +1641,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$event = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
 		$tax_calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
 		$response = array_merge(
-			[
-				'shipping_options' => [
-					[
-						'shipping_rate_data' => [
-							'display_name' => 'string',
-							'fixed_amount' => [
-								'amount' => 0,
-								'currency' => 'usd',
-							],
-						],
-					],
-				],
-			],
-			$tax_calculator->calculate( $event ),
+			[ 'shipping_options' => [] ],
+			$tax_calculator->calculate( $event, $event ),
 		);
 
 		status_header( 200 );

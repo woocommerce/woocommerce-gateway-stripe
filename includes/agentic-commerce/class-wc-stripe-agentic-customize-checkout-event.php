@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 10.5.0
  */
-class WC_Stripe_Agentic_Customize_Checkout_Event {
+class WC_Stripe_Agentic_Customize_Checkout_Event implements WC_Stripe_Checkout_Session_Interface {
 
 	/**
 	 * The raw Stripe event object.
@@ -117,34 +117,35 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	}
 
 	/**
-	 * Returns the shipping address object.
-	 *
-	 * @since 10.5.0
-	 * @return object|null
-	 */
-	public function get_shipping_address(): ?object {
-		return $this->event->data->shipping_details->address ?? null;
-	}
-
-	/**
 	 * Returns the billing address object.
 	 *
 	 * @since 10.5.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address
 	 */
-	public function get_billing_address(): ?object {
-		return $this->event->data->billing_details->address ?? null;
+	public function get_billing_address(): WC_Stripe_API_Address {
+		$address = $this->event->data->shipping_details->address ?? null;
+		if ( null === $address ) {
+			throw new Exception(
+				sprintf(
+					'Customize checkout hook %s has no billing address.',
+					$this->get_id()
+				)
+			);
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 
 	/**
-	 * Returns the address to use for tax calculation.
-	 *
-	 * Prefers the shipping address, falls back to billing.
+	 * Returns the shipping address object.
 	 *
 	 * @since 10.5.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address|null
 	 */
-	public function get_tax_address(): ?object {
-		return $this->get_shipping_address() ?? $this->get_billing_address();
+	public function get_shipping_address(): ?WC_Stripe_API_Address {
+		$address = $this->event->data->shipping_details->address ?? null;
+		if ( null === $address ) {
+			return null;
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 }

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 10.5.0
  */
-class WC_Stripe_Agentic_Checkout_Session {
+class WC_Stripe_Agentic_Checkout_Session implements WC_Stripe_Checkout_Session_Interface {
 
 	/**
 	 * The raw Stripe checkout session object.
@@ -130,10 +130,19 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the billing address object.
 	 *
 	 * @since 10.5.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address
 	 */
-	public function get_billing_address(): ?object {
-		return $this->session->customer_details->address ?? null;
+	public function get_billing_address(): WC_Stripe_API_Address {
+		$address = $this->session->customer_details->address ?? null;
+		if ( null === $address ) {
+			throw new Exception(
+				sprintf(
+					'Checkout session %s has no billing address.',
+					$this->get_id()
+				)
+			);
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 
 	/**
@@ -181,10 +190,14 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the shipping address object.
 	 *
 	 * @since 10.5.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address|null
 	 */
-	public function get_shipping_address(): ?object {
-		return $this->get_shipping_details()->address ?? null;
+	public function get_shipping_address(): ?WC_Stripe_API_Address {
+		$address = $this->get_shipping_details()->address ?? null;
+		if ( null === $address ) {
+			return null;
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 
 	/**

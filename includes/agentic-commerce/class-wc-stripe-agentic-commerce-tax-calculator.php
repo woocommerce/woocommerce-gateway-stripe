@@ -34,40 +34,39 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event The customize_checkout event.
 	 * @return array The response array in Stripe's expected format.
 	 */
-	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event ): array {
-		$tax_address = $event->get_tax_address();
-
-		if ( ! $tax_address ) {
-			WC_Stripe_Logger::error(
-				'Agentic tax calculator: no address provided for tax calculation.',
-				[ 'event_id' => $event->get_id() ]
+	public function calculate(
+		WC_Stripe_Agentic_Customize_Checkout_Event $event,
+		WC_Stripe_Checkout_Session_Interface $session
+	): array {
+		// If tax is disabled, simply return empty tax rates for each line item.
+		if ( ! wc_tax_enabled() ) {
+			return array_map(
+				fn( $line_item ) => [
+					'id'        => $line_item->get_id(),
+					'tax_rates' => [],
+				],
+				$event->get_line_items()
 			);
-
-			return [];
 		}
 
-		$country  = $tax_address->country ?? '';
-		$state    = $tax_address->state ?? '';
-		$postcode = $tax_address->postal_code ?? '';
-		$city     = $tax_address->city ?? '';
+		$tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
 
-		$location = [
-			'country'  => $country,
-			'state'    => $state,
-			'postcode' => $postcode,
-			'city'     => $city,
-		];
+		// Use the billing address by default.
+		$tax_address = $session->get_billing_address();
 
-		$line_items    = $event->get_line_items();
-		$response_items = [];
-
-		foreach ( $line_items as $line_item ) {
-			$item_response = $this->calculate_line_item_taxes( $line_item, $location, $event->get_id() );
-
-			if ( null !== $item_response ) {
-				$response_items[] = $item_response;
+		// Prefer the shipping address if available and set as preference.
+		if ( ! $tax_based_on_billing ) {
+			$shipping_address = $session->get_shipping_address();
+			if ( $shipping_address ) {
+				$tax_address = $shipping_address;
 			}
 		}
+
+		$line_items     = $event->get_line_items();
+		$response_items = array_map(
+			fn( $line_item ) => $this->calculate_line_item_taxes( $line_item, $tax_address ),
+			$line_items
+		);
 
 		return [ 'line_items' => $response_items ];
 	}
@@ -77,63 +76,40 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 *
 	 * @since 10.5.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Line_Item $line_item The line item.
-	 * @param array                                          $location  Tax location with country, state, postcode, city keys.
+	 * @param WC_Stripe_API_Address                          $address   The tax address.
 	 * @param string                                         $event_id  The event ID for logging.
 	 * @return array|null The line item tax response, or null if skipped.
 	 */
 	private function calculate_line_item_taxes(
 		WC_Stripe_Agentic_Customize_Checkout_Line_Item $line_item,
-		array $location,
-		string $event_id
+		WC_Stripe_API_Address $address
 	): ?array {
-		$sku = $line_item->get_sku_id();
+		$external_reference = $line_item->get_sku_id();
 
-		if ( '' === $sku ) {
-			WC_Stripe_Logger::warning(
-				'Agentic tax calculator: line item has no sku_id, skipping.',
-				[
-					'event_id'     => $event_id,
-					'line_item_id' => $line_item->get_id(),
-				]
+		if ( '' === $external_reference ) {
+			throw new Exception(
+				sprintf(
+					'Line item %s has no sku_id.',
+					$line_item->get_id()
+				)
 			);
-			return null;
 		}
 
-		$product = $this->find_product_by_sku( $sku );
+		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $external_reference );
 
-		if ( ! $product ) {
-			WC_Stripe_Logger::warning(
-				'Agentic tax calculator: product not found for SKU, skipping line item.',
-				[
-					'event_id'     => $event_id,
-					'sku_id'       => $sku,
-					'line_item_id' => $line_item->get_id(),
-				]
-			);
-			return null;
-		}
-
-		$tax_class             = $product->get_tax_class();
-		$location['tax_class'] = $tax_class;
-		$tax_rates             = WC_Tax::find_rates( $location );
-
-		if ( ! empty( $tax_rates ) ) {
-			$tax_rates = $this->format_tax_rates( $tax_rates );
-		} else {
-			$tax_rates = [
-				[
-					'rate_data' => [
-						'display_name' => __( 'No tax', 'woocommerce-gateway-stripe' ),
-						'inclusive'    => false,
-						'percentage'   => 10.1,
-					],
-				],
-			];
-		}
+		$tax_rates = WC_Tax::find_rates(
+			[
+				'country'   => $address->get_country(),
+				'state'     => $address->get_state(),
+				'postcode'  => $address->get_postal_code(),
+				'city'      => $address->get_city(),
+				'tax_class' => $product->get_tax_class(),
+			]
+		);
 
 		return [
 			'id'        => $line_item->get_id(),
-			'tax_rates' => $tax_rates,
+			'tax_rates' => $this->format_tax_rates( $tax_rates ),
 		];
 	}
 
@@ -145,7 +121,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * @return array Array of Stripe tax rate objects with rate_data.
 	 */
 	private function format_tax_rates( array $wc_tax_rates ): array {
-		$inclusive  = wc_prices_include_tax();
+		$inclusive = wc_prices_include_tax();
 		$formatted = [];
 
 		foreach ( $wc_tax_rates as $rate ) {
@@ -153,35 +129,11 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 				'rate_data' => [
 					'display_name' => $rate['label'] ?? __( 'Tax', 'woocommerce-gateway-stripe' ),
 					'inclusive'    => $inclusive,
-					'percentage'  => (float) ( $rate['rate'] ?? 0 ),
+					'percentage'   => (float) ( $rate['rate'] ?? 0 ),
 				],
 			];
 		}
 
 		return $formatted;
-	}
-
-	/**
-	 * Finds a WooCommerce product by its SKU.
-	 *
-	 * @since 10.5.0
-	 * @param string $sku The product SKU.
-	 * @return WC_Product|null The product, or null if not found.
-	 */
-	private function find_product_by_sku( string $sku ): ?WC_Product {
-		return wc_get_product( $sku );
-		$product_id = wc_get_product_id_by_sku( $sku );
-		$product    = $product_id ? wc_get_product( $product_id ) : null;
-
-		/**
-		 * Filters the product resolved from a SKU during agentic tax calculation.
-		 *
-		 * @since 10.5.0
-		 * @param WC_Product|false|null $product The resolved product (or null/false).
-		 * @param string               $sku     The SKU that was looked up.
-		 */
-		$product = apply_filters( 'wc_stripe_agentic_tax_product_by_sku', $product, $sku );
-
-		return $product instanceof WC_Product ? $product : null;
 	}
 }
