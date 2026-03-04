@@ -2002,14 +2002,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		// On product/cart pages where express checkout isn't enabled,
-		// only enqueue Stripe JS — skip the full bundle.
-		if (
-			( is_product() || is_cart() )
-			&& ! ( new WC_Stripe_Express_Checkout_Helper() )->is_express_checkout_enabled()
-		) {
-			wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
-			wp_enqueue_script( 'stripe' );
+		if ( $this->maybe_enqueue_stripe_js_only() ) {
 			return;
 		}
 
@@ -2029,6 +2022,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
+	}
+
+	/**
+	 * On product/cart pages where no express checkout method is enabled,
+	 * enqueue only Stripe JS and skip the full gateway bundle.
+	 *
+	 * @return bool True if only Stripe JS was enqueued (caller should return early).
+	 */
+	protected function maybe_enqueue_stripe_js_only() {
+		if (
+			( is_product() || is_cart() )
+			&& ! ( new WC_Stripe_Express_Checkout_Helper() )->is_express_checkout_enabled()
+		) {
+			wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
+			wp_enqueue_script( 'stripe' );
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

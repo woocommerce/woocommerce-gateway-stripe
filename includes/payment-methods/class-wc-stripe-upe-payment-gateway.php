@@ -403,14 +403,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// On product/cart pages where express checkout isn't enabled,
-		// only enqueue Stripe JS — skip the full UPE bundle.
-		if (
-			( is_product() || is_cart() )
-			&& ! ( new WC_Stripe_Express_Checkout_Helper() )->is_express_checkout_enabled()
-		) {
-			wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
-			wp_enqueue_script( 'stripe' );
+		if ( $this->maybe_enqueue_stripe_js_only() ) {
 			return;
 		}
 
