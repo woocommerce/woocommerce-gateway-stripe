@@ -1059,6 +1059,208 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
+	 *
+	 * @param bool   $feature_flag       Feature flag enabled.
+	 * @param bool   $is_checkout        Whether is classic checkout page.
+	 * @param bool   $has_block          Whether is block checkout page.
+	 * @param string $adaptive_pricing   Adaptive pricing setting.
+	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
+	 * @param bool   $expected           Expected result.
+	 * @return void
+	 * @dataProvider provide_is_adaptive_pricing_supported
+	 */
+	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$new_stripe_settings                               = $original_stripe_settings;
+		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
+		$new_stripe_settings['optimized_checkout_element'] = 'yes';
+		$new_stripe_settings['capture']                    = 'yes';
+		$new_stripe_settings['pmc_enabled']                = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
+
+		$is_checkout_filter = function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
+		$saved_post = null;
+		if ( $has_block ) {
+			// Mock has_block( 'woocommerce/checkout' ) via global $post so the helper sees the expected value.
+			global $post;
+			$saved_post = $post;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test isolation for has_block().
+			$post               = new stdClass();
+			$post->post_content = '<!-- wp:woocommerce/checkout -->';
+		}
+
+		\WC_Subscriptions_Product::set_is_subscription( false );
+		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
+		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
+
+		$saved_shipping_methods = WC()->shipping()->shipping_methods;
+
+		WC()->cart->empty_cart();
+		$products = [];
+
+		if ( ! empty( $cart_product_types ) ) {
+			$subscription_product_ids = [];
+			$has_pre_order            = in_array( 'pre-order', $cart_product_types, true );
+			$has_deposits             = in_array( 'deposits', $cart_product_types, true );
+
+			\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( $has_pre_order );
+			\WC_Deposits_Product_Manager::set_deposits_enabled( $has_deposits );
+
+			foreach ( $cart_product_types as $type ) {
+				$product        = WC_Helper_Product::create_simple_product();
+				$products[]     = $product;
+				$cart_item_data = 'deposits' === $type ? [ 'is_deposit' => true ] : [];
+				WC()->cart->add_to_cart( $product->get_id(), 1, 0, [], $cart_item_data );
+				if ( 'subscription' === $type ) {
+					$subscription_product_ids[] = $product->get_id();
+				}
+			}
+			if ( ! empty( $subscription_product_ids ) ) {
+				\WC_Subscriptions_Product::set_subscription_product_ids( $subscription_product_ids );
+			}
+		}
+
+		$actual = WC_Stripe_Helper::is_adaptive_pricing_supported();
+
+		// Cleanup.
+		WC()->cart->empty_cart();
+		WC()->shipping()->shipping_methods = $saved_shipping_methods;
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		\WC_Subscriptions_Product::set_is_subscription( false );
+		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
+		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
+
+		foreach ( $products as $product ) {
+			$product->delete( true );
+		}
+
+		if ( $has_block ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring $post after test isolation.
+			$post = $saved_post;
+		}
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_is_adaptive_pricing_supported`.
+	 *
+	 * @return array
+	 */
+	public function provide_is_adaptive_pricing_supported(): array {
+		return [
+			'feature flag disabled'                     => [
+				'feature_flag'       => false,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'adaptive pricing disabled'                 => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'no',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'not on classic checkout or block checkout' => [
+				'feature_flag'       => true,
+				'is_checkout'        => false,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'on block checkout'                         => [
+				'feature_flag'       => true,
+				'is_checkout'        => false,
+				'has_block'          => true,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+			],
+			'empty cart'                                => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => null,
+				'expected'           => true,
+			],
+			'simple product only'                       => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+			],
+			'multiple simple products'                  => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple' ],
+				'expected'           => true,
+			],
+			'simple and subscription products mixed'    => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple', 'subscription' ],
+				'expected'           => false,
+			],
+			'simple and deposits products mixed'        => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple', 'deposits' ],
+				'expected'           => false,
+			],
+			'subscription in cart'                      => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'subscription' ],
+				'expected'           => false,
+			],
+			'pre-order in cart'                         => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'pre-order' ],
+				'expected'           => false,
+			],
+			'deposits in cart'                          => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'deposits' ],
+				'expected'           => false,
+			],
+		];
+	}
+
+	/**
 	 * Tests for `build_line_items`.
 	 *
 	 * @param bool  $itemized       Whether itemized line items are enabled.

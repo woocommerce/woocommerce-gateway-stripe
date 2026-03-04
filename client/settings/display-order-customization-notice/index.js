@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import React, { useState } from 'react';
 import { info } from '@wordpress/icons';
 import { Icon, Notice } from '@wordpress/components';
-import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { dismissNotice } from 'wcstripe/utils';
 
 const NoticeWrapper = styled( Notice )`
 	border-left: none;
@@ -29,11 +29,7 @@ const DisplayOrderCustomizationNotice = ( { isOCEnabled } ) => {
 	);
 
 	const handleDismissNotice = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_customization_notice: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_customization_notice', () => {
 			setShowNotice( false );
 		} );
 	};

@@ -282,6 +282,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
+		// Attach the currency selector div to the classic checkout page.
+		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
+
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
 
@@ -400,6 +403,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
+		wp_enqueue_script( 'stripe' );
+
+		if ( $this->should_skip_full_payment_scripts() ) {
+			return;
+		}
+
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -412,14 +422,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				? $asset['dependencies']
 				: $dependencies;
 		}
-
-		wp_register_script(
-			'stripe',
-			'https://js.stripe.com/clover/stripe.js',
-			[],
-			null,
-			true
-		);
 
 		wp_register_script(
 			'wc-stripe-upe-classic',
@@ -527,6 +529,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
+
+			// Adaptive Pricing support for checkout.
+			$stripe_params['isAdaptivePricingEnabled'] = WC_Stripe_Helper::is_adaptive_pricing_supported();
 		}
 
 		// Checking for other BNPL extensions.
@@ -629,7 +634,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] List of payment method types to exclude.
 	 */
-	private function get_excluded_payment_method_types(): array {
+	public function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
@@ -925,6 +930,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Attaches the currency selector div to the classic checkout page.
+	 * This is used to render the currency selector element in the checkout page.
+	 *
+	 * @return void
+	 */
+	public function attach_currency_selector_element() {
+		// Bail if checkout sessionsfeature flag is not enabled.
+		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return;
+		}
+
+		// Bail if not on the checkout page.
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 	}
 
 	/**
