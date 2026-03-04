@@ -546,6 +546,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Make is_checkout() return true so payment_scripts() passes its page guard.
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+
 		$gateway->payment_scripts();
 
 		// The script should be registered with the version we derived above.
