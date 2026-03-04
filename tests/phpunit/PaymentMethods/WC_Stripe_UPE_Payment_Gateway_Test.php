@@ -3588,6 +3588,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
 			],
+			'Cart page with ECE off, Amazon Pay on at cart'    => [
+				'page_type'                                => 'cart',
+				'express_checkout'                         => 'no',
+				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [ 'cart' ],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => true,
+			],
 			'Product page with ECE on at product'      => [
 				'page_type'                                => 'product',
 				'express_checkout'                         => 'yes',
