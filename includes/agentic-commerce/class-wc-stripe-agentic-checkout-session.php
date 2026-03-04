@@ -53,80 +53,77 @@ class WC_Stripe_Agentic_Checkout_Session {
 	}
 
 	/**
-	 * Returns the checkout session ID.
+	 * Returns the checkout session ID, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_id(): string {
-		return (string) ( $this->session->id ?? '' );
+	public function get_id(): ?string {
+		return isset( $this->session->id ) ? (string) $this->session->id : null;
 	}
 
 	/**
-	 * Returns the session currency in uppercase.
+	 * Returns the session currency in uppercase, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_currency(): string {
-		return strtoupper( (string) ( $this->session->currency ?? '' ) );
+	public function get_currency(): ?string {
+		return isset( $this->session->currency ) ? strtoupper( (string) $this->session->currency ) : null;
 	}
 
 	/**
-	 * Returns the session currency in lowercase (for Stripe metadata storage).
+	 * Returns the session currency in lowercase (for Stripe metadata storage), or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_currency_lowercase(): string {
-		return strtolower( (string) ( $this->session->currency ?? '' ) );
+	public function get_currency_lowercase(): ?string {
+		return isset( $this->session->currency ) ? strtolower( (string) $this->session->currency ) : null;
 	}
 
 	/**
-	 * Returns the total amount in the smallest currency unit.
+	 * Returns the total amount in the smallest currency unit, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return int
+	 * @return int|null
 	 */
-	public function get_amount_total(): int {
-		return (int) ( $this->session->amount_total ?? 0 );
+	public function get_amount_total(): ?int {
+		return isset( $this->session->amount_total ) ? (int) $this->session->amount_total : null;
 	}
 
 	/**
 	 * Returns the customer email, falling back from customer_details to customer_email.
+	 * Returns null when neither source is present.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_customer_email(): string {
-		return (string) (
-			$this->session->customer_details->email
-			?? $this->session->customer_email
-			?? ''
-		);
+	public function get_customer_email(): ?string {
+		$email = $this->session->customer_details->email ?? $this->session->customer_email ?? null;
+		return null !== $email ? (string) $email : null;
 	}
 
 	/**
 	 * Returns the customer name, falling back to the shipping name.
+	 * Returns null when all sources are absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_customer_name(): string {
-		return (string) (
-			$this->session->customer_details->name
-			?? $this->get_shipping_name()
-		);
+	public function get_customer_name(): ?string {
+		$name = $this->session->customer_details->name ?? $this->get_shipping_name();
+		return null !== $name ? (string) $name : null;
 	}
 
 	/**
-	 * Returns the billing phone number.
+	 * Returns the billing phone number, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_billing_phone(): string {
-		return (string) ( $this->session->customer_details->phone ?? '' );
+	public function get_billing_phone(): ?string {
+		return isset( $this->session->customer_details->phone ) ? (string) $this->session->customer_details->phone : null;
 	}
 
 	/**
@@ -155,23 +152,29 @@ class WC_Stripe_Agentic_Checkout_Session {
 	}
 
 	/**
-	 * Returns the shipping recipient name.
+	 * Returns the shipping recipient name, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_shipping_name(): string {
-		return (string) ( $this->get_shipping_details()->name ?? '' );
+	public function get_shipping_name(): ?string {
+		$details = $this->get_shipping_details();
+		return isset( $details->name ) ? (string) $details->name : null;
 	}
 
 	/**
 	 * Returns the shipping phone, falling back to the billing phone.
+	 * Returns null when both are absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_shipping_phone(): string {
-		return (string) ( $this->get_shipping_details()->phone ?? $this->get_billing_phone() );
+	public function get_shipping_phone(): ?string {
+		$details = $this->get_shipping_details();
+		if ( isset( $details->phone ) ) {
+			return (string) $details->phone;
+		}
+		return $this->get_billing_phone();
 	}
 
 	/**
@@ -202,34 +205,42 @@ class WC_Stripe_Agentic_Checkout_Session {
 	}
 
 	/**
-	 * Returns the expanded payment intent ID.
+	 * Returns the expanded payment intent ID, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_payment_intent_id(): string {
-		return (string) ( $this->session->payment_intent->id ?? '' );
+	public function get_payment_intent_id(): ?string {
+		return isset( $this->session->payment_intent->id ) ? (string) $this->session->payment_intent->id : null;
 	}
 
 	/**
-	 * Returns the Stripe customer ID.
+	 * Returns the Stripe customer ID, or null when absent.
+	 *
+	 * Handles both a plain string customer ID and an expanded customer object.
 	 *
 	 * @since 10.5.0
-	 * @return string
+	 * @return string|null
 	 */
-	public function get_customer_id(): string {
-		$customer = $this->session->customer ?? '';
-		return is_string( $customer ) ? $customer : '';
+	public function get_customer_id(): ?string {
+		$customer = $this->session->customer ?? null;
+		if ( is_string( $customer ) ) {
+			return $customer;
+		}
+		if ( is_object( $customer ) && isset( $customer->id ) ) {
+			return (string) $customer->id;
+		}
+		return null;
 	}
 
 	/**
-	 * Returns the shipping amount in the smallest currency unit.
+	 * Returns the shipping amount in the smallest currency unit, or null when absent.
 	 *
 	 * @since 10.5.0
-	 * @return int
+	 * @return int|null
 	 */
-	public function get_shipping_amount(): int {
-		return (int) ( $this->session->total_details->amount_shipping ?? 0 );
+	public function get_shipping_amount(): ?int {
+		return isset( $this->session->total_details->amount_shipping ) ? (int) $this->session->total_details->amount_shipping : null;
 	}
 
 	/**

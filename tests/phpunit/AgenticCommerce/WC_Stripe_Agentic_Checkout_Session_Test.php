@@ -28,11 +28,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_id returns empty string when missing.
+	 * Test get_id returns null when missing.
 	 */
-	public function test_get_id_returns_empty_when_missing() {
+	public function test_get_id_returns_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( '', $session->get_id() );
+		$this->assertNull( $session->get_id() );
 	}
 
 	/**
@@ -44,11 +44,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_currency returns empty string when missing.
+	 * Test get_currency returns null when missing.
 	 */
-	public function test_get_currency_returns_empty_when_missing() {
+	public function test_get_currency_returns_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( '', $session->get_currency() );
+		$this->assertNull( $session->get_currency() );
 	}
 
 	/**
@@ -60,25 +60,41 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_amount_total.
+	 * @dataProvider provide_amount_total_cases
 	 */
-	public function test_get_amount_total() {
-		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [ 'amount_total' => 2500 ] );
-		$this->assertSame( 2500, $session->get_amount_total() );
+	public function test_get_amount_total( object $raw, ?int $expected ) {
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
+		$this->assertSame( $expected, $session->get_amount_total() );
 	}
 
 	/**
-	 * Test get_amount_total defaults to zero.
+	 * @return array
 	 */
-	public function test_get_amount_total_defaults_to_zero() {
-		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( 0, $session->get_amount_total() );
+	public function provide_amount_total_cases(): array {
+		return [
+			'integer value'          => [
+				(object) [ 'amount_total' => 2500 ],
+				2500,
+			],
+			'string float truncated' => [
+				(object) [ 'amount_total' => '2500.3' ],
+				2500,
+			],
+			'zero is zero'           => [
+				(object) [ 'amount_total' => 0 ],
+				0,
+			],
+			'missing is null'        => [
+				(object) [],
+				null,
+			],
+		];
 	}
 
 	/**
 	 * @dataProvider provide_customer_email_cases
 	 */
-	public function test_get_customer_email( object $raw, string $expected ) {
+	public function test_get_customer_email( object $raw, ?string $expected ) {
 		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
 		$this->assertSame( $expected, $session->get_customer_email() );
 	}
@@ -102,9 +118,9 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 				'top@example.com',
 			],
-			'empty when both missing'    => [
+			'null when both missing'     => [
 				(object) [],
-				'',
+				null,
 			],
 		];
 	}
@@ -112,7 +128,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_customer_name_cases
 	 */
-	public function test_get_customer_name( object $raw, string $expected ) {
+	public function test_get_customer_name( object $raw, ?string $expected ) {
 		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
 		$this->assertSame( $expected, $session->get_customer_name() );
 	}
@@ -146,11 +162,15 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 				'Collected Name',
 			],
-			'empty when all missing'            => [
+			'null when all missing'             => [
 				(object) [
 					'customer_details' => (object) [ 'name' => null ],
 				],
-				'',
+				null,
+			],
+			'null for empty object'             => [
+				(object) [],
+				null,
 			],
 		];
 	}
@@ -168,11 +188,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_billing_phone returns empty when missing.
+	 * Test get_billing_phone returns null when missing.
 	 */
-	public function test_get_billing_phone_empty_when_missing() {
+	public function test_get_billing_phone_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( '', $session->get_billing_phone() );
+		$this->assertNull( $session->get_billing_phone() );
 	}
 
 	/**
@@ -243,7 +263,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_shipping_phone_cases
 	 */
-	public function test_get_shipping_phone( object $raw, string $expected ) {
+	public function test_get_shipping_phone( object $raw, ?string $expected ) {
 		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
 		$this->assertSame( $expected, $session->get_shipping_phone() );
 	}
@@ -267,11 +287,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 				'+15551111111',
 			],
-			'empty when no phone'       => [
+			'null when no phone'        => [
 				(object) [
 					'shipping_details' => (object) [ 'name' => 'Test' ],
 				],
-				'',
+				null,
 			],
 		];
 	}
@@ -316,8 +336,8 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	 * Test get_line_items.
 	 */
 	public function test_get_line_items() {
-		$items   = [ (object) [ 'id' => 'li_1' ], (object) [ 'id' => 'li_2' ] ];
-		$session = new WC_Stripe_Agentic_Checkout_Session(
+		$items      = [ (object) [ 'id' => 'li_1' ], (object) [ 'id' => 'li_2' ] ];
+		$session    = new WC_Stripe_Agentic_Checkout_Session(
 			(object) [
 				'line_items' => (object) [ 'data' => $items ],
 			]
@@ -351,11 +371,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_payment_intent_id empty when missing.
+	 * Test get_payment_intent_id null when missing.
 	 */
-	public function test_get_payment_intent_id_empty_when_missing() {
+	public function test_get_payment_intent_id_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( '', $session->get_payment_intent_id() );
+		$this->assertNull( $session->get_payment_intent_id() );
 	}
 
 	/**
@@ -367,21 +387,21 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_customer_id empty when missing.
+	 * Test get_customer_id null when missing.
 	 */
-	public function test_get_customer_id_empty_when_missing() {
+	public function test_get_customer_id_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( '', $session->get_customer_id() );
+		$this->assertNull( $session->get_customer_id() );
 	}
 
 	/**
-	 * Test get_customer_id empty when object (expanded customer).
+	 * Test get_customer_id returns id from expanded customer object.
 	 */
-	public function test_get_customer_id_empty_when_object() {
+	public function test_get_customer_id_from_expanded_object() {
 		$session = new WC_Stripe_Agentic_Checkout_Session(
 			(object) [ 'customer' => (object) [ 'id' => 'cus_expanded' ] ]
 		);
-		$this->assertSame( '', $session->get_customer_id() );
+		$this->assertSame( 'cus_expanded', $session->get_customer_id() );
 	}
 
 	/**
@@ -397,11 +417,11 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_shipping_amount defaults to zero.
+	 * Test get_shipping_amount returns null when missing.
 	 */
-	public function test_get_shipping_amount_defaults_to_zero() {
+	public function test_get_shipping_amount_null_when_missing() {
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertSame( 0, $session->get_shipping_amount() );
+		$this->assertNull( $session->get_shipping_amount() );
 	}
 
 	/**

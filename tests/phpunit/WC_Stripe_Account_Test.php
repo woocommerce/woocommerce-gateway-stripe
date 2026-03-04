@@ -43,7 +43,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 									->disableOriginalConstructor()
-									->setMethods(
+									->onlyMethods(
 										[
 											'is_connected',
 										]
@@ -456,7 +456,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Mock that no existing webhook is found
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->setMethods( [ 'get_existing_webhook' ] )
+			->onlyMethods( [ 'get_existing_webhook' ] )
 			->getMock();
 		$this->account->method( 'get_existing_webhook' )->willReturn( false );
 
@@ -489,7 +489,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Setup the account mock
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
 		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
@@ -519,7 +519,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Setup the account mock
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
 		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
@@ -570,7 +570,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
 		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
@@ -599,7 +599,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Setup the account mock
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
 		$this->account->method( 'get_existing_webhook' )->willReturn( $current_webhook );

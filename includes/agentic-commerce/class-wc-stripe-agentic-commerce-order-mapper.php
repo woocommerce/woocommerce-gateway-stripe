@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
+	private const ADDRESS_TYPE_BILLING  = 'billing';
+	private const ADDRESS_TYPE_SHIPPING = 'shipping';
+
 	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
@@ -41,17 +44,30 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order = $this->create_order( $session );
 
 		try {
+			// Map basic data first.
 			$this->map_customer( $order, $session );
 			$this->map_line_items( $order, $session );
 			$this->map_addresses( $order, $session );
 			$this->store_stripe_metadata( $order, $session );
-			$this->verify_order_total( $order, $session );
 
-			$order->payment_complete( $session->get_payment_intent_id() );
+			// Save everything we've got so far.
+			$order->save();
+
+			// Coming soon: Add logic for taxes and shipping based on the saved order.
+			// $this->map_shipping();
+			// $this->map_taxes();
+			// $order->save(); // When we add shipping and taxes.
+
+			// Confirm everything is right.
+			$this->verify_order_total( $order, $session );
 		} catch ( Exception $e ) {
 			$order->delete( true );
 			throw $e;
 		}
+
+		// Complete payment outside the delete-on-failure block, since
+		// payment_complete() fires hooks/emails that cannot be rolled back.
+		$order->payment_complete( $session->get_payment_intent_id() ?? '' );
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
@@ -73,11 +89,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When required fields are missing or invalid.
 	 */
 	private function validate_checkout_session( WC_Stripe_Agentic_Checkout_Session $session ): void {
-		if ( '' === $session->get_id() ) {
+		if ( null === $session->get_id() ) {
 			throw new Exception( 'Checkout session is missing the id field.' );
 		}
 
-		if ( '' === $session->get_currency() ) {
+		if ( null === $session->get_payment_intent_id() ) {
+			throw new Exception(
+				sprintf( 'Checkout session %s is missing the payment_intent id.', $session->get_id() )
+			);
+		}
+
+		if ( null === $session->get_currency() ) {
 			throw new Exception(
 				sprintf( 'Checkout session %s is missing the currency field.', $session->get_id() )
 			);
@@ -126,9 +148,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		$order->set_currency( $session->get_currency() );
+		$order->set_currency( $session->get_currency() ?? '' );
 		$order->set_payment_method( 'stripe' );
-		$order->set_payment_method_title( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		$order->set_payment_method_title( __( 'Stripe (Agentic Checkout)', 'woocommerce-gateway-stripe' ) );
 		$order->add_order_note(
 			__( 'Order created from Stripe agentic commerce checkout session.', 'woocommerce-gateway-stripe' )
 		);
@@ -147,7 +169,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the email is not present or invalid.
 	 */
 	private function map_customer( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$email = $session->get_customer_email();
+		$email = $session->get_customer_email() ?? '';
 
 		if ( ! is_email( $email ) ) {
 			throw new Exception(
@@ -177,7 +199,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When a product cannot be found for a line item.
 	 */
 	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$currency   = $session->get_currency();
+		$currency   = $session->get_currency() ?? '';
 		$line_items = $session->get_line_items();
 
 		if ( empty( $line_items ) ) {
@@ -200,26 +222,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				);
 			}
 
+			$product = $this->resolve_product( $product_id, $line_item );
+
 			$quantity   = $line_item->get_quantity();
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
 				$line_item->get_amount_total() - $line_item->get_amount_tax(),
 				$currency
 			);
 
-			$product = $this->resolve_product( $product_id, $line_item );
-
 			// Let WooCommerce calculate totals from product price × quantity.
-			$item = $this->add_product_to_order( $order, $product, $quantity, $session->get_id() );
+			$item = $this->add_product_to_order( $order, $product, $quantity, $session->get_id() ?? '' );
 
 			// Verify WC-calculated total matches Stripe's pre-tax line total.
 			$wc_line_total = (float) $item->get_total();
-			if ( abs( $wc_line_total - $line_total ) > 0.01 ) {
+			if ( abs( $wc_line_total - $line_total ) > 0.001 ) {
 				throw new Exception(
 					sprintf(
-						'Line item price mismatch for product %d: WC calculated %.2f, Stripe expected %.2f.',
+						'Line item price mismatch for product %d: WC calculated %s, Stripe expected %s.',
 						$product_id,
-						$wc_line_total,
-						$line_total
+						wc_format_decimal( $wc_line_total ),
+						wc_format_decimal( $line_total )
 					)
 				);
 			}
@@ -302,7 +324,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		object $address,
 		string $name,
 		string $phone,
-		string $type = 'billing'
+		string $type = self::ADDRESS_TYPE_BILLING
 	): void {
 		$name = self::split_full_name( $name );
 
@@ -355,28 +377,35 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$this->map_address(
 			$order,
 			$billing_address,
-			$session->get_customer_name(),
-			$session->get_billing_phone(),
-			'billing'
+			$session->get_customer_name() ?? '',
+			$session->get_billing_phone() ?? '',
+			self::ADDRESS_TYPE_BILLING
 		);
 
-		// Shipping name, phone, and address.
+		// Shipping name, phone, and address (optional — not collected for digital goods).
 		$shipping_address = $session->get_shipping_address();
 		if ( ! $session->get_shipping_details() || ! $shipping_address ) {
-			throw new Exception(
-				sprintf(
-					'Checkout session %s has no shipping address.',
-					$session->get_id()
-				)
-			);
+			foreach ( $order->get_items() as $item ) {
+				if ( ! $item instanceof WC_Order_Item_Product ) {
+					continue;
+				}
+				$product = $item->get_product();
+				if ( $product instanceof WC_Product && $product->needs_shipping() ) {
+					$order->add_order_note(
+						__( 'Order contains shippable items but no shipping address was provided in the checkout session.', 'woocommerce-gateway-stripe' )
+					);
+					break;
+				}
+			}
+			return;
 		}
 
 		$this->map_address(
 			$order,
 			$shipping_address,
-			$session->get_shipping_name(),
-			$session->get_shipping_phone(),
-			'shipping'
+			$session->get_shipping_name() ?? '',
+			$session->get_shipping_phone() ?? '',
+			self::ADDRESS_TYPE_SHIPPING
 		);
 	}
 
@@ -391,19 +420,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Store payment intent ID (also adds an order note).
-		$order_helper->add_payment_intent_to_order( $session->get_payment_intent_id(), $order );
+		$order_helper->add_payment_intent_to_order( $session->get_payment_intent_id() ?? '', $order );
 
 		// Store Stripe customer ID.
 		$customer_id = $session->get_customer_id();
-		if ( '' !== $customer_id ) {
+		if ( null !== $customer_id ) {
 			$order_helper->update_stripe_customer_id( $order, $customer_id );
 		}
 
 		// Store Stripe currency.
-		$order_helper->update_stripe_currency( $order, $session->get_currency_lowercase() );
+		$order_helper->update_stripe_currency( $order, $session->get_currency_lowercase() ?? '' );
 
 		// Store checkout session ID for traceability.
-		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() );
+		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() ?? '' );
 	}
 
 	/**
@@ -421,18 +450,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$order->calculate_totals( false );
 
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
-			$session->get_amount_total(),
-			$session->get_currency()
+			$session->get_amount_total() ?? 0,
+			$session->get_currency() ?? ''
 		);
 		$order_total    = (float) $order->get_total();
 
-		if ( abs( $order_total - $expected_total ) > 0.01 ) {
+		if ( abs( $order_total - $expected_total ) > 0.001 ) {
 			throw new Exception(
 				sprintf(
-					'Order total mismatch for session %s: WC total %.2f, Stripe total %.2f.',
+					'Order total mismatch for session %s: WC total %s, Stripe total %s.',
 					$session->get_id(),
-					$order_total,
-					$expected_total
+					wc_format_decimal( $order_total ),
+					wc_format_decimal( $expected_total )
 				)
 			);
 		}

@@ -267,12 +267,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
-
-		$this->assertEquals( $user_id, $order->get_customer_id() );
+		$order       = $this->mapper->create_order_from_checkout_session( $session );
+		$customer_id = $order->get_customer_id();
 
 		$order->delete( true );
 		wp_delete_user( $user_id );
+
+		$this->assertEquals( $user_id, $customer_id );
 	}
 
 	/**
@@ -345,19 +346,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order = $this->mapper->create_order_from_checkout_session( $session );
-		$items = $order->get_items();
-
-		$this->assertCount( 1, $items );
-
-		$item = reset( $items );
-		$this->assertInstanceOf( WC_Order_Item_Product::class, $item );
-		$this->assertEquals( $product->get_id(), $item->get_product_id() );
-		$this->assertEquals( 1, $item->get_quantity() );
-		$this->assertEquals( '15.00', wc_format_decimal( $item->get_total(), 2 ) );
+		$expected_product_id = $product->get_id();
+		$order               = $this->mapper->create_order_from_checkout_session( $session );
+		$items               = $order->get_items();
+		$item                = reset( $items );
+		$product_id          = $item instanceof WC_Order_Item_Product ? $item->get_product_id() : null;
+		$quantity            = $item instanceof WC_Order_Item_Product ? $item->get_quantity() : null;
+		$total               = $item instanceof WC_Order_Item_Product ? wc_format_decimal( $item->get_total(), 2 ) : null;
 
 		$order->delete( true );
 		$product->delete( true );
+
+		$this->assertCount( 1, $items );
+		$this->assertInstanceOf( WC_Order_Item_Product::class, $item );
+		$this->assertEquals( $expected_product_id, $product_id );
+		$this->assertEquals( 1, $quantity );
+		$this->assertEquals( '15.00', $total );
 	}
 
 	/**
@@ -811,21 +815,81 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that missing shipping details throws an exception.
+	 * Test that missing shipping details creates an order without shipping address (digital goods).
 	 *
 	 * @return void
 	 */
-	public function test_exception_thrown_when_shipping_details_missing() {
+	public function test_order_created_without_shipping_details() {
 		$session = $this->build_checkout_session(
 			[
 				'shipping_details' => null,
 			]
 		);
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'no shipping address' );
+		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		$this->mapper->create_order_from_checkout_session( $session );
+		$this->assertInstanceOf( \WC_Order::class, $order );
+		$this->assertEmpty( $order->get_shipping_first_name() );
+		$this->assertEmpty( $order->get_shipping_address_1() );
+		$this->assertNotEmpty( $order->get_billing_first_name() );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Test that an order note is added when a shippable product has no shipping address.
+	 *
+	 * @return void
+	 */
+	public function test_order_note_added_when_shippable_product_has_no_shipping_address() {
+		$session = $this->build_checkout_session(
+			[ 'shipping_details' => null ],
+			$this->default_product
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = array_map( fn( $note ) => $note->content, $notes );
+
+		$order->delete( true );
+
+		$this->assertNotEmpty(
+			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
+		);
+	}
+
+	/**
+	 * Test that no order note is added when a virtual product has no shipping address.
+	 *
+	 * @return void
+	 */
+	public function test_no_order_note_when_virtual_product_has_no_shipping_address() {
+		$virtual_product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'virtual'       => true,
+				'regular_price' => '10.00',
+				'price'         => '10.00',
+			]
+		);
+
+		$session = $this->build_checkout_session(
+			[ 'shipping_details' => null ],
+			$virtual_product
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$notes    = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$contents = array_map( fn( $note ) => $note->content, $notes );
+
+		$order->delete( true );
+		$virtual_product->delete( true );
+
+		$this->assertEmpty(
+			array_filter( $contents, fn( $c ) => str_contains( $c, 'no shipping address was provided' ) )
+		);
 	}
 
 	/**
@@ -838,6 +902,42 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$this->expectException( Exception::class );
 		$this->expectExceptionMessage( 'missing the id field' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * Test that an exception is thrown when payment intent ID is missing.
+	 *
+	 * @return void
+	 */
+	public function test_exception_thrown_when_payment_intent_id_missing() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [ 'id' => null ],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'missing the payment_intent id' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * Test that an exception is thrown when payment intent is null.
+	 *
+	 * @return void
+	 */
+	public function test_exception_thrown_when_payment_intent_null() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => null,
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'missing the payment_intent id' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
@@ -944,10 +1044,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	/**
 	 * Builds a Stripe checkout session wrapper for testing.
 	 *
-	 * @param array<string, mixed> $overrides Fields to override on the default session.
+	 * @param array<string, mixed>  $overrides Fields to override on the default session.
+	 * @param \WC_Product|null      $product   Product to use for the default line item. Defaults to $this->default_product.
 	 * @return WC_Stripe_Agentic_Checkout_Session The checkout session wrapper.
 	 */
-	private function build_checkout_session( array $overrides = [] ): WC_Stripe_Agentic_Checkout_Session {
+	private function build_checkout_session( array $overrides = [], ?\WC_Product $product = null ): WC_Stripe_Agentic_Checkout_Session {
+		$product  = $product ?? $this->default_product;
 		$defaults = [
 			'id'               => 'cs_test_123',
 			'payment_intent'   => (object) [ 'id' => 'pi_test_456' ],
@@ -988,7 +1090,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			'line_items'       => $this->build_line_items(
 				[
 					[
-						'lookup_key'      => (string) $this->default_product->get_id(),
+						'lookup_key'      => (string) $product->get_id(),
 						'description'     => 'Default Product',
 						'quantity'        => 1,
 						'unit_amount'     => 1000,
