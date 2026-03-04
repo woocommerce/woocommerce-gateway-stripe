@@ -506,6 +506,62 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
+	 *
+	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
+	 *  - When build/upe-classic.asset.php exists, we verify the script version and dependencies from that file are used.
+	 *  - When build/upe-classic.asset.php does not exist, we verify the fallback values are used.
+	 */
+	public function test_payment_scripts_registers_script_with_correct_version(): void {
+		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
+
+		// Determine the expected version without modifying any files: if the compiled asset file
+		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
+		$expected_version      = WC_STRIPE_VERSION;
+		$expected_dependencies = [ 'stripe', 'wc-checkout' ];
+		if ( file_exists( $asset_path ) ) {
+			$asset = require $asset_path;
+			if ( is_array( $asset ) ) {
+				if ( isset( $asset['version'] ) ) {
+					$expected_version = $asset['version'];
+				}
+				if ( isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+					$expected_dependencies = array_merge( $expected_dependencies, $asset['dependencies'] );
+				}
+			}
+		}
+
+		// Build a gateway mock that stubs javascript_params to avoid full WooCommerce/Stripe
+		// account setup, which is not the subject of this test.
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		// Make is_checkout() return true so payment_scripts() passes its page guard.
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		$gateway->payment_scripts();
+
+		// The script should be registered with the version we derived above.
+		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
+		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+
+		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		wp_deregister_script( 'wc-stripe-upe-classic' );
+		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$this->assertTrue( $script_is_registered, 'wc-stripe-upe-classic script is not registered' );
+		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not registered' );
+		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
+		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
+	}
+
+	/**
 	 * Test basic checkout process_payment flow with deferred intent.
 	 *
 	 * @dataProvider provide_process_payment_deferred_intent_returns_valid_response
