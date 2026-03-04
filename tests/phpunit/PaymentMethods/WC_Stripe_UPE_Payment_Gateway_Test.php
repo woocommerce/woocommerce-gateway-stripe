@@ -3623,7 +3623,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provider_payment_scripts_enqueue_scenarios
 	 *
-	 * @param string $page_type                                Page type: 'product' or 'cart'.
+	 * @param string $page_type                                Page type: 'product', 'cart', or 'checkout'.
 	 * @param string $express_checkout                         Express checkout enabled: 'yes' or 'no'.
 	 * @param array  $express_checkout_button_locations         Express checkout button locations.
 	 * @param array  $upe_checkout_experience_accepted_payments Enabled UPE payment methods.
