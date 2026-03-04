@@ -38,7 +38,7 @@ export const getErrorMessageFromNotice = ( notice ) => {
  */
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
-	wc_stripe_express_checkout_params[ key ] ?? null;
+	wc_stripe_express_checkout_params?.[ key ] ?? null;
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
@@ -55,6 +55,47 @@ export const getExpressCheckoutAjaxURL = (
 		?.toString()
 		?.replace( '%%endpoint%%', prefix + endpoint );
 };
+
+/**
+ * Module-level nonce promise. Resolved once and cached for the page lifetime.
+ *
+ * @type {Promise<Object>|null}
+ */
+let expressCheckoutNoncePromise = null;
+
+/**
+ * Fetches all Express Checkout nonces from the server. This will create a WC customer session in the process.
+ * The result is cached so only one request is ever made per page load.
+ *
+ * @return {Promise<Object>} Promise that resolves to the nonce object.
+ */
+export const getAllExpressCheckoutNonces = () => {
+	if ( ! expressCheckoutNoncePromise ) {
+		expressCheckoutNoncePromise = fetch(
+			getExpressCheckoutAjaxURL( 'express_checkout_get_nonces' ),
+			{
+				method: 'POST',
+			}
+		)
+			.then( ( res ) => res.json() )
+			.then( ( data ) => data?.data ?? {} );
+	}
+	return expressCheckoutNoncePromise;
+};
+
+/**
+ * Fetches a single Express Checkout nonce by key.
+ *
+ * @param {string} key The nonce key to retrieve.
+ * @return {Promise<string|null>} Promise resolving to the nonce value.
+ */
+export const getExpressCheckoutNonce = async ( key ) => {
+	const nonces = await getAllExpressCheckoutNonces();
+	return nonces?.[ key ] ?? null;
+};
+
+// Prefetch nonces in the background as soon as the module loads.
+getAllExpressCheckoutNonces();
 
 /**
  * Displays a `confirm` dialog which leads to a redirect.

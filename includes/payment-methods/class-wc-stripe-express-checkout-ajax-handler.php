@@ -32,6 +32,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 * @return void
 	 */
 	public function init() {
+		add_action( 'wc_ajax_wc_stripe_express_checkout_get_nonces', [ $this, 'ajax_get_express_checkout_nonces' ] );
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
 		add_action( 'wc_ajax_wc_stripe_normalize_address', [ $this, 'ajax_normalize_address' ] );
@@ -41,6 +42,38 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
+	}
+
+	/**
+	 * Ensure that we have a WC customer session and return Express Checkout nonces.
+	 *
+	 * This is a public, nonce-free bootstrap endpoint that allows product pages to be cached
+	 * without any user-specific data, but still initiate Express Checkout.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_express_checkout_nonces() {
+		if ( isset( WC()->session ) && ! WC()->session->has_session() ) {
+			WC()->session->set_customer_session_cookie( true );
+		}
+
+		wp_send_json_success(
+			[
+				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
+				'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+				'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+				'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'checkout'                      => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'log_errors'                    => wp_create_nonce( 'wc-stripe-log-errors' ),
+				'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
+				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
+				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
+			]
+		);
 	}
 
 	/**

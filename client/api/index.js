@@ -6,6 +6,7 @@ import {
 	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
+	getExpressCheckoutNonce,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
@@ -478,11 +479,11 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingAddress Shipping details.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
+	async expressCheckoutECECalculateShippingOptions( shippingAddress ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )?.shipping,
+				security: await getExpressCheckoutNonce( 'shipping' ),
 				is_product_page: getExpressCheckoutData( 'is_product_page' ),
 				...shippingAddress,
 			}
@@ -495,11 +496,11 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingOption Shipping option.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutUpdateShippingDetails( shippingOption ) {
+	async expressCheckoutUpdateShippingDetails( shippingOption ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )?.update_shipping,
+				security: await getExpressCheckoutNonce( 'update_shipping' ),
 				shipping_method: [ shippingOption.id ],
 				is_product_page: getExpressCheckoutData( 'is_product_page' ),
 			}
@@ -513,9 +514,9 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingAddress Shipping address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
+	async expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
 		return this.request( getExpressCheckoutAjaxURL( 'normalize_address' ), {
-			security: getExpressCheckoutData( 'nonce' )?.normalize_address,
+			security: await getExpressCheckoutNonce( 'normalize_address' ),
 			data: {
 				billing_address: billingAddress,
 				shipping_address: shippingAddress,
@@ -528,11 +529,11 @@ export default class WCStripeAPI {
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutGetCartDetails() {
+	async expressCheckoutGetCartDetails() {
 		return apiFetch( {
 			method: 'GET',
 			path: '/wc/store/v1/cart',
-			security: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			security: await getExpressCheckoutNonce( 'wc_store_api' ),
 		} );
 	}
 
@@ -543,9 +544,9 @@ export default class WCStripeAPI {
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutGetCartDetailsLegacy() {
+	async expressCheckoutGetCartDetailsLegacy() {
 		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
-			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+			security: await getExpressCheckoutNonce( 'get_cart_details' ),
 		} );
 	}
 
@@ -579,9 +580,9 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutAddToCartLegacy( productData ) {
+	async expressCheckoutAddToCartLegacy( productData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			security: await getExpressCheckoutNonce( 'add_to_cart' ),
 			...productData,
 		} );
 	}
@@ -598,7 +599,7 @@ export default class WCStripeAPI {
 				method: 'GET',
 				path: '/wc/store/v1/cart',
 				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+					Nonce: await getExpressCheckoutNonce( 'wc_store_api' ),
 				},
 			} );
 			const removeItemsPromises = cartData.items.map( ( item ) => {
@@ -621,9 +622,9 @@ export default class WCStripeAPI {
 	 * @param {number} params.bookingId Booking ID.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
+	async expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
 		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			security: await getExpressCheckoutNonce( 'clear_cart' ),
 			...( bookingId ? { booking_id: bookingId } : {} ),
 		} );
 	}
@@ -634,7 +635,7 @@ export default class WCStripeAPI {
 	 * @param {Object} orderData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrder( orderData ) {
+	async expressCheckoutECECreateOrder( orderData ) {
 		return this.postToBlocksAPI(
 			'/wc/store/v1/checkout',
 			{
@@ -644,8 +645,9 @@ export default class WCStripeAPI {
 			{
 				'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
 				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
-					getExpressCheckoutData( 'nonce' )
-						?.wc_store_api_express_checkout,
+					await getExpressCheckoutNonce(
+						'wc_store_api_express_checkout'
+					),
 			}
 		);
 	}
@@ -675,12 +677,12 @@ export default class WCStripeAPI {
 	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToBlocksAPI( path, data, headers = {} ) {
+	async postToBlocksAPI( path, data, headers = {} ) {
 		return apiFetch( {
 			method: 'POST',
 			path,
 			headers: {
-				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+				Nonce: await getExpressCheckoutNonce( 'wc_store_api' ),
 				...headers,
 			},
 			data,
@@ -693,13 +695,13 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutGetSelectedProductData( productData ) {
+	async expressCheckoutGetSelectedProductData( productData ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
-				security:
-					getExpressCheckoutData( 'nonce' )
-						?.get_selected_product_data,
+				security: await getExpressCheckoutNonce(
+					'get_selected_product_data'
+				),
 				...productData,
 			}
 		);
