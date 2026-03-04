@@ -3561,49 +3561,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provider_payment_scripts_enqueue_scenarios() {
 		return [
-			'Product page with ECE off'      => [
-				'page_type'                        => 'product',
-				'express_checkout'                 => 'no',
-				'express_checkout_button_locations' => [],
-				'expected_stripe'                  => true,
-				'expected_upe_classic'             => false,
+			'Product page with ECE off, no Amazon Pay' => [
+				'page_type'                                => 'product',
+				'express_checkout'                         => 'no',
+				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => false,
 			],
-			'Cart page with ECE off'         => [
-				'page_type'                        => 'cart',
-				'express_checkout'                 => 'no',
-				'express_checkout_button_locations' => [],
-				'expected_stripe'                  => true,
-				'expected_upe_classic'             => false,
+			'Cart page with ECE off, no Amazon Pay'    => [
+				'page_type'                                => 'cart',
+				'express_checkout'                         => 'no',
+				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => false,
 			],
-			'Cart page with ECE on at cart'  => [
-				'page_type'                        => 'cart',
-				'express_checkout'                 => 'yes',
-				'express_checkout_button_locations' => [ 'cart' ],
-				'expected_stripe'                  => true,
-				'expected_upe_classic'             => true,
+			'Cart page with ECE on at cart'            => [
+				'page_type'                                => 'cart',
+				'express_checkout'                         => 'yes',
+				'express_checkout_button_locations'         => [ 'cart' ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => true,
 			],
-			'Product page with ECE on at product' => [
-				'page_type'                        => 'product',
-				'express_checkout'                 => 'yes',
-				'express_checkout_button_locations' => [ 'product' ],
-				'expected_stripe'                  => true,
-				'expected_upe_classic'             => true,
+			'Product page with ECE on at product'      => [
+				'page_type'                                => 'product',
+				'express_checkout'                         => 'yes',
+				'express_checkout_button_locations'         => [ 'product' ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => true,
+			],
+			'Product page with ECE off, Amazon Pay on at product' => [
+				'page_type'                                => 'product',
+				'express_checkout'                         => 'no',
+				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
+				'amazon_pay_button_locations'               => [ 'product' ],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => true,
 			],
 		];
 	}
 
 	/**
-	 * Test that payment_scripts() enqueues the correct assets based on page type and ECE settings.
+	 * Test that payment_scripts() enqueues the correct assets based on page type and express checkout settings.
 	 *
 	 * @dataProvider provider_payment_scripts_enqueue_scenarios
 	 *
-	 * @param string $page_type                        Page type: 'product' or 'cart'.
-	 * @param string $express_checkout                 Express checkout enabled: 'yes' or 'no'.
-	 * @param array  $express_checkout_button_locations Express checkout button locations.
-	 * @param bool   $expected_stripe                  Whether 'stripe' script should be enqueued.
-	 * @param bool   $expected_upe_classic             Whether 'wc-stripe-upe-classic' script should be enqueued.
+	 * @param string $page_type                                Page type: 'product' or 'cart'.
+	 * @param string $express_checkout                         Express checkout enabled: 'yes' or 'no'.
+	 * @param array  $express_checkout_button_locations         Express checkout button locations.
+	 * @param array  $upe_checkout_experience_accepted_payments Enabled UPE payment methods.
+	 * @param array  $amazon_pay_button_locations               Amazon Pay button locations.
+	 * @param bool   $expected_stripe                          Whether 'stripe' script should be enqueued.
+	 * @param bool   $expected_upe_classic                     Whether 'wc-stripe-upe-classic' script should be enqueued.
 	 */
-	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $expected_stripe, $expected_upe_classic ) {
+	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $upe_checkout_experience_accepted_payments, $amazon_pay_button_locations, $expected_stripe, $expected_upe_classic ) {
 		$product = null;
 
 		if ( 'product' === $page_type ) {
@@ -3615,10 +3634,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                      = $original_settings;
-		$stripe_settings['enabled']                           = 'yes';
-		$stripe_settings['express_checkout']                  = $express_checkout;
-		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
+		$stripe_settings                                                  = $original_settings;
+		$stripe_settings['enabled']                                       = 'yes';
+		$stripe_settings['express_checkout']                              = $express_checkout;
+		$stripe_settings['express_checkout_button_locations']             = $express_checkout_button_locations;
+		$stripe_settings['upe_checkout_experience_accepted_payments']     = $upe_checkout_experience_accepted_payments;
+		$stripe_settings['amazon_pay_button_locations']                   = $amazon_pay_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		try {
