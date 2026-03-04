@@ -357,6 +357,30 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Get all the nonces needed for Express Checkout.
+	 *
+	 * @return array
+	 * @since 10.5.0
+	 */
+	public function get_express_checkout_nonces(): array {
+		return [
+			'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
+			'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+			'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+			'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+			'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+			'checkout'                      => wp_create_nonce( 'woocommerce-process_checkout' ),
+			'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+			'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+			'log_errors'                    => wp_create_nonce( 'wc-stripe-log-errors' ),
+			'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
+			'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
+			'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
+			'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
+		];
+	}
+
+	/**
 	 * Default shipping option, used by product, cart and checkout pages.
 	 *
 	 * @return void|array

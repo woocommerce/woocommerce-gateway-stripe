@@ -64,12 +64,18 @@ export const getExpressCheckoutAjaxURL = (
 let expressCheckoutNoncePromise = null;
 
 /**
- * Fetches all Express Checkout nonces from the server. This will create a WC customer session in the process.
- * The result is cached so only one request is ever made per page load.
+ * Get all Express Checkout nonces.
+ * - If the express checkout nonces were sent in the page data, we will use the local values.
+ * - If we don't have that data, we'll fetch the nonces from the server, and use a single Promise to use only one request.
  *
  * @return {Promise<Object>} Promise that resolves to the nonce object.
  */
 export const getAllExpressCheckoutNonces = () => {
+	const nonceFromData = getExpressCheckoutData( 'nonce' );
+	if ( nonceFromData ) {
+		return Promise.resolve( nonceFromData );
+	}
+
 	if ( ! expressCheckoutNoncePromise ) {
 		expressCheckoutNoncePromise = fetch(
 			getExpressCheckoutAjaxURL( 'express_checkout_get_nonces' ),
