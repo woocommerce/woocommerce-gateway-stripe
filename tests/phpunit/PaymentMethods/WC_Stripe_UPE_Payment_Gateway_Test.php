@@ -529,6 +529,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					$expected_dependencies = array_merge( $expected_dependencies, $asset['dependencies'] );
 				}
 			}
+		} else {
+			$expected_dependencies = array_merge( $expected_dependencies, [ 'wp-i18n' ] );
 		}
 
 		// Build a gateway mock that stubs javascript_params to avoid full WooCommerce/Stripe
@@ -556,7 +558,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		wp_deregister_style( 'wc-stripe-upe-classic' );
 
 		$this->assertTrue( $script_is_registered, 'wc-stripe-upe-classic script is not registered' );
-		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not registered' );
+		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
 		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
 		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
 	}
