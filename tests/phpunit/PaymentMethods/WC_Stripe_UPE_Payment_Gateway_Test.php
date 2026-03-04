@@ -3606,6 +3606,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
 			],
+			'Checkout page with ECE off'               => [
+				'page_type'                                => 'checkout',
+				'express_checkout'                         => 'no',
+				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                          => true,
+				'expected_upe_classic'                     => true,
+			],
 		];
 	}
 
@@ -3623,13 +3632,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool   $expected_upe_classic                     Whether 'wc-stripe-upe-classic' script should be enqueued.
 	 */
 	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $upe_checkout_experience_accepted_payments, $amazon_pay_button_locations, $expected_stripe, $expected_upe_classic ) {
-		$product = null;
+		$product             = null;
+		$is_checkout_filter  = null;
 
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
 			$this->go_to( get_permalink( $product->get_id() ) );
-		} else {
+		} elseif ( 'cart' === $page_type ) {
 			\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+		} elseif ( 'checkout' === $page_type ) {
+			$is_checkout_filter = function () {
+				return true;
+			};
+			add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		}
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -3659,6 +3674,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 			if ( $product ) {
 				$product->delete( true );
+			} elseif ( $is_checkout_filter ) {
+				remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 			} else {
 				\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
 			}
