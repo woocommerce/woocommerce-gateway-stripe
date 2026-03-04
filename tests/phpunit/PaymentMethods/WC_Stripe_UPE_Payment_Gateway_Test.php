@@ -3649,12 +3649,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                                  = $original_settings;
-		$stripe_settings['enabled']                                       = 'yes';
-		$stripe_settings['express_checkout']                              = $express_checkout;
-		$stripe_settings['express_checkout_button_locations']             = $express_checkout_button_locations;
-		$stripe_settings['upe_checkout_experience_accepted_payments']     = $upe_checkout_experience_accepted_payments;
-		$stripe_settings['amazon_pay_button_locations']                   = $amazon_pay_button_locations;
+		$stripe_settings                                              = $original_settings;
+		$stripe_settings['enabled']                                   = 'yes';
+		$stripe_settings['express_checkout']                          = $express_checkout;
+		$stripe_settings['express_checkout_button_locations']         = $express_checkout_button_locations;
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = $upe_checkout_experience_accepted_payments;
+		$stripe_settings['amazon_pay_button_locations']               = $amazon_pay_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		try {
