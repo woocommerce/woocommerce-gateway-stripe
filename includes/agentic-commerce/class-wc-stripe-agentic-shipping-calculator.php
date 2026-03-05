@@ -105,6 +105,9 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 						'amount'   => $amount,
 						'currency' => strtolower( $currency ),
 					],
+					'metadata'     => [
+						'wc_rate_id' => $rate->get_id(),
+					],
 				],
 			];
 		}

@@ -411,15 +411,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Maps the chosen shipping rate from the checkout session to the order.
 	 *
-	 * Re-runs WooCommerce shipping calculation for the order's destination,
-	 * finds the rate whose label matches the chosen Stripe shipping rate's
-	 * display_name, and adds it as a WC_Order_Item_Shipping. Does nothing
-	 * when no shipping rate was chosen (digital goods or not applicable).
+	 * Re-runs WooCommerce shipping calculation for the order's destination and
+	 * resolves the chosen rate using the following priority:
+	 *   1. By WC rate ID from the Stripe shipping rate metadata (wc_rate_id).
+	 *   2. If exactly one rate is available, accept it unconditionally.
+	 *   3. By display name match as a last resort.
+	 *
+	 * Does nothing when no shipping rate was chosen (digital goods or not applicable).
 	 *
 	 * @since 10.5.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When a display name is present but no matching WC rate is found.
+	 * @throws Exception When no matching WC rate can be found.
 	 */
 	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$display_name = $session->get_chosen_shipping_rate_display_name();
@@ -457,11 +460,26 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$packages = $wc_shipping->get_packages();
 		$rates    = $packages[0]['rates'] ?? [];
 
+		// 1. Match by WC rate ID stored in Stripe shipping rate metadata.
+		$wc_rate_id   = $session->get_chosen_shipping_rate_wc_id();
 		$matched_rate = null;
-		foreach ( $rates as $rate ) {
-			if ( $rate->get_label() === $display_name ) {
-				$matched_rate = $rate;
-				break;
+
+		if ( null !== $wc_rate_id && isset( $rates[ $wc_rate_id ] ) ) {
+			$matched_rate = $rates[ $wc_rate_id ];
+		}
+
+		// 2. If exactly one rate is available, accept it unconditionally.
+		if ( null === $matched_rate && 1 === count( $rates ) ) {
+			$matched_rate = reset( $rates );
+		}
+
+		// 3. Fall back to matching by display name.
+		if ( null === $matched_rate ) {
+			foreach ( $rates as $rate ) {
+				if ( $rate->get_label() === $display_name ) {
+					$matched_rate = $rate;
+					break;
+				}
 			}
 		}
 

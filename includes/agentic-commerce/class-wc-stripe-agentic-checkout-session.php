@@ -248,9 +248,18 @@ class WC_Stripe_Agentic_Checkout_Session implements WC_Stripe_Checkout_Session_I
 	}
 
 	/**
-	 * Returns the display name of the chosen Stripe shipping rate.
+	 * Returns the WooCommerce rate ID from the chosen Stripe shipping rate metadata.
 	 *
-	 * Used to match the chosen rate back to a WooCommerce shipping rate by label.
+	 * @since 10.5.0
+	 * @return string|null
+	 */
+	public function get_chosen_shipping_rate_wc_id(): ?string {
+		$rate_id = $this->session->shipping_cost->shipping_rate->metadata->wc_rate_id ?? null;
+		return is_string( $rate_id ) && '' !== $rate_id ? $rate_id : null;
+	}
+
+	/**
+	 * Returns the display name of the chosen Stripe shipping rate.
 	 *
 	 * @since 10.5.0
 	 * @return string|null
