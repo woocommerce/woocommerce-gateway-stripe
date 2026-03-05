@@ -37,7 +37,7 @@ class WC_Stripe_API_Address {
 	public function get_state(): ?string {
 		$state = $this->address->state;
 
-		if ( ! empty( $country ) ) {
+		if ( ! empty( $state ) ) {
 			return $state;
 		}
 
@@ -47,7 +47,7 @@ class WC_Stripe_API_Address {
 	public function get_postal_code(): ?string {
 		$postal_code = $this->address->postal_code;
 
-		if ( ! empty( $country ) ) {
+		if ( ! empty( $postal_code ) ) {
 			return $postal_code;
 		}
 
@@ -57,7 +57,7 @@ class WC_Stripe_API_Address {
 	public function get_city(): ?string {
 		$city = $this->address->city;
 
-		if ( ! empty( $country ) ) {
+		if ( ! empty( $city ) ) {
 			return $city;
 		}
 

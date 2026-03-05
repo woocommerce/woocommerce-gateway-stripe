@@ -22,6 +22,43 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Tax_Calculator {
+	/**
+	 * Extracts line items from a customization hook event.
+	 *
+	 * @since 10.5.0
+	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event The customization hook event.
+	 * @return array<string,string> The line items hash. Line item ID => SKU ID.
+	 */
+	public function extract_line_items_from_customization_hook(
+		WC_Stripe_Agentic_Customize_Checkout_Event $event
+	) {
+		$line_items = [];
+
+		foreach ( $event->get_line_items() as $line_item ) {
+			$line_items[ $line_item->get_id() ] = $line_item->get_sku_id();
+		}
+
+		return $line_items;
+	}
+
+	/**
+	 * Extracts line items from a checkout session.
+	 *
+	 * @since 10.5.0
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session.
+	 * @return array<string,string> The line items hash. Line item ID => Product ID.
+	 */
+	public function extract_line_items_from_checkout_session(
+		WC_Stripe_Agentic_Checkout_Session $session
+	): array {
+		$line_items = [];
+
+		foreach ( $session->get_line_items() as $line_item ) {
+			$line_items[ $line_item->get_id() ] = $line_item->get_product_id();
+		}
+
+		return $line_items;
+	}
 
 	/**
 	 * Calculates tax rates for each line item in the customize_checkout event.
@@ -31,21 +68,22 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * we only provide the rate percentages.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event The customize_checkout event.
+	 * @param WC_Stripe_Checkout_Session_Interface $session The checkout session.
+	 * @param array<string,string> $line_items The line items hash. Line item ID => Product ID.
 	 * @return array The response array in Stripe's expected format.
 	 */
 	public function calculate(
-		WC_Stripe_Agentic_Customize_Checkout_Event $event,
-		WC_Stripe_Checkout_Session_Interface $session
+		WC_Stripe_Checkout_Session_Interface $session,
+		array $line_items
 	): array {
 		// If tax is disabled, simply return empty tax rates for each line item.
 		if ( ! wc_tax_enabled() ) {
-			return array_map(
-				fn( $line_item ) => [
-					'id'        => $line_item->get_id(),
+			return $this->map_line_items(
+				fn( $line_item_id ) => [
+					'id'        => $line_item_id,
 					'tax_rates' => [],
 				],
-				$event->get_line_items()
+				$line_items
 			);
 		}
 
@@ -62,9 +100,8 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 			}
 		}
 
-		$line_items     = $event->get_line_items();
-		$response_items = array_map(
-			fn( $line_item ) => $this->calculate_line_item_taxes( $line_item, $tax_address ),
+		$response_items = $this->map_line_items(
+			fn( $line_item_id, $product_id ) => $this->calculate_line_item_taxes( $line_item_id, $product_id, $tax_address ),
 			$line_items
 		);
 
@@ -75,27 +112,26 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * Calculates tax rates for a single line item.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Stripe_Agentic_Customize_Checkout_Line_Item $line_item The line item.
-	 * @param WC_Stripe_API_Address                          $address   The tax address.
-	 * @param string                                         $event_id  The event ID for logging.
+	 * @param string                 $line_item_id The line item ID.
+	 * @param string                 $product_id   The product ID.
+	 * @param WC_Stripe_API_Address  $address      The tax address.
 	 * @return array|null The line item tax response, or null if skipped.
 	 */
 	private function calculate_line_item_taxes(
-		WC_Stripe_Agentic_Customize_Checkout_Line_Item $line_item,
+		string $line_item_id,
+		string $product_id,
 		WC_Stripe_API_Address $address
 	): ?array {
-		$external_reference = $line_item->get_sku_id();
-
-		if ( '' === $external_reference ) {
+		if ( '' === $product_id ) {
 			throw new Exception(
 				sprintf(
 					'Line item %s has no sku_id.',
-					$line_item->get_id()
+					$line_item_id
 				)
 			);
 		}
 
-		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $external_reference );
+		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
 		$tax_rates = WC_Tax::find_rates(
 			[
@@ -108,7 +144,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		);
 
 		return [
-			'id'        => $line_item->get_id(),
+			'id'        => $line_item_id,
 			'tax_rates' => $this->format_tax_rates( $tax_rates ),
 		];
 	}
@@ -135,5 +171,23 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		}
 
 		return $formatted;
+	}
+
+	/**
+	 * Maps line items to a callback.
+	 *
+	 * @since 10.5.0
+	 * @param callable $callback   The callback to map the line items.
+	 * @param array    $line_items The line items.
+	 * @return array The mapped line items.
+	 */
+	private function map_line_items( callable $callback, array $line_items ): array {
+		$result = [];
+
+		foreach ( $line_items as $line_item_id => $product_id ) {
+			$result[] = $callback( $line_item_id, $product_id );
+		}
+
+		return $result;
 	}
 }
