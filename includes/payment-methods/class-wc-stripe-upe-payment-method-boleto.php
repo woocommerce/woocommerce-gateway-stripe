@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
 		$this->supported_countries  = [ 'BR' ];
-		$this->supports             = [ 'products' ];
+		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
 		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
