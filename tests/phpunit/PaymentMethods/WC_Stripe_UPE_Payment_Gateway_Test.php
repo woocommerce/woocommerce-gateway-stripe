@@ -2907,7 +2907,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID );
 
 		$this->assertEquals( 'stripe_ideal', $order->get_payment_method() );
-		$this->assertEquals( 'iDEAL', $order->get_payment_method_title() );
+		$this->assertEquals( 'iDEAL | Wero', $order->get_payment_method_title() );
 
 		// iDEAL subscriptions should be set to SEPA as it's the processing payment method of subscription payments for iDEAL.
 		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );

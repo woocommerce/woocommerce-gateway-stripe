@@ -183,6 +183,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix currency formatting issue with ISK for express checkouts
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Update - Add iDEAL | Wero co-branding as Stripe iDEAL-to-Wero migration Phase 1
 * Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
 * Fix - Only load Stripe JS (not the full UPE bundle) on product and cart pages when express checkout is disabled
 
