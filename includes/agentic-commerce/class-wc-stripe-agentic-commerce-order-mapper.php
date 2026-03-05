@@ -53,10 +53,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Save everything we've got so far.
 			$order->save();
 
-			// Coming soon: Add logic for taxes and shipping based on the saved order.
+			// Coming soon: shipping.
 			// $this->map_shipping();
-			// $this->map_taxes();
-			// $order->save(); // When we add shipping and taxes.
 
 			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
@@ -422,7 +420,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the totals diverge beyond rounding tolerance.
 	 */
 	private function verify_order_total( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$order->calculate_totals( false );
+		$order->calculate_totals();
 
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
 			$session->get_amount_total() ?? 0,
