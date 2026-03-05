@@ -49,6 +49,7 @@ class WC_Stripe_Agentic_Checkout_Session implements WC_Stripe_Checkout_Session_I
 	public static function get_fields_to_expand(): array {
 		return [
 			'line_items.data.price.product',
+			'shipping_cost.shipping_rate',
 		];
 	}
 
@@ -244,6 +245,19 @@ class WC_Stripe_Agentic_Checkout_Session implements WC_Stripe_Checkout_Session_I
 			return (string) $customer->id;
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the display name of the chosen Stripe shipping rate.
+	 *
+	 * Used to match the chosen rate back to a WooCommerce shipping rate by label.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
+	public function get_chosen_shipping_rate_display_name(): ?string {
+		$name = $this->session->shipping_cost->shipping_rate->display_name ?? null;
+		return is_string( $name ) && '' !== $name ? $name : null;
 	}
 
 	/**

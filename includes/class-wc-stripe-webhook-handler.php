@@ -1638,18 +1638,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	private function process_agentic_customization_hook( $event ): void {
-		$event          = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
-		$tax_calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+		$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
+		$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+		$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
 
 		$line_items_with_tax = $tax_calculator->calculate(
 			$event,
 			$tax_calculator->extract_line_items_from_customization_hook( $event )
 		);
 
-		$response = array_merge(
-			[ 'shipping_options' => [] ],
-			$line_items_with_tax,
-		);
+		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
+
+		$response = array_merge( $line_items_with_tax, $shipping_options );
 
 		status_header( 200 );
 		echo json_encode( $response );

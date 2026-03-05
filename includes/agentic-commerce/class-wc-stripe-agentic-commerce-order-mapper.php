@@ -53,8 +53,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Save everything we've got so far.
 			$order->save();
 
-			// Coming soon: shipping.
-			// $this->map_shipping();
+			// Map shipping data and save again.
+			$this->map_shipping( $order, $session );
 
 			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
@@ -406,6 +406,81 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		// Store checkout session ID for traceability.
 		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() ?? '' );
+	}
+
+	/**
+	 * Maps the chosen shipping rate from the checkout session to the order.
+	 *
+	 * Re-runs WooCommerce shipping calculation for the order's destination,
+	 * finds the rate whose label matches the chosen Stripe shipping rate's
+	 * display_name, and adds it as a WC_Order_Item_Shipping. Does nothing
+	 * when no shipping rate was chosen (digital goods or not applicable).
+	 *
+	 * @since 10.5.0
+	 * @param WC_Order                           $order   The WooCommerce order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @throws Exception When a display name is present but no matching WC rate is found.
+	 */
+	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+		$display_name = $session->get_chosen_shipping_rate_display_name();
+
+		if ( null === $display_name ) {
+			return;
+		}
+
+		$address = $session->get_shipping_address() ?? $session->get_billing_address();
+
+		$package = [
+			'contents'        => [],
+			'contents_cost'   => 0,
+			'applied_coupons' => [],
+			'user'            => [ 'ID' => 0 ],
+			'destination'     => [
+				'country'  => $address->get_country() ?? '',
+				'state'    => $address->get_state() ?? '',
+				'postcode' => $address->get_postal_code() ?? '',
+				'city'     => $address->get_city() ?? '',
+				'address'  => '',
+			],
+			'cart_subtotal' => 0,
+		];
+
+		$wc_shipping = WC()->shipping();
+
+		if ( ! $wc_shipping instanceof WC_Shipping ) {
+			throw new Exception(
+				sprintf( 'WooCommerce shipping is unavailable for session %s.', $session->get_id() )
+			);
+		}
+
+		$wc_shipping->calculate_shipping( [ $package ] );
+		$packages = $wc_shipping->get_packages();
+		$rates    = $packages[0]['rates'] ?? [];
+
+		$matched_rate = null;
+		foreach ( $rates as $rate ) {
+			if ( $rate->get_label() === $display_name ) {
+				$matched_rate = $rate;
+				break;
+			}
+		}
+
+		if ( null === $matched_rate ) {
+			throw new Exception(
+				sprintf(
+					'Shipping rate "%s" not available for session %s.',
+					$display_name,
+					$session->get_id()
+				)
+			);
+		}
+
+		$shipping_item = new WC_Order_Item_Shipping();
+		$shipping_item->set_method_title( $matched_rate->get_label() );
+		$shipping_item->set_method_id( $matched_rate->get_method_id() );
+		$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+		$shipping_item->set_total( $matched_rate->get_cost() );
+		$order->add_item( $shipping_item );
 	}
 
 	/**
