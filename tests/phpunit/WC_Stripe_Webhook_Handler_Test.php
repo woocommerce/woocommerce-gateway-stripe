@@ -1017,7 +1017,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$mock_scheduler->expects( $this->once() )
 			->method( 'schedule_job' )
 			->with(
-				$this->isType( 'int' ),
+				$this->callback(
+					function ( $timestamp ) {
+						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
+						$this->assertGreaterThan( time(), $timestamp, 'Expected timestamp to be in the future.' );
+
+						return true;
+					}
+				),
 				'wc_stripe_process_checkout_session_metadata',
 				$this->callback(
 					function ( $args ) use ( $checkout_session_id, &$scheduled_args ) {
