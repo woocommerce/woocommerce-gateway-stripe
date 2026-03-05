@@ -523,7 +523,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
-		$is_add_payment_method               = is_wc_endpoint_url( 'add-payment-method' );
+		$is_add_payment_method               = is_add_payment_method_page();
 		$stripe_params['isAddPaymentMethod'] = $is_add_payment_method;
 
 		// Optimized Checkout feature flag + setting.
@@ -688,7 +688,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && ! is_wc_endpoint_url( 'add-payment-method' ) ) {
+		if ( $this->oc_enabled && ! is_add_payment_method_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
