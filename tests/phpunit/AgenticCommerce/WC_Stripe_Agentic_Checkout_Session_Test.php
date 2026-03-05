@@ -196,7 +196,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_billing_address returns the address object.
+	 * Test get_billing_address returns a WC_Stripe_API_Address wrapping the raw address.
 	 */
 	public function test_get_billing_address() {
 		$address = (object) [
@@ -208,15 +208,19 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				'customer_details' => (object) [ 'address' => $address ],
 			]
 		);
-		$this->assertSame( $address, $session->get_billing_address() );
+		$result = $session->get_billing_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $result );
+		$this->assertEquals( '123 Main St', $result->get_line1() );
+		$this->assertEquals( 'Anytown', $result->get_city() );
 	}
 
 	/**
-	 * Test get_billing_address returns null when missing.
+	 * Test get_billing_address throws when missing.
 	 */
 	public function test_get_billing_address_null_when_missing() {
+		$this->expectException( \Exception::class );
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertNull( $session->get_billing_address() );
+		$session->get_billing_address();
 	}
 
 	/**
@@ -309,7 +313,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_shipping_address.
+	 * Test get_shipping_address returns a WC_Stripe_API_Address.
 	 */
 	public function test_get_shipping_address() {
 		$address = (object) [ 'line1' => '456 Oak Ave' ];
@@ -321,7 +325,9 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 			]
 		);
-		$this->assertSame( $address, $session->get_shipping_address() );
+		$result = $session->get_shipping_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $result );
+		$this->assertEquals( '456 Oak Ave', $result->get_line1() );
 	}
 
 	/**

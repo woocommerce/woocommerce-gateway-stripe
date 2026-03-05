@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -130,7 +132,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;
 		$this->testmode                 = WC_Stripe_Mode::is_test();
-		$this->supports                 = [ 'products', 'refunds' ];
+		$this->supports                 = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 	}
@@ -197,6 +199,17 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
+		if ( is_add_payment_method_page() ) {
+			if ( ! $this->is_reusable() ) {
+				return false;
+			}
+
+			$main_stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $main_stripe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! $main_stripe_gateway->is_saved_cards_enabled() ) {
+				return false;
+			}
+		}
+
 		// When OC is enabled, we use the OC payment container to render all the methods.
 		if ( $this->oc_enabled ) {
 			$enabled_methods     = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_upe_enabled_at_checkout_payment_method_ids();
@@ -207,10 +220,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				}
 			);
 			return WC_Stripe_Payment_Methods::OC === $this->stripe_id && ( has_block( 'woocommerce/checkout' ) || count( $non_express_methods ) > 0 );
-		}
-
-		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
-			return false;
 		}
 
 		return $this->is_enabled_at_checkout() && parent::is_available();
@@ -648,7 +657,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
-				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {

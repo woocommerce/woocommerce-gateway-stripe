@@ -56,6 +56,10 @@ class WC_Stripe_Account {
 		'payment_intent.requires_action',
 		'setup_intent.succeeded',
 		'setup_intent.setup_failed',
+		'checkout.session.completed',
+		'checkout.session.expired',
+		'checkout.session.async_payment_succeeded',
+		'checkout.session.async_payment_failed',
 	];
 
 	/**
@@ -288,7 +292,7 @@ class WC_Stripe_Account {
 	public function configure_webhooks( $mode = 'live' ) {
 
 		$request = [
-			'enabled_events' => self::get_webhook_events(),
+			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => self::get_webhooks_api_version(),
 		];
@@ -415,7 +419,7 @@ class WC_Stripe_Account {
 	 * @return bool True if events differ, false if they match.
 	 */
 	private function do_webhook_events_differ( $existing_webhook ) {
-		$desired_events = self::get_webhook_events();
+		$desired_events = self::WEBHOOK_EVENTS;
 		sort( $desired_events );
 		$existing_events = $existing_webhook->enabled_events;
 		sort( $existing_events );
@@ -431,24 +435,6 @@ class WC_Stripe_Account {
 	 */
 	private function does_webhooks_api_version_differ( $existing_webhook ): bool {
 		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
-	}
-
-	/**
-	 * Returns the list of webhook events that this plugin needs to listen to.
-	 *
-	 * Includes conditional events based on enabled features.
-	 *
-	 * @since 10.5.0
-	 * @return string[] List of Stripe webhook event types.
-	 */
-	public static function get_webhook_events(): array {
-		$events = self::WEBHOOK_EVENTS;
-
-		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			$events[] = 'checkout.session.completed';
-		}
-
-		return $events;
 	}
 
 	/**
@@ -496,13 +482,17 @@ class WC_Stripe_Account {
 	}
 
 	/**
-	 * Reconfigures webhooks during plugin update.
+	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
+	 * @param string $update_type The type of update that is happening. Default is 'plugin'.
+	 * Possible values are:
+	 *  - 'plugin': Reconfigures webhooks during plugin update.
+	 *  - 'settings': Reconfigures webhooks when Adaptive Pricing is enabled in the settings.
 	 * @return void
 	 */
-	public function maybe_reconfigure_webhooks_on_update() {
+	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$modes    = [ 'live', 'test' ];
 
@@ -537,7 +527,7 @@ class WC_Stripe_Account {
 				// Events differ, reconfigure webhook
 				WC_Stripe_Logger::info( "Webhook events need updating for {$mode} mode - reconfiguring." );
 				$this->configure_webhooks( $mode );
-				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after {$update_type} update." );
 
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );

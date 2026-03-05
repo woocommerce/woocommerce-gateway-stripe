@@ -24,7 +24,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	 */
 	public function create_checkout_session(): void {
 		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', false, false );
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', 'security', false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -33,12 +33,16 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$payment_method_type     = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
-			$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : [];
+			$wc_customer = WC()->customer;
+			if ( ! $wc_customer ) {
+				throw new Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$user_id = $wc_customer->get_id();
 
 			// TODO: Test guest checkout flow.
 			try {
-				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
+				$stripe_customer = new WC_Stripe_Customer( $user_id );
 				$stripe_customer->maybe_create_customer();
 			} catch ( Exception $e ) {
 				throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
@@ -68,14 +72,45 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				];
 			}
 
+			$first_name = get_user_meta( $user_id, 'first_name', true );
+			$last_name = get_user_meta( $user_id, 'last_name', true );
+			$full_name = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
+			$email     = $wc_customer->get_email();
+
+			$payment_intent_metadata = apply_filters(
+				'wc_stripe_payment_metadata',
+				[
+					'customer_name'  => $full_name,
+					'customer_email' => $email,
+					'site_url'       => esc_url_raw( get_site_url() ),
+					'payment_type'   => 'single',
+				],
+				null,
+				null
+			);
+
 			$request = [
-				'ui_mode'              => 'custom',
-				'customer'             => $stripe_customer->get_id(),
-				'line_items'           => $line_items,
-				'payment_method_types' => $enabled_payment_methods,
-				'payment_intent_data'  => [], // @todo Pass additional data if needed.
-				'mode'                 => 'payment',
-				'adaptive_pricing'     => [
+				'ui_mode'                       => 'custom',
+				'customer'                      => $stripe_customer->get_id(),
+				'line_items'                    => $line_items,
+				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
+				'payment_intent_data'  => [
+					'metadata' => $payment_intent_metadata,
+					'receipt_email' => $email,
+					'shipping'      => [
+						'name'    => $full_name,
+						'address' => [
+							'line1'       => $wc_customer->get_shipping_address_1(),
+							'line2'       => $wc_customer->get_shipping_address_2(),
+							'city'        => $wc_customer->get_shipping_city(),
+							'country'     => $wc_customer->get_shipping_country(),
+							'postal_code' => $wc_customer->get_shipping_postcode(),
+							'state'       => $wc_customer->get_shipping_state(),
+						],
+					],
+				],
+				'mode'                          => 'payment',
+				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];

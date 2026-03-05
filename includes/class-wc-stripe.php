@@ -228,7 +228,7 @@ class WC_Stripe {
 			}
 		}
 
-		// Order mapper and session wrapper are used by the webhook handler and do not depend on FeedInterface.
+		// Load Agentic Commerce classes that do not depend on FeedInterface/core.
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-api-address.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-checkout-session-interface.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-line-item.php';
@@ -318,6 +318,9 @@ class WC_Stripe {
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
+
+		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
+		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 		add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
@@ -664,6 +667,42 @@ class WC_Stripe {
 	}
 
 	/**
+	 * Runs after Stripe gateway settings option is updated. Reconfigures webhooks only when Adaptive Pricing becomes enabled.
+	 * Adaptive Pricing and Optimized Checkout both must be enabled in the new value for webhooks to be reconfigured.
+	 *
+	 * @param array|false $old_value Previous option value.
+	 * @param array       $value     New option value.
+	 * @return void
+	 */
+	public function maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $value ) {
+		if ( ! $this->account ) {
+			return;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return;
+		}
+
+		$is_oc_enabled = 'yes' === ( $value['optimized_checkout_element'] ?? '' );
+		$is_ap_enabled = 'yes' === ( $value['adaptive_pricing'] ?? '' );
+
+		// If Adaptive Pricing or Optimized Checkout is disabled in the new value, do nothing.
+		if ( ! $is_ap_enabled || ! $is_oc_enabled ) {
+			return;
+		}
+
+		$was_oc_enabled = is_array( $old_value ) && 'yes' === ( $old_value['optimized_checkout_element'] ?? '' );
+		$was_ap_enabled = is_array( $old_value ) && 'yes' === ( $old_value['adaptive_pricing'] ?? '' );
+
+		// If Adaptive Pricing and Optimized Checkout were both enabled before, do nothing.
+		if ( $was_ap_enabled && $was_oc_enabled ) {
+			return;
+		}
+
+		$this->account->maybe_reconfigure_webhooks_on_update( 'settings' );
+	}
+
+	/**
 	 * Helper function that ensures we clear the in-memory Stripe API key in {@see WC_Stripe_API}
 	 * when we're making a change to our settings that impacts which secret key we should be using.
 	 *
@@ -817,7 +856,7 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {

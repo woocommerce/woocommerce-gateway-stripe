@@ -113,9 +113,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
-		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
-			define( 'WOOCOMMERCE_CHECKOUT', true );
-		}
+		$is_checkout_filter = function () {
+			return true;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
@@ -145,6 +146,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 	}
@@ -278,9 +280,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
-		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
-			define( 'WOOCOMMERCE_CHECKOUT', true );
-		}
+
+		$is_checkout_filter = function () {
+			return true;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
 		$original_gateways = WC()->payment_gateways()->payment_gateways;
 
 		// Add a non-taxable product to the cart.
@@ -307,6 +312,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->session->cleanup_sessions();
 		WC()->cart->empty_cart();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 	}
 
 	/**
@@ -332,9 +338,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
 
-		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
-			define( 'WOOCOMMERCE_CHECKOUT', true );
-		}
+		$is_checkout_filter = function () {
+			return true;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
@@ -381,6 +388,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 	}
@@ -885,12 +893,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_has_free_trial
 	 */
 	public function test_has_free_trial( $is_product, $product, $trial_length, $is_checkout, $cart_contains_free_trial, $expected ) {
-		add_filter(
-			'woocommerce_is_checkout',
-			function () use ( $is_checkout ) {
-				return $is_checkout;
-			}
-		);
+		$is_checkout_filter = function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		WC_Subscriptions_Cart::set_cart_contains_free_trial( $cart_contains_free_trial );
 
@@ -909,6 +915,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->willReturn( $product );
 
 		$actual = $helper->has_free_trial();
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( false );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 0 );
 
 		$this->assertSame( $expected, $actual );
 	}

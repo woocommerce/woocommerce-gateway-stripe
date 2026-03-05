@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use Exception;
 use WC_Order;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
@@ -63,7 +64,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$notification = $this->build_notification( 'cs_test_disabled' );
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		$this->handler->process_checkout_session_completed( $notification );
 
 		$orders = wc_get_orders(
 			[
@@ -84,15 +85,65 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$mock_session = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		$this->handler->process_checkout_session_completed( $notification );
 
-		$orders = wc_get_orders(
-			[
-				'meta_key'   => '_stripe_intent_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value' => 'pi_test_cs_test_non_agentic', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-			]
-		);
-		$this->assertEmpty( $orders );
+		$resolved = $this->get_resolved_order();
+		$this->assertNull( $resolved );
+	}
+
+	/**
+	 * Tests that a session with empty network_business_profile is skipped.
+	 */
+	public function test_skips_session_with_empty_network_business_profile() {
+		$session = (object) [
+			'id'             => 'cs_test_empty_nbp',
+			'payment_intent' => (object) [
+				'id'            => 'pi_test_empty_nbp',
+				'agent_details' => (object) [
+					'network_business_profile' => '',
+				],
+			],
+		];
+		$this->mock_stripe_checkout_sessions_response( $session );
+
+		$notification = $this->build_notification( 'cs_test_empty_nbp' );
+		$this->handler->process_checkout_session_completed( $notification );
+
+		$resolved = $this->get_resolved_order();
+		$this->assertNull( $resolved );
+	}
+
+	/**
+	 * Tests that concurrent duplicate webhooks are blocked by the lock.
+	 */
+	public function test_concurrent_duplicate_blocked_by_lock() {
+		$session_id = 'cs_test_locked';
+		$lock_key   = 'agentic_lock_' . $session_id;
+
+		// Simulate an in-progress lock.
+		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
+
+		$notification = $this->build_notification( $session_id );
+		$this->handler->process_checkout_session_completed( $notification );
+
+		$resolved = $this->get_resolved_order();
+		$this->assertNull( $resolved );
+
+		// Clean up.
+		WC_Stripe_Database_Cache::delete( $lock_key );
+	}
+
+	/**
+	 * Tests that the lock is released after processing, even on failure.
+	 */
+	public function test_lock_released_after_processing() {
+		$this->mock_stripe_api_error();
+
+		$notification = $this->build_notification( 'cs_test_lock_release' );
+		$this->handler->process_checkout_session_completed( $notification );
+
+		$lock_key = 'agentic_lock_cs_test_lock_release';
+		$this->assertNull( WC_Stripe_Database_Cache::get( $lock_key ) );
 	}
 
 	/**
@@ -109,11 +160,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$mock_session                 = $this->build_checkout_session_response( 'cs_test_duplicate', true );
 		$mock_session->payment_intent = (object) [
 			'id'            => 'pi_test_cs_test_duplicate',
-			'agent_details' => (object) [],
+			'agent_details' => (object) [
+				'network_business_profile' => 'nbp_test_123',
+			],
 		];
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		$this->handler->process_checkout_session_completed( $notification );
 
 		// Verify no new orders were created.
 		$orders = wc_get_orders(
@@ -137,10 +190,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_failure() {
 		$failure_action_fired = false;
+		$captured_exception   = null;
 		add_action(
 			'wc_stripe_agentic_order_creation_failed',
-			function () use ( &$failure_action_fired ) {
+			function ( $e ) use ( &$failure_action_fired, &$captured_exception ) {
 				$failure_action_fired = true;
+				$captured_exception   = $e;
 			}
 		);
 
@@ -149,9 +204,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Should not throw — the handler catches the mapper's exception.
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		$this->handler->process_checkout_session_completed( $notification );
 
 		$this->assertTrue( $failure_action_fired );
+		$this->assertInstanceOf( Exception::class, $captured_exception );
 	}
 
 	/**
@@ -223,7 +279,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$mock_session                 = $this->build_checkout_session_response( 'cs_test_no_intent', true );
 		$mock_session->payment_intent = (object) [
 			'id'            => null,
-			'agent_details' => (object) [],
+			'agent_details' => (object) [
+				'network_business_profile' => 'nbp_test_123',
+			],
 		];
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
@@ -254,6 +312,65 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the Stripe API version override header is applied during the retrieve call.
+	 */
+	public function test_api_version_override_applied() {
+		$captured_headers  = null;
+		$this->http_filter = function ( $preempt, $parsed_args ) use ( &$captured_headers ) {
+			$captured_headers = $parsed_args['headers'] ?? [];
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( $this->build_checkout_session_response( 'cs_test_version', true ) ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+
+		$notification = $this->build_notification( 'cs_test_version' );
+		$this->handler->process_checkout_session_completed( $notification );
+
+		$this->assertNotNull( $captured_headers );
+		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
+		$this->assertEquals( WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION, $captured_headers['Stripe-Version'] );
+	}
+
+	/**
+	 * Tests that build_checkout_session_retrieve_url produces correct URLs.
+	 *
+	 * @dataProvider provide_build_url_cases
+	 */
+	public function test_build_checkout_session_retrieve_url( $session_id, $additional_expand, $expected_url ) {
+		$method = new \ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'build_checkout_session_retrieve_url' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $this->handler, $session_id, $additional_expand );
+		$this->assertEquals( $expected_url, $result );
+	}
+
+	public function provide_build_url_cases() {
+		return [
+			'default expand only'    => [
+				'cs_123',
+				[],
+				'checkout/sessions/cs_123?expand[]=payment_intent.agent_details',
+			],
+			'with additional expand' => [
+				'cs_456',
+				[ 'line_items' ],
+				'checkout/sessions/cs_456?expand[]=payment_intent.agent_details&expand[]=line_items',
+			],
+			'session id with special chars' => [
+				'cs_test/special&chars',
+				[],
+				'checkout/sessions/cs_test%2Fspecial%26chars?expand[]=payment_intent.agent_details',
+			],
+		];
+	}
+
+	// ---- Helpers ----
+
+	/**
 	 * Intercepts HTTP requests to the Stripe checkout sessions API and returns a mock response.
 	 *
 	 * @param object $response_body The mock response body object.
@@ -268,6 +385,20 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 					],
 					'body'     => wp_json_encode( $response_body ),
 				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+	}
+
+	/**
+	 * Intercepts HTTP requests to the Stripe API and returns an error response.
+	 */
+	private function mock_stripe_api_error() {
+		$this->http_filter = function ( $preempt, $args, $url ) {
+			if ( false !== strpos( $url, 'api.stripe.com' ) ) {
+				return new \WP_Error( 'http_request_failed', 'Simulated Stripe API failure' );
 			}
 			return $preempt;
 		};
@@ -297,20 +428,6 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 				'object' => (object) $session,
 			],
 		];
-	}
-
-	/**
-	 * Intercepts HTTP requests to the Stripe API and returns an error response.
-	 */
-	private function mock_stripe_api_error() {
-		$this->http_filter = function ( $preempt, $args, $url ) {
-			if ( false !== strpos( $url, 'api.stripe.com' ) ) {
-				return new \WP_Error( 'http_request_failed', 'Simulated Stripe API failure' );
-			}
-			return $preempt;
-		};
-
-		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
 	}
 
 	/**
@@ -366,7 +483,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'id'               => $session_id,
 			'payment_intent'   => (object) [
 				'id'            => 'pi_test_' . $session_id,
-				'agent_details' => (object) [],
+				'agent_details' => (object) [
+					'network_business_profile' => 'nbp_test_123',
+				],
 			],
 			'customer'         => 'cus_test_789',
 			'customer_email'   => 'test@example.com',
@@ -393,5 +512,16 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 				'data' => $line_items_data,
 			],
 		];
+	}
+
+	/**
+	 * Gets the resolved_order from the handler via reflection.
+	 *
+	 * @return WC_Order|null
+	 */
+	private function get_resolved_order() {
+		$prop = new \ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
+		$prop->setAccessible( true );
+		return $prop->getValue( $this->handler );
 	}
 }

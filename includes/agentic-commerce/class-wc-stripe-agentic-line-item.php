@@ -5,7 +5,7 @@
  * Typed wrapper around a raw Stripe checkout session line item.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * wraps a single line item and provides small, testable getter methods
  * with proper return types and fallback logic.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Line_Item {
 
@@ -33,7 +33,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param stdClass $item The raw Stripe line item object.
 	 */
 	public function __construct( stdClass $item ) {
@@ -43,7 +43,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Returns the line item ID.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_id(): string {
@@ -53,7 +53,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Returns the line item description.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_description(): string {
@@ -63,7 +63,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Returns the quantity.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int
 	 */
 	public function get_quantity(): int {
@@ -73,7 +73,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Returns the total amount in the smallest currency unit (includes tax).
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int
 	 */
 	public function get_amount_total(): int {
@@ -83,7 +83,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Returns the tax amount in the smallest currency unit.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int
 	 */
 	public function get_amount_tax(): int {
@@ -96,7 +96,7 @@ class WC_Stripe_Agentic_Line_Item {
 	 * Returns 0 if the price object is missing, external_reference is absent,
 	 * or the value is not a valid nonzero integer.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int
 	 */
 	public function get_product_id(): int {
@@ -110,7 +110,7 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * Checks whether this line item has a resolvable WooCommerce product ID.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return bool
 	 */
 	public function has_product_id(): bool {
