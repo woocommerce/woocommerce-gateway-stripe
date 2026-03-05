@@ -1641,10 +1641,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'wc_stripe_request_headers', $override_version );
 
 		try {
-			$url         = $this->build_checkout_session_retrieve_url(
-				$notification->data->object->id,
-				[ 'payment_intent.agent_details' ]
-			);
+			$url         = $this->build_checkout_session_retrieve_url( $notification->data->object->id );
 			$raw_session = WC_Stripe_API::retrieve( $url );
 
 			if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {

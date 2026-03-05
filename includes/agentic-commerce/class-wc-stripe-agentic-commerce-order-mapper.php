@@ -5,7 +5,7 @@
  * Maps Stripe checkout session data to WooCommerce orders.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
