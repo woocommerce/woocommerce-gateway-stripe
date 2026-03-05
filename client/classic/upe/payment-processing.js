@@ -478,6 +478,11 @@ function getOptimizedCheckoutRules(
 		if ( labelBackgroundColor ) {
 			accordionItemRules.backgroundColor = labelBackgroundColor;
 		}
+
+		if ( ! isTransparentColor( paymentMethodLabelStyles.color ) ) {
+			accordionItemRules.color = paymentMethodLabelStyles.color;
+			accordionItemSelectedRules.color = paymentMethodLabelStyles.color;
+		}
 	}
 
 	const paymentMethodBox = document.querySelector(
@@ -493,6 +498,10 @@ function getOptimizedCheckoutRules(
 	) {
 		accordionItemSelectedRules.backgroundColor =
 			paymentMethodBoxStyles.backgroundColor;
+	}
+
+	if ( ! accordionItemSelectedRules.color ) {
+		accordionItemSelectedRules.color = 'inherit';
 	}
 
 	if ( paymentMethodRadioStyles ) {
