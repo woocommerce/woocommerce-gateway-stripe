@@ -322,6 +322,7 @@ export const getFontRulesFromPage = () => {
 			'fonts.gstatic.com',
 			'fast.fonts.com',
 			'use.typekit.net',
+			'fonts-api.wp.com',
 		];
 	for ( let i = 0; i < sheets.length; i++ ) {
 		if ( ! sheets[ i ].href ) {
