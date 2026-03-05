@@ -180,6 +180,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatal error when order ID in webhook references a refund
 * Tweak - Refactor order helper class to use constants for lock meta keys and reduce code duplication in meta getters
 * Dev - Update dependencies for building translations
+* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
