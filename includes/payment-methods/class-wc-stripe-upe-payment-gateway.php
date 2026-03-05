@@ -523,11 +523,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
-		$is_add_payment_method               = is_add_payment_method_page();
-		$stripe_params['isAddPaymentMethod'] = $is_add_payment_method;
-
-		// Optimized Checkout feature flag + setting + whether we are on the "Add payment method" page
-		$should_show_optimized_checkout               = $this->oc_enabled && ! $is_add_payment_method;
+		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
+		$should_show_optimized_checkout               = $this->oc_enabled && ! $this->is_invalid_optimized_checkout_page();
 		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
@@ -553,7 +550,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
 
 		// Pass billing details from user's customer data for preloading Payment Element fields in Pay for Order, Change Payment Method, and Add Payment Method pages.
-		if ( $is_add_payment_method || $is_pay_for_order || $is_change_payment_method ) {
+		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
 			// Get billing details from the current user's customer data instead of the order.
 			$customer = WC()->customer;
 			if ( $customer ) {
@@ -616,7 +613,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					)
 				);
 			}
-		} elseif ( $is_add_payment_method ) {
+		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			$stripe_params['isAddPaymentMethod'] = true;
 			$stripe_params['cartTotal']    = 0;
 			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
@@ -676,6 +674,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if we are on a page where the optimized checkout should not be shown, even if it's enabled in the settings.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout should not be shown, false otherwise.
+	 */
+	public function is_invalid_optimized_checkout_page(): bool {
+		return is_add_payment_method_page() || $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -687,9 +694,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled (and we are not in the "Add payment method" page), we need to return just the card payment method + express methods.
+		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && ! is_add_payment_method_page() ) {
+		if ( $this->oc_enabled && ! $this->is_invalid_optimized_checkout_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,

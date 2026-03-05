@@ -210,7 +210,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// When OC is enabled (and not in "Add payment method" page), we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled && ! is_add_payment_method_page() ) {
+		if ( $this->oc_enabled && ! $main_stripe_gateway->is_invalid_optimized_checkout_page() ) {
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
