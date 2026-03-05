@@ -84,7 +84,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Validates that the checkout session has all required fields.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When required fields are missing or invalid.
 	 */
@@ -121,7 +121,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Creates the WooCommerce order with basic settings.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @return WC_Order The created order.
 	 * @throws Exception When wc_create_order fails.
@@ -163,7 +163,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * If no matching user is found, the order is created as a guest order.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When the email is not present or invalid.
@@ -193,7 +193,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Uses the price external_reference to find matching WooCommerce products.
 	 * Throws if a line item has an external_reference that does not resolve to a valid product.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When a product cannot be found for a line item.
@@ -251,7 +251,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Adds a product to the order and returns the item.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order   $order    The WooCommerce order.
 	 * @param WC_Product $product  The product to add.
 	 * @param int        $quantity The quantity of the product to add.
@@ -287,7 +287,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Resolves a WooCommerce product from a line item's external_reference.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param int                          $product_id The parsed product ID.
 	 * @param WC_Stripe_Agentic_Line_Item  $line_item  The line item (for error context).
 	 * @return WC_Product The product.
@@ -312,7 +312,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Maps an address from a Stripe address object to the order.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order $order   The WooCommerce order.
 	 * @param object   $address The Stripe address object.
 	 * @param string   $name    The name of the address to map.
@@ -359,7 +359,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Stripe provides a single full name field which is split into
 	 * first name and last name for WooCommerce.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 */
@@ -412,7 +412,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Stores Stripe-specific metadata on the order.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 */
@@ -441,7 +441,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Called after all components (line items, shipping, tax) are mapped
 	 * so the comparison covers the full order amount.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When the totals diverge beyond rounding tolerance.
@@ -470,7 +470,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Splits a full name into first and last name components.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param string $full_name The full name to split.
 	 * @return array{first: string, last: string} The split name.
 	 */

@@ -5,7 +5,7 @@
  * Typed wrapper around the raw Stripe checkout session object.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * wraps that raw object and provides small, testable getter methods with
  * proper return types and fallback logic.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Checkout_Session {
 
@@ -33,7 +33,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param object $session The raw Stripe checkout session object.
 	 */
 	public function __construct( object $session ) {
@@ -43,7 +43,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the fields to expand when retrieving the checkout session.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return array The fields to expand.
 	 */
 	public static function get_fields_to_expand(): array {
@@ -55,7 +55,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the checkout session ID, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_id(): ?string {
@@ -65,7 +65,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the session currency in uppercase, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_currency(): ?string {
@@ -75,7 +75,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the session currency in lowercase (for Stripe metadata storage), or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_currency_lowercase(): ?string {
@@ -85,7 +85,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the total amount in the smallest currency unit, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int|null
 	 */
 	public function get_amount_total(): ?int {
@@ -96,7 +96,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the customer email, falling back from customer_details to customer_email.
 	 * Returns null when neither source is present.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_customer_email(): ?string {
@@ -108,7 +108,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the customer name, falling back to the shipping name.
 	 * Returns null when all sources are absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_customer_name(): ?string {
@@ -119,7 +119,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the billing phone number, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_billing_phone(): ?string {
@@ -129,7 +129,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the billing address object.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return object|null
 	 */
 	public function get_billing_address(): ?object {
@@ -142,7 +142,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Falls back from top-level shipping_details to
 	 * collected_information.shipping_details.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return object|null
 	 */
 	public function get_shipping_details(): ?object {
@@ -154,7 +154,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the shipping recipient name, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_shipping_name(): ?string {
@@ -166,7 +166,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the shipping phone, falling back to the billing phone.
 	 * Returns null when both are absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_shipping_phone(): ?string {
@@ -180,7 +180,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the shipping address object.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return object|null
 	 */
 	public function get_shipping_address(): ?object {
@@ -190,7 +190,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the line items array.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Line_Item[]
 	 */
 	public function get_line_items(): array {
@@ -207,7 +207,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the expanded payment intent ID, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_payment_intent_id(): ?string {
@@ -219,7 +219,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 *
 	 * Handles both a plain string customer ID and an expanded customer object.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_customer_id(): ?string {
@@ -236,7 +236,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * Returns the shipping amount in the smallest currency unit, or null when absent.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return int|null
 	 */
 	public function get_shipping_amount(): ?int {
@@ -249,7 +249,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * A session is agentic when at least one line item has an
 	 * external_reference that resolves to a nonzero integer (product ID).
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return bool
 	 */
 	public function is_agentic(): bool {

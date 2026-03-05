@@ -282,7 +282,7 @@ class WC_Stripe_Helper {
 	 *
 	 * This is the inverse of `get_stripe_amount()`.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param int    $amount   The amount in Stripe's smallest currency unit.
 	 * @param string $currency The three-letter currency code.
 	 * @return float The decimal amount for WooCommerce.
@@ -1139,7 +1139,7 @@ class WC_Stripe_Helper {
 	 * - A deposit product.
 	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 */
 	public static function is_adaptive_pricing_supported(): bool {
 
