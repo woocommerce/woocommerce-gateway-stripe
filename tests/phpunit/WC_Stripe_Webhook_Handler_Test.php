@@ -982,6 +982,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		remove_filter( 'pre_http_request', $pre_http_filter );
 
 		$this->assertNotNull( $caught, 'Expected an exception to be thrown.' );
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught, 'Expected an instance of WC_Stripe_Exception.' );
 		$this->assertSame( $error_message, $caught->getMessage() );
 	}
 

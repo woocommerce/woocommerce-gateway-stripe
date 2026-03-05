@@ -1370,7 +1370,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		try {
 			$response = WC_Stripe_API::request( [ 'metadata' => $metadata ], 'checkout/sessions/' . $checkout_session_id, 'POST' );
 			if ( ! empty( $response->error->message ) ) {
-				throw new Exception( $response->error->message );
+				throw new WC_Stripe_Exception( $response->error->message );
 			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Failed to update checkout session metadata: ' . $e->getMessage() );
