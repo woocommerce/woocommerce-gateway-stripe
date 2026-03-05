@@ -304,6 +304,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
 			$this->clear_caches_after_key_update();
+			WC_Stripe::get_instance()->account->clear_cache();
 
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
@@ -537,7 +538,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param bool   $success Whether the OAuth connection succeeded.
 		 * @param string $mode    The connection mode ('live' or 'test').
 		 */
-		private function output_popup_completion_page( bool $success, string $mode ): void {
+		protected function output_popup_completion_page( bool $success, string $mode ): void {
 			echo $this->get_popup_completion_html( $success, $mode ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			exit; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
@@ -549,7 +550,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string $mode    The connection mode ('live' or 'test').
 		 * @return string
 		 */
-		private function get_popup_completion_html( bool $success, string $mode ): string {
+		protected function get_popup_completion_html( bool $success, string $mode ): string {
 			$message = wp_json_encode(
 				[
 					'type'    => 'wc_stripe_oauth_connected',
