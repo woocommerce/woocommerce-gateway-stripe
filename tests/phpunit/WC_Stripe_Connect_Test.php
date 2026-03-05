@@ -116,50 +116,42 @@ class WC_Stripe_Connect_Test extends WP_UnitTestCase {
 	 * output_popup_completion_page() with the correct arguments.
 	 *
 	 * Uses a partial mock so output_popup_completion_page() does not call exit().
+	 * connect_oauth() is also mocked to avoid the full key-saving flow in tests.
 	 */
 	public function test_maybe_handle_redirect_popup_calls_completion_page() {
+		set_current_screen( 'dashboard' );
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		$nonce = wp_create_nonce( 'wcs_stripe_connected' );
 		$state = 'test_state_123';
-		$code  = 'test_code_abc';
 
-		$_GET['wcs_stripe_code']      = $code;
+		$_GET['wcs_stripe_code']      = 'test_code_abc';
 		$_GET['wcs_stripe_state']     = $state;
 		$_GET['wcs_stripe_mode']      = 'test';
 		$_GET['_wpnonce']             = $nonce;
 		$_GET['stripe_connect_popup'] = '1';
 
-		$oauth_result                 = new \stdClass();
-		$oauth_result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-		$oauth_result->secretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-		$oauth_result->state          = $state;
-		$oauth_result->type           = 'connect';
-
-		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', $state, HOUR_IN_SECONDS, 'test' );
-
-		$this->mock_api
-			->method( 'get_stripe_oauth_keys' )
-			->willReturn( $oauth_result );
-
-		// Partial mock: intercept output_popup_completion_page so exit() is not called.
 		$connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 			->setConstructorArgs( [ $this->mock_api ] )
-			->setMethods( [ 'output_popup_completion_page' ] )
+			->setMethods( [ 'connect_oauth', 'output_popup_completion_page' ] )
 			->getMock();
+
+		$connect->method( 'connect_oauth' )
+			->willReturn( new \stdClass() );
 
 		$connect
 			->expects( $this->once() )
 			->method( 'output_popup_completion_page' )
 			->with( true, 'test' );
 
-		// Calling maybe_handle_redirect() should invoke output_popup_completion_page()
-		// and then return (not fall through to the normal redirect path).
 		$connect->maybe_handle_redirect();
 	}
 
 	/**
-	 * get_popup_completion_html() should output HTML containing the expected JS.
+	 * get_popup_completion_html() should return HTML containing the expected JS.
 	 *
-	 * Tested via ReflectionMethod to avoid the exit() inside output_popup_completion_page.
+	 * output_popup_completion_page() is mocked here to avoid exit(); we call
+	 * get_popup_completion_html() directly via a partial mock that exposes it.
 	 */
 	public function test_popup_completion_html_contains_postmessage() {
 		$reflection = new \ReflectionClass( $this->connect );
@@ -177,28 +169,29 @@ class WC_Stripe_Connect_Test extends WP_UnitTestCase {
 	 * maybe_handle_redirect() without stripe_connect_popup should perform a normal
 	 * wp_safe_redirect (existing path, no regression).
 	 *
-	 * The wp_redirect filter throws to intercept before exit() is reached.
+	 * connect_oauth() is mocked to avoid the full key-saving flow. The
+	 * wp_redirect filter throws to intercept the redirect before exit() runs.
 	 */
 	public function test_maybe_handle_redirect_without_popup_does_normal_redirect() {
+		set_current_screen( 'dashboard' );
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		$nonce = wp_create_nonce( 'wcs_stripe_connected' );
 		$state = 'state_for_redirect_test';
-		$code  = 'code_for_redirect_test';
 
-		$_GET['wcs_stripe_code']  = $code;
+		$_GET['wcs_stripe_code']  = 'code_for_redirect_test';
 		$_GET['wcs_stripe_state'] = $state;
 		$_GET['wcs_stripe_mode']  = 'test';
 		$_GET['_wpnonce']         = $nonce;
 		unset( $_GET['stripe_connect_popup'] );
 
-		$oauth_result                 = new \stdClass();
-		$oauth_result->publishableKey = 'pk_test_789'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-		$oauth_result->secretKey      = 'sk_test_789'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$connect = $this->getMockBuilder( WC_Stripe_Connect::class )
+			->setConstructorArgs( [ $this->mock_api ] )
+			->setMethods( [ 'connect_oauth' ] )
+			->getMock();
 
-		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', $state, HOUR_IN_SECONDS, 'test' );
-
-		$this->mock_api
-			->method( 'get_stripe_oauth_keys' )
-			->willReturn( $oauth_result );
+		$connect->method( 'connect_oauth' )
+			->willReturn( new \stdClass() );
 
 		// Capture the redirect URL and abort via exception to prevent exit().
 		$redirect_url = null;
@@ -212,13 +205,12 @@ class WC_Stripe_Connect_Test extends WP_UnitTestCase {
 		);
 
 		try {
-			$this->connect->maybe_handle_redirect();
+			$connect->maybe_handle_redirect();
 		} catch ( \Exception $e ) {
 			// Expected: thrown by the wp_redirect filter to prevent exit().
 			unset( $e );
 		}
 
-		// Normal redirect should have been triggered (not popup page).
 		$this->assertNotNull( $redirect_url );
 		$this->assertStringNotContainsString( 'stripe_connect_popup', (string) $redirect_url );
 	}
