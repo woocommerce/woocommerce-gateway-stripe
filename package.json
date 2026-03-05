@@ -128,7 +128,7 @@
     "build:i18n": "npm run i18n:makepot && npm run i18n:merge",
     "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "build:webpack": "wp-scripts build",
-    "i18n:makepot": "./vendor/bin/wp i18n make-pot . languages/woocommerce-gateway-stripe.pot --exclude=assets,bin,build,docker,docs,node_modules,release,tests,vendor",
+    "i18n:makepot": "./vendor/bin/wp i18n make-pot . languages/woocommerce-gateway-stripe.pot --exclude=assets,bin,build,docker,docs,node_modules,phpunit-html,phpstan-stubs,phpstan-tmp,release,tests,vendor",
     "i18n:merge": "php bin/update-pot-file-references.php languages/woocommerce-gateway-stripe.pot",
     "start": "npm run start:webpack",
     "start:webpack": "rimraf build/* && wp-scripts start",
@@ -175,6 +175,8 @@
     "test:e2e-lpm-blik-debug": "npm run test:e2e-lpm-blik -- --debug",
     "test:e2e-lpm-becs": "./tests/e2e/bin/run-tests.sh --project=becs",
     "test:e2e-lpm-becs-debug": "npm run test:e2e-lpm-becs -- --debug",
+    "test:e2e-isk": "./tests/e2e/bin/run-tests.sh --project=isk",
+    "test:e2e-isk-debug": "npm run test:e2e-isk -- --debug",
     "changelog": "node bin/changelog.js"
   },
   "engines": {

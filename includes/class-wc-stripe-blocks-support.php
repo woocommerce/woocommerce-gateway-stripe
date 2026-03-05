@@ -97,9 +97,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Ensure Stripe JS is enqueued
 		wp_register_script(
 			'stripe',
-			'https://js.stripe.com/v3/',
+			'https://js.stripe.com/clover/stripe.js',
 			[],
-			'3.0',
+			null,
 			true
 		);
 
@@ -378,10 +378,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			if ( isset( $data[ $token_key ] ) && ! empty( $data[ $token_key ] ) ) {
 				$is_using_saved_token = true;
 			}
-		}
-
-		if ( $is_upe && $is_using_saved_token ) {
-			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
 		}
 
 		// Hook into Stripe error processing so that we can capture the error to payment details.

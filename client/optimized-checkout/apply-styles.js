@@ -1,5 +1,9 @@
 const OPTIMIZED_CHECKOUT_ELEMENT_CLASS = 'optimized-checkout-element';
 
+/**
+ * Applies Optimized Checkout styles to the Stripe payment method elements.
+ * Adds the optimized checkout element class and removes iframe margin.
+ */
 export const applyStyles = () => {
 	// Add the optimized checkout element class to the Stripe payment method elements.
 	document

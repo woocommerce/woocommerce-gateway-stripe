@@ -1,6 +1,6 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
+namespace WooCommerce\Stripe\Tests\Compat;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Stripe_Feature_Flags;
@@ -29,7 +29,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * System under test, and a mock object with some methods mocked for testing
 	 *
-	 * @var PHPUnit_Framework_MockObject_MockObject
+	 * @var \WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $wc_gateway_stripe;
 

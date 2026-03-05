@@ -5,7 +5,7 @@
  * Maps Stripe checkout session data to WooCommerce orders.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Creates WooCommerce orders from Stripe agentic checkout session data.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
@@ -25,7 +25,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @return WC_Order The created order.
 	 * @throws Exception When the order cannot be created.

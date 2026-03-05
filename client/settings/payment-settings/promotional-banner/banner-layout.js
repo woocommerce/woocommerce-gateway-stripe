@@ -45,3 +45,21 @@ export const DismissButton = styled( Button )`
 	box-shadow: none !important;
 	color: #757575 !important;
 `;
+
+export const BannerIllustrationWithOffset = styled( BannerIllustration )`
+	@media ( min-width: 600px ) {
+		margin: 0 0 -40px 24px;
+	}
+`;
+
+export const ButtonsRowWithMargin = styled( ButtonsRow )`
+	@media ( min-width: 600px ) {
+		margin-bottom: 0.7em;
+	}
+`;
+
+export const CenteredColumnIllustration = styled( CardColumn )`
+	@media ( max-width: 599px ) {
+		text-align: center;
+	}
+`;

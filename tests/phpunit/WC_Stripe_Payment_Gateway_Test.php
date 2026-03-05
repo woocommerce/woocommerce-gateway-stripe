@@ -6,6 +6,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
+use WC_Subscriptions_Helpers;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Stripe_Payment_Methods;
@@ -118,6 +119,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 
 		remove_filter( 'pre_http_request', $callback );
+		\WC_Stripe_Database_Cache::delete( \WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	public function test_are_keys_set_returns_true_in_test_mode() {
@@ -725,7 +727,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'blik'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/blik.svg" class="stripe-blik-icon stripe-icon" alt="BLIK" />',
 					'wechat_pay'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
 					'bancontact'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
-					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal.svg" class="stripe-ideal-icon stripe-icon" alt="iDEAL" />',
+					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal-wero.svg" class="stripe-ideal-icon stripe-icon" alt="' . esc_attr__( 'iDEAL | Wero', 'woocommerce-gateway-stripe' ) . '" />',
 					'p24'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/p24.svg" class="stripe-p24-icon stripe-icon" alt="P24" />',
 					'giropay'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/giropay.svg" class="stripe-giropay-icon stripe-icon" alt="giropay" />',
 					'klarna'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/klarna.svg" class="stripe-klarna-icon stripe-icon" alt="Klarna" />',
@@ -751,7 +753,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'blik'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/blik.svg" class="stripe-blik-icon stripe-icon" alt="BLIK" />',
 					'wechat_pay'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
 					'bancontact'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
-					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal.svg" class="stripe-ideal-icon stripe-icon" alt="iDEAL" />',
+					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal-wero.svg" class="stripe-ideal-icon stripe-icon" alt="' . esc_attr__( 'iDEAL | Wero', 'woocommerce-gateway-stripe' ) . '" />',
 					'p24'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/p24.svg" class="stripe-p24-icon stripe-icon" alt="P24" />',
 					'giropay'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/giropay.svg" class="stripe-giropay-icon stripe-icon" alt="giropay" />',
 					'klarna'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/klarna.svg" class="stripe-klarna-icon stripe-icon" alt="Klarna" />',
@@ -843,5 +845,200 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->is_retryable_error( $error );
 
 		$this->assertTrue( $result, 'invalid_request_error with non-blocked code should be retryable' );
+	}
+
+	/**
+	 * Tests for the `disable_subscription_edit_for_india` method.
+	 *
+	 * @param bool   $is_subscription            Whether the order is a subscription.
+	 * @param bool   $is_subscriptions_edit_page Whether the current page is the subscriptions edit page.
+	 * @param bool   $has_parent_order           Whether the subscription has a parent order.
+	 * @param string $parent_mandate_id          The mandate ID of the parent order (if applicable).
+	 * @param array  $payment_method             The payment method data to mock.
+	 * @param bool   $expected                   The expected result.
+	 * @return void
+	 * @dataProvider provide_test_disable_subscription_edit_for_india
+	 * @see \WC_Stripe_Subscriptions_Trait::disable_subscription_edit_for_india()
+	 */
+	public function test_disable_subscription_edit_for_india(
+		bool $is_subscription,
+		bool $is_subscriptions_edit_page,
+		bool $has_parent_order,
+		string $parent_mandate_id,
+		array $payment_method,
+		bool $expected
+	): void {
+		$subscription = new \WC_Subscription();
+		$subscription->update_meta_data( '_stripe_source_id', $payment_method['id'] ?? '' );
+		$subscription->save_meta_data();
+		$subscription->save();
+
+		if ( $has_parent_order ) {
+			$order = WC_Helper_Order::create_order();
+			if ( $parent_mandate_id ) {
+				$order->update_meta_data( '_stripe_mandate_id', $parent_mandate_id );
+				$order->save_meta_data();
+			}
+			$subscription->set_parent_id( $order->get_id() );
+			$subscription->save();
+		}
+
+		WC_Subscriptions_Helpers::$wcs_is_subscription = $is_subscription;
+
+		if ( $is_subscriptions_edit_page ) {
+			$_REQUEST = [
+				'post'   => $subscription,
+				'action' => 'edit',
+			];
+		}
+
+		// Mock response from Stripe API using request arguments.
+		$mock_request = function ( $preempt, $parsed_args, $url ) use ( $payment_method ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/payment_methods/' ) ) {
+				return $preempt;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( $payment_method ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$actual = $this->gateway->disable_subscription_edit_for_india( true, $subscription );
+
+		// Clean up.
+		if ( ! empty( $payment_method['id'] ) ) {
+			\WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method['id'] );
+		}
+		remove_filter( 'pre_http_request', $mock_request, 10, 3 );
+		WC_Subscriptions_Helpers::$wcs_is_subscription = null;
+		unset( $_REQUEST );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_disable_subscription_edit_for_india` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_disable_subscription_edit_for_india(): array {
+		return [
+			'not a subscription'               => [
+				'is subscription'   => false,
+				'edit page'         => false,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+				],
+				'expected'          => true,
+			],
+			'not subscriptions edit page'      => [
+				'is subscription'   => true,
+				'edit page'         => false,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+				],
+				'expected'          => true,
+			],
+			'missing parent order'             => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => false,
+				'parent mandate ID' => '',
+				'payment method'    => [],
+				'expected'          => true,
+			],
+			'parent order lacks mandate ID'    => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => '',
+				'payment method'    => [],
+				'expected'          => true,
+			],
+			'missing payment method ID meta'   => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [],
+				'expected'          => true,
+			],
+			'payment method is sepa debit'     => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'         => 'pm_123',
+					'type'       => 'sepa_debit',
+					'sepa_debit' => [
+						'amount_type'     => '',
+						'supported_types' => [],
+					],
+				],
+				'expected'         => true,
+			],
+			'method is card, but not indian'   => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_456',
+					'type' => 'card',
+					'card' => [
+						'country' => 'US',
+					],
+				],
+				'expected'          => true,
+			],
+			'method is indian card'            => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+				],
+				'expected'          => false,
+			],
+			'method is indian Google Pay card' => [
+				'is subscription'   => true,
+				'edit page'         => true,
+				'has parent order'  => true,
+				'parent mandate ID' => 'mandate_123',
+				'payment method'    => [
+					'id'   => 'pm_789',
+					'type' => 'card',
+					'card' => [
+						'country' => 'IN',
+					],
+					'wallet' => [
+						'type' => 'google_pay',
+					],
+				],
+				'expected'          => false,
+			],
+		];
 	}
 }
