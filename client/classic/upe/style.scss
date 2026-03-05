@@ -46,6 +46,9 @@
 		fieldset#wc-stripe-upe-form {
 			padding-top: 0;
 		}
+		> fieldset {
+			border-width: 0;
+		}
 	}
 }
 
