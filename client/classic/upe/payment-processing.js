@@ -396,17 +396,9 @@ function getOptimizedCheckoutRules(
 			? window.getComputedStyle( paymentMethodRoot )
 			: {};
 
-		// Bump font weight by 100 to make them visually look closer. (Not sure why they are diverging!)
-		if (
-			paymentMethodLabelStyles.fontWeight &&
-			/^[1-8]00$/.test( paymentMethodLabelStyles.fontWeight )
-		) {
-			accordionItemRules.fontWeight = String(
-				100 + parseInt( paymentMethodLabelStyles.fontWeight, 10 )
-			);
-		}
-
+		accordionItemRules.fontFamily = paymentMethodLabelStyles.fontFamily;
 		accordionItemRules.fontSize = paymentMethodLabelStyles.fontSize;
+		accordionItemRules.fontWeight = paymentMethodLabelStyles.fontWeight;
 
 		// For left padding, add the left padding and margin, and then subtract 1px to account for the left border.
 		const leftPaddingPx =
