@@ -534,37 +534,18 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that get_webhook_events does not include checkout.session.completed by default.
-	 */
-	public function test_get_webhook_events_excludes_checkout_session_by_default() {
-		$events = WC_Stripe_Account::get_webhook_events();
-		$this->assertNotContains( 'checkout.session.completed', $events );
-	}
-
-	/**
-	 * Tests that get_webhook_events includes checkout.session.completed when agentic commerce is enabled.
-	 */
-	public function test_get_webhook_events_includes_checkout_session_when_agentic_enabled() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
-
-		$events = WC_Stripe_Account::get_webhook_events();
-		$this->assertContains( 'checkout.session.completed', $events );
-
-		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
-	}
-
-	/**
-	 * Tests that webhook reconfiguration is triggered when the agentic flag adds a new event.
+	 * Tests that webhook reconfiguration is triggered when the agentic flag
+	 * causes the desired API version to differ from the existing webhook.
 	 */
 	public function test_reconfigure_webhooks_on_update_with_agentic_flag_enabled() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
-		// Mock a webhook that has the base events but not the agentic one.
+		// Mock a webhook that has current events but the non-agentic API version.
 		$outdated_webhook = (object) [
 			'id'             => 'we_123',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
-			'api_version'    => \WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION,
+			'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
 			'status'         => 'enabled',
 		];
 
