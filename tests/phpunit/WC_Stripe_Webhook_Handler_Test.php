@@ -1020,7 +1020,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->callback(
 					function ( $timestamp ) {
 						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
-						$this->assertGreaterThan( time(), $timestamp, 'Expected timestamp to be in the future.' );
+						$this->assertGreaterThanOrEqual( time() + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
 
 						return true;
 					}
