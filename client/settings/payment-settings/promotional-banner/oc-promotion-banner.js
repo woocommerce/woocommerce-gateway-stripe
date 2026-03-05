@@ -3,35 +3,18 @@ import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {
-	BannerIllustration,
-	ButtonsRow,
 	CardColumn,
 	CardInner,
 	DismissButton,
 	MainCTALink,
+	BannerIllustrationWithOffset,
+	ButtonsRowWithMargin,
+	CenteredColumnIllustration,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
-
-const BannerIllustrationBNPL = styled( BannerIllustration )`
-	@media ( min-width: 600px ) {
-		margin: 0 0 -40px 24px;
-	}
-`;
-
-const ButtonsRowBNPL = styled( ButtonsRow )`
-	@media ( min-width: 600px ) {
-		margin-bottom: 0.7em;
-	}
-`;
-
-const ColumnIllustration = styled( CardColumn )`
-	@media ( max-width: 599px ) {
-		text-align: center;
-	}
-`;
+import { dismissNotice } from 'wcstripe/utils';
 
 const TitleBNPL = styled.h4`
 	margin-top: 0.6em !important;
@@ -46,11 +29,7 @@ export const OCPromotionBanner = ( {
 		useDispatch( 'core/notices' );
 
 	const handleBannerDismiss = () => {
-		apiFetch( {
-			path: '/wc/v3/wc_stripe/settings/notice',
-			method: 'POST',
-			data: { wc_stripe_show_oc_promotion_banner: 'no' },
-		} ).finally( () => {
+		dismissNotice( 'wc_stripe_show_oc_promotion_banner', () => {
 			setShowPromotionalBanner( false );
 		} );
 	};
@@ -112,17 +91,17 @@ export const OCPromotionBanner = ( {
 						} ) }
 					</p>
 				</CardColumn>
-				<ColumnIllustration>
-					<BannerIllustrationBNPL
+				<CenteredColumnIllustration>
+					<BannerIllustrationWithOffset
 						src={ illustration }
 						alt={ __(
 							'Try the Optimized Checkout Suite',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-				</ColumnIllustration>
+				</CenteredColumnIllustration>
 			</CardInner>
-			<ButtonsRowBNPL>
+			<ButtonsRowWithMargin>
 				<MainCTALink variant="secondary" onClick={ handleButtonClick }>
 					{ __( 'Activate now', 'woocommerce-gateway-stripe' ) }
 				</MainCTALink>
@@ -133,7 +112,7 @@ export const OCPromotionBanner = ( {
 				>
 					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
 				</DismissButton>
-			</ButtonsRowBNPL>
+			</ButtonsRowWithMargin>
 		</CardBody>
 	);
 };
