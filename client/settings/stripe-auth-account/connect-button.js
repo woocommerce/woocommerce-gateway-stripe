@@ -55,11 +55,47 @@ const ConnectButton = ( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: testMode ? 'test' : 'live',
 					nonce: wc_stripe_settings_params.oauth_nonce, // eslint-disable-line camelcase
+					new_tab: '1', // eslint-disable-line camelcase
 				},
 			} );
 
 			if ( response.success && response.data.oauth_url ) {
-				window.location.assign( response.data.oauth_url );
+				const url = response.data.oauth_url;
+				const popup = window.open( url, '_blank' );
+
+				if ( ! popup ) {
+					// Popup blocked — fall back to same-tab redirect.
+					window.location.assign( url );
+					return;
+				}
+
+				const messageListener = ( event ) => {
+					if (
+						event.origin !== window.location.origin ||
+						! event.data ||
+						event.data.type !== 'wc_stripe_oauth_connected'
+					) {
+						return;
+					}
+					// eslint-disable-next-line no-use-before-define
+					cleanup();
+					window.location.reload();
+				};
+
+				window.addEventListener( 'message', messageListener );
+
+				const cleanup = () => {
+					// eslint-disable-next-line no-use-before-define
+					clearInterval( intervalId );
+					window.removeEventListener( 'message', messageListener );
+				};
+
+				const intervalId = setInterval( () => {
+					if ( popup.closed ) {
+						cleanup();
+						setIsLoading( false );
+					}
+				}, 500 );
 			} else {
 				setError( true );
 				setIsLoading( false );

@@ -36,10 +36,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @param string $return_url The URL to return to after OAuth flow.
 		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
+		 * @param bool   $new_tab    Optional. Whether the OAuth flow opens in a new tab. Default is false.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function get_oauth_url( $return_url = '', $mode = 'live' ) {
+		public function get_oauth_url( $return_url = '', $mode = 'live', $new_tab = false ) {
 
 			if ( empty( $return_url ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
@@ -47,6 +48,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			if ( 'test' !== $mode && substr( $return_url, 0, 8 ) !== 'https://' ) {
 				return new WP_Error( 'invalid_url_protocol', __( 'Your site must be served over HTTPS in order to connect your Stripe account automatically.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( $new_tab ) {
+				$return_url = add_query_arg( 'stripe_connect_popup', '1', $return_url );
 			}
 
 			$return_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wcs_stripe_connected' ), $return_url );
@@ -184,6 +189,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
+
+				if ( ! empty( $_GET['stripe_connect_popup'] ) ) {
+					$this->output_popup_completion_page( ! is_wp_error( $response ), is_string( $mode ) ? $mode : '' );
+					return; // Unreachable in production (output_popup_completion_page exits); used in tests.
+				}
 
 				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
 				if ( ! is_wp_error( $response ) ) {
@@ -518,6 +528,69 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// save_stripe_keys() schedules a connection_refresh after saving the keys,
 			// we don't need to do it explicitly here.
+		}
+
+		/**
+		 * Outputs a minimal HTML page that posts a message to the opener and closes itself,
+		 * then terminates the request.
+		 *
+		 * @param bool   $success Whether the OAuth connection succeeded.
+		 * @param string $mode    The connection mode ('live' or 'test').
+		 */
+		private function output_popup_completion_page( bool $success, string $mode ): void {
+			echo $this->get_popup_completion_html( $success, $mode ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			exit; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+
+		/**
+		 * Returns the HTML for the popup completion page as a string.
+		 *
+		 * @param bool   $success Whether the OAuth connection succeeded.
+		 * @param string $mode    The connection mode ('live' or 'test').
+		 * @return string
+		 */
+		private function get_popup_completion_html( bool $success, string $mode ): string {
+			$message = wp_json_encode(
+				[
+					'type'    => 'wc_stripe_oauth_connected',
+					'success' => $success,
+					'mode'    => $mode,
+				]
+			);
+			$origin  = $this->get_site_origin();
+			ob_start();
+			?>
+			<!DOCTYPE html>
+			<html>
+			<head><title></title></head>
+			<body>
+			<script>
+			if ( window.opener ) {
+				window.opener.postMessage( <?php echo $message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>, <?php echo wp_json_encode( $origin ); ?> );
+			}
+			window.close();
+			</script>
+			</body>
+			</html>
+			<?php
+			return (string) ob_get_clean();
+		}
+
+		/**
+		 * Returns the site origin (scheme + host + optional port).
+		 *
+		 * @return string
+		 */
+		private function get_site_origin(): string {
+			$parsed = wp_parse_url( home_url() );
+			if ( ! is_array( $parsed ) || empty( $parsed['scheme'] ) || empty( $parsed['host'] ) ) {
+				return home_url();
+			}
+			$origin = $parsed['scheme'] . '://' . $parsed['host'];
+			if ( ! empty( $parsed['port'] ) ) {
+				$origin .= ':' . $parsed['port'];
+			}
+			return $origin;
 		}
 
 		/**

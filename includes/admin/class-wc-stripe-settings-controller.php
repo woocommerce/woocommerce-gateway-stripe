@@ -155,7 +155,9 @@ class WC_Stripe_Settings_Controller {
 			$mode = 'test';
 		}
 
-		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
+		$new_tab = isset( $_POST['new_tab'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['new_tab'] ) );
+
+		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode, $new_tab );
 
 		if ( is_wp_error( $oauth_url ) ) {
 			wp_send_json_error( [ 'message' => $oauth_url->get_error_message() ] );
