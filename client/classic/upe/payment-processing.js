@@ -221,6 +221,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			);
 			options = {
 				...options,
+				variables: {
+					...options.variables,
+					fontSmooth: 'auto',
+				},
 				appearance: {
 					...options.appearance,
 					rules: optimizedCheckoutRules,
@@ -311,6 +315,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.spacedAccordionItems = false;
 			layout.radios = paymentMethodRadioStyles !== null;
+			layout.paymentMethodLogoPosition = 'end';
 		}
 		paymentElementOptions = {
 			...paymentElementOptions,
