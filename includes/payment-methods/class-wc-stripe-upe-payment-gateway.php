@@ -523,7 +523,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		$should_show_optimized_checkout               = $this->oc_enabled && ! $this->is_invalid_optimized_checkout_page();
+		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
 		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
@@ -688,8 +688,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool True if we are on a page where the optimized checkout should not be shown, false otherwise.
 	 */
-	public function is_invalid_optimized_checkout_page(): bool {
-		return $this->is_on_add_payment_method_page() || $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription();
+	public function is_valid_optimized_checkout_page(): bool {
+		return ! is_add_payment_method_page() && ! $this->is_valid_pay_for_order_endpoint() && ! $this->is_changing_payment_method_for_subscription();
 	}
 
 	/**
@@ -706,7 +706,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && ! $this->is_invalid_optimized_checkout_page() ) {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
