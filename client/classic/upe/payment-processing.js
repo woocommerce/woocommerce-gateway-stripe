@@ -361,6 +361,54 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 }
 
 /**
+ * Regex to match transparent rgba() colors by detecting if the alpha channel is 0.
+ *
+ * @type {RegExp}
+ */
+const transparentColorRegex = /^rgba\( *[0-9]+, *[0-9]+, *[0-9]+, *0 *\)$/;
+
+/**
+ * Determines if the provided color is a transparent rgba() color.
+ *
+ * @param {string} color The color to check.
+ * @return {boolean} True if the color is transparent, false otherwise.
+ */
+function isTransparentColor( color ) {
+	return color && transparentColorRegex.test( color );
+}
+
+/**
+ * Get the background color for a provided element. Optionally check the parent element chain up to a specified
+ * depth until you find a non-transparent background color. If no background color is found, return null.
+ *
+ * @param {HTMLElement} element             The element to check.
+ * @param {Object}      options             The options for the background color search.
+ * @param {boolean}     options.checkParent Whether to check the parent element. Default false.
+ * @param {number}      options.maxDepth    The maximum depth to check. Will stop checking once this value is <= 1. Default 1.
+ * @return {string|null} The background color, or null if no background color is found.
+ */
+function getBackgroundColor(
+	element,
+	{ checkParent = false, maxDepth = 1 } = {}
+) {
+	const styles = window.getComputedStyle( element );
+	if (
+		styles.backgroundColor &&
+		! isTransparentColor( styles.backgroundColor )
+	) {
+		return styles.backgroundColor;
+	}
+
+	if ( ! checkParent || maxDepth <= 1 ) {
+		return null;
+	}
+	return getBackgroundColor( element.parentElement, {
+		checkParent: true,
+		maxDepth: maxDepth - 1,
+	} );
+}
+
+/**
  * Build the full set of appearance rules for Optimized Checkout.
  *
  * @param {PaymentMethodRadioStyles|null} paymentMethodRadioStyles The styles for the payment method radio element, if applicable.
@@ -375,11 +423,6 @@ function getOptimizedCheckoutRules(
 	const accordionItemSelectedRules =
 		initialRules?.[ '.AccordionItem--selected' ] || {};
 	const radioIconRules = initialRules?.[ '.RadioIcon' ] || {};
-
-	const transparentColor = /^rgba\( *[0-9]+, *[0-9]+, *[0-9]+, *0 *\)$/;
-	const isTransparentColor = ( color ) => {
-		return color && transparentColor.test( color );
-	};
 
 	// Look at the payment method label to pick up styles that should specifically apply to the Stripe equivalents.
 	const paymentMethodLabel = document.querySelector(
@@ -419,18 +462,17 @@ function getOptimizedCheckoutRules(
 
 		accordionItemRules.borderRadius = paymentMethodRootStyles.borderRadius;
 
-		if (
-			paymentMethodLabelStyles.backgroundColor &&
-			! isTransparentColor( paymentMethodLabelStyles.backgroundColor )
-		) {
-			accordionItemRules.backgroundColor =
-				paymentMethodLabelStyles.backgroundColor;
-		} else if (
-			paymentMethodRootStyles.backgroundColor &&
-			! isTransparentColor( paymentMethodRootStyles.backgroundColor )
-		) {
-			accordionItemRules.backgroundColor =
-				paymentMethodRootStyles.backgroundColor;
+		// Check for a background color in the following elements:
+		// 1. The payment method label
+		// 2. The payment method <li> element
+		// 3. The payment method <ul> element
+		// 4. The overall #payment div
+		const labelBackgroundColor = getBackgroundColor( paymentMethodLabel, {
+			checkParent: true,
+			maxDepth: 4,
+		} );
+		if ( labelBackgroundColor ) {
+			accordionItemRules.backgroundColor = labelBackgroundColor;
 		}
 	}
 
