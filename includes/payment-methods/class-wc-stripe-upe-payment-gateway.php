@@ -686,7 +686,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
+		// If the Optimized Checkout is enabled (and we are not in the "Add payment method" page), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
 		if ( $this->oc_enabled && ! is_add_payment_method_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
