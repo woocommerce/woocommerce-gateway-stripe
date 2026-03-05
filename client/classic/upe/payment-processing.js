@@ -31,6 +31,18 @@ import {
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
+/**
+ * @typedef {Object} UPEComponent
+ * @property {string|null}          intentId          The ID of the intent.
+ * @property {Object|null}          elements          The Stripe elements object.
+ * @property {Object|null}          upeElement        The Stripe payment element.
+ * @property {boolean}              hasLoadError      Whether the payment element has a load error.
+ * @property {Promise<Object|null>} upeElementPromise Promise that resolves to the Stripe payment element.
+ */
+
+/**
+ * @type {Object<string, UPEComponent>}
+ */
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 const isAdaptivePricingSupported =
@@ -53,6 +65,7 @@ export function initializeUPEComponents() {
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
+			upeElementPromise: null,
 		};
 	}
 }
@@ -681,9 +694,24 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
-	const upeElement =
-		gatewayUPEComponents[ paymentMethodType ].upeElement ||
-		( await createStripePaymentElement( api, paymentMethodType ) );
+	let upeElementPromise =
+		gatewayUPEComponents[ paymentMethodType ]?.upeElementPromise ?? null;
+	if ( ! upeElementPromise ) {
+		if ( gatewayUPEComponents[ paymentMethodType ].upeElement ) {
+			upeElementPromise = Promise.resolve(
+				gatewayUPEComponents[ paymentMethodType ].upeElement
+			);
+		} else {
+			upeElementPromise = createStripePaymentElement(
+				api,
+				paymentMethodType
+			);
+		}
+		gatewayUPEComponents[ paymentMethodType ].upeElementPromise =
+			upeElementPromise;
+	}
+
+	const upeElement = await upeElementPromise;
 
 	upeElement.mount( domElement );
 	upeElement.on( 'loaderror', ( e ) => {
@@ -748,8 +776,20 @@ export function getMountedUPEComponent( paymentMethodType ) {
 	return null;
 }
 
-export function getStripePaymentElement( paymentMethodType ) {
-	return gatewayUPEComponents?.[ paymentMethodType ]?.upeElement ?? null;
+/**
+ * Gets the Stripe payment element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Promise<Object|null>} The Stripe payment element or null if not found.
+ */
+export async function getStripePaymentElement( paymentMethodType ) {
+	const upeElementPromise =
+		gatewayUPEComponents?.[ paymentMethodType ]?.upeElementPromise ?? null;
+	if ( ! upeElementPromise ) {
+		return Promise.resolve( null );
+	}
+
+	return await upeElementPromise;
 }
 
 /**

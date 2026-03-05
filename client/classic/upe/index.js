@@ -339,8 +339,10 @@ jQuery( function ( $ ) {
 
 	if ( getStripeServerData()?.isOCEnabled ) {
 		const getStripePaymentBox = () =>
-			$( '.payment_methods .payment_box.payment_method_stripe' );
-		const keepPaymentBoxVisible = () => {
+			$(
+				'.woocommerce-checkout-payment .payment_methods .payment_box.payment_method_stripe'
+			);
+		const keepPaymentBoxVisible = async () => {
 			const $stripePaymentMethod = getStripePaymentBox();
 			if ( ! $stripePaymentMethod.length ) {
 				return;
@@ -351,10 +353,12 @@ jQuery( function ( $ ) {
 
 			// If we selected a different payment method, collapse the Stripe payment element.
 			const selectedPaymentMethod = document.querySelector(
-				'.woocommerce-checkout input[name="payment_method"]:checked'
+				'.woocommerce-checkout-payment input[name="payment_method"]:checked'
 			);
 			if ( selectedPaymentMethod?.id !== 'payment_method_stripe' ) {
-				getStripePaymentElement( PAYMENT_METHOD_CARD )?.collapse();
+				const paymentElement =
+					await getStripePaymentElement( PAYMENT_METHOD_CARD );
+				paymentElement?.collapse();
 			}
 		};
 
@@ -367,7 +371,7 @@ jQuery( function ( $ ) {
 
 		const contractOtherPaymentMethods = () => {
 			const paymentMethodsRoot = document.querySelector(
-				'#payment .payment_methods'
+				'.woocommerce-checkout-payment .payment_methods'
 			);
 			const allPaymentMethodBoxes = Array.from(
 				paymentMethodsRoot?.getElementsByClassName( 'payment_box' ) ??
@@ -403,11 +407,13 @@ jQuery( function ( $ ) {
 			const stripePaymentBox = getStripePaymentBox();
 			stripePaymentBox.on( 'click', selectStripePaymentMethod );
 
-			const upePaymentElement =
-				getStripePaymentElement( PAYMENT_METHOD_CARD );
-			if ( upePaymentElement ) {
-				upePaymentElement.on( 'focus', selectStripePaymentMethod );
-			}
+			getStripePaymentElement( PAYMENT_METHOD_CARD ).then(
+				( paymentElement ) => {
+					if ( paymentElement ) {
+						paymentElement.on( 'focus', selectStripePaymentMethod );
+					}
+				}
+			);
 		};
 
 		$( document.body ).on(
@@ -421,7 +427,7 @@ jQuery( function ( $ ) {
 
 		const addOcsRootClass = () => {
 			const stripePaymentMethodRoot = document.querySelector(
-				'#payment .payment_methods .wc_payment_method.payment_method_stripe'
+				'.woocommerce-checkout-payment .payment_methods .wc_payment_method.payment_method_stripe'
 			);
 			stripePaymentMethodRoot?.classList.add(
 				'wc-stripe-optimized-checkout'
