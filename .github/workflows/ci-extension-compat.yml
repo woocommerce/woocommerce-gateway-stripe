@@ -1,0 +1,110 @@
+name: Extension Compatibility
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - closed
+  workflow_dispatch:
+    inputs:
+      plugin-slug:
+        description: 'Test a specific plugin slug (leave empty to run the default matrix)'
+        type: string
+        default: ''
+      extension-set:
+        description: 'QIT extension set to test (e.g. "compatibility"). Mutually exclusive with plugin-slug.'
+        type: string
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+
+  setup-matrix:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        env:
+          PLUGIN_SLUG: ${{ inputs['plugin-slug'] }}
+          EXTENSION_SET: ${{ inputs['extension-set'] }}
+        run: |
+          if [[ -n "$PLUGIN_SLUG" && -n "$EXTENSION_SET" ]]; then
+            echo "::error::plugin-slug and extension-set are mutually exclusive"
+            exit 1
+          elif [[ -n "$PLUGIN_SLUG" ]]; then
+            matrix=$(jq -nc --arg slug "$PLUGIN_SLUG" \
+              '{"include":[{"name":$slug,"additional-plugins":$slug,"extension-set":""}]}')
+          elif [[ -n "$EXTENSION_SET" ]]; then
+            matrix=$(jq -nc --arg set "$EXTENSION_SET" \
+              '{"include":[{"name":$set,"additional-plugins":"","extension-set":$set}]}')
+          else
+            matrix=$(cat <<'MATRIX_EOF'
+          {"include":[
+            {"name":"compatibility-set","additional-plugins":"","extension-set":"compatibility"},
+            {"name":"subscriptions-for-woocommerce","additional-plugins":"subscriptions-for-woocommerce","extension-set":""},
+            {"name":"yith-woocommerce-subscription","additional-plugins":"yith-woocommerce-subscription","extension-set":""},
+            {"name":"funnel-builder","additional-plugins":"funnel-builder","extension-set":""},
+            {"name":"wp-fusion-lite","additional-plugins":"wp-fusion-lite","extension-set":""}
+          ]}
+          MATRIX_EOF
+            )
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-project:
+    needs: [setup-matrix]
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: 'extension-compat-test-package'
+
+  activation-tests:
+    name: "Activation: ${{ matrix['name'] }}"
+    needs: [setup-matrix, build-project]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup-matrix.outputs.matrix) }}
+    uses: ./.github/workflows/run-qit.yml
+    secrets: inherit
+    with:
+      extension: 'woocommerce-gateway-stripe'
+      artifact: 'extension-compat-test-package'
+      test-activation: 'true'
+      test-additional-plugins: ${{ matrix['additional-plugins'] }}
+      test-extension-set: ${{ matrix['extension-set'] }}
+      results-artifact: "qit-results-${{ matrix['name'] }}"
+
+  handle-error:
+    if: ${{ failure() }}
+    needs: [build-project, activation-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@485a9d42d3a73031f12ec201c457e2162c45d02d # v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-failed:"
+            status: "failed"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref || github.ref_name }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  handle-cancelled:
+    if: ${{ cancelled() }}
+    needs: [build-project, activation-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@485a9d42d3a73031f12ec201c457e2162c45d02d # v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-cancelled:"
+            status: "cancelled"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref || github.ref_name }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

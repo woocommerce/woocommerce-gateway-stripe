@@ -2002,12 +2002,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
+		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
+		wp_enqueue_script( 'stripe' );
+
+		if ( $this->should_skip_full_payment_scripts() ) {
+			return;
+		}
+
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
 		wp_enqueue_style( 'stripe_styles' );
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', '', null, true );
 		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
 
 		wp_localize_script(
@@ -2018,6 +2024,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
+	}
+
+	/**
+	 * Whether to skip loading the full payment gateway bundle on the current page.
+	 *
+	 * On product/cart pages where no express checkout method is enabled,
+	 * the full bundle is unnecessary — only Stripe JS is needed.
+	 *
+	 * @return bool True if the caller should return after enqueuing Stripe JS only.
+	 */
+	protected function should_skip_full_payment_scripts() {
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+
+		return ( $express_checkout_helper->is_product() || $express_checkout_helper->is_cart() )
+			&& ! $express_checkout_helper->is_express_checkout_enabled();
 	}
 
 	/**
