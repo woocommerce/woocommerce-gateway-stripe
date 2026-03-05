@@ -337,6 +337,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$headers['Accept-Language'] = $locale . ',' . $lang;
 			$headers['Content-Type']    = 'application/json; charset=utf-8';
 			$headers['Accept']          = 'application/vnd.woocommerce-connect.v' . self::WOOCOMMERCE_CONNECT_SERVER_API_VERSION;
+			$headers['Referer']         = get_site_url();
 
 			return $headers;
 		}
