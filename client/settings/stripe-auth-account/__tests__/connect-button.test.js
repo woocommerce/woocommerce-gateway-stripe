@@ -160,6 +160,23 @@ describe( 'ConnectButton', () => {
 		expect( window.location.reload ).not.toHaveBeenCalled();
 	} );
 
+	it( 'disables button and shows tooltip in Playground environment', async () => {
+		global.wc_stripe_settings_params = {
+			...global.wc_stripe_settings_params,
+			is_playground_env: true, // eslint-disable-line camelcase
+		};
+
+		render( <ConnectButton testMode={ true } /> );
+
+		const button = screen.getByText( 'Create or connect a test account' );
+		expect( button ).toBeDisabled();
+
+		// Restore to avoid affecting other tests.
+		global.wc_stripe_settings_params = {
+			oauth_nonce: 'test-nonce',
+		};
+	} );
+
 	it( 'resets loading state when popup is closed manually', async () => {
 		const mockPopup = { closed: false };
 		window.open = jest.fn().mockReturnValue( mockPopup );

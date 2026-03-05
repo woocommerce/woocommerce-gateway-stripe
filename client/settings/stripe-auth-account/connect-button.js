@@ -28,6 +28,9 @@ const ConnectButton = ( {
 	const [ error, setError ] = useState( null );
 	const isSSL = window.location.protocol === 'https:';
 	const isLiveModeWithoutSSL = ! testMode && ! isSSL;
+	const isPlaygroundEnv = Boolean(
+		wc_stripe_settings_params.is_playground_env // eslint-disable-line camelcase
+	);
 
 	const buttonText = testMode
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
@@ -123,7 +126,9 @@ const ConnectButton = ( {
 			variant={ buttonVariant }
 			onClick={ handleClick }
 			text={ buttonText }
-			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
+			disabled={
+				isLoading || disabled || isLiveModeWithoutSSL || isPlaygroundEnv
+			}
 			isBusy={ isLoading }
 		/>
 	);
@@ -134,6 +139,20 @@ const ConnectButton = ( {
 			<Tooltip
 				content={ __(
 					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
+					'woocommerce-gateway-stripe'
+				) }
+			>
+				<span style={ { display: 'inline-block' } }>{ button }</span>
+			</Tooltip>
+		);
+	}
+
+	// Wrap in tooltip in Playground demo environments (OAuth is unavailable)
+	if ( isPlaygroundEnv ) {
+		return (
+			<Tooltip
+				content={ __(
+					'Stripe account connection is not available in this demo environment.',
 					'woocommerce-gateway-stripe'
 				) }
 			>
