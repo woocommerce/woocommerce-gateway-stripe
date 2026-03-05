@@ -527,13 +527,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
+		// Adaptive Pricing support for checkout.
+		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();
+
 		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
-
-			// Adaptive Pricing support for checkout.
-			$stripe_params['isAdaptivePricingEnabled'] = WC_Stripe_Helper::is_adaptive_pricing_supported();
 		}
 
 		// Checking for other BNPL extensions.
