@@ -673,12 +673,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Checks if we are on a page where the optimized checkout should not be shown, even if it's enabled in the settings.
+	 * Checks if we are currently on the "Add payment method" page.
 	 *
-	 * @return bool True if we are on a page where the optimized checkout should not be shown, false otherwise.
+	 * Extracted as a protected method to allow overriding in tests.
+	 *
+	 * @return bool
+	 */
+	protected function is_on_add_payment_method_page(): bool {
+		return is_add_payment_method_page();
+	}
+
+	/**
+	 * Checks if we are on a page where the optimized checkout can be shown.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
-		return ! is_add_payment_method_page() && ! $this->is_valid_pay_for_order_endpoint() && ! $this->is_changing_payment_method_for_subscription();
+		return ! $this->is_on_add_payment_method_page() && ! $this->is_valid_pay_for_order_endpoint() && ! $this->is_changing_payment_method_for_subscription();
 	}
 
 	/**
