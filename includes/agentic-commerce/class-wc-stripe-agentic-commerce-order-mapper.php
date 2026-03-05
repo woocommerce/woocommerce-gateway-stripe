@@ -220,7 +220,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				);
 			}
 
-			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id, $line_item );
+			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
 			$quantity   = $line_item->get_quantity();
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
@@ -286,15 +286,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Maps an address from a Stripe address object to the order.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Order $order   The WooCommerce order.
-	 * @param object   $address The Stripe address object.
-	 * @param string   $name    The name of the address to map.
-	 * @param string   $phone   The phone number of the address to map.
-	 * @param string   $type    The type of address to map ('billing' or 'shipping').
+	 * @param WC_Order              $order   The WooCommerce order.
+	 * @param WC_Stripe_API_Address $address The Stripe address object.
+	 * @param string                $name    The name of the address to map.
+	 * @param string                $phone   The phone number of the address to map.
+	 * @param string                $type    The type of address to map ('billing' or 'shipping').
 	 */
 	private function map_address(
 		WC_Order $order,
-		object $address,
+		WC_Stripe_API_Address $address,
 		string $name,
 		string $phone,
 		string $type = self::ADDRESS_TYPE_BILLING
@@ -310,19 +310,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$set_phone = "set_{$type}_phone";
 		$order->$set_phone( $phone );
 
-		$map = [
-			'city'        => 'city',
-			'country'     => 'country',
-			'line1'       => 'address_1',
-			'line2'       => 'address_2',
-			'postal_code' => 'postcode',
-			'state'       => 'state',
-		];
+		$set_city     = "set_{$type}_city";
+		$set_country  = "set_{$type}_country";
+		$set_address1 = "set_{$type}_address_1";
+		$set_address2 = "set_{$type}_address_2";
+		$set_postcode = "set_{$type}_postcode";
+		$set_state    = "set_{$type}_state";
 
-		foreach ( $map as $received_key => $order_key ) {
-			$method_name = sprintf( 'set_%s_%s', $type, $order_key );
-			$order->$method_name( $address->$received_key ?? '' );
-		}
+		$order->$set_city( $address->get_city() ?? '' );
+		$order->$set_country( $address->get_country() ?? '' );
+		$order->$set_address1( $address->get_line1() ?? '' );
+		$order->$set_address2( $address->get_line2() ?? '' );
+		$order->$set_postcode( $address->get_postal_code() ?? '' );
+		$order->$set_state( $address->get_state() ?? '' );
 	}
 
 	/**
@@ -338,14 +338,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 */
 	private function map_addresses( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$billing_address = $session->get_billing_address();
-		if ( ! $billing_address ) {
-			throw new Exception(
-				sprintf(
-					'Checkout session %s has no billing address.',
-					$session->get_id()
-				)
-			);
-		}
 
 		$this->map_address(
 			$order,
@@ -445,7 +437,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				'city'     => $address->get_city() ?? '',
 				'address'  => '',
 			],
-			'cart_subtotal' => 0,
+			'cart_subtotal'   => 0,
 		];
 
 		$wc_shipping = WC()->shipping();

@@ -27,17 +27,17 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	/**
 	 * The raw line item object.
 	 *
-	 * @var object
+	 * @var stdClass
 	 */
-	private object $item;
+	private stdClass $item;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.5.0
-	 * @param object $item The raw line item object from the customize_checkout event.
+	 * @param stdClass $item The raw line item object from the customize_checkout event.
 	 */
-	public function __construct( object $item ) {
+	public function __construct( stdClass $item ) {
 		$this->item = $item;
 	}
 

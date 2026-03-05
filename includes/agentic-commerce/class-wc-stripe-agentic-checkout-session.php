@@ -26,17 +26,17 @@ class WC_Stripe_Agentic_Checkout_Session implements WC_Stripe_Checkout_Session_I
 	/**
 	 * The raw Stripe checkout session object.
 	 *
-	 * @var object
+	 * @var stdClass
 	 */
-	private object $session;
+	private stdClass $session;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.5.0
-	 * @param object $session The raw Stripe checkout session object.
+	 * @param stdClass $session The raw Stripe checkout session object.
 	 */
-	public function __construct( object $session ) {
+	public function __construct( stdClass $session ) {
 		$this->session = $session;
 	}
 

@@ -42,10 +42,6 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$address = $session->get_shipping_address() ?? $session->get_billing_address();
 
-		if ( ! $address ) {
-			return [];
-		}
-
 		$package = [
 			'contents'        => [],
 			'contents_cost'   => 0,

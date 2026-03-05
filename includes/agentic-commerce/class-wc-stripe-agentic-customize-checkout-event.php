@@ -26,17 +26,17 @@ class WC_Stripe_Agentic_Customize_Checkout_Event implements WC_Stripe_Checkout_S
 	/**
 	 * The raw Stripe event object.
 	 *
-	 * @var object
+	 * @var stdClass
 	 */
-	private object $event;
+	private stdClass $event;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.5.0
-	 * @param object $event The raw Stripe event object.
+	 * @param stdClass $event The raw Stripe event object.
 	 */
-	public function __construct( object $event ) {
+	public function __construct( stdClass $event ) {
 		$this->event = $event;
 	}
 
@@ -108,9 +108,8 @@ class WC_Stripe_Agentic_Customize_Checkout_Event implements WC_Stripe_Checkout_S
 
 		return array_map(
 			function ( $item ) {
-				return new WC_Stripe_Agentic_Customize_Checkout_Line_Item(
-					is_object( $item ) ? $item : (object) $item
-				);
+				$normalized = $item instanceof stdClass ? $item : (object) $item;
+				return new WC_Stripe_Agentic_Customize_Checkout_Line_Item( $normalized );
 			},
 			$raw_items
 		);

@@ -31,7 +31,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 */
 	public function extract_line_items_from_customization_hook(
 		WC_Stripe_Agentic_Customize_Checkout_Event $event
-	) {
+	): array {
 		$line_items = [];
 
 		foreach ( $event->get_line_items() as $line_item ) {
@@ -46,7 +46,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 *
 	 * @since 10.5.0
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session.
-	 * @return array<string,string> The line items hash. Line item ID => Product ID.
+	 * @return array<string,int> The line items hash. Line item ID => Product ID.
 	 */
 	public function extract_line_items_from_checkout_session(
 		WC_Stripe_Agentic_Checkout_Session $session
@@ -115,13 +115,13 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * @param string                 $line_item_id The line item ID.
 	 * @param string                 $product_id   The product ID.
 	 * @param WC_Stripe_API_Address  $address      The tax address.
-	 * @return array|null The line item tax response, or null if skipped.
+	 * @return array The line item tax response.
 	 */
 	private function calculate_line_item_taxes(
 		string $line_item_id,
 		string $product_id,
 		WC_Stripe_API_Address $address
-	): ?array {
+	): array {
 		if ( '' === $product_id ) {
 			throw new Exception(
 				sprintf(
@@ -131,7 +131,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 			);
 		}
 
-		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
+		$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( (int) $product_id );
 
 		$tax_rates = WC_Tax::find_rates(
 			[

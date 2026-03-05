@@ -26,17 +26,17 @@ class WC_Stripe_Agentic_Line_Item {
 	/**
 	 * The raw Stripe line item object.
 	 *
-	 * @var object
+	 * @var stdClass
 	 */
-	private object $item;
+	private stdClass $item;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.5.0
-	 * @param object $item The raw Stripe line item object.
+	 * @param stdClass $item The raw Stripe line item object.
 	 */
-	public function __construct( object $item ) {
+	public function __construct( stdClass $item ) {
 		$this->item = $item;
 	}
 

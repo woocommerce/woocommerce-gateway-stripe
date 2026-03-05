@@ -1634,10 +1634,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * This parameter is expected to generate both an HTTP status code and a JSON response.
 	 *
 	 * @since 10.5.0
-	 * @param object $event The webhook event from Stripe.
+	 * @param stdClass $event The webhook event from Stripe.
 	 * @return void
 	 */
-	private function process_agentic_customization_hook( $event ): void {
+	private function process_agentic_customization_hook( stdClass $event ): void {
 		$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
 		$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
 		$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
@@ -1652,7 +1652,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$response = array_merge( $line_items_with_tax, $shipping_options );
 
 		status_header( 200 );
-		echo json_encode( $response );
+		echo wp_json_encode( $response );
 	}
 
 	/**
