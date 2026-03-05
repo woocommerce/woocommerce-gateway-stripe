@@ -3702,24 +3702,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool $expected                   Whether `is_invalid_optimized_checkout_page` should return true.
 	 */
 	public function test_is_invalid_optimized_checkout_page( bool $is_add_payment_method, bool $is_pay_for_order, bool $is_changing_payment_method, bool $expected ) {
-		if ( $is_add_payment_method ) {
-			add_filter( 'woocommerce_is_add_payment_method_page', '__return_true' );
-		}
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_valid_pay_for_order_endpoint', 'is_changing_payment_method_for_subscription' ] )
+			->getMock();
 
-		try {
-			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-				->onlyMethods( [ 'is_valid_pay_for_order_endpoint', 'is_changing_payment_method_for_subscription' ] )
-				->getMock();
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
+		$gateway->method( 'is_valid_pay_for_order_endpoint' )->willReturn( $is_pay_for_order );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
 
-			$gateway->method( 'is_valid_pay_for_order_endpoint' )->willReturn( $is_pay_for_order );
-			$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
-
-			$this->assertSame( $expected, $gateway->is_invalid_optimized_checkout_page() );
-		} finally {
-			if ( $is_add_payment_method ) {
-				remove_filter( 'woocommerce_is_add_payment_method_page', '__return_true' );
-			}
-		}
+		$this->assertSame( $expected, $gateway->is_invalid_optimized_checkout_page() );
 	}
 
 	/**
