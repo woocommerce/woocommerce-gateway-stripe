@@ -53,6 +53,7 @@ const isAdaptivePricingSupported =
  * @property {('input'|'label-before')} type    The type of radio element in use.
  * @property {HTMLElement|null}         element The DOM element of the radio element. Only applicable if type is 'input'.
  * @property {CSSStyleDeclaration}      styles  The computed styles for the radio element.
+ * @property {boolean}                  checked Whether the radio element is checked.
  */
 
 /**
@@ -423,11 +424,14 @@ function getOptimizedCheckoutRules(
 	const accordionItemSelectedRules =
 		initialRules?.[ '.AccordionItem--selected' ] || {};
 	const radioIconRules = initialRules?.[ '.RadioIcon' ] || {};
+	const radioIconInnerCheckedRules =
+		initialRules?.[ '.RadioIconInner--checked' ] || {};
 
 	// Look at the payment method label to pick up styles that should specifically apply to the Stripe equivalents.
 	const paymentMethodLabel = document.querySelector(
 		'.wc_payment_methods .payment_method_stripe label[for="payment_method_stripe"]'
 	);
+
 	if ( paymentMethodLabel ) {
 		const paymentMethodLabelStyles =
 			window.getComputedStyle( paymentMethodLabel );
@@ -502,6 +506,13 @@ function getOptimizedCheckoutRules(
 		} else if ( paymentMethodRadioStyles.type === 'label-before' ) {
 			radioIconRules.width = paymentMethodRadioStyles.styles.fontSize;
 		}
+		// Try to replicate the color values
+		if ( paymentMethodRadioStyles.checked ) {
+			radioIconInnerCheckedRules.fill =
+				paymentMethodRadioStyles.styles.color;
+		} else {
+			radioIconRules.color = paymentMethodRadioStyles.styles.color;
+		}
 	}
 
 	return {
@@ -509,6 +520,7 @@ function getOptimizedCheckoutRules(
 		'.AccordionItem': accordionItemRules,
 		'.AccordionItem--selected': accordionItemSelectedRules,
 		'.RadioIcon': radioIconRules,
+		'.RadioIconInner--checked': radioIconInnerCheckedRules,
 	};
 }
 
@@ -579,6 +591,7 @@ function getPaymentMethodRadioStyles() {
 		return {
 			type: 'input',
 			element: otherPaymentMethodRadio,
+			checked: otherPaymentMethodRadio.checked,
 			styles: otherPaymentMethodRadioStyles,
 		};
 	}
@@ -614,6 +627,7 @@ function getPaymentMethodRadioStyles() {
 	return {
 		type: 'label-before',
 		element: null,
+		checked: otherPaymentMethodRadio.checked,
 		styles: otherPaymentMethodLabelBeforeStyles,
 	};
 }
