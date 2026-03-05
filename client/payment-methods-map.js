@@ -172,7 +172,7 @@ const paymentMethodsMap = {
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
-		label: __( 'iDEAL | Wero', 'woocommerce-gateway-stripe' ),
+		label: 'iDEAL | Wero',
 		description: __(
 			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
