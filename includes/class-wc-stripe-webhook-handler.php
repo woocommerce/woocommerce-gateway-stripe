@@ -1591,7 +1591,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * no WooCommerce order exists yet. This method delegates to the order
 	 * mapper to create one from the checkout session data.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param object $notification The webhook notification from Stripe.
 	 */
 	public function process_checkout_session_completed( $notification ): void {
@@ -1621,7 +1621,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Processes an agentic checkout session after the concurrency lock is acquired.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param object $notification The webhook notification from Stripe.
 	 */
 	private function handle_agentic_checkout_session( $notification ): void {
@@ -1704,7 +1704,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				/**
 				 * Fires after an agentic commerce order is created from a checkout session.
 				 *
-				 * @since 10.5.0
+				 * @since 10.6.0
 				 * @param WC_Order $order   The created order.
 				 * @param object   $session The checkout session wrapper.
 				 */
@@ -1721,7 +1721,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				/**
 				 * Fires when agentic commerce order creation fails.
 				 *
-				 * @since 10.5.0
+				 * @since 10.6.0
 				 * @param Exception $e       The exception that was thrown.
 				 * @param object    $session The checkout session wrapper.
 				 */
@@ -1738,7 +1738,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Expands the payment intent's agent_details (to detect agentic sessions)
 	 * and any additional fields required by the checkout session wrapper.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param string   $session_id       The Stripe checkout session ID.
 	 * @param string[] $additional_expand Additional fields to expand beyond payment_intent.agent_details.
 	 * @return string The API URL with expand query parameters.
