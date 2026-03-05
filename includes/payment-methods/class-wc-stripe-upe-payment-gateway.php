@@ -526,9 +526,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$is_add_payment_method               = is_add_payment_method_page();
 		$stripe_params['isAddPaymentMethod'] = $is_add_payment_method;
 
-		// Optimized Checkout feature flag + setting.
-		$stripe_params['isOCEnabled']                 = $this->oc_enabled;
-		$stripe_params['shouldShowOptimizedCheckout'] = $this->oc_enabled && ! $is_add_payment_method;
+		// Optimized Checkout feature flag + setting + whether we are on the "Add payment method" page
+		$should_show_optimized_checkout               = $this->oc_enabled && ! $is_add_payment_method;
+		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
+		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
 		if ( $this->oc_enabled ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
