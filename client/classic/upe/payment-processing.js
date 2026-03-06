@@ -221,10 +221,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			);
 			options = {
 				...options,
-				variables: {
-					...options.variables,
-					fontSmooth: 'auto',
-				},
 				appearance: {
 					...options.appearance,
 					rules: optimizedCheckoutRules,
@@ -450,7 +446,21 @@ function getOptimizedCheckoutRules(
 
 		accordionItemRules.fontFamily = paymentMethodLabelStyles.fontFamily;
 		accordionItemRules.fontSize = paymentMethodLabelStyles.fontSize;
+		accordionItemRules.fontVariation =
+			paymentMethodLabelStyles.fontVariation;
 		accordionItemRules.fontWeight = paymentMethodLabelStyles.fontWeight;
+		accordionItemRules.fontSmooth = paymentMethodLabelStyles.fontSmooth;
+		if ( paymentMethodLabelStyles[ '-webkit-font-smoothing' ] ) {
+			accordionItemRules[ '-webkit-font-smoothing' ] =
+				paymentMethodLabelStyles[ '-webkit-font-smoothing' ];
+		}
+		if ( paymentMethodLabelStyles[ '-moz-osx-font-smoothing' ] ) {
+			accordionItemRules[ '-moz-osx-font-smoothing' ] =
+				paymentMethodLabelStyles[ '-moz-osx-font-smoothing' ];
+		}
+		if ( paymentMethodLabelStyles.transition ) {
+			accordionItemRules.transition = paymentMethodLabelStyles.transition;
+		}
 
 		// For left padding, add the left padding and margin, and then subtract 1px to account for the left border.
 		const leftPaddingPx =
