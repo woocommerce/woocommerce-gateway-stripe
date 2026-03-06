@@ -268,6 +268,25 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Helper function to ensure that scripts and styles are de-registered and de-queued.
+	 *
+	 * @param string[] $script_handles The script handles to clean up.
+	 * @param string[] $style_handles  The style handles to clean up.
+	 * @return void
+	 */
+	protected function clean_up_scripts( array $script_handles = [], array $style_handles = [] ): void {
+		foreach ( $script_handles as $script_handle ) {
+			wp_deregister_script( $script_handle );
+			wp_dequeue_script( $script_handle );
+		}
+
+		foreach ( $style_handles as $style_handle ) {
+			wp_deregister_style( $style_handle );
+			wp_dequeue_style( $style_handle );
+		}
+	}
+
+	/**
 	 * Helper function to set $_POST vars for saved payment method.
 	 */
 	private function set_postvars_for_saved_payment_method() {
@@ -504,6 +523,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_payment_fields_outputs_fields() {
 		$this->mock_gateway->payment_fields();
 		$this->expectOutputRegex( '/<div class="wc-stripe-upe-element" data-payment-method-type="card"><\/div>/' );
+	}
+
+	/**
+	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
+	 *
+	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
+	 *  - When build/upe-classic.asset.php exists, we verify the script version and dependencies from that file are used.
+	 *  - When build/upe-classic.asset.php does not exist, we verify the fallback values are used.
+	 */
+	public function test_payment_scripts_registers_script_with_correct_version(): void {
+		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
+
+		// Determine the expected version without modifying any files: if the compiled asset file
+		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
+		$expected_version      = WC_STRIPE_VERSION;
+		$expected_dependencies = [ 'stripe', 'wc-checkout' ];
+		if ( file_exists( $asset_path ) ) {
+			$asset = require $asset_path;
+			if ( is_array( $asset ) ) {
+				if ( isset( $asset['version'] ) ) {
+					$expected_version = $asset['version'];
+				}
+				if ( isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+					$expected_dependencies = array_merge( $expected_dependencies, $asset['dependencies'] );
+				}
+			}
+		} else {
+			$expected_dependencies = array_merge( $expected_dependencies, [ 'wp-i18n' ] );
+		}
+
+		// Build a gateway mock that stubs javascript_params to avoid full WooCommerce/Stripe
+		// account setup, which is not the subject of this test.
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		// Make is_checkout() return true so payment_scripts() passes its page guard.
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
+
+		$gateway->payment_scripts();
+
+		// The script should be registered with the version we derived above.
+		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
+		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+
+		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
+
+		$this->assertTrue( $script_is_registered, 'wc-stripe-upe-classic script is not registered' );
+		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
+		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
+		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
 	}
 
 	/**
@@ -3560,6 +3645,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return array[]
 	 */
 	public function provider_payment_scripts_enqueue_scenarios() {
+		/*
+		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
+		 */
 		return [
 			'Product page with ECE off, no Amazon Pay' => [
 				'page_type'                                => 'product',
@@ -3592,7 +3680,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'page_type'                                => 'cart',
 				'express_checkout'                         => 'no',
 				'express_checkout_button_locations'         => [],
-				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
@@ -3632,23 +3720,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provider_payment_scripts_enqueue_scenarios
 	 *
-	 * @param string $page_type                                Page type: 'product', 'cart', or 'checkout'.
-	 * @param string $express_checkout                         Express checkout enabled: 'yes' or 'no'.
+	 * @param string $page_type                                 Page type: 'product', 'cart', or 'checkout'.
+	 * @param string $express_checkout                          Express checkout enabled: 'yes' or 'no'.
 	 * @param array  $express_checkout_button_locations         Express checkout button locations.
 	 * @param array  $upe_checkout_experience_accepted_payments Enabled UPE payment methods.
 	 * @param array  $amazon_pay_button_locations               Amazon Pay button locations.
-	 * @param bool   $expected_stripe                          Whether 'stripe' script should be enqueued.
-	 * @param bool   $expected_upe_classic                     Whether 'wc-stripe-upe-classic' script should be enqueued.
+	 * @param bool   $expected_stripe                           Whether 'stripe' script should be enqueued.
+	 * @param bool   $expected_upe_classic                      Whether 'wc-stripe-upe-classic' script should be enqueued.
 	 */
 	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $upe_checkout_experience_accepted_payments, $amazon_pay_button_locations, $expected_stripe, $expected_upe_classic ) {
-		$product             = null;
-		$is_checkout_filter  = null;
+		$product            = null;
+		$is_cart_filter     = null;
+		$is_checkout_filter = null;
 
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
 			$this->go_to( get_permalink( $product->get_id() ) );
 		} elseif ( 'cart' === $page_type ) {
-			\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+			$is_cart_filter = function () {
+				return true;
+			};
+			add_filter( 'woocommerce_is_cart', $is_cart_filter );
 		} elseif ( 'checkout' === $page_type ) {
 			$is_checkout_filter = function () {
 				return true;
@@ -3670,9 +3762,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
 			$gateway->enabled = 'yes';
 
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
 
 			$gateway->payment_scripts();
 
@@ -3681,12 +3774,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} finally {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
+
 			if ( $product ) {
 				$product->delete( true );
-			} elseif ( $is_checkout_filter ) {
+			}
+
+			if ( $is_checkout_filter ) {
 				remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-			} else {
-				\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+			}
+
+			if ( $is_cart_filter ) {
+				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
 	}
