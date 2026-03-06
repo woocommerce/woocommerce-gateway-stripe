@@ -3645,6 +3645,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return array[]
 	 */
 	public function provider_payment_scripts_enqueue_scenarios() {
+		/*
+		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
+		 */
 		return [
 			'Product page with ECE off, no Amazon Pay' => [
 				'page_type'                                => 'product',
@@ -3677,7 +3680,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'page_type'                                => 'cart',
 				'express_checkout'                         => 'no',
 				'express_checkout_button_locations'         => [],
-				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
