@@ -3261,13 +3261,19 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 39
+			count: 40
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 7
+			count: 8
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
+			identifier: property.notFound
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3321,7 +3327,7 @@ parameters:
 		-
 			message: '#^Cannot access property \$is_webhook_response on object\|string\.$#'
 			identifier: property.nonObject
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3603,7 +3609,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-

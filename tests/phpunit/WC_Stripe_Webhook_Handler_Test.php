@@ -3,8 +3,13 @@
 namespace WooCommerce\Stripe\Tests;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Exception;
+use ReflectionProperty;
 use WC_Data_Exception;
 use WC_Order;
+use WC_Stripe_Action_Scheduler_Service;
+use WC_Stripe_API;
+use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
@@ -883,5 +888,240 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol">&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 		];
+	}
+
+	/**
+	 * Test that `process_checkout_session_metadata` makes the correct API request on success.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_metadata_success(): void {
+		$checkout_session_id = 'cs_test_abc123';
+		$metadata            = [
+			'order_id'   => '100',
+			'order_key'  => 'wc_order_abc',
+			'signature'  => '100:abc',
+			'tax_amount' => 10,
+		];
+
+		$request_captured = false;
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_id, $metadata, &$request_captured ) {
+			$expected_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $checkout_session_id;
+			if ( $url !== $expected_url ) {
+				return $return_value;
+			}
+			$request_captured = true;
+			$this->assertEquals( 'POST', $parsed_args['method'] );
+			$this->assertEquals( $metadata, $parsed_args['body']['metadata'] );
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'id' => $checkout_session_id ] ),
+				'response' => [
+					'code' => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$handler->process_checkout_session_metadata( $checkout_session_id, $metadata );
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertTrue( $request_captured, 'Expected the API request to be made.' );
+	}
+
+	/**
+	 * Test that `process_checkout_session_metadata` throws an exception when the API returns an error response.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_metadata_api_error_response(): void {
+		$checkout_session_id = 'cs_test_abc123';
+		$metadata            = [
+			'order_id'   => '100',
+			'order_key'  => 'wc_order_abc',
+			'signature'  => '100:abc',
+			'tax_amount' => 10,
+		];
+
+		$error_message   = 'No such checkout session.';
+		$pre_http_filter = function () use ( $error_message ) {
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'message' => $error_message,
+						],
+					]
+				),
+				'response' => [
+					'code' => 404,
+					'message' => 'Not Found',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$caught  = null;
+		try {
+			$handler->process_checkout_session_metadata( $checkout_session_id, $metadata );
+		} catch ( Exception $e ) {
+			$caught = $e;
+		}
+
+		remove_filter( 'pre_http_request', $pre_http_filter );
+
+		$this->assertNotNull( $caught, 'Expected an exception to be thrown.' );
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught, 'Expected an instance of WC_Stripe_Exception.' );
+		$this->assertSame( $error_message, $caught->getMessage() );
+	}
+
+	/**
+	 * Test that `process_checkout_session` schedules the metadata job with the correct arguments.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_schedules_metadata_job(): void {
+		$checkout_session_id = 'cs_test_schedule123';
+
+		// Create an order and associate it with the checkout session.
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// Build the mock notification.
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+				],
+			],
+		];
+
+		// Mock the action scheduler service.
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$scheduled_args = null;
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) {
+						$this->assertIsInt( $timestamp, 'Expected timestamp to be an integer.' );
+						$this->assertGreaterThanOrEqual( time() + 2 * MINUTE_IN_SECONDS, $timestamp, 'Expected timestamp to be in the future.' );
+
+						return true;
+					}
+				),
+				'wc_stripe_process_checkout_session_metadata',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id, &$scheduled_args ) {
+						$scheduled_args = $args;
+						return isset( $args['checkout_session_id'] ) && $args['checkout_session_id'] === $checkout_session_id
+							&& isset( $args['metadata']['order_id'] )
+							&& isset( $args['metadata']['order_key'] )
+							&& isset( $args['metadata']['signature'] )
+							&& isset( $args['metadata']['tax_amount'] );
+					}
+				)
+			);
+
+		// Rebuild mock webhook handler with necessary methods mocked.
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->method( 'process_response' );
+
+		// Inject the mock action scheduler service.
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_checkout_session( $notification );
+
+		// Verify the metadata contains the correct order data.
+		$this->assertNotNull( $scheduled_args );
+		$this->assertEquals( $checkout_session_id, $scheduled_args['checkout_session_id'] );
+		$this->assertEquals( $order->get_order_number(), $scheduled_args['metadata']['order_id'] );
+		$this->assertEquals( $order->get_order_key(), $scheduled_args['metadata']['order_key'] );
+		$this->assertNotEmpty( $scheduled_args['metadata']['signature'] );
+		$this->assertIsInt( $scheduled_args['metadata']['tax_amount'] );
+	}
+
+	/**
+	 * Test that `process_checkout_session` does not schedule the metadata job when an exception is thrown during processing.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_does_not_schedule_metadata_job_on_exception(): void {
+		$checkout_session_id = 'cs_test_exception123';
+
+		// Create an order and associate it with the checkout session.
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// Build the mock notification.
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+				],
+			],
+		];
+
+		// Mock the action scheduler service - it should not be called.
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+
+		// Rebuild mock webhook handler where process_response throws an exception.
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->method( 'process_response' )
+			->willThrowException( new Exception( 'Test processing exception' ) );
+
+		// Inject the mock action scheduler service.
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_checkout_session( $notification );
+
+		// Needed to avoid flagging the test as `risky`. Actual assertions happen in the mock expectations above.
+		$this->assertTrue( true );
 	}
 }
