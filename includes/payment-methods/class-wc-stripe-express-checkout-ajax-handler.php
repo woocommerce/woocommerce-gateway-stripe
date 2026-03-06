@@ -32,6 +32,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 * @return void
 	 */
 	public function init() {
+		add_action( 'wc_ajax_wc_stripe_create_express_checkout_session', [ $this, 'ajax_create_express_checkout_session' ] );
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
 		add_action( 'wc_ajax_wc_stripe_normalize_address', [ $this, 'ajax_normalize_address' ] );
@@ -41,6 +42,22 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
+	}
+
+	/**
+	 * Create a WC customer session for Express Checkout.
+	 *
+	 * @return void
+	 */
+	public function ajax_create_express_checkout_session() {
+		check_ajax_referer( 'wc-stripe-create-express-checkout-session', 'security' );
+
+		// @phpstan-ignore isset.property
+		if ( isset( WC()->session ) && class_exists( 'WC_Session_Handler' ) && ( WC()->session instanceof WC_Session_Handler ) && ! WC()->session->has_session() ) {
+			WC()->session->set_customer_session_cookie( true );
+		}
+
+		wp_send_json_success();
 	}
 
 	/**

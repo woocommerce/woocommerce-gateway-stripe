@@ -38,7 +38,7 @@ export const getErrorMessageFromNotice = ( notice ) => {
  */
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
-	wc_stripe_express_checkout_params[ key ] ?? null;
+	wc_stripe_express_checkout_params?.[ key ] ?? null;
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
@@ -54,6 +54,42 @@ export const getExpressCheckoutAjaxURL = (
 	return getExpressCheckoutData( 'ajax_url' )
 		?.toString()
 		?.replace( '%%endpoint%%', prefix + endpoint );
+};
+
+/**
+ * Promise tracking the session-creation request. Resolved once and cached.
+ *
+ * @type {Promise<void>|null}
+ */
+let createSessionPromise = null;
+
+/**
+ * Ensure a WC customer session exists.
+ *
+ * This function creates a WC session for cart/shipping operations
+ * when the user first interacts with Express Checkout.
+ *
+ * @return {Promise<void>} Resolves when the session is ready.
+ */
+export const ensureExpressCheckoutSession = () => {
+	if ( ! createSessionPromise ) {
+		const url = getExpressCheckoutAjaxURL(
+			'create_express_checkout_session'
+		);
+		const securityNonce = getExpressCheckoutData( 'nonce' )?.create_session;
+
+		createSessionPromise = fetch( url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: `security=${ encodeURIComponent( securityNonce ) }`,
+		} )
+			.then( ( res ) => res.json() )
+			.catch( () => {
+				// Allow retry on failure.
+				createSessionPromise = null;
+			} );
+	}
+	return createSessionPromise;
 };
 
 /**
