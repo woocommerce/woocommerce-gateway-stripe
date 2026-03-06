@@ -280,6 +280,108 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_woocommerce_amount_from_stripe_amount` (Stripe → WooCommerce amount conversion).
+	 *
+	 * @param int|string $stripe_amount Stripe amount in smallest unit (cents, etc.).
+	 * @param string     $currency      Currency code.
+	 * @param string     $expected      Expected WooCommerce formatted amount string.
+	 * @dataProvider provide_test_get_woocommerce_amount_from_stripe_amount
+	 */
+	public function test_get_woocommerce_amount_from_stripe_amount( $stripe_amount, string $currency, string $expected ): void {
+		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $stripe_amount, $currency );
+		$this->assertIsString( $result );
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for `test_get_woocommerce_amount_from_stripe_amount`.
+	 *
+	 * Covers two-decimal, zero-decimal, and three-decimal currencies plus edge cases.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_woocommerce_amount_from_stripe_amount(): array {
+		return [
+			'USD two-decimal: 10000 cents' => [
+				'stripe_amount' => 10000,
+				'currency'      => 'usd',
+				'expected'      => '100.00',
+			],
+			'USD two-decimal: 10050 cents' => [
+				'stripe_amount' => 10050,
+				'currency'      => 'usd',
+				'expected'      => '100.50',
+			],
+			'USD two-decimal: 1 cent' => [
+				'stripe_amount' => 1,
+				'currency'      => 'usd',
+				'expected'      => '0.01',
+			],
+			'USD two-decimal: zero' => [
+				'stripe_amount' => 0,
+				'currency'      => 'usd',
+				'expected'      => '0.00',
+			],
+			'USD currency case insensitivity' => [
+				'stripe_amount' => 10000,
+				'currency'      => 'USD',
+				'expected'      => '100.00',
+			],
+			'JPY no-decimal: whole units' => [
+				'stripe_amount' => 100,
+				'currency'      => 'jpy',
+				'expected'      => '100',
+			],
+			'JPY no-decimal: single unit' => [
+				'stripe_amount' => 1,
+				'currency'      => 'jpy',
+				'expected'      => '1',
+			],
+			'JPY no-decimal: zero' => [
+				'stripe_amount' => 0,
+				'currency'      => 'jpy',
+				'expected'      => '0',
+			],
+			'BHD three-decimal: 5 fil (single unit)' => [
+				'stripe_amount' => 5,
+				'currency'      => 'bhd',
+				'expected'      => '0.005',
+			],
+			'BHD three-decimal: 100 fils' => [
+				'stripe_amount' => 100,
+				'currency'      => 'bhd',
+				'expected'      => '0.100',
+			],
+			'BHD three-decimal: 100500 fils' => [
+				'stripe_amount' => 100500,
+				'currency'      => 'bhd',
+				'expected'      => '100.500',
+			],
+			'BHD three-decimal: 0' => [
+				'stripe_amount' => 0,
+				'currency'      => 'bhd',
+				'expected'      => '0.000',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_woocommerce_amount_from_stripe_amount` with empty currency (uses store currency).
+	 */
+	public function test_get_woocommerce_amount_from_stripe_amount_falls_back_to_store_currency(): void {
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', 'EUR' );
+
+		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 19999, '' );
+
+		// Restore original currency.
+		update_option( 'woocommerce_currency', $original_currency );
+
+		$this->assertIsString( $result );
+		$this->assertSame( '199.99', $result );
+	}
+
+	/**
 	 * Test for `payment_method_allows_manual_capture`
 	 *
 	 * @param string $payment_method The payment method.
@@ -1054,6 +1156,208 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 				'expected_message' => '',
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
+	 *
+	 * @param bool   $feature_flag       Feature flag enabled.
+	 * @param bool   $is_checkout        Whether is classic checkout page.
+	 * @param bool   $has_block          Whether is block checkout page.
+	 * @param string $adaptive_pricing   Adaptive pricing setting.
+	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
+	 * @param bool   $expected           Expected result.
+	 * @return void
+	 * @dataProvider provide_is_adaptive_pricing_supported
+	 */
+	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$new_stripe_settings                               = $original_stripe_settings;
+		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
+		$new_stripe_settings['optimized_checkout_element'] = 'yes';
+		$new_stripe_settings['capture']                    = 'yes';
+		$new_stripe_settings['pmc_enabled']                = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
+
+		$is_checkout_filter = function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
+		$saved_post = null;
+		if ( $has_block ) {
+			// Mock has_block( 'woocommerce/checkout' ) via global $post so the helper sees the expected value.
+			global $post;
+			$saved_post = $post;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test isolation for has_block().
+			$post               = new stdClass();
+			$post->post_content = '<!-- wp:woocommerce/checkout -->';
+		}
+
+		\WC_Subscriptions_Product::set_is_subscription( false );
+		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
+		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
+
+		$saved_shipping_methods = WC()->shipping()->shipping_methods;
+
+		WC()->cart->empty_cart();
+		$products = [];
+
+		if ( ! empty( $cart_product_types ) ) {
+			$subscription_product_ids = [];
+			$has_pre_order            = in_array( 'pre-order', $cart_product_types, true );
+			$has_deposits             = in_array( 'deposits', $cart_product_types, true );
+
+			\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( $has_pre_order );
+			\WC_Deposits_Product_Manager::set_deposits_enabled( $has_deposits );
+
+			foreach ( $cart_product_types as $type ) {
+				$product        = WC_Helper_Product::create_simple_product();
+				$products[]     = $product;
+				$cart_item_data = 'deposits' === $type ? [ 'is_deposit' => true ] : [];
+				WC()->cart->add_to_cart( $product->get_id(), 1, 0, [], $cart_item_data );
+				if ( 'subscription' === $type ) {
+					$subscription_product_ids[] = $product->get_id();
+				}
+			}
+			if ( ! empty( $subscription_product_ids ) ) {
+				\WC_Subscriptions_Product::set_subscription_product_ids( $subscription_product_ids );
+			}
+		}
+
+		$actual = WC_Stripe_Helper::is_adaptive_pricing_supported();
+
+		// Cleanup.
+		WC()->cart->empty_cart();
+		WC()->shipping()->shipping_methods = $saved_shipping_methods;
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		\WC_Subscriptions_Product::set_is_subscription( false );
+		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
+		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
+		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
+
+		foreach ( $products as $product ) {
+			$product->delete( true );
+		}
+
+		if ( $has_block ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring $post after test isolation.
+			$post = $saved_post;
+		}
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_is_adaptive_pricing_supported`.
+	 *
+	 * @return array
+	 */
+	public function provide_is_adaptive_pricing_supported(): array {
+		return [
+			'feature flag disabled'                     => [
+				'feature_flag'       => false,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'adaptive pricing disabled'                 => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'no',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'not on classic checkout or block checkout' => [
+				'feature_flag'       => true,
+				'is_checkout'        => false,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+			],
+			'on block checkout'                         => [
+				'feature_flag'       => true,
+				'is_checkout'        => false,
+				'has_block'          => true,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+			],
+			'empty cart'                                => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => null,
+				'expected'           => true,
+			],
+			'simple product only'                       => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+			],
+			'multiple simple products'                  => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple' ],
+				'expected'           => true,
+			],
+			'simple and subscription products mixed'    => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple', 'subscription' ],
+				'expected'           => false,
+			],
+			'simple and deposits products mixed'        => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple', 'simple', 'deposits' ],
+				'expected'           => false,
+			],
+			'subscription in cart'                      => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'subscription' ],
+				'expected'           => false,
+			],
+			'pre-order in cart'                         => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'pre-order' ],
+				'expected'           => false,
+			],
+			'deposits in cart'                          => [
+				'feature_flag'       => true,
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'deposits' ],
+				'expected'           => false,
 			],
 		];
 	}

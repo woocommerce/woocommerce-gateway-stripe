@@ -16,15 +16,17 @@ import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	getStripeElementOptions,
+} from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
+import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
-	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -33,75 +35,6 @@ import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
-
-/**
- * Gets the Stripe element options.
- *
- * @return {Object} The Stripe element options.
- */
-const getStripeElementOptions = () => {
-	let options = {
-		fields: {
-			billingDetails: {
-				name: 'never',
-				email: 'never',
-				// The phone field is optional, so it needs to be "auto" to not throw errors
-				// when passing the phone parameter to create a payment method.
-				phone: 'auto',
-				address: {
-					country: 'never',
-					line1: 'never',
-					line2: 'never',
-					city: 'never',
-					state: 'never',
-					postalCode: 'never',
-				},
-			},
-		},
-		wallets: {
-			applePay: 'never',
-			googlePay: 'never',
-		},
-	};
-
-	// Prefill Link customer data if available.
-	if ( isLinkEnabled() ) {
-		const userEmail = document.getElementById( 'email' )?.value;
-		if ( userEmail ) {
-			const userPhone =
-				document.getElementById( 'billing-phone' )?.value ||
-				document.getElementById( 'shipping-phone' )?.value;
-
-			options = {
-				...options,
-				defaultValues: {
-					billingDetails: {
-						email: userEmail,
-						phone: userPhone,
-					},
-				},
-			};
-		}
-	}
-
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		const layout = {
-			type:
-				getBlocksConfiguration()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-		};
-		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
-			layout.spacedAccordionItems = false;
-		}
-		options = {
-			...options,
-			layout,
-		};
-	}
-
-	return options;
-};
 
 /**
  * Submits the payment elements to Stripe for validation.
@@ -159,9 +92,6 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
@@ -400,18 +330,22 @@ const PaymentProcessor = ( {
 
 	return (
 		<>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: description,
-				} }
-			/>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: testingInstructionsIfAppropriate,
-				} }
-			/>
+			{ description && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: description,
+					} }
+				/>
+			) }
+			{ testingInstructions && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
+				/>
+			) }
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (

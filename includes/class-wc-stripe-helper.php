@@ -278,6 +278,31 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
+	 *
+	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
+	 * @param string $currency      Currency code (e.g. 'eur', 'usd').
+	 * @return string Formatted amount for display.
+	 */
+	public static function get_woocommerce_amount_from_stripe_amount( int $stripe_amount, string $currency = '' ): string {
+		if ( ! $currency ) {
+			$currency = get_woocommerce_currency();
+		}
+		$currency = strtolower( $currency );
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			$amount   = (float) absint( $stripe_amount );
+			$decimals = 0;
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$amount   = (float) $stripe_amount / 1000;
+			$decimals = 3;
+		} else {
+			$amount   = (float) $stripe_amount / 100;
+			$decimals = 2;
+		}
+		return wc_format_decimal( $amount, $decimals );
+	}
+
+	/**
 	 * Localize Stripe messages based on code
 	 *
 	 * @since 3.0.6
@@ -953,6 +978,53 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the order by Stripe checkout session ID.
+	 *
+	 * When HPOS is enabled we use wc_get_orders() with meta_query.
+	 * When HPOS is disabled, meta_query in wc_get_orders() is not supported (WooCommerce
+	 * only supports it for the custom orders table), so we use a direct meta query for legacy.
+	 *
+	 * @since 10.5.0
+	 * @param string $checkout_session_id The ID of the checkout session.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
+		if ( '' === $checkout_session_id ) {
+			return false;
+		}
+
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_checkout_session_id',
+							'value' => $checkout_session_id,
+						],
+					],
+				]
+			);
+			$order  = current( $orders ) ? current( $orders ) : null;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
+			$order    = ! empty( $order_id ) ? wc_get_order( $order_id ) : null;
+		}
+
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+
+		if ( $order->get_status() !== OrderStatus::TRASH ) {
+			return $order;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Gets the dynamic bank statement descriptor suffix.
 	 *
 	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
@@ -1103,6 +1175,71 @@ class WC_Stripe_Helper {
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
+	 * Returns whether adaptive pricing is supported for the current checkout.
+	 *
+	 * When on the checkout page, adaptive pricing is not supported if the cart contains
+	 * any of the following:
+	 * - A subscription product.
+	 * - A pre-order product that will be charged upon release.
+	 * - A deposit product.
+	 *
+	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
+	 * @since 10.5.0
+	 */
+	public static function is_adaptive_pricing_supported(): bool {
+
+		// False if checkout session feature flag is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if adaptive pricing option is disabled.
+		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// False if not on the checkout page.
+		if ( ! is_checkout() && ! has_block( 'woocommerce/checkout' ) ) {
+			return false;
+		}
+
+		if ( ! WC()->cart || WC()->cart->is_empty() ) {
+			return true;
+		}
+
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' ); // @phpstan-ignore function.impossibleType
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' ); // @phpstan-ignore function.impossibleType
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' ); // @phpstan-ignore function.impossibleType
+
+		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+		// subscriptions, pre-orders charged upon release, and deposits.
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+				continue;
+			}
+
+			// Subscriptions are not supported with adaptive pricing.
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+
+			// Pre-order (charge upon release) is not supported with adaptive pricing.
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+
+			// Deposits are not supported with adaptive pricing.
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
