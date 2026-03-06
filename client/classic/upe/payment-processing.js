@@ -520,13 +520,18 @@ function getOptimizedCheckoutRules(
 	}
 
 	if ( paymentMethodRadioStyles ) {
+		// Multiply base size by 1.1 to account for the SVG image not filling the space completely.
 		if ( paymentMethodRadioStyles.styles.width !== 'auto' ) {
-			radioIconRules.width = paymentMethodRadioStyles.styles.width;
+			radioIconRules.width = `${
+				parseFloat( paymentMethodRadioStyles.styles.width ) * 1.1
+			}px`;
 		} else if (
 			paymentMethodRadioStyles.element &&
 			paymentMethodRadioStyles.element.offsetWidth
 		) {
-			radioIconRules.width = `${ paymentMethodRadioStyles.element.offsetWidth }px`;
+			radioIconRules.width = `${
+				paymentMethodRadioStyles.element.offsetWidth * 1.1
+			}px`;
 		} else if ( paymentMethodRadioStyles.type === 'label-before' ) {
 			radioIconRules.width = paymentMethodRadioStyles.styles.fontSize;
 		}
