@@ -83,10 +83,24 @@ export const ensureExpressCheckoutSession = () => {
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: `security=${ encodeURIComponent( securityNonce ) }`,
 		} )
-			.then( ( res ) => res.json() )
-			.catch( () => {
-				// Allow retry on failure.
+			.then( async ( res ) => {
+				if ( ! res.ok ) {
+					throw new Error(
+						`Express Checkout session bootstrap failed: ${ res.status }`
+					);
+				}
+
+				const data = await res.json();
+				if ( ! data?.success ) {
+					throw new Error(
+						'Express Checkout session bootstrap failed.'
+					);
+				}
+			} )
+			.catch( ( error ) => {
+				// Allow retry on next call.
 				createSessionPromise = null;
+				throw error;
 			} );
 	}
 	return createSessionPromise;
