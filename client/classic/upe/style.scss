@@ -47,6 +47,10 @@
 			border-width: 0;
 			padding: 0;
 		}
+
+		#wc-stripe-upe-form .wc-stripe-upe-element iframe {
+			max-width: none;
+		}
 	}
 }
 
