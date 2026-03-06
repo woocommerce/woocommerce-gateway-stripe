@@ -1,6 +1,7 @@
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
+	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 	isLinkEnabled,
@@ -225,13 +226,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				},
 				...getDefaultValues( true ),
 			} );
-
-			// TODO: Handle error in the follow up PR for payment processing.
-			// const result = await elements.loadActions();
-
-			// if ( result.type === 'error' ) {
-			// 	throw result.error;
-			// }
 
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
@@ -485,7 +479,24 @@ export async function mountStripePaymentElement( api, domElement ) {
 		} );
 	}
 
-	return gatewayUPEComponents[ paymentMethodType ];
+	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
+	const component = gatewayUPEComponents[ paymentMethodType ];
+	const elements = component.elements;
+	if (
+		isAdaptivePricingEnabled &&
+		elements &&
+		typeof elements.loadActions === 'function'
+	) {
+		const actions = await elements.loadActions();
+
+		if ( actions.type === 'error' ) {
+			showErrorPaymentMethod( actions?.error?.message, domElement );
+			// Setting the flag to true to prevent the form from being submitted.
+			component.hasLoadError = true;
+		}
+	}
+
+	return component;
 }
 
 /**
@@ -602,45 +613,65 @@ export const processPayment = (
 				);
 			}
 
-			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-				validateBlikCode( jQueryForm );
-			} else {
-				await validateElements( elements );
-			}
+			if ( isAdaptivePricingEnabled ) {
+				const loadActionsResult = await elements.loadActions();
 
-			const paymentMethodObject = await createStripePaymentMethod(
-				api,
-				elements,
-				jQueryForm,
-				paymentMethodType
-			);
-
-			appendPaymentMethodIdToForm(
-				jQueryForm,
-				paymentMethodObject.paymentMethod.id
-			);
-
-			// Append the intent ID to the form if it was previously created through a non-deferred intent.
-			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-				appendPaymentIntentIdToForm(
-					jQueryForm,
-					gatewayUPEComponents[ paymentMethodType ].intentId
-				);
-			}
-
-			let stopFormSubmission = false;
-			await additionalActionsHandler(
-				paymentMethodObject.paymentMethod,
-				jQueryForm,
-				api,
-				() => {
-					// Provide a callback to flag that a redirect has occurred.
-					stopFormSubmission = true;
+				if ( loadActionsResult.type === 'error' ) {
+					throw new Error( loadActionsResult.error.message );
 				}
-			);
 
-			if ( stopFormSubmission ) {
-				return;
+				const { actions } = loadActionsResult;
+
+				const confirmResult = await actions.confirm( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+				} );
+
+				appendCheckoutSessionIdToForm(
+					jQueryForm,
+					confirmResult.session.id
+				);
+			} else {
+				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+					validateBlikCode( jQueryForm );
+				} else {
+					await validateElements( elements );
+				}
+
+				const paymentMethodObject = await createStripePaymentMethod(
+					api,
+					elements,
+					jQueryForm,
+					paymentMethodType
+				);
+
+				appendPaymentMethodIdToForm(
+					jQueryForm,
+					paymentMethodObject.paymentMethod.id
+				);
+
+				// Append the intent ID to the form if it was previously created through a non-deferred intent.
+				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+					appendPaymentIntentIdToForm(
+						jQueryForm,
+						gatewayUPEComponents[ paymentMethodType ].intentId
+					);
+				}
+
+				let stopFormSubmission = false;
+				await additionalActionsHandler(
+					paymentMethodObject.paymentMethod,
+					jQueryForm,
+					api,
+					() => {
+						// Provide a callback to flag that a redirect has occurred.
+						stopFormSubmission = true;
+					}
+				);
+
+				if ( stopFormSubmission ) {
+					return;
+				}
 			}
 
 			hasCheckoutCompleted = true;
