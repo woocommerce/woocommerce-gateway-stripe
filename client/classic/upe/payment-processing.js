@@ -599,6 +599,7 @@ function getPaymentMethodRadioStyles() {
 	// If the radio inputs are not hidden and are not set to 0x0 or 1x1, show the radios.
 	if (
 		otherPaymentMethodRadioStyles.display !== 'none' &&
+		otherPaymentMethodRadioStyles.appearance !== 'none' &&
 		! hiddenLengths.includes( otherPaymentMethodRadioStyles.width ) &&
 		! hiddenLengths.includes( otherPaymentMethodRadioStyles.height )
 	) {
