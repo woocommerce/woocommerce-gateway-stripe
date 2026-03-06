@@ -57,56 +57,6 @@ export const getExpressCheckoutAjaxURL = (
 };
 
 /**
- * Promise tracking the session-creation request. Resolved once and cached.
- *
- * @type {Promise<void>|null}
- */
-let createSessionPromise = null;
-
-/**
- * Ensure a WC customer session exists.
- *
- * This function creates a WC session for cart/shipping operations
- * when the user first interacts with Express Checkout.
- *
- * @return {Promise<void>} Resolves when the session is ready.
- */
-export const ensureExpressCheckoutSession = () => {
-	if ( ! createSessionPromise ) {
-		const url = getExpressCheckoutAjaxURL(
-			'create_express_checkout_session'
-		);
-		const securityNonce = getExpressCheckoutData( 'nonce' )?.create_session;
-
-		createSessionPromise = fetch( url, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: `security=${ encodeURIComponent( securityNonce ) }`,
-		} )
-			.then( async ( res ) => {
-				if ( ! res.ok ) {
-					throw new Error(
-						`Express Checkout session bootstrap failed: ${ res.status }`
-					);
-				}
-
-				const data = await res.json();
-				if ( ! data?.success ) {
-					throw new Error(
-						'Express Checkout session bootstrap failed.'
-					);
-				}
-			} )
-			.catch( ( error ) => {
-				// Allow retry on next call.
-				createSessionPromise = null;
-				throw error;
-			} );
-	}
-	return createSessionPromise;
-};
-
-/**
  * Displays a `confirm` dialog which leads to a redirect.
  *
  * @param {string} expressPaymentType Can be either 'apple_pay', 'google_pay', 'amazon_pay', 'paypal' or 'link'.

@@ -216,7 +216,6 @@ class WC_Stripe_Express_Checkout_Element {
 				'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
 				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
-				'create_session'                => wp_create_nonce( 'wc-stripe-create-express-checkout-session' ),
 			],
 			'i18n'                       => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),

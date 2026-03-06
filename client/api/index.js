@@ -6,7 +6,6 @@ import {
 	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-	ensureExpressCheckoutSession,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
@@ -479,8 +478,7 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingAddress Shipping details.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutECECalculateShippingOptions( shippingAddress ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
 			{
@@ -497,8 +495,7 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingOption Shipping option.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutUpdateShippingDetails( shippingOption ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutUpdateShippingDetails( shippingOption ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
 			{
@@ -516,8 +513,7 @@ export default class WCStripeAPI {
 	 * @param {Object} shippingAddress Shipping address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
 		return this.request( getExpressCheckoutAjaxURL( 'normalize_address' ), {
 			security: getExpressCheckoutData( 'nonce' )?.normalize_address,
 			data: {
@@ -532,8 +528,7 @@ export default class WCStripeAPI {
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutGetCartDetails() {
-		await ensureExpressCheckoutSession();
+	expressCheckoutGetCartDetails() {
 		return apiFetch( {
 			method: 'GET',
 			path: '/wc/store/v1/cart',
@@ -548,8 +543,7 @@ export default class WCStripeAPI {
 	 *
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutGetCartDetailsLegacy() {
-		await ensureExpressCheckoutSession();
+	expressCheckoutGetCartDetailsLegacy() {
 		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
 			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
 		} );
@@ -585,8 +579,7 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutAddToCartLegacy( productData ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutAddToCartLegacy( productData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
 			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
 			...productData,
@@ -600,7 +593,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	async expressCheckoutEmptyCart( bookingId ) {
-		await ensureExpressCheckoutSession();
 		try {
 			const cartData = await apiFetch( {
 				method: 'GET',
@@ -629,8 +621,7 @@ export default class WCStripeAPI {
 	 * @param {number} params.bookingId Booking ID.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
 		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
 			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
 			...( bookingId ? { booking_id: bookingId } : {} ),
@@ -643,8 +634,7 @@ export default class WCStripeAPI {
 	 * @param {Object} orderData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutECECreateOrder( orderData ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutECECreateOrder( orderData ) {
 		return this.postToBlocksAPI(
 			'/wc/store/v1/checkout',
 			{
@@ -703,8 +693,7 @@ export default class WCStripeAPI {
 	 * @param {Object} productData Product data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	async expressCheckoutGetSelectedProductData( productData ) {
-		await ensureExpressCheckoutSession();
+	expressCheckoutGetSelectedProductData( productData ) {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
