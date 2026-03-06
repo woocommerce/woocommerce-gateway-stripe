@@ -268,6 +268,25 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Helper function to ensure that scripts and styles are de-registered and de-queued.
+	 *
+	 * @param string[] $script_handles The script handles to clean up.
+	 * @param string[] $style_handles  The style handles to clean up.
+	 * @return void
+	 */
+	protected function clean_up_scripts( array $script_handles = [], array $style_handles = [] ): void {
+		foreach ( $script_handles as $script_handle ) {
+			wp_deregister_script( $script_handle );
+			wp_dequeue_script( $script_handle );
+		}
+
+		foreach ( $style_handles as $style_handle ) {
+			wp_deregister_style( $style_handle );
+			wp_dequeue_style( $style_handle );
+		}
+	}
+
+	/**
 	 * Helper function to set $_POST vars for saved payment method.
 	 */
 	private function set_postvars_for_saved_payment_method() {
@@ -547,7 +566,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Make is_checkout() return true so payment_scripts() passes its page guard.
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
-		wp_deregister_script( 'wc-stripe-upe-classic' );
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
 
 		$gateway->payment_scripts();
 
@@ -557,8 +579,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		wp_deregister_script( 'wc-stripe-upe-classic' );
-		wp_deregister_style( 'wc-stripe-upe-classic' );
+
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
 
 		$this->assertTrue( $script_is_registered, 'wc-stripe-upe-classic script is not registered' );
 		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
@@ -3734,9 +3759,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
 			$gateway->enabled = 'yes';
 
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
 
 			$gateway->payment_scripts();
 
@@ -3744,6 +3770,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( $expected_upe_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'Unexpected enqueue state for wc-stripe-upe-classic.' );
 		} finally {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
 
 			if ( $product ) {
 				$product->delete( true );
