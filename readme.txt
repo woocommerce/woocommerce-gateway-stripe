@@ -176,6 +176,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Refactor order helper class to use constants for lock meta keys and reduce code duplication in meta getters
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Fix - Remove WooCommerce session creation on product page load to improve cacheability
 
 **Internal Changes and Upcoming Features**
 * Dev - Remove unit tests that no longer make sense after recent file removals
