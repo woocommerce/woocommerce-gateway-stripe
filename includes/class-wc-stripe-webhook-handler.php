@@ -1664,7 +1664,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
 				break;
-
 			case 'checkout.session.completed':
 				$this->process_checkout_session( $notification );
 
@@ -1832,6 +1831,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
 
 			if ( ! $session->is_agentic() ) {
+				WC_Stripe_Logger::info(
+					'Checkout session is not agentic, skipping agentic processing: ' . $session->get_id()
+				);
 				return;
 			}
 

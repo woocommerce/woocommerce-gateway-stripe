@@ -42,13 +42,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )
-									->disableOriginalConstructor()
-									->onlyMethods(
-										[
-											'is_connected',
-										]
-									)
-									->getMock();
+								->disableOriginalConstructor()
+								->onlyMethods(
+									[
+										'is_connected',
+									]
+								)
+								->getMock();
 
 		$this->account = new WC_Stripe_Account( $this->mock_connect, WC_Helper_Stripe_Api::class );
 	}
