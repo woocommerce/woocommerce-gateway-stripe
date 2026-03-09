@@ -149,13 +149,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.5.0 - xxxx-xx-xx =
 
-**New Features**
-* Add - Display adaptive pricing currency selector on blocks checkout page
-* Add - Display adaptive pricing currency selector on classic checkout page
-* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
-* Add - Add the base CSV feed for agentic commerce
-* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
-
 **Important Fixes and Updates**
 * Fix - Allow subscription edits when mandates are present, except for mandates from India
 * Fix - Prevent fatal error when order ID in webhook references a refund
@@ -199,5 +192,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
 * Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
 * Update - Move class instantiations from their definition files to the plugin initialization code
+* Add - Display adaptive pricing currency selector on blocks checkout page
+* Add - Display adaptive pricing currency selector on classic checkout page
+* Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
+* Add - Add the base CSV feed for agentic commerce
+* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
