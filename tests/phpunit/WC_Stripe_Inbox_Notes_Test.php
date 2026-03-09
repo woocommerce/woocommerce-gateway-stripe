@@ -10,6 +10,7 @@ use WC_Stripe_Helper;
 use WC_Stripe_Inbox_Notes;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_StripeLink_Note;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Inbox_Notes_Test
@@ -22,12 +23,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public $stripe_connect_mock;
 	public $stripe_connect_original;
 
-	/**
-	 * Pre-test setup.
-	 *
-	 * @return void
-	 */
-	public function set_up(): void {
+	public function set_up() {
 		parent::set_up();
 
 		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
@@ -45,6 +41,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return;
 		}
 
+		update_option( '_wcstripe_feature_upe', 'yes' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'enabled'                         => 'yes',
@@ -53,13 +50,9 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		);
 	}
 
-	/**
-	 * Post-test tear down.
-	 *
-	 * @return void
-	 */
-	public function tear_down(): void {
+	public function tear_down() {
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
+		delete_option( '_wcstripe_feature_upe' );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		parent::tear_down();

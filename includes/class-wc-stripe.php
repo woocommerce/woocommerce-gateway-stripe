@@ -10,6 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe {
 
 	/**
+	 * The option name for the Stripe gateway settings.
+	 *
+	 * @deprecated 8.7.0
+	 */
+	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
+	/**
 	 * The *Singleton* instance of this class
 	 *
 	 * @var WC_Stripe
@@ -825,8 +832,12 @@ class WC_Stripe {
 		$stripe_account_controller->register_routes();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php';
+
+		$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
+		$upe_flag_toggle_controller->register_routes();
 
 		$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 		$settings_controller->register_routes();

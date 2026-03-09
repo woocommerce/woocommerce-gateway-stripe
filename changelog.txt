@@ -13,7 +13,6 @@
 * Update - Move class instantiations from their definition files to the plugin initialization code
 * Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Dev - Remove unused frontend code related to UPE
-* Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
