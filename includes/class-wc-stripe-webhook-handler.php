@@ -1792,7 +1792,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$checkout_session = $notification->data->object;
 
 		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			WC_Stripe_Logger::error( 'Could not find order via checkout session ID: ' . $checkout_session->id );
+			WC_Stripe_Logger::error( 'Agentic commerce is disabled, skipping agentic checkout session: ' . $checkout_session->id );
 			return;
 		}
 
