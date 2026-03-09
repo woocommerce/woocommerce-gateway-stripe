@@ -183,7 +183,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove unit tests that no longer make sense after recent file removals
 * Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
 * Dev - Fix WC beta version resolution in tests
-* Dev - Fixes becs e2e tests
+* Dev - Fix becs e2e tests
 * Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
 * Dev - Add CodeRabbit configuration with Stripe-focused review guidance
 * Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
