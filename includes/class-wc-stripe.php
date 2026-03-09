@@ -226,6 +226,11 @@ class WC_Stripe {
 			}
 		}
 
+		// Load Agentic Commerce classes that do not depend on FeedInterface/core.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-line-item.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-checkout-session.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-order-mapper.php';
+
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
@@ -841,7 +846,7 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {

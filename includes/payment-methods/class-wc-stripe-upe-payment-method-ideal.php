@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -18,16 +21,16 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$is_sepa_tokens_for_ideal_enabled         = $this->is_sepa_tokens_for_ideal_enabled();
 		$this->stripe_id                          = self::STRIPE_ID;
-		$this->title                              = __( 'iDEAL', 'woocommerce-gateway-stripe' );
+		$this->title                              = 'iDEAL | Wero';
 		$this->is_reusable                        = $is_sepa_tokens_for_ideal_enabled;
 		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
-		$this->label                              = __( 'iDEAL', 'woocommerce-gateway-stripe' );
+		$this->label                              = 'iDEAL | Wero';
 		$this->description                        = __(
-			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		);
 		if ( $is_sepa_tokens_for_ideal_enabled ) {
-			$this->supports[] = 'tokenization';
+			$this->supports[] = PaymentGatewayFeature::TOKENIZATION;
 
 			// Check if subscriptions are enabled and add support for them.
 			$this->maybe_init_subscriptions();

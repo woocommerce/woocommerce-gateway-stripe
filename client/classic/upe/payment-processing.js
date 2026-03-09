@@ -33,8 +33,8 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
-const isAdaptivePricingSupported =
-	getStripeServerData()?.isAdaptivePricingSupported;
+const isAdaptivePricingEnabled =
+	getStripeServerData()?.isAdaptivePricingEnabled;
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -200,7 +200,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	if ( isAdaptivePricingSupported && supportsDeferredIntent ) {
+	if ( isAdaptivePricingEnabled && supportsDeferredIntent ) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response?.data?.client_secret;
