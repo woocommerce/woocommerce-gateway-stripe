@@ -5527,18 +5527,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request_with_level3_data\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
 			count: 5
@@ -5648,30 +5636,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$order_id of static method WC_Stripe_Helper\:\:should_force_save_payment_method\(\) expects string\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<string, array\<string, array\<string, array\<string, string\>\|string\>\|string\>\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<string, array\<string, mixed\>\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
