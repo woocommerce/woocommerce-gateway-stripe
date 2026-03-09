@@ -392,6 +392,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Validates that the order meets the minimum order amount
+	 * set by Stripe.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $order
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_minimum_order_amount() instead.
+	 */
+	public function validate_minimum_order_amount( $order ) {
+		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
+	}
+
+	/**
 	 * Gets the transaction URL linked to Stripe dashboard.
 	 *
 	 * @since 4.0.0
@@ -724,6 +741,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( isset( $emails['WC_Stripe_Email_Customer_Failed_Refund'] ) ) {
 			$emails['WC_Stripe_Email_Customer_Failed_Refund']->trigger( $order->get_id(), $order );
 		}
+	}
+
+	/**
+	 * Get owner details.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $order
+	 * @return object $details
+	 *
+	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_owner_details() instead.
+	 */
+	public function get_owner_details( $order ) {
+		$billing_first_name = $order->get_billing_first_name();
+		$billing_last_name  = $order->get_billing_last_name();
+
+		$details = [];
+
+		$name  = $billing_first_name . ' ' . $billing_last_name;
+		$email = $order->get_billing_email();
+		$phone = $order->get_billing_phone();
+
+		if ( ! empty( $phone ) ) {
+			$details['phone'] = $phone;
+		}
+
+		if ( ! empty( $name ) ) {
+			$details['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$details['email'] = $email;
+		}
+
+		$details['address']['line1']       = $order->get_billing_address_1();
+		$details['address']['line2']       = $order->get_billing_address_2();
+		$details['address']['state']       = $order->get_billing_state();
+		$details['address']['city']        = $order->get_billing_city();
+		$details['address']['postal_code'] = $order->get_billing_postcode();
+		$details['address']['country']     = $order->get_billing_country();
+
+		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 
 	/**
@@ -1716,6 +1775,122 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Locks an order for payment intent processing for 5 minutes.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order  The order that is being paid.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_payment().
+	 */
+	public function lock_order_payment( $order ) {
+		if ( $this->is_order_payment_locked( $order ) ) {
+			// If the order is already locked, return true.
+			return true;
+		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing by payment intents.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order The order that is being unlocked.
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_payment().
+	 */
+	public function unlock_order_payment( $order ) {
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Retrieves the existing lock for an order.
+	 *
+	 * @param WC_Order $order The order to retrieve the lock for
+	 * @return mixed
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::get_order_payment_lock().
+	 */
+	protected function get_order_existing_lock( $order ) {
+		$order->read_meta_data( true );
+		return $order->get_meta( '_stripe_lock_payment', true );
+	}
+
+	/**
+	 * Checks if an order is locked for payment processing.
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::is_order_payment_locked().
+	 */
+	protected function is_order_payment_locked( $order ) {
+		$existing_lock = $this->get_order_existing_lock( $order );
+		if ( $existing_lock ) {
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Locks an order for refund processing for 5 minutes.
+	 *
+	 * @since 9.1.0
+	 * @param WC_Order $order  The order that is being refunded.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_refund().
+	 */
+	public function lock_order_refund( $order ) {
+		$order->read_meta_data( true );
+
+		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+
+		if ( $existing_lock ) {
+			$expiration = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+
+		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing refund.
+	 *
+	 * @since 9.1.0
+	 * @param WC_Order $order The order that is being unlocked.
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_refund().
+	 */
+	public function unlock_order_refund( $order ) {
+		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->save_meta_data();
 	}
 
 	/**
