@@ -291,7 +291,7 @@ class WC_Stripe_Helper {
 		$currency = strtolower( $currency );
 
 		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
-			return (float) $amount;
+			return (float) absint( $amount );
 		}
 
 		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
@@ -299,6 +299,32 @@ class WC_Stripe_Helper {
 		}
 
 		return round( $amount / 100, 2 );
+	}
+
+	/**
+	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
+	 *
+	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
+	 * @param string $currency      Currency code (e.g. 'eur', 'usd').
+	 * @return string Formatted amount for display.
+	 */
+	public static function get_woocommerce_amount_from_stripe_amount( int $stripe_amount, string $currency = '' ): string {
+		if ( ! $currency ) {
+			$currency = get_woocommerce_currency();
+		}
+
+		$currency = strtolower( $currency );
+
+		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
+		$decimals = 2;
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			$decimals = 0;
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$decimals = 3;
+		}
+
+		return wc_format_decimal( $amount, $decimals );
 	}
 
 	/**
@@ -971,6 +997,53 @@ class WC_Stripe_Helper {
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets the order by Stripe checkout session ID.
+	 *
+	 * When HPOS is enabled we use wc_get_orders() with meta_query.
+	 * When HPOS is disabled, meta_query in wc_get_orders() is not supported (WooCommerce
+	 * only supports it for the custom orders table), so we use a direct meta query for legacy.
+	 *
+	 * @since 10.5.0
+	 * @param string $checkout_session_id The ID of the checkout session.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
+		if ( '' === $checkout_session_id ) {
+			return false;
+		}
+
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_checkout_session_id',
+							'value' => $checkout_session_id,
+						],
+					],
+				]
+			);
+			$order  = current( $orders ) ? current( $orders ) : null;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
+			$order    = ! empty( $order_id ) ? wc_get_order( $order_id ) : null;
+		}
+
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+
+		if ( $order->get_status() !== OrderStatus::TRASH ) {
+			return $order;
 		}
 
 		return false;

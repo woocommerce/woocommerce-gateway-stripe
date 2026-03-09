@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
+* Update - Add missing metadata to checkout session objects when processing webhook events
 * Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
 * Add - Display adaptive pricing currency selector on blocks checkout page
 * Dev - Remove unit tests that no longer make sense after recent file removals
@@ -179,6 +180,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent fatal error when order ID in webhook references a refund
 * Tweak - Refactor order helper class to use constants for lock meta keys and reduce code duplication in meta getters
 * Dev - Update dependencies for building translations
+* Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Fix currency formatting issue with ISK for express checkouts
 * Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
@@ -186,5 +188,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Add iDEAL | Wero co-branding as Stripe iDEAL-to-Wero migration Phase 1
 * Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
 * Fix - Only load Stripe JS (not the full UPE bundle) on product and cart pages when express checkout is disabled
+* Fix - Fix script dependencies and script cache versioning for classic checkout
+* Fix - Remove WooCommerce session creation on product page load to improve cacheability
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
