@@ -157,7 +157,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
 * Fix - Only load Stripe JS (not the full UPE bundle) on product and cart pages when express checkout is disabled
 * Fix - Fix script dependencies and script cache versioning for classic checkout
-* Update - Add missing metadata to checkout session objects when processing webhook events
 * Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
 * Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Update - Use iDEAL | Wero co-branding to comply with branding changes
@@ -198,5 +197,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing
 * Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
 * Update - Include additional customer information when creating checkout sessions
+* Update - Add missing metadata to checkout session objects when processing webhook events
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
