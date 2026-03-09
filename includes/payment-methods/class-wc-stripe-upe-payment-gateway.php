@@ -1073,6 +1073,50 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC()->cart->empty_cart();
 		}
 
+		// Add extra customer information to the checkout session on the Stripe side if the customer is logged in.
+		if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
+			$wc_customer = WC()->customer;
+			$user_id     = $wc_customer->get_id();
+			$first_name  = get_user_meta( $user_id, 'first_name', true );
+			$last_name   = get_user_meta( $user_id, 'last_name', true );
+			$full_name   = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
+
+			$request = [
+				'collected_information' => [
+					'shipping_details' => [
+						'name'  => $full_name,
+						'address' => [
+							'line1'       => $wc_customer->get_shipping_address_1(),
+							'line2'       => $wc_customer->get_shipping_address_2(),
+							'city'        => $wc_customer->get_shipping_city(),
+							'country'     => $wc_customer->get_shipping_country(),
+							'postal_code' => $wc_customer->get_shipping_postcode(),
+							'state'       => $wc_customer->get_shipping_state(),
+						],
+					],
+				],
+				'metadata' => [
+					'customer_name'  => $full_name,
+					'customer_email' => $wc_customer->get_email(),
+				],
+			];
+
+			$response = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id, $request, null, 'POST' );
+			if ( ! empty( $response->error->message ) ) {
+				WC_Stripe_Logger::error(
+					'Error updating checkout session with customer information.',
+					[
+						'checkout_session_id' => $checkout_session_id,
+						'error_message'       => $response->error->message,
+					]
+				);
+				return [
+					'result'   => 'failure',
+					'redirect' => '',
+				];
+			}
+		}
+
 		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
 		// the order is updated to paid when the checkout.session.completed webhook fires.
 		// Here we only link the session to the order, clear the cart, and redirect the customer to the thank-you page.

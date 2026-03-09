@@ -37,19 +37,18 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$user_logged_in = is_user_logged_in() && WC()->customer instanceof WC_Customer;
-			$request        = [
+			$request = [
 				'ui_mode'                       => 'custom',
 				'line_items'                    => $this->build_line_items(),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'           => $this->build_payment_intent_data( $user_logged_in ),
+				'payment_intent_data'           => $this->build_payment_intent_data(),
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];
 
-			if ( $user_logged_in ) {
+			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 				try {
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 					$stripe_customer->maybe_create_customer();
@@ -108,49 +107,16 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	}
 
 	/**
-	 * Build the payment intent data array, including metadata and customer information if the user is logged in.
+	 * Build the payment intent data array, including metadata information.
 	 *
-	 * @param bool $user_logged_in Whether the user is logged in and has a valid WC_Customer instance.
 	 * @return array
 	 */
-	private function build_payment_intent_data( bool $user_logged_in ): array {
+	private function build_payment_intent_data(): array {
 		$data     = [];
 		$metadata = [
 			'site_url'     => esc_url_raw( get_site_url() ),
 			'payment_type' => 'single',
 		];
-
-		if ( $user_logged_in ) {
-			$wc_customer = WC()->customer;
-			$user_id     = $wc_customer->get_id();
-			$email       = $wc_customer->get_email();
-			$first_name  = get_user_meta( $user_id, 'first_name', true );
-			$last_name   = get_user_meta( $user_id, 'last_name', true );
-			$full_name   = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
-
-			$data = [
-				'receipt_email' => $email,
-				'shipping'      => [
-					'name'    => $full_name,
-					'address' => [
-						'line1'       => $wc_customer->get_shipping_address_1(),
-						'line2'       => $wc_customer->get_shipping_address_2(),
-						'city'        => $wc_customer->get_shipping_city(),
-						'country'     => $wc_customer->get_shipping_country(),
-						'postal_code' => $wc_customer->get_shipping_postcode(),
-						'state'       => $wc_customer->get_shipping_state(),
-					],
-				],
-			];
-
-			$metadata = array_merge(
-				$metadata,
-				[
-					'customer_name'  => $full_name,
-					'customer_email' => $email,
-				]
-			);
-		}
 
 		/**
 		 * Filter the metadata sent with the Stripe Checkout Session payment intent.
