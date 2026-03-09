@@ -645,6 +645,19 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
+	 * Set `wc_stripe_show_customization_notice` as `no` to dismiss notice.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
+	 *
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
+	 */
+	public function dismiss_customization_notice( WP_REST_Request $request ) {
+		return $this->dismiss_notice( $request );
+	}
+
+	/**
 	 * Dismisses settings notices such as the customization notice and BNPL promotion banner.
 	 *
 	 * @param WP_REST_Request $request Request object.

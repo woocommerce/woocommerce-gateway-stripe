@@ -385,7 +385,73 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Call to an undefined method object\:\:get_billing_address_1\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_address_2\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_city\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_country\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_email\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_first_name\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_last_name\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_phone\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_postcode\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_billing_state\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Call to an undefined method object\:\:get_id\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_total\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -859,6 +925,18 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_payment\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_refund\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -872,6 +950,12 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_minimum_order_amount\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1153,8 +1237,20 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#2 \$value of method WC_Data\:\:update_meta_data\(\) expects array\|string, int\<301, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Variable \$name in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1417,6 +1513,12 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_customization_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-settings-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -1667,6 +1769,12 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
+
+		-
+			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
 
 		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
@@ -2189,6 +2297,18 @@ parameters:
 			identifier: parameter.notFound
 			count: 1
 			path: includes/class-wc-stripe-database-cache-prefetch.php
+
+		-
+			message: '#^Expected 3 @param tags, found 2\.$#'
+			identifier: paramTag.count
+			count: 1
+			path: includes/class-wc-stripe-feature-flags.php
+
+		-
+			message: '#^Method WC_Stripe_Feature_Flags\:\:is_oc_available\(\) should return bool but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-feature-flags.php
 
 		-
 			message: '#^@param string \$order_id does not accept actual type of parameter\: string\|null\.$#'
@@ -3276,7 +3396,6 @@ parameters:
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
-
 		-
 			message: '#^Access to an undefined property object\:\:\$token_id\.$#'
 			identifier: property.notFound
@@ -4304,6 +4423,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
 		-
+			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
+
+		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_product_price\(\) expects object, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4342,6 +4467,12 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$variation of method WC_Cart\:\:add_to_cart\(\) expects array, array\|string given\.$#'
 			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -10572,4 +10703,3 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: woocommerce-gateway-stripe.php
-
