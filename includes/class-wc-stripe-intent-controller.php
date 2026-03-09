@@ -1347,6 +1347,11 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'subscription_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Verify the current user owns this subscription.
+			if ( $subscription->get_user_id() !== get_current_user_id() ) {
+				throw new WC_Stripe_Exception( 'unauthorized', __( 'You do not have permission to update this subscription.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$setup_intent_id = ( isset( $_POST['intent_id'] ) && is_string( $_POST['intent_id'] ) ) ? sanitize_text_field( wp_unslash( $_POST['intent_id'] ) ) : null;
 
 			if ( empty( $setup_intent_id ) ) {
@@ -1424,6 +1429,24 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
 		return ! empty( array_intersect( $payment_methods, [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
+	}
+
+	/**
+	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
+	 *
+	 * @deprecated 8.3.0
+	 * @since 5.6.0
+	 * @version 5.6.0
+	 *
+	 * @return void
+	 */
+	public function maybe_process_upe_redirect() {
+		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
+
+		$gateway = $this->get_gateway();
+		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateway->maybe_process_upe_redirect();
+		}
 	}
 
 	/**

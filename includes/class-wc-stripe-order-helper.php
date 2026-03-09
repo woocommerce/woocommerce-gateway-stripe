@@ -72,6 +72,27 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe checkout session ID.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
+
+	/**
+	 * Meta key for Stripe presentment currency.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_PRESENTMENT_CURRENCY = '_stripe_presentment_currency';
+
+	/**
+	 * Meta key for Stripe presentment amount.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_PRESENTMENT_AMOUNT = '_stripe_presentment_amount';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -468,6 +489,81 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_setup_intent_id( ?WC_Order $order = null, string $intent_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_SETUP_INTENT, $intent_id );
+	}
+
+	/**
+	 * Gets the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
+	}
+
+	/**
+	 * Updates the Stripe checkout session ID for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $checkout_session_id
+	 * @return false|void
+	 */
+	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
+	}
+
+	/**
+	 * Gets the Stripe presentment currency for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_presentment_currency( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY );
+	}
+
+	/**
+	 * Updates the Stripe presentment currency for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param string $presentment_currency
+	 * @return false|void
+	 */
+	public function update_stripe_presentment_currency( ?WC_Order $order = null, string $presentment_currency = '' ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY, $presentment_currency );
+	}
+
+	/**
+	 * Gets the Stripe presentment amount for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|string|null
+	 */
+	public function get_stripe_presentment_amount( ?WC_Order $order = null ) {
+		return $this->get_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT );
+	}
+
+	/**
+	 * Updates the Stripe presentment amount for order.
+	 *
+	 * @since 10.5.0
+	 *
+	 * @param WC_Order|null $order
+	 * @param int           $presentment_amount Stripe minor-unit integer (e.g. 7800 for $78.00)
+	 * @return false|void
+	 */
+	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
 	}
 
 	/**

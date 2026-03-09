@@ -116,7 +116,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let intent, options;
 
 	options = {
-		appearance: initializeUPEAppearance( api ),
+		appearance: initializeUPEAppearance(),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
