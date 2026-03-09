@@ -533,9 +533,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 *
 		 * @since 4.0.0
 		 *
-		 * @param array            $metadata The metadata array to be sent with the payment intent.
-		 * @param WC_Order|null    $order    The WC_Order object if available, otherwise null.
-		 * @param WC_Customer|null $customer The WC_Customer object if available, otherwise null.
+		 * @param array         $metadata                The metadata array to be sent with the payment intent.
+		 * @param WC_Order|null $order                   The WC_Order object if available, otherwise null.
+		 * @param object|null   $prepared_payment_method The prepared payment method object if available, otherwise null.
 		 */
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
 
