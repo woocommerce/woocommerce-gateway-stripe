@@ -83,7 +83,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	 * @return array
 	 */
 	private function build_line_items(): array {
-		$currency   = get_woocommerce_currency();
+		$currency   = strtolower( get_woocommerce_currency() );
 		$line_items = [];
 		foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
 			if ( 'total_discount' === ( $raw_line_item['key'] ?? '' ) ) {
@@ -93,7 +93,7 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			$line_items[] = [
 				'price_data' => [
-					'currency' => strtolower( $currency ),
+					'currency' => $currency,
 					'product_data' => [
 						'name' => $raw_line_item['label'],
 					],
