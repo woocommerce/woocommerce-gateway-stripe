@@ -278,6 +278,30 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
+	 *
+	 * This is the inverse of `get_stripe_amount()`.
+	 *
+	 * @since 10.6.0
+	 * @param int    $amount   The amount in Stripe's smallest currency unit.
+	 * @param string $currency The three-letter currency code.
+	 * @return float The decimal amount for WooCommerce.
+	 */
+	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			return (float) absint( $amount );
+		}
+
+		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			return round( $amount / 1000, 3 );
+		}
+
+		return round( $amount / 100, 2 );
+	}
+
+	/**
 	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
 	 *
 	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
@@ -288,17 +312,18 @@ class WC_Stripe_Helper {
 		if ( ! $currency ) {
 			$currency = get_woocommerce_currency();
 		}
+
 		$currency = strtolower( $currency );
+
+		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
+		$decimals = 2;
+
 		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
-			$amount   = (float) absint( $stripe_amount );
 			$decimals = 0;
 		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
-			$amount   = (float) $stripe_amount / 1000;
 			$decimals = 3;
-		} else {
-			$amount   = (float) $stripe_amount / 100;
-			$decimals = 2;
 		}
+
 		return wc_format_decimal( $amount, $decimals );
 	}
 
@@ -1187,7 +1212,7 @@ class WC_Stripe_Helper {
 	 * - A deposit product.
 	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 */
 	public static function is_adaptive_pricing_supported(): bool {
 

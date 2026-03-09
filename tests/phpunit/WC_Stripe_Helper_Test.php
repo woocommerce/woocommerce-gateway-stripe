@@ -280,6 +280,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @dataProvider provide_test_convert_from_stripe_amount
+	 */
+	public function test_convert_from_stripe_amount( int $stripe_amount, string $currency, float $expected ): void {
+		$result = WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency );
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
 	 * Test for `get_woocommerce_amount_from_stripe_amount` (Stripe → WooCommerce amount conversion).
 	 *
 	 * @param int|string $stripe_amount Stripe amount in smallest unit (cents, etc.).
@@ -291,6 +299,56 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $stripe_amount, $currency );
 		$this->assertIsString( $result );
 		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for `test_convert_from_stripe_amount`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_convert_from_stripe_amount(): array {
+		return [
+			'USD standard'                 => [
+				'stripe_amount' => 10000,
+				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'      => 100.00,
+			],
+			'USD small amount'             => [
+				'stripe_amount' => 99,
+				'currency'      => WC_Stripe_Currency_Code::EURO,
+				'expected'      => 0.99,
+			],
+			'JPY no-decimal'               => [
+				'stripe_amount' => 1000,
+				'currency'      => WC_Stripe_Currency_Code::JAPANESE_YEN,
+				'expected'      => 1000.0,
+			],
+			'BIF no-decimal'               => [
+				'stripe_amount' => 100,
+				'currency'      => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
+				'expected'      => 100.0,
+			],
+			'BHD three-decimal'            => [
+				'stripe_amount' => 100000,
+				'currency'      => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
+				'expected'      => 100.0,
+			],
+			'JOD three-decimal'            => [
+				'stripe_amount' => 1000,
+				'currency'      => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
+				'expected'      => 1.0,
+			],
+			'zero amount'                  => [
+				'stripe_amount' => 0,
+				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'      => 0.0,
+			],
+			'uppercase currency code'      => [
+				'stripe_amount' => 500,
+				'currency'      => 'USD',
+				'expected'      => 5.00,
+			],
+		];
 	}
 
 	/**
