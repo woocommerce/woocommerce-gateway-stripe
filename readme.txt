@@ -148,48 +148,56 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.5.0 - xxxx-xx-xx =
-* Update - Add missing metadata to checkout session objects when processing webhook events
-* Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
+
+**New Features**
 * Add - Display adaptive pricing currency selector on blocks checkout page
-* Dev - Remove unit tests that no longer make sense after recent file removals
-* Update - Include additional customer information when creating checkout sessions
-* Fix - Allow subscription edits when mandates are present, except for mandates from India
-* Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
-* Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
-* Dev - Remove unused frontend code related to block checkout
-* Update - Move class instantiations from their definition files to the plugin initialization code
-* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
-* Dev - Remove unused frontend code related to UPE
-* Update - Remove all deprecated code up to version 10.1.0
-* Tweak - Update PHPDoc in admin REST controllers and related code
-* Tweak - Improve PHPDoc for migration and notes; minor notes refactor
-* Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
-* Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
-* Dev - Fix WC beta version resolution in tests
-* Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
-* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
-* Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
-* Dev - Fixes becs e2e tests
 * Add - Add the base CSV feed for agentic commerce
-* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
-* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
-* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
-* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
-* Fix - Prevent fatal error when order ID in webhook references a refund
-* Tweak - Refactor order helper class to use constants for lock meta keys and reduce code duplication in meta getters
-* Dev - Update dependencies for building translations
 * Add - Backend support for processing payments with Checkout Session when using Adaptive Pricing.
+
+**Important Fixes and Updates**
+* Fix - Allow subscription edits when mandates are present, except for mandates from India
+* Fix - Prevent fatal error when order ID in webhook references a refund
 * Fix - Hide all payment methods on Add Payment Method page when saved payment methods are disabled
-* Fix - Fix currency formatting issue with ISK for express checkouts
-* Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
-* Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+* Update - Add missing metadata to checkout session objects when processing webhook events
+* Update - Include additional customer information when creating checkout sessions
+* Update - Remove the deferred intent flag (`wc-stripe-is-deferred-intent`) and the non-deferred intent code path
+* Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
+* Update - Remove all deprecated code up to version 10.1.0
+* Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
+* Update - Reconfigure webhooks to include Checkout Session events when Adaptive Pricing is enabled via settings
 * Update - Add iDEAL | Wero co-branding as Stripe iDEAL-to-Wero migration Phase 1
-* Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
+
+**Other Fixes and Updates**
+* Fix - Update deprecated WooCommerce block checkout hook from `onCheckoutAfterProcessingWithSuccess` to `onCheckoutSuccess` in the saved token handler
+* Fix - Fix currency formatting issue with ISK for express checkouts
 * Fix - Only load Stripe JS (not the full UPE bundle) on product and cart pages when express checkout is disabled
 * Fix - Fix script dependencies and script cache versioning for classic checkout
 * Fix - Remove transient style caching in favor of a simple in-memory frontend cache
 * Fix - Improve Stripe element appearance on non-checkout pages
+* Tweak - Update PHPDoc in admin REST controllers and related code
+* Tweak - Improve PHPDoc for migration and notes; minor notes refactor
+* Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
+* Tweak - Update PHPDoc for UPE payment method classes
+* Tweak - Refactor order helper class to use constants for lock meta keys and reduce code duplication in meta getters
+* Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
+* Tweak - Add missing JSDoc comments to client-side utility, API, and payment-flow functions
+
+**Internal Changes and Upcoming Features**
+* Dev - Remove unit tests that no longer make sense after recent file removals
+* Dev - Deprecate old unused feature flag backend methods and remove related code from the frontend
+* Dev - Remove unused frontend code related to block checkout
+* Dev - Remove unused frontend code related to UPE
+* Dev - Fix WC beta version resolution in tests
+* Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
+* Dev - Fixes becs e2e tests
+* Dev - Upgrade @types/react to ^18.3.7 in JavaScript dependencies
+* Dev - Add CodeRabbit configuration with Stripe-focused review guidance
+* Dev - Expand AI agent guidance with directory-level AGENTS and CLAUDE context files
+* Dev - Update dependencies for building translations
+* Dev - Extract shared banner styled components and dismissNotice utility to eliminate frontend duplication
+* Dev - Use PaymentGatewayFeature constants instead of raw strings for payment gateway feature declarations in UPE payment method classes and traits
+* Update - Move class instantiations from their definition files to the plugin initialization code
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
