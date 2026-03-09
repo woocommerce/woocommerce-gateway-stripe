@@ -13,14 +13,13 @@
 * Update - Move class instantiations from their definition files to the plugin initialization code
 * Update - Deprecate unused non-deferred intent methods in WC_Stripe_UPE_Payment_Gateway
 * Dev - Remove unused frontend code related to UPE
-* Update - Remove all deprecated code up to version 10.1.0
 * Tweak - Update PHPDoc in admin REST controllers and related code
 * Tweak - Improve PHPDoc for migration and notes; minor notes refactor
 * Tweak - Update PHPDoc for express checkout classes, block support class, and intent controller
 * Tweak - Update PHPDoc for UPE payment method classes
 * Add - Display adaptive pricing currency selector on classic checkout page
 * Dev - Fix WC beta version resolution in tests
-* Update - Update Stripe API to 2025-09-3.clover and dynamic Javascript to Clover
+* Update - Update Stripe API to 2025-09-30.clover and dynamic Javascript to Clover
 * Tweak - Update PHPDoc and fix minor issues for subscriptions and pre-order compatibility
 * Add - Add method to check if adaptive pricing is supported and pass the flag to checkout page
 * Dev - Upgrade @stripe/react-stripe-js to ^5.4.1 and @stripe/stripe-js to ^8.6.0 in JavaScript dependencies
