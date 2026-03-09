@@ -3381,7 +3381,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 42
+			count: 40
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -5023,18 +5023,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has parameter \$post with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has parameter \$post_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_my_account_my_orders_actions\(\) has parameter \$actions with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -5043,24 +5031,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_my_account_my_orders_actions\(\) has parameter \$order with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) never returns array so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) should return array\|null but returns string\.$#'
-			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -5306,12 +5276,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$intent_id of method WC_Stripe_Intent_Controller\:\:update_intent\(\) expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$json of function json_decode expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -5617,33 +5581,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function delete_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function get_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function set_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-

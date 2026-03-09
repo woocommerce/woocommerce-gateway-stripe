@@ -61,6 +61,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Transient name for appearance settings.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
@@ -68,6 +69,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Transient name for appearance settings on the block checkout.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
@@ -301,13 +303,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
-		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
-
-		// Add hooks for clearing appearance transients when theme is updated
-		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
-		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
 		// Attach the currency selector div to the classic checkout page.
 		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
@@ -552,11 +548,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_payment_request_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
-
-		// Add appearance settings.
-		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
-		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
-		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
 
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
@@ -949,6 +940,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
+				<?php // Hidden input for appearance style extraction on non-checkout pages (Add Payment Method, Order Pay). ?>
+				<input type="text" id="wc-stripe-hidden-style-input" class="input-text" aria-hidden="true" tabindex="-1" autocomplete="off" style="position:absolute!important;opacity:0!important;pointer-events:none!important;" />
 			</fieldset>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
@@ -3327,20 +3320,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Fetches the appearance settings for Stripe Elements from the transient cache.
-	 *
-	 * Include the theme name in the transient key because getAppearance (found in client/styles/upe/index.js) will generate different
-	 * appearance rules based on the active theme, so we need to cache the appearance settings per theme.
-	 *
-	 * @param bool $is_block_checkout Whether the appearance settings are for the block checkout.
-	 *
-	 * @return array|null The appearance settings.
-	 */
-	private function get_appearance_transient_key( $is_block_checkout = false ) {
-		return ( $is_block_checkout ? self::BLOCKS_APPEARANCE_TRANSIENT : self::APPEARANCE_TRANSIENT ) . '_' . get_option( 'stylesheet' );
-	}
-
-	/**
 	 * Checks if the current page is the order details page.
 	 *
 	 * @return bool Whether the current page is the order details page.
@@ -3419,51 +3398,34 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Saves the default appearance settings to a transient cache.
 	 *
 	 * Individual appearance settings are saved for both block and shortcode checkout and also against each theme so that changing the theme will use different transient setting.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function save_appearance_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_appearance_nonce', false, false );
-
-			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( 'Invalid nonce saving appearance.', __( 'Unable to update Stripe Elements appearance values at this time.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$is_block_checkout = isset( $_POST['is_block_checkout'] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST['is_block_checkout'] ) ) ) : false;
-			$appearance        = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
-
-			if ( null !== $appearance ) {
-				set_transient( $this->get_appearance_transient_key( $is_block_checkout ), $appearance, DAY_IN_SECONDS );
-			}
-
-			wp_send_json_success( $appearance, 200 );
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error( 'Error saving appearance.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getLocalizedMessage(),
-					],
-				]
-			);
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a Block theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
+	 *
+	 * @param int     $post_id The post ID.
+	 * @param WP_Post $post    The post object.
 	 */
 	public function clear_appearance_transients_block_theme( $post_id, $post ) {
-		if ( in_array( $post->post_type, [ 'wp_global_styles' ], true ) ) {
-			delete_transient( $this->get_appearance_transient_key( true ) );
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a classic theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function clear_appearance_transients() {
-		delete_transient( $this->get_appearance_transient_key() );
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**

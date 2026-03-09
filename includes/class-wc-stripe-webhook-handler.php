@@ -1430,38 +1430,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Processes the checkout session completed event.
 	 *
-	 * This webhook exists for both standard post-payment checkout
-	 * sessions, as well as agentic checkout sessions.
-	 *
 	 * @param object $notification The notification from Stripe
 	 * @return void
 	 */
 	public function process_checkout_session( object $notification ): void {
 		$checkout_session = $notification->data->object;
-		$session_id       = $checkout_session->id;
 
-		// Acquire a lock to prevent duplicate order creation from concurrent agentic sessions.
-		$lock_key = 'checkout_session_lock_' . $session_id;
-		if ( null !== WC_Stripe_Database_Cache::get( $lock_key ) ) {
-			WC_Stripe_Logger::info(
-				'Checkout session is already being processed.',
-				[ 'session_id' => $session_id ]
-			);
-			return;
-		}
-		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
-
-		// Look for an order. If one does not exists, this is probably an agentic hook.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+
 		if ( ! $order instanceof \WC_Order ) {
-			try {
-				$this->handle_agentic_checkout_session( $notification );
-			} finally {
-				WC_Stripe_Database_Cache::delete( $lock_key );
-				return;
-			}
-		} else {
-			WC_Stripe_Database_Cache::delete( $lock_key );
+			WC_Stripe_Logger::error( 'Could not find order via checkout session ID: ' . $checkout_session->id );
+			return;
 		}
 
 		/**
@@ -1664,7 +1643,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
 				break;
-
 			case 'checkout.session.completed':
 				$this->process_checkout_session( $notification );
 
