@@ -1712,18 +1712,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns whether Stripe express checkout element should use the Blocks API.
-	 *
-	 * @return boolean
-	 *
-	 * @deprecated 9.2.0 Feature flag enable by default.
-	 */
-	public function use_blocks_api() {
-		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
-	}
-
-	/**
 	 * Restores the shipping methods previously chosen for each recurring cart after shipping was reset and recalculated
 	 * during the express checkout get_shipping_options flow.
 	 *
@@ -1793,25 +1781,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function cart_prices_include_tax() {
 		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
-	}
-
-	/**
-	 * Gets the booking id from the cart.
-	 *
-	 * It's expected that the cart only contains one item which was added via ajax_add_to_cart.
-	 * Used to remove the booking from WC Bookings in-cart status.
-	 *
-	 * @return int|false
-	 *
-	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
-	 */
-	public function get_booking_id_from_cart() {
-		$booking_ids = $this->get_booking_ids_from_cart();
-		if ( ! empty( $booking_ids ) ) {
-			return $booking_ids[0];
-		}
-
-		return false;
 	}
 
 	/**

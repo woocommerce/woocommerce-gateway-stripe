@@ -43,6 +43,8 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function log( $message, $start_time = null, $end_time = null ) {
+		wc_deprecated_function( __METHOD__, '9.7.0', 'Use the shortcut methods for each log severity level: info(), error(), etc. instead.' );
+
 		if ( ! self::can_log() ) {
 			return;
 		}
