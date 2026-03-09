@@ -316,6 +316,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
+	 *
+	 * @return string
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
+	 */
+	public static function get_testing_instructions_for_optimized_checkout() {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.' );
+
+		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+		return $payment_method->get_testing_instructions();
+	}
+
+	/**
 	 * Removes all saved payment methods when the setting to save cards is disabled.
 	 *
 	 * @param  array $list         List of payment methods passed from wc_get_customer_saved_methods_list().
@@ -2053,6 +2067,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_saved_cards_enabled() {
 		return $this->saved_cards;
+	}
+
+	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 *
+	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'is_sepa_tokens_for_ideal_enabled' );
+
+		return $this->is_sepa_tokens_for_ideal_enabled();
 	}
 
 	/**

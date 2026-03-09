@@ -1784,6 +1784,27 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Gets the booking id from the cart.
+	 *
+	 * It's expected that the cart only contains one item which was added via ajax_add_to_cart.
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return int|false
+	 *
+	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
+	 */
+	public function get_booking_id_from_cart() {
+		wc_deprecated_function( __METHOD__, '9.8.0', 'get_booking_ids_from_cart()' );
+
+		$booking_ids = $this->get_booking_ids_from_cart();
+		if ( ! empty( $booking_ids ) ) {
+			return $booking_ids[0];
+		}
+
+		return false;
+	}
+
+	/**
 	 * Gets a list of booking ids from the cart.
 	 *
 	 * Used to remove the booking from WC Bookings in-cart status.
