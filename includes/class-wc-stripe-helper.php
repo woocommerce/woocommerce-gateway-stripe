@@ -84,8 +84,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -103,8 +101,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -122,8 +118,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -153,8 +147,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -171,8 +163,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -191,8 +181,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -222,8 +210,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -240,8 +226,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net' );
-
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -278,6 +262,30 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
+	 *
+	 * This is the inverse of `get_stripe_amount()`.
+	 *
+	 * @since 10.6.0
+	 * @param int    $amount   The amount in Stripe's smallest currency unit.
+	 * @param string $currency The three-letter currency code.
+	 * @return float The decimal amount for WooCommerce.
+	 */
+	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			return (float) absint( $amount );
+		}
+
+		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			return round( $amount / 1000, 3 );
+		}
+
+		return round( $amount / 100, 2 );
+	}
+
+	/**
 	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
 	 *
 	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
@@ -288,17 +296,18 @@ class WC_Stripe_Helper {
 		if ( ! $currency ) {
 			$currency = get_woocommerce_currency();
 		}
+
 		$currency = strtolower( $currency );
+
+		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
+		$decimals = 2;
+
 		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
-			$amount   = (float) absint( $stripe_amount );
 			$decimals = 0;
 		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
-			$amount   = (float) $stripe_amount / 1000;
 			$decimals = 3;
-		} else {
-			$amount   = (float) $stripe_amount / 100;
-			$decimals = 2;
 		}
+
 		return wc_format_decimal( $amount, $decimals );
 	}
 
@@ -1187,7 +1196,7 @@ class WC_Stripe_Helper {
 	 * - A deposit product.
 	 *
 	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 */
 	public static function is_adaptive_pricing_supported(): bool {
 
@@ -1326,8 +1335,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
-
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
@@ -1444,8 +1451,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
-
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
@@ -1486,8 +1491,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
-
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1506,8 +1509,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
-
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
@@ -1575,6 +1576,19 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Verifies if the provided order contains the identifier for a wallet method.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 *
+	 * @deprecated 8.9.0
+	 */
+	public static function is_wallet_payment_method( $order ) {
+		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1953,8 +1967,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_intent_for_order()' );
-
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
 			$intent_id = $intent;
@@ -2061,8 +2073,6 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_stripe_gateway_order()' );
-
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
