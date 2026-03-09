@@ -280,6 +280,166 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @dataProvider provide_test_convert_from_stripe_amount
+	 */
+	public function test_convert_from_stripe_amount( int $stripe_amount, string $currency, float $expected ): void {
+		$result = WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency );
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Test for `get_woocommerce_amount_from_stripe_amount` (Stripe → WooCommerce amount conversion).
+	 *
+	 * @param int|string $stripe_amount Stripe amount in smallest unit (cents, etc.).
+	 * @param string     $currency      Currency code.
+	 * @param string     $expected      Expected WooCommerce formatted amount string.
+	 * @dataProvider provide_test_get_woocommerce_amount_from_stripe_amount
+	 */
+	public function test_get_woocommerce_amount_from_stripe_amount( $stripe_amount, string $currency, string $expected ): void {
+		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $stripe_amount, $currency );
+		$this->assertIsString( $result );
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for `test_convert_from_stripe_amount`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_convert_from_stripe_amount(): array {
+		return [
+			'USD standard'                 => [
+				'stripe_amount' => 10000,
+				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'      => 100.00,
+			],
+			'USD small amount'             => [
+				'stripe_amount' => 99,
+				'currency'      => WC_Stripe_Currency_Code::EURO,
+				'expected'      => 0.99,
+			],
+			'JPY no-decimal'               => [
+				'stripe_amount' => 1000,
+				'currency'      => WC_Stripe_Currency_Code::JAPANESE_YEN,
+				'expected'      => 1000.0,
+			],
+			'BIF no-decimal'               => [
+				'stripe_amount' => 100,
+				'currency'      => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
+				'expected'      => 100.0,
+			],
+			'BHD three-decimal'            => [
+				'stripe_amount' => 100000,
+				'currency'      => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
+				'expected'      => 100.0,
+			],
+			'JOD three-decimal'            => [
+				'stripe_amount' => 1000,
+				'currency'      => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
+				'expected'      => 1.0,
+			],
+			'zero amount'                  => [
+				'stripe_amount' => 0,
+				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'      => 0.0,
+			],
+			'uppercase currency code'      => [
+				'stripe_amount' => 500,
+				'currency'      => 'USD',
+				'expected'      => 5.00,
+			],
+		];
+	}
+
+	/**
+	 * Data provider for `test_get_woocommerce_amount_from_stripe_amount`.
+	 *
+	 * Covers two-decimal, zero-decimal, and three-decimal currencies plus edge cases.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_woocommerce_amount_from_stripe_amount(): array {
+		return [
+			'USD two-decimal: 10000 cents' => [
+				'stripe_amount' => 10000,
+				'currency'      => 'usd',
+				'expected'      => '100.00',
+			],
+			'USD two-decimal: 10050 cents' => [
+				'stripe_amount' => 10050,
+				'currency'      => 'usd',
+				'expected'      => '100.50',
+			],
+			'USD two-decimal: 1 cent' => [
+				'stripe_amount' => 1,
+				'currency'      => 'usd',
+				'expected'      => '0.01',
+			],
+			'USD two-decimal: zero' => [
+				'stripe_amount' => 0,
+				'currency'      => 'usd',
+				'expected'      => '0.00',
+			],
+			'USD currency case insensitivity' => [
+				'stripe_amount' => 10000,
+				'currency'      => 'USD',
+				'expected'      => '100.00',
+			],
+			'JPY no-decimal: whole units' => [
+				'stripe_amount' => 100,
+				'currency'      => 'jpy',
+				'expected'      => '100',
+			],
+			'JPY no-decimal: single unit' => [
+				'stripe_amount' => 1,
+				'currency'      => 'jpy',
+				'expected'      => '1',
+			],
+			'JPY no-decimal: zero' => [
+				'stripe_amount' => 0,
+				'currency'      => 'jpy',
+				'expected'      => '0',
+			],
+			'BHD three-decimal: 5 fil (single unit)' => [
+				'stripe_amount' => 5,
+				'currency'      => 'bhd',
+				'expected'      => '0.005',
+			],
+			'BHD three-decimal: 100 fils' => [
+				'stripe_amount' => 100,
+				'currency'      => 'bhd',
+				'expected'      => '0.100',
+			],
+			'BHD three-decimal: 100500 fils' => [
+				'stripe_amount' => 100500,
+				'currency'      => 'bhd',
+				'expected'      => '100.500',
+			],
+			'BHD three-decimal: 0' => [
+				'stripe_amount' => 0,
+				'currency'      => 'bhd',
+				'expected'      => '0.000',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_woocommerce_amount_from_stripe_amount` with empty currency (uses store currency).
+	 */
+	public function test_get_woocommerce_amount_from_stripe_amount_falls_back_to_store_currency(): void {
+		$original_currency = get_option( 'woocommerce_currency' );
+		update_option( 'woocommerce_currency', 'EUR' );
+
+		$result = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 19999, '' );
+
+		// Restore original currency.
+		update_option( 'woocommerce_currency', $original_currency );
+
+		$this->assertIsString( $result );
+		$this->assertSame( '199.99', $result );
+	}
+
+	/**
 	 * Test for `payment_method_allows_manual_capture`
 	 *
 	 * @param string $payment_method The payment method.
