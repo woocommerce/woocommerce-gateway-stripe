@@ -9,6 +9,7 @@ use WC_Stripe_Intent_Controller;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Subscription;
+use WC_Subscriptions;
 use WC_Subscriptions_Switcher;
 use WC_Subscriptions_Helpers;
 use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
@@ -580,6 +581,85 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'error', $response['data'] );
 		$this->assertEquals( 'You cannot add a new payment method so soon after the previous one.', $response['data']['error']['message'] );
 
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * Create a subscription and configure the wcs_get_subscription mock to return it.
+	 *
+	 * @param int $owner_id User ID who owns the subscription.
+	 * @return WC_Subscription
+	 */
+	private function create_mock_subscription( int $owner_id ): WC_Subscription {
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $owner_id );
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) use ( $subscription ) {
+				return ( (int) $id === $subscription->get_id() ) ? $subscription : false;
+			}
+		);
+
+		return $subscription;
+	}
+
+	/**
+	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
+	 */
+	public function test_confirm_change_payment_rejects_non_owner() {
+		Ajax_Test_Helper::init_hooks();
+
+		$owner        = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$subscription = $this->create_mock_subscription( $owner );
+
+		// Log in as a different user.
+		$non_owner = $this->factory->user->create( [ 'role' => 'customer' ] );
+		wp_set_current_user( $non_owner );
+
+		$_POST['order_id']       = $subscription->get_id();
+		$_POST['intent_id']      = 'seti_mock_123';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$this->mock_controller->confirm_change_payment_from_setup_intent_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		$this->assertFalse( $response['success'] );
+		$this->assertStringContainsString( 'permission', strtolower( $response['data']['error']['message'] ) );
+
+		WC_Subscriptions::set_wcs_get_subscription( null );
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * Test that confirm_change_payment allows the subscription owner to proceed past the ownership check.
+	 */
+	public function test_confirm_change_payment_allows_owner(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$owner        = $this->factory->user->create( [ 'role' => 'customer' ] );
+		$subscription = $this->create_mock_subscription( $owner );
+
+		wp_set_current_user( $owner );
+
+		$_POST['order_id']       = $subscription->get_id();
+		$_POST['intent_id']      = 'seti_mock_123';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$this->mock_controller->confirm_change_payment_from_setup_intent_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		// Should not fail with a permission error.
+		if ( ! $response['success'] ) {
+			$this->assertStringNotContainsString( 'permission', strtolower( $response['data']['error']['message'] ) );
+		}
+
+		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();
 	}
 }
