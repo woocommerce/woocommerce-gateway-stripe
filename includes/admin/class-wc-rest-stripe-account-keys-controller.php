@@ -14,6 +14,13 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
+	 * The option name for the Stripe gateway settings.
+	 *
+	 * @deprecated 8.7.0
+	 */
+	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
+	/**
 	 * Endpoint path.
 	 *
 	 * @var string

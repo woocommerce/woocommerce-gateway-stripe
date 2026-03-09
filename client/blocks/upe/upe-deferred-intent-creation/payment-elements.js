@@ -114,7 +114,7 @@ const ElementsContainer = ( props ) => {
 
 	// Build options object.
 	let options = {
-		appearance: initializeUPEAppearance( api, 'true' ),
+		appearance: initializeUPEAppearance( 'true' ),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};

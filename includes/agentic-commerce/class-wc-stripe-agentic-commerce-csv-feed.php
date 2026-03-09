@@ -311,12 +311,12 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * Sanitize a single value for CSV output.
 	 *
 	 * @since 10.5.0
-	 * @param mixed $value The value to sanitize.
-	 * @param int   $index The column index (for error messages).
+	 * @param mixed  $value The value to sanitize.
+	 * @param string $key   The column key (for error messages).
 	 * @throws Exception If value is not a scalar or null.
 	 * @return string The sanitized value.
 	 */
-	private function sanitize_value( $value, int $index ): string {
+	private function sanitize_value( $value, string $key ): string {
 		// Null values - Stripe spec: leave blank for optional fields.
 		if ( is_null( $value ) ) {
 			return '';
@@ -332,9 +332,9 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 		if ( ! is_scalar( $value ) ) {
 			throw new Exception(
 				sprintf(
-					/* translators: %d: column index */
-					__( 'CSV entry at index %d contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
-					$index
+					/* translators: %s: column key */
+					__( 'CSV entry at column "%s" contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
+					$key
 				)
 			);
 		}

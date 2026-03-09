@@ -37,6 +37,24 @@ const appearanceSelectors = {
 			'body',
 		],
 	},
+	paymentMethods: {
+		appendTarget: '#payment',
+		upeThemeInputSelector: '#wc-stripe-hidden-style-input',
+		upeThemeLabelSelector: '.woocommerce-PaymentMethod label',
+		upeThemeTextSelectors: [
+			'.woocommerce-PaymentBox p',
+			'.woocommerce-PaymentMethod label',
+		],
+		rowElement: 'p',
+		validClasses: [ 'form-row' ],
+		invalidClasses: [ 'form-row' ],
+		backgroundSelectors: [
+			'.woocommerce-PaymentBox',
+			'.payment_box',
+			'#payment',
+			'body',
+		],
+	},
 	blocksCheckout: {
 		appendTarget: '#billing.wc-block-components-address-form',
 		upeThemeInputSelector: '#billing-first_name',
@@ -101,6 +119,18 @@ const appearanceSelectors = {
 			return {
 				...this.default,
 				...this.updateSelectors( this.blocksCheckout ),
+			};
+		}
+
+		// Use payment methods selectors on non-checkout pages
+		// (Add Payment Method, Order Pay, Change Payment Method).
+		if (
+			document.querySelector( 'form#add_payment_method' ) ||
+			document.querySelector( 'form#order_review' )
+		) {
+			return {
+				...this.default,
+				...this.paymentMethods,
 			};
 		}
 
