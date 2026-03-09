@@ -37,18 +37,19 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$request = [
+			$user_logged_in = is_user_logged_in() && WC()->customer instanceof WC_Customer;
+			$request        = [
 				'ui_mode'                       => 'custom',
 				'line_items'                    => $this->build_line_items(),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'           => $this->build_payment_intent_data(),
+				'payment_intent_data'           => $this->build_payment_intent_data( $user_logged_in ),
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
 			];
 
-			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
+			if ( $user_logged_in ) {
 				try {
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 					$stripe_customer->maybe_create_customer();
@@ -109,16 +110,17 @@ class WC_Stripe_Checkout_Sessions_Controller {
 	/**
 	 * Build the payment intent data array, including metadata and customer information if the user is logged in.
 	 *
+	 * @param bool $user_logged_in Whether the user is logged in and has a valid WC_Customer instance.
 	 * @return array
 	 */
-	private function build_payment_intent_data(): array {
+	private function build_payment_intent_data( bool $user_logged_in ): array {
 		$data     = [];
 		$metadata = [
 			'site_url'     => esc_url_raw( get_site_url() ),
 			'payment_type' => 'single',
 		];
 
-		if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
+		if ( $user_logged_in ) {
 			$wc_customer = WC()->customer;
 			$user_id     = $wc_customer->get_id();
 			$email       = $wc_customer->get_email();
