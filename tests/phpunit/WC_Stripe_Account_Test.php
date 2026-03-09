@@ -540,28 +540,30 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function test_reconfigure_webhooks_on_update_with_agentic_flag_enabled() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
-		// Mock a webhook that has current events but the non-agentic API version.
-		$outdated_webhook = (object) [
-			'id'             => 'we_123',
-			'url'            => WC_Stripe_Helper::get_webhook_url(),
-			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
-			'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
-			'status'         => 'enabled',
-		];
+		try {
+			// Mock a webhook that has current events but the non-agentic API version.
+			$outdated_webhook = (object) [
+				'id'             => 'we_123',
+				'url'            => WC_Stripe_Helper::get_webhook_url(),
+				'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+				'api_version'    => \WC_Stripe_API::STRIPE_API_VERSION,
+				'status'         => 'enabled',
+			];
 
-		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
-			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
-			->getMock();
+			$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+				->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+				->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+				->getMock();
 
-		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
-		$this->account->expects( $this->once() )
-			->method( 'configure_webhooks' )
-			->with( $this->equalTo( 'test' ) );
+			$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
+			$this->account->expects( $this->once() )
+				->method( 'configure_webhooks' )
+				->with( $this->equalTo( 'test' ) );
 
-		$this->account->maybe_reconfigure_webhooks_on_update();
-
-		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+			$this->account->maybe_reconfigure_webhooks_on_update();
+		} finally {
+			remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		}
 	}
 
 	/**
