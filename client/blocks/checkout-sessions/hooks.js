@@ -71,7 +71,6 @@ export const usePaymentSetupHandler = (
 						meta: {
 							paymentMethodData: {
 								payment_method: 'stripe',
-								'wc-stripe-is-deferred-intent': true,
 								save_payment_method: 'no', // TODO: Correctly handle this when supporting saved payment methods in the future.
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
