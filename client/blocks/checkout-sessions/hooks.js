@@ -32,7 +32,7 @@ export const usePaymentSetupHandler = (
 						return {
 							type: 'error',
 							message: __(
-								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+								'There was an error loading the payment information. Please refresh the page and try again.',
 								'woocommerce-gateway-stripe'
 							),
 						};
