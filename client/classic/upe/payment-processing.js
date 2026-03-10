@@ -17,6 +17,7 @@ import {
 	getExcludedPaymentMethodTypes,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
+import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -41,20 +42,16 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  */
 
 /**
+ * @typedef {import('../../styles/upe/get-payment-method-radio-styles').PaymentMethodRadioStyles} PaymentMethodRadioStyles
+ */
+
+/**
  * @type {Object<string, UPEComponent>}
  */
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 const isAdaptivePricingEnabled =
 	getStripeServerData()?.isAdaptivePricingEnabled;
-
-/**
- * @typedef {Object} PaymentMethodRadioStyles
- * @property {('input'|'label-before')} type    The type of radio element in use.
- * @property {HTMLElement|null}         element The DOM element of the radio element. Only applicable if type is 'input'.
- * @property {CSSStyleDeclaration}      styles  The computed styles for the radio element.
- * @property {boolean}                  checked Whether the radio element is checked.
- */
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -136,15 +133,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
 
+	const stripeServerData = getStripeServerData();
+
+	const shouldExpandOptimizedCheckout =
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		stripeServerData?.shouldExpandOptimizedCheckout &&
+		document.querySelector(
+			'.woocommerce-checkout-payment .payment_methods'
+		);
+
 	options = {
-		appearance: initializeUPEAppearance(),
+		appearance: initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
-
-	const stripeServerData = getStripeServerData();
-
-	let paymentMethodRadioStyles = null;
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
@@ -212,20 +217,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					setupFutureUsage: 'off_session',
 				};
 			}
-
-			paymentMethodRadioStyles = getPaymentMethodRadioStyles();
-
-			const optimizedCheckoutRules = getOptimizedCheckoutRules(
-				paymentMethodRadioStyles,
-				options?.appearance?.rules || {}
-			);
-			options = {
-				...options,
-				appearance: {
-					...options.appearance,
-					rules: optimizedCheckoutRules,
-				},
-			};
 		} else {
 			options = {
 				...options,
@@ -304,14 +295,21 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// Set the layout to accordion if OC is enabled.
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const ocsLayout = shouldExpandOptimizedCheckout
+			? 'accordion'
+			: stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT;
 		const layout = {
-			type:
-				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			type: ocsLayout,
 		};
-		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+		if ( ocsLayout === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.spacedAccordionItems = false;
-			layout.radios = paymentMethodRadioStyles !== null;
-			layout.paymentMethodLogoPosition = 'end';
+
+			if ( shouldExpandOptimizedCheckout ) {
+				layout.paymentMethodLogoPosition = 'end';
+				layout.radios = getPaymentMethodRadioStyles() !== null;
+			} else {
+				layout.radios = false;
+			}
 		}
 		paymentElementOptions = {
 			...paymentElementOptions,
@@ -363,212 +361,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 }
 
 /**
- * Regex to match transparent rgba() colors by detecting if the alpha channel is 0.
- *
- * @type {RegExp}
- */
-const transparentColorRegex = /^rgba\( *[0-9]+, *[0-9]+, *[0-9]+, *0 *\)$/;
-
-/**
- * Determines if the provided color is a transparent rgba() color.
- *
- * @param {string} color The color to check.
- * @return {boolean} True if the color is transparent, false otherwise.
- */
-function isTransparentColor( color ) {
-	return color && transparentColorRegex.test( color );
-}
-
-/**
- * Get the background color for a provided element. Optionally check the parent element chain up to a specified
- * depth until you find a non-transparent background color. If no background color is found, return null.
- *
- * @param {HTMLElement} element             The element to check.
- * @param {Object}      options             The options for the background color search.
- * @param {boolean}     options.checkParent Whether to check the parent element. Default false.
- * @param {number}      options.maxDepth    The maximum depth to check. Will stop checking once this value is <= 1. Default 1.
- * @return {string|null} The background color, or null if no background color is found.
- */
-function getBackgroundColor(
-	element,
-	{ checkParent = false, maxDepth = 1 } = {}
-) {
-	const styles = window.getComputedStyle( element );
-	if (
-		styles.backgroundColor &&
-		! isTransparentColor( styles.backgroundColor )
-	) {
-		return styles.backgroundColor;
-	}
-
-	if ( ! checkParent || maxDepth <= 1 ) {
-		return null;
-	}
-
-	let currentElement = element;
-
-	for ( let i = maxDepth; i > 1; i-- ) {
-		currentElement = currentElement.parentElement;
-		if ( ! currentElement ) {
-			return null;
-		}
-
-		const currentStyles = window.getComputedStyle( currentElement );
-		if (
-			currentStyles.backgroundColor &&
-			! isTransparentColor( currentStyles.backgroundColor )
-		) {
-			return currentStyles.backgroundColor;
-		}
-	}
-
-	return null;
-}
-
-/**
- * Build the full set of appearance rules for Optimized Checkout.
- *
- * @param {PaymentMethodRadioStyles|null} paymentMethodRadioStyles The styles for the payment method radio element, if applicable.
- * @param {Object}                        initialRules             The initial appearance rules that we need to build upon.
- * @return {Object} The full set of appearance rules for Optimized Checkout.
- */
-function getOptimizedCheckoutRules(
-	paymentMethodRadioStyles,
-	initialRules = {}
-) {
-	const accordionItemRules = initialRules?.[ '.AccordionItem' ] || {};
-	const accordionItemSelectedRules =
-		initialRules?.[ '.AccordionItem--selected' ] || {};
-	const radioIconRules = initialRules?.[ '.RadioIcon' ] || {};
-	const radioIconInnerCheckedRules =
-		initialRules?.[ '.RadioIconInner--checked' ] || {};
-
-	// Look at the payment method label to pick up styles that should specifically apply to the Stripe equivalents.
-	const paymentMethodLabel = document.querySelector(
-		'.wc_payment_methods .payment_method_stripe label[for="payment_method_stripe"]'
-	);
-
-	if ( paymentMethodLabel ) {
-		const paymentMethodLabelStyles =
-			window.getComputedStyle( paymentMethodLabel );
-
-		const paymentMethodRoot = document.querySelector(
-			'.wc_payment_methods .payment_method_stripe'
-		);
-		const paymentMethodRootStyles = paymentMethodRoot
-			? window.getComputedStyle( paymentMethodRoot )
-			: {};
-
-		accordionItemRules.fontFamily = paymentMethodLabelStyles.fontFamily;
-		accordionItemRules.fontSize = paymentMethodLabelStyles.fontSize;
-		accordionItemRules.fontVariation =
-			paymentMethodLabelStyles.fontVariation;
-		accordionItemRules.fontWeight = paymentMethodLabelStyles.fontWeight;
-		accordionItemRules.fontSmooth = paymentMethodLabelStyles.fontSmooth;
-		if ( paymentMethodLabelStyles[ '-webkit-font-smoothing' ] ) {
-			accordionItemRules[ '-webkit-font-smoothing' ] =
-				paymentMethodLabelStyles[ '-webkit-font-smoothing' ];
-		}
-		if ( paymentMethodLabelStyles[ '-moz-osx-font-smoothing' ] ) {
-			accordionItemRules[ '-moz-osx-font-smoothing' ] =
-				paymentMethodLabelStyles[ '-moz-osx-font-smoothing' ];
-		}
-		if ( paymentMethodLabelStyles.transition ) {
-			accordionItemRules.transition = paymentMethodLabelStyles.transition;
-		}
-
-		// For left padding, add the left padding and margin, and then subtract 1px to account for the left border.
-		const leftPaddingPx =
-			parseFloat( paymentMethodLabelStyles.paddingLeft || '0' ) +
-			parseFloat( paymentMethodLabelStyles.marginLeft || '0' );
-		if ( leftPaddingPx > 1 ) {
-			accordionItemRules.paddingLeft = `${ leftPaddingPx - 1 }px`;
-		} else {
-			accordionItemRules.paddingLeft = '0px';
-		}
-
-		if ( paymentMethodRootStyles.borderWidth === '0px' ) {
-			accordionItemRules.borderWidth =
-				paymentMethodRootStyles.borderWidth;
-		} else {
-			accordionItemRules.border = paymentMethodRootStyles.border;
-		}
-
-		accordionItemRules.borderRadius = paymentMethodRootStyles.borderRadius;
-
-		// Check for a background color in the following elements:
-		// 1. The payment method label
-		// 2. The payment method <li> element
-		// 3. The payment method <ul> element
-		// 4. The overall #payment div
-		const labelBackgroundColor = getBackgroundColor( paymentMethodLabel, {
-			checkParent: true,
-			maxDepth: 4,
-		} );
-		if ( labelBackgroundColor ) {
-			accordionItemRules.backgroundColor = labelBackgroundColor;
-		}
-
-		if ( ! isTransparentColor( paymentMethodLabelStyles.color ) ) {
-			accordionItemRules.color = paymentMethodLabelStyles.color;
-			accordionItemSelectedRules.color = paymentMethodLabelStyles.color;
-		}
-	}
-
-	const paymentMethodBox = document.querySelector(
-		'.wc_payment_methods .payment_method_stripe .payment_box.payment_method_stripe'
-	);
-	const paymentMethodBoxStyles = paymentMethodBox
-		? window.getComputedStyle( paymentMethodBox )
-		: {};
-
-	if (
-		paymentMethodBoxStyles.backgroundColor &&
-		! isTransparentColor( paymentMethodBoxStyles.backgroundColor )
-	) {
-		accordionItemSelectedRules.backgroundColor =
-			paymentMethodBoxStyles.backgroundColor;
-	}
-
-	if ( ! accordionItemSelectedRules.color ) {
-		accordionItemSelectedRules.color = 'inherit';
-	}
-
-	if ( paymentMethodRadioStyles ) {
-		// Multiply base size by 1.1 to account for the SVG image not filling the space completely.
-		if ( paymentMethodRadioStyles.styles.width !== 'auto' ) {
-			radioIconRules.width = `${
-				parseFloat( paymentMethodRadioStyles.styles.width ) * 1.1
-			}px`;
-		} else if (
-			paymentMethodRadioStyles.element &&
-			paymentMethodRadioStyles.element.offsetWidth
-		) {
-			radioIconRules.width = `${
-				paymentMethodRadioStyles.element.offsetWidth * 1.1
-			}px`;
-		} else if ( paymentMethodRadioStyles.type === 'label-before' ) {
-			radioIconRules.width = paymentMethodRadioStyles.styles.fontSize;
-		}
-		// Try to replicate the color values
-		if ( paymentMethodRadioStyles.checked ) {
-			radioIconInnerCheckedRules.fill =
-				paymentMethodRadioStyles.styles.color;
-		} else {
-			radioIconRules.color = paymentMethodRadioStyles.styles.color;
-		}
-	}
-
-	return {
-		...initialRules,
-		'.AccordionItem': accordionItemRules,
-		'.AccordionItem--selected': accordionItemSelectedRules,
-		'.RadioIcon': radioIconRules,
-		'.RadioIconInner--checked': radioIconInnerCheckedRules,
-	};
-}
-
-/**
  * Mounts the currency selector element to the DOM element.
  *
  * @param {Object} elements The Stripe elements object.
@@ -582,99 +374,6 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
-}
-
-/**
- * Helper method to determine the type of radio icons in use, if any.
- *
- * @return {PaymentMethodRadioStyles|null} The type of radios in use or null if no radios are present.
- */
-function getPaymentMethodRadioStyles() {
-	const allOtherPaymentMethods = document.querySelectorAll(
-		'.woocommerce-checkout .wc_payment_methods .wc_payment_method:not(.payment_method_stripe)'
-	);
-	if ( allOtherPaymentMethods.length === 0 ) {
-		return null;
-	}
-
-	// Find visible elements so we can compute widths correctly.
-	const visibleOtherPaymentMethods = Array.from(
-		allOtherPaymentMethods
-	).filter( ( otherPaymentMethod ) => {
-		return window.getComputedStyle( otherPaymentMethod ).display !== 'none';
-	} );
-
-	let otherPaymentMethodRadio = null;
-	if ( visibleOtherPaymentMethods.length === 0 ) {
-		otherPaymentMethodRadio = document.querySelector(
-			'.woocommerce-checkout input[name="payment_method"][type="radio"]:not([id="payment_method_stripe"]'
-		);
-	} else {
-		otherPaymentMethodRadio = visibleOtherPaymentMethods[ 0 ].querySelector(
-			'input[name="payment_method"][type="radio"]'
-		);
-	}
-
-	if ( ! otherPaymentMethodRadio ) {
-		// No need to show radio icons if we don't have any other payment methods.
-		return null;
-	}
-
-	const otherPaymentMethodRadioStyles = window.getComputedStyle(
-		otherPaymentMethodRadio
-	);
-
-	const hiddenLengths = [ '0px', '1px' ];
-
-	// If the radio inputs are not hidden and are not set to 0x0 or 1x1, show the radios.
-	if (
-		otherPaymentMethodRadioStyles.display !== 'none' &&
-		otherPaymentMethodRadioStyles.appearance !== 'none' &&
-		! hiddenLengths.includes( otherPaymentMethodRadioStyles.width ) &&
-		! hiddenLengths.includes( otherPaymentMethodRadioStyles.height )
-	) {
-		return {
-			type: 'input',
-			element: otherPaymentMethodRadio,
-			checked: otherPaymentMethodRadio.checked,
-			styles: otherPaymentMethodRadioStyles,
-		};
-	}
-
-	// Check if there is label::before content that provides a custom radio icon.
-	const otherPaymentMethodLabel =
-		otherPaymentMethodRadio.parentElement.querySelector( 'label' );
-
-	if ( ! otherPaymentMethodLabel ) {
-		return null;
-	}
-
-	const otherPaymentMethodLabelBeforeStyles = window.getComputedStyle(
-		otherPaymentMethodLabel,
-		'::before'
-	);
-	// If the ::before content is empty or the display is none, assume no radio icon.
-	if (
-		otherPaymentMethodLabelBeforeStyles.content === '' ||
-		otherPaymentMethodLabelBeforeStyles.display === 'none'
-	) {
-		return null;
-	}
-
-	if (
-		hiddenLengths.includes( otherPaymentMethodLabelBeforeStyles.width ) ||
-		hiddenLengths.includes( otherPaymentMethodLabelBeforeStyles.height )
-	) {
-		return null;
-	}
-
-	// Otherwise assume we have a custom radio icon.
-	return {
-		type: 'label-before',
-		element: null,
-		checked: otherPaymentMethodRadio.checked,
-		styles: otherPaymentMethodLabelBeforeStyles,
-	};
 }
 
 /**
