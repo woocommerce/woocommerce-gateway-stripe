@@ -404,10 +404,25 @@ function getBackgroundColor(
 	if ( ! checkParent || maxDepth <= 1 ) {
 		return null;
 	}
-	return getBackgroundColor( element.parentElement, {
-		checkParent: true,
-		maxDepth: maxDepth - 1,
-	} );
+
+	let currentElement = element;
+
+	for ( let i = maxDepth; i > 1; i-- ) {
+		currentElement = currentElement.parentElement;
+		if ( ! currentElement ) {
+			return null;
+		}
+
+		const currentStyles = window.getComputedStyle( currentElement );
+		if (
+			currentStyles.backgroundColor &&
+			! isTransparentColor( currentStyles.backgroundColor )
+		) {
+			return currentStyles.backgroundColor;
+		}
+	}
+
+	return null;
 }
 
 /**
