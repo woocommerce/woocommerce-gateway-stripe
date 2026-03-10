@@ -997,18 +997,15 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $actual );
 
-		// Reset the WP_Query by navigating to the homepage to ensure is_page() no longer
-		// matches the cart page ID. Also null out the global $post because go_to('/') does
-		// not update $post when the blog archive is empty, which would leave $post as the
-		// WooCommerce cart page and make has_block( 'woocommerce/cart' ) return true.
-		$this->go_to( '/' );
-		global $post;
-		$original_post = $post;
-		$post          = null;
+		// Navigate to a simple post so that go_to() sets up $GLOBALS['post'] to a post that
+		// does not contain the woocommerce/cart block, ensuring has_block( 'woocommerce/cart' )
+		// returns false and is_page() no longer matches the cart page ID.
+		$simple_post_id = self::factory()->post->create( [ 'post_content' => 'Simple content' ] );
+		$this->go_to( get_permalink( $simple_post_id ) );
 
 		$actual = $helper->is_cart();
 
-		$post = $original_post;
+		wp_delete_post( $simple_post_id, true );
 		$this->assertFalse( $actual );
 	}
 

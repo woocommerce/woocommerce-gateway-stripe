@@ -3737,8 +3737,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$product            = null;
 		$is_cart_filter     = null;
 		$is_checkout_filter = null;
-		$needs_post_restore = false;
-		$post_backup        = null;
+		$simple_post_id     = null;
 
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
@@ -3749,16 +3748,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			};
 			add_filter( 'woocommerce_is_cart', $is_cart_filter );
 		} elseif ( 'checkout' === $page_type ) {
-			// Reset the WP_Query by navigating to the homepage to ensure is_page() no longer
-			// matches the cart page ID. Also null out the global $post because go_to('/') does
-			// not update $post when the blog archive is empty, which would leave $post as the
-			// WooCommerce cart page and make has_block( 'woocommerce/cart' ) return true,
-			// causing should_skip_full_payment_scripts() to skip wc-stripe-upe-classic.
-			$this->go_to( '/' );
-			global $post;
-			$post_backup        = $post;
-			$needs_post_restore = true;
-			$post               = null;
+			// Navigate to a simple post so that go_to() sets up $GLOBALS['post'] to a post that
+			// does not contain the woocommerce/cart block. This ensures has_block( 'woocommerce/cart' )
+			// returns false and is_page() no longer matches the cart page ID, preventing
+			// should_skip_full_payment_scripts() from skipping wc-stripe-upe-classic.
+			$simple_post_id = self::factory()->post->create( [ 'post_content' => 'Simple content' ] );
+			$this->go_to( get_permalink( $simple_post_id ) );
 			$is_checkout_filter = function () {
 				return true;
 			};
@@ -3808,9 +3803,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 
-			if ( $needs_post_restore ) {
-				global $post;
-				$post = $post_backup;
+			if ( $simple_post_id ) {
+				wp_delete_post( $simple_post_id, true );
 			}
 		}
 	}
