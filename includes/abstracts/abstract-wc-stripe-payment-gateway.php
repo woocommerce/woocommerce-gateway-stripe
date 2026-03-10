@@ -2081,7 +2081,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// If not on the order-received page, return false.
-		if ( ! is_wc_endpoint_url( 'order-received' ) || ! isset( $_GET['key'] ) ) {
+		if ( ! is_order_received_page() || ! isset( $_GET['key'] ) ) {
 			return false;
 		}
 
