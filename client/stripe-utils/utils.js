@@ -763,57 +763,29 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	$container.prepend( messageWrapper );
 };
 
+// In-memory cache for computed appearance objects, keyed by checkout type.
+// Avoids redundant getComputedStyle() calls within a single page load.
+const appearanceCache = {};
+
 /**
- * Initializes the appearance of the payment element by retrieving the UPE configuration
- * from the API and saving the appearance if it doesn't exist.
+ * Initializes the appearance of the payment element. Returns a cached value
+ * when available, otherwise computes from the current page styles and caches
+ * the result for the lifetime of the page.
  *
- * If the appearance already exists, it is simply returned.
- *
- * @param {Object} api             The API object used to save the appearance.
  * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
  *
  * @return {Object} The appearance object for the UPE.
  */
+export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
+	const isBlocks = isBlockCheckout === 'true';
+	const location = isBlocks ? 'blocks' : 'classic';
 
-// Track if save appearance is already in progress to prevent multiple calls
-let isSavingAppearance = false;
-
-export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
-	let appearance =
-		isBlockCheckout === 'true'
-			? getStripeServerData()?.blocksAppearance
-			: getStripeServerData()?.appearance;
-
-	const data = getStripeServerData();
-
-	if ( ! appearance ) {
-		appearance = getAppearance( isBlockCheckout === 'true' );
-
-		const isValidUpdateContext =
-			isBlockCheckout === 'true' ||
-			( data.isCheckout &&
-				! data.isOrderPay &&
-				! data.isChangingPayment );
-
-		// If we have re-built the appearance, only update the settings in the checkout context
-		if ( isValidUpdateContext && ! isSavingAppearance ) {
-			// Set flag to prevent concurrent saves
-			isSavingAppearance = true;
-
-			// Update the global variable immediately to prevent multiple AJAX calls
-			if ( isBlockCheckout === 'true' ) {
-				data.blocksAppearance = appearance;
-			} else {
-				data.appearance = appearance;
-			}
-
-			api.saveAppearance( appearance, isBlockCheckout ).finally( () => {
-				// Reset flag when save completes (success or failure)
-				isSavingAppearance = false;
-			} );
-		}
+	if ( appearanceCache[ location ] ) {
+		return appearanceCache[ location ];
 	}
 
+	const appearance = getAppearance( isBlocks );
+	appearanceCache[ location ] = appearance;
 	return appearance;
 };
 

@@ -321,12 +321,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_display_express_checkout_button_separator_html
 	 */
 	public function test_display_express_checkout_button_separator_html( $is_checkout, $is_cart, $is_order_pay, $button_location, $expected ) {
-		add_filter(
-			'woocommerce_is_checkout',
-			function () use ( $is_checkout ) {
-				return $is_checkout;
-			}
-		);
+		$is_checkout_filter = function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 
 		if ( $is_cart ) {
 			\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
@@ -364,6 +362,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		ob_start();
 		$element->display_express_checkout_button_separator_html();
 		$output = ob_get_clean();
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
+
 		$this->assertStringMatchesFormat( $expected, $output );
 	}
 
