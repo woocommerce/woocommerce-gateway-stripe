@@ -1664,7 +1664,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'setup_intent.setup_failed':
 				$this->process_setup_intent( $notification );
 				break;
-
 			case 'checkout.session.completed':
 				$this->process_checkout_session( $notification );
 
