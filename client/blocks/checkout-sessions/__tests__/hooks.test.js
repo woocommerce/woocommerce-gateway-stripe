@@ -53,7 +53,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( result ).toEqual( {
 				type: 'error',
 				message:
-					'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+					'There was an error loading the payment information. Please refresh the page and try again.',
 			} );
 		} );
 
