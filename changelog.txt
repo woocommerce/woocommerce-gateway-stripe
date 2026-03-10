@@ -2,6 +2,7 @@
 
 = 10.6.0 - xxxx-xx-xx =
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
+* Fix - Clear customer cache after saving a new payment method so the Stripe payment method list has correct data
 
 = 10.5.0 - 2026-03-09 =
 * Update - Add missing metadata to checkout session objects when processing webhook events
@@ -47,7 +48,6 @@
 * Fix - Remove transient style caching in favor of a simple in-memory frontend cache
 * Fix - Improve Stripe element appearance on non-checkout pages
 * Fix - Remove WooCommerce session creation on product page load to improve cacheability
-* Fix - Clear customer cache after saving a new payment method and setting default payment method so the Stripe payment method list has correct data
 
 = 10.4.0 - 2026-02-09 =
 * Add - Introduce an endpoint to create Checkout Sessions tokens

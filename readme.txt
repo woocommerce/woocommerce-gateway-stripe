@@ -147,6 +147,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
-* Fix - Clear customer cache after saving a new payment method and setting default payment method so the Stripe payment method list has correct data
+* Fix - Clear customer cache after saving a new payment method so the Stripe payment method list has correct data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
