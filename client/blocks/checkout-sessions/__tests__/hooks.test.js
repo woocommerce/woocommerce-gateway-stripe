@@ -126,7 +126,6 @@ describe( 'CheckoutSessions hook tests', () => {
 				meta: {
 					paymentMethodData: {
 						payment_method: 'stripe',
-						'wc-stripe-is-deferred-intent': true,
 						save_payment_method: 'no',
 						wc_stripe_checkout_session_id: checkoutSessionId,
 						billing_email: billingAddress.email,
