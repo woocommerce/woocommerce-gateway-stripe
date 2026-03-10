@@ -45,6 +45,18 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
+	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
+	 */
+	public static function get_some_detached_subscriptions() {
+		_deprecated_function( __METHOD__, '9.6.0' );
+		return self::get_detached_subscriptions( 50 );
+	}
+
+	/**
 	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).

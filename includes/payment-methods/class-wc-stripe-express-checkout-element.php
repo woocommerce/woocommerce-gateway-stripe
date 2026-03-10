@@ -83,7 +83,6 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		add_action( 'template_redirect', [ $this, 'set_session' ] );
 		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
@@ -125,10 +124,13 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Sets the WC customer session if one is not set.
 	 * This is needed so nonces can be verified by AJAX Request.
+	 * DEPRECATED: We now defer creation of sessions until the user actually interacts with the Express Checkout Element.
 	 *
+	 * @deprecated 10.5.0
 	 * @return void
 	 */
 	public function set_session() {
+		wc_deprecated_function( __FUNCTION__, '10.5.0' );
 		// Don't set session cookies on product pages to allow for caching when payment request
 		// buttons are disabled. But keep cookies if there is already an active WC session in place.
 		if (

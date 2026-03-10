@@ -50,8 +50,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	];
 
 	/**
+	 * Stripe intents that are treated as successfully created.
+	 *
+	 * @type array
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
+
+	/**
 	 * Transient name for appearance settings.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
@@ -59,6 +69,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Transient name for appearance settings on the block checkout.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
@@ -99,6 +110,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
+	 */
+	public $sepa_tokens_for_other_methods;
+
+	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -111,6 +131,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
+
+	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `oc_enabled`.
+	 */
+	public $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -274,13 +303,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
-		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
-
-		// Add hooks for clearing appearance transients when theme is updated
-		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
-		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
 		// Attach the currency selector div to the classic checkout page.
 		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
@@ -313,6 +336,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 		return new $payment_method_class();
+	}
+
+	/**
+	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
+	 *
+	 * @return string
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
+	 */
+	public static function get_testing_instructions_for_optimized_checkout() {
+		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+		return $payment_method->get_testing_instructions();
 	}
 
 	/**
@@ -514,24 +549,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
-		// Add appearance settings.
-		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
-		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
-		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
-
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
-		// Optimized Checkout feature flag + setting.
-		$stripe_params['isOCEnabled'] = $this->oc_enabled;
+		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
+		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
+		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
-		if ( $this->oc_enabled ) {
+		// Adaptive Pricing support for checkout.
+		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();
+
+		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
-
-			// Adaptive Pricing support for checkout.
-			$stripe_params['isAdaptivePricingEnabled'] = WC_Stripe_Helper::is_adaptive_pricing_supported();
 		}
 
 		// Checking for other BNPL extensions.
@@ -671,6 +703,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if we are currently on the "Add payment method" page.
+	 *
+	 * Extracted as a protected method to allow overriding in tests.
+	 *
+	 * @return bool
+	 */
+	protected function is_on_add_payment_method_page(): bool {
+		return is_add_payment_method_page();
+	}
+
+	/**
+	 * Checks if we are on a page where the optimized checkout can be shown.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
+	 */
+	public function is_valid_optimized_checkout_page(): bool {
+		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -682,9 +734,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
+		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled ) {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
@@ -863,7 +915,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled ) :
+				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
@@ -910,6 +962,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
+				<?php // Hidden input for appearance style extraction on non-checkout pages (Add Payment Method, Order Pay). ?>
+				<input type="text" id="wc-stripe-hidden-style-input" class="input-text" aria-hidden="true" tabindex="-1" autocomplete="off" style="position:absolute!important;opacity:0!important;pointer-events:none!important;" />
 			</fieldset>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
@@ -2056,6 +2110,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 *
+	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		return $this->sepa_tokens_for_other_methods;
+	}
+
+	/**
 	 * Checks if the setting to allow the saving of SEPA tokens for iDEAL is enabled.
 	 *
 	 * @return bool Whether the setting to allow SEPA tokens for iDEAL is enabled.
@@ -2419,7 +2484,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 			// If the intent is already successful, return it to prevent duplicate charges
-			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
+			if ( isset( $intent->status ) && in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				return $intent;
 			}
 		}
@@ -3277,20 +3342,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Fetches the appearance settings for Stripe Elements from the transient cache.
-	 *
-	 * Include the theme name in the transient key because getAppearance (found in client/styles/upe/index.js) will generate different
-	 * appearance rules based on the active theme, so we need to cache the appearance settings per theme.
-	 *
-	 * @param bool $is_block_checkout Whether the appearance settings are for the block checkout.
-	 *
-	 * @return array|null The appearance settings.
-	 */
-	private function get_appearance_transient_key( $is_block_checkout = false ) {
-		return ( $is_block_checkout ? self::BLOCKS_APPEARANCE_TRANSIENT : self::APPEARANCE_TRANSIENT ) . '_' . get_option( 'stylesheet' );
-	}
-
-	/**
 	 * Checks if the current page is the order details page.
 	 *
 	 * @return bool Whether the current page is the order details page.
@@ -3369,51 +3420,34 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Saves the default appearance settings to a transient cache.
 	 *
 	 * Individual appearance settings are saved for both block and shortcode checkout and also against each theme so that changing the theme will use different transient setting.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function save_appearance_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_appearance_nonce', false, false );
-
-			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( 'Invalid nonce saving appearance.', __( 'Unable to update Stripe Elements appearance values at this time.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$is_block_checkout = isset( $_POST['is_block_checkout'] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST['is_block_checkout'] ) ) ) : false;
-			$appearance        = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
-
-			if ( null !== $appearance ) {
-				set_transient( $this->get_appearance_transient_key( $is_block_checkout ), $appearance, DAY_IN_SECONDS );
-			}
-
-			wp_send_json_success( $appearance, 200 );
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error( 'Error saving appearance.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getLocalizedMessage(),
-					],
-				]
-			);
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a Block theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
+	 *
+	 * @param int     $post_id The post ID.
+	 * @param WP_Post $post    The post object.
 	 */
 	public function clear_appearance_transients_block_theme( $post_id, $post ) {
-		if ( in_array( $post->post_type, [ 'wp_global_styles' ], true ) ) {
-			delete_transient( $this->get_appearance_transient_key( true ) );
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a classic theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function clear_appearance_transients() {
-		delete_transient( $this->get_appearance_transient_key() );
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
