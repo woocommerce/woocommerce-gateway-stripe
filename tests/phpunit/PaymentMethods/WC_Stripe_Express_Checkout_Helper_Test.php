@@ -997,6 +997,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $actual );
 
+		// Navigate to the homepage to ensure the global post is not a WooCommerce cart page,
+		// which would make has_block( 'woocommerce/cart' ) return true.
+		$this->go_to( '/' );
+
 		$actual = $helper->is_cart();
 
 		$this->assertFalse( $actual );
@@ -1109,7 +1113,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$wc_stripe_ece_helper_mock = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->setConstructorArgs( [ $gateway ] )
-			->onlyMethods( [ 'is_one_page_checkout', 'is_product', 'is_checkout', 'allowed_items_in_cart', 'get_product' ] )
+			->onlyMethods( [ 'is_one_page_checkout', 'is_product', 'is_checkout', 'is_cart', 'allowed_items_in_cart', 'get_product' ] )
 			->getMock();
 
 		// Create a mock product.
@@ -1120,6 +1124,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'is_one_page_checkout' )->willReturn( $is_opc );
 		$wc_stripe_ece_helper_mock->method( 'is_product' )->willReturn( $is_product_page );
 		$wc_stripe_ece_helper_mock->method( 'is_checkout' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->method( 'is_cart' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'get_product' )->willReturn( $is_product_page ? $product : false );
 

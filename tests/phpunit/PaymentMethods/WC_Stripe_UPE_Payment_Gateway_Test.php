@@ -3747,6 +3747,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			};
 			add_filter( 'woocommerce_is_cart', $is_cart_filter );
 		} elseif ( 'checkout' === $page_type ) {
+			// Navigate to the homepage to ensure the global post is not a WooCommerce cart page,
+			// which would make has_block( 'woocommerce/cart' ) return true and cause
+			// should_skip_full_payment_scripts() to skip enqueueing wc-stripe-upe-classic.
+			$this->go_to( '/' );
 			$is_checkout_filter = function () {
 				return true;
 			};
