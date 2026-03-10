@@ -28,7 +28,7 @@ describe( 'Getting styles for automated theming', () => {
 
 	beforeEach( () => {
 		global.wc_stripe_upe_params = {
-			isOCEnabled: false,
+			shouldShowOptimizedCheckout: false,
 		};
 	} );
 
@@ -113,7 +113,7 @@ describe( 'Getting styles for automated theming', () => {
 	} );
 
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
-		global.wc_stripe_upe_params = { isOCEnabled: false };
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
