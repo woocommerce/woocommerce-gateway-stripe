@@ -132,7 +132,7 @@ const ElementsContainer = ( props ) => {
 			},
 		};
 
-		if ( stripeServerData?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			options = {
 				...options,
 				...{
