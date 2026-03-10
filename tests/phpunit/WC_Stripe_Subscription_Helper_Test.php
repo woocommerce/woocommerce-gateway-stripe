@@ -12,7 +12,7 @@ use WP_UnitTestCase;
  *
  * @package WooCommerce/Stripe/WC_Stripe_Subscription_Helper
  *
- * Class WC_Stripe_Subscription_Helper tests.
+ * Tests for the WC_Stripe_Subscription_Helper class.
  */
 class WC_Stripe_Subscription_Helper_Test extends WP_UnitTestCase {
 
