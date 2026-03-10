@@ -772,19 +772,25 @@ const appearanceCache = {};
  * when available, otherwise computes from the current page styles and caches
  * the result for the lifetime of the page.
  *
- * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
+ * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
+ * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
  *
  * @return {Object} The appearance object for the UPE.
  */
-export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
+export const initializeUPEAppearance = (
+	isBlockCheckout = 'false',
+	shouldExpandOptimizedCheckout = false
+) => {
 	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks ? 'blocks' : 'classic';
+	const location = isBlocks
+		? 'blocks'
+		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
 
 	if ( appearanceCache[ location ] ) {
 		return appearanceCache[ location ];
 	}
 
-	const appearance = getAppearance( isBlocks );
+	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
 	appearanceCache[ location ] = appearance;
 	return appearance;
 };
