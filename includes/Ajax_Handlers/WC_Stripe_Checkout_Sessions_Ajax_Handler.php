@@ -95,7 +95,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'ui_mode'                       => 'custom',
 				'customer'                      => $stripe_customer->get_id(),
 				'line_items'                    => $line_items,
-				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
+				'excluded_payment_method_types' => \WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
 				'payment_intent_data'  => [
 					'metadata' => $payment_intent_metadata,
 					'receipt_email' => $email,
