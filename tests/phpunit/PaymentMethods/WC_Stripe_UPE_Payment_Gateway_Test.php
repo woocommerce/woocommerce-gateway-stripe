@@ -3737,6 +3737,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$product            = null;
 		$is_cart_filter     = null;
 		$is_checkout_filter = null;
+		$needs_post_restore = false;
+		$post_backup        = null;
 
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
@@ -3747,10 +3749,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			};
 			add_filter( 'woocommerce_is_cart', $is_cart_filter );
 		} elseif ( 'checkout' === $page_type ) {
-			// Navigate to the homepage to ensure the global post is not a WooCommerce cart page,
-			// which would make has_block( 'woocommerce/cart' ) return true and cause
-			// should_skip_full_payment_scripts() to skip enqueueing wc-stripe-upe-classic.
+			// Reset the WP_Query by navigating to the homepage to ensure is_page() no longer
+			// matches the cart page ID. Also null out the global $post because go_to('/') does
+			// not update $post when the blog archive is empty, which would leave $post as the
+			// WooCommerce cart page and make has_block( 'woocommerce/cart' ) return true,
+			// causing should_skip_full_payment_scripts() to skip wc-stripe-upe-classic.
 			$this->go_to( '/' );
+			global $post;
+			$post_backup        = $post;
+			$needs_post_restore = true;
+			$post               = null;
 			$is_checkout_filter = function () {
 				return true;
 			};
@@ -3798,6 +3806,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 			if ( $is_cart_filter ) {
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
+			}
+
+			if ( $needs_post_restore ) {
+				global $post;
+				$post = $post_backup;
 			}
 		}
 	}
