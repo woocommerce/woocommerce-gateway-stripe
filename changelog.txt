@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Update - Logging reasons for ECE buttons not showing only when verbose debug mode is enabled
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 
 = 10.5.0 - 2026-03-09 =
