@@ -21,9 +21,11 @@ import {
 } from './payment-processing';
 
 jQuery( function ( $ ) {
+	const stripeServerData = getStripeServerData();
+
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		stripeServerData,
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -143,14 +145,14 @@ jQuery( function ( $ ) {
 	 */
 	function maybeConfirmVoucherOrWalletPayment() {
 		if (
-			getStripeServerData()?.isOrderPay ||
-			getStripeServerData()?.isCheckout ||
-			getStripeServerData()?.isChangingPayment
+			stripeServerData?.isOrderPay ||
+			stripeServerData?.isCheckout ||
+			stripeServerData?.isChangingPayment
 		) {
 			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
 				confirmVoucherPayment(
 					api,
-					getStripeServerData()?.isOrderPay
+					stripeServerData?.isOrderPay
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -159,8 +161,8 @@ jQuery( function ( $ ) {
 			) {
 				confirmWalletPayment(
 					api,
-					getStripeServerData()?.isOrderPay ||
-						getStripeServerData()?.isChangingPayment
+					stripeServerData?.isOrderPay ||
+						stripeServerData?.isChangingPayment
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -176,7 +178,7 @@ jQuery( function ( $ ) {
 	} );
 
 	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
-	if ( getStripeServerData()?.isOCEnabled ) {
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
 			const selectedMethod = getSelectedUPEGatewayPaymentMethod();
 			const component = getMountedUPEComponent( selectedMethod );
@@ -186,7 +188,7 @@ jQuery( function ( $ ) {
 					':checked'
 				);
 				const cartContainsSubscription =
-					getStripeServerData()?.cartContainsSubscription;
+					stripeServerData?.cartContainsSubscription;
 
 				// Update only the setupFutureUsage on the Elements object and preserve user input.
 				component.elements.update( {

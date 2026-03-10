@@ -970,7 +970,8 @@ export const maybeClearBlikCodeValidation = () => {
  * @return {string} The base font size.
  */
 export const getFontSizeBase = ( defaultFontSize ) => {
-	if ( getStripeServerData()?.isOCEnabled && defaultFontSize ) {
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout && defaultFontSize ) {
 		// Find numbers for font size.
 		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
 		if ( matches.length > 0 ) {

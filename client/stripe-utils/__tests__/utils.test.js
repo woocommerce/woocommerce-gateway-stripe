@@ -6,7 +6,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 		} );
 
@@ -15,7 +15,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16px';
 			const expectedFontSize = '18px';
@@ -24,7 +24,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2 (decimal value)', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16.5px';
 			const expectedFontSize = '18.5px';
@@ -46,7 +46,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 
 			// Mock document.getElementById for fallback behavior

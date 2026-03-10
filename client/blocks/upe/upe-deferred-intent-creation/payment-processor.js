@@ -92,7 +92,8 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const stripeServerData = getBlocksConfiguration();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
 
@@ -100,7 +101,7 @@ const PaymentProcessor = ( {
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
 	// If thats the case, we need to force it to true.
 	shouldSavePayment =
-		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+		shouldSavePayment || stripeServerData?.cartContainsSubscription;
 
 	const hasLoadErrorRef = useRef( false );
 
@@ -272,14 +273,14 @@ const PaymentProcessor = ( {
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
-				Number( getBlocksConfiguration()?.cartTotal ),
+				Number( stripeServerData?.cartTotal ),
 				true
 			);
 		} else {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
@@ -291,8 +292,7 @@ const PaymentProcessor = ( {
 				function () {
 					elements.update( {
 						setupFutureUsage:
-							getBlocksConfiguration()
-								?.cartContainsSubscription ||
+							stripeServerData?.cartContainsSubscription ||
 							savingPaymentMethodCheckbox?.checked
 								? 'off_session'
 								: null,
@@ -300,7 +300,7 @@ const PaymentProcessor = ( {
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements ] );
+	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -322,7 +322,7 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			handleDisplayOfPaymentInstructions( value.type );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
