@@ -359,11 +359,13 @@ jQuery( function ( $ ) {
 			// Prevent any manual manipulation of the payment method box's size.
 			// The animations seem to try, but that generates incorrect fixed sizes.
 			const stripePaymentMethodBox = $stripePaymentMethod.get( 0 );
-			stripePaymentMethodBox.style.height = '';
-			stripePaymentMethodBox.style.marginTop = '';
-			stripePaymentMethodBox.style.marginBottom = '';
-			stripePaymentMethodBox.style.paddingTop = '';
-			stripePaymentMethodBox.style.paddingBottom = '';
+			if ( stripePaymentMethodBox ) {
+				stripePaymentMethodBox.style.height = '';
+				stripePaymentMethodBox.style.marginTop = '';
+				stripePaymentMethodBox.style.marginBottom = '';
+				stripePaymentMethodBox.style.paddingTop = '';
+				stripePaymentMethodBox.style.paddingBottom = '';
+			}
 
 			// If we selected a different payment method, collapse the Stripe payment element.
 			const selectedPaymentMethod = document.querySelector(
