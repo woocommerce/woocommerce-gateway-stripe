@@ -442,36 +442,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Saves the Stripe Payment Elements appearance settings in a transient on server.
-	 *
-	 * @param {Object} appearance      The appearance settings.
-	 * @param {string} isBlockCheckout Whether the request is from the block checkout.
-	 *
-	 * @return {Promise} The final promise for the request to the server.
-	 */
-	saveAppearance( appearance, isBlockCheckout = 'false' ) {
-		return this.request( this.getAjaxUrl( 'save_appearance' ), {
-			appearance: JSON.stringify( appearance ),
-			is_block_checkout: isBlockCheckout,
-			theme_name: this.options?.theme_name,
-			_ajax_nonce: this.options?.saveAppearanceNonce,
-		} )
-			.then( ( response ) => {
-				return response.success;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
-	}
-
-	/**
 	 * Submits shipping address to get available shipping options
 	 * from Express Checkout ECE payment method.
 	 *
@@ -708,11 +678,27 @@ export default class WCStripeAPI {
 	/**
 	 * Creates a new checkout session.
 	 *
+	 * @param {Object} billingAddress Billing address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	checkoutSessionsCreateSession() {
+	checkoutSessionsCreateSession( billingAddress ) {
 		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
 			security: this.options?.createCheckoutSessionNonce,
+
+			// The billing information here is relevant to properly create the Stripe Customer object.
+			...( billingAddress
+				? {
+						billing_email: billingAddress.email,
+						billing_first_name: billingAddress.first_name,
+						billing_last_name: billingAddress.last_name,
+						billing_address_1: billingAddress.address_1,
+						billing_address_2: billingAddress.address_2,
+						billing_city: billingAddress.city,
+						billing_state: billingAddress.state,
+						billing_postcode: billingAddress.postcode,
+						billing_country: billingAddress.country,
+				  }
+				: {} ),
 		} );
 	}
 }

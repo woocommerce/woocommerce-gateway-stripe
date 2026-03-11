@@ -7,6 +7,9 @@ import { useEffect } from '@wordpress/element';
 import { select } from '@wordpress/data';
 
 jest.mock( '@wordpress/element' );
+jest.mock( '@wordpress/data', () => ( {
+	select: jest.fn(),
+} ) );
 
 describe( 'CheckoutSessions hook tests', () => {
 	beforeEach( () => {
@@ -20,17 +23,6 @@ describe( 'CheckoutSessions hook tests', () => {
 	describe( 'usePaymentSetupHandler hook', () => {
 		let onPaymentSetupResultPromise;
 		const onPaymentSetup = jest.fn();
-		const billingAddress = {
-			email: 'test@example.com',
-			first_name: 'John',
-			last_name: 'Doe',
-			address_1: '123 Main St',
-			address_2: '',
-			city: 'Anytown',
-			state: 'CA',
-			postcode: '12345',
-			country: 'US',
-		};
 		const checkoutSessionId = 'cs_test_123';
 
 		beforeEach( () => {
@@ -43,7 +35,6 @@ describe( 'CheckoutSessions hook tests', () => {
 			const hasLoadErrorRef = { current: true };
 			usePaymentSetupHandler(
 				onPaymentSetup,
-				billingAddress,
 				checkoutSessionId,
 				null,
 				hasLoadErrorRef,
@@ -53,7 +44,7 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( result ).toEqual( {
 				type: 'error',
 				message:
-					'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+					'There was an error loading the payment information. Please refresh the page and try again.',
 			} );
 		} );
 
@@ -66,7 +57,6 @@ describe( 'CheckoutSessions hook tests', () => {
 			const hasLoadErrorRef = { current: false };
 			usePaymentSetupHandler(
 				onPaymentSetup,
-				billingAddress,
 				checkoutSessionId,
 				null,
 				hasLoadErrorRef,
@@ -80,7 +70,6 @@ describe( 'CheckoutSessions hook tests', () => {
 			const hasLoadErrorRef = { current: false };
 			usePaymentSetupHandler(
 				onPaymentSetup,
-				billingAddress,
 				checkoutSessionId,
 				null,
 				hasLoadErrorRef,
@@ -97,7 +86,6 @@ describe( 'CheckoutSessions hook tests', () => {
 			const hasLoadErrorRef = { current: false };
 			usePaymentSetupHandler(
 				onPaymentSetup,
-				billingAddress,
 				checkoutSessionId,
 				'Payment method error',
 				hasLoadErrorRef,
@@ -114,7 +102,6 @@ describe( 'CheckoutSessions hook tests', () => {
 			const hasLoadErrorRef = { current: false };
 			usePaymentSetupHandler(
 				onPaymentSetup,
-				billingAddress,
 				checkoutSessionId,
 				null,
 				hasLoadErrorRef,
@@ -126,18 +113,8 @@ describe( 'CheckoutSessions hook tests', () => {
 				meta: {
 					paymentMethodData: {
 						payment_method: 'stripe',
-						'wc-stripe-is-deferred-intent': true,
 						save_payment_method: 'no',
 						wc_stripe_checkout_session_id: checkoutSessionId,
-						billing_email: billingAddress.email,
-						billing_first_name: billingAddress.first_name,
-						billing_last_name: billingAddress.last_name,
-						billing_address_1: billingAddress.address_1,
-						billing_address_2: billingAddress.address_2,
-						billing_city: billingAddress.city,
-						billing_state: billingAddress.state,
-						billing_postcode: billingAddress.postcode,
-						billing_country: billingAddress.country,
 					},
 				},
 			} );

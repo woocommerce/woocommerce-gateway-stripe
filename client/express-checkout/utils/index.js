@@ -38,7 +38,7 @@ export const getErrorMessageFromNotice = ( notice ) => {
  */
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
-	wc_stripe_express_checkout_params[ key ] ?? null;
+	wc_stripe_express_checkout_params?.[ key ] ?? null;
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
