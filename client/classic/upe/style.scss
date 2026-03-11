@@ -30,8 +30,10 @@
 		padding-bottom: inherit;
 
 		> :not( #wc-stripe-upe-form ) {
-			padding-left: 1.41575em;
-			padding-right: 1.41575em;
+			/* Use WooCommerce default padding for other elements in the payment method box.
+			Mainly applies to saved payment method controls and test instructions. */
+			padding-left: 1em;
+			padding-right: 1em;
 		}
 
 		.wc-stripe-payment-method-instruction {
