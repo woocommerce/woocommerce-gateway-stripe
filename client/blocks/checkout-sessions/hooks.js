@@ -26,16 +26,6 @@ export const usePaymentSetupHandler = (
 		() =>
 			onPaymentSetup( () => {
 				async function handlePaymentProcessing() {
-					if ( hasLoadErrorRef.current ) {
-						return {
-							type: 'error',
-							message: __(
-								'There was an error loading the payment information. Please refresh the page and try again.',
-								'woocommerce-gateway-stripe'
-							),
-						};
-					}
-
 					const { validationStore } = window.wc?.wcBlocksData ?? {};
 					if ( validationStore ) {
 						const store = select( validationStore );
@@ -45,6 +35,16 @@ export const usePaymentSetupHandler = (
 						if ( hasValidationErrors ) {
 							return;
 						}
+					}
+
+					if ( hasLoadErrorRef.current ) {
+						return {
+							type: 'error',
+							message: __(
+								'There was an error loading the payment information. Please refresh the page and try again.',
+								'woocommerce-gateway-stripe'
+							),
+						};
 					}
 
 					if ( errorMessage ) {
