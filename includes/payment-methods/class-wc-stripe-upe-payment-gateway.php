@@ -569,6 +569,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					array_filter(
 						array_map(
 							static function ( $domain ) {
+								// @phpstan-ignore-next-line function.alreadyNarrowedType (We need to validate that a filter is returning the expected types.)
 								return is_string( $domain ) ? strtolower( trim( $domain ) ) : '';
 							},
 							$permitted_font_domains
