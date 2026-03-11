@@ -678,7 +678,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates a new checkout session.
 	 *
-	 * @param {Object} billingAddress Billing address.
+	 * @param {Object|null} billingAddress Billing address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	checkoutSessionsCreateSession( billingAddress ) {
