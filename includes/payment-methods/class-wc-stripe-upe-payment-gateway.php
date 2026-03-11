@@ -552,6 +552,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
+		$permitted_font_domains = apply_filters( 'wc_stripe_upe_permitted_font_domains', [] );
+		if ( [] !== $permitted_font_domains && is_array( $permitted_font_domains ) ) {
+			$stripe_params['permittedFontDomains'] = $permitted_font_domains;
+		}
+
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
 		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
 		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
