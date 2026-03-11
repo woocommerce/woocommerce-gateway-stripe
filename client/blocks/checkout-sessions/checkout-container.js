@@ -16,11 +16,13 @@ const stripePromise = loadStripe();
 export const CheckoutContainer = ( props ) => {
 	const {
 		api,
+		billing: { billingAddress },
 		setPaymentProcessorLoadErrorMessage,
 		setShouldLoadStripeElements,
 	} = props;
 	const checkoutSessionPromise = useMemo( async () => {
-		const response = await api.checkoutSessionsCreateSession();
+		const response =
+			await api.checkoutSessionsCreateSession( billingAddress );
 		const clientSecret = response?.data?.client_secret;
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
@@ -30,7 +32,7 @@ export const CheckoutContainer = ( props ) => {
 			);
 		}
 		return clientSecret;
-	}, [ api, setShouldLoadStripeElements ] );
+	}, [ api, billingAddress, setShouldLoadStripeElements ] );
 
 	const providerOptions = useMemo(
 		() => ( {
