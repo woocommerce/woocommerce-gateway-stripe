@@ -552,16 +552,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
-		// Optimized Checkout feature flag + setting.
-		$stripe_params['isOCEnabled'] = $this->oc_enabled;
+		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
+		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
+		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
 
-		if ( $this->oc_enabled ) {
+		// Adaptive Pricing support for checkout.
+		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();
+
+		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
-
-			// Adaptive Pricing support for checkout.
-			$stripe_params['isAdaptivePricingEnabled'] = WC_Stripe_Helper::is_adaptive_pricing_supported();
 		}
 
 		// Checking for other BNPL extensions.
@@ -701,6 +703,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if we are currently on the "Add payment method" page.
+	 *
+	 * Extracted as a protected method to allow overriding in tests.
+	 *
+	 * @return bool
+	 */
+	protected function is_on_add_payment_method_page(): bool {
+		return is_add_payment_method_page();
+	}
+
+	/**
+	 * Checks if we are on a page where the optimized checkout can be shown.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
+	 */
+	public function is_valid_optimized_checkout_page(): bool {
+		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -712,9 +734,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
+		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled ) {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
@@ -893,7 +915,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled ) :
+				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
