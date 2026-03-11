@@ -150,6 +150,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Fix - Clear customer cache after saving a new payment method so the Stripe payment method list has correct data
 * Fix - Reinstate custom appearance logic
-* Dev - Refactor some Amazon Pay helpers to simplify bootstrap checks
+* Fix - Refactor some Amazon Pay helpers to prevent an infinite loop
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
