@@ -29,7 +29,7 @@ export const getPaymentMethodRadioStyles = () => {
 	let otherPaymentMethodRadio = null;
 	if ( visibleOtherPaymentMethods.length === 0 ) {
 		otherPaymentMethodRadio = document.querySelector(
-			'.woocommerce-checkout input[name="payment_method"][type="radio"]:not([id="payment_method_stripe"]'
+			'.woocommerce-checkout input[name="payment_method"][type="radio"]:not([id="payment_method_stripe"])'
 		);
 	} else {
 		otherPaymentMethodRadio = visibleOtherPaymentMethods[ 0 ].querySelector(
