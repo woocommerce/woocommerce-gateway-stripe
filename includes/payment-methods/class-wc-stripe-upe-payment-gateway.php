@@ -1023,6 +1023,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $formatted_total;
 		}
 
+		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
+
 		$currency_code   = $checkout_session->presentment_details->presentment_currency;
 		$currency_symbol = get_woocommerce_currency_symbol( $currency_code );
 
@@ -1045,6 +1047,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( empty( $checkout_session->presentment_details ) ) {
 			return;
 		}
+
+		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
 
 		$presentment_amount   = $checkout_session->presentment_details->presentment_amount;
 		$presentment_currency = $checkout_session->presentment_details->presentment_currency;
@@ -4084,5 +4088,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $checkout_session;
+	}
+
+	/**
+	 * Adds presentment amount and currency metadata to the order if they are not already set.
+	 *
+	 * @param WC_Order $order The order to which the presentment metadata should be added.
+	 * @param object $presentment_details The presentment details object containing the amount and currency to be added to the order meta.
+	 *
+	 * @return void
+	 */
+	private function maybe_add_presentment_metadata_to_order( WC_Order $order, object $presentment_details ): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( ! $order_helper->get_stripe_presentment_amount( $order ) ) {
+			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+		}
+
+		if ( ! $order_helper->get_stripe_presentment_currency( $order ) ) {
+			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+		}
 	}
 }
