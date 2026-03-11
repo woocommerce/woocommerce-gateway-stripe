@@ -1046,22 +1046,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$checkout_session->presentment_details->presentment_amount,
-			$checkout_session->presentment_details->presentment_currency
-		);
+		$presentment_amount   = $checkout_session->presentment_details->presentment_amount;
+		$presentment_currency = $checkout_session->presentment_details->presentment_currency;
 
-		$rate_amount = wc_format_decimal(
-			$checkout_session->presentment_details->presentment_amount / $checkout_session->amount_total,
+		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_amount,
+			$presentment_currency
+		);
+		$rate_amount        = wc_format_decimal(
+			$presentment_amount / $checkout_session->amount_total,
 			wc_get_price_decimals()
 		);
 
 		echo '<p class="woocommerce-info">';
 			printf(
-				/* translators: %1$s Converted amount and currency. %2$s Exchange rate and currency. */
-				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 USD = %2$s.', 'woocommerce-gateway-stripe' ),
-				esc_html( $amount . ' ' . strtoupper( $checkout_session->presentment_details->presentment_currency ) ),
-				esc_html( $rate_amount . ' ' . strtoupper( $checkout_session->presentment_details->presentment_currency ) )
+				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
+				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
+				esc_html( get_woocommerce_currency() ),
+				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
 			);
 		echo '</p>';
 	}
