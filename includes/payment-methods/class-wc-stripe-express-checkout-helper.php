@@ -665,7 +665,6 @@ class WC_Stripe_Express_Checkout_Helper {
 					'https' => isset( $_SERVER['HTTPS'] ) ? wp_unslash( $_SERVER['HTTPS'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 					'port'  => isset( $_SERVER['SERVER_PORT'] ) ? wp_unslash( $_SERVER['SERVER_PORT'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 				];
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions
 				WC_Stripe_Logger::debug( 'Stripe Express Checkout live mode requires SSL', [ 'server_details' => $server_details ] );
 			}
 			return false;
