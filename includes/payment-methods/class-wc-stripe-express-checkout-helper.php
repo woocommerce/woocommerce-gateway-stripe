@@ -693,7 +693,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			&& ! $this->allowed_items_in_cart()
 		) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Some items in cart are not compatible with Stripe Express Checkout. ' );
+				WC_Stripe_Logger::debug( 'Some items in cart are not compatible with Stripe Express Checkout.' );
 			}
 			return false;
 		}
@@ -701,7 +701,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		// Don't show on cart if disabled.
 		if ( $this->is_cart() && ! $this->should_show_ece_on_cart_page() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on cart is disabled. ' );
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on cart is disabled.' );
 			}
 			return false;
 		}
@@ -711,7 +711,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		if ( ( $this->is_checkout() || $is_one_page_checkout ) && ! $this->should_show_ece_on_checkout_page() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on checkout is disabled.' );
 			}
 			return false;
 		}
@@ -722,7 +722,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		// Skip this check for One Page Checkout pages since they should be treated as checkout pages, not product pages.
 		if ( $is_product && ! $is_one_page_checkout && ! $this->should_show_ece_on_product_pages() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on product pages is disabled.' );
 			}
 			return false;
 		}
