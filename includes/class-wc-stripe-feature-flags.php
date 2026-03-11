@@ -67,6 +67,7 @@ class WC_Stripe_Feature_Flags {
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                                              => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
+		self::OC_FEATURE_FLAG_NAME                                           => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
