@@ -678,27 +678,11 @@ export default class WCStripeAPI {
 	/**
 	 * Creates a new checkout session.
 	 *
-	 * @param {Object|null} billingAddress Billing address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	checkoutSessionsCreateSession( billingAddress ) {
+	checkoutSessionsCreateSession() {
 		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
 			security: this.options?.createCheckoutSessionNonce,
-
-			// The billing information here is relevant to properly create the Stripe Customer object.
-			...( billingAddress
-				? {
-						billing_email: billingAddress.email,
-						billing_first_name: billingAddress.first_name,
-						billing_last_name: billingAddress.last_name,
-						billing_address_1: billingAddress.address_1,
-						billing_address_2: billingAddress.address_2,
-						billing_city: billingAddress.city,
-						billing_state: billingAddress.state,
-						billing_postcode: billingAddress.postcode,
-						billing_country: billingAddress.country,
-				  }
-				: {} ),
 		} );
 	}
 }
