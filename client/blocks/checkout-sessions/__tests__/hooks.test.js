@@ -7,6 +7,9 @@ import { useEffect } from '@wordpress/element';
 import { select } from '@wordpress/data';
 
 jest.mock( '@wordpress/element' );
+jest.mock( '@wordpress/data', () => ( {
+	select: jest.fn(),
+} ) );
 
 describe( 'CheckoutSessions hook tests', () => {
 	beforeEach( () => {
