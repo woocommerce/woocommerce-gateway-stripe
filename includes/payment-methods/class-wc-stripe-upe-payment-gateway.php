@@ -562,8 +562,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 * @since 10.6.0
 		 */
 		$permitted_font_domains = apply_filters( 'wc_stripe_upe_permitted_font_domains', [] );
-		if ( [] !== $permitted_font_domains && is_array( $permitted_font_domains ) ) {
-			$stripe_params['permittedFontDomains'] = $permitted_font_domains;
+		if ( is_array( $permitted_font_domains ) ) {
+			// Validate that we have unique, non-empty strings.
+			$permitted_font_domains = array_values(
+				array_unique(
+					array_filter(
+						array_map(
+							static function ( $domain ) {
+								return is_string( $domain ) ? strtolower( trim( $domain ) ) : '';
+							},
+							$permitted_font_domains
+						)
+					)
+				)
+			);
+			if ( [] !== $permitted_font_domains ) {
+				$stripe_params['permittedFontDomains'] = $permitted_font_domains;
+			}
 		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
