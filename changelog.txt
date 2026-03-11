@@ -4,6 +4,7 @@
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Fix - Clear customer cache after saving a new payment method so the Stripe payment method list has correct data
+* Fix - Reinstate custom appearance logic
 
 = 10.5.0 - 2026-03-09 =
 * Update - Add missing metadata to checkout session objects when processing webhook events
