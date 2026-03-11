@@ -165,13 +165,15 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 
 		$stripe_instance = \WC_Stripe::get_instance();
 		$initial_account = $stripe_instance->account;
-		$stripe_instance->account = $mock_account;
 
-		$is_available = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country();
+		try {
+			$stripe_instance->account = $mock_account;
 
-		// Reset account before asserting.
-		$stripe_instance->account = $initial_account;
+			$is_available = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country();
 
-		$this->assertEquals( $expected_availability, $is_available );
+			$this->assertEquals( $expected_availability, $is_available );
+		} finally {
+			$stripe_instance->account = $initial_account;
+		}
 	}
 }
