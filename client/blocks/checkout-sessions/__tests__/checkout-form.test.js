@@ -44,19 +44,6 @@ describe( 'CheckoutForm', () => {
 		onCheckoutSuccess: jest.fn(),
 		onCheckoutFail: jest.fn(),
 	};
-	const billing = {
-		billingAddress: {
-			email: 'test@example.com',
-			first_name: 'John',
-			last_name: 'Doe',
-			address_1: '123 Main St',
-			address_2: '',
-			city: 'Anytown',
-			state: 'CA',
-			postcode: '12345',
-			country: 'US',
-		},
-	};
 	const emitResponse = {
 		noticeContexts: { PAYMENTS: 'payments' },
 	};
@@ -92,7 +79,6 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
-				billing={ billing }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -117,7 +103,6 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
-				billing={ billing }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -141,7 +126,6 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
-				billing={ billing }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }

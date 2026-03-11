@@ -22,7 +22,6 @@ import {
  * Checkout Form component.
  *
  * @param {Object}                 props                             Component props.
- * @param {Object}                 props.billing                     Billing information.
  * @param {EmitResponseProps}      props.emitResponse                Function to emit response back to the parent component.
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
@@ -33,7 +32,6 @@ import {
  * @return {JSX.Element} The Checkout Form component.
  */
 const CheckoutForm = ( {
-	billing,
 	emitResponse,
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
@@ -54,7 +52,6 @@ const CheckoutForm = ( {
 
 	usePaymentSetupHandler(
 		onPaymentSetup,
-		billing.billingAddress,
 		checkoutSessionId,
 		errorMessage,
 		hasLoadErrorRef,

@@ -10,7 +10,6 @@ import { select } from '@wordpress/data';
  * Handles the Block Checkout onPaymentSetup event for the Checkout Sessions integration.
  *
  * @param {*}       onPaymentSetup           The onPaymentSetup event, which is triggered when the payment method is being set up during the checkout process.
- * @param {Object}  billingAddress           The billing address information, used to create the Stripe Customer object and for validation purposes.
  * @param {string}  checkoutSessionId        The ID of the checkout session, used to associate the payment method with the session.
  * @param {string}  errorMessage             An error message to display if there was an error loading the checkout session, used to provide feedback to the user.
  * @param {Object}  hasLoadErrorRef          A ref object that indicates whether there was an error loading the checkout session, used to prevent further processing if the session failed to load.
@@ -18,7 +17,6 @@ import { select } from '@wordpress/data';
  */
 export const usePaymentSetupHandler = (
 	onPaymentSetup,
-	billingAddress,
 	checkoutSessionId,
 	errorMessage,
 	hasLoadErrorRef,
@@ -74,17 +72,6 @@ export const usePaymentSetupHandler = (
 								save_payment_method: 'no', // TODO: Correctly handle this when supporting saved payment methods in the future.
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
-
-								// The billing information here is relevant to properly create the Stripe Customer object.
-								billing_email: billingAddress.email,
-								billing_first_name: billingAddress.first_name,
-								billing_last_name: billingAddress.last_name,
-								billing_address_1: billingAddress.address_1,
-								billing_address_2: billingAddress.address_2,
-								billing_city: billingAddress.city,
-								billing_state: billingAddress.state,
-								billing_postcode: billingAddress.postcode,
-								billing_country: billingAddress.country,
 							},
 						},
 					};
@@ -92,7 +79,6 @@ export const usePaymentSetupHandler = (
 				return handlePaymentProcessing();
 			} ),
 		[
-			billingAddress,
 			checkoutSessionId,
 			errorMessage,
 			hasLoadErrorRef,
