@@ -480,18 +480,20 @@ function getExpandedOptimizedCheckoutRules( initialRules = {} ) {
 	const paymentMethodRoot = document.querySelector(
 		'.wc_payment_methods .payment_method_stripe'
 	);
-	const paymentMethodRootStyles = paymentMethodRoot
-		? window.getComputedStyle( paymentMethodRoot )
-		: {};
+	if ( paymentMethodRoot ) {
+		const paymentMethodRootStyles =
+			window.getComputedStyle( paymentMethodRoot );
 
-	if ( paymentMethodRootStyles.borderWidth === '0px' ) {
-		accordionItemRules.borderWidth = paymentMethodRootStyles.borderWidth;
-	} else {
-		accordionItemRules.border = paymentMethodRootStyles.border;
+		if ( paymentMethodRootStyles.borderWidth === '0px' ) {
+			accordionItemRules.borderWidth =
+				paymentMethodRootStyles.borderWidth;
+		} else {
+			accordionItemRules.border = paymentMethodRootStyles.border;
+		}
+
+		accordionItemRules.borderRadius = paymentMethodRootStyles.borderRadius;
+		accordionItemRules.boxShadow = paymentMethodRootStyles.boxShadow;
 	}
-
-	accordionItemRules.borderRadius = paymentMethodRootStyles.borderRadius;
-	accordionItemRules.boxShadow = paymentMethodRootStyles.boxShadow;
 
 	// Look at the payment method label to pick up styles that should specifically apply to the Stripe equivalents.
 	const paymentMethodLabel = document.querySelector(
