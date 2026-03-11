@@ -792,7 +792,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				if ( $hide_based_on_tax !== $hide_based_on_tax_filtered ) {
 					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to the tax setup being overridden by the filter.' );
 				} else {
-					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
+					WC_Stripe_Logger::debug( "Stripe Express Checkout is hidden due to product/cart not requiring shipping and tax being based on customer's billing or shipping address." );
 				}
 			}
 			return false;
