@@ -552,6 +552,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
+		/**
+		 * Filters the list of permitted font domains for the Stripe Payment Element.
+		 * These host names will be used in the client Javascript to identify additional domains
+		 * that return text/css resources which include @font-face declarations. Those stylesheets
+		 * can then be passed into the Stripe payment element.
+		 *
+		 * @param string[] $permitted_font_domains List of permitted font domains.
+		 * @since 10.6.0
+		 */
 		$permitted_font_domains = apply_filters( 'wc_stripe_upe_permitted_font_domains', [] );
 		if ( [] !== $permitted_font_domains && is_array( $permitted_font_domains ) ) {
 			$stripe_params['permittedFontDomains'] = $permitted_font_domains;
