@@ -1023,12 +1023,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $formatted_total;
 		}
 
+		$currency_code   = $checkout_session->presentment_details->presentment_currency;
+		$currency_symbol = get_woocommerce_currency_symbol( $currency_code );
+
 		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$checkout_session->presentment_details->presentment_amount,
 			$checkout_session->presentment_details->presentment_currency
 		);
 
-		return $formatted_total . ' ($' . $amount . ' ' . strtoupper( $checkout_session->presentment_details->presentment_currency ) . ')';
+		return $formatted_total . ' (' . $currency_symbol . $amount . ' ' . strtoupper( $currency_code ) . ')';
 	}
 
 	/**
