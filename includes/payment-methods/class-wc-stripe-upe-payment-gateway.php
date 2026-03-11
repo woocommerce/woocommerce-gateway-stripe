@@ -311,9 +311,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Include the converted currency information in the order total on the order received page and in the My Account orders list.
 		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
 
-		// Add a table row showing the converted total in the order review on the checkout page, if the currency was converted.
-		add_filter( 'woocommerce_get_order_item_totals', [ $this, 'add_converted_total_table_row' ], 10, 2 );
-
 		add_filter( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
@@ -1032,31 +1029,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 
 		return $formatted_total . ' ($' . $amount . ' ' . strtoupper( $checkout_session->presentment_details->presentment_currency ) . ')';
-	}
-
-	/**
-	 * Adds a new row to the order details table on the order received page to display the converted total
-	 * when the order is paid with a different currency than the store currency.
-	 *
-	 * @return array
-	 */
-	public function add_converted_total_table_row( array $total_rows, WC_Order $order ): array {
-		$checkout_session = $this->get_checkout_session_from_order( $order );
-		if ( empty( $checkout_session->presentment_details ) ) {
-			return $total_rows;
-		}
-
-		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$checkout_session->presentment_details->presentment_amount,
-			$checkout_session->presentment_details->presentment_currency
-		);
-
-		$total_rows['converted_total'] = [
-			'label' => esc_html__( 'Converted Total', 'woocommerce-gateway-stripe' ),
-			'value' => '$' . $amount . ' ' . strtoupper( $checkout_session->presentment_details->presentment_currency ),
-		];
-
-		return $total_rows;
 	}
 
 	/**
