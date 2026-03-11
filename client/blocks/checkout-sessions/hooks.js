@@ -47,6 +47,16 @@ export const usePaymentSetupHandler = (
 						};
 					}
 
+					if ( ! checkoutSessionId ) {
+						return {
+							type: 'error',
+							message: __(
+								'We could not initialize the payment session. Please refresh the page and try again.',
+								'woocommerce-gateway-stripe'
+							),
+						};
+					}
+
 					if ( errorMessage ) {
 						return {
 							type: 'error',
