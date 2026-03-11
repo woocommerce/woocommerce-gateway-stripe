@@ -497,7 +497,11 @@ export async function mountStripePaymentElement( api, domElement ) {
 			upeElementPromise = createStripePaymentElement(
 				api,
 				paymentMethodType
-			);
+			).catch( ( error ) => {
+				gatewayUPEComponents[ paymentMethodType ].upeElementPromise =
+					null;
+				throw error;
+			} );
 		}
 		gatewayUPEComponents[ paymentMethodType ].upeElementPromise =
 			upeElementPromise;
