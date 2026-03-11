@@ -415,7 +415,13 @@ jQuery( function ( $ ) {
 		 */
 		const reconfigureStripePaymentSelection = () => {
 			const stripePaymentBox = getStripePaymentBox();
-			stripePaymentBox.on( 'click', selectStripePaymentMethod );
+			// Use a namespaced event to ensure we remove existing event listeners before (re)adding the listener.
+			stripePaymentBox
+				.off( 'click.wc-stripe-expanded-ocs' )
+				.on(
+					'click.wc-stripe-expanded-ocs',
+					selectStripePaymentMethod
+				);
 
 			getStripePaymentElement( PAYMENT_METHOD_CARD ).then(
 				( paymentElement ) => {
