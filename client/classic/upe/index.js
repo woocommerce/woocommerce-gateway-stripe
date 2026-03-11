@@ -338,7 +338,11 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	if ( getStripeServerData()?.isOCEnabled ) {
+	const stripeServerData = getStripeServerData();
+	if (
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		stripeServerData?.shouldExpandOptimizedCheckout
+	) {
 		const getStripePaymentBox = () =>
 			$(
 				'.woocommerce-checkout-payment .payment_methods .payment_box.payment_method_stripe'
