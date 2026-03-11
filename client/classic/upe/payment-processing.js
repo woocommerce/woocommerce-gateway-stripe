@@ -42,10 +42,6 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  */
 
 /**
- * @typedef {import('../../styles/upe/get-payment-method-radio-styles').PaymentMethodRadioStyles} PaymentMethodRadioStyles
- */
-
-/**
  * @type {Object<string, UPEComponent>}
  */
 const gatewayUPEComponents = {};
