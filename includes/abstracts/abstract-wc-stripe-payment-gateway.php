@@ -2212,8 +2212,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected function should_skip_full_payment_scripts() {
 		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 
-		return ( $express_checkout_helper->is_product() || $express_checkout_helper->is_cart() )
-			&& ! $express_checkout_helper->is_express_checkout_enabled();
+		if ( ! $express_checkout_helper->is_product() && ! $express_checkout_helper->is_cart() ) {
+			return false;
+		}
+
+		// Check that we are not on some other page that needs the full payment scripts.
+		if (
+			$express_checkout_helper->is_checkout() ||
+			$express_checkout_helper->is_one_page_checkout() ||
+			is_add_payment_method_page() ||
+			$express_checkout_helper->is_pay_for_order_page() ||
+			isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			return false;
+		}
+
+		return ! $express_checkout_helper->is_express_checkout_enabled();
 	}
 
 	/**
