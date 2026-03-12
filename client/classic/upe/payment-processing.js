@@ -655,10 +655,17 @@ export const processPayment = (
 					throw new Error( confirmResult.error.message );
 				}
 
-				appendCheckoutSessionIdToForm(
-					jQueryForm,
-					confirmResult?.session?.id
-				);
+				const sessionId = confirmResult?.session?.id;
+				if ( ! sessionId ) {
+					throw new Error(
+						__(
+							'Payment could not be completed. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
+				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
 			} else {
 				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
 					validateBlikCode( jQueryForm );
