@@ -2222,7 +2222,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$express_checkout_helper->is_one_page_checkout() ||
 			is_add_payment_method_page() ||
 			$express_checkout_helper->is_pay_for_order_page() ||
-			WC_Stripe_Subscriptions_Helper::is_changing_payment_method_for_subscription()
+			isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
 		) {
 			return false;
 		}

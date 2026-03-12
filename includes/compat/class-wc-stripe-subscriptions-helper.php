@@ -45,20 +45,6 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Returns whether we are changing the payment method for a subscription.
-	 *
-	 * @since 10.6.0
-	 *
-	 * @return bool
-	 */
-	public static function is_changing_payment_method_for_subscription(): bool {
-		if ( isset( $_GET['change_payment_method'] ) && function_exists( 'wcs_is_subscription' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return wcs_is_subscription( wc_clean( wp_unslash( $_GET['change_payment_method'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification
-		}
-		return false;
-	}
-
-	/**
 	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
 	 *
 	 * @return array
