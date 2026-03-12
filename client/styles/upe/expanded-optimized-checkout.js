@@ -6,17 +6,17 @@ import {
 
 /**
  * Build the full set of appearance rules for expanded Optimized Checkout.
+ * NOTE: We do not overwrite the initial rules, we only add to them, as we don't want
+ * to override any customisation specified by the merchant.
  *
  * @param {Object} initialRules The initial appearance rules that we need to build upon.
  * @return {Object} The full set of appearance rules for Optimized Checkout.
  */
 export function getExpandedOptimizedCheckoutRules( initialRules = {} ) {
-	const accordionItemRules = initialRules?.[ '.AccordionItem' ] || {};
-	const accordionItemSelectedRules =
-		initialRules?.[ '.AccordionItem--selected' ] || {};
-	const radioIconRules = initialRules?.[ '.RadioIcon' ] || {};
-	const radioIconInnerCheckedRules =
-		initialRules?.[ '.RadioIconInner--checked' ] || {};
+	const accordionItemRules = {};
+	const accordionItemSelectedRules = {};
+	const radioIconRules = {};
+	const radioIconInnerCheckedRules = {};
 
 	const paymentMethodRoot = document.querySelector(
 		'.wc_payment_methods .payment_method_stripe'
@@ -140,11 +140,24 @@ export function getExpandedOptimizedCheckoutRules( initialRules = {} ) {
 		}
 	}
 
+	// Merge the rules, always giving preference to the initial rules.
 	return {
 		...initialRules,
-		'.AccordionItem': accordionItemRules,
-		'.AccordionItem--selected': accordionItemSelectedRules,
-		'.RadioIcon': radioIconRules,
-		'.RadioIconInner--checked': radioIconInnerCheckedRules,
+		'.AccordionItem': {
+			...accordionItemRules,
+			...( initialRules?.[ '.AccordionItem' ] || {} ),
+		},
+		'.AccordionItem--selected': {
+			...accordionItemSelectedRules,
+			...( initialRules?.[ '.AccordionItem--selected' ] || {} ),
+		},
+		'.RadioIcon': {
+			...radioIconRules,
+			...( initialRules?.[ '.RadioIcon' ] || {} ),
+		},
+		'.RadioIconInner--checked': {
+			...radioIconInnerCheckedRules,
+			...( initialRules?.[ '.RadioIconInner--checked' ] || {} ),
+		},
 	};
 }
