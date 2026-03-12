@@ -786,6 +786,13 @@ export const initializeUPEAppearance = (
 		? 'blocks'
 		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
 
+	// Check for custom appearance configuration from the server.
+	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
+	const customAppearance = getStripeServerData()?.[ customServerField ];
+	if ( customAppearance ) {
+		return customAppearance;
+	}
+
 	if ( appearanceCache[ location ] ) {
 		return appearanceCache[ location ];
 	}

@@ -598,13 +598,9 @@ class WC_Stripe_Payment_Method_Configurations {
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
 			);
 
-			// If Amazon Pay is available and should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
-			if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() && 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) ) {
-				$amazon_pay = new WC_Stripe_UPE_Payment_Method_Amazon_Pay();
-
-				if ( $amazon_pay->is_available_for_account_country() && in_array( get_woocommerce_currency(), $amazon_pay->get_supported_currencies(), true ) ) {
-					$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
-				}
+			// If Amazon Pay should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
+			if ( 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) && WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country() && in_array( get_woocommerce_currency(), WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies(), true ) ) {
+				$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 			}
 		}
 
