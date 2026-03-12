@@ -495,11 +495,23 @@ export async function mountStripePaymentElement( api, domElement ) {
 		elements &&
 		typeof elements.loadActions === 'function'
 	) {
-		const actions = await elements.loadActions();
+		try {
+			const actions = await elements.loadActions();
 
-		if ( actions.type === 'error' ) {
-			showErrorPaymentMethod( actions?.error?.message, domElement );
-			// Setting the flag to true to prevent the form from being submitted.
+			if ( actions.type === 'error' ) {
+				showErrorPaymentMethod( actions?.error?.message, domElement );
+				// Setting the flag to true to prevent the form from being submitted.
+				component.hasLoadError = true;
+			}
+		} catch ( error ) {
+			showErrorPaymentMethod(
+				error?.message ??
+					__(
+						'Failed to load payment method. Please refresh the page and try again.',
+						'woocommerce-gateway-stripe'
+					),
+				domElement
+			);
 			component.hasLoadError = true;
 		}
 	}
