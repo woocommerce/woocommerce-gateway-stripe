@@ -512,9 +512,12 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 		existingElement.remove();
 	}
 
-	form.append(
-		`<input type="hidden" id="wc_stripe_checkout_session_id" name="wc_stripe_checkout_session_id" value="${ checkoutSessionId }" />`
-	);
+	const hiddenInput = document.createElement( 'input' );
+	hiddenInput.type = 'hidden';
+	hiddenInput.id = 'wc_stripe_checkout_session_id';
+	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.value = checkoutSessionId;
+	form.append( hiddenInput );
 };
 
 /**
