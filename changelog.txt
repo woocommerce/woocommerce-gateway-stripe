@@ -4,6 +4,7 @@
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
+* Fix - Ensure that we enqueue all needed scripts on payment pages
 
 = 10.5.1 - 2026-03-11 =
 * Fix - Reinstate custom appearance logic
