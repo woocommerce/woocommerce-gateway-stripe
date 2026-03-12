@@ -122,7 +122,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
 
-		$is_agentic_hook = 'v1.delegated_checkout.customize_checkout' === $event_type;
+		$is_agentic_hook = str_starts_with( $event_type, 'v1.delegated_checkout.' );
 
 		$secret = $is_agentic_hook
 			? AGENTIC_COMMERCE_WEBHOOK_SECRET
@@ -162,7 +162,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( $is_agentic_hook ) {
-			$this->process_agentic_customization_hook( $event );
+			if ( 'v1.delegated_checkout.customize_checkout' === $event_type ) {
+				$this->process_agentic_customization_hook( $event );
+			} else {
+				WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
+				status_header( 400 );
+			}
 			exit;
 		}
 
