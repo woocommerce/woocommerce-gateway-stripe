@@ -981,7 +981,7 @@ class WC_Stripe_Customer {
 	 * @return bool True if the default payment method was set successfully, false otherwise.
 	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_payment_method( $payment_method_id ) {
+	public function set_default_payment_method( $payment_method_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'invoice_settings' => [
