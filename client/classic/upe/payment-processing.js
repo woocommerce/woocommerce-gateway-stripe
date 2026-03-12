@@ -621,7 +621,11 @@ export const processPayment = (
 				);
 			}
 
-			if ( getStripeServerData()?.isAdaptivePricingEnabled ) {
+			if (
+				getStripeServerData()?.isAdaptivePricingEnabled &&
+				elements &&
+				typeof elements.loadActions === 'function'
+			) {
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
@@ -634,6 +638,10 @@ export const processPayment = (
 					returnUrl: window.location.href,
 					redirect: 'if_required',
 				} );
+
+				if ( confirmResult.type === 'error' ) {
+					throw new Error( confirmResult.error.message );
+				}
 
 				appendCheckoutSessionIdToForm(
 					jQueryForm,
