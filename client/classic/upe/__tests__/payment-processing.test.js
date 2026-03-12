@@ -436,6 +436,34 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
+			it( 'shows error when confirm succeeds but session is missing', async () => {
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {
+						/* no session */
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalled();
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					'Payment could not be completed. Please try again.'
+				);
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).not.toHaveBeenCalled();
+				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+			} );
+
 			it( 'does not call validateElements or appendPaymentMethodIdToForm', async () => {
 				const mockActions = {
 					confirm: jest.fn().mockResolvedValue( {
