@@ -296,7 +296,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'true' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( true );
+				expect( getAppearance ).toHaveBeenCalledWith( true, false );
 			} );
 
 			it( 'falls through to computed appearance when server appearance is falsy', () => {
@@ -305,7 +305,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false );
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
 			} );
 
 			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
@@ -316,7 +316,7 @@ describe( 'utils', () => {
 
 				initializeUPEAppearance( 'false' );
 
-				expect( getAppearance ).toHaveBeenCalledWith( false );
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
 			} );
 		} );
 
@@ -337,7 +337,10 @@ describe( 'utils', () => {
 
 					const result = init( 'false' );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 					expect( result ).toEqual( { theme: 'classic' } );
 				} );
 			} );
@@ -354,7 +357,10 @@ describe( 'utils', () => {
 
 					const result = init( 'true' );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( true );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false
+					);
 					expect( result ).toEqual( { theme: 'blocks' } );
 				} );
 			} );
@@ -371,7 +377,10 @@ describe( 'utils', () => {
 
 					init();
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 				} );
 			} );
 
@@ -445,7 +454,10 @@ describe( 'utils', () => {
 
 					init( true );
 
-					expect( mockGetAppearance ).toHaveBeenCalledWith( false );
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
 				} );
 			} );
 
