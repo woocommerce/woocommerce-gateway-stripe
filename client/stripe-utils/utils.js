@@ -1,7 +1,10 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
+import {
+	getAppearance,
+	getExpandedOptimizedCheckoutRules,
+} from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -790,6 +793,11 @@ export const initializeUPEAppearance = (
 	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
 	const customAppearance = getStripeServerData()?.[ customServerField ];
 	if ( customAppearance ) {
+		if ( shouldExpandOptimizedCheckout ) {
+			customAppearance.rules = getExpandedOptimizedCheckoutRules(
+				customAppearance.rules || {}
+			);
+		}
 		return customAppearance;
 	}
 

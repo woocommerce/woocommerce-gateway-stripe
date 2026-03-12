@@ -7,6 +7,7 @@ import { getAppearance } from '../../styles/upe';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
+	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
 } ) );
 
 describe( 'utils', () => {
