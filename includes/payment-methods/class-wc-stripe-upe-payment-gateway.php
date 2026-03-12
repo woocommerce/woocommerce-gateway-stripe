@@ -311,7 +311,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Include the converted currency information in the order total on the order received page and in the My Account orders list.
 		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
 
+		// Add a notice about currency conversion when the order currency is different from the store currency on the order details page.
 		add_filter( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
+
+		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
+		add_filter( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 4 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -1062,7 +1066,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			wc_get_price_decimals()
 		);
 
-		echo '<p class="woocommerce-info">';
+		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(
 				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
 				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
@@ -1071,6 +1075,43 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
 			);
 		echo '</p>';
+	}
+
+	/**
+	 * Shows a notice to the order received page to inform the customer about the currency conversion
+	 * when the order is paid with a different currency than the store currency.
+	 *
+	 * @return void
+	 */
+	public function add_email_currency_conversion_notice( WC_Order $order ): void {
+		$checkout_session = $this->get_checkout_session_from_order( $order );
+		if ( empty( $checkout_session->presentment_details ) ) {
+			return;
+		}
+
+		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
+
+		$presentment_amount   = $checkout_session->presentment_details->presentment_amount;
+		$presentment_currency = $checkout_session->presentment_details->presentment_currency;
+
+		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_amount,
+			$presentment_currency
+		);
+		$rate_amount        = wc_format_decimal(
+			$presentment_amount / $checkout_session->amount_total,
+			wc_get_price_decimals()
+		);
+
+		echo '<div style="margin-top: 1em; border: solid 1px #007CBA; border-radius: 4px; background-color: #F6F5F8; padding: 1em 2em;">';
+		printf(
+		/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
+			esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+			esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
+			esc_html( get_woocommerce_currency() ),
+			esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
+		);
+		echo '</div>';
 	}
 
 	/**
