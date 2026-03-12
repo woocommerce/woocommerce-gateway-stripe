@@ -33,14 +33,13 @@ import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
-const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
-const isAdaptivePricingEnabled =
-	getStripeServerData()?.isAdaptivePricingEnabled;
 
 /**
  * Initialize the UPE components for each payment method type.
  */
 export function initializeUPEComponents() {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig ?? {};
 	for ( const paymentMethodType in paymentMethodsConfig ) {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
@@ -49,6 +48,8 @@ export function initializeUPEComponents() {
 			hasLoadError: false,
 		};
 	}
+	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
+	hasCheckoutCompleted = false;
 }
 
 /**
@@ -112,6 +113,8 @@ function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
 async function createStripePaymentElement( api, paymentMethodType ) {
+	const stripeServerData = getStripeServerData();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig ?? {};
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
@@ -121,8 +124,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
-
-	const stripeServerData = getStripeServerData();
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
@@ -201,7 +202,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
-	if ( isAdaptivePricingEnabled && supportsDeferredIntent ) {
+	if (
+		stripeServerData?.isAdaptivePricingEnabled &&
+		supportsDeferredIntent
+	) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response?.data?.client_secret;
@@ -484,6 +488,8 @@ export async function mountStripePaymentElement( api, domElement ) {
 	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
 	const component = gatewayUPEComponents[ paymentMethodType ];
 	const elements = component.elements;
+	const isAdaptivePricingEnabled =
+		getStripeServerData()?.isAdaptivePricingEnabled;
 	if (
 		isAdaptivePricingEnabled &&
 		elements &&
@@ -615,7 +621,7 @@ export const processPayment = (
 				);
 			}
 
-			if ( isAdaptivePricingEnabled ) {
+			if ( getStripeServerData()?.isAdaptivePricingEnabled ) {
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
