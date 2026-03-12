@@ -78,13 +78,15 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	): array {
 		// If tax is disabled, simply return empty tax rates for each line item.
 		if ( ! wc_tax_enabled() ) {
-			return $this->map_line_items(
-				fn( $line_item_id ) => [
-					'id'        => $line_item_id,
-					'tax_rates' => [],
-				],
-				$line_items
-			);
+			return [
+				'line_items' => $this->map_line_items(
+					fn( $line_item_id ) => [
+						'id'        => $line_item_id,
+						'tax_rates' => [],
+					],
+					$line_items
+				),
+			];
 		}
 
 		$tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
