@@ -56,7 +56,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @since 10.6.0
 	 */
-	public const EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME = '_wcstripe_feature_expand_ocs_legacy_checkout';
+	protected const EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME = '_wcstripe_feature_expand_ocs_legacy_checkout';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
