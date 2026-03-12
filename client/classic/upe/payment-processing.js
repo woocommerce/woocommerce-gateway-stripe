@@ -657,7 +657,7 @@ export const processPayment = (
 
 				appendCheckoutSessionIdToForm(
 					jQueryForm,
-					confirmResult.session.id
+					confirmResult?.session?.id
 				);
 			} else {
 				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
