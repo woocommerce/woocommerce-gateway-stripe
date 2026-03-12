@@ -152,7 +152,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'is_sepa_tokens_for_ideal' => [
-						'description'       => __( 'If "SEPA tokens for iDEAL" should be enabled.', 'woocommerce-gateway-stripe' ),
+						'description'       => __( 'If "SEPA tokens for iDEAL | Wero" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -642,6 +642,19 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
+	}
+
+	/**
+	 * Set `wc_stripe_show_customization_notice` as `no` to dismiss notice.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
+	 *
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
+	 */
+	public function dismiss_customization_notice( WP_REST_Request $request ) {
+		return $this->dismiss_notice( $request );
 	}
 
 	/**
