@@ -302,6 +302,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 			if ( shouldExpandOptimizedCheckout ) {
 				layout.paymentMethodLogoPosition = 'end';
+				// Ensure all available payment methods are shown.
+				layout.visibleAccordionItemsCount = 0;
 				layout.radios = getPaymentMethodRadioStyles() !== null;
 			} else {
 				layout.radios = false;
