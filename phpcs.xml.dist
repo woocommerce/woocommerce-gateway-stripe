@@ -61,7 +61,6 @@
 	</rule>
 
 	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
-		<exclude-pattern>includes/Ajax_Handlers/*</exclude-pattern>
 		<exclude-pattern>tests/*</exclude-pattern>
 	</rule>
 
