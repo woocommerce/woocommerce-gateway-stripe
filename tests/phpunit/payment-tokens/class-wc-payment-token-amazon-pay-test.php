@@ -1,9 +1,5 @@
 <?php
 
-use WC_Payment_Token_Amazon_Pay;
-use WC_Stripe_Payment_Methods;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Payment_Token_Amazon_Pay_Test tests.
  *

@@ -1,12 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Blocks\RestApi;
-use WC_REST_Stripe_Settings_Controller;
-use WC_Stripe_API;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_UPE_Payment_Gateway;
 
 /**
  * Class WC_REST_Stripe_Settings_Controller_Test_GB

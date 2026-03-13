@@ -1,7 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WC_Cache_Helper;
 
 /**
  * Helper class for shipping related unit tests.

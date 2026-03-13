@@ -1,18 +1,6 @@
 <?php
 
-use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Stripe_Payment_Methods;
-use WC_Logger;
-use WC_Stripe_API;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Helper;
-use WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update;
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Stripe_UPE_Payment_Method_Sepa;
-use WC_Subscription;
-use WC_Subscriptions;
-use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test

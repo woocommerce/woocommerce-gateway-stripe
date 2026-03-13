@@ -1,8 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WP_UnitTestCase;
-use WC_Stripe_Checkout_Sessions_Controller;
 
 /**
  * These tests make assertions against the WC_Stripe_Checkout_Sessions_Controller class.

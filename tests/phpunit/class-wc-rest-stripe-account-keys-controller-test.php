@@ -1,13 +1,5 @@
 <?php
 
-use WC_REST_Stripe_Account_Keys_Controller;
-use WC_Stripe_Account;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Methods;
-use WP_Error;
-use WP_REST_Request;
-
 /**
  * These tests make assertions against class WC_REST_Stripe_Account_Keys_Controller.
  *

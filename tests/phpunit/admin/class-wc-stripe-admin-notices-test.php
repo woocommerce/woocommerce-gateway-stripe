@@ -1,15 +1,5 @@
 <?php
 
-use WC_Stripe;
-use WC_Stripe_Admin_Notices;
-use WC_Stripe_Connect;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Methods;
-use WC_Subscription;
-use WC_Subscriptions;
-
 /**
  * Tests for the admin notices class.
  */

@@ -1,13 +1,5 @@
 <?php
 
-use WC_Stripe_Account;
-use WC_Stripe_Helper;
-use WC_Stripe_Intent_Status;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_Settings_Controller;
-use WC_Stripe_UPE_Payment_Gateway;
-use WP_UnitTestCase;
-
 /**
  * This test makes assertions against the class WC_Stripe_Settings_Controller.
  *

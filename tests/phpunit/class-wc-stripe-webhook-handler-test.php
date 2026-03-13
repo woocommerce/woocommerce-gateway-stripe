@@ -1,19 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
-use Exception;
-use ReflectionProperty;
-use WC_Data_Exception;
-use WC_Order;
-use WC_Stripe_Action_Scheduler_Service;
-use WC_Stripe_API;
-use WC_Stripe_Helper;
-use WC_Stripe_Intent_Status;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_Webhook_Handler;
-use WP_UnitTestCase;
-use MockAction;
 
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.

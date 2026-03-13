@@ -1,10 +1,5 @@
 <?php
 
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Method_Configurations;
-use WC_Stripe_Payment_Methods;
-
 /**
  * Provides useful methods to test logic related to the Payment Method Configuration API.
  */

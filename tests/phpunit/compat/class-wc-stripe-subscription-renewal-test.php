@@ -1,14 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_Payment_Methods;
-use WP_UnitTestCase;
-use MockAction;
-use WC_Stripe_API;
-use WC_Stripe_Database_Cache;
 
 /**
  * These tests assert various things about processing a renewal payment for a WooCommerce Subscription.

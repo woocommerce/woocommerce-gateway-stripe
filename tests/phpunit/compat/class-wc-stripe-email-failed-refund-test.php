@@ -1,9 +1,5 @@
 <?php
 
-use WC_Email;
-use WC_Stripe_Email_Failed_Refund;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Stripe_Email_Failed_Refund_Test
  *

@@ -1,13 +1,5 @@
 <?php
 
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Order;
-use WC_Order_Item_Fee;
-use WC_Order_Item_Product;
-use WC_Stripe_Currency_Code;
-use WC_Stripe_Helper;
-use WP_UnitTestCase;
-
 /**
  * These tests assert that get_level3_data_from_order() returns the correct
  * data.

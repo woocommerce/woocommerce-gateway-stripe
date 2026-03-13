@@ -1,10 +1,5 @@
 <?php
 
-use ReflectionClass;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Mode;
-use WP_UnitTestCase;
-
 /**
  * Tests for the WC_Stripe_Database_Cache class.
  *

@@ -1,9 +1,5 @@
 <?php
 
-use WC_Stripe_Payment_Methods;
-use WP_UnitTestCase;
-use WC_Stripe_Klarna_Payment_Token;
-
 /**
  * Class WC_Stripe_Klarna_Payment tests.
  */

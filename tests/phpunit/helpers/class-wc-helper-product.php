@@ -1,13 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WC_Cache_Helper;
-use WC_Product_Attribute;
-use WC_Product_External;
-use WC_Product_Grouped;
-use WC_Product_Simple;
-use WC_Product_Variable;
-use WC_Product_Variation;
 
 /**
  * Product helpers.

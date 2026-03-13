@@ -1,8 +1,5 @@
 <?php
 
-use WC_Stripe_UPE_Compatibility_Controller;
-use WP_UnitTestCase;
-
 /**
  * This test makes assertions against the class WC_Stripe_UPE_Compatibility_Controller.
  *

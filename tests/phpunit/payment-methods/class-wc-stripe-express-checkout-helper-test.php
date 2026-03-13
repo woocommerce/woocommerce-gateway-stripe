@@ -1,16 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Shipping_Zone;
-use WC_Shipping_Zones;
-use WC_Stripe_Express_Checkout_Helper;
-use WC_Stripe_Helper;
-use WC_Stripe_UPE_Payment_Method_Alipay;
-use WC_Subscription;
-use WC_Subscriptions_Cart;
-use WC_Subscriptions_Product;
-use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Helper.

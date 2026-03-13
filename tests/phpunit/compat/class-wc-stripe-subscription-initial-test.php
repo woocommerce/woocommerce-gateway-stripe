@@ -1,13 +1,5 @@
 <?php
 
-use WC_Stripe_Helper;
-use WC_Stripe_Intent_Controller;
-use WC_Stripe_Intent_Status;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_UPE_Payment_Gateway;
-use WP_UnitTestCase;
-
 /**
  * These tests assert various things about processing an initial payment for a WooCommerce Subscriptions.
  *

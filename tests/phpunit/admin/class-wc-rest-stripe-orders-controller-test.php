@@ -1,10 +1,5 @@
 <?php
 
-use WC_Stripe_Intent_Status;
-use WC_Stripe_Order_Helper;
-use WP_REST_Request;
-use WP_UnitTestCase;
-
 /**
  * Class WC_REST_Stripe_Orders_Controller.
  *

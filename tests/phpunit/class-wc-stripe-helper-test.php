@@ -1,12 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
-use stdClass;
-use WC_Order;
-use WC_Stripe_Currency_Code;
-use WC_Stripe_Helper;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_Payment_Methods;
 
 /**
  * These tests make assertions against class WC_Stripe_Helper.

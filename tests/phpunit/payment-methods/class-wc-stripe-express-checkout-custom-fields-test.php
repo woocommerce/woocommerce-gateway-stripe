@@ -3,8 +3,6 @@
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
 use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
-use WC_Stripe_Express_Checkout_Custom_Fields;
-use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Custom_Fields.

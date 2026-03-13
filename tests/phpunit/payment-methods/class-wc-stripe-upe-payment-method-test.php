@@ -1,34 +1,5 @@
 <?php
 
-use Closure;
-use stdClass;
-use WC_Payment_Token_ACH;
-use WC_Payment_Token_ACSS;
-use WC_Payment_Token_Amazon_Pay;
-use WC_Payment_Token_Bacs_Debit;
-use WC_Payment_Token_Becs_Debit;
-use WC_Payment_Token_CashApp;
-use WC_Payment_Token_Link;
-use WC_Payment_Token_SEPA;
-use WC_Stripe;
-use WC_Stripe_Currency_Code;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_Klarna_Payment_Token;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_Payment_Token_CC;
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Stripe_UPE_Payment_Method_ACH;
-use WC_Stripe_UPE_Payment_Method_ACSS;
-use WC_Stripe_UPE_Payment_Method_Amazon_Pay;
-use WC_Stripe_UPE_Payment_Method_Bacs_Debit;
-use WC_Stripe_UPE_Payment_Method_Becs_Debit;
-use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
-use WC_Stripe_UPE_Payment_Method_CC;
-use WC_Stripe_UPE_Payment_Method_Klarna;
-use WC_Stripe_UPE_Payment_Method_Link;
-use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
-
 /**
  * Unit tests for UPE payment methods
  */

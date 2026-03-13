@@ -1,8 +1,5 @@
 <?php
 
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-
 /**
  * Provides useful methods to test logic related to the Optimized Checkout.
  */

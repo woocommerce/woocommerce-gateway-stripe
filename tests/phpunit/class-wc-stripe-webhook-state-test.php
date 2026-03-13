@@ -1,10 +1,5 @@
 <?php
 
-use WC_Stripe_Helper;
-use WC_Stripe_Webhook_Handler;
-use WC_Stripe_Webhook_State;
-use WP_UnitTestCase;
-
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.
  *

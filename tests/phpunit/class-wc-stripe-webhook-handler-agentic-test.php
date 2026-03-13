@@ -1,12 +1,5 @@
 <?php
 
-use Exception;
-use WC_Order;
-use WC_Stripe_API;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Webhook_Handler;
-use WP_UnitTestCase;
-
 /**
  * Tests for agentic commerce checkout.session.completed webhook handling.
  *

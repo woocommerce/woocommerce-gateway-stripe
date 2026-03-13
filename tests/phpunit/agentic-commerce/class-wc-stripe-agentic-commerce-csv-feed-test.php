@@ -5,9 +5,6 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-use WP_UnitTestCase;
-use WC_Stripe_Agentic_Commerce_Csv_Feed;
-
 /**
  * Class WC_Stripe_Agentic_Commerce_Csv_Feed_Test
  *

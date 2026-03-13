@@ -1,13 +1,5 @@
 <?php
 
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Payment_Gateway;
-use WC_Stripe_Express_Checkout_Ajax_Handler;
-use WC_Stripe_Express_Checkout_Element;
-use WC_Stripe_Express_Checkout_Helper;
-use WC_Stripe_Helper;
-use WP_UnitTestCase;
-
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Element.
  *

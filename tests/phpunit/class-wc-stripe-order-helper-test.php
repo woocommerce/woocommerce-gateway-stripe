@@ -1,11 +1,5 @@
 <?php
 
-use WC_Order;
-use WC_Stripe_Exception;
-use WP_UnitTestCase;
-use WC_Data_Exception;
-use WC_Stripe_Order_Helper;
-
 /**
  * Class WC_Stripe_Order_Helper
  *

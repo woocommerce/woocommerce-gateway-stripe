@@ -1,9 +1,5 @@
 <?php
 
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Method_Configurations;
-use WC_Stripe_UPE_Payment_Gateway;
-
 /**
  * Class Migrate_Payment_Methods_From_Db_To_Pmc_Test
  *

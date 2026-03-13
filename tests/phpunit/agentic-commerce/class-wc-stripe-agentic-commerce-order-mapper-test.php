@@ -5,12 +5,6 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-use WP_UnitTestCase;
-use WC_Stripe_Agentic_Checkout_Session;
-use WC_Stripe_Agentic_Commerce_Order_Mapper;
-use WC_Order_Item_Product;
-use Exception;
-
 /**
  * Class WC_Stripe_Agentic_Commerce_Order_Mapper_Test
  *

@@ -1,11 +1,5 @@
 <?php
 
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Payment_Token_CC;
-use WC_Payment_Token_SEPA;
-use WC_Payment_Tokens;
-use WC_Stripe_Payment_Methods;
-
 /**
  * Class WC_Helper_Token.
  *

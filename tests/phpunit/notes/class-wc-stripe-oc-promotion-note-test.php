@@ -1,8 +1,5 @@
 <?php
 
-use WC_Stripe_OC_Promotion_Note;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Stripe_OC_Promotion_Note_Test
  *

@@ -1,11 +1,5 @@
 <?php
 
-use ReflectionClass;
-use WC_Stripe_API;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Helper;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Stripe_API
  *

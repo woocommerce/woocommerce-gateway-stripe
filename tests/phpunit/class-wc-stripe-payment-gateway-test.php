@@ -1,12 +1,6 @@
 <?php
 
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Stripe_Helper;
-use WC_Stripe_Order_Helper;
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Subscriptions_Helpers;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_UPE_Payment_Method_CC;
 
 /**
  * These tests make assertions against abstract class WC_Stripe_Payment_Gateway

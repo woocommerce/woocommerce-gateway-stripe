@@ -1,8 +1,5 @@
 <?php
 
-use WP_REST_Request;
-use WP_UnitTestCase;
-
 /**
  * Class WC_REST_Stripe_Locations_Controller.
  *

@@ -1,13 +1,5 @@
 <?php
 
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_Stripe_Account;
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Status;
-use WC_Subscription;
-use WC_Subscriptions_Helpers;
-use WP_UnitTestCase;
-
 /**
  * Tests for the WC_Stripe_Status class.
  *

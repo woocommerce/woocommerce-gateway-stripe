@@ -1,10 +1,5 @@
 <?php
 
-use stdClass;
-use WC_Payment_Token_Becs_Debit;
-use WC_Stripe_Payment_Methods;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Payment_Token_Becs_Debit tests.
  */

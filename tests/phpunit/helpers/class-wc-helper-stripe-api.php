@@ -1,8 +1,5 @@
 <?php
 
-use Exception;
-use WC_Stripe_API;
-
 /**
  * Stripe API helpers.
  *

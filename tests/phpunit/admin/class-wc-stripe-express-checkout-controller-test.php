@@ -1,9 +1,5 @@
 <?php
 
-use WC_Stripe_Express_Checkout_Controller;
-use WC_Stripe_Helper;
-use WP_UnitTestCase;
-
 /**
  * WC_Stripe_Express_Checkout_Controller_Test class
  *

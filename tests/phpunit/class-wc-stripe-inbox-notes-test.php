@@ -1,14 +1,5 @@
 <?php
 
-use WC_Data_Store;
-use WC_Stripe_API;
-use WC_Stripe_Connect;
-use WC_Stripe_Helper;
-use WC_Stripe_Inbox_Notes;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_UPE_StripeLink_Note;
-use WP_UnitTestCase;
-
 /**
  * Class WC_Stripe_Inbox_Notes_Test
  *

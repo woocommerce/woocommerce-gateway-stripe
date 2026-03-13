@@ -1,15 +1,6 @@
 <?php
 
 use Automattic\WooCommerce\Blocks\Package;
-use Exception;
-use WC_Stripe_UPE_Payment_Gateway;
-use WC_REST_Stripe_Settings_Controller;
-use WC_Stripe;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_Payment_Methods;
-use WP_REST_Request;
-use WP_REST_Response;
 
 /**
  * Class WC_REST_Stripe_Settings_Controller_Test

@@ -1,11 +1,7 @@
 <?php
 
-use Closure;
 use PHPUnit\Framework\MockObject\Generator;
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Stripe;
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
 
 /**
  * Provides methods useful when testing UPE-related logic.

@@ -1,8 +1,5 @@
 <?php
 
-use WC_Stripe_Payment_Token_CC;
-use WP_UnitTestCase;
-
 /**
  * Trait WC_Stripe_Fingerprint_Trait tests.
  */

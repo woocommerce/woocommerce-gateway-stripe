@@ -1,10 +1,5 @@
 <?php
 
-use WC_Stripe;
-use WC_Stripe_API;
-use WC_Stripe_Payment_Method_Configurations;
-use WP_UnitTestCase;
-
 /**
  * This stub assists IDE in recognizing PHPUnit tests.
  *

@@ -1,11 +1,5 @@
 <?php
 
-use WC_Stripe_Database_Cache;
-use WC_Stripe_Subscription_Detached_Bulk_Action;
-use WC_Subscription;
-use WC_Subscriptions;
-use WP_UnitTestCase;
-
 /**
  * This test makes assertions against the class WC_Stripe_Subscription_Detached_Bulk_Action.
  *

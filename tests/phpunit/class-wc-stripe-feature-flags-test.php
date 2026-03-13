@@ -1,9 +1,5 @@
 <?php
 
-use WC_Stripe_Feature_Flags;
-use WC_Stripe_Helper;
-use WC_Stripe_UPE_Payment_Gateway;
-
 /**
  * These tests make assertions against the class WC_Stripe_Feature_Flags
  *

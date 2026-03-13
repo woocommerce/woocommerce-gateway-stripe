@@ -1,9 +1,5 @@
 <?php
 
-use WC_Stripe_Helper;
-use WC_Stripe_Logger;
-use WP_UnitTestCase;
-
 /**
  * These tests make assertions against class WC_Stripe_Logger.
  *

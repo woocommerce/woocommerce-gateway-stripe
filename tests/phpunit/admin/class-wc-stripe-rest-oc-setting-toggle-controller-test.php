@@ -1,10 +1,6 @@
 <?php
 
-use Exception;
-use WC_Stripe_REST_OC_Setting_Toggle_Controller;
-use WC_Stripe_UPE_Payment_Gateway;
 use Automattic\WooCommerce\Blocks\Package;
-use WP_REST_Request;
 
 /**
  * Class WC_Stripe_REST_OC_Setting_Toggle_Controller_Test

@@ -5,9 +5,6 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-use WP_UnitTestCase;
-use WC_Stripe_Agentic_Checkout_Session;
-
 /**
  * Class WC_Stripe_Agentic_Checkout_Session_Test
  *

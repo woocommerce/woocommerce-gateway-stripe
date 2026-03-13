@@ -1,9 +1,5 @@
 <?php
 
-use WC_Order;
-use WC_Stripe_Email_Customer_Failed_Refund;
-use WP_UnitTestCase;
-
 class WC_Stripe_Email_Customer_Failed_Refund_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for the `__constructor` method.
