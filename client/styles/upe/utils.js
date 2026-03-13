@@ -189,13 +189,9 @@ export const handleAppearanceForFloatingLabel = (
 			originalPaddingBottom - 1
 		}px`;
 
-		const originalLabelMarginTop =
-			appearance.rules[ '.Label' ].marginTop ?? '0';
 		appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
 			( originalPaddingBottom - 1 ) / 3
 		) }px`;
-		appearance.rules[ '.Label--floating' ].marginTop =
-			originalLabelMarginTop;
 	}
 
 	// Add top margin so the floating label doesn't sit flush against the input border.
