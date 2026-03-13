@@ -1,13 +1,8 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 
 /**
  * These tests make assertions against the class WC_Stripe_Feature_Flags

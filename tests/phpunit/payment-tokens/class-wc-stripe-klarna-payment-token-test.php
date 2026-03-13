@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentTokens;
-
 use WC_Stripe_Payment_Methods;
 use WP_UnitTestCase;
 use WC_Stripe_Klarna_Payment_Token;

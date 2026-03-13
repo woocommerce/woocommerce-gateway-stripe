@@ -1,11 +1,8 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin\Migrations;
-
 use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_Payment_Methods;
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Logger;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
@@ -15,7 +12,6 @@ use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Subscription;
 use WC_Subscriptions;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**

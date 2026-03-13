@@ -1,14 +1,9 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
 use WC_Stripe_Order_Helper;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WC_Stripe_Database_Cache;
-use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
 use WC_Order;
 use WC_Stripe_Co_Branded_CC_Compatibility;
@@ -43,10 +38,6 @@ use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
 use WC_Subscriptions_Helpers;
 use MockAction;
 use WC_Stripe_API;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Unit tests for the UPE payment gateway
@@ -2484,7 +2475,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
 	}
-
 
 	/**
 	 * Test that a successful payment intent is reused instead of creating a new one.

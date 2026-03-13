@@ -1,13 +1,10 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use Exception;
 use WC_Order;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Webhook_Handler;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
 /**

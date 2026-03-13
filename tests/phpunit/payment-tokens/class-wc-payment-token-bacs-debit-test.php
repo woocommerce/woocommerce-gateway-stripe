@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentTokens;
-
 use WC_Payment_Token_Bacs_Debit;
 use WC_Stripe_Payment_Methods;
 use WP_UnitTestCase;

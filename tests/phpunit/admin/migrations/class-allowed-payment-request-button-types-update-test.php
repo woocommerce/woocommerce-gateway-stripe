@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin\Migrations;
-
 use Allowed_Payment_Request_Button_Types_Update;
 use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_UPE_Payment_Gateway;

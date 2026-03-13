@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use WC_Stripe;
 use WC_Stripe_Admin_Notices;
 use WC_Stripe_Connect;
@@ -11,7 +9,6 @@ use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Subscription;
 use WC_Subscriptions;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Tests for the admin notices class.

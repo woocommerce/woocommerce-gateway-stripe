@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_Amazon_Pay.
  */

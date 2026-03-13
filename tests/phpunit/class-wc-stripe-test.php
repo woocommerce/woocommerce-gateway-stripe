@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;

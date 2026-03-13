@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentTokens;
-
 use WC_Payment_Token;
 use WC_Payment_Token_ACH;
 use WC_Payment_Token_ACSS;

@@ -1,12 +1,9 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Method_CC;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WP_UnitTestCase;
 
 /**

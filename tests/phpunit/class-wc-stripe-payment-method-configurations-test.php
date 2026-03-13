@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use ReflectionClass;
 use WC_Stripe_Helper;
 use WC_Stripe_API;

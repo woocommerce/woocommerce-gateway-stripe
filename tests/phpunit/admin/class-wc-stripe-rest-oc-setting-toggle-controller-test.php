@@ -1,11 +1,8 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use Exception;
 use WC_Stripe_REST_OC_Setting_Toggle_Controller;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 use Automattic\WooCommerce\Blocks\Package;
 use WP_REST_Request;
 

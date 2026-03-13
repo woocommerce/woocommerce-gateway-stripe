@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use WC_Stripe_Express_Checkout_Ajax_Handler;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Stripe_Helper;
@@ -45,7 +43,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			->getMock();
 		$this->ajax_handler            = new WC_Stripe_Express_Checkout_Ajax_Handler( $this->express_checkout_helper );
 	}
-
 
 	/**
 	 * Test modify_country_locale_for_express_checkout method.

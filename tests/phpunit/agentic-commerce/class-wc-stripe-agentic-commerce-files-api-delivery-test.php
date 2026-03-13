@@ -5,13 +5,10 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-namespace WooCommerce\Stripe\Tests;
-
 use WP_UnitTestCase;
 use WC_Stripe_Agentic_Commerce_Files_Api_Delivery;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
 use Exception;
-
 
 // phpcs:disable WordPress.WP.AlternativeFunctions
 

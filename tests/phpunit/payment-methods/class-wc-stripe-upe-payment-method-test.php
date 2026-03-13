@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use Closure;
 use stdClass;
 use WC_Payment_Token_ACH;
@@ -30,7 +28,6 @@ use WC_Stripe_UPE_Payment_Method_CC;
 use WC_Stripe_UPE_Payment_Method_Klarna;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Unit tests for UPE payment methods

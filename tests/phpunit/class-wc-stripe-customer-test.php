@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 /**
  * These tests make assertions against the class WC_Stripe_Customer
  *

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use Exception;
 use WC_Stripe_API;
 

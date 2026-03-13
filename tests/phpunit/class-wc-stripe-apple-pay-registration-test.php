@@ -1,8 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Stripe;
 use WC_Stripe_Apple_Pay_Registration;
 use WC_Stripe_Helper;

@@ -1,12 +1,9 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Connect;
 use WC_Stripe_Database_Cache;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Stripe_Api;
 use WP_UnitTestCase;
 
 /**

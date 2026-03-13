@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Compat;
-
 use WC_Order;
 use WC_Stripe_Email_Admin_Failed_Refund;
 use WP_UnitTestCase;

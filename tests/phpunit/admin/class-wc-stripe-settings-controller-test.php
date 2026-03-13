@@ -1,14 +1,11 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_Settings_Controller;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**

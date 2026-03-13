@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
 use ReflectionProperty;
@@ -14,7 +12,6 @@ use WC_Stripe_Intent_Status;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 use MockAction;
 

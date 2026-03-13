@@ -1,11 +1,8 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin\Migrations;
-
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Method_Configurations;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Class Migrate_Payment_Methods_From_Db_To_Pmc_Test

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_REST_Stripe_Account_Keys_Controller;
 use WC_Stripe_Account;
 use WC_Stripe_Feature_Flags;

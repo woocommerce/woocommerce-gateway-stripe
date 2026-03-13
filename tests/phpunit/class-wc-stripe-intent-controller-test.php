@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Exception;
@@ -12,8 +10,6 @@ use WC_Subscription;
 use WC_Subscriptions;
 use WC_Subscriptions_Switcher;
 use WC_Subscriptions_Helpers;
-use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**

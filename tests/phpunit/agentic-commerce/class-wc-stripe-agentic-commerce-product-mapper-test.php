@@ -5,10 +5,7 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-namespace WooCommerce\Stripe\Tests;
-
 use WP_UnitTestCase;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 
 /**
  * Class WC_Stripe_Agentic_Commerce_Product_Mapper_Test

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Method_Configurations;

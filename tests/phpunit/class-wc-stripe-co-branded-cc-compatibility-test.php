@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe_Co_Branded_CC_Compatibility;
 use WP_UnitTestCase;
 

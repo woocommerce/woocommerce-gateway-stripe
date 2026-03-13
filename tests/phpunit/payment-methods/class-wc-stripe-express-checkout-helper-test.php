@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Shipping_Zone;
@@ -12,7 +10,6 @@ use WC_Stripe_UPE_Payment_Method_Alipay;
 use WC_Subscription;
 use WC_Subscriptions_Cart;
 use WC_Subscriptions_Product;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
 /**

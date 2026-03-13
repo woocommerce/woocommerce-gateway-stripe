@@ -1,9 +1,6 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Order;
 use WC_Order_Item_Fee;
 use WC_Order_Item_Product;

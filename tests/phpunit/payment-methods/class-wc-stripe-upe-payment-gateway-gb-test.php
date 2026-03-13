@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentMethods;
-
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -22,7 +20,6 @@ use WC_Stripe_UPE_Payment_Method_Oxxo;
 use WC_Stripe_UPE_Payment_Method_P24;
 use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Unit tests for the UPE payment gateway

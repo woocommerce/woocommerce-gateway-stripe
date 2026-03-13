@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use ReflectionClass;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Mode;

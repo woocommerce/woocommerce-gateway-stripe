@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Cache_Helper;
 

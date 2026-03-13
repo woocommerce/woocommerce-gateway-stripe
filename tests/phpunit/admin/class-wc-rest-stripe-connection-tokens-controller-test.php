@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use WP_REST_Request;
 use WP_UnitTestCase;
 

@@ -1,10 +1,7 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Order_Helper;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_REST_Request;
 use WP_UnitTestCase;
 

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use Automattic\WooCommerce\Enums\OrderStatus;
 use stdClass;
 use WC_Order;
@@ -9,9 +7,6 @@ use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 
 /**
  * These tests make assertions against class WC_Stripe_Helper.

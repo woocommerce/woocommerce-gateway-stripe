@@ -5,8 +5,6 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-namespace WooCommerce\Stripe\Tests;
-
 use WP_UnitTestCase;
 
 /**

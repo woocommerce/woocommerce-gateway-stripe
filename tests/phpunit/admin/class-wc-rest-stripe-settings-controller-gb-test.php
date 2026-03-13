@@ -1,16 +1,12 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use Automattic\WooCommerce\Blocks\RestApi;
-use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_REST_Stripe_Settings_Controller;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Class WC_REST_Stripe_Settings_Controller_Test_GB
@@ -59,7 +55,6 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ];
 	}
-
 
 	/**
 	 * Pre-test setup
@@ -111,7 +106,6 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 
 		parent::tear_down();
 	}
-
 
 	public function test_get_settings_returns_available_payment_method_ids_for_gb() {
 		$expected_method_ids = [

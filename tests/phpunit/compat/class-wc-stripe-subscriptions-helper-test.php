@@ -1,13 +1,10 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Compat;
-
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Subscriptions_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Helpers;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**

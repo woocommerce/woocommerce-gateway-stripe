@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Notes;
-
 use WC_Stripe_OC_Promotion_Note;
 use WP_UnitTestCase;
 

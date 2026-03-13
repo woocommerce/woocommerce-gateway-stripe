@@ -1,10 +1,6 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use Automattic\WooCommerce\Enums\ProductTaxStatus;
-use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 use WC_Stripe_Checkout_Sessions_Controller;
 

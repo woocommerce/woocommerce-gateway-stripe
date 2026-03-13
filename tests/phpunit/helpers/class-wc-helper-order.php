@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Order;
 use WC_Order_Item_Fee;

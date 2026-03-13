@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 /**
  * Provides useful methods to test logic related to AJAX requests.
  */

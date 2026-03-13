@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 /**
  * Tests for the WC_Stripe_Database_Cache_Prefetch class.
  *

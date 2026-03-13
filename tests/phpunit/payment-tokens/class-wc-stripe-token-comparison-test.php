@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentTokens;
-
 use WC_Payment_Token_Amazon_Pay;
 use WC_Payment_Token_CashApp;
 use WC_Payment_Token_Link;

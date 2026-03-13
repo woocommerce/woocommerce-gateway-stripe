@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin\Migrations;
-
 use Migrate_Payment_Request_Data_To_Express_Checkout_Data;
 use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe_UPE_Payment_Gateway;

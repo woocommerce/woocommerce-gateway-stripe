@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\PaymentTokens;
-
 use WC_Stripe_Payment_Token_CC;
 use WP_UnitTestCase;
 

@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
-
 use WC_Stripe_Helper;
 use WC_Stripe_Webhook_Handler;
 use WC_Stripe_Webhook_State;

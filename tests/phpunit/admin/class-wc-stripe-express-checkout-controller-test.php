@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Admin;
-
 use WC_Stripe_Express_Checkout_Controller;
 use WC_Stripe_Helper;
 use WP_UnitTestCase;

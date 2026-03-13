@@ -1,7 +1,5 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Helpers;
-
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Payment_Token_CC;
 use WC_Payment_Token_SEPA;
