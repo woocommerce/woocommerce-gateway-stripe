@@ -41,6 +41,7 @@ class WC_Stripe_Feature_Flags {
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
+
 	/**
 	 * Feature flag for Agentic Commerce.
 	 *

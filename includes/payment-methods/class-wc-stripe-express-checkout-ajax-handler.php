@@ -433,7 +433,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		}
 
 		wp_send_json( $result );
-		exit;
 	}
 
 	/**
