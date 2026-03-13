@@ -133,12 +133,12 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				<span>
 					{ upeConfig.title }
 					{ Icon && <Icon alt={ upeConfig.title } /> }
-					{ getBlocksConfiguration()?.testMode && (
-						<span className="wc-stripe-test-mode-badge">
-							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
-						</span>
-					) }
 				</span>
+				{ getBlocksConfiguration()?.testMode && (
+					<span className="wc-stripe-test-mode-badge">
+						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+					</span>
+				) }
 			</>
 		),
 		ariaLabel: 'Stripe',
