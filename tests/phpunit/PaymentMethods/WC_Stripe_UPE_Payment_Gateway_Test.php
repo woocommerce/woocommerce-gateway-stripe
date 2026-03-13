@@ -4005,8 +4005,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
+		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
+
+		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
+		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
+		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
+		$this->assertStringContainsString( '</p>', $output );
+	}
+
+	/**
+	 * Test that add_converted_currency_information reads presentment data from order meta without making an API call.
+	 *
+	 * @return void
+	 */
+	public function test_add_converted_currency_information_reads_from_order_meta_without_api_call(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_meta_presentment_1';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		// No checkout session is cached — if the code tries to fetch it, the test will fail.
+		$formatted_total = '$10.00';
+		$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+
+		$this->assertEquals( '$10.00 (' . $expected_amount . ' EUR)', $result );
+	}
+
+	/**
+	 * Test that add_currency_conversion_notice reads presentment data from order meta without making an API call.
+	 *
+	 * @return void
+	 */
+	public function test_add_currency_conversion_notice_reads_from_order_meta_without_api_call(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_meta_presentment_2';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		// No checkout session is cached — if the code tries to fetch it, the test will fail.
+		ob_start();
+		$this->mock_gateway->add_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );

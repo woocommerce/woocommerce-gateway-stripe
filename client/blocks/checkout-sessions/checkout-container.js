@@ -39,11 +39,11 @@ export const CheckoutContainer = ( props ) => {
 			clientSecret: checkoutSessionPromise,
 			adaptivePricing: { allowed: true },
 			elementsOptions: {
-				appearance: initializeUPEAppearance( api, 'true' ),
+				appearance: initializeUPEAppearance( 'true' ),
 				fonts: getFontRulesFromPage(),
 			},
 		} ),
-		[ checkoutSessionPromise, api ]
+		[ checkoutSessionPromise ]
 	);
 
 	return (

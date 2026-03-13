@@ -4801,12 +4801,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$amount_total\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$card\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4852,18 +4846,6 @@ parameters:
 			message: '#^Access to an undefined property object\:\:\$payment_method_types\.$#'
 			identifier: property.notFound
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$presentment_amount\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$presentment_currency\.$#'
-			identifier: property.notFound
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -5001,7 +4983,7 @@ parameters:
 		-
 			message: '#^Filter callback return statement is missing\.$#'
 			identifier: return.missing
-			count: 2
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
