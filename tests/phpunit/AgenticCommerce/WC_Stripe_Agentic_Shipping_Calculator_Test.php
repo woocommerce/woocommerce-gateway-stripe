@@ -7,32 +7,23 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+require_once __DIR__ . '/Trait_Agentic_Commerce_Test_Helpers.php';
+
 use WP_UnitTestCase;
-use WC_Cache_Helper;
 use WC_Shipping_Zone;
-use WC_Shipping_Zones;
 use WC_Stripe_Agentic_Shipping_Calculator;
-use WC_Stripe_Agentic_Customize_Checkout_Event;
 
 /**
  * Class WC_Stripe_Agentic_Shipping_Calculator_Test
  */
 class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 
+	use Trait_Agentic_Commerce_Test_Helpers;
+
 	/**
 	 * @var WC_Stripe_Agentic_Shipping_Calculator
 	 */
 	private $calculator;
-
-	/**
-	 * @var string Original woocommerce_ship_to_countries option.
-	 */
-	private $original_ship_to_countries;
-
-	/**
-	 * @var string Original woocommerce_calc_taxes option.
-	 */
-	private $original_calc_taxes;
 
 	/**
 	 * @var WC_Shipping_Zone|null
@@ -46,9 +37,9 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Shipping_Calculator class not loaded' );
 		}
 
-		$this->calculator                 = new WC_Stripe_Agentic_Shipping_Calculator();
-		$this->original_ship_to_countries = get_option( 'woocommerce_ship_to_countries' );
-		$this->original_calc_taxes        = get_option( 'woocommerce_calc_taxes' );
+		$this->calculator = new WC_Stripe_Agentic_Shipping_Calculator();
+
+		$this->save_wc_options( 'woocommerce_ship_to_countries', 'woocommerce_calc_taxes' );
 
 		$this->reset_shipping_cache();
 	}
@@ -59,8 +50,7 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			$this->shipping_zone = null;
 		}
 
-		update_option( 'woocommerce_ship_to_countries', $this->original_ship_to_countries );
-		update_option( 'woocommerce_calc_taxes', $this->original_calc_taxes );
+		$this->restore_wc_options();
 
 		$this->reset_shipping_cache();
 
@@ -73,43 +63,56 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	public function test_returns_empty_when_shipping_disabled() {
 		update_option( 'woocommerce_ship_to_countries', 'disabled' );
 
-		$event  = $this->build_event();
+		$event  = $this->build_event_from_products( [] );
 		$result = $this->calculator->calculate( $event, 'usd' );
 
 		$this->assertEmpty( $result );
 	}
 
 	/**
-	 * Test that a matching zone with flat rate returns correctly structured shipping options.
+	 * Data provider for tests that assert on a matching US shipping zone.
+	 *
+	 * @return array<string, array{cost: float, currency: string}>
 	 */
-	public function test_returns_shipping_options_for_matching_zone() {
-		$this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
+	public function matching_zone_provider(): array {
+		return [
+			'standard cost, lowercase currency' => [
+				'cost'     => 5.00,
+				'currency' => 'usd',
+			],
+			'decimal cost, uppercase currency'  => [
+				'cost'     => 7.50,
+				'currency' => 'USD',
+			],
+		];
+	}
 
-		$event  = $this->build_event();
-		$result = $this->calculator->calculate( $event, 'usd' );
+	/**
+	 * Test that a matching zone returns correctly structured shipping options,
+	 * amounts in Stripe cents format, lowercase currency, and a non-empty display_name.
+	 *
+	 * @dataProvider matching_zone_provider
+	 */
+	public function test_matching_zone_returns_valid_shipping_options( float $cost, string $currency ) {
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', $cost );
+
+		$event  = $this->build_event_from_products( [] );
+		$result = $this->calculator->calculate( $event, $currency );
 
 		$this->assertArrayHasKey( 'shipping_options', $result );
 		$this->assertNotEmpty( $result['shipping_options'] );
 
-		$option = $result['shipping_options'][0];
+		$option       = $result['shipping_options'][0];
+		$rate_data    = $option['shipping_rate_data'];
+		$fixed_amount = $rate_data['fixed_amount'];
+
+		// Structure assertions.
 		$this->assertArrayHasKey( 'shipping_rate_data', $option );
-		$this->assertEquals( 'inclusive', $option['shipping_rate_data']['tax_behavior'] );
-		$this->assertEquals( 'usd', $option['shipping_rate_data']['fixed_amount']['currency'] );
-		$this->assertArrayHasKey( 'wc_rate_id', $option['shipping_rate_data']['metadata'] );
-	}
+		$this->assertArrayHasKey( 'wc_rate_id', $rate_data['metadata'] );
+		$this->assertNotEmpty( $rate_data['display_name'] );
 
-	/**
-	 * Test that fixed_amount is an integer (Stripe cents format) and currency is lowercase.
-	 */
-	public function test_amount_is_in_stripe_format() {
-		$this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
-
-		$event  = $this->build_event();
-		$result = $this->calculator->calculate( $event, 'USD' );
-
-		$this->assertArrayHasKey( 'shipping_options', $result );
-
-		$fixed_amount = $result['shipping_options'][0]['shipping_rate_data']['fixed_amount'];
+		// Stripe format: tax_behavior, integer amount, lowercase currency.
+		$this->assertEquals( 'inclusive', $rate_data['tax_behavior'] );
 		$this->assertIsInt( $fixed_amount['amount'] );
 		$this->assertGreaterThan( 0, $fixed_amount['amount'] );
 		$this->assertEquals( 'usd', $fixed_amount['currency'] );
@@ -119,9 +122,9 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	 * Test that a non-matching country returns empty or does not include the wrong zone.
 	 */
 	public function test_returns_empty_for_non_matching_zone() {
-		$this->create_shipping_zone_with_flat_rate( 'DE', 5.00 );
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'DE', 5.00 );
 
-		$event  = $this->build_event(); // US address.
+		$event  = $this->build_event_from_products( [] ); // US address.
 		$result = $this->calculator->calculate( $event, 'usd' );
 
 		// The rest-of-world zone (zone 0) may or may not have methods,
@@ -133,92 +136,5 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		} else {
 			$this->assertEmpty( $result );
 		}
-	}
-
-	/**
-	 * Test that the display_name comes from the shipping method label.
-	 */
-	public function test_display_name_from_method_label() {
-		$this->create_shipping_zone_with_flat_rate( 'US', 7.50 );
-
-		$event  = $this->build_event();
-		$result = $this->calculator->calculate( $event, 'usd' );
-
-		$this->assertArrayHasKey( 'shipping_options', $result );
-		$this->assertNotEmpty( $result['shipping_options'][0]['shipping_rate_data']['display_name'] );
-	}
-
-	/**
-	 * Resets WC shipping caches so zones and methods are re-read from the DB.
-	 */
-	private function reset_shipping_cache(): void {
-		WC_Cache_Helper::get_transient_version( 'shipping', true );
-		$shipping = WC()->shipping();
-		if ( $shipping ) {
-			$shipping->reset_shipping();
-		}
-	}
-
-	/**
-	 * Creates a shipping zone for a country with a flat rate method.
-	 *
-	 * @param string $country Country code.
-	 * @param float  $cost    Flat rate cost.
-	 */
-	private function create_shipping_zone_with_flat_rate( string $country, float $cost ): void {
-		$this->shipping_zone = new WC_Shipping_Zone();
-		$this->shipping_zone->set_zone_name( $country . ' Shipping' );
-		$this->shipping_zone->set_zone_order( 1 );
-		$this->shipping_zone->save();
-
-		$this->shipping_zone->add_location( $country, 'country' );
-
-		$instance_id = $this->shipping_zone->add_shipping_method( 'flat_rate' );
-		$method      = WC_Shipping_Zones::get_shipping_method( $instance_id );
-		$option_key  = $method->get_instance_option_key();
-
-		update_option(
-			$option_key,
-			[
-				'title' => $country . ' Flat Rate',
-				'cost'  => (string) $cost,
-			]
-		);
-
-		$this->reset_shipping_cache();
-	}
-
-	/**
-	 * Builds a customize_checkout event with a US address.
-	 *
-	 * @param array $address_overrides Address field overrides.
-	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
-	 */
-	private function build_event( array $address_overrides = [] ): WC_Stripe_Agentic_Customize_Checkout_Event {
-		$address = array_merge(
-			[
-				'country'     => 'US',
-				'state'       => 'CA',
-				'postal_code' => '90210',
-				'city'        => 'Beverly Hills',
-			],
-			$address_overrides
-		);
-
-		return new WC_Stripe_Agentic_Customize_Checkout_Event(
-			(object) [
-				'id'       => 'evt_test_shipping',
-				'type'     => 'v1.delegated_checkout.customize_checkout',
-				'livemode' => false,
-				'data'     => (object) [
-					'currency'          => 'usd',
-					'automatic_tax'     => (object) [ 'enabled' => false ],
-					'line_item_details' => [],
-					'shipping_details'  => (object) [
-						'address' => (object) $address,
-					],
-				],
-			]
-		);
 	}
 }

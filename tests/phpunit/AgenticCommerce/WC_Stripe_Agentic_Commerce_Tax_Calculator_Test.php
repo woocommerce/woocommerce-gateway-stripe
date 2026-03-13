@@ -7,10 +7,11 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+require_once __DIR__ . '/Trait_Agentic_Commerce_Test_Helpers.php';
+
 use WP_UnitTestCase;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Stripe_Agentic_Commerce_Tax_Calculator;
-use WC_Stripe_Agentic_Customize_Checkout_Event;
 use WC_Tax;
 use Exception;
 
@@ -18,6 +19,8 @@ use Exception;
  * Class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test
  */
 class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
+
+	use Trait_Agentic_Commerce_Test_Helpers;
 
 	/**
 	 * @var WC_Stripe_Agentic_Commerce_Tax_Calculator
@@ -33,21 +36,6 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * @var int
 	 */
 	private $tax_rate_id;
-
-	/**
-	 * @var string Original woocommerce_calc_taxes option.
-	 */
-	private $original_calc_taxes;
-
-	/**
-	 * @var string Original woocommerce_tax_based_on option.
-	 */
-	private $original_tax_based_on;
-
-	/**
-	 * @var string Original woocommerce_prices_include_tax option.
-	 */
-	private $original_prices_include_tax;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -66,9 +54,11 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->original_calc_taxes         = get_option( 'woocommerce_calc_taxes' );
-		$this->original_tax_based_on       = get_option( 'woocommerce_tax_based_on' );
-		$this->original_prices_include_tax = get_option( 'woocommerce_prices_include_tax' );
+		$this->save_wc_options(
+			'woocommerce_calc_taxes',
+			'woocommerce_tax_based_on',
+			'woocommerce_prices_include_tax'
+		);
 
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_tax_based_on', 'shipping' );
@@ -86,9 +76,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			WC_Tax::_delete_tax_rate( $this->tax_rate_id );
 		}
 
-		update_option( 'woocommerce_calc_taxes', $this->original_calc_taxes );
-		update_option( 'woocommerce_tax_based_on', $this->original_tax_based_on );
-		update_option( 'woocommerce_prices_include_tax', $this->original_prices_include_tax );
+		$this->restore_wc_options();
 
 		parent::tearDown();
 	}
@@ -97,7 +85,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * Test tax calculation for a single product with matching tax rate.
 	 */
 	public function test_calculate_returns_tax_rates_for_matching_address() {
-		$event      = $this->build_event( [ $this->product ] );
+		$event      = $this->build_event_from_products( [ $this->product ] );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -112,12 +100,18 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that tax-disabled returns wrapped empty rates for each line item.
+	 * @dataProvider empty_rates_provider
+	 *
+	 * Tests that various conditions produce empty tax rates for each line item.
+	 *
+	 * @param callable  $setup          Optional setup callback run before building the event.
+	 * @param array     $address        Address overrides for the event.
+	 * @param bool      $automatic_tax  Whether Stripe automatic tax is enabled.
 	 */
-	public function test_calculate_returns_empty_rates_when_tax_disabled() {
-		update_option( 'woocommerce_calc_taxes', 'no' );
+	public function test_calculate_returns_empty_rates( callable $setup, array $address, bool $automatic_tax ) {
+		$setup();
 
-		$event      = $this->build_event( [ $this->product ] );
+		$event      = $this->build_event_from_products( [ $this->product ], $address, $automatic_tax );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -127,38 +121,35 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that automatic_tax enabled returns empty rates (Stripe manages tax).
+	 * Data provider for test_calculate_returns_empty_rates.
+	 *
+	 * @return array[]
 	 */
-	public function test_calculate_returns_empty_rates_when_automatic_tax_enabled() {
-		$event = $this->build_event_with_automatic_tax( [ $this->product ], true );
-
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-		$result     = $this->calculator->calculate( $event, $line_items );
-
-		$this->assertArrayHasKey( 'line_items', $result );
-		$this->assertCount( 1, $result['line_items'] );
-		$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
-	}
-
-	/**
-	 * Test that a non-matching address returns empty tax rates.
-	 */
-	public function test_calculate_returns_empty_rates_for_non_matching_address() {
-		$event = $this->build_event(
-			[ $this->product ],
-			[
-				'country'     => 'DE',
-				'state'       => '',
-				'postal_code' => '10115',
-				'city'        => 'Berlin',
-			]
-		);
-
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-		$result     = $this->calculator->calculate( $event, $line_items );
-
-		$this->assertArrayHasKey( 'line_items', $result );
-		$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
+	public function empty_rates_provider(): array {
+		return [
+			'tax disabled'              => [
+				'setup'         => function () {
+					update_option( 'woocommerce_calc_taxes', 'no' );
+				},
+				'address'       => [],
+				'automatic_tax' => false,
+			],
+			'automatic tax enabled'     => [
+				'setup'         => function () {},
+				'address'       => [],
+				'automatic_tax' => true,
+			],
+			'non-matching address (DE)' => [
+				'setup'         => function () {},
+				'address'       => [
+					'country'     => 'DE',
+					'state'       => '',
+					'postal_code' => '10115',
+					'city'        => 'Berlin',
+				],
+				'automatic_tax' => false,
+			],
+		];
 	}
 
 	/**
@@ -173,7 +164,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$event      = $this->build_event( [ $this->product, $product2 ] );
+		$event      = $this->build_event_from_products( [ $this->product, $product2 ] );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -188,7 +179,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * Test that a missing product throws an exception.
 	 */
 	public function test_calculate_throws_for_missing_product() {
-		$event = $this->build_event_raw(
+		$event = $this->build_event_from_raw_items(
 			[
 				[
 					'id'     => 'li_missing',
@@ -209,7 +200,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * Test that an empty sku_id throws an exception.
 	 */
 	public function test_calculate_throws_for_empty_sku_id() {
-		$event = $this->build_event_raw(
+		$event = $this->build_event_from_raw_items(
 			[
 				[
 					'id'     => 'li_empty_sku',
@@ -237,7 +228,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	public function test_calculate_works_with_both_tax_based_on_settings( string $tax_based_on ) {
 		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
-		$event      = $this->build_event( [ $this->product ] );
+		$event      = $this->build_event_from_products( [ $this->product ] );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -265,7 +256,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	public function test_inclusive_flag_when_prices_include_tax() {
 		update_option( 'woocommerce_prices_include_tax', 'yes' );
 
-		$event      = $this->build_event( [ $this->product ] );
+		$event      = $this->build_event_from_products( [ $this->product ] );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -287,7 +278,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$event      = $this->build_event( [ $this->product, $reduced_product ] );
+		$event      = $this->build_event_from_products( [ $this->product, $reduced_product ] );
 		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
 		$result     = $this->calculator->calculate( $event, $line_items );
 
@@ -302,7 +293,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * Test extract_line_items_from_customization_hook returns correct ID => sku_id mapping.
 	 */
 	public function test_extract_line_items_returns_id_to_sku_map() {
-		$event  = $this->build_event( [ $this->product ] );
+		$event  = $this->build_event_from_products( [ $this->product ] );
 		$result = $this->calculator->extract_line_items_from_customization_hook( $event );
 
 		$this->assertCount( 1, $result );
@@ -311,116 +302,5 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 
 		$this->assertStringStartsWith( 'li_', $keys[0] );
 		$this->assertEquals( (string) $this->product->get_id(), $values[0] );
-	}
-
-	/**
-	 * Creates a WC tax rate and returns its ID.
-	 *
-	 * @param string $country   Country code.
-	 * @param string $state     State code.
-	 * @param string $rate      Tax rate percentage.
-	 * @param string $name      Tax rate label.
-	 * @param string $tax_class Tax class (empty string for standard).
-	 * @return int The tax rate ID.
-	 */
-	private function create_tax_rate(
-		string $country = 'US',
-		string $state = 'CA',
-		string $rate = '10.0000',
-		string $name = 'Tax',
-		string $tax_class = ''
-	): int {
-		return WC_Tax::_insert_tax_rate(
-			[
-				'tax_rate_country'  => $country,
-				'tax_rate_state'    => $state,
-				'tax_rate'          => $rate,
-				'tax_rate_name'     => $name,
-				'tax_rate_priority' => 1,
-				'tax_rate_compound' => 0,
-				'tax_rate_shipping' => 1,
-				'tax_rate_order'    => 0,
-				'tax_rate_class'    => $tax_class,
-			]
-		);
-	}
-
-	/**
-	 * Builds a customize_checkout event from products, using a single address
-	 * for both shipping and billing.
-	 *
-	 * @param \WC_Product[] $products Products.
-	 * @param array         $address  Address overrides.
-	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
-	 */
-	private function build_event( array $products, array $address = [] ): WC_Stripe_Agentic_Customize_Checkout_Event {
-		$items = [];
-		foreach ( $products as $index => $product ) {
-			$items[] = [
-				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
-			];
-		}
-
-		return $this->build_event_raw( $items, $address );
-	}
-
-	/**
-	 * Builds a customize_checkout event from raw line item data.
-	 *
-	 * @param array $line_items Raw line item arrays with id and sku_id.
-	 * @param array $address    Address overrides.
-	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
-	 */
-	private function build_event_raw( array $line_items, array $address = [], bool $automatic_tax = false ): WC_Stripe_Agentic_Customize_Checkout_Event {
-		$address = array_merge(
-			[
-				'country'     => 'US',
-				'state'       => 'CA',
-				'postal_code' => '90210',
-				'city'        => 'Beverly Hills',
-			],
-			$address
-		);
-
-		$raw_items = array_map(
-			fn( $item ) => (object) $item,
-			$line_items
-		);
-
-		return new WC_Stripe_Agentic_Customize_Checkout_Event(
-			(object) [
-				'id'       => 'evt_test_123',
-				'type'     => 'v1.delegated_checkout.customize_checkout',
-				'livemode' => false,
-				'data'     => (object) [
-					'currency'          => 'usd',
-					'automatic_tax'     => (object) [ 'enabled' => $automatic_tax ],
-					'line_item_details' => $raw_items,
-					'shipping_details'  => (object) [
-						'address' => (object) $address,
-					],
-				],
-			]
-		);
-	}
-
-	/**
-	 * Builds a customize_checkout event with automatic_tax setting.
-	 *
-	 * @param \WC_Product[] $products      Products.
-	 * @param bool          $automatic_tax Whether Stripe automatic tax is enabled.
-	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
-	 */
-	private function build_event_with_automatic_tax( array $products, bool $automatic_tax ): WC_Stripe_Agentic_Customize_Checkout_Event {
-		$items = [];
-		foreach ( $products as $index => $product ) {
-			$items[] = [
-				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
-			];
-		}
-
-		return $this->build_event_raw( $items, [], $automatic_tax );
 	}
 }

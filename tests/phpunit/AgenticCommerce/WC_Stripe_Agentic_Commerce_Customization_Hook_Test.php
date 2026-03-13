@@ -7,13 +7,12 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+require_once __DIR__ . '/Trait_Agentic_Commerce_Test_Helpers.php';
+
 use WP_UnitTestCase;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Stripe_Webhook_Handler;
 use WC_Tax;
-use WC_Cache_Helper;
-use WC_Shipping_Zone;
-use WC_Shipping_Zones;
 use ReflectionMethod;
 
 /**
@@ -22,6 +21,8 @@ use ReflectionMethod;
  * Tests the process_agentic_customization_hook method via reflection.
  */
 class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase {
+
+	use Trait_Agentic_Commerce_Test_Helpers;
 
 	/**
 	 * @var WC_Stripe_Webhook_Handler
@@ -44,24 +45,9 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	private $tax_rate_id;
 
 	/**
-	 * @var WC_Shipping_Zone|null
+	 * @var \WC_Shipping_Zone|null
 	 */
 	private $shipping_zone;
-
-	/**
-	 * @var string
-	 */
-	private $original_calc_taxes;
-
-	/**
-	 * @var string
-	 */
-	private $original_tax_based_on;
-
-	/**
-	 * @var string
-	 */
-	private $original_prices_include_tax;
 
 	public function setUp(): void {
 		parent::setUp();
@@ -82,27 +68,18 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			]
 		);
 
-		$this->original_calc_taxes         = get_option( 'woocommerce_calc_taxes' );
-		$this->original_tax_based_on       = get_option( 'woocommerce_tax_based_on' );
-		$this->original_prices_include_tax = get_option( 'woocommerce_prices_include_tax' );
+		$this->save_wc_options(
+			'woocommerce_calc_taxes',
+			'woocommerce_tax_based_on',
+			'woocommerce_prices_include_tax',
+			'woocommerce_ship_to_countries'
+		);
 
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_tax_based_on', 'shipping' );
 		update_option( 'woocommerce_prices_include_tax', 'no' );
 
-		$this->tax_rate_id = WC_Tax::_insert_tax_rate(
-			[
-				'tax_rate_country'  => 'US',
-				'tax_rate_state'    => 'CA',
-				'tax_rate'          => '8.2500',
-				'tax_rate_name'     => 'CA Sales Tax',
-				'tax_rate_priority' => 1,
-				'tax_rate_compound' => 0,
-				'tax_rate_shipping' => 1,
-				'tax_rate_order'    => 0,
-				'tax_rate_class'    => '',
-			]
-		);
+		$this->tax_rate_id = $this->create_tax_rate( 'US', 'CA', '8.2500', 'CA Sales Tax' );
 	}
 
 	public function tearDown(): void {
@@ -119,41 +96,26 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			$this->shipping_zone = null;
 		}
 
-		update_option( 'woocommerce_calc_taxes', $this->original_calc_taxes );
-		update_option( 'woocommerce_tax_based_on', $this->original_tax_based_on );
-		update_option( 'woocommerce_prices_include_tax', $this->original_prices_include_tax );
-
-		WC_Cache_Helper::get_transient_version( 'shipping', true );
-		$shipping = WC()->shipping();
-		if ( $shipping ) {
-			$shipping->reset_shipping();
-		}
+		$this->restore_wc_options();
+		$this->reset_shipping_cache();
 
 		parent::tearDown();
 	}
 
 	/**
-	 * Test that the hook returns both line_items and shipping_options when both apply.
+	 * Test that the hook returns both line_items (with tax rates) and shipping_options when both apply.
 	 */
 	public function test_returns_merged_tax_and_shipping_response() {
-		$this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
 
-		$event    = $this->build_raw_event( [ $this->product ] );
+		$event    = $this->build_raw_event_from_products( [ $this->product ] );
 		$response = $this->invoke_hook( $event );
 
 		$this->assertArrayHasKey( 'line_items', $response );
 		$this->assertArrayHasKey( 'shipping_options', $response );
-	}
 
-	/**
-	 * Test that line_items contain tax rates for a matching address.
-	 */
-	public function test_line_items_contain_tax_rates() {
-		$event    = $this->build_raw_event( [ $this->product ] );
-		$response = $this->invoke_hook( $event );
-
+		// Also verify the line item carries the expected tax rate (covers test_line_items_contain_tax_rates).
 		$this->assertCount( 1, $response['line_items'] );
-
 		$line_item = $response['line_items'][0];
 		$this->assertNotEmpty( $line_item['tax_rates'] );
 		$this->assertEquals( 8.25, $line_item['tax_rates'][0]['rate_data']['percentage'] );
@@ -164,7 +126,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	 * Test that the response is valid JSON with a 200 status.
 	 */
 	public function test_outputs_valid_json() {
-		$event = $this->build_raw_event( [ $this->product ] );
+		$event = $this->build_raw_event_from_products( [ $this->product ] );
 
 		ob_start();
 		$this->method->invoke( $this->handler, $event );
@@ -187,7 +149,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			]
 		);
 
-		$event    = $this->build_raw_event( [ $this->product, $product2 ] );
+		$event    = $this->build_raw_event_from_products( [ $this->product, $product2 ] );
 		$response = $this->invoke_hook( $event );
 
 		$this->assertCount( 2, $response['line_items'] );
@@ -196,37 +158,51 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that tax-disabled returns empty tax rates but still returns line_items key.
+	 * Data provider for disabled-feature response tests.
+	 *
+	 * @return array
 	 */
-	public function test_tax_disabled_returns_empty_rates() {
-		update_option( 'woocommerce_calc_taxes', 'no' );
-
-		$event    = $this->build_raw_event( [ $this->product ] );
-		$response = $this->invoke_hook( $event );
-
-		$this->assertArrayHasKey( 'line_items', $response );
-		$this->assertEmpty( $response['line_items'][0]['tax_rates'] );
+	public function disabled_feature_provider(): array {
+		return [
+			'tax disabled returns empty rates'         => [
+				'option'        => 'woocommerce_calc_taxes',
+				'value'         => 'no',
+				'assert_key'    => 'line_items',
+				'assert_method' => 'assertEmpty_tax_rates',
+			],
+			'shipping disabled omits shipping_options' => [
+				'option'        => 'woocommerce_ship_to_countries',
+				'value'         => 'disabled',
+				'assert_key'    => 'shipping_options',
+				'assert_method' => 'assertArrayNotHasKey',
+			],
+		];
 	}
 
 	/**
-	 * Test that shipping_options are absent when shipping is disabled.
+	 * Test that disabling tax or shipping produces the expected omission in the response.
+	 *
+	 * @dataProvider disabled_feature_provider
 	 */
-	public function test_no_shipping_options_when_shipping_disabled() {
-		update_option( 'woocommerce_ship_to_countries', 'disabled' );
+	public function test_disabled_feature_response( string $option, string $value, string $assert_key, string $assert_method ): void {
+		update_option( $option, $value );
 
-		$event    = $this->build_raw_event( [ $this->product ] );
+		$event    = $this->build_raw_event_from_products( [ $this->product ] );
 		$response = $this->invoke_hook( $event );
 
-		$this->assertArrayNotHasKey( 'shipping_options', $response );
-
-		update_option( 'woocommerce_ship_to_countries', '' );
+		if ( 'assertEmpty_tax_rates' === $assert_method ) {
+			$this->assertArrayHasKey( 'line_items', $response );
+			$this->assertEmpty( $response['line_items'][0]['tax_rates'] );
+		} else {
+			$this->assertArrayNotHasKey( $assert_key, $response );
+		}
 	}
 
 	/**
-	 * Test that an invalid product ID returns a 400 status and logs the error.
+	 * Test that an invalid product ID returns a 400 status with no JSON body.
 	 */
 	public function test_returns_400_on_invalid_product() {
-		$event = $this->build_raw_event_with_custom_line_items(
+		$event = $this->build_raw_event(
 			[
 				(object) [
 					'id'     => 'li_test_0',
@@ -243,7 +219,7 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that an event with missing shipping_details still returns line_items.
+	 * Test that an event with missing shipping_details returns a 400 with no JSON body.
 	 */
 	public function test_missing_shipping_details_throws_error() {
 		$event = (object) [
@@ -271,6 +247,28 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * Builds a raw customize_checkout event stdClass from WC_Product objects.
+	 *
+	 * Converts each product into a line item and delegates to the trait's build_raw_event().
+	 *
+	 * @param \WC_Product[] $products      Products to include as line items.
+	 * @param array         $address       Address overrides.
+	 * @param bool          $automatic_tax Whether Stripe automatic tax is enabled.
+	 * @return \stdClass
+	 */
+	private function build_raw_event_from_products( array $products, array $address = [], bool $automatic_tax = false ): \stdClass {
+		$items = [];
+		foreach ( $products as $index => $product ) {
+			$items[] = (object) [
+				'id'     => 'li_test_' . $index,
+				'sku_id' => (string) $product->get_id(),
+			];
+		}
+
+		return $this->build_raw_event( $items, $address, $automatic_tax );
+	}
+
+	/**
 	 * Invokes the private hook method and returns decoded JSON response.
 	 *
 	 * @param \stdClass $event The raw event.
@@ -282,109 +280,5 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 		$output = ob_get_clean();
 
 		return json_decode( $output, true ) ?? [];
-	}
-
-	/**
-	 * Builds a raw customize_checkout event stdClass.
-	 *
-	 * @param \WC_Product[] $products Products to include as line items.
-	 * @param array         $address  Address overrides.
-	 * @return \stdClass
-	 */
-	private function build_raw_event( array $products, array $address = [] ): \stdClass {
-		$address = array_merge(
-			[
-				'country'     => 'US',
-				'state'       => 'CA',
-				'postal_code' => '90210',
-				'city'        => 'Beverly Hills',
-			],
-			$address
-		);
-
-		$line_items = [];
-		foreach ( $products as $index => $product ) {
-			$line_items[] = (object) [
-				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
-			];
-		}
-
-		return (object) [
-			'id'       => 'evt_test_hook',
-			'type'     => 'v1.delegated_checkout.customize_checkout',
-			'livemode' => false,
-			'data'     => (object) [
-				'currency'          => 'usd',
-				'automatic_tax'     => (object) [ 'enabled' => false ],
-				'line_item_details' => $line_items,
-				'shipping_details'  => (object) [
-					'address' => (object) $address,
-				],
-			],
-		];
-	}
-
-	/**
-	 * Builds a raw customize_checkout event with custom line items.
-	 *
-	 * @param array $line_items The raw line items.
-	 * @param array $address    Address overrides.
-	 * @return \stdClass
-	 */
-	private function build_raw_event_with_custom_line_items( array $line_items, array $address = [] ): \stdClass {
-		$address = array_merge(
-			[
-				'country'     => 'US',
-				'state'       => 'CA',
-				'postal_code' => '90210',
-				'city'        => 'Beverly Hills',
-			],
-			$address
-		);
-
-		return (object) [
-			'id'       => 'evt_test_hook',
-			'type'     => 'v1.delegated_checkout.customize_checkout',
-			'livemode' => false,
-			'data'     => (object) [
-				'currency'          => 'usd',
-				'automatic_tax'     => (object) [ 'enabled' => false ],
-				'line_item_details' => $line_items,
-				'shipping_details'  => (object) [
-					'address' => (object) $address,
-				],
-			],
-		];
-	}
-
-	/**
-	 * Creates a shipping zone for a country with a flat rate.
-	 *
-	 * @param string $country Country code.
-	 * @param float  $cost    Flat rate cost.
-	 */
-	private function create_shipping_zone_with_flat_rate( string $country, float $cost ): void {
-		$this->shipping_zone = new WC_Shipping_Zone();
-		$this->shipping_zone->set_zone_name( $country . ' Shipping' );
-		$this->shipping_zone->set_zone_order( 1 );
-		$this->shipping_zone->save();
-
-		$this->shipping_zone->add_location( $country, 'country' );
-
-		$instance_id = $this->shipping_zone->add_shipping_method( 'flat_rate' );
-		$method      = WC_Shipping_Zones::get_shipping_method( $instance_id );
-		$option_key  = $method->get_instance_option_key();
-
-		update_option(
-			$option_key,
-			[
-				'title' => $country . ' Flat Rate',
-				'cost'  => (string) $cost,
-			]
-		);
-
-		WC_Cache_Helper::get_transient_version( 'shipping', true );
-		WC()->shipping()->reset_shipping();
 	}
 }
