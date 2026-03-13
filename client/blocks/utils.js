@@ -203,10 +203,11 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		}
 	}
 
-	const config = getBlocksConfiguration();
-	if ( config?.isOCEnabled ) {
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const layout = {
-			type: config?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			type:
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;

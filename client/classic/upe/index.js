@@ -312,8 +312,9 @@ jQuery( function ( $ ) {
 			}
 
 			// Change the payment method container title when the Optimized Checkout is enabled
+			const stripeServerData = getStripeServerData();
 			if (
-				getStripeServerData()?.isOCEnabled &&
+				stripeServerData?.shouldShowOptimizedCheckout &&
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
 				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
