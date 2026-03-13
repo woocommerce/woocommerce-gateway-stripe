@@ -2092,7 +2092,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'is_sepa_tokens_for_ideal_enabled' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Gateway::is_sepa_tokens_for_ideal_enabled()' );
 
 		return $this->is_sepa_tokens_for_ideal_enabled();
 	}
