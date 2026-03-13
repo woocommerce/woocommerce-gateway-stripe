@@ -7,7 +7,7 @@ import './copy-test-number.scss';
  */
 document.addEventListener( 'click', function ( event ) {
 	const copyNumberButton = event.target?.closest(
-		'.js-wc-stripe-copy-test-number'
+		'.wc-stripe-copy-test-number'
 	);
 	if ( ! copyNumberButton ) {
 		return;
@@ -30,10 +30,7 @@ document.addEventListener( 'click', function ( event ) {
 			window.wp?.data
 				?.dispatch( 'core/notices' )
 				?.createInfoNotice(
-					__(
-						'Test number copied to clipboard!',
-						'woocommerce-gateway-stripe'
-					),
+					__( 'Copied to clipboard!', 'woocommerce-gateway-stripe' ),
 					{
 						id: 'wc-stripe/test-number-copied',
 						type: 'snackbar',

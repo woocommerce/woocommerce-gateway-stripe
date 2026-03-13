@@ -34,16 +34,14 @@ afterEach( () => {
 
 function createButton( number ) {
 	document.body.innerHTML = `
-		<button class="js-wc-stripe-copy-test-number">
+		<button class="wc-stripe-copy-test-number">
 			<span>${ number }</span>
 			<i></i>
 		</button>
 	`;
 
 	// jsdom doesn't implement innerText — define it from textContent.
-	const span = document.querySelector(
-		'.js-wc-stripe-copy-test-number span'
-	);
+	const span = document.querySelector( '.wc-stripe-copy-test-number span' );
 	Object.defineProperty( span, 'innerText', {
 		get() {
 			return this.textContent;
@@ -51,7 +49,7 @@ function createButton( number ) {
 		configurable: true,
 	} );
 
-	return document.querySelector( '.js-wc-stripe-copy-test-number' );
+	return document.querySelector( '.wc-stripe-copy-test-number' );
 }
 
 function click( element ) {
@@ -61,14 +59,14 @@ function click( element ) {
 describe( 'copy-test-number', () => {
 	it( 'copies the number with spaces stripped', () => {
 		createButton( '4242 4242 4242 4242' );
-		click( document.querySelector( '.js-wc-stripe-copy-test-number' ) );
+		click( document.querySelector( '.wc-stripe-copy-test-number' ) );
 
 		expect( writeText ).toHaveBeenCalledWith( '4242424242424242' );
 	} );
 
 	it( 'dispatches a snackbar notice on success', async () => {
 		createButton( '4242424242424242' );
-		click( document.querySelector( '.js-wc-stripe-copy-test-number' ) );
+		click( document.querySelector( '.wc-stripe-copy-test-number' ) );
 
 		// Flush the clipboard promise.
 		await writeText.mock.results[ 0 ].value;
@@ -105,7 +103,7 @@ describe( 'copy-test-number', () => {
 
 	it( 'does nothing when the span is empty', () => {
 		createButton( '' );
-		click( document.querySelector( '.js-wc-stripe-copy-test-number' ) );
+		click( document.querySelector( '.wc-stripe-copy-test-number' ) );
 
 		expect( writeText ).not.toHaveBeenCalled();
 	} );
@@ -114,7 +112,7 @@ describe( 'copy-test-number', () => {
 		writeText.mockRejectedValueOnce( new Error( 'denied' ) );
 		createButton( '4242424242424242' );
 
-		click( document.querySelector( '.js-wc-stripe-copy-test-number' ) );
+		click( document.querySelector( '.wc-stripe-copy-test-number' ) );
 
 		// Flush the rejected promise — should not propagate.
 		await expect(
@@ -136,9 +134,7 @@ describe( 'copy-test-number', () => {
 
 	it( 'works when clicking a child element inside the button', () => {
 		createButton( '4000056655665556' );
-		const icon = document.querySelector(
-			'.js-wc-stripe-copy-test-number i'
-		);
+		const icon = document.querySelector( '.wc-stripe-copy-test-number i' );
 		click( icon );
 
 		expect( writeText ).toHaveBeenCalledWith( '4000056655665556' );

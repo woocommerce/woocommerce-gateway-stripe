@@ -1,16 +1,20 @@
-.js-wc-stripe-copy-test-number {
+.wc-stripe-copy-test-number {
 	line-height: 1.2em;
 	vertical-align: middle;
 	border-radius: 0;
-	border: none !important;
-	background-color: transparent !important;
 	font-weight: normal;
 	display: inline-flex;
 	cursor: pointer;
-	color: inherit !important;
 	font-size: inherit;
-	padding: 2px 1px !important;
 	align-items: center;
+
+	// !important overrides are needed because this single-class selector has low
+	// specificity and the button renders inside deeply nested checkout DOM where
+	// theme and block styles would otherwise win.
+	border: none !important;
+	background-color: transparent !important;
+	color: inherit !important;
+	padding: 2px 1px !important;
 	box-shadow: none !important;
 
 	span {
