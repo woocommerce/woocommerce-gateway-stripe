@@ -397,7 +397,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $card_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use card <number>4242424242424242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
+			'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
 			$card_method->get_testing_instructions()
 		);
 

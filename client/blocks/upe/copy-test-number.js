@@ -20,7 +20,7 @@ document.addEventListener( 'click', function ( event ) {
 		return;
 	}
 
-	navigator.clipboard.writeText( number );
+	navigator.clipboard.writeText( number.replace( /\s/g, '' ) );
 
 	window.wp?.data
 		?.dispatch( 'core/notices' )

@@ -125,7 +125,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use card %3$s4242424242424242%4$s with any expiry and CVC. %5$sMore test cards%6$s.', 'woocommerce-gateway-stripe' ),
+			esc_html__( '%1$sTest mode:%2$s use card %3$s4242 4242 4242 4242%4$s with any expiry and CVC. %5$sMore test cards%6$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
 			'<number>',
