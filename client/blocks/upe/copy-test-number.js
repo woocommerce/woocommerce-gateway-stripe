@@ -20,25 +20,28 @@ document.addEventListener( 'click', function ( event ) {
 		return;
 	}
 
-	navigator.clipboard.writeText( number.replace( /\s/g, '' ) );
+	navigator.clipboard
+		.writeText( number.replace( /\s/g, '' ) )
+		.then( () => {
+			window.wp?.data
+				?.dispatch( 'core/notices' )
+				?.createInfoNotice(
+					__(
+						'Test number copied to clipboard!',
+						'woocommerce-gateway-stripe'
+					),
+					{
+						id: 'wc-stripe/test-number-copied',
+						type: 'snackbar',
+						context: 'wc/checkout/payments',
+					}
+				);
 
-	window.wp?.data
-		?.dispatch( 'core/notices' )
-		?.createInfoNotice(
-			__(
-				'Test number copied to clipboard!',
-				'woocommerce-gateway-stripe'
-			),
-			{
-				id: 'wc-stripe/test-number-copied',
-				type: 'snackbar',
-				context: 'wc/checkout/payments',
-			}
-		);
-
-	copyNumberButton.classList.add( 'state--success' );
-	setTimeout(
-		() => copyNumberButton.classList.remove( 'state--success' ),
-		2000
-	);
+			copyNumberButton.classList.add( 'state--success' );
+			setTimeout(
+				() => copyNumberButton.classList.remove( 'state--success' ),
+				2000
+			);
+		} )
+		.catch( () => {} );
 } );

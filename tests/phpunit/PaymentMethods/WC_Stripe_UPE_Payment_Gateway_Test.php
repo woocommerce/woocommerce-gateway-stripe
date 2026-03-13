@@ -3871,6 +3871,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function provider_expand_copy_button_markup() {
 		$copy_label = 'Copy to clipboard';
 		return [
+			'string with multiple number tags' => [
+				'input'    => 'Use <number>4242 4242 4242 4242</number> and <number>AT611904300234573201</number>.',
+				'expected' => 'Use <button type="button" class="js-wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> and <button type="button" class="js-wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>AT611904300234573201</span></button>.',
+			],
 			'string with number tag' => [
 				'input'    => '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry.',
 				'expected' => '<strong>Test mode:</strong> use card <button type="button" class="js-wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> with any expiry.',
