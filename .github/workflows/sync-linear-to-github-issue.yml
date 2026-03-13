@@ -1,0 +1,185 @@
+name: 'Sync Linear issue to GitHub issue'
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  sync-linear-issue:
+    name: 'Create GitHub issue for linked Linear issue'
+    runs-on: ubuntu-latest
+    # Only run on the canonical repo to avoid forks triggering this with insufficient secrets.
+    if: ${{ github.repository == 'woocommerce/woocommerce-gateway-stripe' }}
+    steps:
+      - name: 'Sync Linear issue'
+        uses: actions/github-script@v7
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_OAUTH_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber  = context.payload.pull_request.number;
+            const prBody    = context.payload.pull_request.body ?? '';
+
+            // ----------------------------------------------------------------
+            // 1. Find all "STRIPE-<id>" references in the PR description.
+            // ----------------------------------------------------------------
+            const linearIds = [...prBody.matchAll(/\bSTRIPE-(\d+)\b/gi)].map(m => m[1]);
+
+            if (linearIds.length === 0) {
+              core.info('No Linear issue references (STRIPE-<id>) found in PR description. Skipping.');
+              return;
+            }
+
+            core.info(`Found Linear issue IDs: ${linearIds.join(', ')}`);
+
+            // ----------------------------------------------------------------
+            // 2. Collect GitHub issue numbers already referenced in the PR
+            //    so we can skip Linear issues that already have a linked issue.
+            //    We consider any  "Fixes #NNN" / "#NNN" that is a real number
+            //    (not the template placeholder "#<github_issue_id>").
+            // ----------------------------------------------------------------
+            const existingGhIssues = new Set(
+              [...prBody.matchAll(/#(\d+)/g)].map(m => parseInt(m[1], 10))
+            );
+
+            const linearApiKey = process.env.LINEAR_API_KEY;
+            if (!linearApiKey) {
+              core.setFailed('LINEAR_OAUTH_TOKEN secret is not set.');
+              return;
+            }
+
+            let updatedBody = prBody;
+
+            for (const linearId of linearIds) {
+              core.info(`Processing STRIPE-${linearId} …`);
+
+              // --------------------------------------------------------------
+              // 3. Fetch title + description from the Linear GraphQL API.
+              // --------------------------------------------------------------
+              const linearQuery = `
+                query GetIssue($teamKey: String!, $number: Int!) {
+                  issue(filter: { team: { key: { eq: $teamKey } }, number: { eq: $number } }) {
+                    nodes {
+                      title
+                      description
+                      url
+                    }
+                  }
+                }
+              `;
+
+              const linearResponse = await fetch('https://api.linear.app/graphql', {
+                method:  'POST',
+                headers: {
+                  'Content-Type':  'application/json',
+                  'Authorization': `Bearer ${linearApiKey}`,
+                },
+                body: JSON.stringify({
+                  query:     linearQuery,
+                  variables: { teamKey: 'STRIPE', number: parseInt(linearId, 10) },
+                }),
+              });
+
+              if (!linearResponse.ok) {
+                core.warning(`Linear API request failed for STRIPE-${linearId}: ${linearResponse.status} ${linearResponse.statusText}`);
+                continue;
+              }
+
+              const linearData = await linearResponse.json();
+
+              if (linearData.errors) {
+                core.warning(`Linear API returned errors for STRIPE-${linearId}: ${JSON.stringify(linearData.errors)}`);
+                continue;
+              }
+
+              const issueNodes = linearData?.data?.issue?.nodes ?? [];
+              if (issueNodes.length === 0) {
+                core.warning(`Linear issue STRIPE-${linearId} not found or not accessible.`);
+                continue;
+              }
+
+              const { title: linearTitle, description: linearDescription, url: linearUrl } = issueNodes[0];
+              core.info(`Linear issue title: "${linearTitle}"`);
+
+              // --------------------------------------------------------------
+              // 4. Search GitHub for an existing issue with the same title.
+              // --------------------------------------------------------------
+              const searchResult = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue in:title "${linearTitle.replace(/"/g, '\\"')}"`,
+                per_page: 10,
+              });
+
+              const matchingIssue = searchResult.data.items.find(
+                item => item.title.trim().toLowerCase() === linearTitle.trim().toLowerCase()
+              );
+
+              if (matchingIssue) {
+                core.info(`GitHub issue #${matchingIssue.number} already exists for STRIPE-${linearId} ("${linearTitle}"). Skipping creation.`);
+
+                // Still patch the PR description if the placeholder is present.
+                updatedBody = updatedBody.replace(
+                  /Fixes #<github_issue_id>/,
+                  `Fixes #${matchingIssue.number}`
+                );
+                continue;
+              }
+
+              // --------------------------------------------------------------
+              // 5. No equivalent GitHub issue — create one.
+              // --------------------------------------------------------------
+              const ghBody = [
+                linearDescription ?? '',
+                '',
+                `---`,
+                `_Synced from [STRIPE-${linearId}](${linearUrl})_`,
+              ].join('\n').trim();
+
+              const { data: newIssue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                title: linearTitle,
+                body:  ghBody,
+              });
+
+              core.info(`Created GitHub issue #${newIssue.number} for STRIPE-${linearId}.`);
+
+              // --------------------------------------------------------------
+              // 6. Update the PR description:
+              //    Replace the template placeholder if present, otherwise
+              //    append the new issue reference after the Linear line.
+              // --------------------------------------------------------------
+              if (updatedBody.includes('Fixes #<github_issue_id>')) {
+                updatedBody = updatedBody.replace(
+                  /Fixes #<github_issue_id>/,
+                  `Fixes #${newIssue.number}`
+                );
+              } else {
+                // Insert after the matching STRIPE-<id> line.
+                updatedBody = updatedBody.replace(
+                  new RegExp(`(Fixes STRIPE-${linearId}[^\\n]*)`, 'i'),
+                  `$1\nFixes #${newIssue.number}`
+                );
+              }
+            }
+
+            // ----------------------------------------------------------------
+            // 7. Persist the updated PR description if it changed.
+            // ----------------------------------------------------------------
+            if (updatedBody !== prBody) {
+              await github.rest.pulls.update({
+                owner:       context.repo.owner,
+                repo:        context.repo.repo,
+                pull_number: prNumber,
+                body:        updatedBody,
+              });
+              core.info('PR description updated with GitHub issue reference(s).');
+            } else {
+              core.info('PR description unchanged.');
+            }
