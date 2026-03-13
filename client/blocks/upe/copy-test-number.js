@@ -1,4 +1,3 @@
-/* global wp */
 import { __ } from '@wordpress/i18n';
 import './copy-test-number.scss';
 
@@ -23,10 +22,13 @@ document.addEventListener( 'click', function ( event ) {
 
 	navigator.clipboard.writeText( number );
 
-	wp?.data
+	window.wp?.data
 		?.dispatch( 'core/notices' )
 		?.createInfoNotice(
-			__( 'Test number copied to clipboard!', 'woocommerce-gateway-stripe' ),
+			__(
+				'Test number copied to clipboard!',
+				'woocommerce-gateway-stripe'
+			),
 			{
 				id: 'wc-stripe/test-number-copied',
 				type: 'snackbar',
