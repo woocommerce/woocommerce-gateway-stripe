@@ -1,7 +1,5 @@
 <?php
 
-namespace WC_Stripe\Ajax_Handlers;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -28,31 +26,31 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_checkout_session_nonce', 'security', false );
 			if ( ! $is_nonce_valid ) {
-				throw new \Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$wc_customer = WC()->customer;
 			if ( ! $wc_customer ) {
-				throw new \Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$user_id = $wc_customer->get_id();
 
 			// TODO: Test guest checkout flow.
 			try {
-				$stripe_customer = new \WC_Stripe_Customer( $user_id );
+				$stripe_customer = new WC_Stripe_Customer( $user_id );
 				$stripe_customer->maybe_create_customer();
-			} catch ( \Exception $e ) {
-				throw new \Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
+			} catch ( Exception $e ) {
+				throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
-				throw new \Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$currency   = get_woocommerce_currency();
 			$line_items = [];
-			foreach ( \WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
+			foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
 				if ( 'total_discount' === ( $raw_line_item['key'] ?? '' ) ) {
 					// TODO: Stripe Checkout handles discounts/coupons differently. Skip for now.
 					continue;
@@ -91,7 +89,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'ui_mode'                       => 'custom',
 				'customer'                      => $stripe_customer->get_id(),
 				'line_items'                    => $line_items,
-				'excluded_payment_method_types' => \WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
+				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
 				'payment_intent_data'  => [
 					'metadata' => $payment_intent_metadata,
 					'receipt_email' => $email,
@@ -113,20 +111,20 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				],
 			];
 
-			$checkout_session = \WC_Stripe_API::request( $request, 'checkout/sessions' );
+			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 
 			if ( ! empty( $checkout_session->error ) ) {
 				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-				throw new \Exception( $message );
+				throw new Exception( $message );
 			}
 
 			if ( empty( $checkout_session->client_secret ) ) {
-				throw new \Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
 		} catch ( \Exception $e ) {
-			\WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
+			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		}
 	}

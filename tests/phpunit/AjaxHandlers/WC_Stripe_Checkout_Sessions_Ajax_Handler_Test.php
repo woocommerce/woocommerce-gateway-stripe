@@ -1,8 +1,8 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests\Ajax_Handlers;
+namespace WooCommerce\Stripe\Tests\AjaxHandlers;
 
-use WC_Stripe\Ajax_Handlers\WC_Stripe_Checkout_Sessions_Ajax_Handler;
+use WC_Stripe_Checkout_Sessions_Ajax_Handler;
 use WooCommerce\Stripe\Tests\Helpers\Ajax_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;

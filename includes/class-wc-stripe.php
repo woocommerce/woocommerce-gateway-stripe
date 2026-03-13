@@ -251,7 +251,7 @@ class WC_Stripe {
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
 
-		$checkout_sessions_ajax_handler = new \WC_Stripe\Ajax_Handlers\WC_Stripe_Checkout_Sessions_Ajax_Handler();
+		$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 		$checkout_sessions_ajax_handler->init_hooks();
 
 		if ( is_admin() ) {
