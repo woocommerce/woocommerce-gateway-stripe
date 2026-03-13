@@ -3893,25 +3893,70 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_javascript_params_permitted_font_domains(): array {
 		return [
-			'no filter hooked — key is omitted'                 => [
+			'no filter hooked — key is omitted'                                         => [
 				'filter_return'      => null,
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns empty array — key is omitted'       => [
+			'filter returns empty array — key is omitted'                               => [
 				'filter_return'      => [],
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns non-empty array — key is set'       => [
+			'filter returns non-empty array — key is set'                               => [
 				'filter_return'      => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 			],
-			'filter returns non-array string — key is omitted'  => [
+			'filter returns non-array string — key is omitted'                          => [
 				'filter_return'      => 'custom-fonts.example.com',
 				'expected_in_params' => false,
 				'expected_value'     => null,
+			],
+			'filter returns domain without dot (e.g. localhost) — key is omitted'      => [
+				'filter_return'      => [ 'localhost' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain starting with dot — key is omitted'                 => [
+				'filter_return'      => [ '.example.com' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with single-char TLD — key is omitted'              => [
+				'filter_return'      => [ 'example.c' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with trailing dot — key is omitted'                 => [
+				'filter_return'      => [ 'example.' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns array with non-string elements — non-strings are excluded' => [
+				'filter_return'      => [ 'fonts.example.com', 42, null, true, 'type.mysite.org' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'type.mysite.org' ],
+			],
+			'filter returns mixed valid and invalid domains — only valid are included'  => [
+				'filter_return'      => [ 'fonts.example.com', 'localhost', '.bad.com', 'good.fonts.io', 'also.bad.' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'good.fonts.io' ],
+			],
+			'filter returns uppercase domain — stored as lowercase'                    => [
+				'filter_return'      => [ 'Fonts.Example.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns domain with surrounding whitespace — stored trimmed'       => [
+				'filter_return'      => [ '  fonts.example.com  ' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns duplicate valid domains — deduplicated'                    => [
+				'filter_return'      => [ 'fonts.example.com', 'fonts.example.com', 'FONTS.EXAMPLE.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
 			],
 		];
 	}
