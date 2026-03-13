@@ -1,0 +1,463 @@
+<?php
+/**
+ * Tests for WC_Stripe_Agentic_Commerce_Tax_Calculator
+ *
+ * @package WooCommerce\Stripe\Tests
+ */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WP_UnitTestCase;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
+use WC_Stripe_Agentic_Commerce_Tax_Calculator;
+use WC_Stripe_Agentic_Customize_Checkout_Event;
+use WC_Tax;
+use Exception;
+
+/**
+ * Class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test
+ */
+class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
+
+	/**
+	 * @var WC_Stripe_Agentic_Commerce_Tax_Calculator
+	 */
+	private $calculator;
+
+	/**
+	 * @var \WC_Product
+	 */
+	private $product;
+
+	/**
+	 * @var int
+	 */
+	private $tax_rate_id;
+
+	/**
+	 * @var string Original woocommerce_calc_taxes option.
+	 */
+	private $original_calc_taxes;
+
+	/**
+	 * @var string Original woocommerce_tax_based_on option.
+	 */
+	private $original_tax_based_on;
+
+	/**
+	 * @var string Original woocommerce_prices_include_tax option.
+	 */
+	private $original_prices_include_tax;
+
+	public function setUp(): void {
+		parent::setUp();
+
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Tax_Calculator' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Tax_Calculator class not loaded' );
+		}
+
+		$this->calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+
+		$this->product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '25.00',
+				'price'         => '25.00',
+			]
+		);
+
+		$this->original_calc_taxes         = get_option( 'woocommerce_calc_taxes' );
+		$this->original_tax_based_on       = get_option( 'woocommerce_tax_based_on' );
+		$this->original_prices_include_tax = get_option( 'woocommerce_prices_include_tax' );
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+		update_option( 'woocommerce_tax_based_on', 'shipping' );
+		update_option( 'woocommerce_prices_include_tax', 'no' );
+
+		$this->tax_rate_id = $this->create_tax_rate( 'US', 'CA', '10.0000', 'US-CA Tax' );
+	}
+
+	public function tearDown(): void {
+		if ( $this->product ) {
+			$this->product->delete( true );
+		}
+
+		if ( $this->tax_rate_id ) {
+			WC_Tax::_delete_tax_rate( $this->tax_rate_id );
+		}
+
+		update_option( 'woocommerce_calc_taxes', $this->original_calc_taxes );
+		update_option( 'woocommerce_tax_based_on', $this->original_tax_based_on );
+		update_option( 'woocommerce_prices_include_tax', $this->original_prices_include_tax );
+
+		parent::tearDown();
+	}
+
+	/**
+	 * Test tax calculation for a single product with matching tax rate.
+	 */
+	public function test_calculate_returns_tax_rates_for_matching_address() {
+		$event      = $this->build_event( [ $this->product ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertArrayHasKey( 'line_items', $result );
+		$this->assertCount( 1, $result['line_items'] );
+
+		$item = $result['line_items'][0];
+		$this->assertNotEmpty( $item['tax_rates'] );
+		$this->assertEquals( 10.0, $item['tax_rates'][0]['rate_data']['percentage'] );
+		$this->assertEquals( 'US-CA Tax', $item['tax_rates'][0]['rate_data']['display_name'] );
+		$this->assertFalse( $item['tax_rates'][0]['rate_data']['inclusive'] );
+	}
+
+	/**
+	 * Test that tax-disabled returns wrapped empty rates for each line item.
+	 */
+	public function test_calculate_returns_empty_rates_when_tax_disabled() {
+		update_option( 'woocommerce_calc_taxes', 'no' );
+
+		$event      = $this->build_event( [ $this->product ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertArrayHasKey( 'line_items', $result );
+		$this->assertCount( 1, $result['line_items'] );
+		$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
+	}
+
+	/**
+	 * Test that a non-matching address returns empty tax rates.
+	 */
+	public function test_calculate_returns_empty_rates_for_non_matching_address() {
+		$event = $this->build_event(
+			[ $this->product ],
+			[
+				'country'     => 'DE',
+				'state'       => '',
+				'postal_code' => '10115',
+				'city'        => 'Berlin',
+			]
+		);
+
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertArrayHasKey( 'line_items', $result );
+		$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
+	}
+
+	/**
+	 * Test that multiple products each get their own tax rates.
+	 */
+	public function test_calculate_with_multiple_products() {
+		$product2 = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '15.00',
+				'price'         => '15.00',
+			]
+		);
+
+		$event      = $this->build_event( [ $this->product, $product2 ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertCount( 2, $result['line_items'] );
+		$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
+		$this->assertNotEmpty( $result['line_items'][1]['tax_rates'] );
+
+		$product2->delete( true );
+	}
+
+	/**
+	 * Test that a missing product throws an exception.
+	 */
+	public function test_calculate_throws_for_missing_product() {
+		$event = $this->build_event_raw(
+			[
+				[
+					'id'     => 'li_missing',
+					'sku_id' => '999999',
+				],
+			]
+		);
+
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Product not found' );
+
+		$this->calculator->calculate( $event, $line_items );
+	}
+
+	/**
+	 * Test that an empty sku_id throws an exception.
+	 */
+	public function test_calculate_throws_for_empty_sku_id() {
+		$event = $this->build_event_raw(
+			[
+				[
+					'id'     => 'li_empty_sku',
+					'sku_id' => '',
+				],
+			]
+		);
+
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'has no sku_id' );
+
+		$this->calculator->calculate( $event, $line_items );
+	}
+
+	/**
+	 * @dataProvider tax_based_on_provider
+	 */
+	public function test_calculate_uses_correct_address_based_on_setting(
+		string $tax_based_on,
+		bool $expect_tax
+	) {
+		// Shipping address: CA (has tax). Billing address: NY (no tax rate configured).
+		update_option( 'woocommerce_tax_based_on', $tax_based_on );
+
+		$session = $this->build_event_with_separate_addresses(
+			[ $this->product ],
+			[
+				'country'     => 'US',
+				'state'       => 'CA',
+				'postal_code' => '90210',
+				'city'        => 'Beverly Hills',
+			],
+			[
+				'country'     => 'US',
+				'state'       => 'NY',
+				'postal_code' => '10001',
+				'city'        => 'New York',
+			]
+		);
+
+		$line_items = [ 'li_test_0' => (string) $this->product->get_id() ];
+		$result     = $this->calculator->calculate( $session, $line_items );
+
+		if ( $expect_tax ) {
+			$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
+		} else {
+			$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
+		}
+	}
+
+	/**
+	 * Data provider for tax_based_on tests.
+	 *
+	 * @return array[]
+	 */
+	public function tax_based_on_provider(): array {
+		return [
+			'shipping address (CA, has rate)' => [ 'shipping', true ],
+			'billing address (NY, no rate)'   => [ 'billing', false ],
+		];
+	}
+
+	/**
+	 * Test inclusive tax flag when prices include tax.
+	 */
+	public function test_inclusive_flag_when_prices_include_tax() {
+		update_option( 'woocommerce_prices_include_tax', 'yes' );
+
+		$event      = $this->build_event( [ $this->product ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertTrue( $result['line_items'][0]['tax_rates'][0]['rate_data']['inclusive'] );
+	}
+
+	/**
+	 * Test that different tax classes produce different rates.
+	 */
+	public function test_different_tax_classes() {
+		$reduced_rate_id = $this->create_tax_rate( 'US', 'CA', '5.0000', 'Reduced Rate', 'reduced-rate' );
+
+		$reduced_product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '20.00',
+				'price'         => '20.00',
+				'tax_class'     => 'reduced-rate',
+			]
+		);
+
+		$event      = $this->build_event( [ $this->product, $reduced_product ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertEquals( 10.0, $result['line_items'][0]['tax_rates'][0]['rate_data']['percentage'] );
+		$this->assertEquals( 5.0, $result['line_items'][1]['tax_rates'][0]['rate_data']['percentage'] );
+
+		$reduced_product->delete( true );
+		WC_Tax::_delete_tax_rate( $reduced_rate_id );
+	}
+
+	/**
+	 * Test extract_line_items_from_customization_hook returns correct ID => sku_id mapping.
+	 */
+	public function test_extract_line_items_returns_id_to_sku_map() {
+		$event  = $this->build_event( [ $this->product ] );
+		$result = $this->calculator->extract_line_items_from_customization_hook( $event );
+
+		$this->assertCount( 1, $result );
+		$keys   = array_keys( $result );
+		$values = array_values( $result );
+
+		$this->assertStringStartsWith( 'li_', $keys[0] );
+		$this->assertEquals( (string) $this->product->get_id(), $values[0] );
+	}
+
+	/**
+	 * Creates a WC tax rate and returns its ID.
+	 *
+	 * @param string $country   Country code.
+	 * @param string $state     State code.
+	 * @param string $rate      Tax rate percentage.
+	 * @param string $name      Tax rate label.
+	 * @param string $tax_class Tax class (empty string for standard).
+	 * @return int The tax rate ID.
+	 */
+	private function create_tax_rate(
+		string $country = 'US',
+		string $state = 'CA',
+		string $rate = '10.0000',
+		string $name = 'Tax',
+		string $tax_class = ''
+	): int {
+		return WC_Tax::_insert_tax_rate(
+			[
+				'tax_rate_country'  => $country,
+				'tax_rate_state'    => $state,
+				'tax_rate'          => $rate,
+				'tax_rate_name'     => $name,
+				'tax_rate_priority' => 1,
+				'tax_rate_compound' => 0,
+				'tax_rate_shipping' => 1,
+				'tax_rate_order'    => 0,
+				'tax_rate_class'    => $tax_class,
+			]
+		);
+	}
+
+	/**
+	 * Builds a customize_checkout event from products, using a single address
+	 * for both shipping and billing.
+	 *
+	 * @param \WC_Product[] $products Products.
+	 * @param array         $address  Address overrides.
+	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
+	 */
+	private function build_event( array $products, array $address = [] ): WC_Stripe_Agentic_Customize_Checkout_Event {
+		$items = [];
+		foreach ( $products as $index => $product ) {
+			$items[] = [
+				'id'     => 'li_test_' . $index,
+				'sku_id' => (string) $product->get_id(),
+			];
+		}
+
+		return $this->build_event_raw( $items, $address );
+	}
+
+	/**
+	 * Builds a customize_checkout event from raw line item data.
+	 *
+	 * @param array $line_items Raw line item arrays with id and sku_id.
+	 * @param array $address    Address overrides.
+	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
+	 */
+	private function build_event_raw( array $line_items, array $address = [] ): WC_Stripe_Agentic_Customize_Checkout_Event {
+		$address = array_merge(
+			[
+				'country'     => 'US',
+				'state'       => 'CA',
+				'postal_code' => '90210',
+				'city'        => 'Beverly Hills',
+			],
+			$address
+		);
+
+		$raw_items = array_map(
+			fn( $item ) => (object) $item,
+			$line_items
+		);
+
+		return new WC_Stripe_Agentic_Customize_Checkout_Event(
+			(object) [
+				'id'       => 'evt_test_123',
+				'type'     => 'v1.delegated_checkout.customize_checkout',
+				'livemode' => false,
+				'data'     => (object) [
+					'currency'          => 'usd',
+					'automatic_tax'     => (object) [ 'enabled' => false ],
+					'line_item_details' => $raw_items,
+					'shipping_details'  => (object) [
+						'address' => (object) $address,
+					],
+				],
+			]
+		);
+	}
+
+	/**
+	 * Builds a customize_checkout event where shipping and billing use the
+	 * same shipping_details.address for shipping, but we simulate the
+	 * billing lookup by overriding the event wrapper.
+	 *
+	 * Since the customize_checkout event only has shipping_details.address
+	 * (used for both billing and shipping), we test the tax_based_on logic
+	 * by using a custom subclass that separates the two.
+	 *
+	 * @param \WC_Product[] $products         Products.
+	 * @param array         $shipping_address Shipping address fields.
+	 * @param array         $billing_address  Billing address fields.
+	 * @return WC_Stripe_Checkout_Session_Interface
+	 */
+	private function build_event_with_separate_addresses(
+		array $products,
+		array $shipping_address,
+		array $billing_address
+	): \WC_Stripe_Checkout_Session_Interface {
+		$items = [];
+		foreach ( $products as $index => $product ) {
+			$items[] = (object) [
+				'id'     => 'li_test_' . $index,
+				'sku_id' => (string) $product->get_id(),
+			];
+		}
+
+		return new class( $items, $shipping_address, $billing_address ) implements \WC_Stripe_Checkout_Session_Interface {
+			private array $items;
+			private array $shipping;
+			private array $billing;
+
+			public function __construct( array $items, array $shipping, array $billing ) {
+				$this->items    = $items;
+				$this->shipping = $shipping;
+				$this->billing  = $billing;
+			}
+
+			public function get_billing_address(): \WC_Stripe_API_Address {
+				return new \WC_Stripe_API_Address( (object) $this->billing );
+			}
+
+			public function get_shipping_address(): ?\WC_Stripe_API_Address {
+				return new \WC_Stripe_API_Address( (object) $this->shipping );
+			}
+
+			public function get_line_items(): array {
+				return array_map(
+					fn( $item ) => new \WC_Stripe_Agentic_Customize_Checkout_Line_Item( $item ),
+					$this->items
+				);
+			}
+		};
+	}
+}

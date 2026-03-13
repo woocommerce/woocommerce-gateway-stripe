@@ -1042,6 +1042,134 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that map_shipping is skipped when no shipping rate display name is present.
+	 */
+	public function test_order_created_without_shipping_when_no_rate_chosen() {
+		$session = $this->build_checkout_session(
+			[
+				'shipping_cost' => null,
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$shipping_items = $order->get_items( 'shipping' );
+		$this->assertEmpty( $shipping_items );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Test that map_shipping adds a WC_Order_Item_Shipping when a rate is available.
+	 */
+	public function test_order_includes_shipping_item_when_rate_chosen() {
+		$zone = new \WC_Shipping_Zone();
+		$zone->set_zone_name( 'US Shipping' );
+		$zone->set_zone_order( 1 );
+		$zone->save();
+		$zone->add_location( 'US', 'country' );
+
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$method      = \WC_Shipping_Zones::get_shipping_method( $instance_id );
+		$option_key  = $method->get_instance_option_key();
+
+		update_option(
+			$option_key,
+			[
+				'title' => 'US Flat Rate',
+				'cost'  => '5',
+			]
+		);
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$wc_rate_id = 'flat_rate:' . $instance_id;
+
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 1500,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 500,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'US Flat Rate',
+						'metadata'     => (object) [ 'wc_rate_id' => $wc_rate_id ],
+					],
+				],
+			]
+		);
+
+		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		$shipping_items = $order->get_items( 'shipping' );
+
+		$this->assertCount( 1, $shipping_items );
+
+		$shipping_item = reset( $shipping_items );
+		$this->assertEquals( 'US Flat Rate', $shipping_item->get_method_title() );
+		$this->assertEquals( '15.00', $order->get_total() );
+
+		$order->delete( true );
+		$zone->delete();
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+	}
+
+	/**
+	 * Test that calculate_totals() is called with tax calculation enabled.
+	 */
+	public function test_order_total_includes_tax_via_calculate_totals() {
+		$original_calc_taxes = get_option( 'woocommerce_calc_taxes' );
+		$original_tax_based  = get_option( 'woocommerce_tax_based_on' );
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+		update_option( 'woocommerce_tax_based_on', 'shipping' );
+
+		$tax_rate_id = \WC_Tax::_insert_tax_rate(
+			[
+				'tax_rate_country'  => 'US',
+				'tax_rate_state'    => 'CA',
+				'tax_rate'          => '10.0000',
+				'tax_rate_name'     => 'Test Tax',
+				'tax_rate_priority' => 1,
+				'tax_rate_compound' => 0,
+				'tax_rate_shipping' => 0,
+				'tax_rate_order'    => 0,
+				'tax_rate_class'    => '',
+			]
+		);
+
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 1100,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 100,
+					'amount_discount' => 0,
+				],
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		// Order total should be 11.00 (10.00 + 1.00 tax).
+		$this->assertEquals( '11.00', $order->get_total() );
+		$this->assertGreaterThan( 0, (float) $order->get_total_tax() );
+
+		$order->delete( true );
+		\WC_Tax::_delete_tax_rate( $tax_rate_id );
+
+		update_option( 'woocommerce_calc_taxes', $original_calc_taxes );
+		update_option( 'woocommerce_tax_based_on', $original_tax_based );
+	}
+
+	/**
 	 * Builds a Stripe checkout session wrapper for testing.
 	 *
 	 * @param array<string, mixed>  $overrides Fields to override on the default session.
