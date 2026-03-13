@@ -36,7 +36,7 @@ function _manually_load_plugin() {
 	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
-	require_once __DIR__ . '/Helpers/class-wcs-background-repairer.php';
+	require_once __DIR__ . '/helpers/class-wcs-background-repairer.php';
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
@@ -52,14 +52,14 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 require $_tests_dir . '/includes/bootstrap.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
-# To keep the plugin self-contained, copy any needed helper to the `Helpers/` sub-folder.
+# To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
 # These helpers cannot be autoloaded, so we need to require them manually.
-require_once __DIR__ . '/Helpers/class-wc-subscription.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions-cart.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions-helpers.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions-product.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions-switcher.php';
-require_once __DIR__ . '/Helpers/class-wc-pre-orders-product.php';
-require_once __DIR__ . '/Helpers/class-wc-deposits-product-manager.php';
-require_once __DIR__ . '/Helpers/class-wc-subscriptions-change-payment-gateway.php';
+require_once __DIR__ . '/helpers/class-wc-subscription.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-cart.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-helpers.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-product.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-switcher.php';
+require_once __DIR__ . '/helpers/class-wc-pre-orders-product.php';
+require_once __DIR__ . '/helpers/class-wc-deposits-product-manager.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-change-payment-gateway.php';
