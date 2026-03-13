@@ -936,18 +936,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $this->testmode ) :
 				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
 					echo wp_kses(
-						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
+						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
 						[
-							'div' => [
+							'div'    => [
 								'id'    => [],
 								'class' => [],
 								'style' => [],
 							],
 							'strong' => [],
-							'a'    => [
+							'a'      => [
 								'href'   => [],
 								'target' => [],
 							],
+							'button' => [
+								'type'       => [],
+								'class'      => [],
+								'aria-label' => [],
+								'title'      => [],
+							],
+							'i'      => [],
+							'span'   => [],
 						]
 					);
 				else :
