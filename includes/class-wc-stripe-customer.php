@@ -953,7 +953,7 @@ class WC_Stripe_Customer {
 	 * @return bool True if the default source was set successfully, false otherwise.
 	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_source( string $source_id ): bool {
+	public function set_default_source( $source_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'default_source' => sanitize_text_field( $source_id ),
@@ -981,7 +981,7 @@ class WC_Stripe_Customer {
 	 * @return bool True if the default payment method was set successfully, false otherwise.
 	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_payment_method( string $payment_method_id ): bool {
+	public function set_default_payment_method( $payment_method_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'invoice_settings' => [
