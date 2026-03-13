@@ -1019,22 +1019,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order            Order data.
 	 */
 	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
-		$checkout_session = $this->get_checkout_session_from_order( $order );
-		if ( empty( $checkout_session->presentment_details ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
 			return $formatted_total;
 		}
 
-		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
+		$this->maybe_add_presentment_metadata_to_order( $order );
 
-		$currency_code   = $checkout_session->presentment_details->presentment_currency;
-		$currency_symbol = get_woocommerce_currency_symbol( $currency_code );
+		$presentment_amount   = $order_helper->get_stripe_presentment_amount( $order );
+		$presentment_currency = $order_helper->get_stripe_presentment_currency( $order );
 
-		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$checkout_session->presentment_details->presentment_amount,
-			$checkout_session->presentment_details->presentment_currency
+		if ( ! $presentment_amount || ! $presentment_currency ) {
+			return $formatted_total;
+		}
+
+		$currency_symbol = get_woocommerce_currency_symbol( $presentment_currency );
+		$amount          = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_amount,
+			$presentment_currency
 		);
 
-		return $formatted_total . ' (' . $currency_symbol . $amount . ' ' . strtoupper( $currency_code ) . ')';
+		return $formatted_total . ' (' . $currency_symbol . $amount . ' ' . strtoupper( $presentment_currency ) . ')';
 	}
 
 	/**
@@ -1044,22 +1051,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	public function add_currency_conversion_notice( WC_Order $order ): void {
-		$checkout_session = $this->get_checkout_session_from_order( $order );
-		if ( empty( $checkout_session->presentment_details ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
 			return;
 		}
 
-		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
+		$this->maybe_add_presentment_metadata_to_order( $order );
 
-		$presentment_amount   = $checkout_session->presentment_details->presentment_amount;
-		$presentment_currency = $checkout_session->presentment_details->presentment_currency;
+		$presentment_amount   = $order_helper->get_stripe_presentment_amount( $order );
+		$presentment_currency = $order_helper->get_stripe_presentment_currency( $order );
 
+		if ( ! $presentment_amount || ! $presentment_currency ) {
+			return;
+		}
+
+		$stripe_amount      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_amount,
 			$presentment_currency
 		);
 		$rate_amount        = wc_format_decimal(
-			$presentment_amount / $checkout_session->amount_total,
+			$presentment_amount / $stripe_amount,
 			wc_get_price_decimals()
 		);
 
@@ -4095,19 +4109,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Adds presentment amount and currency metadata to the order if they are not already set.
 	 *
 	 * @param WC_Order $order The order to which the presentment metadata should be added.
-	 * @param object $presentment_details The presentment details object containing the amount and currency to be added to the order meta.
 	 *
 	 * @return void
 	 */
-	private function maybe_add_presentment_metadata_to_order( WC_Order $order, object $presentment_details ): void {
+	private function maybe_add_presentment_metadata_to_order( WC_Order $order ): void {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+		if ( ! $order_helper->get_stripe_checkout_session_id( $order )
+			 || ( $order_helper->get_stripe_presentment_currency( $order ) && $order_helper->get_stripe_presentment_amount( $order ) ) ) {
+			return;
+		}
+
+		$checkout_session = $this->get_checkout_session_from_order( $order );
+		if ( empty( $checkout_session->presentment_details ) ) {
+			return;
+		}
+
 		if ( ! $order_helper->get_stripe_presentment_amount( $order ) ) {
-			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+			$order_helper->update_stripe_presentment_amount( $order, $checkout_session->presentment_details->presentment_amount );
 		}
 
 		if ( ! $order_helper->get_stripe_presentment_currency( $order ) ) {
-			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+			$order_helper->update_stripe_presentment_currency( $order, $checkout_session->presentment_details->presentment_currency );
 		}
+
+		$order->save_meta_data();
 	}
 }
