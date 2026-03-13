@@ -490,7 +490,7 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 				},
 				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)	',
+					backgroundColor: 'var(--colorPrimary)',
 					borderColor: 'var(--colorPrimary)',
 				},
 			} )
