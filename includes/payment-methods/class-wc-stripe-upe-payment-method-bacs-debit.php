@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -30,7 +33,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
-		$this->supports[]                   = 'tokenization';
+		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
@@ -39,28 +42,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->maybe_init_pre_orders();
 
 		$this->maybe_hide_bacs_payment_gateway();
-	}
-
-	/**
-	 * Determines if the Stripe Account country supports Bacs Direct Debit.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::is_available_for_account_country() instead.
-	 */
-	public function is_available_for_account_country() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
-		return parent::is_available_for_account_country();
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::get_retrievable_type() instead.
-	 */
-	public function get_retrievable_type() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
-		return parent::get_retrievable_type();
 	}
 
 	/**

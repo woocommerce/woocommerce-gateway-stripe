@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -27,24 +30,13 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports[]           = 'tokenization';
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// SEPA Direct Debit is the tokenization method for this method as well as Bancontact and iDEAL. Init subscription so it can process subscription payments.
 		$this->maybe_init_subscriptions();
 
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::get_retrievable_type() instead.
-	 */
-	public function get_retrievable_type() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
-		return parent::get_retrievable_type();
 	}
 
 	/**

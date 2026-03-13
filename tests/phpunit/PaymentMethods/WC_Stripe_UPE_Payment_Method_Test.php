@@ -320,13 +320,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Tests basic properties for payment methods.
 	 */
 	public function test_payment_methods_show_correct_default_outputs() {
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_BLIK::get_retrievable_type' );
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_CC::get_retrievable_type' );
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Sepa::get_retrievable_type' );
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_ACH::get_retrievable_type' );
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_ACSS::get_retrievable_type' );
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Becs_Debit::get_retrievable_type' );
-
 		$mock_alipay_details     = [
 			'type' => WC_Stripe_Payment_Methods::ALIPAY,
 		];
@@ -459,9 +452,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertEquals( '', $bancontact_method->get_testing_instructions() );
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::IDEAL, $ideal_method->get_id() );
-		$this->assertEquals( 'iDEAL', $ideal_method->get_label() );
-		$this->assertEquals( 'iDEAL', $ideal_method->get_title() );
-		$this->assertEquals( 'iDEAL', $ideal_method->get_title( $mock_ideal_details ) );
+		$this->assertEquals( 'iDEAL | Wero', $ideal_method->get_label() );
+		$this->assertEquals( 'iDEAL | Wero', $ideal_method->get_title() );
+		$this->assertEquals( 'iDEAL | Wero', $ideal_method->get_title( $mock_ideal_details ) );
 		$this->assertFalse( $ideal_method->is_reusable() ); // iDEAL is not reusable if "SEPA tokens for other methods" setting is not enabled.
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $ideal_method->get_retrievable_type() );
 		$this->assertEquals( '', $ideal_method->get_testing_instructions() );
@@ -816,6 +809,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
 			'get_capabilities_response',

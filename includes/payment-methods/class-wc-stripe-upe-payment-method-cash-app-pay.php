@@ -5,6 +5,8 @@
  * @package WooCommerce_Stripe\Payment_Methods
  */
 
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -30,7 +32,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
-		$this->supports[]                   = 'tokenization';
+		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
@@ -41,28 +43,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->maybe_init_subscriptions();
 
 		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::is_available_for_account_country() instead.
-	 */
-	public function is_available_for_account_country() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
-		return parent::is_available_for_account_country();
-	}
-
-	/**
-	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::get_retrievable_type() instead.
-	 */
-	public function get_retrievable_type() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
-		return parent::get_retrievable_type();
 	}
 
 	/**

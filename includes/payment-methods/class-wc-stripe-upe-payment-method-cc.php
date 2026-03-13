@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -24,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-		$this->supports[]  = 'tokenization';
+		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
@@ -50,17 +53,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		// Default
 		return parent::get_title();
-	}
-
-	/**
-	 * Returns string representing payment method type
-	 * to query to retrieve saved payment methods from Stripe.
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::get_retrievable_type() instead.
-	 */
-	public function get_retrievable_type() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
-		return parent::get_retrievable_type();
 	}
 
 	/**

@@ -43,18 +43,6 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 10.5.0 Use WC_Stripe_UPE_Payment_Method::is_available_for_account_country() instead.
-	 */
-	public function is_available_for_account_country() {
-		wc_deprecated_function( __METHOD__, '10.5.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
-		return parent::is_available_for_account_country();
-	}
-
-	/**
 	 * Returns whether the payment method requires automatic capture.
 	 *
 	 * @inheritDoc

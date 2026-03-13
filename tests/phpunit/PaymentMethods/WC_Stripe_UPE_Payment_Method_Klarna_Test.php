@@ -28,6 +28,15 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_retrievable_type()`.
+	 *
+	 * @return void
+	 */
+	public function test_get_retrievable_type() {
+		$this->assertSame( WC_Stripe_Payment_Methods::KLARNA, $this->instance->get_retrievable_type() );
+	}
+
+	/**
 	 * Tests for `create_payment_token_for_user()`.
 	 *
 	 * @return void
