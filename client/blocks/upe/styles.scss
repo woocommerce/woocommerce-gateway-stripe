@@ -35,3 +35,26 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	border: none;
 }
 /* stylelint-enable selector-id-pattern */
+
+/* Test Mode badge — hidden by default, shown when radio is checked */
+.wc-stripe-test-mode-badge {
+	background-color: #fff2d7;
+	border-radius: 4px;
+	padding: 4px 6px;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 16px;
+	color: #4d3716;
+	margin-left: 8px;
+	display: none;
+	order: 1;
+}
+
+.wc-block-checkout__payment-method
+	.wc-block-components-radio-control-accordion-option
+	input:checked
+	~ div
+	.wc-block-components-radio-control__label
+	.wc-stripe-test-mode-badge {
+	display: inline-block;
+}

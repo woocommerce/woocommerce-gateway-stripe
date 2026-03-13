@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
@@ -132,6 +133,11 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				<span>
 					{ upeConfig.title }
 					{ Icon && <Icon alt={ upeConfig.title } /> }
+					{ getBlocksConfiguration()?.testMode && (
+						<span className="wc-stripe-test-mode-badge">
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</span>
+					) }
 				</span>
 			</>
 		),
