@@ -10,6 +10,19 @@
 class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 	/**
+	 * Set up before each test.
+	 *
+	 * @return void
+	 */
+	public function set_up() {
+		parent::set_up();
+
+		// Clear any existing cache entries before each test.
+		global $wpdb;
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'wcstripe_cache_%'" );
+	}
+
+	/**
 	 * Test setting and getting a value from cache.
 	 */
 	public function test_set_and_get_cache() {

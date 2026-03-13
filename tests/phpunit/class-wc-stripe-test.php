@@ -562,7 +562,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$stripe->account = $mock_account;
 
 		try {
-			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value );
+			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value, 'woocommerce_stripe_settings' );
 		} finally {
 			$stripe->account = $original_account;
 		}

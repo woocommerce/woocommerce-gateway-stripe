@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\WooCommerce\Enums\ProductTaxStatus;
-
 /**
  * These tests make assertions against the WC_Stripe_Checkout_Sessions_Controller class.
  */
