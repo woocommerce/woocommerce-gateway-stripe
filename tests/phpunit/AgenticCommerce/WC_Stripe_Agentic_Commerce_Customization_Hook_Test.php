@@ -149,12 +149,14 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			]
 		);
 
-		$event    = $this->build_raw_event_from_products( [ $this->product, $product2 ] );
-		$response = $this->invoke_hook( $event );
+		try {
+			$event    = $this->build_raw_event_from_products( [ $this->product, $product2 ] );
+			$response = $this->invoke_hook( $event );
 
-		$this->assertCount( 2, $response['line_items'] );
-
-		$product2->delete( true );
+			$this->assertCount( 2, $response['line_items'] );
+		} finally {
+			$product2->delete( true );
+		}
 	}
 
 	/**
@@ -199,9 +201,9 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that an invalid product ID returns a 400 status with no JSON body.
+	 * Test that an invalid product ID produces no JSON output (error is caught).
 	 */
-	public function test_returns_400_on_invalid_product() {
+	public function test_returns_empty_output_on_invalid_product() {
 		$event = $this->build_raw_event(
 			[
 				(object) [
@@ -219,9 +221,9 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that an event with missing shipping_details returns a 400 with no JSON body.
+	 * Test that an event with missing shipping_details produces no JSON output (error is caught).
 	 */
-	public function test_missing_shipping_details_throws_error() {
+	public function test_returns_empty_output_on_missing_shipping_details() {
 		$event = (object) [
 			'id'       => 'evt_test_hook',
 			'type'     => 'v1.delegated_checkout.customize_checkout',

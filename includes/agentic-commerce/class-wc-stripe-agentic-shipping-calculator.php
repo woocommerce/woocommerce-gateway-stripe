@@ -27,20 +27,24 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 	 *
 	 * Returns a Stripe-format response array with shipping_options containing
 	 * each available rate's display name and fixed amount. Returns an empty
-	 * array when shipping is disabled, no address is available, or no rates
-	 * are found for the destination.
+	 * array when shipping is disabled or no rates are found for the destination.
 	 *
 	 * @since 10.5.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code (e.g. "USD").
 	 * @return array The response array in Stripe's expected format, or [] when no rates apply.
+	 * @throws Exception When neither a shipping nor billing address is available.
 	 */
 	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
 		if ( ! wc_shipping_enabled() ) {
 			return [];
 		}
 
-		$address = $event->get_shipping_address() ?? $event->get_billing_address();
+		$address = $event->get_shipping_address();
+		if ( null === $address ) {
+			// Fall back to billing address; let the exception propagate if neither exists.
+			$address = $event->get_billing_address();
+		}
 
 		// Populate contents with resolved products for content-dependent
 		// shipping methods (table rate, weight-based). See STRIPE-986.

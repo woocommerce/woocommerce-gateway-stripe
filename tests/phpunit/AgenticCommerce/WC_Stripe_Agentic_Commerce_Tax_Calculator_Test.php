@@ -164,15 +164,17 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$event      = $this->build_event_from_products( [ $this->product, $product2 ] );
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-		$result     = $this->calculator->calculate( $event, $line_items );
+		try {
+			$event      = $this->build_event_from_products( [ $this->product, $product2 ] );
+			$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+			$result     = $this->calculator->calculate( $event, $line_items );
 
-		$this->assertCount( 2, $result['line_items'] );
-		$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
-		$this->assertNotEmpty( $result['line_items'][1]['tax_rates'] );
-
-		$product2->delete( true );
+			$this->assertCount( 2, $result['line_items'] );
+			$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
+			$this->assertNotEmpty( $result['line_items'][1]['tax_rates'] );
+		} finally {
+			$product2->delete( true );
+		}
 	}
 
 	/**
@@ -278,15 +280,17 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$event      = $this->build_event_from_products( [ $this->product, $reduced_product ] );
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-		$result     = $this->calculator->calculate( $event, $line_items );
+		try {
+			$event      = $this->build_event_from_products( [ $this->product, $reduced_product ] );
+			$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+			$result     = $this->calculator->calculate( $event, $line_items );
 
-		$this->assertEquals( 10.0, $result['line_items'][0]['tax_rates'][0]['rate_data']['percentage'] );
-		$this->assertEquals( 5.0, $result['line_items'][1]['tax_rates'][0]['rate_data']['percentage'] );
-
-		$reduced_product->delete( true );
-		WC_Tax::_delete_tax_rate( $reduced_rate_id );
+			$this->assertEquals( 10.0, $result['line_items'][0]['tax_rates'][0]['rate_data']['percentage'] );
+			$this->assertEquals( 5.0, $result['line_items'][1]['tax_rates'][0]['rate_data']['percentage'] );
+		} finally {
+			$reduced_product->delete( true );
+			WC_Tax::_delete_tax_rate( $reduced_rate_id );
+		}
 	}
 
 	/**
