@@ -57,3 +57,9 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	.wc-stripe-test-mode-badge {
 	display: inline-block;
 }
+
+/* Keep testing instructions above the Stripe Payment Element iframe */
+.wc-stripe-testing-instructions {
+	position: relative;
+	z-index: 1;
+}
