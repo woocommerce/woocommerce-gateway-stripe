@@ -50,6 +50,12 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 
 .wc-block-checkout__payment-method
+	.wc-block-components-radio-control__option
+	input:checked
+	~ div
+	.wc-block-components-radio-control__label
+	.wc-stripe-test-mode-badge,
+.wc-block-checkout__payment-method
 	.wc-block-components-radio-control-accordion-option
 	input:checked
 	~ div
