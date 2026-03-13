@@ -780,6 +780,13 @@ export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
 	const isBlocks = isBlockCheckout === 'true';
 	const location = isBlocks ? 'blocks' : 'classic';
 
+	// Check for custom appearance configuration from the server.
+	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
+	const customAppearance = getStripeServerData()?.[ customServerField ];
+	if ( customAppearance ) {
+		return customAppearance;
+	}
+
 	if ( appearanceCache[ location ] ) {
 		return appearanceCache[ location ];
 	}
