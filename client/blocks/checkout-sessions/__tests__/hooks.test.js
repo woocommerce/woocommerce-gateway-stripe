@@ -1,19 +1,130 @@
 import {
-	usePaymentCompleteHandler,
+	usePaymentSetupHandler,
+	useCheckoutSuccessHandler,
 	usePaymentFailHandler,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
+import { select } from '@wordpress/data';
 
 jest.mock( '@wordpress/element' );
+jest.mock( '@wordpress/data', () => ( {
+	select: jest.fn(),
+} ) );
 
 describe( 'CheckoutSessions hook tests', () => {
-	const onCheckoutSuccess = jest.fn();
 	beforeEach( () => {
 		useEffect.mockImplementation( ( fn ) => fn() );
 	} );
 
-	describe( 'usePaymentCompleteHandler hook', () => {
-		let onCheckoutSuccessResult; // Store the result from onCheckoutSuccess callback
+	afterEach( () => {
+		delete window.wc;
+	} );
+
+	describe( 'usePaymentSetupHandler hook', () => {
+		let onPaymentSetupResultPromise;
+		const onPaymentSetup = jest.fn();
+		const checkoutSessionId = 'cs_test_123';
+
+		beforeEach( () => {
+			onPaymentSetup.mockImplementation( ( fn ) => {
+				onPaymentSetupResultPromise = fn();
+			} );
+		} );
+
+		it( 'returns error when hasLoadErrorRef.current is true', async () => {
+			const hasLoadErrorRef = { current: true };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message:
+					'There was an error loading the payment information. Please refresh the page and try again.',
+			} );
+		} );
+
+		it( 'returns undefined when there are validation errors', async () => {
+			window.wc = {
+				wcBlocksData: { validationStore: 'wc/store/validation' },
+			};
+			select.mockReturnValue( { hasValidationErrors: () => true } );
+
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toBeUndefined();
+		} );
+
+		it( 'returns error when payment element is incomplete', async () => {
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				false
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message: 'Your payment information is incomplete.',
+			} );
+		} );
+
+		it( 'returns error when errorMessage is set', async () => {
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				'Payment method error',
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'error',
+				message: 'Payment method error',
+			} );
+		} );
+
+		it( 'returns success with payment method data', async () => {
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result ).toEqual( {
+				type: 'success',
+				meta: {
+					paymentMethodData: {
+						payment_method: 'stripe',
+						save_payment_method: 'no',
+						wc_stripe_checkout_session_id: checkoutSessionId,
+					},
+				},
+			} );
+		} );
+	} );
+
+	describe( 'useCheckoutSuccessHandler hook', () => {
+		let onCheckoutSuccessResultPromise;
+		const onCheckoutSuccess = jest.fn();
+
 		beforeEach( () => {
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
@@ -23,14 +134,14 @@ describe( 'CheckoutSessions hook tests', () => {
 						},
 					},
 				};
-				onCheckoutSuccessResult = fn( onCheckoutProcessingData );
+				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
 		} );
 
 		it( 'checkoutState.type is not success', async () => {
 			const checkoutState = { type: 'error' };
-			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( await onCheckoutSuccessResult ).toEqual( {
+			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'error',
 				message: 'Checkout is not ready for confirmation.',
 			} );
@@ -46,8 +157,8 @@ describe( 'CheckoutSessions hook tests', () => {
 					} ),
 				},
 			};
-			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( await onCheckoutSuccessResult ).toEqual( {
+			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'error',
 				message: 'Test error.',
 			} );
@@ -62,8 +173,8 @@ describe( 'CheckoutSessions hook tests', () => {
 					} ),
 				},
 			};
-			usePaymentCompleteHandler( checkoutState, onCheckoutSuccess );
-			expect( await onCheckoutSuccessResult ).toEqual( {
+			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'success',
 			} );
 		} );
@@ -77,6 +188,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				PAYMENTS: 'payments',
 			},
 		};
+
 		beforeEach( () => {
 			onCheckoutFail.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
@@ -91,14 +203,9 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
-		it( 'calls onCheckoutFail and returns error object', async () => {
-			const checkoutState = {};
-			usePaymentFailHandler(
-				checkoutState,
-				onCheckoutFail,
-				emitResponse
-			);
-			expect( await onCheckoutFailResult ).toEqual( {
+		it( 'calls onCheckoutFail and returns error object', () => {
+			usePaymentFailHandler( onCheckoutFail, emitResponse );
+			expect( onCheckoutFailResult ).toEqual( {
 				type: 'failure',
 				messageContext: 'payments',
 				message:
