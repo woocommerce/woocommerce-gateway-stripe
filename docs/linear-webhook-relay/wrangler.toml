@@ -1,0 +1,12 @@
+name            = "linear-webhook-relay"
+main            = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+GITHUB_OWNER         = "woocommerce"
+GITHUB_REPO          = "woocommerce-gateway-stripe"
+LINEAR_TRIGGER_LABEL = "create-github-issue"
+
+# Secrets — set these via the CLI, never commit them:
+#   wrangler secret put LINEAR_WEBHOOK_SECRET
+#   wrangler secret put GITHUB_PAT
