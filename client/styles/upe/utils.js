@@ -150,9 +150,13 @@ export const handleAppearanceForFloatingLabel = (
 			appearance.rules[ '.Label--floating' ].transform;
 		const matrixValues = transformMatrix.match( /matrix\((.+)\)/ );
 		if ( matrixValues && matrixValues[ 1 ] ) {
-			const splitMatrixValues = matrixValues[ 1 ].split( ', ' );
+			const splitMatrixValues = matrixValues[ 1 ].split( /\s*,\s*/ );
 			const scaleX = parseFloat( splitMatrixValues[ 0 ] );
 			const scaleY = parseFloat( splitMatrixValues[ 3 ] );
+			if ( ! Number.isFinite( scaleX ) || ! Number.isFinite( scaleY ) ) {
+				delete appearance.rules[ '.Label--floating' ].transform;
+				return appearance;
+			}
 			const scale = ( scaleX + scaleY ) / 2;
 
 			const lineHeight = parseFloat(

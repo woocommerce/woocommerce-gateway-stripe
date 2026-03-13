@@ -146,6 +146,27 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		expect( result.rules[ '.Label--floating' ].marginTop ).toBe( '3px' );
 	} );
 
+	it( 'parses matrix transform without spaces between values', () => {
+		const appearance = makeAppearance();
+		const floatingStyles = {
+			transform: 'matrix(0.75,0,0,0.75,0,-10)',
+			lineHeight: '20px',
+			color: 'rgb(100, 100, 100)',
+		};
+
+		const result = upeUtils.handleAppearanceForFloatingLabel(
+			appearance,
+			floatingStyles
+		);
+
+		// Same result as the spaced variant.
+		expect( result.rules[ '.Label--floating' ].lineHeight ).toBe( '15px' );
+		expect( result.rules[ '.Label--floating' ].fontSize ).toBe( '15px' );
+		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+			'transform'
+		);
+	} );
+
 	it( 'skips transform processing when transform is absent', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
