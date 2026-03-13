@@ -141,9 +141,6 @@ export const handleAppearanceForFloatingLabel = (
 	// Add floating label styles.
 	appearance.rules[ '.Label--floating' ] = floatingLabelStyles;
 
-	// Add top margin so the floating label doesn't sit flush against the input border.
-	appearance.rules[ '.Label--floating' ].marginTop = '2px';
-
 	// Update line-height for floating label to account for scaling.
 	if (
 		appearance.rules[ '.Label--floating' ].transform &&
@@ -200,6 +197,9 @@ export const handleAppearanceForFloatingLabel = (
 		appearance.rules[ '.Label--floating' ].marginTop =
 			originalLabelMarginTop;
 	}
+
+	// Add top margin so the floating label doesn't sit flush against the input border.
+	appearance.rules[ '.Label--floating' ].marginTop = '3px';
 
 	return appearance;
 };
