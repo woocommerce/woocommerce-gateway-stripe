@@ -122,6 +122,18 @@ describe( 'copy-test-number', () => {
 		).resolves.toBe( 'caught' );
 	} );
 
+	it( 'does nothing when clipboard API is unavailable', () => {
+		Object.defineProperty( navigator, 'clipboard', {
+			value: undefined,
+			writable: true,
+			configurable: true,
+		} );
+		const button = createButton( '4242424242424242' );
+
+		expect( () => click( button ) ).not.toThrow();
+		expect( button.classList.contains( 'state--success' ) ).toBe( false );
+	} );
+
 	it( 'works when clicking a child element inside the button', () => {
 		createButton( '4000056655665556' );
 		const icon = document.querySelector(

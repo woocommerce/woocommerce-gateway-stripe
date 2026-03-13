@@ -20,6 +20,10 @@ document.addEventListener( 'click', function ( event ) {
 		return;
 	}
 
+	if ( ! navigator.clipboard?.writeText ) {
+		return;
+	}
+
 	navigator.clipboard
 		.writeText( number.replace( /\s/g, '' ) )
 		.then( () => {
