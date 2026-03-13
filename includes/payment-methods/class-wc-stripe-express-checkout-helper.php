@@ -1190,9 +1190,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return string Normalized state or original state input value.
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
-		// Include Express Checkout Button State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
-		$pr_states = WC_Stripe_Express_Checkout_Button_States::STATES;
+		// Include Payment Request API State list for compatibility with WC countries/states.
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
 
 		if ( ! isset( $pr_states[ $country ] ) ) {
 			return $state;

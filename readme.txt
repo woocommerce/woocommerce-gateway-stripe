@@ -37,6 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 10.5.0
    -  Remove deprecated feature flags for UPE, ECE, and OCS; remove various helpers including is_sepa_tokens_for_other_methods_enabled() validate_minimum_order_amount(), get_booking_id_from_cart(), get_owner_details(), lock_order_payment(), unlock_order_payment(), lock_order_refund(), unlock_order_refund() and remove AJAX pay for order handler
+   - Removed deprecated backend methods that called wc_deprecated_function: WC_Stripe_Helper order meta shims, intent helpers, WC_Stripe_Feature_Flags::did_merchant_disable_upe() and are_apms_deprecated(), WC_Stripe_Logger::log()
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0

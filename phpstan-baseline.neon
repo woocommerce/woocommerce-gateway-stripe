@@ -2305,6 +2305,12 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Method WC_Stripe_Helper\:\:get_legacy_payment_method\(\) has parameter \$id with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
 			message: '#^Method WC_Stripe_Helper\:\:get_order_by_charge_id\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1

@@ -340,6 +340,76 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * List of legacy payment method classes.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_payment_method_classes() {
+		return [];
+	}
+
+	/**
+	 * List of legacy payment methods.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_payment_methods() {
+		return [];
+	}
+
+	/**
+	 * Get legacy payment method by id.
+	 *
+	 * @return null
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_payment_method( $id ) {
+		return null;
+	}
+
+	/**
+	 * List of available legacy payment method ids.
+	 * It returns the order saved in the `stripe_legacy_method_order` option in Stripe settings.
+	 * If the `stripe_legacy_method_order` option is not set, it returns the default order.
+	 *
+	 * The ids are mapped to the corresponding equivalent UPE method ids for rendeing on the frontend.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_available_payment_method_ids() {
+		return [];
+	}
+
+	/**
+	 * List of enabled legacy payment methods.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_enabled_payment_methods() {
+		return [];
+	}
+
+	/**
+	 * List of enabled legacy payment method ids.
+	 *
+	 * @return array
+	 *
+	 * @deprecated 10.3.0 This method will be removed in future versions.
+	 */
+	public static function get_legacy_enabled_payment_method_ids() {
+		return [];
+	}
+
+	/**
 	 * Returns the list of ordered payment methods for the settings page when UPE is enabled.
 	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
 	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
@@ -1020,6 +1090,24 @@ class WC_Stripe_Helper {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Fetches a list of all Stripe gateway IDs.
+	 *
+	 * @return array An array of all Stripe gateway IDs.
+	 */
+	public static function get_stripe_gateway_ids() {
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
+
+		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateways = $main_gateway->payment_methods;
+		} else {
+			$gateways = self::get_legacy_payment_methods();
+		}
+
+		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
 	}
 
 	/**
