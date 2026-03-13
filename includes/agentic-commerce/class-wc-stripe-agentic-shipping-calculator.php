@@ -42,6 +42,8 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$address = $event->get_shipping_address() ?? $event->get_billing_address();
 
+		// Populate contents with resolved products for content-dependent
+		// shipping methods (table rate, weight-based). See STRIPE-986.
 		$package = [
 			'contents'        => [],
 			'contents_cost'   => 0,
@@ -86,12 +88,13 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 			'tax_class' => (string) $shipping_tax_class,
 		];
 
+		$tax_rates = WC_Tax::find_rates( $tax_location );
+
 		foreach ( $rates as $rate ) {
-			$net_cost  = (float) $rate->get_cost();
-			$tax_rates = WC_Tax::find_rates( $tax_location );
-			$taxes     = WC_Tax::calc_tax( $net_cost, $tax_rates, false );
-			$gross     = $net_cost + array_sum( $taxes );
-			$amount    = WC_Stripe_Helper::get_stripe_amount( $gross, $currency );
+			$net_cost = (float) $rate->get_cost();
+			$taxes    = WC_Tax::calc_tax( $net_cost, $tax_rates, false );
+			$gross    = $net_cost + array_sum( $taxes );
+			$amount   = WC_Stripe_Helper::get_stripe_amount( $gross, $currency );
 
 			$formatted_rates[] = [
 				'shipping_rate_data' => [

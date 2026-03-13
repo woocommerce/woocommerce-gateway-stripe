@@ -122,10 +122,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
 
-		$is_agentic_hook = str_starts_with( $event_type, 'v1.delegated_checkout.' );
+		$is_agentic_hook = 0 === strpos( $event_type, 'v1.delegated_checkout.' );
 
 		$secret = $is_agentic_hook
-			? AGENTIC_COMMERCE_WEBHOOK_SECRET
+			? ( defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ? AGENTIC_COMMERCE_WEBHOOK_SECRET : '' )
 			: $this->secret;
 
 		// Validate it to make sure it is legit.
@@ -1806,21 +1806,30 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	private function process_agentic_customization_hook( stdClass $event ): void {
-		$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
-		$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
-		$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
+		try {
+			$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
+			$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+			$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
 
-		$line_items_with_tax = $tax_calculator->calculate(
-			$event,
-			$tax_calculator->extract_line_items_from_customization_hook( $event )
-		);
+			$line_items_with_tax = $tax_calculator->calculate(
+				$event,
+				$tax_calculator->extract_line_items_from_customization_hook( $event )
+			);
 
-		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
+			$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
 
-		$response = array_merge( $line_items_with_tax, $shipping_options );
+			$response = array_merge( $line_items_with_tax, $shipping_options );
 
-		status_header( 200 );
-		echo wp_json_encode( $response );
+			status_header( 200 );
+			echo wp_json_encode( $response );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic customization hook failed.',
+				[ 'error' => $e->getMessage() ]
+			);
+
+			status_header( 400 );
+		}
 	}
 
 	/**

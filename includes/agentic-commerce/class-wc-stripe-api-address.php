@@ -35,62 +35,40 @@ class WC_Stripe_API_Address {
 	}
 
 	public function get_country(): ?string {
-		$country = $this->address->country;
-
-		if ( ! empty( $country ) ) {
-			return $country;
-		}
-
-		return null;
+		return $this->sanitize_field( $this->address->country ?? null );
 	}
 
 	public function get_state(): ?string {
-		$state = $this->address->state;
-
-		if ( ! empty( $state ) ) {
-			return $state;
-		}
-
-		return null;
+		return $this->sanitize_field( $this->address->state ?? null );
 	}
 
 	public function get_postal_code(): ?string {
-		$postal_code = $this->address->postal_code;
-
-		if ( ! empty( $postal_code ) ) {
-			return $postal_code;
-		}
-
-		return null;
+		return $this->sanitize_field( $this->address->postal_code ?? null );
 	}
 
 	public function get_city(): ?string {
-		$city = $this->address->city;
-
-		if ( ! empty( $city ) ) {
-			return $city;
-		}
-
-		return null;
+		return $this->sanitize_field( $this->address->city ?? null );
 	}
 
 	public function get_line1(): ?string {
-		$line1 = $this->address->line1 ?? null;
-
-		if ( ! empty( $line1 ) ) {
-			return (string) $line1;
-		}
-
-		return null;
+		return $this->sanitize_field( $this->address->line1 ?? null );
 	}
 
 	public function get_line2(): ?string {
-		$line2 = $this->address->line2 ?? null;
+		return $this->sanitize_field( $this->address->line2 ?? null );
+	}
 
-		if ( ! empty( $line2 ) ) {
-			return (string) $line2;
+	/**
+	 * Sanitizes an address field value.
+	 *
+	 * @param mixed $value The raw value.
+	 * @return string|null The sanitized string, or null if empty.
+	 */
+	private function sanitize_field( $value ): ?string {
+		if ( empty( $value ) ) {
+			return null;
 		}
 
-		return null;
+		return sanitize_text_field( (string) $value );
 	}
 }
