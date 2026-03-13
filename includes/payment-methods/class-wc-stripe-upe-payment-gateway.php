@@ -101,6 +101,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
+	 */
+	private $sepa_tokens_for_other_methods;
+
+	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -113,6 +122,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
+
+	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `oc_enabled`.
+	 */
+	private $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -3910,6 +3928,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Magic method to handle dynamic getters and setters for the gateway options.
+	 *
+	 * @param string $name The name of the property being accessed.
+	 * @param mixed $value The value being set to the property.
+	 *
+	 * @return void
+	 */
+	public function __set( string $name, $value ): void {
+		if ( WP_DEBUG ) {
+			if ( 'sepa_tokens_for_other_methods' === $name ) {
+				$this->deprecated_property( $name, '10.0.0', 'sepa_tokens_for_ideal and sepa_tokens_for_bancontact' );
+			}
+			if ( 'spe_enabled' === $name ) {
+				$this->deprecated_property( $name, '9.5.0', 'oc_enabled' );
+			}
+		}
+	}
+
+	/**
 	 * Validates a field value before updating.
 	 *
 	 * @since 10.3.0 Migrated from the legacy checkout.
@@ -3964,5 +4001,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->validate_text_field( $field_key, $field_value );
+	}
+
+	/**
+	 * Triggers a deprecation notice for a property.
+	 *
+	 * @param string $property_name The name of the deprecated property.
+	 * @param string $version       The version since when the property is deprecated.
+	 * @param string $replacement   The replacement for the deprecated property.
+	 *
+	 * @return void
+	 * @throws WP_Exception
+	 */
+	private function deprecated_property( string $property_name, string $version, string $replacement ): void {
+		if ( WP_DEBUG ) {
+			$message = sprintf(
+				'Property %1$s is <strong>deprecated</strong> since version %2$s! Use %3$s instead.',
+				$property_name,
+				$version,
+				$replacement
+			);
+			wp_trigger_error( '', $message, E_USER_DEPRECATED );
+		}
 	}
 }
