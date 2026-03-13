@@ -127,6 +127,20 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that automatic_tax enabled returns empty rates (Stripe manages tax).
+	 */
+	public function test_calculate_returns_empty_rates_when_automatic_tax_enabled() {
+		$event = $this->build_event_with_automatic_tax( [ $this->product ], true );
+
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
+
+		$this->assertArrayHasKey( 'line_items', $result );
+		$this->assertCount( 1, $result['line_items'] );
+		$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
+	}
+
+	/**
 	 * Test that a non-matching address returns empty tax rates.
 	 */
 	public function test_calculate_returns_empty_rates_for_non_matching_address() {
@@ -358,7 +372,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 * @param array $address    Address overrides.
 	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
 	 */
-	private function build_event_raw( array $line_items, array $address = [] ): WC_Stripe_Agentic_Customize_Checkout_Event {
+	private function build_event_raw( array $line_items, array $address = [], bool $automatic_tax = false ): WC_Stripe_Agentic_Customize_Checkout_Event {
 		$address = array_merge(
 			[
 				'country'     => 'US',
@@ -381,7 +395,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 				'livemode' => false,
 				'data'     => (object) [
 					'currency'          => 'usd',
-					'automatic_tax'     => (object) [ 'enabled' => false ],
+					'automatic_tax'     => (object) [ 'enabled' => $automatic_tax ],
 					'line_item_details' => $raw_items,
 					'shipping_details'  => (object) [
 						'address' => (object) $address,
@@ -389,5 +403,24 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 				],
 			]
 		);
+	}
+
+	/**
+	 * Builds a customize_checkout event with automatic_tax setting.
+	 *
+	 * @param \WC_Product[] $products      Products.
+	 * @param bool          $automatic_tax Whether Stripe automatic tax is enabled.
+	 * @return WC_Stripe_Agentic_Customize_Checkout_Event
+	 */
+	private function build_event_with_automatic_tax( array $products, bool $automatic_tax ): WC_Stripe_Agentic_Customize_Checkout_Event {
+		$items = [];
+		foreach ( $products as $index => $product ) {
+			$items[] = [
+				'id'     => 'li_test_' . $index,
+				'sku_id' => (string) $product->get_id(),
+			];
+		}
+
+		return $this->build_event_raw( $items, [], $automatic_tax );
 	}
 }

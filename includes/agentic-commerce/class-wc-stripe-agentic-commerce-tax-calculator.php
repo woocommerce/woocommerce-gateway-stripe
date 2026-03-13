@@ -57,8 +57,8 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		WC_Stripe_Agentic_Customize_Checkout_Event $event,
 		array $line_items
 	): array {
-		// If tax is disabled, simply return empty tax rates for each line item.
-		if ( ! wc_tax_enabled() ) {
+		// If Stripe is managing tax (automatic_tax enabled) or WC tax is disabled, return empty rates.
+		if ( $event->is_automatic_tax_enabled() || ! wc_tax_enabled() ) {
 			return [
 				'line_items' => $this->map_line_items(
 					fn( $line_item_id ) => [
