@@ -154,5 +154,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Allow additional font domains to be included in Stripe fonts
 * Fix - Add order and payment method validation to prevent errors
 * Fix - Improve default layout when Optimized Checkout is disabled
+* Fix - Ensure that we enqueue all needed scripts on payment pages
+* Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
