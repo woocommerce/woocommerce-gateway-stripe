@@ -1820,7 +1820,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$response = array_merge( $line_items_with_tax, $shipping_options );
 
-			header( 'Content-Type: application/json' );
+			if ( ! headers_sent() ) {
+				header( 'Content-Type: application/json' );
+			}
 			status_header( 200 );
 			echo wp_json_encode( $response );
 		} catch ( Exception $e ) {
