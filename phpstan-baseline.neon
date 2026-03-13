@@ -4801,6 +4801,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$amount_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$card\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4983,7 +4989,7 @@ parameters:
 		-
 			message: '#^Filter callback return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -5103,6 +5109,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:is_setup_intent_success_creation_redirection\(\) should return bool but returns int\.$#'
 			identifier: return.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:maybe_add_presentment_metadata_to_order\(\) invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
