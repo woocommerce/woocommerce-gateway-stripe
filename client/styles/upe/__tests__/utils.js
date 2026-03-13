@@ -142,7 +142,8 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		// Label marginTop = floor((12 - 1) / 3) = 3px
 		expect( result.rules[ '.Label' ].marginTop ).toBe( '3px' );
 
-		// Floating label marginTop inherits original (which was undefined → '0')
+		// Floating label marginTop reset to original Label marginTop (undefined → '0')
+		// after paddingBottom adjustment overrides the initial 2px.
 		expect( result.rules[ '.Label--floating' ].marginTop ).toBe( '0' );
 	} );
 
