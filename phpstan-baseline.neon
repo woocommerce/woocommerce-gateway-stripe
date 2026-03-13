@@ -4803,7 +4803,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$amount_total\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -5001,7 +5001,7 @@ parameters:
 		-
 			message: '#^Filter callback return statement is missing\.$#'
 			identifier: return.missing
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
