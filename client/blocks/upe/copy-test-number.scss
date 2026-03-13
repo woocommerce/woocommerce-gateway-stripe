@@ -1,0 +1,48 @@
+.js-wc-stripe-copy-test-number {
+	line-height: 1.2em;
+	vertical-align: middle;
+	border-radius: 0;
+	border: none !important;
+	background-color: transparent !important;
+	font-weight: normal;
+	display: inline-flex;
+	cursor: pointer;
+	color: inherit !important;
+	font-size: initial;
+	padding: 2px 1px !important;
+	align-items: center;
+	box-shadow: none !important;
+
+	span {
+		margin-right: 4px;
+	}
+
+	i {
+		order: 1;
+		display: block;
+		width: 1.2em;
+		height: 1.2em;
+		mask-image: url('./icons/copy.svg?asset');
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		background-color: currentColor;
+	}
+
+	&:hover {
+		background-color: transparent;
+		opacity: 0.7;
+	}
+
+	&:active i {
+		transform: scale(0.9);
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	&.state--success i {
+		mask-image: url('./icons/check.svg?asset');
+	}
+}

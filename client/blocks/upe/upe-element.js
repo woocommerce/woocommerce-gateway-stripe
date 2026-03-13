@@ -13,6 +13,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
+import 'wcstripe/blocks/upe/copy-test-number';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
