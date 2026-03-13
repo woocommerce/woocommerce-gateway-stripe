@@ -338,14 +338,6 @@ const PaymentProcessor = ( {
 					} }
 				/>
 			) }
-			{ testingInstructions && (
-				<p
-					className="content wc-stripe-testing-instructions"
-					dangerouslySetInnerHTML={ {
-						__html: testingInstructions,
-					} }
-				/>
-			) }
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (
@@ -354,6 +346,14 @@ const PaymentProcessor = ( {
 					onChange={ onSelectedPaymentMethodChange }
 					onLoadError={ setHasLoadError }
 					className="wcstripe-payment-element"
+				/>
+			) }
+			{ testingInstructions && (
+				<p
+					className="content wc-stripe-testing-instructions"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
 				/>
 			) }
 		</>

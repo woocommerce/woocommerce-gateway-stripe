@@ -933,58 +933,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<?php endif; ?>
 
 			<?php
-			if ( $this->testmode ) :
-				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
-					echo wp_kses(
-						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
-						[
-							'div'    => [
-								'id'    => [],
-								'class' => [],
-								'style' => [],
-							],
-							'strong' => [],
-							'a'      => [
-								'href'   => [],
-								'target' => [],
-							],
-							'button' => [
-								'type'       => [],
-								'class'      => [],
-								'aria-label' => [],
-								'title'      => [],
-							],
-							'i'      => [],
-							'span'   => [],
-						]
-					);
-				else :
-					$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
-					?>
-				<p class="testmode-info">
-					<?php
-					echo wp_kses(
-						self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
-						[
-							'strong' => [],
-							'a'      => [
-								'href'   => [],
-								'target' => [],
-							],
-							'button' => [
-								'type'       => [],
-								'class'      => [],
-								'aria-label' => [],
-								'title'      => [],
-							],
-							'i'      => [],
-							'span'   => [],
-						]
-					);
-					?>
-				</p>
-					<?php
-				endif;
+			if ( $this->testmode && $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
+				echo wp_kses(
+					self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
+					[
+						'div'    => [
+							'id'    => [],
+							'class' => [],
+							'style' => [],
+						],
+						'strong' => [],
+						'a'      => [
+							'href'   => [],
+							'target' => [],
+						],
+						'button' => [
+							'type'       => [],
+							'class'      => [],
+							'aria-label' => [],
+							'title'      => [],
+						],
+						'i'      => [],
+						'span'   => [],
+					]
+				);
 			endif;
 			?>
 
@@ -1003,6 +975,36 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				<?php // Hidden input for appearance style extraction on non-checkout pages (Add Payment Method, Order Pay). ?>
 				<input type="text" id="wc-stripe-hidden-style-input" class="input-text" aria-hidden="true" tabindex="-1" autocomplete="off" style="position:absolute!important;opacity:0!important;pointer-events:none!important;" />
 			</fieldset>
+
+			<?php
+			if ( $this->testmode && ! ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) ) :
+				$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
+				?>
+			<p class="testmode-info">
+				<?php
+				echo wp_kses(
+					self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
+					[
+						'strong' => [],
+						'a'      => [
+							'href'   => [],
+							'target' => [],
+						],
+						'button' => [
+							'type'       => [],
+							'class'      => [],
+							'aria-label' => [],
+							'title'      => [],
+						],
+						'i'      => [],
+						'span'   => [],
+					]
+				);
+				?>
+			</p>
+				<?php
+			endif;
+			?>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
