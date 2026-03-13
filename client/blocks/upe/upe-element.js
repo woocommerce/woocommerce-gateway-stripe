@@ -27,7 +27,8 @@ const upeMethods = getPaymentMethodsConstants();
  * @return {JSX.Element|null} The icon element.
  */
 const getUpeElementIcon = ( paymentMethod ) => {
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		return null;
 	}
 
@@ -113,9 +114,10 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 					( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
 				);
 
+			const stripeServerData = getBlocksConfiguration();
 			if (
 				paymentMethod === PAYMENT_METHOD_CARD &&
-				getBlocksConfiguration()?.isOCEnabled &&
+				stripeServerData?.shouldShowOptimizedCheckout &&
 				nonExpressPaymentMethods.length === 0
 			) {
 				return false;

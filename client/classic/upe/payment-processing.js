@@ -171,7 +171,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			amount,
 		};
 
-		if ( stripeServerData?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			options = {
 				...options,
 				paymentMethodConfiguration:
@@ -266,7 +266,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	};
 
 	// Set the layout to accordion if OC is enabled.
-	if ( stripeServerData?.isOCEnabled ) {
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const layout = {
 			type:
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -460,7 +460,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
-	if ( getStripeServerData()?.isOCEnabled ) {
+
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		upeElement.on( 'change', ( { value } ) => {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type );
