@@ -51,7 +51,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test the supported currencies for the Amazon Pay payment method.
+	 * Test \WC_Stripe_UPE_Payment_Method_Amazon_Pay->get_supported_currencies().
 	 *
 	 * @param string   $account_country     The country code for the Stripe account.
 	 * @param string[] $expected_currencies The expected currencies.
@@ -69,6 +69,31 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 
 		$amazon_pay           = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();
 		$supported_currencies = $amazon_pay->get_supported_currencies();
+
+		// Reset account before asserting.
+		$stripe_instance->account = $initial_account;
+
+		$this->assertEquals( $expected_currencies, $supported_currencies );
+	}
+
+	/**
+	 * Test \WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies().
+	 *
+	 * @param string   $account_country     The country code for the Stripe account.
+	 * @param string[] $expected_currencies The expected currencies.
+	 * @dataProvider provide_test_supported_currencies
+	 */
+	public function test_get_amazon_pay_supported_currencies( string $account_country, array $expected_currencies ): void {
+		$mock_account = $this->createMock( \WC_Stripe_Account::class );
+
+		$mock_account->method( 'get_account_country' )
+			->willReturn( $account_country );
+
+		$stripe_instance = \WC_Stripe::get_instance();
+		$initial_account = $stripe_instance->account;
+		$stripe_instance->account = $mock_account;
+
+		$supported_currencies = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies();
 
 		// Reset account before asserting.
 		$stripe_instance->account = $initial_account;
@@ -124,5 +149,31 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$stripe_instance->account = $initial_account;
 
 		$this->assertEquals( $expected_availability, $is_available );
+	}
+
+	/**
+	 * Test \WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country().
+	 *
+	 * @param string $account_country       The country code for the Stripe account.
+	 * @param bool   $expected_availability The expected availability.
+	 * @dataProvider provide_test_is_available_for_account_country
+	 */
+	public function test_is_amazon_pay_available_for_account_country( string $account_country, bool $expected_availability ): void {
+		$mock_account = $this->createMock( \WC_Stripe_Account::class );
+		$mock_account->method( 'get_account_country' )
+			->willReturn( $account_country );
+
+		$stripe_instance = \WC_Stripe::get_instance();
+		$initial_account = $stripe_instance->account;
+
+		try {
+			$stripe_instance->account = $mock_account;
+
+			$is_available = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country();
+
+			$this->assertEquals( $expected_availability, $is_available );
+		} finally {
+			$stripe_instance->account = $initial_account;
+		}
 	}
 }
