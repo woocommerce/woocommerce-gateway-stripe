@@ -118,11 +118,15 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the billing address object.
 	 *
+	 * Note: The customize_checkout event does not include a separate billing address.
+	 * The shipping address is used as the billing address for tax/shipping calculations.
+	 *
 	 * @since 10.5.0
 	 * @return WC_Stripe_API_Address
 	 */
 	public function get_billing_address(): WC_Stripe_API_Address {
-		$address = $this->event->data->shipping_details->address ?? null;
+		$shipping_details = $this->event->data->shipping_details ?? null;
+		$address          = $shipping_details->address ?? null;
 		if ( null === $address ) {
 			throw new Exception(
 				sprintf(
@@ -141,7 +145,8 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	 * @return WC_Stripe_API_Address|null
 	 */
 	public function get_shipping_address(): ?WC_Stripe_API_Address {
-		$address = $this->event->data->shipping_details->address ?? null;
+		$shipping_details = $this->event->data->shipping_details ?? null;
+		$address          = $shipping_details->address ?? null;
 		if ( null === $address ) {
 			return null;
 		}

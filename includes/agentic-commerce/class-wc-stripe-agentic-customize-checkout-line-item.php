@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the line_item_details entries from the customize_checkout event
  * which use sku_id for product identification.
  *
+ * This is a simple value object with two getters. It is tested indirectly
+ * through the tax calculator and customization hook tests.
+ *
  * @since 10.5.0
  */
 class WC_Stripe_Agentic_Customize_Checkout_Line_Item {

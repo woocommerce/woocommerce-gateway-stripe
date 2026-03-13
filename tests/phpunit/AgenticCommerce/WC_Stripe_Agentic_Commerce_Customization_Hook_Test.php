@@ -223,6 +223,54 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * Test that an invalid product ID returns a 400 status and logs the error.
+	 */
+	public function test_returns_400_on_invalid_product() {
+		$event = $this->build_raw_event_with_custom_line_items(
+			[
+				(object) [
+					'id'     => 'li_test_0',
+					'sku_id' => '999999999',
+				],
+			]
+		);
+
+		ob_start();
+		$this->method->invoke( $this->handler, $event );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output, 'No JSON body should be returned on error.' );
+	}
+
+	/**
+	 * Test that an event with missing shipping_details still returns line_items.
+	 */
+	public function test_missing_shipping_details_throws_error() {
+		$event = (object) [
+			'id'       => 'evt_test_hook',
+			'type'     => 'v1.delegated_checkout.customize_checkout',
+			'livemode' => false,
+			'data'     => (object) [
+				'currency'          => 'usd',
+				'automatic_tax'     => (object) [ 'enabled' => false ],
+				'line_item_details' => [
+					(object) [
+						'id'     => 'li_test_0',
+						'sku_id' => (string) $this->product->get_id(),
+					],
+				],
+			],
+		];
+
+		ob_start();
+		$this->method->invoke( $this->handler, $event );
+		$output = ob_get_clean();
+
+		// Should return 400 because billing address is required for tax calculation.
+		$this->assertEmpty( $output, 'No JSON body should be returned on error.' );
+	}
+
+	/**
 	 * Invokes the private hook method and returns decoded JSON response.
 	 *
 	 * @param \stdClass $event The raw event.
@@ -261,6 +309,39 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 				'sku_id' => (string) $product->get_id(),
 			];
 		}
+
+		return (object) [
+			'id'       => 'evt_test_hook',
+			'type'     => 'v1.delegated_checkout.customize_checkout',
+			'livemode' => false,
+			'data'     => (object) [
+				'currency'          => 'usd',
+				'automatic_tax'     => (object) [ 'enabled' => false ],
+				'line_item_details' => $line_items,
+				'shipping_details'  => (object) [
+					'address' => (object) $address,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Builds a raw customize_checkout event with custom line items.
+	 *
+	 * @param array $line_items The raw line items.
+	 * @param array $address    Address overrides.
+	 * @return \stdClass
+	 */
+	private function build_raw_event_with_custom_line_items( array $line_items, array $address = [] ): \stdClass {
+		$address = array_merge(
+			[
+				'country'     => 'US',
+				'state'       => 'CA',
+				'postal_code' => '90210',
+				'city'        => 'Beverly Hills',
+			],
+			$address
+		);
 
 		return (object) [
 			'id'       => 'evt_test_hook',

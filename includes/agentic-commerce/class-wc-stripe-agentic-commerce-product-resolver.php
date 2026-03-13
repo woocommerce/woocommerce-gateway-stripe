@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Resolves WooCommerce products from Stripe external IDs.
  *
+ * This is a simple utility class with a single static method. It is tested
+ * indirectly through the order mapper and tax calculator tests.
+ *
  * @since 10.5.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Resolver {

@@ -101,7 +101,8 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * @return string|null
 	 */
 	public function get_customer_email(): ?string {
-		$email = $this->session->customer_details->email ?? $this->session->customer_email ?? null;
+		$customer_details = $this->session->customer_details ?? null;
+		$email            = $customer_details->email ?? $this->session->customer_email ?? null;
 		return null !== $email ? (string) $email : null;
 	}
 
@@ -113,7 +114,8 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * @return string|null
 	 */
 	public function get_customer_name(): ?string {
-		$name = $this->session->customer_details->name ?? $this->get_shipping_name();
+		$customer_details = $this->session->customer_details ?? null;
+		$name             = $customer_details->name ?? $this->get_shipping_name();
 		return null !== $name ? (string) $name : null;
 	}
 
@@ -194,7 +196,8 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * @return WC_Stripe_API_Address|null
 	 */
 	public function get_shipping_address(): ?WC_Stripe_API_Address {
-		$address = $this->get_shipping_details()->address ?? null;
+		$details = $this->get_shipping_details();
+		$address = $details->address ?? null;
 		if ( null === $address ) {
 			return null;
 		}

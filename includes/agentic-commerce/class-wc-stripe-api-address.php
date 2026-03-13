@@ -34,26 +34,62 @@ class WC_Stripe_API_Address {
 		$this->address = $address;
 	}
 
+	/**
+	 * Returns the country code.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_country(): ?string {
 		return $this->sanitize_field( $this->address->country ?? null );
 	}
 
+	/**
+	 * Returns the state or province.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_state(): ?string {
 		return $this->sanitize_field( $this->address->state ?? null );
 	}
 
+	/**
+	 * Returns the postal code.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_postal_code(): ?string {
 		return $this->sanitize_field( $this->address->postal_code ?? null );
 	}
 
+	/**
+	 * Returns the city.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_city(): ?string {
 		return $this->sanitize_field( $this->address->city ?? null );
 	}
 
+	/**
+	 * Returns address line 1.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_line1(): ?string {
 		return $this->sanitize_field( $this->address->line1 ?? null );
 	}
 
+	/**
+	 * Returns address line 2.
+	 *
+	 * @since 10.5.0
+	 * @return string|null
+	 */
 	public function get_line2(): ?string {
 		return $this->sanitize_field( $this->address->line2 ?? null );
 	}
