@@ -404,7 +404,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_minimum_order_amount() instead.
 	 */
 	public function validate_minimum_order_amount( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_minimum_order_amount' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_minimum_order_amount()' );
 
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
@@ -758,7 +758,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_owner_details() instead.
 	 */
 	public function get_owner_details( $order ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_owner_details' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_owner_details()' );
 
 		$billing_first_name = $order->get_billing_first_name();
 		$billing_last_name  = $order->get_billing_last_name();
@@ -1795,7 +1795,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function lock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::lock_order_payment()' );
 
-		return WC_Stripe_Order_Helper::get_instance()->lock_order_payment( $order );
+		if ( $this->is_order_payment_locked( $order ) ) {
+			// If the order is already locked, return true.
+			return true;
+		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
 	}
 
 	/**
@@ -1811,7 +1821,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::unlock_order_payment()' );
 
-		WC_Stripe_Order_Helper::get_instance()->unlock_order_payment( $order );
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Retrieves the existing lock for an order.
+	 *
+	 * @param WC_Order $order The order to retrieve the lock for
+	 * @return mixed
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::get_order_payment_lock().
+	 */
+	protected function get_order_existing_lock( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_order_payment_lock()' );
+
+		$order->read_meta_data( true );
+		return $order->get_meta( '_stripe_lock_payment', true );
+	}
+
+	/**
+	 * Checks if an order is locked for payment processing.
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 *
+	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::is_order_payment_locked().
+	 */
+	protected function is_order_payment_locked( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_order_payment_locked()' );
+
+		$existing_lock = $this->get_order_existing_lock( $order );
+		if ( $existing_lock ) {
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

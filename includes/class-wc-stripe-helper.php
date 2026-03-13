@@ -84,7 +84,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency' );
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -103,7 +103,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency' );
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -122,7 +122,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee' );
+		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -153,7 +153,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee' );
+		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
 
 		if ( is_null( $order ) ) {
 			return false;

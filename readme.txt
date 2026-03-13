@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Update - Remove all deprecated code up to version 10.1.0
+* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
