@@ -553,25 +553,6 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
-	 * Environment check for subscriptions.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
-	 */
-	public function subscriptions_check_environment() {
-		_deprecated_function( __METHOD__, '9.6.0' );
-		$options = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
-			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
-			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
-			if ( ! empty( $detached_messages ) ) {
-				$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
-			}
-		}
-	}
-
-	/**
 	 * Hides any admin notices.
 	 *
 	 * @since 4.0.0
