@@ -25,7 +25,7 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 /* stylelint-disable selector-id-pattern */
 #radio-control-wc-payment-method-options-stripe__content.optimized-checkout-element {
-	padding-top: 1.4em;
+	padding-top: 0;
 
 	.content:empty {
 		display: none;
@@ -58,8 +58,3 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	display: inline-block;
 }
 
-/* Keep testing instructions above the Stripe Payment Element iframe */
-.wc-stripe-testing-instructions {
-	position: relative;
-	z-index: 1;
-}

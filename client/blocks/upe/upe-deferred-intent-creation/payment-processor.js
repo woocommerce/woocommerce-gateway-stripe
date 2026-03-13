@@ -340,7 +340,7 @@ const PaymentProcessor = ( {
 			) }
 			{ testingInstructions && (
 				<p
-					className="content wc-stripe-testing-instructions"
+					className="content"
 					dangerouslySetInnerHTML={ {
 						__html: testingInstructions,
 					} }
