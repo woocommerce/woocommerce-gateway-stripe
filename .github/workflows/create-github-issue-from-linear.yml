@@ -1,0 +1,143 @@
+name: 'Create GitHub issue from Linear label'
+
+# Triggered by the Linear webhook relay (see docs/linear-webhook-relay/) when
+# the "create-github-issue" label is added to a Linear issue.
+on:
+  repository_dispatch:
+    types:
+      - linear_label_added
+
+permissions:
+  issues: write
+
+jobs:
+  create-issue:
+    name: 'Create GitHub issue from Linear issue'
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'woocommerce/woocommerce-gateway-stripe' }}
+    steps:
+      - name: 'Create GitHub issue'
+        uses: actions/github-script@v7
+        env:
+          LINEAR_OAUTH_TOKEN: ${{ secrets.LINEAR_OAUTH_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { identifier, title, description, url } = context.payload.client_payload;
+
+            if (!identifier || !title) {
+              core.setFailed('Missing required fields in client_payload (identifier, title).');
+              return;
+            }
+
+            core.info(`Processing Linear issue ${identifier}: "${title}"`);
+
+            // ----------------------------------------------------------------
+            // 1. Guard against duplicates — search by exact title.
+            // ----------------------------------------------------------------
+            const searchResult = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue in:title "${title.replace(/"/g, '\\"')}"`,
+              per_page: 10,
+            });
+
+            const existing = searchResult.data.items.find(
+              item => item.title.trim().toLowerCase() === title.trim().toLowerCase()
+            );
+
+            if (existing) {
+              core.info(`GitHub issue #${existing.number} already exists for ${identifier}. Skipping.`);
+
+              // Still post the link back to Linear so the team knows.
+              await postLinearComment(identifier, existing.html_url);
+              return;
+            }
+
+            // ----------------------------------------------------------------
+            // 2. Create the GitHub issue.
+            // ----------------------------------------------------------------
+            const body = [
+              description ?? '',
+              '',
+              '---',
+              `_Synced from [${identifier}](${url})_`,
+            ].join('\n').trim();
+
+            const { data: newIssue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title,
+              body,
+            });
+
+            core.info(`Created GitHub issue #${newIssue.number}: ${newIssue.html_url}`);
+
+            // ----------------------------------------------------------------
+            // 3. Comment on the Linear issue with the GitHub issue URL.
+            // ----------------------------------------------------------------
+            await postLinearComment(identifier, newIssue.html_url);
+
+            // ----------------------------------------------------------------
+            // Helpers
+            // ----------------------------------------------------------------
+            async function postLinearComment(issueIdentifier, githubIssueUrl) {
+              const token = process.env.LINEAR_OAUTH_TOKEN;
+              if (!token) {
+                core.warning('LINEAR_OAUTH_TOKEN not set — skipping Linear comment.');
+                return;
+              }
+
+              // Resolve the issue's internal UUID from its identifier (e.g. STRIPE-123).
+              const [teamKey, issueNumber] = issueIdentifier.split('-');
+              const resolveQuery = `
+                query GetIssueId($teamKey: String!, $number: Int!) {
+                  issue(filter: { team: { key: { eq: $teamKey } }, number: { eq: $number } }) {
+                    nodes { id }
+                  }
+                }
+              `;
+
+              const resolveRes = await fetch('https://api.linear.app/graphql', {
+                method:  'POST',
+                headers: {
+                  'Content-Type':  'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  query:     resolveQuery,
+                  variables: { teamKey, number: parseInt(issueNumber, 10) },
+                }),
+              });
+
+              const resolveData = await resolveRes.json();
+              const issueId = resolveData?.data?.issue?.nodes?.[0]?.id;
+
+              if (!issueId) {
+                core.warning(`Could not resolve Linear issue UUID for ${issueIdentifier}.`);
+                return;
+              }
+
+              const commentMutation = `
+                mutation CreateComment($issueId: String!, $body: String!) {
+                  commentCreate(input: { issueId: $issueId, body: $body }) {
+                    success
+                  }
+                }
+              `;
+
+              await fetch('https://api.linear.app/graphql', {
+                method:  'POST',
+                headers: {
+                  'Content-Type':  'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  query:     commentMutation,
+                  variables: {
+                    issueId,
+                    body: `GitHub issue created: ${githubIssueUrl}`,
+                  },
+                }),
+              });
+
+              core.info(`Posted GitHub issue link as a comment on ${issueIdentifier}.`);
+            }
