@@ -227,10 +227,10 @@ return apply_filters(
 			'desc_tip'    => true,
 		],
 		'sepa_tokens_for_ideal'       => [
-			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL methods', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable saved iDEAL payments for repeat payments', 'woocommerce-gateway-stripe' ),
+			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL | Wero methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable saved iDEAL | Wero payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
-			'description' => __( 'If enabled, users will be able to pay with iDEAL and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'If enabled, users will be able to pay with iDEAL | Wero and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'no',
 			'desc_tip'    => true,
 		],

@@ -203,6 +203,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -3027,6 +3028,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
 		$order = WC_Helper_Order::create_order();
+		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
 
 		// GOOGLE PAY
 		$mock_ece_payment_method = (object) [
@@ -3059,6 +3061,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// No wallet type should default to Credit / Debit Card.
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// Unset the feature flag.
+		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -3791,5 +3796,55 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Tests for `is_valid_optimized_checkout_page`.
+	 *
+	 * @dataProvider provide_test_is_valid_optimized_checkout_page
+	 *
+	 * @param bool $is_add_payment_method      Whether the current page is the "Add payment method" page.
+	 * @param bool $is_changing_payment_method Whether the customer is changing their payment method for a subscription.
+	 * @param bool $expected                   Whether `is_valid_optimized_checkout_page` should return true.
+	 */
+	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
+			->getMock();
+
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
+
+		$this->assertSame( $expected, $gateway->is_valid_optimized_checkout_page() );
+	}
+
+	/**
+	 * Data provider for `test_is_valid_optimized_checkout_page`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_valid_optimized_checkout_page() {
+		return [
+			'Regular checkout page'                  => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'expected'                   => true,
+			],
+			'Add payment method page'                => [
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => false,
+				'expected'                   => false,
+			],
+			'Change payment method for subscription' => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
+			'All special pages'                      => [
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
+		];
 	}
 }

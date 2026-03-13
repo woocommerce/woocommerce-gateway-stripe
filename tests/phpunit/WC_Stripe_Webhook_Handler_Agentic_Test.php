@@ -87,7 +87,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$this->handler->process_checkout_session( $notification );
 
-		$resolved = $this->get_resolved_order();
+		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
 	}
 
@@ -109,7 +109,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$notification = $this->build_notification( 'cs_test_empty_nbp' );
 		$this->handler->process_checkout_session( $notification );
 
-		$resolved = $this->get_resolved_order();
+		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
 	}
 
@@ -126,11 +126,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$notification = $this->build_notification( $session_id );
 		$this->handler->process_checkout_session( $notification );
 
-		$resolved = $this->get_resolved_order();
-		$this->assertNull( $resolved );
+		$resolved = $this->get_resolved_order( $this->handler );
 
 		// Clean up.
 		WC_Stripe_Database_Cache::delete( $lock_key );
+
+		$this->assertNull( $resolved );
 	}
 
 	/**
@@ -482,11 +483,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	/**
 	 * Gets the resolved_order from the handler via reflection.
 	 *
+	 * @param WC_Stripe_Webhook_Handler $webhook_handler Webhook handler instance.
 	 * @return WC_Order|null
 	 */
-	private function get_resolved_order() {
+	private function get_resolved_order( WC_Stripe_Webhook_Handler $webhook_handler ) {
 		$prop = new \ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
 		$prop->setAccessible( true );
-		return $prop->getValue( $this->handler );
+		return $prop->getValue( $webhook_handler );
 	}
 }

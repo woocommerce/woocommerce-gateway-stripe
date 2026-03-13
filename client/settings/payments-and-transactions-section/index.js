@@ -96,11 +96,11 @@ const PaymentsAndTransactionsSection = () => {
 					checked={ isSepaTokensForIdealEnabled }
 					onChange={ setIsSepaTokensForIdealEnabled }
 					label={ __(
-						'Enable saved iDEAL payments for repeat payments',
+						'Enable saved iDEAL | Wero payments for repeat payments',
 						'woocommerce-gateway-stripe'
 					) }
 					help={ __(
-						'Let customers save iDEAL as a SEPA Direct Debit method for future purchases. Requires iDEAL to be enabled.',
+						'Let customers save iDEAL | Wero as a SEPA Direct Debit method for future purchases. Requires iDEAL | Wero to be enabled.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
