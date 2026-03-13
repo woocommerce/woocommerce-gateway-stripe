@@ -158,6 +158,10 @@ export const handleAppearanceForFloatingLabel = (
 			const lineHeight = parseFloat(
 				appearance.rules[ '.Label--floating' ].lineHeight
 			);
+			if ( isNaN( lineHeight ) ) {
+				delete appearance.rules[ '.Label--floating' ].transform;
+				return appearance;
+			}
 			const newLineHeight = Math.floor( lineHeight * scale );
 			appearance.rules[
 				'.Label--floating'
