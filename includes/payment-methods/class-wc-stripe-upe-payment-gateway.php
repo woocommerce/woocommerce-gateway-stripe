@@ -934,29 +934,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
+				$allowed_tags = [
+					'strong' => [],
+					'a'      => [
+						'href'   => [],
+						'target' => [],
+					],
+					'button' => [
+						'type'       => [],
+						'class'      => [],
+						'aria-label' => [],
+						'title'      => [],
+					],
+					'i'      => [],
+					'span'   => [],
+				];
+
 				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
 					echo wp_kses(
 						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
-						[
-							'div'    => [
-								'id'    => [],
-								'class' => [],
-								'style' => [],
+						array_merge(
+							[
+								'div' => [
+									'id'    => [],
+									'class' => [],
+									'style' => [],
+								],
 							],
-							'strong' => [],
-							'a'      => [
-								'href'   => [],
-								'target' => [],
-							],
-							'button' => [
-								'type'       => [],
-								'class'      => [],
-								'aria-label' => [],
-								'title'      => [],
-							],
-							'i'      => [],
-							'span'   => [],
-						]
+							$allowed_tags
+						)
 					);
 				else :
 					$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
@@ -965,21 +971,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					<?php
 					echo wp_kses(
 						self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
-						[
-							'strong' => [],
-							'a'      => [
-								'href'   => [],
-								'target' => [],
-							],
-							'button' => [
-								'type'       => [],
-								'class'      => [],
-								'aria-label' => [],
-								'title'      => [],
-							],
-							'i'      => [],
-							'span'   => [],
-						]
+						$allowed_tags
 					);
 					?>
 				</p>
