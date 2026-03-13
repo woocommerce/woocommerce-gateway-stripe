@@ -26,7 +26,6 @@ beforeEach( () => {
 			dispatch: jest.fn( () => ( { createInfoNotice } ) ),
 		},
 	};
-
 } );
 
 afterEach( () => {
