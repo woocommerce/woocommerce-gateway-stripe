@@ -220,6 +220,7 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			labels: 'above',
 			theme: 'stripe',
 			variables: {
 				colorBackground: '#ffffff',
@@ -247,6 +248,9 @@ describe( 'Getting styles for automated theming', () => {
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				},
+				'.Label--resting': {
+					fontSize: undefined,
 				},
 				'.Tab': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',

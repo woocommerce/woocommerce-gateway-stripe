@@ -5,6 +5,7 @@ import {
 	generateHoverRules,
 	generateOutlineStyle,
 	getBackgroundColor,
+	handleAppearanceForFloatingLabel,
 	isColorLight,
 } from './utils.js';
 import { getFontSizeBase } from 'wcstripe/stripe-utils';
@@ -14,6 +15,7 @@ const appearanceSelectors = {
 		hiddenContainer: '#wc-stripe-hidden-div',
 		hiddenInput: '#wc-stripe-hidden-input',
 		hiddenInvalidInput: '#wc-stripe-hidden-invalid-input',
+		hiddenValidActiveLabel: '#wc-stripe-hidden-valid-active-label',
 	},
 	classicCheckout: {
 		appendTarget: '.woocommerce-billing-fields__field-wrapper',
@@ -58,20 +60,21 @@ const appearanceSelectors = {
 		],
 	},
 	blocksCheckout: {
-		appendTarget: '#billing.wc-block-components-address-form',
-		upeThemeInputSelector: '#billing-first_name',
-		upeThemeLabelSelector:
-			'.wc-block-components-checkout-step__description',
+		appendTarget: '.wc-block-checkout__contact-fields',
+		upeThemeInputSelector: '.wc-block-components-text-input #email',
+		upeThemeLabelSelector: '.wc-block-components-text-input label',
 		upeThemeTextSelectors: [
 			'.wc-block-components-checkout-step__description',
 			'.wc-block-components-text-input',
+			'.wc-block-components-radio-control__label',
+			'.wc-block-checkout__terms',
 		],
 		rowElement: 'div',
-		validClasses: [ 'wc-block-components-text-input' ],
+		validClasses: [ 'wc-block-components-text-input', 'is-active' ],
 		invalidClasses: [ 'wc-block-components-text-input', 'has-error' ],
 		alternateSelectors: {
-			appendTarget: '#shipping.wc-block-components-address-form',
-			upeThemeInputSelector: '#shipping-first_name',
+			appendTarget: '#billing.wc-block-components-address-form',
+			upeThemeInputSelector: '#billing-first_name',
 			upeThemeLabelSelector:
 				'.wc-block-components-checkout-step__description',
 		},
@@ -268,6 +271,13 @@ const hiddenElementsForUPE = {
 			selectors.hiddenInput
 		);
 
+		// Clone & append target label to hidden valid row.
+		this.appendClone(
+			hiddenValidRow,
+			selectors.upeThemeLabelSelector,
+			selectors.hiddenValidActiveLabel
+		);
+
 		// Clone & append target element to hidden invalid row.
 		this.appendClone(
 			hiddenInvalidRow,
@@ -415,6 +425,10 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		'.Label'
 	);
 
+	const labelRestingRules = {
+		fontSize: labelRules.fontSize,
+	};
+
 	const tabRules = getFieldStyles( selectors.upeThemeInputSelector, '.Tab' );
 	const selectedTabRules = getFieldStyles(
 		selectors.hiddenInput,
@@ -445,38 +459,53 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		fontSizeBase: getFontSizeBase( paragraphRules.fontSize ),
 	};
 
-	const appearance = {
+	let appearance = {
 		variables: globalRules,
 		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
-		rules: {
-			'.Input': inputRules,
-			'.Input--invalid': inputInvalidRules,
-			'.Block': blockRules,
-			'.Label': labelRules,
-			'.Tab': tabRules,
-			'.Tab:hover': tabHoverRules,
-			'.Tab--selected': selectedTabRules,
-			'.TabIcon:hover': tabIconHoverRules,
-			'.TabIcon--selected': selectedTabIconRules,
-			'.Text': isColorLight( backgroundColor )
-				? darkParagraphRules
-				: paragraphRules,
-			'.Text--redirect': isColorLight( backgroundColor )
-				? darkParagraphRules
-				: paragraphRules,
-			'.CheckboxInput': {
-				backgroundColor: 'var(--colorBackground)',
-				borderRadius: 'min(5px, var(--borderRadius))',
-				transition:
-					'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
-				border: '1px solid var(--p-colorBackgroundDeemphasize10)',
-			},
-			'.CheckboxInput--checked': {
-				backgroundColor: 'var(--colorPrimary)	',
-				borderColor: 'var(--colorPrimary)',
-			},
-		},
+		labels: isBlocksCheckout ? 'floating' : 'above',
+		// Deep clone rules so floating label adjustments don't mutate shared objects.
+		rules: JSON.parse(
+			JSON.stringify( {
+				'.Input': inputRules,
+				'.Input--invalid': inputInvalidRules,
+				'.Block': blockRules,
+				'.Label': labelRules,
+				'.Label--resting': labelRestingRules,
+				'.Tab': tabRules,
+				'.Tab:hover': tabHoverRules,
+				'.Tab--selected': selectedTabRules,
+				'.TabIcon:hover': tabIconHoverRules,
+				'.TabIcon--selected': selectedTabIconRules,
+				'.Text': isColorLight( backgroundColor )
+					? darkParagraphRules
+					: paragraphRules,
+				'.Text--redirect': isColorLight( backgroundColor )
+					? darkParagraphRules
+					: paragraphRules,
+				'.CheckboxInput': {
+					backgroundColor: 'var(--colorBackground)',
+					borderRadius: 'min(5px, var(--borderRadius))',
+					transition:
+						'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
+				},
+				'.CheckboxInput--checked': {
+					backgroundColor: 'var(--colorPrimary)	',
+					borderColor: 'var(--colorPrimary)',
+				},
+			} )
+		),
 	};
+
+	if ( isBlocksCheckout ) {
+		appearance = handleAppearanceForFloatingLabel(
+			appearance,
+			getFieldStyles(
+				selectors.hiddenValidActiveLabel,
+				'.Label--floating'
+			)
+		);
+	}
 
 	// Remove hidden fields from DOM.
 	hiddenElementsForUPE.cleanup();
