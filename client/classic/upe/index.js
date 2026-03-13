@@ -8,6 +8,7 @@ import {
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import 'wcstripe/blocks/upe/copy-test-number';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
