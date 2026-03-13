@@ -60,3 +60,6 @@ require_once __DIR__ . '/helpers/class-wc-subscriptions-cart.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-helpers.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-product.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-switcher.php';
+require_once __DIR__ . '/helpers/class-wc-pre-orders-product.php';
+require_once __DIR__ . '/helpers/class-wc-deposits-product-manager.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-change-payment-gateway.php';
