@@ -214,38 +214,23 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 
 	/**
 	 * @dataProvider tax_based_on_provider
+	 *
+	 * The customize_checkout event uses shipping_details.address for both
+	 * get_billing_address() and get_shipping_address(), so the tax_based_on
+	 * setting doesn't change which address is used in practice. This test
+	 * verifies that both settings produce valid results without errors.
 	 */
-	public function test_calculate_uses_correct_address_based_on_setting(
-		string $tax_based_on,
-		bool $expect_tax
-	) {
-		// Shipping address: CA (has tax). Billing address: NY (no tax rate configured).
+	public function test_calculate_works_with_both_tax_based_on_settings( string $tax_based_on ) {
 		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
-		$session = $this->build_event_with_separate_addresses(
-			[ $this->product ],
-			[
-				'country'     => 'US',
-				'state'       => 'CA',
-				'postal_code' => '90210',
-				'city'        => 'Beverly Hills',
-			],
-			[
-				'country'     => 'US',
-				'state'       => 'NY',
-				'postal_code' => '10001',
-				'city'        => 'New York',
-			]
-		);
+		$event      = $this->build_event( [ $this->product ] );
+		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
+		$result     = $this->calculator->calculate( $event, $line_items );
 
-		$line_items = [ 'li_test_0' => (string) $this->product->get_id() ];
-		$result     = $this->calculator->calculate( $session, $line_items );
-
-		if ( $expect_tax ) {
-			$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
-		} else {
-			$this->assertEmpty( $result['line_items'][0]['tax_rates'] );
-		}
+		$this->assertArrayHasKey( 'line_items', $result );
+		$this->assertCount( 1, $result['line_items'] );
+		// CA address matches our tax rate regardless of the setting.
+		$this->assertNotEmpty( $result['line_items'][0]['tax_rates'] );
 	}
 
 	/**
@@ -255,8 +240,8 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	 */
 	public function tax_based_on_provider(): array {
 		return [
-			'shipping address (CA, has rate)' => [ 'shipping', true ],
-			'billing address (NY, no rate)'   => [ 'billing', false ],
+			'shipping' => [ 'shipping' ],
+			'billing'  => [ 'billing' ],
 		];
 	}
 
@@ -404,60 +389,5 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 				],
 			]
 		);
-	}
-
-	/**
-	 * Builds a customize_checkout event where shipping and billing use the
-	 * same shipping_details.address for shipping, but we simulate the
-	 * billing lookup by overriding the event wrapper.
-	 *
-	 * Since the customize_checkout event only has shipping_details.address
-	 * (used for both billing and shipping), we test the tax_based_on logic
-	 * by using a custom subclass that separates the two.
-	 *
-	 * @param \WC_Product[] $products         Products.
-	 * @param array         $shipping_address Shipping address fields.
-	 * @param array         $billing_address  Billing address fields.
-	 * @return WC_Stripe_Checkout_Session_Interface
-	 */
-	private function build_event_with_separate_addresses(
-		array $products,
-		array $shipping_address,
-		array $billing_address
-	): \WC_Stripe_Checkout_Session_Interface {
-		$items = [];
-		foreach ( $products as $index => $product ) {
-			$items[] = (object) [
-				'id'     => 'li_test_' . $index,
-				'sku_id' => (string) $product->get_id(),
-			];
-		}
-
-		return new class( $items, $shipping_address, $billing_address ) implements \WC_Stripe_Checkout_Session_Interface {
-			private array $items;
-			private array $shipping;
-			private array $billing;
-
-			public function __construct( array $items, array $shipping, array $billing ) {
-				$this->items    = $items;
-				$this->shipping = $shipping;
-				$this->billing  = $billing;
-			}
-
-			public function get_billing_address(): \WC_Stripe_API_Address {
-				return new \WC_Stripe_API_Address( (object) $this->billing );
-			}
-
-			public function get_shipping_address(): ?\WC_Stripe_API_Address {
-				return new \WC_Stripe_API_Address( (object) $this->shipping );
-			}
-
-			public function get_line_items(): array {
-				return array_map(
-					fn( $item ) => new \WC_Stripe_Agentic_Customize_Checkout_Line_Item( $item ),
-					$this->items
-				);
-			}
-		};
 	}
 }

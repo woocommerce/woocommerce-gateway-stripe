@@ -31,16 +31,16 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 	 * are found for the destination.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Stripe_Checkout_Session_Interface $session  The checkout session.
-	 * @param string                               $currency The three-letter currency code (e.g. "USD").
+	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
+	 * @param string                                     $currency The three-letter currency code (e.g. "USD").
 	 * @return array The response array in Stripe's expected format, or [] when no rates apply.
 	 */
-	public function calculate( WC_Stripe_Checkout_Session_Interface $session, string $currency ): array {
+	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
 		if ( ! wc_shipping_enabled() ) {
 			return [];
 		}
 
-		$address = $session->get_shipping_address() ?? $session->get_billing_address();
+		$address = $event->get_shipping_address() ?? $event->get_billing_address();
 
 		$package = [
 			'contents'        => [],

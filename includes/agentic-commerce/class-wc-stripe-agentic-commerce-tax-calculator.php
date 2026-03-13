@@ -42,25 +42,6 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	}
 
 	/**
-	 * Extracts line items from a checkout session.
-	 *
-	 * @since 10.5.0
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session.
-	 * @return array<string,int> The line items hash. Line item ID => Product ID.
-	 */
-	public function extract_line_items_from_checkout_session(
-		WC_Stripe_Agentic_Checkout_Session $session
-	): array {
-		$line_items = [];
-
-		foreach ( $session->get_line_items() as $line_item ) {
-			$line_items[ $line_item->get_id() ] = $line_item->get_product_id();
-		}
-
-		return $line_items;
-	}
-
-	/**
 	 * Calculates tax rates for each line item in the customize_checkout event.
 	 *
 	 * Returns a Stripe-format response array with line_items containing
@@ -68,12 +49,12 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * we only provide the rate percentages.
 	 *
 	 * @since 10.5.0
-	 * @param WC_Stripe_Checkout_Session_Interface $session The checkout session.
-	 * @param array<string,string> $line_items The line items hash. Line item ID => Product ID.
+	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event      The customization hook event.
+	 * @param array<string,string>                       $line_items The line items hash. Line item ID => Product ID.
 	 * @return array The response array in Stripe's expected format.
 	 */
 	public function calculate(
-		WC_Stripe_Checkout_Session_Interface $session,
+		WC_Stripe_Agentic_Customize_Checkout_Event $event,
 		array $line_items
 	): array {
 		// If tax is disabled, simply return empty tax rates for each line item.
@@ -92,11 +73,11 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		$tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
 
 		// Use the billing address by default.
-		$tax_address = $session->get_billing_address();
+		$tax_address = $event->get_billing_address();
 
 		// Prefer the shipping address if available and set as preference.
 		if ( ! $tax_based_on_billing ) {
-			$shipping_address = $session->get_shipping_address();
+			$shipping_address = $event->get_shipping_address();
 			if ( $shipping_address ) {
 				$tax_address = $shipping_address;
 			}

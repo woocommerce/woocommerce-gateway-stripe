@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 10.5.0
  */
-class WC_Stripe_Agentic_Customize_Checkout_Event implements WC_Stripe_Checkout_Session_Interface {
+class WC_Stripe_Agentic_Customize_Checkout_Event {
 
 	/**
 	 * The raw Stripe event object.
