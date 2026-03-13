@@ -3847,4 +3847,42 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			],
 		];
 	}
+
+	/**
+	 * Test for `expand_copy_button_markup`.
+	 *
+	 * @dataProvider provider_expand_copy_button_markup
+	 *
+	 * @param string $input    Input string with <number> tags.
+	 * @param string $expected Expected output with copy button markup.
+	 *
+	 * @return void
+	 */
+	public function test_expand_copy_button_markup( $input, $expected ) {
+		$actual = WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup( $input );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_expand_copy_button_markup`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_expand_copy_button_markup() {
+		$copy_label = 'Copy to clipboard';
+		return [
+			'string with number tag' => [
+				'input'    => '<strong>Test mode:</strong> use card <number>4242424242424242</number> with any expiry.',
+				'expected' => '<strong>Test mode:</strong> use card <button type="button" class="js-wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242424242424242</span></button> with any expiry.',
+			],
+			'string without number tag' => [
+				'input'    => '<strong>Test mode:</strong> use any 6-digit number.',
+				'expected' => '<strong>Test mode:</strong> use any 6-digit number.',
+			],
+			'empty string' => [
+				'input'    => '',
+				'expected' => '',
+			],
+		];
+	}
 }
