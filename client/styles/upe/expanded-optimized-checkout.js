@@ -47,8 +47,7 @@ export function getExpandedOptimizedCheckoutRules( initialRules = {} ) {
 
 		accordionItemRules.fontFamily = paymentMethodLabelStyles.fontFamily;
 		accordionItemRules.fontSize = paymentMethodLabelStyles.fontSize;
-		accordionItemRules.fontVariation =
-			paymentMethodLabelStyles.fontVariation;
+		accordionItemRules.fontVariant = paymentMethodLabelStyles.fontVariant;
 		accordionItemRules.fontWeight = paymentMethodLabelStyles.fontWeight;
 		accordionItemRules.fontSmooth = paymentMethodLabelStyles.fontSmooth;
 		if ( paymentMethodLabelStyles[ '-webkit-font-smoothing' ] ) {
