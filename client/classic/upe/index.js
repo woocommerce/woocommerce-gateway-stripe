@@ -436,11 +436,11 @@ jQuery( function ( $ ) {
 			getStripePaymentElement( PAYMENT_METHOD_CARD )
 				.then( ( paymentElement ) => {
 					if ( paymentElement ) {
-						paymentElement.off( 'focus.wc-stripe-expanded-ocs' );
-						paymentElement.on(
-							'focus.wc-stripe-expanded-ocs',
+						paymentElement.off(
+							'focus',
 							selectStripePaymentMethod
 						);
+						paymentElement.on( 'focus', selectStripePaymentMethod );
 					}
 				} )
 				.catch( () => {
