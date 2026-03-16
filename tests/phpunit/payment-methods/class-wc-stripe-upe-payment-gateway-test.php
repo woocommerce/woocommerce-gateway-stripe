@@ -3968,6 +3968,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_converted_currency_information_returns_unchanged_total_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_no_presentment_1';
@@ -3997,6 +3998,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_1';
@@ -4048,6 +4050,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_currency_conversion_notice_outputs_nothing_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_no_presentment_3';
@@ -4078,6 +4081,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_3';
@@ -4222,6 +4226,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_email_1';

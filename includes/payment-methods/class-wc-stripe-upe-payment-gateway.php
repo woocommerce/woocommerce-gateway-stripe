@@ -1065,7 +1065,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
 		$presentment_data = $this->get_presentment_data_from_order( $order );
-		if ( ! $presentment_data['amount'] || ! $presentment_data['currency'] ) {
+		if ( empty( $presentment_data ) || ( ! ( $presentment_data['amount'] ?? null ) || ! ( $presentment_data['currency'] ?? null ) ) ) {
 			return $formatted_total;
 		}
 
@@ -1109,7 +1109,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param bool     $sent_to_admin Whether the email is being sent to admin or customer.
 	 * @return void
 	 */
-	public function add_email_currency_conversion_notice( WC_Order $order, bool $sent_to_admin ): void {
+	public function add_email_currency_conversion_notice( WC_Order $order, bool $sent_to_admin = false ): void {
 		$notice_data = $this->get_currency_conversion_notice_data( $order );
 		if ( empty( $notice_data ) ) {
 			return;
@@ -4208,7 +4208,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_currency_conversion_notice_data( WC_Order $order ): array {
 		$presentment_data = $this->get_presentment_data_from_order( $order );
-		if ( ! $presentment_data['amount'] || ! $presentment_data['currency'] ) {
+		if ( empty( $presentment_data ) || ! ( $presentment_data['amount'] ?? null ) || ! ( $presentment_data['currency'] ?? null ) ) {
 			return [];
 		}
 
