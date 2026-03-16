@@ -203,6 +203,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -265,6 +266,25 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		parent::tear_down();
+	}
+
+	/**
+	 * Helper function to ensure that scripts and styles are de-registered and de-queued.
+	 *
+	 * @param string[] $script_handles The script handles to clean up.
+	 * @param string[] $style_handles  The style handles to clean up.
+	 * @return void
+	 */
+	protected function clean_up_scripts( array $script_handles = [], array $style_handles = [] ): void {
+		foreach ( $script_handles as $script_handle ) {
+			wp_deregister_script( $script_handle );
+			wp_dequeue_script( $script_handle );
+		}
+
+		foreach ( $style_handles as $style_handle ) {
+			wp_deregister_style( $style_handle );
+			wp_dequeue_style( $style_handle );
+		}
 	}
 
 	/**
@@ -504,6 +524,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_payment_fields_outputs_fields() {
 		$this->mock_gateway->payment_fields();
 		$this->expectOutputRegex( '/<div class="wc-stripe-upe-element" data-payment-method-type="card"><\/div>/' );
+	}
+
+	/**
+	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
+	 *
+	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
+	 *  - When build/upe-classic.asset.php exists, we verify the script version and dependencies from that file are used.
+	 *  - When build/upe-classic.asset.php does not exist, we verify the fallback values are used.
+	 */
+	public function test_payment_scripts_registers_script_with_correct_version(): void {
+		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
+
+		// Determine the expected version without modifying any files: if the compiled asset file
+		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
+		$expected_version      = WC_STRIPE_VERSION;
+		$expected_dependencies = [ 'stripe', 'wc-checkout' ];
+		if ( file_exists( $asset_path ) ) {
+			$asset = require $asset_path;
+			if ( is_array( $asset ) ) {
+				if ( isset( $asset['version'] ) ) {
+					$expected_version = $asset['version'];
+				}
+				if ( isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ) {
+					$expected_dependencies = array_merge( $expected_dependencies, $asset['dependencies'] );
+				}
+			}
+		} else {
+			$expected_dependencies = array_merge( $expected_dependencies, [ 'wp-i18n' ] );
+		}
+
+		// Build a gateway mock that stubs javascript_params to avoid full WooCommerce/Stripe
+		// account setup, which is not the subject of this test.
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->enabled = 'yes';
+
+		// Make is_checkout() return true so payment_scripts() passes its page guard.
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
+
+		$gateway->payment_scripts();
+
+		// The script should be registered with the version we derived above.
+		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
+		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+
+		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		$this->clean_up_scripts(
+			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+		);
+
+		$this->assertTrue( $script_is_registered, 'wc-stripe-upe-classic script is not registered' );
+		$this->assertNotNull( $registered_script, 'wc-stripe-upe-classic script is not a valid object' );
+		$this->assertSame( $expected_version, $registered_script->ver, 'wc-stripe-upe-classic script version is not the same as the expected version' );
+		$this->assertSame( $expected_dependencies, $registered_script->deps, 'wc-stripe-upe-classic script dependencies are not the same as the expected dependencies' );
 	}
 
 	/**
@@ -2907,7 +2993,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID );
 
 		$this->assertEquals( 'stripe_ideal', $order->get_payment_method() );
-		$this->assertEquals( 'iDEAL', $order->get_payment_method_title() );
+		$this->assertEquals( 'iDEAL | Wero', $order->get_payment_method_title() );
 
 		// iDEAL subscriptions should be set to SEPA as it's the processing payment method of subscription payments for iDEAL.
 		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
@@ -2942,6 +3028,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
 		$order = WC_Helper_Order::create_order();
+		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
 
 		// GOOGLE PAY
 		$mock_ece_payment_method = (object) [
@@ -2974,6 +3061,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// No wallet type should default to Credit / Debit Card.
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// Unset the feature flag.
+		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -3560,6 +3650,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return array[]
 	 */
 	public function provider_payment_scripts_enqueue_scenarios() {
+		/*
+		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
+		 */
 		return [
 			'Product page with ECE off, no Amazon Pay' => [
 				'page_type'                                => 'product',
@@ -3592,7 +3685,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'page_type'                                => 'cart',
 				'express_checkout'                         => 'no',
 				'express_checkout_button_locations'         => [],
-				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                          => true,
 				'expected_upe_classic'                     => true,
@@ -3632,23 +3725,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provider_payment_scripts_enqueue_scenarios
 	 *
-	 * @param string $page_type                                Page type: 'product', 'cart', or 'checkout'.
-	 * @param string $express_checkout                         Express checkout enabled: 'yes' or 'no'.
+	 * @param string $page_type                                 Page type: 'product', 'cart', or 'checkout'.
+	 * @param string $express_checkout                          Express checkout enabled: 'yes' or 'no'.
 	 * @param array  $express_checkout_button_locations         Express checkout button locations.
 	 * @param array  $upe_checkout_experience_accepted_payments Enabled UPE payment methods.
 	 * @param array  $amazon_pay_button_locations               Amazon Pay button locations.
-	 * @param bool   $expected_stripe                          Whether 'stripe' script should be enqueued.
-	 * @param bool   $expected_upe_classic                     Whether 'wc-stripe-upe-classic' script should be enqueued.
+	 * @param bool   $expected_stripe                           Whether 'stripe' script should be enqueued.
+	 * @param bool   $expected_upe_classic                      Whether 'wc-stripe-upe-classic' script should be enqueued.
 	 */
 	public function test_payment_scripts_enqueues_correct_assets( $page_type, $express_checkout, $express_checkout_button_locations, $upe_checkout_experience_accepted_payments, $amazon_pay_button_locations, $expected_stripe, $expected_upe_classic ) {
-		$product             = null;
-		$is_checkout_filter  = null;
+		$product            = null;
+		$is_cart_filter     = null;
+		$is_checkout_filter = null;
 
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
 			$this->go_to( get_permalink( $product->get_id() ) );
 		} elseif ( 'cart' === $page_type ) {
-			\Automattic\Jetpack\Constants::set_constant( 'WOOCOMMERCE_CART', true );
+			$is_cart_filter = function () {
+				return true;
+			};
+			add_filter( 'woocommerce_is_cart', $is_cart_filter );
 		} elseif ( 'checkout' === $page_type ) {
 			$is_checkout_filter = function () {
 				return true;
@@ -3670,9 +3767,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$gateway          = new WC_Stripe_UPE_Payment_Gateway();
 			$gateway->enabled = 'yes';
 
-			wp_deregister_script( 'stripe' );
-			wp_deregister_script( 'wc-stripe-upe-classic' );
-			wp_deregister_style( 'wc-stripe-upe-classic' );
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
 
 			$gateway->payment_scripts();
 
@@ -3681,13 +3779,215 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} finally {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
+			$this->clean_up_scripts(
+				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
+			);
+
 			if ( $product ) {
 				$product->delete( true );
-			} elseif ( $is_checkout_filter ) {
+			}
+
+			if ( $is_checkout_filter ) {
 				remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
-			} else {
-				\Automattic\Jetpack\Constants::clear_single_constant( 'WOOCOMMERCE_CART' );
+			}
+
+			if ( $is_cart_filter ) {
+				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Tests for `is_valid_optimized_checkout_page`.
+	 *
+	 * @dataProvider provide_test_is_valid_optimized_checkout_page
+	 *
+	 * @param bool $is_add_payment_method      Whether the current page is the "Add payment method" page.
+	 * @param bool $is_changing_payment_method Whether the customer is changing their payment method for a subscription.
+	 * @param bool $expected                   Whether `is_valid_optimized_checkout_page` should return true.
+	 */
+	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
+			->getMock();
+
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
+
+		$this->assertSame( $expected, $gateway->is_valid_optimized_checkout_page() );
+	}
+
+	/**
+	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
+	 *
+	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
+	 * stubbed; everything else (including `apply_filters`) runs for real so that
+	 * filter-based behaviour can be asserted.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Gateway
+	 */
+	private function create_gateway_mock_for_javascript_params(): WC_Stripe_UPE_Payment_Gateway {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'is_valid_optimized_checkout_page',
+				]
+			)
+			->getMock();
+
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( false );
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		return $gateway;
+	}
+
+	/**
+	 * Tests that `javascript_params()` handles the `wc_stripe_upe_permitted_font_domains` filter correctly.
+	 *
+	 * @dataProvider provide_test_javascript_params_permitted_font_domains
+	 *
+	 * @param mixed|null $filter_return     Value returned by the filter, or null to skip adding the filter entirely.
+	 * @param bool       $expected_in_params Whether `permittedFontDomains` should be present in the params.
+	 * @param mixed      $expected_value    Expected value of `permittedFontDomains` when present.
+	 */
+	public function test_javascript_params_permitted_font_domains( $filter_return, bool $expected_in_params, $expected_value ): void {
+		$gateway = $this->create_gateway_mock_for_javascript_params();
+
+		$filter_callback = null;
+		if ( null !== $filter_return ) {
+			$filter_callback = function () use ( $filter_return ) {
+				return $filter_return;
+			};
+			add_filter( 'wc_stripe_upe_permitted_font_domains', $filter_callback );
+		}
+
+		$params = $gateway->javascript_params();
+
+		if ( null !== $filter_callback ) {
+			remove_filter( 'wc_stripe_upe_permitted_font_domains', $filter_callback );
+		}
+
+		if ( $expected_in_params ) {
+			$this->assertArrayHasKey( 'permittedFontDomains', $params );
+			$this->assertSame( $expected_value, $params['permittedFontDomains'] );
+		} else {
+			$this->assertArrayNotHasKey( 'permittedFontDomains', $params );
+		}
+	}
+
+	/**
+	 * Data provider for `test_javascript_params_permitted_font_domains`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_javascript_params_permitted_font_domains(): array {
+		return [
+			'no filter hooked — key is omitted'                                         => [
+				'filter_return'      => null,
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns empty array — key is omitted'                               => [
+				'filter_return'      => [],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns non-empty array — key is set'                               => [
+				'filter_return'      => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
+			],
+			'filter returns non-array string — key is omitted'                          => [
+				'filter_return'      => 'custom-fonts.example.com',
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain without dot (e.g. localhost) — key is omitted'      => [
+				'filter_return'      => [ 'localhost' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain starting with dot — key is omitted'                 => [
+				'filter_return'      => [ '.example.com' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with single-char TLD — key is omitted'              => [
+				'filter_return'      => [ 'example.c' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with trailing dot — key is omitted'                 => [
+				'filter_return'      => [ 'example.' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns array with non-string elements — non-strings are excluded' => [
+				'filter_return'      => [ 'fonts.example.com', 42, null, true, 'type.mysite.org' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'type.mysite.org' ],
+			],
+			'filter returns mixed valid and invalid domains — only valid are included'  => [
+				'filter_return'      => [ 'fonts.example.com', 'localhost', '.bad.com', 'good.fonts.io', 'also.bad.' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'good.fonts.io' ],
+			],
+			'filter returns uppercase domain — stored as lowercase'                    => [
+				'filter_return'      => [ 'Fonts.Example.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns domain with surrounding whitespace — stored trimmed'       => [
+				'filter_return'      => [ '  fonts.example.com  ' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns duplicate valid domains — deduplicated'                    => [
+				'filter_return'      => [ 'fonts.example.com', 'fonts.example.com', 'FONTS.EXAMPLE.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+		];
+	}
+
+	/**
+	 * Data provider for `test_is_valid_optimized_checkout_page`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_valid_optimized_checkout_page() {
+		return [
+			'Regular checkout page'                  => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'expected'                   => true,
+			],
+			'Add payment method page'                => [
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => false,
+				'expected'                   => false,
+			],
+			'Change payment method for subscription' => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
+			'All special pages'                      => [
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
+		];
 	}
 }

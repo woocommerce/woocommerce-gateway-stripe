@@ -44,16 +44,15 @@ jobs:
             matrix=$(jq -nc --arg set "$EXTENSION_SET" \
               '{"include":[{"name":$set,"additional-plugins":"","extension-set":$set}]}')
           else
-            matrix=$(cat <<'MATRIX_EOF'
-          {"include":[
-            {"name":"compatibility-set","additional-plugins":"","extension-set":"compatibility"},
-            {"name":"subscriptions-for-woocommerce","additional-plugins":"subscriptions-for-woocommerce","extension-set":""},
-            {"name":"yith-woocommerce-subscription","additional-plugins":"yith-woocommerce-subscription","extension-set":""},
-            {"name":"funnel-builder","additional-plugins":"funnel-builder","extension-set":""},
-            {"name":"wp-fusion-lite","additional-plugins":"wp-fusion-lite","extension-set":""}
-          ]}
-          MATRIX_EOF
-            )
+            matrix=$(jq -nc '{
+              "include": [
+                {"name":"compatibility-set","additional-plugins":"","extension-set":"compatibility"},
+                {"name":"subscriptions-for-woocommerce","additional-plugins":"subscriptions-for-woocommerce","extension-set":""},
+                {"name":"yith-woocommerce-subscription","additional-plugins":"yith-woocommerce-subscription","extension-set":""},
+                {"name":"funnel-builder","additional-plugins":"funnel-builder","extension-set":""},
+                {"name":"wp-fusion-lite","additional-plugins":"wp-fusion-lite","extension-set":""}
+              ]
+            }')
           fi
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
