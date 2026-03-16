@@ -61,7 +61,7 @@ const BASE_SERVER_DATA = {
 	currency: 'usd',
 	cartTotal: 1000,
 	isCheckout: true,
-	isOCEnabled: false,
+	shouldShowOptimizedCheckout: false,
 	isPaymentNeeded: true,
 	isChangingPayment: false,
 };
