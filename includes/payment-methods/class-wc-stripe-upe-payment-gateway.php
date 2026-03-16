@@ -1125,13 +1125,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		echo '<div style="margin-top: 1em; border: solid 1px #007CBA; border-radius: 4px; background-color: #F6F5F8; padding: 1em 2em;">';
 
 		if ( $sent_to_admin ) {
+			$order_currency = $order->get_currency();
 			$original_price = wc_price(
 				$order->get_total(),
 				[
-					'currency' => $order->get_currency(),
+					'currency' => $order_currency,
 					'in_span'  => false,
 				]
-			) . ' ' . strtoupper( $order->get_currency() );
+			) . ' ' . strtoupper( $order_currency );
 			printf(
 			/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. %4$s Original store amount. */
 				esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (%2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
