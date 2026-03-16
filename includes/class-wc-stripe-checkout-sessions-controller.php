@@ -29,10 +29,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-				define( 'WOOCOMMERCE_CART', true );
-			}
-
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
