@@ -322,7 +322,9 @@ const PaymentProcessor = ( {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
-			handleDisplayOfPaymentInstructions( value.type );
+			handleDisplayOfPaymentInstructions( value.type, {
+				checkoutType: 'blocks',
+			} );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
 	};
