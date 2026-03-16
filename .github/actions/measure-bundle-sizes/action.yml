@@ -26,6 +26,11 @@ runs:
           exit 1
         fi
 
+    - name: Get current commit SHA
+      id: get-current-commit-sha
+      shell: bash
+      run: echo "commit-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
     - name: Checkout target commit
       shell: bash
       run: git checkout "${{ inputs.commit-sha }}"
@@ -70,3 +75,8 @@ runs:
       with:
         name: bundle-sizes-${{ inputs.side }}
         path: sizes.json
+
+    - name: Restore initial commit state
+      if: steps.get-current-commit-sha.outputs.commit-sha != ''
+      shell: bash
+      run: git checkout "${{ steps.get-current-commit-sha.outputs.commit-sha }}"
