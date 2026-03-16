@@ -506,10 +506,10 @@ export const getUpeSettings = () => {
 };
 
 export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
-	// If the element already exists, remove it first, to avoid duplicates.
 	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
 	if ( existingElement.length ) {
-		existingElement.remove();
+		existingElement.val( checkoutSessionId );
+		return;
 	}
 
 	const hiddenInput = document.createElement( 'input' );
