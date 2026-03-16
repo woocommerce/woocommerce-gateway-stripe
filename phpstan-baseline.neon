@@ -2383,24 +2383,6 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''WC_Deposits_Product…'' and ''deposits_enabled'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''WC_Pre_Orders…'' and ''product_is_charged…'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions…'' and ''is_subscription'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
