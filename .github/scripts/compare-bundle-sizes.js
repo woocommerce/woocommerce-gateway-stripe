@@ -26,9 +26,7 @@ function getSign( delta ) {
 	if ( delta > 0 ) {
 		return '+';
 	}
-	if ( delta < 0 ) {
-		return '-';
-	}
+	// If the number is negative, it will already start with -.
 	return '';
 }
 
