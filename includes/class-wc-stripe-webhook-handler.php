@@ -1806,10 +1806,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$response = $this->process_agentic_customization_hook( $event );
 					break;
 				case 'v1.delegated_checkout.finalize_checkout':
-					// Coming soon...
-					$response = [
-						'message' => 'Coming soon...',
-					];
+					$response = $this->process_agentic_finalize_checkout_hook( $event );
 					break;
 				default:
 					$response = [
@@ -1859,6 +1856,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
 
 		return array_merge( $line_items_with_tax, $shipping_options );
+	}
+
+	/**
+	 * Handle the Agentic Checkout finalize (manual approval) hook.
+	 *
+	 * @since 10.6.0
+	 * @param stdClass $event The webhook event from Stripe.
+	 * @return array
+	 * @throws Exception When product resolution fails.
+	 */
+	private function process_agentic_finalize_checkout_hook( stdClass $event ): array {
+		$event           = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
+		$manual_approval = new WC_Stripe_Agentic_Commerce_Manual_Approval();
+
+		return $manual_approval->validate( $event );
 	}
 
 	/**

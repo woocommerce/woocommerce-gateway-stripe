@@ -63,4 +63,24 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	public function get_sku_id(): string {
 		return (string) ( $this->item->sku_id ?? '' );
 	}
+
+	/**
+	 * Returns the requested quantity.
+	 *
+	 * @since 10.6.0
+	 * @return int
+	 */
+	public function get_quantity(): int {
+		return (int) ( $this->item->quantity ?? 1 );
+	}
+
+	/**
+	 * Returns the product name.
+	 *
+	 * @since 10.6.0
+	 * @return string
+	 */
+	public function get_name(): string {
+		return (string) ( $this->item->name ?? '' );
+	}
 }
