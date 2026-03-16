@@ -10,7 +10,7 @@ namespace WooCommerce\Stripe\Tests;
 require_once __DIR__ . '/trait-agentic-commerce-test-helpers.php';
 
 use WP_UnitTestCase;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
+use WC_Helper_Product;
 use WC_Stripe_Webhook_Handler;
 use WC_Tax;
 use ReflectionMethod;
