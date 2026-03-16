@@ -22,24 +22,44 @@ function toKB( bytes ) {
 	return ( bytes / 1024 ).toFixed( 2 );
 }
 
+function getSign( delta ) {
+	if ( delta > 0 ) {
+		return '+';
+	}
+	if ( delta < 0 ) {
+		return '-';
+	}
+	return '';
+}
+
 function formatDelta( delta ) {
-	const kb = ( delta / 1024 ).toFixed( 2 );
-	const sign = delta > 0 ? '+' : '';
+	const kb = toKB( delta );
+	const sign = getSign( delta );
 	return `${ sign }${ kb } KB`;
 }
 
 function formatPercent( delta, base ) {
-	if ( base === 0 ) return 'N/A';
+	if ( base === 0 ) {
+		return 'N/A';
+	}
 	const pct = ( ( delta / base ) * 100 ).toFixed( 1 );
-	const sign = delta > 0 ? '+' : '';
+	const sign = getSign( delta );
 	return `${ sign }${ pct }%`;
 }
 
 function statusIcon( file, delta ) {
-	if ( ! baseData[ file ] ) return '🆕';
-	if ( ! headData[ file ] ) return '🗑️';
-	if ( delta > 0 ) return '📈';
-	if ( delta < 0 ) return '📉';
+	if ( ! baseData[ file ] ) {
+		return '🆕';
+	}
+	if ( ! headData[ file ] ) {
+		return '🗑️';
+	}
+	if ( delta > 0 ) {
+		return '📈';
+	}
+	if ( delta < 0 ) {
+		return '📉';
+	}
 	return '➡️';
 }
 
