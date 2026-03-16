@@ -9,7 +9,7 @@
 /**
  * WP_UnitTestCase class
  */
-class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
+abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 
 	/**
 	 * @var WC_Stripe_API
