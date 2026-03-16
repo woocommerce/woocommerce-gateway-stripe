@@ -464,6 +464,35 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
+			it( 'shows error when actions.confirm resolves to an error object', async () => {
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {
+						type: 'error',
+						error: { message: 'Card declined' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalled();
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					'Card declined'
+				);
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).not.toHaveBeenCalled();
+				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+			} );
+
 			it( 'does not call validateElements or appendPaymentMethodIdToForm', async () => {
 				const mockActions = {
 					confirm: jest.fn().mockResolvedValue( {
