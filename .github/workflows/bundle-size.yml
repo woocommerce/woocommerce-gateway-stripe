@@ -18,7 +18,7 @@ jobs:
     name: Build & measure (head)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -34,7 +34,7 @@ jobs:
     env:
       BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.base_ref || 'trunk' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
@@ -56,14 +56,14 @@ jobs:
     needs: [measure-head, measure-base]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: bundle-sizes-head
           path: artifacts/head
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: bundle-sizes-base
           path: artifacts/base
@@ -84,7 +84,7 @@ jobs:
       - name: Find existing bundle size comment (pull_request)
         if: github.event_name == 'pull_request'
         id: find-comment-pr
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
@@ -92,7 +92,7 @@ jobs:
 
       - name: Post or update PR comment (pull_request)
         if: github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
           comment-id: ${{ steps.find-comment-pr.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
@@ -112,7 +112,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
         id: find-comment-dispatch
         continue-on-error: true
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
         with:
           issue-number: ${{ steps.find-pr.outputs.pr_number }}
           comment-author: 'github-actions[bot]'
@@ -121,7 +121,7 @@ jobs:
       - name: Post or update PR comment (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
         continue-on-error: true
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
           comment-id: ${{ steps.find-comment-dispatch.outputs.comment-id }}
           issue-number: ${{ steps.find-pr.outputs.pr_number }}
