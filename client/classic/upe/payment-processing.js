@@ -33,6 +33,7 @@ import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
+let hasCheckoutCompleted = false;
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -485,35 +486,43 @@ export async function mountStripePaymentElement( api, domElement ) {
 		} );
 	}
 
-	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
 	const component = gatewayUPEComponents[ paymentMethodType ];
 	const elements = component.elements;
 	const isAdaptivePricingEnabled =
 		getStripeServerData()?.isAdaptivePricingEnabled;
-	if (
-		isAdaptivePricingEnabled &&
-		elements &&
-		typeof elements.loadActions === 'function'
-	) {
-		try {
-			const actions = await elements.loadActions();
 
-			if ( actions.type === 'error' ) {
-				showErrorPaymentMethod( actions?.error?.message, domElement );
-				// Setting the flag to true to prevent the form from being submitted.
-				component.hasLoadError = true;
-			}
-		} catch ( error ) {
-			showErrorPaymentMethod(
-				error?.message ??
-					__(
-						'Failed to load payment method. Please refresh the page and try again.',
-						'woocommerce-gateway-stripe'
-					),
-				domElement
-			);
+	if (
+		! isAdaptivePricingEnabled ||
+		! elements ||
+		typeof elements.loadActions !== 'function'
+	) {
+		return component;
+	}
+
+	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
+	let loadActionsError = null;
+	try {
+		const actions = await elements.loadActions();
+
+		if ( actions.type === 'error' ) {
+			loadActionsError = actions?.error?.message;
+			// Setting the flag to true to prevent the form from being submitted.
 			component.hasLoadError = true;
 		}
+	} catch ( error ) {
+		loadActionsError = error?.message;
+		component.hasLoadError = true;
+	}
+
+	if ( loadActionsError ) {
+		showErrorPaymentMethod(
+			loadActionsError ??
+				__(
+					'Failed to load payment method. Please refresh the page and try again.',
+					'woocommerce-gateway-stripe'
+				),
+			domElement
+		);
 	}
 
 	return component;
@@ -554,13 +563,13 @@ export function getMountedUPEComponent( paymentMethodType ) {
  * object and appends the necessary data to the form for checkout completion. Finally, it submits the form and prevents
  * the default form submission from WC Core.
  *
- * @param {Object} api               The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm        The jQuery object for the form being submitted.
- * @param {string} paymentMethodType The type of Stripe payment method being used.
- * @return {boolean} return false to prevent the default form submission from WC Core.
+ * @param {Object}   api                        The API object used to create the Stripe payment method.
+ * @param {Object}   jQueryForm                 The jQuery object for the form being submitted.
+ * @param {string}   paymentMethodType          The type of Stripe payment method being used.
+ * @param {Function} [additionalActionsHandler] Optional handler run after payment method creation.
+ * @return {void|boolean} Returns false to prevent the default form submission from WC Core, or nothing when exiting early.
  * @throws {Error} If there is an error creating the Stripe payment method.
  */
-let hasCheckoutCompleted;
 export const processPayment = (
 	api,
 	jQueryForm,
@@ -641,7 +650,13 @@ export const processPayment = (
 				const loadActionsResult = await elements.loadActions();
 
 				if ( loadActionsResult.type === 'error' ) {
-					throw new Error( loadActionsResult.error.message );
+					throw new Error(
+						loadActionsResult.error?.message ??
+							__(
+								'Payment could not be completed. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+					);
 				}
 
 				const { actions } = loadActionsResult;
@@ -652,7 +667,13 @@ export const processPayment = (
 				} );
 
 				if ( confirmResult.type === 'error' ) {
-					throw new Error( confirmResult.error.message );
+					throw new Error(
+						confirmResult.error?.message ??
+							__(
+								'Payment could not be completed. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+					);
 				}
 
 				const sessionId = confirmResult?.session?.id;
