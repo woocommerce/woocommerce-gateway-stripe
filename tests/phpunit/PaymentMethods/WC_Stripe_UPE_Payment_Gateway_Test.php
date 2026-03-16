@@ -4082,7 +4082,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->save();
 
 		ob_start();
-		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false );
 		$output = ob_get_clean();
 
 		$this->assertEmpty( $output );
@@ -4110,7 +4110,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
 		ob_start();
-		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false );
 		$output = ob_get_clean();
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
@@ -4119,11 +4119,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that add_email_currency_conversion_notice outputs a div with the correct converted amount and exchange rate.
+	 * Test that add_email_currency_conversion_notice outputs a div with customer-facing text for the customer email.
 	 *
 	 * @return void
 	 */
-	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
+	public function test_add_email_currency_conversion_notice_outputs_customer_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -4144,7 +4144,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
 		ob_start();
-		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false );
 		$output = ob_get_clean();
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
@@ -4154,6 +4154,49 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertStringContainsString( '<div', $output );
 		$this->assertStringContainsString( 'Currency Conversion', $output );
+		$this->assertStringContainsString( 'You chose to pay', $output );
+		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
+		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
+		$this->assertStringContainsString( '</div>', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs a div with merchant-facing text for the admin email.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_admin_notice_with_converted_amount_and_rate(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_with_presentment_email_2';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+
+		$this->assertStringContainsString( '<div', $output );
+		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
+		$this->assertStringNotContainsString( 'You chose to pay', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
 		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
 		$this->assertStringContainsString( '</div>', $output );
