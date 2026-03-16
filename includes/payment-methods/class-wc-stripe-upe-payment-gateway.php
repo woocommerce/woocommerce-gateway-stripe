@@ -1095,9 +1095,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Shows a notice to the order received page to inform the customer about the currency conversion
 	 * when the order is paid with a different currency than the store currency.
 	 *
+	 * @param WC_Order $order Order data.
+	 * @param bool     $sent_to_admin Whether the email is being sent to admin or customer.
 	 * @return void
 	 */
-	public function add_email_currency_conversion_notice( WC_Order $order ): void {
+	public function add_email_currency_conversion_notice( WC_Order $order, bool $sent_to_admin ): void {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
@@ -1121,13 +1123,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 
 		echo '<div style="margin-top: 1em; border: solid 1px #007CBA; border-radius: 4px; background-color: #F6F5F8; padding: 1em 2em;">';
-		printf(
-		/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
-			esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
-			esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
-			esc_html( get_woocommerce_currency() ),
-			esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
-		);
+
+		if ( $sent_to_admin ) {
+			$original_price = wc_price(
+				$order->get_total(),
+				[
+					'currency' => $order->get_currency(),
+					'in_span'  => false,
+				]
+			) . ' ' . strtoupper( $order->get_currency() );
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. %4$s Original store amount. */
+				esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (%2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
+				esc_html( get_woocommerce_currency() ),
+				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) ),
+				esc_html( $original_price )
+			);
+		} else {
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
+				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
+				esc_html( get_woocommerce_currency() ),
+				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
+			);
+		}
+
 		echo '</div>';
 	}
 
