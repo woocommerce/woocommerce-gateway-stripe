@@ -1098,22 +1098,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	public function add_email_currency_conversion_notice( WC_Order $order ): void {
-		$checkout_session = $this->get_checkout_session_from_order( $order );
-		if ( empty( $checkout_session->presentment_details ) ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
 			return;
 		}
 
-		$this->maybe_add_presentment_metadata_to_order( $order, $checkout_session->presentment_details );
+		$this->maybe_add_presentment_metadata_to_order( $order );
 
-		$presentment_amount   = $checkout_session->presentment_details->presentment_amount;
-		$presentment_currency = $checkout_session->presentment_details->presentment_currency;
+		$presentment_amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
+		$presentment_currency = $order_helper->get_stripe_presentment_currency( $order );
 
+		$stripe_amount      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
 		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_amount,
 			$presentment_currency
 		);
 		$rate_amount        = wc_format_decimal(
-			$presentment_amount / $checkout_session->amount_total,
+			$presentment_amount / $stripe_amount,
 			wc_get_price_decimals()
 		);
 
