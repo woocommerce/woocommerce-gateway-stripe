@@ -112,6 +112,102 @@ describe( 'Getting styles for automated theming', () => {
 		expect( fontRules ).toEqual( [] );
 	} );
 
+	it( 'getFontRulesFromPage returns font rules from fonts-api.wp.com by default', () => {
+		const mockStyleSheets = {
+			length: 1,
+			0: { href: 'https://fonts-api.wp.com/css?family=Lato' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts-api.wp.com/css?family=Lato' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage includes stylesheets from extra domains in permittedFontDomains', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: [ 'custom-fonts.example.com' ],
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://not-allowed.example.com/style.css' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://custom-fonts.example.com/style.css' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage includes both default and extra domains when permittedFontDomains is set', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: [ 'custom-fonts.example.com' ],
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+			1: { href: 'https://custom-fonts.example.com/style.css' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toHaveLength( 2 );
+		expect( fontRules[ 0 ].cssSrc ).toContain( 'fonts.googleapis.com' );
+		expect( fontRules[ 1 ].cssSrc ).toContain( 'custom-fonts.example.com' );
+	} );
+
+	it( 'getFontRulesFromPage ignores permittedFontDomains when it is not an array', () => {
+		global.wc_stripe_upe_params = {
+			...global.wc_stripe_upe_params,
+			permittedFontDomains: 'custom-fonts.example.com',
+		};
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.googleapis.com/css?family=Roboto' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage uses only default domains when permittedFontDomains is not set', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		const mockStyleSheets = {
+			length: 2,
+			0: { href: 'https://custom-fonts.example.com/style.css' },
+			1: { href: 'https://fonts.googleapis.com/css?family=Roboto' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.googleapis.com/css?family=Roboto' },
+		] );
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
