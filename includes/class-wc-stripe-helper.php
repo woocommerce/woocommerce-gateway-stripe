@@ -84,7 +84,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -103,7 +103,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_currency', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -122,7 +122,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -153,7 +153,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -171,7 +171,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_fee', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -191,7 +191,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::get_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -222,7 +222,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::update_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -240,7 +240,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
-		wc_deprecated_function( 'WC_Stripe_Helper::delete_stripe_net', '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net' );
 
 		if ( is_null( $order ) ) {
 			return false;
@@ -1600,6 +1600,19 @@ class WC_Stripe_Helper {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Verifies if the provided order contains the identifier for a wallet method.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 *
+	 * @deprecated 8.9.0
+	 */
+	public static function is_wallet_payment_method( $order ) {
+		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
