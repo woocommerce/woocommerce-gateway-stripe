@@ -13,5 +13,5 @@ const transparentColorRegex = /^rgba\( *[0-9]+, *[0-9]+, *[0-9]+, *0 *\)$/;
  * @return {boolean} True if the color is transparent, false otherwise.
  */
 export const isTransparentColor = ( color ) => {
-	return color && transparentColorRegex.test( color );
+	return Boolean( color ) && transparentColorRegex.test( color );
 };
