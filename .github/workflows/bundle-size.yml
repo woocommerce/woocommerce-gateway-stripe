@@ -22,7 +22,7 @@ jobs:
 
       - uses: ./.github/actions/measure-bundle-sizes
         with:
-          commit-sha: ${{ github.sha }}
+          commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
           side: head
 
   measure-base:
@@ -33,11 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.BASE_REF }}
+          fetch-depth: 0
 
-      - name: Get base commit SHA
+      - name: Get merge base SHA
         id: base-sha
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          git fetch origin "${{ env.BASE_REF }}"
+          MERGE_BASE=$(git merge-base "$HEAD_SHA" "origin/${{ env.BASE_REF }}")
+          echo "sha=$MERGE_BASE" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/measure-bundle-sizes
         with:

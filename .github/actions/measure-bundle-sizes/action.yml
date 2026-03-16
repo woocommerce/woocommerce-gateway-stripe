@@ -26,6 +26,10 @@ runs:
           exit 1
         fi
 
+    - name: Checkout target commit
+      shell: bash
+      run: git checkout "${{ inputs.commit-sha }}"
+
     - name: Restore bundle sizes from cache
       id: cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
