@@ -372,9 +372,13 @@ jQuery( function ( $ ) {
 				'.woocommerce-checkout-payment input[name="payment_method"]:checked'
 			);
 			if ( selectedPaymentMethod?.id !== 'payment_method_stripe' ) {
-				const paymentElement =
-					await getStripePaymentElement( PAYMENT_METHOD_CARD );
-				paymentElement?.collapse();
+				try {
+					const paymentElement =
+						await getStripePaymentElement( PAYMENT_METHOD_CARD );
+					paymentElement?.collapse();
+				} catch {
+					// If we don't have a payment element, no need to collapse.
+				}
 			}
 		};
 
