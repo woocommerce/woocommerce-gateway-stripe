@@ -3819,6 +3819,149 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
+	 *
+	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
+	 * stubbed; everything else (including `apply_filters`) runs for real so that
+	 * filter-based behaviour can be asserted.
+	 *
+	 * @return WC_Stripe_UPE_Payment_Gateway
+	 */
+	private function create_gateway_mock_for_javascript_params(): WC_Stripe_UPE_Payment_Gateway {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'is_valid_optimized_checkout_page',
+				]
+			)
+			->getMock();
+
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( false );
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		return $gateway;
+	}
+
+	/**
+	 * Tests that `javascript_params()` handles the `wc_stripe_upe_permitted_font_domains` filter correctly.
+	 *
+	 * @dataProvider provide_test_javascript_params_permitted_font_domains
+	 *
+	 * @param mixed|null $filter_return     Value returned by the filter, or null to skip adding the filter entirely.
+	 * @param bool       $expected_in_params Whether `permittedFontDomains` should be present in the params.
+	 * @param mixed      $expected_value    Expected value of `permittedFontDomains` when present.
+	 */
+	public function test_javascript_params_permitted_font_domains( $filter_return, bool $expected_in_params, $expected_value ): void {
+		$gateway = $this->create_gateway_mock_for_javascript_params();
+
+		$filter_callback = null;
+		if ( null !== $filter_return ) {
+			$filter_callback = function () use ( $filter_return ) {
+				return $filter_return;
+			};
+			add_filter( 'wc_stripe_upe_permitted_font_domains', $filter_callback );
+		}
+
+		$params = $gateway->javascript_params();
+
+		if ( null !== $filter_callback ) {
+			remove_filter( 'wc_stripe_upe_permitted_font_domains', $filter_callback );
+		}
+
+		if ( $expected_in_params ) {
+			$this->assertArrayHasKey( 'permittedFontDomains', $params );
+			$this->assertSame( $expected_value, $params['permittedFontDomains'] );
+		} else {
+			$this->assertArrayNotHasKey( 'permittedFontDomains', $params );
+		}
+	}
+
+	/**
+	 * Data provider for `test_javascript_params_permitted_font_domains`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_javascript_params_permitted_font_domains(): array {
+		return [
+			'no filter hooked — key is omitted'                                         => [
+				'filter_return'      => null,
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns empty array — key is omitted'                               => [
+				'filter_return'      => [],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns non-empty array — key is set'                               => [
+				'filter_return'      => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
+			],
+			'filter returns non-array string — key is omitted'                          => [
+				'filter_return'      => 'custom-fonts.example.com',
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain without dot (e.g. localhost) — key is omitted'      => [
+				'filter_return'      => [ 'localhost' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain starting with dot — key is omitted'                 => [
+				'filter_return'      => [ '.example.com' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with single-char TLD — key is omitted'              => [
+				'filter_return'      => [ 'example.c' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns domain with trailing dot — key is omitted'                 => [
+				'filter_return'      => [ 'example.' ],
+				'expected_in_params' => false,
+				'expected_value'     => null,
+			],
+			'filter returns array with non-string elements — non-strings are excluded' => [
+				'filter_return'      => [ 'fonts.example.com', 42, null, true, 'type.mysite.org' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'type.mysite.org' ],
+			],
+			'filter returns mixed valid and invalid domains — only valid are included'  => [
+				'filter_return'      => [ 'fonts.example.com', 'localhost', '.bad.com', 'good.fonts.io', 'also.bad.' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com', 'good.fonts.io' ],
+			],
+			'filter returns uppercase domain — stored as lowercase'                    => [
+				'filter_return'      => [ 'Fonts.Example.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns domain with surrounding whitespace — stored trimmed'       => [
+				'filter_return'      => [ '  fonts.example.com  ' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+			'filter returns duplicate valid domains — deduplicated'                    => [
+				'filter_return'      => [ 'fonts.example.com', 'fonts.example.com', 'FONTS.EXAMPLE.COM' ],
+				'expected_in_params' => true,
+				'expected_value'     => [ 'fonts.example.com' ],
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_is_valid_optimized_checkout_page`.
 	 *
 	 * @return array[]

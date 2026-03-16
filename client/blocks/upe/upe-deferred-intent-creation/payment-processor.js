@@ -226,7 +226,6 @@ const PaymentProcessor = ( {
 								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
-								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
 								save_payment_method: shouldSavePayment
