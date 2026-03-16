@@ -1800,21 +1800,38 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	private function process_agentic_hook( stdClass $event ) {
 		$event_type = $event->type ?? 'No event type found';
 
-		switch ( $event_type ) {
-			case 'v1.delegated_checkout.customize_checkout':
-				$this->process_agentic_customization_hook( $event );
-				break;
-			case 'v1.delegated_checkout.finalize_checkout':
-				// Coming soon...
-				break;
-			default:
-				WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
-				status_header( 500 );
-				exit;
-		}
+		try {
+			switch ( $event_type ) {
+				case 'v1.delegated_checkout.customize_checkout':
+					$response = $this->process_agentic_customization_hook( $event );
+					break;
+				case 'v1.delegated_checkout.finalize_checkout':
+					// Coming soon...
+					$response = [
+						'message' => 'Coming soon...',
+					];
+					break;
+				default:
+					$response = [
+						'message' => 'Unsupported agentic hook type: ' . $event_type,
+					];
+					WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
+					status_header( 400 );
+					exit;
+			}
 
-		if ( ! headers_sent() ) {
+			if ( ! headers_sent() ) {
+				header( 'Content-Type: application/json' );
+			}
 			status_header( 200 );
+			echo wp_json_encode( $response );
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic hook failed.',
+				[ 'error' => $e->getMessage() ]
+			);
+
+			status_header( 400 );
 		}
 		exit;
 	}
@@ -1826,36 +1843,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.5.0
 	 * @param stdClass $event The webhook event from Stripe.
-	 * @return void
+	 * @return array
+	 * @throws Exception
 	 */
-	private function process_agentic_customization_hook( stdClass $event ): void {
-		try {
-			$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
-			$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
-			$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
+	private function process_agentic_customization_hook( stdClass $event ): array {
+		$event               = new WC_Stripe_Agentic_Customize_Checkout_Event( $event );
+		$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
+		$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
 
-			$line_items_with_tax = $tax_calculator->calculate(
-				$event,
-				$tax_calculator->extract_line_items_from_customization_hook( $event )
-			);
+		$line_items_with_tax = $tax_calculator->calculate(
+			$event,
+			$tax_calculator->extract_line_items_from_customization_hook( $event )
+		);
 
-			$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
+		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
 
-			$response = array_merge( $line_items_with_tax, $shipping_options );
-
-			if ( ! headers_sent() ) {
-				header( 'Content-Type: application/json' );
-			}
-			status_header( 200 );
-			echo wp_json_encode( $response );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error(
-				'Agentic customization hook failed.',
-				[ 'error' => $e->getMessage() ]
-			);
-
-			status_header( 400 );
-		}
+		return array_merge( $line_items_with_tax, $shipping_options );
 	}
 
 	/**

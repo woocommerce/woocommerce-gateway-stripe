@@ -123,18 +123,14 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that the response is valid JSON with a 200 status.
+	 * Test that the response is a valid array with line_items.
 	 */
-	public function test_outputs_valid_json() {
-		$event = $this->build_raw_event_from_products( [ $this->product ] );
+	public function test_returns_valid_array() {
+		$event    = $this->build_raw_event_from_products( [ $this->product ] );
+		$response = $this->invoke_hook( $event );
 
-		ob_start();
-		$this->method->invoke( $this->handler, $event );
-		$output = ob_get_clean();
-
-		$decoded = json_decode( $output, true );
-		$this->assertNotNull( $decoded );
-		$this->assertArrayHasKey( 'line_items', $decoded );
+		$this->assertIsArray( $response );
+		$this->assertArrayHasKey( 'line_items', $response );
 	}
 
 	/**
@@ -201,9 +197,9 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Test that an invalid product ID produces no JSON output (error is caught).
+	 * Test that an invalid product ID throws an exception.
 	 */
-	public function test_returns_empty_output_on_invalid_product() {
+	public function test_throws_on_invalid_product() {
 		$event = $this->build_raw_event(
 			[
 				(object) [
@@ -213,17 +209,16 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			]
 		);
 
-		ob_start();
-		$this->method->invoke( $this->handler, $event );
-		$output = ob_get_clean();
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessage( 'Product not found' );
 
-		$this->assertEmpty( $output, 'No JSON body should be returned on error.' );
+		$this->method->invoke( $this->handler, $event );
 	}
 
 	/**
-	 * Test that an event with missing shipping_details produces no JSON output (error is caught).
+	 * Test that a missing billing address throws an exception.
 	 */
-	public function test_returns_empty_output_on_missing_shipping_details() {
+	public function test_throws_on_missing_shipping_details() {
 		$event = (object) [
 			'id'       => 'evt_test_hook',
 			'type'     => 'v1.delegated_checkout.customize_checkout',
@@ -240,12 +235,10 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 			],
 		];
 
-		ob_start();
-		$this->method->invoke( $this->handler, $event );
-		$output = ob_get_clean();
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessage( 'no billing address' );
 
-		// Should return 400 because billing address is required for tax calculation.
-		$this->assertEmpty( $output, 'No JSON body should be returned on error.' );
+		$this->method->invoke( $this->handler, $event );
 	}
 
 	/**
@@ -274,13 +267,9 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	 * Invokes the private hook method and returns decoded JSON response.
 	 *
 	 * @param \stdClass $event The raw event.
-	 * @return array The decoded JSON response.
+	 * @return array The response array.
 	 */
 	private function invoke_hook( \stdClass $event ): array {
-		ob_start();
-		$this->method->invoke( $this->handler, $event );
-		$output = ob_get_clean();
-
-		return json_decode( $output, true ) ?? [];
+		return $this->method->invoke( $this->handler, $event );
 	}
 }
