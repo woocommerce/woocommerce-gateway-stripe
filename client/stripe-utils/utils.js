@@ -793,12 +793,16 @@ export const initializeUPEAppearance = (
 	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
 	const customAppearance = getStripeServerData()?.[ customServerField ];
 	if ( customAppearance ) {
-		if ( shouldExpandOptimizedCheckout ) {
-			customAppearance.rules = getExpandedOptimizedCheckoutRules(
-				customAppearance.rules || {}
-			);
+		if ( ! shouldExpandOptimizedCheckout ) {
+			return customAppearance;
 		}
-		return customAppearance;
+
+		return {
+			...customAppearance,
+			rules: getExpandedOptimizedCheckoutRules(
+				customAppearance.rules || {}
+			),
+		};
 	}
 
 	if ( appearanceCache[ location ] ) {
