@@ -433,13 +433,19 @@ jQuery( function ( $ ) {
 					selectStripePaymentMethod
 				);
 
-			getStripePaymentElement( PAYMENT_METHOD_CARD ).then(
-				( paymentElement ) => {
+			getStripePaymentElement( PAYMENT_METHOD_CARD )
+				.then( ( paymentElement ) => {
 					if ( paymentElement ) {
-						paymentElement.on( 'focus', selectStripePaymentMethod );
+						paymentElement.off( 'focus.wc-stripe-expanded-ocs' );
+						paymentElement.on(
+							'focus.wc-stripe-expanded-ocs',
+							selectStripePaymentMethod
+						);
 					}
-				}
-			);
+				} )
+				.catch( () => {
+					// If we fail to get the payment element, no further action needed.
+				} );
 		};
 
 		$( document.body ).on(
