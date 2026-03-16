@@ -75,9 +75,10 @@ export const getPaymentMethodRadioStyles = () => {
 		otherPaymentMethodLabel,
 		'::before'
 	);
+
 	// If the ::before content is empty or the display is none, assume no radio icon.
 	if (
-		otherPaymentMethodLabelBeforeStyles.content === '' ||
+		otherPaymentMethodLabelBeforeStyles.content === 'none' ||
 		otherPaymentMethodLabelBeforeStyles.display === 'none'
 	) {
 		return null;
