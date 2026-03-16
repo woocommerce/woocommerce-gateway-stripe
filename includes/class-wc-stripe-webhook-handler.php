@@ -162,19 +162,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( $is_agentic_hook ) {
-			if ( 'v1.delegated_checkout.customize_checkout' === $event_type ) {
-				$this->process_agentic_customization_hook( $event );
-			} else {
-				WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
-				status_header( 400 );
-			}
-			exit;
+			$this->process_agentic_hook( $event );
+			return;
 		}
 
 		WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
 		$this->process_webhook( $request_body );
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
-
 		status_header( 200 );
 		exit;
 	}
@@ -1794,6 +1788,35 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Processes an agentic hook.
+	 *
+	 * @since 10.6.0
+	 * @param stdClass $event The webhook event from Stripe.
+	 * @return void
+	 */
+	private function process_agentic_hook( stdClass $event ) {
+		$event_type = $event->type ?? 'No event type found';
+
+		switch ( $event_type ) {
+			case 'v1.delegated_checkout.customize_checkout':
+				$this->process_agentic_customization_hook( $event );
+				break;
+			case 'v1.delegated_checkout.finalize_checkout':
+				// Coming soon...
+				break;
+			default:
+				WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
+				status_header( 500 );
+				exit;
+		}
+
+		if ( ! headers_sent() ) {
+			status_header( 200 );
+		}
+		exit;
 	}
 
 	/**
