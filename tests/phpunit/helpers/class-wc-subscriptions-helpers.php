@@ -6,10 +6,11 @@
 /**
  * A function to mock wcs_get_subscriptions_for_order.
  *
- * @param WC_Order $order
+ * @param WC_Order|int $order  The order or order ID.
+ * @param array        $args   Optional arguments.
  * @return array
  */
-function wcs_get_subscriptions_for_order( $order ) {
+function wcs_get_subscriptions_for_order( $order, $args = [] ) {
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order ) {
 		return [];
 	}

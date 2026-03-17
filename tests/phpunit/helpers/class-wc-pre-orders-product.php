@@ -30,10 +30,20 @@ class WC_Pre_Orders_Product {
 	/**
 	 * Determine if a product is charged upon release (pre-order).
 	 *
-	 * @param WC_Product $product The product to check.
+	 * @param WC_Product|object $product The product to check.
 	 * @return bool
 	 */
 	public static function product_is_charged_upon_release( $product ): bool {
 		return self::$product_is_charged_upon_release_result;
+	}
+
+	/**
+	 * Stub: determine if a product is charged upfront (pre-order).
+	 *
+	 * @param WC_Product|object $product The product to check.
+	 * @return bool
+	 */
+	public static function product_is_charged_upfront( $product ): bool {
+		return false;
 	}
 }

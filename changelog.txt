@@ -9,6 +9,7 @@
 * Add - Allow additional font domains to be included in Stripe fonts
 * Fix - Add order and payment method validation to prevent errors
 * Fix - Improve default layout when Optimized Checkout is disabled
+* Fix - Improve performance of CSS style lookups
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages
