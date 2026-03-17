@@ -9,6 +9,9 @@ parameters:
 	paths:
 		- woocommerce-gateway-stripe.php
 		- includes/
+	excludePaths:
+		analyseAndScan:
+			- tests/
 	bootstrapFiles:
 		- vendor/autoload.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
