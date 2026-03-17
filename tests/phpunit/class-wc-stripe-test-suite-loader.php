@@ -19,8 +19,6 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Runner\Exception;
 use PHPUnit\Runner\TestSuiteLoader;
 use PHPUnit\Util\FileLoader;
-use ReflectionClass;
-use ReflectionException;
 
 /**
  * Custom test suite loader that handles WordPress-style file naming.

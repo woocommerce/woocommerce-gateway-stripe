@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
+<!-- `testSuiteLoaderClass` and `testSuiteLoaderFile` are used to load test classes for Paratest only -->
 <phpunit
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
 	bootstrap="tests/phpunit/bootstrap.php"
+	testSuiteLoaderClass="WC_Stripe_Test_Suite_Loader"
+	testSuiteLoaderFile="tests/phpunit/class-wc-stripe-test-suite-loader.php"
 	backupGlobals="false"
 	colors="true"
 	convertErrorsToExceptions="true"

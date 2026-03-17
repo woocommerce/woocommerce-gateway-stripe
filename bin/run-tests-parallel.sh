@@ -26,6 +26,5 @@ fi
 docker compose exec -u www-data -e XDEBUG_MODE=$XDEBUG_MODE wordpress \
 	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/vendor/bin/paratest \
 	--configuration /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpunit.xml.dist \
-	--loader WC_Stripe_Test_Suite_Loader \
 	$COVERAGE_FLAG \
 	$*
