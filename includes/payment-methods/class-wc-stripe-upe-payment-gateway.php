@@ -312,7 +312,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
 
 		// Add a notice about currency conversion when the order currency is different from the store currency on the order details page.
-		add_filter( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
+		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -1055,7 +1055,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Adds the converted currency information to the order total on the order received page when the order is paid with a different currency than the store currency.
+	 * Adds the converted currency information to the order total on the order received page and My Account orders when the order is paid with a different currency than the store currency.
 	 *
 	 * @param string   $formatted_total  Total to display.
 	 * @param WC_Order $order            Order data.
@@ -1114,10 +1114,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$presentment_amount,
 			$presentment_currency
 		);
-		$rate_amount        = wc_format_decimal(
-			$presentment_amount / $stripe_amount,
-			wc_get_price_decimals()
-		);
+
+		// Use the decimal count for the presentment currency, not the store's price decimal
+		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
+		$presentment_currency_lower = strtolower( $presentment_currency );
+		$rate_decimals              = 2;
+		if ( in_array( $presentment_currency_lower, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			$rate_decimals = 0;
+		} elseif ( in_array( $presentment_currency_lower, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			$rate_decimals = 3;
+		}
+		$rate_amount = wc_format_decimal( $presentment_amount / $stripe_amount, $rate_decimals );
 
 		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(

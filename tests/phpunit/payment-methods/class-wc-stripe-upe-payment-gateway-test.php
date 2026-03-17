@@ -4078,6 +4078,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		// Set total to $20.00 USD (2000 cents) to match the mocked checkout session amount_total.
+		$order->set_total( 20 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_3';
@@ -4101,6 +4103,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
+		// 1500 EUR cents = 15.00 EUR; 1500 / 2000 (USD cents) = 0.75 exchange rate.
 		$expected_amount = '15.00';
 		$expected_rate   = '0.75';
 
