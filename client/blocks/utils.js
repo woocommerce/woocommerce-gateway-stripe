@@ -217,6 +217,12 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 			...options,
 			layout,
 		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		options.layout = {
+			type: 'tabs',
+		};
 	}
 
 	return options;
