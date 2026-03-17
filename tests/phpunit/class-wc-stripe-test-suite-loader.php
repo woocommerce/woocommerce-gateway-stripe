@@ -35,61 +35,27 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 */
 	public function load( string $suite_class_file ): ReflectionClass {
 		$suite_class_name = basename( $suite_class_file, '.php' );
-		$loaded_classes   = get_declared_classes();
+		$loaded_classes   = $this->loadFileIfNeeded( $suite_class_file, get_declared_classes() );
 
-		if ( ! class_exists( $suite_class_name, false ) ) {
-			FileLoader::checkAndLoad( $suite_class_file );
-
-			$loaded_classes = array_values(
-				array_diff( get_declared_classes(), $loaded_classes )
-			);
-
-			if ( empty( $loaded_classes ) ) {
-				// No new classes loaded — try the WordPress-style fallback below.
-				$loaded_classes = get_declared_classes();
-			}
+		$resolved = $this->resolveByName( $suite_class_name, $loaded_classes );
+		if ( null !== $resolved ) {
+			$suite_class_name = $resolved;
 		}
 
-		// Standard PHPUnit lookup: exact class name or underscore/namespace suffix.
 		if ( ! class_exists( $suite_class_name, false ) ) {
-			$offset = 0 - strlen( $suite_class_name );
+			$ref_class = $this->resolveByFilePath( $suite_class_file );
 
-			foreach ( $loaded_classes as $loaded_class ) {
-				if ( stripos( substr( $loaded_class, $offset - 1 ), '\\' . $suite_class_name ) === 0 ||
-					stripos( substr( $loaded_class, $offset - 1 ), '_' . $suite_class_name ) === 0 ) {
-					$suite_class_name = $loaded_class;
-					break;
-				}
-			}
-		}
-
-		// WordPress-style fallback: find the test class by its declared file path.
-		if ( ! class_exists( $suite_class_name, false ) ) {
-			$real_path = realpath( $suite_class_file );
-
-			if ( false !== $real_path ) {
-				foreach ( get_declared_classes() as $class ) {
-					try {
-						$ref_class = new ReflectionClass( $class );
-
-						if ( realpath( (string) $ref_class->getFileName() ) === $real_path
-							&& $ref_class->isSubclassOf( TestCase::class )
-							&& ! $ref_class->isAbstract() ) {
-							return $ref_class;
-						}
-					} catch ( ReflectionException $e ) {
-						continue;
-					}
-				}
+			if ( null === $ref_class ) {
+				throw new Exception(
+					sprintf(
+						'Class %s could not be found in %s',
+						$suite_class_name,
+						$suite_class_file
+					)
+				);
 			}
 
-			throw new Exception(
-				sprintf(
-					'Class %s could not be found in %s',
-					$suite_class_name,
-					$suite_class_file
-				)
-			);
+			return $ref_class;
 		}
 
 		try {
@@ -98,6 +64,101 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 			throw new Exception( $e->getMessage(), (int) $e->getCode(), $e );
 		}
 
+		$this->validateResolvedClass( $class, $suite_class_name, $suite_class_file );
+
+		return $class;
+	}
+
+	/**
+	 * Load the file if the class it is expected to define is not yet declared,
+	 * and return the list of classes that were newly introduced by the load.
+	 *
+	 * @param string   $suite_class_file          Path to the test file.
+	 * @param string[] $previous_declared_classes Classes declared before the load.
+	 * @return string[] Newly declared classes, or all declared classes when none are new.
+	 */
+	private function loadFileIfNeeded( string $suite_class_file, array $previous_declared_classes ): array {
+		$suite_class_name = basename( $suite_class_file, '.php' );
+
+		if ( class_exists( $suite_class_name, false ) ) {
+			return $previous_declared_classes;
+		}
+
+		FileLoader::checkAndLoad( $suite_class_file );
+
+		$new_classes = array_values(
+			array_diff( get_declared_classes(), $previous_declared_classes )
+		);
+
+		return empty( $new_classes ) ? get_declared_classes() : $new_classes;
+	}
+
+	/**
+	 * Resolve the test class name via offset/underscore/namespace suffix matching.
+	 *
+	 * @param string   $suite_class_name Candidate class name (typically the basename).
+	 * @param string[] $loaded_classes   Classes to search against.
+	 * @return string|null Resolved fully-qualified class name, or null when not found.
+	 */
+	private function resolveByName( string $suite_class_name, array $loaded_classes ): ?string {
+		if ( class_exists( $suite_class_name, false ) ) {
+			return null;
+		}
+
+		$offset = 0 - strlen( $suite_class_name );
+
+		foreach ( $loaded_classes as $loaded_class ) {
+			if ( stripos( substr( $loaded_class, $offset - 1 ), '\\' . $suite_class_name ) === 0 ||
+				stripos( substr( $loaded_class, $offset - 1 ), '_' . $suite_class_name ) === 0 ) {
+				return $loaded_class;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Find the test class by matching declared-class file paths against the
+	 * given file (WordPress-style fallback).
+	 *
+	 * @param string $suite_class_file Path to the test file.
+	 * @return ReflectionClass|null The matching class, or null when not found.
+	 */
+	private function resolveByFilePath( string $suite_class_file ): ?ReflectionClass {
+		$real_path = realpath( $suite_class_file );
+
+		if ( false === $real_path ) {
+			return null;
+		}
+
+		foreach ( get_declared_classes() as $class ) {
+			try {
+				$ref_class = new ReflectionClass( $class );
+
+				if ( realpath( (string) $ref_class->getFileName() ) === $real_path
+					&& $ref_class->isSubclassOf( TestCase::class )
+					&& ! $ref_class->isAbstract() ) {
+					return $ref_class;
+				}
+			} catch ( ReflectionException $e ) {
+				continue;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Validate that the resolved class is a usable test suite, throwing when it
+	 * is abstract or when its suite() method is not public and static.
+	 *
+	 * @param ReflectionClass $class            Resolved class to validate.
+	 * @param string          $suite_class_name Class name (for error messages).
+	 * @param string          $suite_class_file File path (for error messages).
+	 * @return void
+	 * @throws Exception When the class or its suite() method fails validation.
+	 */
+	private function validateResolvedClass( ReflectionClass $class, string $suite_class_name, string $suite_class_file ): void {
 		if ( $class->isSubclassOf( TestCase::class ) ) {
 			if ( $class->isAbstract() ) {
 				throw new Exception(
@@ -109,7 +170,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				);
 			}
 
-			return $class;
+			return;
 		}
 
 		if ( $class->hasMethod( 'suite' ) ) {
@@ -145,8 +206,6 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				);
 			}
 		}
-
-		return $class;
 	}
 
 	/**
