@@ -372,9 +372,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
 
-					if ( is_callable( [ $order, 'save' ] ) ) {
-						$order->save();
-					}
+					$order->save();
 
 					$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $result );
 
