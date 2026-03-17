@@ -167,6 +167,27 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		);
 	} );
 
+	it( 'returns early when matrix scale components are non-finite', () => {
+		const appearance = makeAppearance();
+		const floatingStyles = {
+			transform: 'matrix(foo, 0, 0, 0.75, 0, -10)',
+			lineHeight: '20px',
+		};
+
+		const result = upeUtils.handleAppearanceForFloatingLabel(
+			appearance,
+			floatingStyles
+		);
+
+		// Early return path: transform removed, no padding/margin adjustments applied.
+		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+			'transform'
+		);
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '10px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '12px' );
+		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
+	} );
+
 	it( 'skips transform processing when transform is absent', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
