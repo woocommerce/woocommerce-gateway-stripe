@@ -143,12 +143,6 @@ const appearanceSelectors = {
 	},
 };
 
-const dashedToCamelCase = ( string ) => {
-	return string.replace( /-([a-z])/g, function ( g ) {
-		return g[ 1 ].toUpperCase();
-	} );
-};
-
 const hiddenElementsForUPE = {
 	/**
 	 * Create hidden container for generating UPE styles.
@@ -308,12 +302,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 
 	const filteredStyles = {};
 
-	for ( let i = 0; i < styles.length; i++ ) {
-		const camelCase = dashedToCamelCase( styles[ i ] );
-		if ( validProperties.includes( camelCase ) ) {
-			filteredStyles[ camelCase ] = styles.getPropertyValue(
-				styles[ i ]
-			);
+	for ( const property of validProperties ) {
+		if ( typeof styles[ property ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ property ];
 		}
 	}
 
