@@ -171,7 +171,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
 
 		if ( is_null( $order ) ) {
 			return false;
