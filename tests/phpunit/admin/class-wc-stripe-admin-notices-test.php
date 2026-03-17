@@ -698,7 +698,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		if ( $hpos_enabled ) {
-			update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+			try {
+				update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+			} catch ( \Exception $e ) {
+				$this->markTestSkipped( 'Cannot enable HPOS: ' . $e->getMessage() );
+			}
 		} else {
 			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		}

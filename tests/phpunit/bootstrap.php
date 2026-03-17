@@ -49,6 +49,28 @@ function _manually_load_plugin() {
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
+// When paratest runs workers in parallel, each gets a unique TEST_TOKEN.
+// The per-worker databases (e.g. wc_stripe_tests_1) are created by install-wp-tests.sh
+// before paratest starts. We attempt creation here as a safety net, but silently
+// skip on failure to avoid writing to STDERR (which paratest interprets as a test error).
+$_test_token = getenv( 'TEST_TOKEN' );
+if ( $_test_token ) {
+	$_wp_db_host    = getenv( 'WORDPRESS_DB_HOST' );
+	$_db_host_parts = explode( ':', $_wp_db_host ? $_wp_db_host : 'db' );
+	$_db_host       = $_db_host_parts[0];
+	$_db_port       = isset( $_db_host_parts[1] ) ? (int) $_db_host_parts[1] : 3306;
+	$_worker_db     = 'wc_stripe_tests_' . $_test_token;
+	mysqli_report( MYSQLI_REPORT_OFF ); // phpcs:ignore WordPress.DB -- prevent exceptions so we can fail silently.
+	$_mysql_pass = getenv( 'MYSQL_ROOT_PASSWORD' );
+	$_mysqli     = @new mysqli( $_db_host, 'root', $_mysql_pass ? $_mysql_pass : '', '', $_db_port ); // phpcs:ignore WordPress.DB
+	if ( ! $_mysqli->connect_error ) {
+		$_mysqli->query( "CREATE DATABASE IF NOT EXISTS `{$_worker_db}`" ); // phpcs:ignore WordPress.DB
+		$_mysqli->close();
+	}
+	unset( $_wp_db_host, $_db_host_parts, $_db_host, $_db_port, $_worker_db, $_mysql_pass, $_mysqli );
+}
+unset( $_test_token );
+
 require $_tests_dir . '/includes/bootstrap.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)

@@ -73,6 +73,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		}
 
 		$this->upe_helper = new UPE_Test_Helper();
+
+		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
+		// returns true. Without them, PMC-reliant tests fall back to the legacy DB path.
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['publishable_key']      = 'pk_live_1234567890';
+		$settings['secret_key']           = 'sk_live_1234567890';
+		$settings['test_publishable_key'] = 'pk_test_1234567890';
+		$settings['test_secret_key']      = 'sk_test_1234567890';
+		$settings['pmc_enabled']          = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
