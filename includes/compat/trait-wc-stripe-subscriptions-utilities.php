@@ -122,7 +122,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @deprecated 9.6.0 Use WC_Stripe_Subscriptions_Helper::is_manual_renewal_required instead.
 	 */
 	public function is_manual_renewal_required() {
-		wc_deprecated_function( __METHOD__, '9.6.0', 'Use WC_Stripe_Subscriptions_Helper::is_manual_renewal_required instead.' );
+		wc_deprecated_function( __METHOD__, '9.6.0', 'WC_Stripe_Subscriptions_Helper::is_manual_renewal_required()' );
 
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
