@@ -4146,7 +4146,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$cache_key        = 'checkout_session_' . $checkout_session_id;
 		$checkout_session = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( ! $checkout_session ) {
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id, [], null, 'GET' );
+			try {
+				$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id, [], null, 'GET' );
+			} catch ( WC_Stripe_Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Exception fetching checkout session for order.',
+					[
+						'order_id'            => $order->get_id(),
+						'checkout_session_id' => $checkout_session_id,
+						'error_message'       => $e->getMessage(),
+					]
+				);
+
+				return null;
+			}
+
 			if ( ! empty( $checkout_session->error ) ) {
 				WC_Stripe_Logger::error(
 					'Error fetching checkout session for order.',
@@ -4182,7 +4196,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$checkout_session = $this->get_checkout_session_from_order( $order );
-		if ( empty( $checkout_session->presentment_details ) ) {
+		if (
+			empty( $checkout_session->presentment_details )
+			|| ! isset(
+				$checkout_session->presentment_details->presentment_amount,
+				$checkout_session->presentment_details->presentment_currency
+			)
+		) {
 			return;
 		}
 

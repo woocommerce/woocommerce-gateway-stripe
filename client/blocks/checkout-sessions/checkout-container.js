@@ -1,5 +1,5 @@
 import { CheckoutProvider } from '@stripe/react-stripe-js/checkout';
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils';
@@ -16,19 +16,12 @@ const stripePromise = loadStripe();
 export const CheckoutContainer = ( props ) => {
 	const {
 		api,
-		billing: { billingAddress } = {},
 		setPaymentProcessorLoadErrorMessage,
 		setShouldLoadStripeElements,
 	} = props;
 
-	// Capture billing address on mount only to avoid triggering repeated checkout
-	// session creation API calls each time the customer updates billing fields.
-	const initialBillingAddressRef = useRef( billingAddress );
-
 	const checkoutSessionPromise = useMemo( async () => {
-		const response = await api.checkoutSessionsCreateSession(
-			initialBillingAddressRef.current
-		);
+		const response = await api.checkoutSessionsCreateSession();
 		const clientSecret = response?.data?.client_secret;
 		if ( ! clientSecret ) {
 			setShouldLoadStripeElements( true );
