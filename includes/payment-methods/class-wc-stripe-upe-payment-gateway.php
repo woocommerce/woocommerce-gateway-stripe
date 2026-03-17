@@ -346,7 +346,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
 	 */
 	public static function get_testing_instructions_for_optimized_checkout() {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()' );
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
 		return $payment_method->get_testing_instructions();
