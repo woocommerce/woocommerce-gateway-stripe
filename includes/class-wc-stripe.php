@@ -931,6 +931,12 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function initialize_agentic_commerce() {
+		// Check if required WooCommerce interfaces exist before loading our integration class
+		// (which implements IntegrationInterface at the class level and will fatal if it's missing).
+		if ( ! interface_exists( \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface::class ) ) {
+			return;
+		}
+
 		// Check if required classes exist.
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			return;
