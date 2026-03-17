@@ -191,7 +191,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
-		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
 
 		if ( is_null( $order ) ) {
 			return false;
