@@ -153,5 +153,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Add - Allow additional font domains to be included in Stripe fonts
 * Fix - Add order and payment method validation to prevent errors
+* Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
