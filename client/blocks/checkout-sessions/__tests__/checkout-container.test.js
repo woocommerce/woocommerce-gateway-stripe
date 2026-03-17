@@ -42,14 +42,15 @@ describe( 'CheckoutSessionsContainer', () => {
 	};
 	const billing = {
 		billingAddress: {
-			billing_first_name: 'John',
-			billing_last_name: 'Doe',
-			billing_address_1: '123 Main St',
-			billing_address_2: '',
-			billing_city: 'Anytown',
-			billing_state: 'CA',
-			billing_postcode: '12345',
-			billing_country: 'US',
+			email: 'john.doe@example.com',
+			first_name: 'John',
+			last_name: 'Doe',
+			address_1: '123 Main St',
+			address_2: '',
+			city: 'Anytown',
+			state: 'CA',
+			postcode: '12345',
+			country: 'US',
 		},
 	};
 	const setShouldLoadStripeElements = jest.fn();

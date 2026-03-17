@@ -16,7 +16,7 @@ const stripePromise = loadStripe();
 export const CheckoutContainer = ( props ) => {
 	const {
 		api,
-		billing: { billingAddress },
+		billing: { billingAddress } = {},
 		setPaymentProcessorLoadErrorMessage,
 		setShouldLoadStripeElements,
 	} = props;

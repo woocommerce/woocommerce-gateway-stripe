@@ -3995,6 +3995,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -4119,6 +4121,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_converted_currency_information_reads_from_order_meta_without_api_call(): void {
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();

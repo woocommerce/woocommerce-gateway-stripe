@@ -1061,6 +1061,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order            Order data.
 	 */
 	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
+		if ( ! is_order_received_page() && ! is_account_page() ) {
+			return $formatted_total;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
@@ -1109,7 +1113,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$stripe_amount      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		if ( $stripe_amount <= 0 ) {
+			return;
+		}
+
 		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_amount,
 			$presentment_currency
@@ -1131,7 +1139,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
 				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
 				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
-				esc_html( get_woocommerce_currency() ),
+				esc_html( strtoupper( $order->get_currency() ) ),
 				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
 			);
 		echo '</p>';
