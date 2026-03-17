@@ -77,6 +77,6 @@ runs:
         path: sizes.json
 
     - name: Restore initial commit state
-      if: steps.get-current-commit-sha.outputs.commit-sha != ''
+      if: ${{ always() && steps.get-current-commit-sha.outputs.commit-sha != '' }}
       shell: bash
-      run: git checkout "${{ steps.get-current-commit-sha.outputs.commit-sha }}"
+      run: git checkout --force "${{ steps.get-current-commit-sha.outputs.commit-sha }}"
