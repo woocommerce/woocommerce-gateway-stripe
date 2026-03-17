@@ -24,9 +24,7 @@
         "yoast/phpunit-polyfills": "^2.0"
     },
     "autoload-dev": {
-      "psr-4": {
-        "WooCommerce\\Stripe\\Tests\\": "tests/phpunit/"
-      }
+      "classmap": ["tests/phpunit/"]
     },
     "scripts": {
       "phpstan": [
