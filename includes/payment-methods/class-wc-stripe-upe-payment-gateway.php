@@ -387,6 +387,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
+		if ( ! isset( $this->payment_methods[ $upe_payment_type ] ) ) {
+			return true;
+		}
+
 		return $this->payment_methods[ $upe_payment_type ]->can_refund_via_stripe();
 	}
 
