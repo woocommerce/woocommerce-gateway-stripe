@@ -430,7 +430,7 @@ class WC_Stripe {
 		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
 			unset( $stripe_settings['pmc_enabled'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-			WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
 
