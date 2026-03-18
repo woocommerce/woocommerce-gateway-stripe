@@ -4017,7 +4017,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_tokens() {
 		$tokens = parent::get_tokens();
-		if ( $this->oc_enabled && is_user_logged_in() ) {
+		if ( ! is_user_logged_in() ) {
+			return $tokens;
+		}
+
+		if ( $this->oc_enabled ) {
 			foreach ( $this->get_upe_enabled_payment_method_ids() as $stripe_id ) {
 				// Not a reusable payment method, skip.
 				if ( ! array_key_exists( $stripe_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD ) ) {
