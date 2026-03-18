@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
