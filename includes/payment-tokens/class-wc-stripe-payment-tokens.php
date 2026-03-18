@@ -194,28 +194,14 @@ class WC_Stripe_Payment_Tokens {
 
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
+		[ 'stored' => $stored_tokens, 'deprecated' => $deprecated_tokens ] = $this->categorize_existing_tokens( $tokens );
+
+		$active_reusable_types = $this->get_active_reusable_payment_method_types();
+		$customer              = new WC_Stripe_Customer( $customer_id );
+
 		try {
-			$deprecated_tokens = [];
-			$stored_tokens     = [];
-
-			foreach ( $tokens as $token ) {
-				if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
-					continue;
-				}
-
-				// Check if the token is deprecated and should be removed.
-				if ( $this->is_token_deprecated( $token ) ) {
-					$deprecated_tokens[ $token->get_token() ] = $token;
-					continue;
-				}
-
-				$stored_tokens[ $token->get_token() ] = $token;
-			}
-
-			$active_reusable_types = $this->get_active_reusable_payment_method_types();
-			$customer              = new WC_Stripe_Customer( $customer_id );
-			$payment_methods       = $customer->get_all_payment_methods( $active_reusable_types );
-			$payment_method_ids    = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
+			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
+			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
 
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -235,31 +221,32 @@ class WC_Stripe_Payment_Tokens {
 					continue;
 				}
 
+				// Token already exists and confirmed present in Stripe — keep it.
+				if ( isset( $stored_tokens[ $payment_method->id ] ) ) {
+					unset( $stored_tokens[ $payment_method->id ] );
+					continue;
+				}
+
 				// Create a new token when:
-				// - The payment method doesn't have an associated token in WooCommerce.
-				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type.
+				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type).
 				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
-					! isset( $stored_tokens[ $payment_method->id ] ) &&
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
 					$tokens[ $token->get_id() ] = $token;
-				} else {
-					unset( $stored_tokens[ $payment_method->id ] );
 				}
 			}
 
 			// Re-add the filter after we're done adding missing tokens to prevent unnecessary recursion.
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-
-			$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
-
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
 		}
+
+		$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
 
 		// When OCS is enabled and the main stripe gateway is queried (e.g. blocks checkout), also include
 		// tokens for sub-gateways (stripe_sepa_debit, stripe_bancontact, etc.) since all payment methods
@@ -267,21 +254,55 @@ class WC_Stripe_Payment_Tokens {
 		// The filter is kept active so each sub-gateway call goes through the normal sync path.
 		// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
 		if ( $gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
-			$sub_gateway_ids = array_unique(
-				array_values(
-					array_filter(
-						self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD,
-						fn( $gw_id ) => WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id
-					)
-				)
-			);
-
-			foreach ( $sub_gateway_ids as $sub_gateway_id ) {
+			foreach ( $this->get_sub_gateway_ids() as $sub_gateway_id ) {
 				$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
 			}
 		}
 
 		return $tokens;
+	}
+
+	/**
+	 * Splits the existing token list into stored (valid) and deprecated buckets,
+	 * ignoring tokens that don't belong to a reusable UPE gateway.
+	 *
+	 * @param WC_Payment_Token[] $tokens All existing tokens for the customer.
+	 * @return array{stored: array<string, WC_Payment_Token>, deprecated: array<string, WC_Payment_Token>}
+	 */
+	private function categorize_existing_tokens( array $tokens ): array {
+		$stored     = [];
+		$deprecated = [];
+
+		foreach ( $tokens as $token ) {
+			if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+				continue;
+			}
+
+			if ( $this->is_token_deprecated( $token ) ) {
+				$deprecated[ $token->get_token() ] = $token;
+				continue;
+			}
+
+			$stored[ $token->get_token() ] = $token;
+		}
+
+		return compact( 'stored', 'deprecated' );
+	}
+
+	/**
+	 * Returns the gateway IDs for all sub-gateways (every reusable gateway except the main 'stripe' gateway).
+	 *
+	 * @return string[]
+	 */
+	private function get_sub_gateway_ids(): array {
+		return array_unique(
+			array_values(
+				array_filter(
+					self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD,
+					fn( $gw_id ) => WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id
+				)
+			)
+		);
 	}
 
 	/**
