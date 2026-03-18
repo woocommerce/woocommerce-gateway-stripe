@@ -10,6 +10,7 @@
 * Fix - Add order and payment method validation to prevent errors
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
+* Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages
