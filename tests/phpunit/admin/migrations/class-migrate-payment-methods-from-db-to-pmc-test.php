@@ -249,9 +249,9 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Test that express payment methods enabled in the PMC are replicated even when skip_pmc_express_checkout_migration is set.
+	 * Test that express payment methods enabled in the PMC are replicated even when skip_pmc_express_checkout_defaults is set.
 	 *
-	 * The skip flag only prevents express methods from being auto-added via the express_checkout setting.
+	 * The skip flag only prevents express methods from being defaulted on.
 	 * Methods already enabled in the PMC should still be replicated regardless of the skip flag.
 	 *
 	 * @return void
@@ -260,7 +260,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['test_connection_type']                      = 'connect';
 		$stripe_settings['express_checkout']                          = 'yes';
-		$stripe_settings['skip_pmc_express_checkout_migration']       = 'yes';
+		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 		unset( $stripe_settings['pmc_enabled'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -284,11 +284,11 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Test that the default express checkout methods are not added to PMC when skip_pmc_express_checkout_migration is 'yes'.
+	 * Test that the default express checkout methods are not added to PMC when skip_pmc_express_checkout_defaults is 'yes'.
 	 *
 	 * This covers the scenario where a merchant had PMC explicitly disabled (pmc_enabled = 'no') before the
-	 * upgrade, the install routine cleared the flag and set skip_pmc_express_checkout_migration = 'yes' to
-	 * prevent Google Pay / Apple Pay from being auto-enabled into the PMC during the first migration run.
+	 * upgrade, the install routine cleared the flag and set skip_pmc_express_checkout_defaults = 'yes' to
+	 * prevent express checkout methods from being auto-enabled during the first migration run.
 	 *
 	 * @return void
 	 */
@@ -297,7 +297,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$stripe_settings['test_connection_type']                      = 'connect';
 		$stripe_settings['express_checkout']                          = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
-		$stripe_settings['skip_pmc_express_checkout_migration']       = 'yes';
+		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
 		unset( $stripe_settings['pmc_enabled'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 

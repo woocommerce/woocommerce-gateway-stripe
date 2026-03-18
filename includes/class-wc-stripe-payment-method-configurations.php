@@ -595,7 +595,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		if (
 			! empty( $stripe_settings['express_checkout'] ) &&
 			'yes' === $stripe_settings['express_checkout'] &&
-			'yes' !== ( $stripe_settings['skip_pmc_express_checkout_migration'] ?? 'no' )
+			'yes' !== ( $stripe_settings['skip_pmc_express_checkout_defaults'] ?? 'no' )
 		) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
