@@ -6529,8 +6529,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Parameter \#1 \$order of function wcs_get_subscriptions_for_order expects WC_Order, int given\.$#'
-			identifier: argument.type
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_change_subscription_payment_method\(\) should return array\|null but return statement is missing\.$#'
+			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -6603,12 +6603,6 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_Amazon_Pay\) of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Static method WC_Subscriptions_Change_Payment_Gateway\:\:update_payment_method\(\) invoked with 3 parameters, 2 required\.$#'
-			identifier: arguments.count
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -9913,12 +9907,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Call to an undefined static method WC_Pre_Orders_Product\:\:product_is_charged_upfront\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Cannot access offset string on object\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
@@ -9998,12 +9986,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order_id of method WC_Stripe_UPE_Payment_Method\:\:get_pre_order_product_from_order\(\) expects int, WC_Order given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Parameter \#1 \$product of static method WC_Pre_Orders_Product\:\:product_is_charged_upon_release\(\) expects WC_Product, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
