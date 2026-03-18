@@ -1,0 +1,27 @@
+// Cart Block — normalize express payment button spacing.
+// Block themes apply flow-layout margins (margin-block-start) to children of
+// layout containers, which adds unwanted vertical space above each button in
+// Safari.  The !important ensures our values win regardless of theme specificity.
+.wc-block-components-express-payment--cart {
+	.wc-block-components-express-payment__event-buttons > li {
+		padding-bottom: 12px !important;
+
+		&:last-child {
+			padding-bottom: 0 !important;
+		}
+	}
+}
+
+// OR separator — tighten spacing around the "OR" divider on cart.
+.wc-block-components-express-payment-continue-rule--cart {
+	margin: 24px 0 !important;
+	height: 20px;
+}
+
+// Ensure buttons fill available width consistently across browsers.
+.wc-block-components-express-payment
+	.wc-block-components-express-payment__event-buttons
+	> li {
+	margin-left: 1px !important;
+	width: 99% !important;
+}
