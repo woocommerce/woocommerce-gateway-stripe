@@ -141,6 +141,7 @@ trait Trait_Agentic_Commerce_Test_Helpers {
 		$zone->save();
 
 		$zone->add_location( $country, 'country' );
+		$zone->save();
 
 		$instance_id = $zone->add_shipping_method( 'flat_rate' );
 		$method      = WC_Shipping_Zones::get_shipping_method( $instance_id );
