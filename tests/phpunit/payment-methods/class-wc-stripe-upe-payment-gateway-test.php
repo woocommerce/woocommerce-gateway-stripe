@@ -3961,4 +3961,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			],
 		];
 	}
+
+	// =========================================================================
+	// Tests for get_tokens() — early return for non-logged-in users (10.6.0)
+	// =========================================================================
+
+	/**
+	 * When no user is logged in, `get_tokens()` must return whatever `parent::get_tokens()`
+	 * returns immediately, without trying to collect sub-gateway tokens (which would fail
+	 * or produce incorrect results for guest sessions).
+	 *
+	 * @return void
+	 */
+	public function test_get_tokens_returns_parent_tokens_when_not_logged_in(): void {
+		// Ensure no user is logged in.
+		wp_set_current_user( 0 );
+
+		// Enable OCS so the inner sub-gateway logic *would* run if the early-return
+		// guard were absent.
+		$this->mock_gateway->oc_enabled = true;
+
+		$tokens = $this->mock_gateway->get_tokens();
+
+		// For a guest session, parent::get_tokens() returns an empty array because
+		// WooCommerce's get_customer_tokens() only returns tokens for logged-in users.
+		$this->assertIsArray( $tokens );
+		$this->assertEmpty( $tokens, 'get_tokens() should return no tokens for a guest user even when OCS is enabled.' );
+	}
 }
