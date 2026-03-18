@@ -530,9 +530,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		upeElement.on( 'change', ( { value } ) => {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
-			handleDisplayOfPaymentInstructions( value.type, {
-				checkoutType: 'classic',
-			} );
+			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
 			// Bind the create account checkbox to the save card info container display function.
 			const createAccountCheckbox =

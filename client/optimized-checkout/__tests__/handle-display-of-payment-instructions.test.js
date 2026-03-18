@@ -24,18 +24,14 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 
 		describe( 'classic - when Stripe is the selected payment method', () => {
 			it( 'classic - shows card instructions and hides others', () => {
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'classic',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'classic' );
 
 				expect( cardInstructions.style.display ).toBe( 'block' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );
 			} );
 
 			it( 'classic -shows SEPA Debit instructions and hides others', () => {
-				handleDisplayOfPaymentInstructions( 'sepa_debit', {
-					checkoutType: 'classic',
-				} );
+				handleDisplayOfPaymentInstructions( 'sepa_debit', 'classic' );
 
 				expect( sepaDebitInstructions.style.display ).toBe( 'block' );
 				expect( cardInstructions.style.display ).toBe( 'none' );
@@ -43,9 +39,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 
 			it( 'classic - hides all instructions when there is no matching instruction div for the method', () => {
 				expect( () =>
-					handleDisplayOfPaymentInstructions( 'klarna', {
-						checkoutType: 'classic',
-					} )
+					handleDisplayOfPaymentInstructions( 'klarna', 'classic' )
 				).not.toThrow();
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
@@ -64,9 +58,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 			} );
 
 			it( 'classic - hides all instructions', () => {
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'classic',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'classic' );
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );
@@ -75,9 +67,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 			it( 'classic -hides an instruction div that was previously visible', () => {
 				cardInstructions.style.display = 'block';
 
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'classic',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'classic' );
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );
@@ -108,18 +98,14 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 
 		describe( 'blocks - when Stripe is the selected payment method', () => {
 			it( 'blocks - shows card instructions and hides others', () => {
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'blocks',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'blocks' );
 
 				expect( cardInstructions.style.display ).toBe( 'block' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );
 			} );
 
 			it( 'blocks - shows SEPA Debit instructions and hides others', () => {
-				handleDisplayOfPaymentInstructions( 'sepa_debit', {
-					checkoutType: 'blocks',
-				} );
+				handleDisplayOfPaymentInstructions( 'sepa_debit', 'blocks' );
 
 				expect( sepaDebitInstructions.style.display ).toBe( 'block' );
 				expect( cardInstructions.style.display ).toBe( 'none' );
@@ -127,9 +113,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 
 			it( 'blocks - hides all instructions when there is no matching instruction div for the method', () => {
 				expect( () =>
-					handleDisplayOfPaymentInstructions( 'klarna', {
-						checkoutType: 'blocks',
-					} )
+					handleDisplayOfPaymentInstructions( 'klarna', 'blocks' )
 				).not.toThrow();
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
@@ -148,9 +132,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 			} );
 
 			it( 'blocks - hides all instructions', () => {
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'blocks',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'blocks' );
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );
@@ -159,9 +141,7 @@ describe( 'handleDisplayOfPaymentInstructions', () => {
 			it( 'blocks - hides an instruction div that was previously visible', () => {
 				cardInstructions.style.display = 'block';
 
-				handleDisplayOfPaymentInstructions( 'card', {
-					checkoutType: 'blocks',
-				} );
+				handleDisplayOfPaymentInstructions( 'card', 'blocks' );
 
 				expect( cardInstructions.style.display ).toBe( 'none' );
 				expect( sepaDebitInstructions.style.display ).toBe( 'none' );

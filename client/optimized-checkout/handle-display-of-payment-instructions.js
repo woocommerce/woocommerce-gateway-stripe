@@ -1,13 +1,12 @@
 /**
  * Handle display of payment method instructions
  *
- * @param {string} method               The payment method name.
- * @param {Object} options              The options object.
- * @param {string} options.checkoutType The checkout type. Must be 'classic' or 'blocks'.
+ * @param {string} method       The payment method name.
+ * @param {string} checkoutType The checkout type. Must be 'classic' or 'blocks'.
  */
 export const handleDisplayOfPaymentInstructions = (
 	method,
-	{ checkoutType = 'classic' }
+	checkoutType = 'classic'
 ) => {
 	document
 		.querySelectorAll( '.wc-stripe-payment-method-instruction' )
