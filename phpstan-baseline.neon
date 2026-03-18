@@ -10089,7 +10089,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 11
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
@@ -10111,7 +10111,7 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Action callback returns array but should not return anything\.$#'
+			message: '#^Action callback returns array\<WC_Payment_Token\> but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
@@ -10149,7 +10149,13 @@ parameters:
 		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
-			count: 2
+			count: 3
+			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
+
+		-
+			message: '#^Function remove_filter invoked with 4 parameters, 2\-3 required\.$#'
+			identifier: arguments.count
+			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
@@ -10167,6 +10173,12 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$user_id of class WC_Stripe_Customer constructor expects int, string given\.$#'
 			identifier: argument.type
+			count: 1
+			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
+
+		-
+			message: '#^Variable \$gateway_id in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
