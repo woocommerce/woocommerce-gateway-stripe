@@ -216,4 +216,33 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}
+
+	/**
+	 * Test that express checkout methods are not added to PMC when skip_pmc_express_checkout_migration is 'yes'.
+	 *
+	 * This covers the scenario where a merchant had PMC explicitly disabled (pmc_enabled = 'no') before the
+	 * upgrade, the install routine cleared the flag and set skip_pmc_express_checkout_migration = 'yes' to
+	 * prevent Google Pay / Apple Pay from being auto-enabled into the PMC during the first migration run.
+	 *
+	 * @return void
+	 */
+	public function test_migration_skips_express_checkout_methods_when_skip_flag_is_set() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
+		$stripe_settings['skip_pmc_express_checkout_migration']       = 'yes';
+		unset( $stripe_settings['pmc_enabled'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Google Pay and Apple Pay should NOT be included — only the UPE methods.
+		$this->mock_payment_method_configurations( [], [ 'card', 'sepa_debit', 'google_pay', 'apple_pay' ] );
+		$this->expect_payment_method_configurations_update( [ 'card', 'sepa_debit' ], [ 'google_pay', 'apple_pay' ] );
+
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
 }
