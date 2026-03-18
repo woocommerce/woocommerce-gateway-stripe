@@ -194,20 +194,15 @@ class WC_Stripe_Payment_Tokens {
 
 		try {
 			$deprecated_tokens = [];
-			$stored_tokens = [];
+			$stored_tokens     = [];
 
 			foreach ( $tokens as $token ) {
 				if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 					continue;
 				}
 
-				// Remove the following deprecated tokens:
-				// - APM tokens from before Split PE was in place.
-				// - Non-credit card tokens using the sources API. Payments using these will fail with the PaymentMethods API.
-				if (
-					( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
-					! $this->is_valid_payment_method_id( $token->get_token(), $this->get_payment_method_type_from_token( $token ) )
-				) {
+				// Check if the token is deprecated and should be removed.
+				if ( $this->is_token_deprecated( $token ) ) {
 					$deprecated_tokens[ $token->get_token() ] = $token;
 					continue;
 				}
@@ -217,11 +212,10 @@ class WC_Stripe_Payment_Tokens {
 
 			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
-			$active_reusable_payment_method_types = $this->get_active_reusable_payment_method_types();
-
-			$customer           = new WC_Stripe_Customer( $customer_id );
-			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_payment_method_types );
-			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
+			$active_reusable_types = $this->get_active_reusable_payment_method_types();
+			$customer              = new WC_Stripe_Customer( $customer_id );
+			$payment_methods       = $customer->get_all_payment_methods( $active_reusable_types );
+			$payment_method_ids    = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
 
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -256,21 +250,7 @@ class WC_Stripe_Payment_Tokens {
 			// Re-add the filter after we're done adding missing tokens to prevent unnecessary recursion.
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
-			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-
-			// Remove the payment methods that no longer exist in Stripe's side.
-			foreach ( $stored_tokens as $token ) {
-				unset( $tokens[ $token->get_id() ] );
-				$token->delete();
-			}
-
-			// Remove the APM tokens from before Split PE was in place.
-			foreach ( $deprecated_tokens as $token ) {
-				unset( $tokens[ $token->get_id() ] );
-				$token->delete();
-			}
-
-			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+			$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
 
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -1037,5 +1017,52 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return $active_reusable_payment_method_types;
+	}
+
+	/**
+	 * Removes invalid tokens that no longer exist in Stripe or are using deprecated formats.
+	 *
+	 * @param array $tokens
+	 * @param array $stored_tokens
+	 * @param array $deprecated_tokens
+	 *
+	 * @return array
+	 */
+	private function cleanup_invalid_tokens( array $tokens, array $stored_tokens, array $deprecated_tokens ): array {
+		// Prevent unnecessary recursion, WC_Payment_Token::delete() ends up calling 'woocommerce_payment_token_deleted' in some cases.
+		remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
+		// Remove the payment methods that no longer exist in Stripe's side.
+		foreach ( $stored_tokens as $token ) {
+			unset( $tokens[ $token->get_id() ] );
+			$token->delete();
+		}
+
+		// Remove the APM tokens from before Split PE was in place.
+		foreach ( $deprecated_tokens as $token ) {
+			unset( $tokens[ $token->get_id() ] );
+			$token->delete();
+		}
+
+		// Re-add the action after cleanup is done.
+		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
+		return $tokens;
+	}
+
+	/**
+	 * Checks if a token is deprecated based on its gateway ID, type, and format.
+	 *
+	 * A token is deprecated if it is:
+	 * - APM tokens from before Split PE was in place.
+	 * - Non-credit card tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+	 *
+	 * @param WC_Payment_Token $token The payment token to check.
+	 *
+	 * @return bool True if the token is deprecated, false otherwise.
+	 */
+	private function is_token_deprecated( WC_Payment_Token $token ): bool {
+		return ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() )
+			|| ! $this->is_valid_payment_method_id( $token->get_token(), $this->get_payment_method_type_from_token( $token ) );
 	}
 }
