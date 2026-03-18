@@ -2,6 +2,15 @@ import * as upeStyles from '..';
 
 describe( 'Getting styles for automated theming', () => {
 	const mockElement = document.createElement( 'input' );
+	const mockCssProperties = {
+		fontFamily:
+			'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+		color: 'rgb(109, 109, 109)',
+		backgroundColor: 'rgba(0, 0, 0, 0)',
+		unsuportedProperty: 'some value',
+		outlineColor: 'rgb(150, 88, 138)',
+		outlineWidth: '1px',
+	};
 	const mockCSStyleDeclaration = {
 		length: 6,
 		0: 'color',
@@ -10,17 +19,9 @@ describe( 'Getting styles for automated theming', () => {
 		3: 'unsuportedProperty',
 		4: 'outlineColor',
 		5: 'outlineWidth',
+		...mockCssProperties,
 		getPropertyValue: ( propertyName ) => {
-			const cssProperties = {
-				fontFamily:
-					'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
-				color: 'rgb(109, 109, 109)',
-				backgroundColor: 'rgba(0, 0, 0, 0)',
-				unsuportedProperty: 'some value',
-				outlineColor: 'rgb(150, 88, 138)',
-				outlineWidth: '1px',
-			};
-			return cssProperties[ propertyName ];
+			return mockCssProperties[ propertyName ];
 		},
 	};
 
