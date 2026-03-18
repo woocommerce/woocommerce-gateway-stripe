@@ -193,7 +193,7 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-//			$tokens = $this->remove_deprecated_tokens( $tokens );
+			$tokens = $this->remove_deprecated_tokens( $tokens );
 
 			$stored_tokens = $this->get_stored_tokens( $tokens );
 
@@ -213,10 +213,14 @@ class WC_Stripe_Payment_Tokens {
 		// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		if ( $gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
-			$sub_gateway_ids = array_unique( array_values( array_filter(
-				self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD,
-				fn( $gw_id ) => WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id
-			) ) );
+			$sub_gateway_ids = array_unique(
+				array_values(
+					array_filter(
+						self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD,
+						fn( $gw_id ) => WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id
+					)
+				)
+			);
 
 			foreach ( $sub_gateway_ids as $sub_gateway_id ) {
 				$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
@@ -491,6 +495,14 @@ class WC_Stripe_Payment_Tokens {
 		// If this isn't a Stripe payment token, take no action.
 		if ( ! $payment_token instanceof WC_Stripe_Payment_Method_Comparison_Interface ) {
 			return $item;
+		}
+
+		// When OCS is enabled, all saved payment methods are processed through the single consolidated OCS element
+		// (gateway ID 'stripe'). Remap sub-gateway tokens (e.g. stripe_sepa_debit) to the main stripe gateway ID
+		// so that PaymentUtils includes them in the blocks checkout saved methods list.
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( $main_gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
+			$item['method']['gateway'] = WC_Stripe_UPE_Payment_Gateway::ID;
 		}
 
 		switch ( strtolower( $payment_token->get_type() ) ) {
@@ -931,7 +943,14 @@ class WC_Stripe_Payment_Tokens {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		// Retrieve the payment methods for the enabled reusable gateways.
-		$reusable_payment_method_types        = array_keys( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD );
+		$reusable_payment_method_types = array_keys( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD );
+
+		// When OCS is enabled, all reusable payment methods can be used via the consolidated OCS element.
+		// Return all reusable types so existing tokens are verified against Stripe and not incorrectly orphaned.
+		if ( $gateway->is_oc_enabled() ) {
+			return $reusable_payment_method_types;
+		}
+
 		$enabled_payment_methods              = $gateway->get_upe_enabled_payment_method_ids();
 		$active_reusable_payment_method_types = array_intersect( $enabled_payment_methods, $reusable_payment_method_types );
 
@@ -941,7 +960,7 @@ class WC_Stripe_Payment_Tokens {
 			$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 			if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )
-			     || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
+				 || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
 				$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
 		}
@@ -988,6 +1007,10 @@ class WC_Stripe_Payment_Tokens {
 		foreach ( $this->get_deprecated_tokens( $tokens ) as $token ) {
 			unset( $tokens[ $token->get_id() ] );
 			$token->delete();
+		}
+
+		if ( empty( $tokens ) ) {
+			return [];
 		}
 
 		return $tokens;
@@ -1045,7 +1068,9 @@ class WC_Stripe_Payment_Tokens {
 			$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
 			// The corresponding method for the payment method type is not enabled, skipping.
-			if ( ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
+			// When OCS is enabled, allow all reusable methods regardless of their individual enabled state,
+			// since they are all accessible through the consolidated OCS element.
+			if ( ! $gateway->is_oc_enabled() && ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
 				continue;
 			}
 
