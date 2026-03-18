@@ -86,6 +86,8 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 export const onConfirmHandler = async ( params ) => {
 	const { abortPayment, elements, event, hasFreeTrial } = params;
 
+	blockUI();
+
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
 		return abortPayment( event, submitResponse?.error?.message );
