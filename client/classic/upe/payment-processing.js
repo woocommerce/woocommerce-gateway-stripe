@@ -279,6 +279,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			...paymentElementOptions,
 			layout,
 		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		paymentElementOptions.layout = {
+			type: 'tabs',
+		};
 	}
 
 	let createdStripePaymentElement = null;
