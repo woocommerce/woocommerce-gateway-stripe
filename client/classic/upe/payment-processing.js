@@ -513,6 +513,12 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	const upeElement = await upeElementPromise;
 
+	if ( ! upeElement ) {
+		// Clear cached promise so later attempts can retry creation.
+		gatewayUPEComponents[ paymentMethodType ].upeElementPromise = null;
+		return gatewayUPEComponents[ paymentMethodType ];
+	}
+
 	upeElement.mount( domElement );
 	upeElement.on( 'loaderror', ( e ) => {
 		showErrorPaymentMethod( e.error.message, domElement );
