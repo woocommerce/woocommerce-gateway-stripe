@@ -178,9 +178,9 @@ class WC_Stripe_Payment_Tokens {
 	 * @param int    $customer_id WC customer ID.
 	 * @param string $gateway_id  WC Gateway ID.
 	 *
-	 * @return WC_Payment_Token[]
+	 * @return WC_Payment_Token[] Array of payment tokens after syncing with Stripe.
 	 */
-	private function sync_and_retrieve_customer_payment_tokens( $tokens, $customer_id, $gateway_id ): array {
+	private function sync_and_retrieve_customer_payment_tokens( array $tokens, int $customer_id, string $gateway_id ): array {
 		// Not a reusable payment gateway.
 		if ( empty( $gateway_id ) || ! in_array( $gateway_id, self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 			return $tokens;
@@ -191,6 +191,8 @@ class WC_Stripe_Payment_Tokens {
 			// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
 			return $tokens;
 		}
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		try {
 			$deprecated_tokens = [];
@@ -209,8 +211,6 @@ class WC_Stripe_Payment_Tokens {
 
 				$stored_tokens[ $token->get_token() ] = $token;
 			}
-
-			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 			$active_reusable_types = $this->get_active_reusable_payment_method_types();
 			$customer              = new WC_Stripe_Customer( $customer_id );
@@ -235,6 +235,10 @@ class WC_Stripe_Payment_Tokens {
 					continue;
 				}
 
+				// Create a new token when:
+				// - The payment method doesn't have an associated token in WooCommerce.
+				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type.
+				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
@@ -262,7 +266,6 @@ class WC_Stripe_Payment_Tokens {
 		// are rendered under the single 'stripe' gateway in that context.
 		// The filter is kept active so each sub-gateway call goes through the normal sync path.
 		// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		if ( $gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 			$sub_gateway_ids = array_unique(
 				array_values(
@@ -1022,9 +1025,9 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Removes invalid tokens that no longer exist in Stripe or are using deprecated formats.
 	 *
-	 * @param array $tokens
-	 * @param array $stored_tokens
-	 * @param array $deprecated_tokens
+	 * @param array $tokens            List of tokens that belong to the user.
+	 * @param array $stored_tokens     List of orphaned tokens that no longer exist in Stripe.
+	 * @param array $deprecated_tokens List of tokens that are using deprecated formats.
 	 *
 	 * @return array
 	 */
