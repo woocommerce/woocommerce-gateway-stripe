@@ -592,7 +592,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Add default express checkout methods to the list if express checkout is enabled
-		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
+		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] && 'yes' !== ( $stripe_settings['skip_pmc_express_checkout_migration'] ?? 'no' ) ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
