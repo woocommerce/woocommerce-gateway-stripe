@@ -618,9 +618,8 @@ class WC_Stripe_Payment_Method_Configurations {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 
-				// We want to also include payment methods enabled in the PMC, except for express payment methods.
+				// Add all payment methods enabled in the PMC that are not enabled locally.
 				if (
-					! in_array( $payment_method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) &&
 					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
 					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
 				) {
