@@ -605,9 +605,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
-		$stripe_params['isOCEnabled']                 = $should_show_optimized_checkout;
-		$stripe_params['shouldShowOptimizedCheckout'] = $should_show_optimized_checkout;
+		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
+		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
+		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
 
 		// Adaptive Pricing support for checkout.
 		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();

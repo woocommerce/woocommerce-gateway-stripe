@@ -7,7 +7,9 @@ import {
 	getBackgroundColor,
 	isColorLight,
 } from './utils.js';
+import { getExpandedOptimizedCheckoutRules } from './expanded-optimized-checkout';
 import { getFontSizeBase } from 'wcstripe/stripe-utils';
+export { getExpandedOptimizedCheckoutRules };
 
 const appearanceSelectors = {
 	default: {
@@ -383,7 +385,10 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
-export const getAppearance = ( isBlocksCheckout = false ) => {
+export const getAppearance = (
+	isBlocksCheckout = false,
+	shouldExpandOptimizedCheckout = false
+) => {
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
 
 	// Add hidden fields to DOM for generating styles.
@@ -468,6 +473,12 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 			},
 		},
 	};
+
+	if ( shouldExpandOptimizedCheckout ) {
+		appearance.rules = getExpandedOptimizedCheckoutRules(
+			appearance.rules
+		);
+	}
 
 	// Remove hidden fields from DOM.
 	hiddenElementsForUPE.cleanup();
