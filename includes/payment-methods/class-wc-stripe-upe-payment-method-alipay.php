@@ -82,7 +82,34 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 				$currency = [ WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
-		$euro_supported_countries = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND ];
+		$euro_supported_countries = [
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
+			WC_Stripe_Country_Code::SWITZERLAND,
+		];
 		if ( in_array( $country, $euro_supported_countries, true ) ) {
 			$currency = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
