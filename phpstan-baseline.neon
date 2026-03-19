@@ -3294,6 +3294,7 @@ parameters:
 			count: 8
 			path: includes/class-wc-stripe-webhook-handler.php
 
+
 		-
 			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
 			identifier: property.notFound

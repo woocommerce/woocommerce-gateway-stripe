@@ -433,7 +433,7 @@ class WC_Stripe_Account {
 	 * @param object $existing_webhook The existing webhook object from Stripe.
 	 * @return bool True if API version differs, false if they match.
 	 */
-	private function does_webhooks_api_version_differ( $existing_webhook ) {
+	private function does_webhooks_api_version_differ( $existing_webhook ): bool {
 		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
 	}
 
@@ -442,7 +442,7 @@ class WC_Stripe_Account {
 	 *
 	 * @return string The API version.
 	 */
-	private static function get_webhooks_api_version() {
+	private static function get_webhooks_api_version(): string {
 		$version = WC_Stripe_API::STRIPE_API_VERSION;
 
 		/**
