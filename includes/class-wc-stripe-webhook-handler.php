@@ -1841,7 +1841,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * This parameter is expected to generate both an HTTP status code and a JSON response.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param stdClass $event The webhook event from Stripe.
 	 * @return array
 	 * @throws Exception

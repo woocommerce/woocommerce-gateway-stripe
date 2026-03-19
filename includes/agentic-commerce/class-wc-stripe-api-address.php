@@ -5,7 +5,7 @@
  * Typed wrapper around raw Stripe address objects.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Represents an address, as returned by the Stripe API.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_API_Address {
 	/**
@@ -37,7 +37,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns the country code.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_country(): ?string {
@@ -47,7 +47,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns the state or province.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_state(): ?string {
@@ -57,7 +57,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns the postal code.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_postal_code(): ?string {
@@ -67,7 +67,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns the city.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_city(): ?string {
@@ -77,7 +77,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns address line 1.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_line1(): ?string {
@@ -87,7 +87,7 @@ class WC_Stripe_API_Address {
 	/**
 	 * Returns address line 2.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_line2(): ?string {

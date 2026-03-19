@@ -3,7 +3,7 @@
  * Class WC_Stripe_Agentic_Commerce_Product_Resolver.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,13 +16,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * This is a simple utility class with a single static method. It is tested
  * indirectly through the order mapper and tax calculator tests.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Product_Resolver {
 	/**
 	 * Resolves a WooCommerce product from an external reference.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param int $product_id The parsed product ID.
 	 * @return WC_Product The product.
 	 * @throws Exception When no matching product exists.
