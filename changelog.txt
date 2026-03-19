@@ -1,6 +1,8 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
+* Add - Support express checkout for free trial subscription products that require shipping
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
@@ -13,6 +15,10 @@
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
+
+= 10.5.3 - 2026-03-19 =
+* Fix - Restore default layout when Optimized Checkout is disabled
+* Fix - Prevent incorrect re-enablement of express checkout methods during upgrades
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages

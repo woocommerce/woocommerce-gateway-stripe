@@ -216,4 +216,99 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}
+
+	/**
+	 * Test that express payment methods enabled in the PMC are replicated to local during migration.
+	 *
+	 * @return void
+	 */
+	public function test_migration_replicates_express_methods_enabled_in_pmc() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
+		unset( $stripe_settings['pmc_enabled'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// PMC has google_pay and apple_pay enabled, but they are NOT in local UPE settings.
+		$this->mock_payment_method_configurations(
+			[ 'google_pay', 'apple_pay', 'amazon_pay' ], // enabled in PMC
+			[ 'card', 'sepa_debit', 'link' ]             // disabled in PMC
+		);
+
+		// All three non-link express checkout payment methods should be replicated from PMC into the local enabled list.
+		$this->expect_payment_method_configurations_update(
+			[ 'card', 'sepa_debit', 'google_pay', 'apple_pay', 'amazon_pay' ],
+			[ 'link' ]
+		);
+
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Test that express payment methods enabled in the PMC are replicated even when skip_pmc_express_checkout_defaults is set.
+	 *
+	 * The skip flag only prevents express methods from being defaulted on.
+	 * Methods already enabled in the PMC should still be replicated regardless of the skip flag.
+	 *
+	 * @return void
+	 */
+	public function test_migration_replicates_express_methods_from_pmc_even_with_skip_flag() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+		unset( $stripe_settings['pmc_enabled'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->mock_payment_method_configurations(
+			[ 'google_pay', 'link', 'apple_pay' ], // enabled in PMC
+			[ 'card', 'amazon_pay' ]               // disabled in PMC
+		);
+
+		// Apple Pay, Google Pay, and Link should be enabled; Amazon Pay should be disabled.
+		$this->expect_payment_method_configurations_update(
+			[ 'card', 'google_pay', 'link', 'apple_pay' ],
+			[ 'amazon_pay' ]
+		);
+
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Test that the default express checkout methods are not added to PMC when skip_pmc_express_checkout_defaults is 'yes'.
+	 *
+	 * This covers the scenario where a merchant had PMC explicitly disabled (pmc_enabled = 'no') before the
+	 * upgrade, the install routine cleared the flag and set skip_pmc_express_checkout_defaults = 'yes' to
+	 * prevent express checkout methods from being auto-enabled during the first migration run.
+	 *
+	 * @return void
+	 */
+	public function test_migration_skips_express_checkout_methods_when_skip_flag_is_set() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
+		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
+		unset( $stripe_settings['pmc_enabled'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Google Pay and Apple Pay should NOT be included — only the UPE methods.
+		$this->mock_payment_method_configurations( [], [ 'card', 'sepa_debit', 'google_pay', 'apple_pay' ] );
+		$this->expect_payment_method_configurations_update( [ 'card', 'sepa_debit' ], [ 'google_pay', 'apple_pay' ] );
+
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
 }
