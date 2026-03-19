@@ -1812,9 +1812,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					];
 					break;
 				default:
-					$response = [
-						'message' => 'Unsupported agentic hook type: ' . $event_type,
-					];
 					WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
 					status_header( 400 );
 					exit;
