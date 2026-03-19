@@ -1579,6 +1579,101 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that maybe_restore_recurring_chosen_shipping_methods() skips free-trial recurring
+	 * carts and only restores shipping methods for non-free-trial recurring carts in a mixed cart.
+	 *
+	 * Covers the early-return branch at the top of the recurring-cart loop:
+	 * when recurring_cart_contains_free_trial() returns true, shipping restoration is skipped
+	 * via `continue` for that cart, but still runs for carts without a free trial.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_restore_recurring_chosen_shipping_methods_skips_free_trial_cart(): void {
+		// Create a free-trial subscription product and a regular (non-subscription) product.
+		$free_trial_product = WC_Helper_Product::create_simple_product();
+		$free_trial_product->save();
+
+		$regular_product = WC_Helper_Product::create_simple_product();
+		$regular_product->save();
+
+		// Make only the free-trial product a subscription and give it a trial period.
+		// The regular product is not in the list, so is_subscription() returns false for it,
+		// which causes recurring_cart_contains_free_trial() to return false for that cart.
+		WC_Subscriptions_Product::set_subscription_product_ids( [ $free_trial_product->get_id() ] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 7 );
+
+		// Build a recurring cart whose single item is a subscription with a free trial.
+		// get_shipping_packages() must never be called — the loop continues past this cart.
+		$free_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$free_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $free_trial_product ],
+			]
+		);
+		$free_trial_recurring_cart->expects( $this->never() )->method( 'get_shipping_packages' );
+
+		// Build a recurring cart whose single item is a regular product (no trial).
+		// get_shipping_packages() is called once, returning one package at index 0.
+		$no_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$no_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $regular_product ],
+			]
+		);
+		$no_trial_recurring_cart->method( 'get_shipping_packages' )->willReturn( [ [] ] );
+
+		// Inject both recurring carts and initialise the session.
+		WC()->session->init();
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC()->cart->recurring_carts = [
+			'sub_freetrial' => $free_trial_recurring_cart,
+			'sub_no_trial'  => $no_trial_recurring_cart,
+		];
+
+		// Tell WC_Subscriptions_Cart that the overall cart contains a free trial.
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( true );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		// cart_contains_free_trial() must return true for the mixed cart.
+		$cart_contains_free_trial = new ReflectionMethod( WC_Stripe_Express_Checkout_Helper::class, 'cart_contains_free_trial' );
+		$cart_contains_free_trial->setAccessible( true );
+		$this->assertTrue( $cart_contains_free_trial->invoke( $helper ) );
+
+		// Previous shipping methods were recorded for both recurring cart keys.
+		$previous_chosen_methods = [
+			'sub_freetrial' => 'flat_rate:1',
+			'sub_no_trial'  => 'flat_rate:1',
+		];
+
+		$helper->maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods );
+
+		$chosen = WC()->session->get( 'chosen_shipping_methods', [] );
+
+		// The non-free-trial cart's shipping method must be restored.
+		$this->assertArrayHasKey( 'sub_no_trial', $chosen, 'Shipping method must be restored for the non-free-trial recurring cart.' );
+		$this->assertSame( 'flat_rate:1', $chosen['sub_no_trial'] );
+
+		// The free-trial cart's shipping method must NOT be restored.
+		$this->assertArrayNotHasKey( 'sub_freetrial', $chosen, 'Shipping method must not be restored for the free-trial recurring cart.' );
+
+		// Clean up.
+		WC()->cart->recurring_carts = [];
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( false );
+		WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 0 );
+	}
+
+	/**
 	 * Test normalize_state method when states are already normalized.
 	 *
 	 * @return void
