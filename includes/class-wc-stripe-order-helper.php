@@ -538,7 +538,7 @@ class WC_Stripe_Order_Helper {
 	 * @return false|void
 	 */
 	public function update_stripe_presentment_currency( ?WC_Order $order = null, string $presentment_currency = '' ) {
-		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY, $presentment_currency );
+		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_CURRENCY, strtolower( $presentment_currency ) );
 	}
 
 	/**
