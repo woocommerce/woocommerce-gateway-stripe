@@ -15,3 +15,8 @@ if ( ! defined( 'WC_STRIPE_PLUGIN_PATH' ) ) {
 	// This definition is not correct, but we can't use a function like dirname( __DIR__ ) as PHPStan can't resolve it.
 	define( 'WC_STRIPE_PLUGIN_PATH', __DIR__ );
 }
+
+if ( ! defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ) {
+	// This constant is expected to be defined in wp-config.php for the agentic commerce webhook.
+	define( 'AGENTIC_COMMERCE_WEBHOOK_SECRET', '' );
+}
