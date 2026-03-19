@@ -40,19 +40,6 @@ describe( 'CheckoutSessionsContainer', () => {
 			data: { client_secret: 'test_secret' },
 		} ),
 	};
-	const billing = {
-		billingAddress: {
-			email: 'john.doe@example.com',
-			first_name: 'John',
-			last_name: 'Doe',
-			address_1: '123 Main St',
-			address_2: '',
-			city: 'Anytown',
-			state: 'CA',
-			postcode: '12345',
-			country: 'US',
-		},
-	};
 	const setShouldLoadStripeElements = jest.fn();
 
 	beforeEach( () => {
@@ -65,7 +52,6 @@ describe( 'CheckoutSessionsContainer', () => {
 		render(
 			<CheckoutContainer
 				api={ api }
-				billing={ billing }
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }
 			/>
 		);
