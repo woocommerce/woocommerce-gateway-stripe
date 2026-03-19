@@ -32,4 +32,37 @@ class WC_Deposits_Product_Manager {
 	public static function deposits_enabled( $product_id ): bool {
 		return self::$deposits_enabled_result;
 	}
+
+	/**
+	 * Stub: get the deposit type for a product.
+	 *
+	 * @param int $product_id The product ID.
+	 * @return string
+	 */
+	public static function get_deposit_type( $product_id ): string {
+		return '';
+	}
+
+	/**
+	 * Stub: get the selected deposit type for a product.
+	 *
+	 * @param int $product_id The product ID.
+	 * @return string
+	 */
+	public static function get_deposit_selected_type( $product_id ): string {
+		return '';
+	}
+
+	/**
+	 * Stub: get the deposit amount for a product.
+	 *
+	 * @param mixed  $product      The product or product ID.
+	 * @param int    $plan_id      Optional plan ID.
+	 * @param string $context      Optional context.
+	 * @param mixed  $product_price Optional product price.
+	 * @return string
+	 */
+	public static function get_deposit_amount( $product = 0, $plan_id = 0, $context = '', $product_price = null ): string {
+		return '0';
+	}
 }

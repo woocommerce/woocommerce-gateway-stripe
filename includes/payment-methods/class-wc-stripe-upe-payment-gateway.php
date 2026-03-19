@@ -3505,21 +3505,36 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Hide "Pay" and "Cancel" action buttons for pending orders if they take a while to be confirmed.
 	 *
-	 * @param $actions array An array with the default actions.
-	 * @param $order WC_Order The order.
+	 * @param array     $actions An array with the default actions.
+	 * @param \WC_Order $order The order.
 	 * @return array
 	 */
-	public function filter_my_account_my_orders_actions( $actions, $order ) {
+	public function filter_my_account_my_orders_actions( $actions, $order ): array {
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return $actions;
+		}
+
+		if ( ! is_order_received_page() ) {
+			return $actions;
+		}
+
+		if ( ! $order->has_status( OrderStatus::PENDING ) ) {
 			return $actions;
 		}
 
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
+		if ( in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
+
+		// If the order has a checkout session ID and is pending, hide the action buttons. The orders with checkout sessions take a while to be processed via webhooks.
+		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		if ( $checkout_session_id ) {
+			unset( $actions['pay'], $actions['cancel'] );
+		}
+
 		return $actions;
 	}
 

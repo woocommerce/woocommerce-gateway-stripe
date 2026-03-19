@@ -11,7 +11,7 @@ class WC_Subscriptions_Change_Payment_Gateway {
 	 * @param WC_Subscription $subscription Subscription to update.
 	 * @param string          $gateway_id   Gateway ID.
 	 */
-	public static function update_payment_method( $subscription, $gateway_id ) {}
+	public static function update_payment_method( $subscription, $gateway_id, $token = null ) {}
 
 	/**
 	 * Stub: will_subscription_update_all_payment_methods.

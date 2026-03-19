@@ -81,4 +81,44 @@ class WC_Subscriptions_Product {
 	public static function set_is_subscription( bool $result ): void {
 		self::$is_subscription_result = $result;
 	}
+
+	/**
+	 * Stub: get the subscription interval.
+	 *
+	 * @param \WC_Product|null $product The product.
+	 * @return string
+	 */
+	public static function get_interval( $product = null ): string {
+		return '1';
+	}
+
+	/**
+	 * Stub: get the subscription period.
+	 *
+	 * @param \WC_Product|null $product The product.
+	 * @return string
+	 */
+	public static function get_period( $product = null ): string {
+		return 'month';
+	}
+
+	/**
+	 * Stub: get the subscription price.
+	 *
+	 * @param \WC_Product|null $product The product.
+	 * @return string
+	 */
+	public static function get_price( $product = null ): string {
+		return '0';
+	}
+
+	/**
+	 * Stub: get the subscription sign-up fee.
+	 *
+	 * @param mixed $product The product.
+	 * @return string
+	 */
+	public static function get_sign_up_fee( $product = null ): string {
+		return '0';
+	}
 }
