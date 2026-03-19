@@ -603,7 +603,10 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			return [
 				'headers'  => [],
 				'body'     => wp_json_encode( $stripe_api_response ),
-				'response' => [ 'code' => 200, 'message' => 'OK' ],
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
 			];
 		};
 		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
