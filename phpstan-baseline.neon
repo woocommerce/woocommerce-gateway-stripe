@@ -4676,6 +4676,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
+			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, ''WC_Subscriptions…'' given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
+
+		-
 			message: '#^Parameter \#2 \$country of method WC_Stripe_Express_Checkout_Helper\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 2
