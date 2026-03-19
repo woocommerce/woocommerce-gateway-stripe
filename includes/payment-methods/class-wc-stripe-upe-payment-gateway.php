@@ -387,6 +387,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
+		if ( ! isset( $this->payment_methods[ $upe_payment_type ] ) ) {
+			return true;
+		}
+
 		return $this->payment_methods[ $upe_payment_type ]->can_refund_via_stripe();
 	}
 
@@ -551,6 +555,48 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
+
+		/**
+		 * Filters the list of permitted font domains for the Stripe Payment Element.
+		 * These host names will be used in the client Javascript to identify additional domains
+		 * that return text/css resources which include @font-face declarations. Those stylesheets
+		 * can then be passed into the Stripe payment element.
+		 *
+		 * @param string[] $permitted_font_domains List of permitted font domains.
+		 * @since 10.6.0
+		 */
+		$permitted_font_domains = apply_filters( 'wc_stripe_upe_permitted_font_domains', [] );
+		if ( is_array( $permitted_font_domains ) ) {
+			// Validate that we have unique, non-empty strings, that are also valid domain names.
+			$permitted_font_domains = array_map(
+				static function ( $domain ) {
+					// @phpstan-ignore-next-line function.alreadyNarrowedType (We need to validate that a filter is returning the expected types.)
+					if ( ! is_string( $domain ) ) {
+						return false;
+					}
+					$domain = strtolower( trim( $domain ) );
+					// FILTER_VALIDATE_DOMAIN allows host names without a domain, so add basic validation checks for . in the domain name.
+					$period_position = strpos( $domain, '.' );
+					// No . or . in the first position are both invalid.
+					if ( false === $period_position || 0 === $period_position ) {
+						return false;
+					}
+					// Make sure we don't have a . in the last two positions -- all TLDs are 2 or more letters.
+					if ( str_contains( substr( $domain, -2 ), '.' ) ) {
+						return false;
+					}
+
+					return filter_var( $domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
+				},
+				$permitted_font_domains
+			);
+			// Filter out false values and ensure we have unique values.
+			$permitted_font_domains = array_values( array_unique( array_filter( $permitted_font_domains ) ) );
+
+			if ( [] !== $permitted_font_domains ) {
+				$stripe_params['permittedFontDomains'] = $permitted_font_domains;
+			}
+		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
 		$should_show_optimized_checkout               = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
@@ -3459,21 +3505,36 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Hide "Pay" and "Cancel" action buttons for pending orders if they take a while to be confirmed.
 	 *
-	 * @param $actions array An array with the default actions.
-	 * @param $order WC_Order The order.
+	 * @param array     $actions An array with the default actions.
+	 * @param \WC_Order $order The order.
 	 * @return array
 	 */
-	public function filter_my_account_my_orders_actions( $actions, $order ) {
+	public function filter_my_account_my_orders_actions( $actions, $order ): array {
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return $actions;
+		}
+
+		if ( ! is_order_received_page() ) {
+			return $actions;
+		}
+
+		if ( ! $order->has_status( OrderStatus::PENDING ) ) {
 			return $actions;
 		}
 
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
+		if ( in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
+
+		// If the order has a checkout session ID and is pending, hide the action buttons. The orders with checkout sessions take a while to be processed via webhooks.
+		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		if ( $checkout_session_id ) {
+			unset( $actions['pay'], $actions['cancel'] );
+		}
+
 		return $actions;
 	}
 

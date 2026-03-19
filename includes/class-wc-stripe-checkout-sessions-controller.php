@@ -29,10 +29,6 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-				define( 'WOOCOMMERCE_CART', true );
-			}
-
 			$wc_customer = WC()->customer;
 			if ( ! $wc_customer ) {
 				throw new Exception( __( 'Unable to retrieve customer data.', 'woocommerce-gateway-stripe' ) );
