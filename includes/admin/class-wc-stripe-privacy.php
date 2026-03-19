@@ -16,6 +16,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 	/**
 	 * Register erasers and exporters.
+	 *
+	 * @return void
 	 */
 	public function register_erasers_exporters() {
 		$this->name = __( 'Stripe', 'woocommerce-gateway-stripe' );
@@ -409,6 +411,10 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 	/**
 	 * Checks if create date is passed retention duration.
+	 *
+	 * @param string $created_date The creation date to check.
+	 *
+	 * @return bool True if the retention period has expired, false otherwise.
 	 */
 	public function is_retention_expired( $created_date ) {
 		$retention  = wc_parse_relative_date_option( get_option( 'woocommerce_gateway_stripe_retention' ) );
@@ -446,5 +452,3 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		return $is_expired;
 	}
 }
-
-new WC_Stripe_Privacy();

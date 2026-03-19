@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,6 +24,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Initialize pre-orders hook.
 	 *
+	 * @return void
 	 * @since 5.8.0
 	 */
 	public function maybe_init_pre_orders() {
@@ -30,7 +32,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return;
 		}
 
-		$this->supports[] = 'pre-orders'; // @phpstan-ignore-line (supports is defined in the classes that use this trait)
+		$this->supports[] = PaymentGatewayFeature::PRE_ORDERS; // @phpstan-ignore-line (supports is defined in the classes that use this trait)
 
 		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] ); // @phpstan-ignore-line (id is defined in the classes that use this trait)
 
@@ -170,7 +172,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Remove order meta.
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Order $order The order object.
+	 *
+	 * @return void
 	 */
 	public function remove_order_source_before_retry( $order ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -183,7 +187,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 * Marks the order as pre-ordered.
 	 * The native function is wrapped so we can call it separately and more easily mock it in our tests.
 	 *
-	 * @param object $order
+	 * @param WC_Order $order The order object.
+	 * @return void
 	 */
 	public function mark_order_as_pre_ordered( $order ) {
 		if ( ! class_exists( 'WC_Pre_Orders_Order' ) ) {
@@ -239,7 +244,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return $response;
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
-			WC_Stripe_Logger::log( 'Pre Orders Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error processing pre-order for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 
 			return [
 				'result'   => 'success',
@@ -317,6 +322,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Determines if an order contains a pre-order and if it is charged upon release.
 	 *
+	 * @param WC_Order $order The order object.
 	 * @return bool
 	 */
 	public function has_pre_order_charged_upon_release( $order ) {

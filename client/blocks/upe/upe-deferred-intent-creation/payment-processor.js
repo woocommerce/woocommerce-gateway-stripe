@@ -16,15 +16,17 @@ import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	getStripeElementOptions,
+} from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
+import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
-	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -33,74 +35,6 @@ import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
-
-/**
- * Gets the Stripe element options.
- *
- * @return {Object} The Stripe element options.
- */
-const getStripeElementOptions = () => {
-	let options = {
-		fields: {
-			billingDetails: {
-				name: 'never',
-				email: 'never',
-				// The phone field is optional, so it needs to be "auto" to not throw errors
-				// when passing the phone parameter to create a payment method.
-				phone: 'auto',
-				address: {
-					country: 'never',
-					line1: 'never',
-					line2: 'never',
-					city: 'never',
-					state: 'never',
-					postalCode: 'never',
-				},
-			},
-		},
-		wallets: {
-			applePay: 'never',
-			googlePay: 'never',
-		},
-	};
-
-	// Prefill Link customer data if available.
-	if ( isLinkEnabled() ) {
-		const userEmail = document.getElementById( 'email' )?.value;
-		if ( userEmail ) {
-			const userPhone =
-				document.getElementById( 'billing-phone' )?.value ||
-				document.getElementById( 'shipping-phone' )?.value;
-
-			options = {
-				...options,
-				defaultValues: {
-					billingDetails: {
-						email: userEmail,
-						phone: userPhone,
-					},
-				},
-			};
-		}
-	}
-
-	if ( getBlocksConfiguration()?.isOCEnabled ) {
-		const layout = {
-			type:
-				getBlocksConfiguration()?.OCLayout ||
-				OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
-		};
-		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
-		}
-		options = {
-			...options,
-			layout,
-		};
-	}
-
-	return options;
-};
 
 /**
  * Submits the payment elements to Stripe for validation.
@@ -158,10 +92,8 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const stripeServerData = getBlocksConfiguration();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
 
@@ -169,7 +101,7 @@ const PaymentProcessor = ( {
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
 	// If thats the case, we need to force it to true.
 	shouldSavePayment =
-		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+		shouldSavePayment || stripeServerData?.cartContainsSubscription;
 
 	const hasLoadErrorRef = useRef( false );
 
@@ -294,7 +226,6 @@ const PaymentProcessor = ( {
 								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
-								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
 								save_payment_method: shouldSavePayment
@@ -341,14 +272,14 @@ const PaymentProcessor = ( {
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
-				Number( getBlocksConfiguration()?.cartTotal ),
+				Number( stripeServerData?.cartTotal ),
 				true
 			);
 		} else {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
@@ -360,8 +291,7 @@ const PaymentProcessor = ( {
 				function () {
 					elements.update( {
 						setupFutureUsage:
-							getBlocksConfiguration()
-								?.cartContainsSubscription ||
+							stripeServerData?.cartContainsSubscription ||
 							savingPaymentMethodCheckbox?.checked
 								? 'off_session'
 								: null,
@@ -369,7 +299,7 @@ const PaymentProcessor = ( {
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements ] );
+	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -391,7 +321,7 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			handleDisplayOfPaymentInstructions( value.type );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
@@ -399,18 +329,22 @@ const PaymentProcessor = ( {
 
 	return (
 		<>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: description,
-				} }
-			/>
-			<p
-				className="content"
-				dangerouslySetInnerHTML={ {
-					__html: testingInstructionsIfAppropriate,
-				} }
-			/>
+			{ description && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: description,
+					} }
+				/>
+			) }
+			{ testingInstructions && (
+				<p
+					className="content"
+					dangerouslySetInnerHTML={ {
+						__html: testingInstructions,
+					} }
+				/>
+			) }
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (

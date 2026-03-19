@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'OptimizedCheckout' ]
+        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs']
 
-    name: ${{ matrix.checkout }} WP=latest, WC=latest, PHP=7.4
+    name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -76,35 +76,30 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
-          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
       - name: Upload e2e setup logs
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-WP_latest-WC_latest-setup-logs
+          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-setup-logs
           path: tests/e2e/e2e-setup.log
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Run ${{ matrix.checkout }} E2E tests
-        shell: bash
+      - name: Run E2E tests
         env:
-          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-        run: |
-          if [ "${{ matrix.checkout }}" = "OptimizedCheckout" ]; then
-            npm run test:e2e-oc
-          else
-            npm run test:e2e
-          fi
-      - name: Upload ${{ matrix.checkout }} E2E test results
+          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+        run: npm run test:e2e-run -- --project=${{ matrix.project }}
+
+      - name: Upload E2E-${{ matrix.project }}-WP_latest-WC_latest-results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-WP_latest-WC_latest-results
+          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-results
           path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14

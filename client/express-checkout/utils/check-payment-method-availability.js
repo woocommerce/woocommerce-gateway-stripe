@@ -12,7 +12,19 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
+/**
+ * Checks whether a given express payment method is available in the current context
+ * by rendering an invisible Stripe Express Checkout Element and waiting for its ready event.
+ *
+ * Results are memoized so the availability check is only performed once per payment method.
+ *
+ * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
+ * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
+ * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
+ */
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart ) => {
 		return new Promise( ( resolve ) => {
@@ -28,6 +40,11 @@ export const checkPaymentMethodIsAvailable = memoize(
 
 			const root = createRoot( containerEl );
 
+			const amount = transformPriceWithMinorUnits(
+				cart.cartTotals.total_price,
+				cart.cartTotals.currency_minor_unit
+			);
+
 			root.render(
 				<Elements
 					stripe={ api.loadStripe() }
@@ -39,7 +56,7 @@ export const checkPaymentMethodIsAvailable = memoize(
 						) && {
 							paymentMethodCreation: 'manual',
 						} ),
-						amount: Number( cart.cartTotals.total_price ),
+						amount: Number( amount ),
 						currency: cart.cartTotals.currency_code.toLowerCase(),
 						paymentMethodTypes:
 							getPaymentMethodTypesForExpressMethod(

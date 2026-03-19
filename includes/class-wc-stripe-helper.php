@@ -262,6 +262,56 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Converts a Stripe amount (in smallest currency unit) to a WooCommerce decimal amount.
+	 *
+	 * This is the inverse of `get_stripe_amount()`.
+	 *
+	 * @since 10.6.0
+	 * @param int    $amount   The amount in Stripe's smallest currency unit.
+	 * @param string $currency The three-letter currency code.
+	 * @return float The decimal amount for WooCommerce.
+	 */
+	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			return (float) absint( $amount );
+		}
+
+		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			return round( $amount / 1000, 3 );
+		}
+
+		return round( $amount / 100, 2 );
+	}
+
+	/**
+	 * Converts a Stripe amount (smallest currency unit) to WooCommerce amount.
+	 *
+	 * @param int    $stripe_amount Amount in Stripe's smallest unit (e.g. cents).
+	 * @param string $currency      Currency code (e.g. 'eur', 'usd').
+	 * @return string Formatted amount for display.
+	 */
+	public static function get_woocommerce_amount_from_stripe_amount( int $stripe_amount, string $currency = '' ): string {
+		if ( ! $currency ) {
+			$currency = get_woocommerce_currency();
+		}
+
+		$currency = strtolower( $currency );
+
+		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
+		$decimals = 2;
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+			$decimals = 0;
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$decimals = 3;
+		}
+
+		return wc_format_decimal( $amount, $decimals );
+	}
+
+	/**
 	 * Localize Stripe messages based on code
 	 *
 	 * @since 3.0.6
@@ -937,6 +987,53 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the order by Stripe checkout session ID.
+	 *
+	 * When HPOS is enabled we use wc_get_orders() with meta_query.
+	 * When HPOS is disabled, meta_query in wc_get_orders() is not supported (WooCommerce
+	 * only supports it for the custom orders table), so we use a direct meta query for legacy.
+	 *
+	 * @since 10.5.0
+	 * @param string $checkout_session_id The ID of the checkout session.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_checkout_session_id( string $checkout_session_id ) {
+		if ( '' === $checkout_session_id ) {
+			return false;
+		}
+
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_checkout_session_id',
+							'value' => $checkout_session_id,
+						],
+					],
+				]
+			);
+			$order  = current( $orders ) ? current( $orders ) : null;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $checkout_session_id, '_stripe_checkout_session_id' ) );
+			$order    = ! empty( $order_id ) ? wc_get_order( $order_id ) : null;
+		}
+
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+
+		if ( $order->get_status() !== OrderStatus::TRASH ) {
+			return $order;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Gets the dynamic bank statement descriptor suffix.
 	 *
 	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
@@ -1087,6 +1184,71 @@ class WC_Stripe_Helper {
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
+	 * Returns whether adaptive pricing is supported for the current checkout.
+	 *
+	 * When on the checkout page, adaptive pricing is not supported if the cart contains
+	 * any of the following:
+	 * - A subscription product.
+	 * - A pre-order product that will be charged upon release.
+	 * - A deposit product.
+	 *
+	 * @return bool True if adaptive pricing is supported for the current checkout, false otherwise.
+	 * @since 10.6.0
+	 */
+	public static function is_adaptive_pricing_supported(): bool {
+
+		// False if checkout session feature flag is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if adaptive pricing option is disabled.
+		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// False if not on the checkout page.
+		if ( ! is_checkout() && ! has_block( 'woocommerce/checkout' ) ) {
+			return false;
+		}
+
+		if ( ! WC()->cart || WC()->cart->is_empty() ) {
+			return true;
+		}
+
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
+
+		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
+		// subscriptions, pre-orders charged upon release, and deposits.
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+			if ( ! is_object( $product ) || ! ( $product instanceof WC_Product ) ) {
+				continue;
+			}
+
+			// Subscriptions are not supported with adaptive pricing.
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
+				return false;
+			}
+
+			// Pre-order (charge upon release) is not supported with adaptive pricing.
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+				return false;
+			}
+
+			// Deposits are not supported with adaptive pricing.
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -1629,7 +1791,7 @@ class WC_Stripe_Helper {
 				$log_data[ $header ] = isset( $_SERVER[ $header ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) : 'not set';
 			}
 
-			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
+			WC_Stripe_Logger::warning( 'Invalid IP address detected.', $log_data );
 		}
 	}
 
@@ -1930,5 +2092,94 @@ class WC_Stripe_Helper {
 		 * @return bool True if enabled, false otherwise.
 		*/
 		return apply_filters( 'wc_stripe_is_verbose_debug_mode_enabled', false );
+	}
+
+	/**
+	 * Builds the line items to pass to express checkout elements and to checkout sessions creation request.
+	 *
+	 * @param bool $itemized_display_items Whether to force itemized display items.
+	 * @return array The display items.
+	 */
+	public static function build_line_items( bool $itemized_display_items = false ): array {
+		$items         = [];
+		$lines         = [];
+		$subtotal      = 0;
+		$discounts     = 0;
+		$has_deposits  = false;
+
+		if ( $itemized_display_items ) {
+			foreach ( WC()->cart->get_cart() as $cart_item ) {
+				// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
+				if ( ! empty( $cart_item['is_deposit'] ) ) {
+					$has_deposits = true;
+					continue;
+				}
+
+				$subtotal      += $cart_item['line_subtotal'];
+				$amount         = $cart_item['line_subtotal'];
+				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+				$product_name   = $cart_item['data']->get_name();
+
+				$lines[] = [
+					'label'  => $product_name . $quantity_label,
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
+				];
+			}
+		} else {
+			$subtotal = WC()->cart->get_subtotal();
+		}
+
+		if ( $itemized_display_items && ! $has_deposits ) {
+			$items = array_merge( $items, $lines );
+		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
+			$items[] = [
+				'label'  => esc_html( __( 'Subtotal', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
+			];
+		}
+
+		$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
+		foreach ( $applied_coupons as $amount ) {
+			$discounts += (float) $amount;
+		}
+
+		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+
+		if ( wc_tax_enabled() ) {
+			$items[] = [
+				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
+			];
+		}
+
+		if ( WC()->cart->needs_shipping() ) {
+			$items[] = [
+				'key'    => 'total_shipping',
+				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
+			];
+		}
+
+		if ( WC()->cart->has_discount() ) {
+			$items[] = [
+				'key'    => 'total_discount',
+				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
+			];
+		}
+
+		$cart_fees = WC()->cart->get_fees();
+
+		// Include fees and taxes as display items.
+		foreach ( $cart_fees as $fee ) {
+			$items[] = [
+				'label'  => $fee->name,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
+			];
+		}
+
+		return $items;
 	}
 }

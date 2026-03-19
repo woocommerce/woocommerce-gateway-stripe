@@ -12,8 +12,10 @@ parameters:
 	bootstrapFiles:
 		- vendor/autoload.php
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
 	scanDirectories:
 		- phpstan-stubs
+		- tests/phpunit/helpers
 	treatPhpDocTypesAsCertain: false
 	parallel:
 		maximumNumberOfProcesses: 4

@@ -1,3 +1,5 @@
+/* global wc_stripe_upe_params */
+
 import { upeRestrictedProperties } from './upe-styles';
 import {
 	generateHoverRules,
@@ -34,6 +36,24 @@ const appearanceSelectors = {
 			'#payment',
 			'#order_review',
 			'form.checkout',
+			'body',
+		],
+	},
+	paymentMethods: {
+		appendTarget: '#payment',
+		upeThemeInputSelector: '#wc-stripe-hidden-style-input',
+		upeThemeLabelSelector: '.woocommerce-PaymentMethod label',
+		upeThemeTextSelectors: [
+			'.woocommerce-PaymentBox p',
+			'.woocommerce-PaymentMethod label',
+		],
+		rowElement: 'p',
+		validClasses: [ 'form-row' ],
+		invalidClasses: [ 'form-row' ],
+		backgroundSelectors: [
+			'.woocommerce-PaymentBox',
+			'.payment_box',
+			'#payment',
 			'body',
 		],
 	},
@@ -104,17 +124,23 @@ const appearanceSelectors = {
 			};
 		}
 
+		// Use payment methods selectors on non-checkout pages
+		// (Add Payment Method, Order Pay, Change Payment Method).
+		if (
+			document.querySelector( 'form#add_payment_method' ) ||
+			document.querySelector( 'form#order_review' )
+		) {
+			return {
+				...this.default,
+				...this.paymentMethods,
+			};
+		}
+
 		return {
 			...this.default,
 			...this.updateSelectors( this.classicCheckout ),
 		};
 	},
-};
-
-const dashedToCamelCase = ( string ) => {
-	return string.replace( /-([a-z])/g, function ( g ) {
-		return g[ 1 ].toUpperCase();
-	} );
 };
 
 const hiddenElementsForUPE = {
@@ -276,12 +302,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 
 	const filteredStyles = {};
 
-	for ( let i = 0; i < styles.length; i++ ) {
-		const camelCase = dashedToCamelCase( styles[ i ] );
-		if ( validProperties.includes( camelCase ) ) {
-			filteredStyles[ camelCase ] = styles.getPropertyValue(
-				styles[ i ]
-			);
+	for ( const property of validProperties ) {
+		if ( typeof styles[ property ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ property ];
 		}
 	}
 
@@ -314,15 +337,37 @@ export const getFieldStyles = ( selector, upeElement ) => {
 	return filteredStyles;
 };
 
+/**
+ * Default font domains that support URLs that return text/css resources which include @font-face declarations.
+ */
+const DEFAULT_FONT_DOMAINS = [
+	'fonts.googleapis.com',
+	'fonts.gstatic.com',
+	'fast.fonts.com',
+	'use.typekit.net',
+	'fonts-api.wp.com',
+];
+
+/**
+ * Returns array of permitted font domains, which uses a default list.
+ * Additional font domains may be specified via the `wc_stripe_upe_permitted_font_domains` filter.
+ *
+ * @return {string[]} Array of permitted font domains.
+ */
+const getPermittedFontDomains = () => {
+	// eslint-disable-next-line camelcase
+	if ( Array.isArray( wc_stripe_upe_params?.permittedFontDomains ) ) {
+		return DEFAULT_FONT_DOMAINS.concat(
+			wc_stripe_upe_params.permittedFontDomains // eslint-disable-line camelcase
+		);
+	}
+	return DEFAULT_FONT_DOMAINS;
+};
+
 export const getFontRulesFromPage = () => {
 	const fontRules = [],
 		sheets = document.styleSheets,
-		fontDomains = [
-			'fonts.googleapis.com',
-			'fonts.gstatic.com',
-			'fast.fonts.com',
-			'use.typekit.net',
-		];
+		fontDomains = getPermittedFontDomains();
 	for ( let i = 0; i < sheets.length; i++ ) {
 		if ( ! sheets[ i ].href ) {
 			continue;

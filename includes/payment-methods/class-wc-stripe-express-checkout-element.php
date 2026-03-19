@@ -20,14 +20,14 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	public $stripe_settings;
 
 	/**
 	 * This Instance.
 	 *
-	 * @var
+	 * @var WC_Stripe_Express_Checkout_Element
 	 */
 	private static $_this;
 
@@ -83,7 +83,6 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		add_action( 'template_redirect', [ $this, 'set_session' ] );
 		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
@@ -116,7 +115,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Get this instance.
 	 *
-	 * @return class
+	 * @return WC_Stripe_Express_Checkout_Element
 	 */
 	public static function instance() {
 		return self::$_this;
@@ -125,10 +124,13 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Sets the WC customer session if one is not set.
 	 * This is needed so nonces can be verified by AJAX Request.
+	 * DEPRECATED: We now defer creation of sessions until the user actually interacts with the Express Checkout Element.
 	 *
+	 * @deprecated 10.5.0
 	 * @return void
 	 */
 	public function set_session() {
+		wc_deprecated_function( __FUNCTION__, '10.5.0' );
 		// Don't set session cookies on product pages to allow for caching when payment request
 		// buttons are disabled. But keep cookies if there is already an active WC session in place.
 		if (
@@ -143,6 +145,8 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Handles express checkout redirect when the redirect dialog "Continue" button is clicked.
+	 *
+	 * @return void
 	 */
 	public function handle_express_checkout_redirect() {
 		if (
@@ -264,6 +268,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Localizes additional parameters necessary for the Pay for Order page.
 	 *
 	 * @param WC_Order $order The order that needs payment.
+	 * @return void
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
 		// Ensure the script is registered before localizing
@@ -384,11 +389,13 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Register the express checkout script without enqueuing it.
+	 *
+	 * @return void
 	 */
 	private function register_express_checkout_script() {
 		$asset_data = $this->get_asset_data();
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', '', null, true );
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
@@ -400,6 +407,8 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Load scripts and styles.
+	 *
+	 * @return void
 	 */
 	public function scripts() {
 		// If page is not supported, bail.
@@ -482,6 +491,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @param string $title The gateway title.
 	 * @param string $id    The gateway ID.
+	 * @return string
 	 */
 	public function filter_gateway_title( $title, $id ) {
 		global $theorder;
@@ -516,6 +526,8 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Display the express checkout button.
+	 *
+	 * @return void
 	 */
 	public function display_express_checkout_button_html() {
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
@@ -558,6 +570,8 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Display express checkout button separator.
+	 *
+	 * @return void
 	 */
 	public function display_express_checkout_button_separator_html() {
 		if ( ! $this->express_checkout_helper->is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
@@ -577,6 +591,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Determine whether to filter the cart needs shipping address.
 	 *
 	 * @param boolean $needs_shipping_address Whether the cart needs a shipping address.
+	 * @return bool
 	 */
 	public function filter_cart_needs_shipping_address( $needs_shipping_address ) {
 		if ( $this->express_checkout_helper->has_subscription_product() && wc_get_shipping_method_count( true, true ) === 0 ) {

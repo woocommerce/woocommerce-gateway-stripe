@@ -17,9 +17,9 @@ class WC_Stripe_Status {
 	private const SUBSCRIPTIONS_DETACHED_LIST_LIMIT = 1000;
 
 	/**
-	 * Instance of WC_Gateway_Stripe
+	 * Instance of WC_Stripe_UPE_Payment_Gateway
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -33,7 +33,7 @@ class WC_Stripe_Status {
 	/**
 	 * WC_Stripe_Status constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Gateway instance.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Gateway instance.
 	 * @param WC_Stripe_Account $account Account instance.
 	 */
 	public function __construct( $gateway, $account ) {
@@ -53,6 +53,8 @@ class WC_Stripe_Status {
 
 	/**
 	 * Renders Stripe information on the status page.
+	 *
+	 * @return void
 	 */
 	public function render_status_report_section() {
 		$account_data            = $this->account->get_cached_account_data();
@@ -206,6 +208,8 @@ class WC_Stripe_Status {
 	 * Add Stripe tools to the Woo debug tools.
 	 *
 	 * @param array $tools List of current available tools.
+	 *
+	 * @return array
 	 */
 	public function debug_tools( $tools ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {

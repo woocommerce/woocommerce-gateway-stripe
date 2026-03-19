@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/wc-stripe-express-checkout-button-states.php';
+require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-button-states.php';
 
 /**
  * Known issues/inconsistencies:
@@ -34,7 +34,7 @@ require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/wc-stripe-express-chec
  *
  * @since 5.1.0
  *
- * @deprecated 10.3.0 Moved to includes/constants/wc-stripe-express-checkout-button-states.php
+ * @deprecated 10.3.0 Moved to includes/constants/class-wc-stripe-express-checkout-button-states.php
  */
 class WC_Stripe_Payment_Request_Button_States {
 	/**

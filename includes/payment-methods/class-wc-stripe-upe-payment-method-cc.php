@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -24,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-		$this->supports[]  = 'tokenization';
+		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
@@ -109,6 +112,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
 	 * @return string
 	 */
 	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {

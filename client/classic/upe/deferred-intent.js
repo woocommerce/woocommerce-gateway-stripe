@@ -14,15 +14,18 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getMountedUPEComponent,
 	initializeUPEComponents,
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
+	const stripeServerData = getStripeServerData();
+
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		stripeServerData,
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -137,29 +140,19 @@ jQuery( function ( $ ) {
 	} );
 
 	/**
-	 * Unmounts the Stripe Payment Elements from the page.
-	 */
-	function unmountStripePaymentElements() {
-		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
-			$( upeElement ).children().remove();
-		}
-		initializeUPEComponents();
-	}
-
-	/**
 	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
 	 * should display the relevant confirmation modal.
 	 */
 	function maybeConfirmVoucherOrWalletPayment() {
 		if (
-			getStripeServerData()?.isOrderPay ||
-			getStripeServerData()?.isCheckout ||
-			getStripeServerData()?.isChangingPayment
+			stripeServerData?.isOrderPay ||
+			stripeServerData?.isCheckout ||
+			stripeServerData?.isChangingPayment
 		) {
 			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
 				confirmVoucherPayment(
 					api,
-					getStripeServerData()?.isOrderPay
+					stripeServerData?.isOrderPay
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -168,8 +161,8 @@ jQuery( function ( $ ) {
 			) {
 				confirmWalletPayment(
 					api,
-					getStripeServerData()?.isOrderPay ||
-						getStripeServerData()?.isChangingPayment
+					stripeServerData?.isOrderPay ||
+						stripeServerData?.isChangingPayment
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -185,15 +178,26 @@ jQuery( function ( $ ) {
 	} );
 
 	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
-	if ( getStripeServerData()?.isOCEnabled ) {
-		$( document ).on(
-			'change',
-			'#wc-stripe-new-payment-method',
-			async () => {
-				// Remove all children from the UPE elements to force a re-mount.
-				unmountStripePaymentElements();
-				await maybeMountStripePaymentElement();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+			const selectedMethod = getSelectedUPEGatewayPaymentMethod();
+			const component = getMountedUPEComponent( selectedMethod );
+
+			if ( component && component.elements ) {
+				const isChecked = $( '#wc-stripe-new-payment-method' ).is(
+					':checked'
+				);
+				const cartContainsSubscription =
+					stripeServerData?.cartContainsSubscription;
+
+				// Update only the setupFutureUsage on the Elements object and preserve user input.
+				component.elements.update( {
+					setupFutureUsage:
+						cartContainsSubscription || isChecked
+							? 'off_session'
+							: null,
+				} );
 			}
-		);
+		} );
 	}
 } );

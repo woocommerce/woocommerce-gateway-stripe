@@ -14,13 +14,13 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
+	getExcludedPaymentMethodTypes,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
-	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
@@ -33,6 +33,8 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+const isAdaptivePricingEnabled =
+	getStripeServerData()?.isAdaptivePricingEnabled;
 
 /**
  * Initialize the UPE components for each payment method type.
@@ -81,21 +83,26 @@ export function validateElements( elements ) {
 
 /**
  * Updates the payment element's default values.
+ *
+ * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
  */
-function updatePaymentElementDefaultValues() {
+function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
 	if ( ! gatewayUPEComponents?.card?.upeElement ) {
 		return;
 	}
 
 	const paymentElement = gatewayUPEComponents.card.upeElement;
-	paymentElement.update( getDefaultValues() );
+	paymentElement.update( getDefaultValues( forCheckoutSession ) );
 }
 
 /**
  * Creates a Stripe payment element with the specified payment method type and options.
  *
  * If the payment method doesn't support deferred intent, the intent must be created first.
- * Then, the payment element is created with the intent's client secret.
+ *
+ * When Adaptive Pricing is enabled, a Checkout Session is created first and
+ * the element is loaded via initCheckout.
+ * Otherwise, the payment element is created with the intent's client secret.
  *
  * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
@@ -109,7 +116,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	let intent, options;
 
 	options = {
-		appearance: initializeUPEAppearance( api ),
+		appearance: initializeUPEAppearance(),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -164,13 +171,13 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			amount,
 		};
 
-		if ( stripeServerData?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			options = {
 				...options,
 				paymentMethodConfiguration:
 					stripeServerData?.paymentMethodConfigurationId,
-				// Only show Amazon Pay via Express Checkout, and not within Optimized Checkout.
-				excludedPaymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
+				// Exclude unsupported payment methods - calculated dynamically on server side
+				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 			};
 
 			const setupFutureUsage =
@@ -190,19 +197,68 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
-	const elements = api.getStripe().elements( options );
+	let elements;
+	let shouldLoadStripeElements = true;
+	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
+	if ( isAdaptivePricingEnabled && supportsDeferredIntent ) {
+		try {
+			const response = await api.checkoutSessionsCreateSession();
+			const clientSecret = response?.data?.client_secret;
 
-	const attachDefaultValuesUpdateEvent = ( element ) => {
+			if ( ! clientSecret ) {
+				throw new Error(
+					__(
+						'Failed to load payment method due to missing client secret.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+
+			elements = await api.getStripe().initCheckout( {
+				clientSecret,
+				elementsOptions: {
+					appearance: options.appearance,
+					fonts: options.fonts,
+				},
+				adaptivePricing: {
+					allowed: true,
+				},
+				...getDefaultValues( true ),
+			} );
+
+			// TODO: Handle error in the follow up PR for payment processing.
+			// const result = await elements.loadActions();
+
+			// if ( result.type === 'error' ) {
+			// 	throw result.error;
+			// }
+
+			shouldLoadStripeElements = false;
+		} catch ( error ) {
+			// eslint-disable-next-line no-console
+			console.error( error );
+			shouldLoadStripeElements = true;
+		}
+	}
+
+	// If Adaptive Pricing is not enabled, or if there was an error loading the AP elements,
+	// load the Stripe elements as fallback.
+	if ( shouldLoadStripeElements ) {
+		elements = api.getStripe().elements( options );
+	}
+
+	const attachDefaultValuesUpdateEvent = (
+		element,
+		forCheckoutSession = false
+	) => {
 		if ( document.getElementById( element ) ) {
 			document.getElementById( element ).onblur = function () {
-				updatePaymentElementDefaultValues();
+				updatePaymentElementDefaultValues( forCheckoutSession );
 			};
 		}
 	};
 
 	let paymentElementOptions = {
-		...getUpeSettings(),
-		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -210,24 +266,45 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	};
 
 	// Set the layout to accordion if OC is enabled.
-	if ( stripeServerData?.isOCEnabled ) {
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const layout = {
 			type:
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
 			layout.radios = false;
+			layout.spacedAccordionItems = false;
 		}
 		paymentElementOptions = {
 			...paymentElementOptions,
 			layout,
 		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		paymentElementOptions.layout = {
+			type: 'tabs',
+		};
 	}
 
-	const createdStripePaymentElement = elements.create(
-		'payment',
-		paymentElementOptions
-	);
+	let createdStripePaymentElement = null;
+
+	if ( shouldLoadStripeElements ) {
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...getDefaultValues(),
+			...getUpeSettings(),
+		};
+		createdStripePaymentElement = elements.create(
+			'payment',
+			paymentElementOptions
+		);
+	} else {
+		createdStripePaymentElement = elements.createPaymentElement(
+			paymentElementOptions
+		);
+		mountCurrencySelectorElement( elements );
+	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[ paymentMethodType ].upeElement =
@@ -240,11 +317,33 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		isLinkEnabled() &&
 		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
-		attachDefaultValuesUpdateEvent( 'billing_email' );
-		attachDefaultValuesUpdateEvent( 'billing_phone' );
+		attachDefaultValuesUpdateEvent(
+			'billing_email',
+			! shouldLoadStripeElements
+		);
+		attachDefaultValuesUpdateEvent(
+			'billing_phone',
+			! shouldLoadStripeElements
+		);
 	}
 
 	return createdStripePaymentElement;
+}
+
+/**
+ * Mounts the currency selector element to the DOM element.
+ *
+ * @param {Object} elements The Stripe elements object.
+ */
+function mountCurrencySelectorElement( elements ) {
+	const currencySelectorContainer = document.getElementById(
+		'wc-stripe-currency-selector'
+	);
+	if ( ! currencySelectorContainer ) {
+		return;
+	}
+	const currencySelector = elements.createCurrencySelectorElement();
+	currencySelector.mount( currencySelectorContainer );
 }
 
 /**
@@ -367,7 +466,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
-	if ( getStripeServerData()?.isOCEnabled ) {
+
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		upeElement.on( 'change', ( { value } ) => {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type );
@@ -393,6 +494,35 @@ export async function mountStripePaymentElement( api, domElement ) {
 	}
 
 	return gatewayUPEComponents[ paymentMethodType ];
+}
+
+/**
+ * Gets the mounted UPE element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Object|null} The UPE element component object or null if not found.
+ */
+export function getMountedUPEComponent( paymentMethodType ) {
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return null;
+	}
+
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	if ( ! component.elements ) {
+		return null;
+	}
+
+	const domElement = document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+
+	// Only return if the Elements object exists and is mounted.
+	if ( domElement && domElement.children.length > 0 ) {
+		return component;
+	}
+
+	return null;
 }
 
 /**

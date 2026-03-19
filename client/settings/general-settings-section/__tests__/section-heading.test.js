@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { expect } from '@playwright/test';
 import SectionHeading from 'wcstripe/settings/general-settings-section/section-heading';
 import { useIsOCEnabled, useGetOrderedPaymentMethodIds } from 'wcstripe/data';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
