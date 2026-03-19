@@ -40,14 +40,12 @@ describe( 'getPromotionalBannerType', () => {
 				live: { connected: true },
 			},
 		};
-		const isUpeEnabled = true;
 		const isOCEnabled = true;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
 		expect(
 			getPromotionalBannerType(
 				accountData,
-				isUpeEnabled,
 				isOCEnabled,
 				enabledPaymentMethodIds
 			)
