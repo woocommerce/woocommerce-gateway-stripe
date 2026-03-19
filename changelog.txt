@@ -12,6 +12,7 @@
 * Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
+* Fix - Prevent incorrect re-enablement of express checkout methods during upgrades
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages
