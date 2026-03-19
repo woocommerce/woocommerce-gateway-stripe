@@ -1825,7 +1825,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic hook failed.',
-				[ 'error' => $e->getMessage() ]
+				[
+					'error' => $e->getMessage(),
+					'event' => $event,
+				]
 			);
 
 			status_header( 400 );
