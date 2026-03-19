@@ -515,7 +515,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			$needs_shipping     = $product->needs_shipping();
 			$is_synced          = WC_Subscriptions_Synchroniser::is_product_synced( $product );
 			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
-			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
 			if ( $is_product_page_request && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
 				/**
@@ -530,8 +529,6 @@ class WC_Stripe_Express_Checkout_Helper {
 				 */
 				continue;
 			} elseif ( $is_synced && ! $is_payment_upfront && $needs_shipping ) {
-				continue;
-			} elseif ( $has_trial_period && $needs_shipping ) {
 				continue;
 			} else {
 				// If we made it this far, the product is valid. Break out of the foreach and return early as we only care about invalid cases.
@@ -590,7 +587,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
-			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+			if ( $this->cart_contains_free_trial() ) {
 				return true;
 			}
 		}
@@ -750,14 +747,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( $is_product && ! $this->is_product_supported( $product ) ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
-			}
-			return false;
-		}
-
-		// Don't show in the product page if the product price is 0 and the product requires shipping.
-		if ( $is_product && $product && 0.0 === (float) $product->get_price() && $this->product_or_cart_needs_shipping() ) {
-			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Stripe Express Checkout does not support free products that requires shipping.' );
 			}
 			return false;
 		}
@@ -1455,7 +1444,22 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		// Remove subscription shipping package filter if there is free trial in the cart to allow the calculation of shipping costs.
+		// TODO: revisit this when WC Subscriptions adds support for free trials with shipping.
+		$has_free_trial = $this->cart_contains_free_trial();
+
+		if ( $has_free_trial ) {
+			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+		}
+
+		try {
+			$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		} finally {
+			// Add the subscription shipping package filter back after calculating shipping packages to avoid affecting other parts of the checkout process.
+			if ( $has_free_trial ) {
+				add_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+			}
+		}
 
 		WC()->shipping->calculate_shipping( $packages );
 	}
@@ -1770,13 +1774,25 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return void
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
-		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
+		// If there are no recurring carts, or the `WC_Subscriptions_Cart::get_recurring_shipping_package_key` method doesn't exist, we skip this step.
+		// That's because this logic overrides the selected shipping method with the previously chosen shipping method.
+		if (
+			empty( WC()->cart->recurring_carts )
+			|| ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' )
+		) {
 			return;
 		}
 
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
+			// Skip restoration for free-trial recurring carts — their shipping was intentionally
+			// calculated without the Subscriptions shipping package filter, so restoring a
+			// previously chosen method here would conflict with that.
+			if ( $this->recurring_cart_contains_free_trial( $recurring_cart ) ) {
+				continue;
+			}
+
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
 				if ( class_exists( 'WC_Subscriptions_Cart' ) ) {
 					$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
@@ -1898,5 +1914,44 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+	}
+
+	/**
+	 * Check if the cart contains a free trial subscription.
+	 *
+	 * @return bool
+	 */
+	private function cart_contains_free_trial(): bool {
+		return class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial();
+	}
+
+	/**
+	 * Check if a specific recurring cart contains a free trial subscription.
+	 *
+	 * Unlike cart_contains_free_trial(), this operates on a single recurring cart object
+	 * so it can be used to make per-cart decisions inside loops over recurring_carts.
+	 *
+	 * @param WC_Cart $recurring_cart A recurring cart instance from WC()->cart->recurring_carts.
+	 *
+	 * @return bool
+	 */
+	private function recurring_cart_contains_free_trial( $recurring_cart ): bool {
+		if ( ! class_exists( 'WC_Subscriptions_Product' ) ) {
+			return false;
+		}
+
+		foreach ( $recurring_cart->get_cart() as $cart_item ) {
+			$product = isset( $cart_item['data'] ) ? $cart_item['data'] : null;
+
+			if (
+				$product
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0
+			) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

@@ -3294,6 +3294,7 @@ parameters:
 			count: 8
 			path: includes/class-wc-stripe-webhook-handler.php
 
+
 		-
 			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
 			identifier: property.notFound
@@ -4670,6 +4671,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, ''WC_Subscriptions…'' given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php

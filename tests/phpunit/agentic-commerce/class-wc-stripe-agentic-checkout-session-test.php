@@ -191,7 +191,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_billing_address returns the address object.
+	 * Test get_billing_address returns a WC_Stripe_API_Address wrapping the raw address.
 	 */
 	public function test_get_billing_address() {
 		$address = (object) [
@@ -203,15 +203,19 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				'customer_details' => (object) [ 'address' => $address ],
 			]
 		);
-		$this->assertSame( $address, $session->get_billing_address() );
+		$result  = $session->get_billing_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $result );
+		$this->assertEquals( '123 Main St', $result->get_line1() );
+		$this->assertEquals( 'Anytown', $result->get_city() );
 	}
 
 	/**
-	 * Test get_billing_address returns null when missing.
+	 * Test get_billing_address throws when missing.
 	 */
 	public function test_get_billing_address_null_when_missing() {
+		$this->expectException( \Exception::class );
 		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [] );
-		$this->assertNull( $session->get_billing_address() );
+		$session->get_billing_address();
 	}
 
 	/**
@@ -304,7 +308,7 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_shipping_address.
+	 * Test get_shipping_address returns a WC_Stripe_API_Address.
 	 */
 	public function test_get_shipping_address() {
 		$address = (object) [ 'line1' => '456 Oak Ave' ];
@@ -316,7 +320,9 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 				],
 			]
 		);
-		$this->assertSame( $address, $session->get_shipping_address() );
+		$result  = $session->get_shipping_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $result );
+		$this->assertEquals( '456 Oak Ave', $result->get_line1() );
 	}
 
 	/**
@@ -503,11 +509,153 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test get_fields_to_expand is a static method returning the expand fields.
+	 * Test get_fields_to_expand includes both line items and shipping cost.
 	 */
 	public function test_get_fields_to_expand() {
 		$fields = WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand();
 		$this->assertIsArray( $fields );
 		$this->assertContains( 'line_items.data.price.product', $fields );
+		$this->assertContains( 'shipping_cost.shipping_rate', $fields );
+	}
+
+	/**
+	 * @dataProvider provide_chosen_shipping_rate_wc_id_cases
+	 */
+	public function test_get_chosen_shipping_rate_wc_id( object $raw, ?string $expected ) {
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
+		$this->assertSame( $expected, $session->get_chosen_shipping_rate_wc_id() );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_chosen_shipping_rate_wc_id_cases(): array {
+		return [
+			'present'       => [
+				(object) [
+					'shipping_cost' => (object) [
+						'shipping_rate' => (object) [
+							'metadata' => (object) [ 'wc_rate_id' => 'flat_rate:1' ],
+						],
+					],
+				],
+				'flat_rate:1',
+			],
+			'empty string'  => [
+				(object) [
+					'shipping_cost' => (object) [
+						'shipping_rate' => (object) [
+							'metadata' => (object) [ 'wc_rate_id' => '' ],
+						],
+					],
+				],
+				null,
+			],
+			'missing field' => [
+				(object) [],
+				null,
+			],
+			'null metadata' => [
+				(object) [
+					'shipping_cost' => (object) [
+						'shipping_rate' => (object) [
+							'metadata' => null,
+						],
+					],
+				],
+				null,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_chosen_shipping_rate_display_name_cases
+	 */
+	public function test_get_chosen_shipping_rate_display_name( object $raw, ?string $expected ) {
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
+		$this->assertSame( $expected, $session->get_chosen_shipping_rate_display_name() );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_chosen_shipping_rate_display_name_cases(): array {
+		return [
+			'present'       => [
+				(object) [
+					'shipping_cost' => (object) [
+						'shipping_rate' => (object) [ 'display_name' => 'Standard Shipping' ],
+					],
+				],
+				'Standard Shipping',
+			],
+			'empty string'  => [
+				(object) [
+					'shipping_cost' => (object) [
+						'shipping_rate' => (object) [ 'display_name' => '' ],
+					],
+				],
+				null,
+			],
+			'missing field' => [
+				(object) [],
+				null,
+			],
+		];
+	}
+
+	/**
+	 * Test get_billing_address returns WC_Stripe_API_Address and throws when missing.
+	 */
+	public function test_get_billing_address_returns_api_address_type() {
+		$session = new WC_Stripe_Agentic_Checkout_Session(
+			(object) [
+				'customer_details' => (object) [
+					'address' => (object) [
+						'country'     => 'US',
+						'state'       => 'CA',
+						'postal_code' => '90210',
+						'city'        => 'Beverly Hills',
+						'line1'       => '123 Main St',
+						'line2'       => 'Apt 4',
+					],
+				],
+			]
+		);
+
+		$address = $session->get_billing_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $address );
+		$this->assertSame( 'US', $address->get_country() );
+		$this->assertSame( 'CA', $address->get_state() );
+		$this->assertSame( '90210', $address->get_postal_code() );
+		$this->assertSame( 'Beverly Hills', $address->get_city() );
+		$this->assertSame( '123 Main St', $address->get_line1() );
+		$this->assertSame( 'Apt 4', $address->get_line2() );
+	}
+
+	/**
+	 * Test get_shipping_address returns WC_Stripe_API_Address.
+	 */
+	public function test_get_shipping_address_returns_api_address_type() {
+		$session = new WC_Stripe_Agentic_Checkout_Session(
+			(object) [
+				'shipping_details' => (object) [
+					'name'    => 'Test',
+					'address' => (object) [
+						'country' => 'DE',
+						'city'    => 'Berlin',
+					],
+				],
+			]
+		);
+
+		$address = $session->get_shipping_address();
+		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $address );
+		$this->assertSame( 'DE', $address->get_country() );
+		$this->assertSame( 'Berlin', $address->get_city() );
+		$this->assertNull( $address->get_state() );
+		$this->assertNull( $address->get_postal_code() );
+		$this->assertNull( $address->get_line1() );
+		$this->assertNull( $address->get_line2() );
 	}
 }

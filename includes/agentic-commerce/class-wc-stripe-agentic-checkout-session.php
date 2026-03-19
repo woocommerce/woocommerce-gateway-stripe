@@ -26,17 +26,17 @@ class WC_Stripe_Agentic_Checkout_Session {
 	/**
 	 * The raw Stripe checkout session object.
 	 *
-	 * @var object
+	 * @var stdClass
 	 */
-	private object $session;
+	private stdClass $session;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.6.0
-	 * @param object $session The raw Stripe checkout session object.
+	 * @param stdClass $session The raw Stripe checkout session object.
 	 */
-	public function __construct( object $session ) {
+	public function __construct( stdClass $session ) {
 		$this->session = $session;
 	}
 
@@ -49,6 +49,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	public static function get_fields_to_expand(): array {
 		return [
 			'line_items.data.price.product',
+			'shipping_cost.shipping_rate',
 		];
 	}
 
@@ -100,7 +101,8 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * @return string|null
 	 */
 	public function get_customer_email(): ?string {
-		$email = $this->session->customer_details->email ?? $this->session->customer_email ?? null;
+		$customer_details = $this->session->customer_details ?? null;
+		$email            = $customer_details->email ?? $this->session->customer_email ?? null;
 		return null !== $email ? (string) $email : null;
 	}
 
@@ -112,7 +114,8 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * @return string|null
 	 */
 	public function get_customer_name(): ?string {
-		$name = $this->session->customer_details->name ?? $this->get_shipping_name();
+		$customer_details = $this->session->customer_details ?? null;
+		$name             = $customer_details->name ?? $this->get_shipping_name();
 		return null !== $name ? (string) $name : null;
 	}
 
@@ -130,10 +133,19 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the billing address object.
 	 *
 	 * @since 10.6.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address
 	 */
-	public function get_billing_address(): ?object {
-		return $this->session->customer_details->address ?? null;
+	public function get_billing_address(): WC_Stripe_API_Address {
+		$address = $this->session->customer_details->address ?? null;
+		if ( null === $address ) {
+			throw new Exception(
+				sprintf(
+					'Checkout session %s has no billing address.',
+					$this->get_id()
+				)
+			);
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 
 	/**
@@ -181,10 +193,15 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the shipping address object.
 	 *
 	 * @since 10.6.0
-	 * @return object|null
+	 * @return WC_Stripe_API_Address|null
 	 */
-	public function get_shipping_address(): ?object {
-		return $this->get_shipping_details()->address ?? null;
+	public function get_shipping_address(): ?WC_Stripe_API_Address {
+		$details = $this->get_shipping_details();
+		$address = $details->address ?? null;
+		if ( null === $address ) {
+			return null;
+		}
+		return new WC_Stripe_API_Address( $address );
 	}
 
 	/**
@@ -231,6 +248,28 @@ class WC_Stripe_Agentic_Checkout_Session {
 			return (string) $customer->id;
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the WooCommerce rate ID from the chosen Stripe shipping rate metadata.
+	 *
+	 * @since 10.6.0
+	 * @return string|null
+	 */
+	public function get_chosen_shipping_rate_wc_id(): ?string {
+		$rate_id = $this->session->shipping_cost->shipping_rate->metadata->wc_rate_id ?? null;
+		return is_string( $rate_id ) && '' !== $rate_id ? $rate_id : null;
+	}
+
+	/**
+	 * Returns the display name of the chosen Stripe shipping rate.
+	 *
+	 * @since 10.6.0
+	 * @return string|null
+	 */
+	public function get_chosen_shipping_rate_display_name(): ?string {
+		$name = $this->session->shipping_cost->shipping_rate->display_name ?? null;
+		return is_string( $name ) && '' !== $name ? $name : null;
 	}
 
 	/**
