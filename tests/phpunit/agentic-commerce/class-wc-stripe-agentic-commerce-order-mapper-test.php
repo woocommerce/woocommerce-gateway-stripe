@@ -1033,6 +1033,365 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that map_shipping is skipped when no shipping rate display name is present.
+	 */
+	public function test_order_created_without_shipping_when_no_rate_chosen() {
+		$session = $this->build_checkout_session(
+			[
+				'shipping_cost' => null,
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$shipping_items = $order->get_items( 'shipping' );
+		$this->assertEquals( [], $shipping_items );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Test that map_shipping adds a WC_Order_Item_Shipping when a rate is available.
+	 */
+	public function test_order_includes_shipping_item_when_rate_chosen() {
+		$zone = new \WC_Shipping_Zone();
+		$zone->set_zone_name( 'US Shipping' );
+		$zone->set_zone_order( 1 );
+		$zone->save();
+		$zone->add_location( 'US', 'country' );
+
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$method      = \WC_Shipping_Zones::get_shipping_method( $instance_id );
+		$option_key  = $method->get_instance_option_key();
+
+		update_option(
+			$option_key,
+			[
+				'title' => 'US Flat Rate',
+				'cost'  => '5',
+			]
+		);
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$wc_rate_id = 'flat_rate:' . $instance_id;
+
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 1500,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 500,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'US Flat Rate',
+						'metadata'     => (object) [ 'wc_rate_id' => $wc_rate_id ],
+					],
+				],
+			]
+		);
+
+		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		$shipping_items = $order->get_items( 'shipping' );
+
+		$this->assertCount( 1, $shipping_items );
+
+		$shipping_item = reset( $shipping_items );
+		$this->assertEquals( 'US Flat Rate', $shipping_item->get_method_title() );
+		$this->assertEquals( '15.00', $order->get_total() );
+
+		$order->delete( true );
+		$zone->delete();
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+	}
+
+	/**
+	 * Test that calculate_totals() is called with tax calculation enabled.
+	 */
+	public function test_order_total_includes_tax_via_calculate_totals() {
+		$original_calc_taxes = get_option( 'woocommerce_calc_taxes' );
+		$original_tax_based  = get_option( 'woocommerce_tax_based_on' );
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+		update_option( 'woocommerce_tax_based_on', 'shipping' );
+
+		$tax_rate_id = \WC_Tax::_insert_tax_rate(
+			[
+				'tax_rate_country'  => 'US',
+				'tax_rate_state'    => 'CA',
+				'tax_rate'          => '10.0000',
+				'tax_rate_name'     => 'Test Tax',
+				'tax_rate_priority' => 1,
+				'tax_rate_compound' => 0,
+				'tax_rate_shipping' => 0,
+				'tax_rate_order'    => 0,
+				'tax_rate_class'    => '',
+			]
+		);
+
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 1100,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 100,
+					'amount_discount' => 0,
+				],
+			]
+		);
+
+		$order = $this->mapper->create_order_from_checkout_session( $session );
+
+		$order_total = $order->get_total();
+		$total_tax   = $order->get_total_tax();
+
+		$order->delete( true );
+		\WC_Tax::_delete_tax_rate( $tax_rate_id );
+
+		update_option( 'woocommerce_calc_taxes', $original_calc_taxes );
+		update_option( 'woocommerce_tax_based_on', $original_tax_based );
+
+		// Order total should be 11.00 (10.00 + 1.00 tax).
+		$this->assertEquals( '11.00', $order_total );
+		$this->assertGreaterThan( 0, (float) $total_tax );
+	}
+
+	/**
+	 * Test that map_shipping matches by single available rate (priority 2 fallback).
+	 *
+	 * Uses a BR address/zone to avoid interference from leaked US zones.
+	 */
+	public function test_shipping_matched_by_single_available_rate() {
+		$zone = new \WC_Shipping_Zone();
+		$zone->set_zone_name( 'BR Shipping' );
+		$zone->set_zone_order( 1 );
+		$zone->save();
+		$zone->add_location( 'BR', 'country' );
+
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$method      = \WC_Shipping_Zones::get_shipping_method( $instance_id );
+
+		update_option(
+			$method->get_instance_option_key(),
+			[
+				'title' => 'Only Rate',
+				'cost'  => '5',
+			]
+		);
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$br_address = (object) [
+			'line1'       => 'Rua Test 123',
+			'line2'       => '',
+			'city'        => 'Sao Paulo',
+			'state'       => 'SP',
+			'postal_code' => '01000-000',
+			'country'     => 'BR',
+		];
+
+		// No wc_rate_id in metadata, and display name doesn't match — single rate fallback kicks in.
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'     => 1500,
+				'amount_subtotal'  => 1000,
+				'total_details'    => (object) [
+					'amount_shipping' => 500,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'customer_details' => (object) [
+					'email'   => 'test@example.com',
+					'name'    => 'Test User',
+					'phone'   => '+1234567890',
+					'address' => $br_address,
+				],
+				'shipping_details' => (object) [
+					'name'    => 'Test User',
+					'address' => $br_address,
+				],
+				'shipping_cost'    => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Some Other Name',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		$shipping_items = $order->get_items( 'shipping' );
+
+		$this->assertCount( 1, $shipping_items );
+		$shipping_item = reset( $shipping_items );
+		$this->assertEquals( 'Only Rate', $shipping_item->get_method_title() );
+
+		$order->delete( true );
+		$zone->delete();
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+	}
+
+	/**
+	 * Test that map_shipping matches by display name (priority 3 fallback).
+	 */
+	public function test_shipping_matched_by_display_name() {
+		$zone = new \WC_Shipping_Zone();
+		$zone->set_zone_name( 'US Shipping' );
+		$zone->set_zone_order( 1 );
+		$zone->save();
+		$zone->add_location( 'US', 'country' );
+
+		// Add two methods so single-rate fallback doesn't kick in.
+		$instance_id_1 = $zone->add_shipping_method( 'flat_rate' );
+		$method_1      = \WC_Shipping_Zones::get_shipping_method( $instance_id_1 );
+		update_option(
+			$method_1->get_instance_option_key(),
+			[
+				'title' => 'Standard Shipping',
+				'cost'  => '5',
+			]
+		);
+
+		$instance_id_2 = $zone->add_shipping_method( 'flat_rate' );
+		$method_2      = \WC_Shipping_Zones::get_shipping_method( $instance_id_2 );
+		update_option(
+			$method_2->get_instance_option_key(),
+			[
+				'title' => 'Express Shipping',
+				'cost'  => '15',
+			]
+		);
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		// Recalculate shipping to find the actual rate cost for Express Shipping.
+		$shipping = WC()->shipping();
+		$shipping->calculate_shipping(
+			[
+				[
+					'contents'        => [],
+					'contents_cost'   => 0,
+					'applied_coupons' => [],
+					'user'            => [ 'ID' => 0 ],
+					'destination'     => [
+						'country'  => 'US',
+						'state'    => 'CA',
+						'postcode' => '90210',
+						'city'     => 'Anytown',
+						'address'  => '',
+					],
+					'cart_subtotal'   => 0,
+				],
+			]
+		);
+		$rates        = $shipping->get_packages()[0]['rates'] ?? [];
+		$express_cost = 0;
+		foreach ( $rates as $rate ) {
+			if ( 'Express Shipping' === $rate->get_label() ) {
+				$express_cost = (int) ( $rate->get_cost() * 100 );
+				break;
+			}
+		}
+
+		// No wc_rate_id — falls through to display name match.
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 1000 + $express_cost,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => $express_cost,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Express Shipping',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		$shipping_items = $order->get_items( 'shipping' );
+
+		$this->assertCount( 1, $shipping_items );
+		$shipping_item = reset( $shipping_items );
+		$this->assertEquals( 'Express Shipping', $shipping_item->get_method_title() );
+
+		$order->delete( true );
+		$zone->delete();
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+	}
+
+	/**
+	 * Test that map_shipping throws when no matching rate is found.
+	 *
+	 * Disables shipping entirely so WC returns no rates, guaranteeing
+	 * the "not available" exception regardless of leaked zones.
+	 */
+	public function test_shipping_throws_when_no_matching_rate() {
+		$original = get_option( 'woocommerce_ship_to_countries' );
+		update_option( 'woocommerce_ship_to_countries', 'disabled' );
+
+		$session = $this->build_checkout_session(
+			[
+				'shipping_cost' => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Nonexistent Method',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'not available' );
+
+		try {
+			$this->mapper->create_order_from_checkout_session( $session );
+		} finally {
+			update_option( 'woocommerce_ship_to_countries', $original );
+		}
+	}
+
+	/**
+	 * Test that verify_order_total throws when the totals don't match.
+	 */
+	public function test_exception_thrown_when_order_total_mismatches_session() {
+		$session = $this->build_checkout_session(
+			[
+				// Stripe says 99.99 but the product is 10.00 — mismatch.
+				'amount_total'    => 9999,
+				'amount_subtotal' => 9999,
+				'total_details'   => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'total mismatch' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
 	 * Builds a Stripe checkout session wrapper for testing.
 	 *
 	 * @param array<string, mixed>  $overrides Fields to override on the default session.
