@@ -1525,36 +1525,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_european_economic_area_countries() {
 		return [
-			WC_Stripe_Country_Code::AUSTRIA,        // Austria.
-			WC_Stripe_Country_Code::BELGIUM,        // Belgium.
-			WC_Stripe_Country_Code::BULGARIA,       // Bulgaria.
-			WC_Stripe_Country_Code::CROATIA,        // Croatia.
-			WC_Stripe_Country_Code::CYPRUS,         // Cyprus.
-			WC_Stripe_Country_Code::CZECH_REPUBLIC, // Czech Republic.
-			WC_Stripe_Country_Code::DENMARK,        // Denmark.
-			WC_Stripe_Country_Code::ESTONIA,        // Estonia.
-			WC_Stripe_Country_Code::FINLAND,        // Finland.
-			WC_Stripe_Country_Code::FRANCE,         // France.
-			WC_Stripe_Country_Code::GERMANY,        // Germany.
-			WC_Stripe_Country_Code::GREECE,         // Greece.
-			WC_Stripe_Country_Code::HUNGARY,        // Hungary.
-			WC_Stripe_Country_Code::IRELAND,        // Ireland.
-			WC_Stripe_Country_Code::ICELAND,        // Iceland.
-			WC_Stripe_Country_Code::ITALY,          // Italy.
-			WC_Stripe_Country_Code::LATVIA,         // Latvia.
-			WC_Stripe_Country_Code::LIECHTENSTEIN,  // Liechtenstein.
-			WC_Stripe_Country_Code::LITHUANIA,      // Lithuania.
-			WC_Stripe_Country_Code::LUXEMBOURG,     // Luxembourg.
-			WC_Stripe_Country_Code::MALTA,          // Malta.
-			WC_Stripe_Country_Code::NORWAY,         // Norway.
-			WC_Stripe_Country_Code::NETHERLANDS,    // Netherlands.
-			WC_Stripe_Country_Code::POLAND,         // Poland.
-			WC_Stripe_Country_Code::PORTUGAL,       // Portugal.
-			WC_Stripe_Country_Code::ROMANIA,        // Romania.
-			WC_Stripe_Country_Code::SLOVAKIA,       // Slovakia.
-			WC_Stripe_Country_Code::SLOVENIA,       // Slovenia.
-			WC_Stripe_Country_Code::SPAIN,          // Spain.
-			WC_Stripe_Country_Code::SWEDEN,         // Sweden.
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CROATIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::HUNGARY,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ICELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LIECHTENSTEIN,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::POLAND,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
 		];
 	}
 
