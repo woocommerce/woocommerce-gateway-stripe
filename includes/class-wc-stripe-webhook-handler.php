@@ -1908,6 +1908,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			assert( $raw_session instanceof stdClass );
 			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
 
 			if ( ! $session->is_agentic() ) {
