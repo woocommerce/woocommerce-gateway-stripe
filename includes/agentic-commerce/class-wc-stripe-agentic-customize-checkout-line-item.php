@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * This is a simple value object with two getters. It is tested indirectly
  * through the tax calculator and customization hook tests.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 
@@ -37,7 +37,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param stdClass $item The raw line item object from the customize_checkout event.
 	 */
 	public function __construct( stdClass $item ) {
@@ -47,7 +47,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	/**
 	 * Returns the line item ID.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_id(): string {
@@ -57,7 +57,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	/**
 	 * Returns the SKU ID used to look up the WooCommerce product.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_sku_id(): string {

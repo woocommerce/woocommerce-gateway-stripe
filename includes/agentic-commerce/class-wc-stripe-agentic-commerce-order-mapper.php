@@ -411,7 +411,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * Does nothing when no shipping rate was chosen (digital goods or not applicable).
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When no matching WC rate can be found.

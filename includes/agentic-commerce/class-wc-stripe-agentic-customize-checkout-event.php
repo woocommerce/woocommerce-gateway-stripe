@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * options) during the agentic checkout flow. The event contains line
  * items, addresses, and tax configuration.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Customize_Checkout_Event {
 
@@ -33,7 +33,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Constructor.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param stdClass $event The raw Stripe event object.
 	 */
 	public function __construct( stdClass $event ) {
@@ -43,7 +43,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the event ID.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_id(): string {
@@ -53,7 +53,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the event type.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_type(): string {
@@ -63,7 +63,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns whether this is a live mode event.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return bool
 	 */
 	public function is_livemode(): bool {
@@ -73,7 +73,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the currency code in lowercase.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return string
 	 */
 	public function get_currency(): string {
@@ -86,7 +86,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	 * When true, Stripe handles tax calculation and the merchant
 	 * should not return custom tax rates.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return bool
 	 */
 	public function is_automatic_tax_enabled(): bool {
@@ -96,7 +96,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the line items as typed wrapper objects.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Customize_Checkout_Line_Item[]
 	 */
 	public function get_line_items(): array {
@@ -121,7 +121,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	 * Note: The customize_checkout event does not include a separate billing address.
 	 * The shipping address is used as the billing address for tax/shipping calculations.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_API_Address
 	 */
 	public function get_billing_address(): WC_Stripe_API_Address {
@@ -141,7 +141,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 	/**
 	 * Returns the shipping address object.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_API_Address|null
 	 */
 	public function get_shipping_address(): ?WC_Stripe_API_Address {

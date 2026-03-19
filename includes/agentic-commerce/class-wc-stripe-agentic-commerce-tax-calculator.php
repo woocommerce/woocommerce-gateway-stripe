@@ -19,13 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * SKU, determines the applicable tax class, and returns WooCommerce tax
  * rates in Stripe's rate_data format (percentage-based).
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	/**
 	 * Extracts line items from a customization hook event.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event The customization hook event.
 	 * @return array<string,string> The line items hash. Line item ID => SKU ID.
 	 */
@@ -48,7 +48,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	 * tax_rates in rate_data format. Stripe applies the rates itself —
 	 * we only provide the rate percentages.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event      The customization hook event.
 	 * @param array<string,string>                       $line_items The line items hash. Line item ID => Product ID.
 	 * @return array The response array in Stripe's expected format.
@@ -94,7 +94,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	/**
 	 * Calculates tax rates for a single line item.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param string                 $line_item_id The line item ID.
 	 * @param string                 $product_id   The product ID.
 	 * @param WC_Stripe_API_Address  $address      The tax address.
@@ -135,7 +135,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	/**
 	 * Converts WooCommerce tax rates to Stripe's rate_data format.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param array $wc_tax_rates Tax rates from WC_Tax::find_rates().
 	 * @return array Array of Stripe tax rate objects with rate_data.
 	 */
@@ -159,7 +159,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 	/**
 	 * Maps line items to a callback.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param callable $callback   The callback to map the line items.
 	 * @param array    $line_items The line items.
 	 * @return array The mapped line items.
