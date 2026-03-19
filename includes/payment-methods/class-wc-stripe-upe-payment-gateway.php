@@ -1061,10 +1061,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Adds the converted currency information to the order total on the order received page and My Account orders when the order is paid with a different currency than the store currency.
 	 *
-	 * @param string   $formatted_total  Total to display.
-	 * @param WC_Order $order            Order data.
+	 * @param string            $formatted_total  Total to display.
+	 * @param WC_Abstract_Order $order            Order data.
 	 */
-	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
+	public function add_converted_currency_information( string $formatted_total, $order ): string {
 		if ( ! $order instanceof WC_Order ) {
 			return $formatted_total;
 		}
