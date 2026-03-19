@@ -21,16 +21,20 @@ class WC_Stripe_API_Address {
 	/**
 	 * The raw Stripe address object.
 	 *
-	 * @var mixed
+	 * @var stdClass
 	 */
-	private $address;
+	private stdClass $address;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param mixed $address The raw Stripe address object.
+	 * @param object $address The raw Stripe address object.
+	 * @throws \InvalidArgumentException If the address is not a stdClass instance.
 	 */
 	public function __construct( $address ) {
+		if ( ! $address instanceof stdClass ) {
+			throw new \InvalidArgumentException( 'Address must be a stdClass instance.' );
+		}
 		$this->address = $address;
 	}
 
