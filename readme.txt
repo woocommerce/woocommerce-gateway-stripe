@@ -147,10 +147,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
+* Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
+* Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Add - Allow additional font domains to be included in Stripe fonts
+* Fix - Add order and payment method validation to prevent errors
+* Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
+* Fix - Improve default layout when Optimized Checkout is disabled
+* Fix - Improve performance of CSS style lookups
+* Fix - Prevent incorrect re-enablement of express checkout methods during upgrades
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
