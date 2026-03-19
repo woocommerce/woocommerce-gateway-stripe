@@ -653,5 +653,9 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( \WC_Stripe_API_Address::class, $address );
 		$this->assertSame( 'DE', $address->get_country() );
 		$this->assertSame( 'Berlin', $address->get_city() );
+		$this->assertNull( $address->get_state() );
+		$this->assertNull( $address->get_postal_code() );
+		$this->assertNull( $address->get_line1() );
+		$this->assertNull( $address->get_line2() );
 	}
 }

@@ -5,7 +5,7 @@
  * Calculates shipping options for the customize_checkout webhook event.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.5.0
+ * @since   10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * session, calculates available shipping rates via WooCommerce, and returns them
  * in Stripe's shipping_options format so the AI agent can present them to the customer.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Shipping_Calculator {
 	/**
@@ -29,7 +29,7 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 	 * each available rate's display name and fixed amount. Returns an empty
 	 * array when shipping is disabled or no rates are found for the destination.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code (e.g. "USD").
 	 * @return array The response array in Stripe's expected format, or [] when no rates apply.
@@ -71,9 +71,9 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$shipping->calculate_shipping( [ $package ] );
 
-		$rates = $shipping->get_packages()[0]['rates'] ?? [];
+		$shipping_rates = $shipping->get_packages()[0]['rates'] ?? [];
 
-		if ( empty( $rates ) ) {
+		if ( empty( $shipping_rates ) ) {
 			return [];
 		}
 
@@ -94,22 +94,24 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$tax_rates = WC_Tax::find_rates( $tax_location );
 
-		foreach ( $rates as $rate ) {
-			$net_cost = (float) $rate->get_cost();
+		foreach ( $shipping_rates as $shipping_rate ) {
+			$net_cost = (float) $shipping_rate->get_cost();
 			$taxes    = WC_Tax::calc_tax( $net_cost, $tax_rates, false );
 			$gross    = $net_cost + array_sum( $taxes );
 			$amount   = WC_Stripe_Helper::get_stripe_amount( $gross, $currency );
 
 			$formatted_rates[] = [
 				'shipping_rate_data' => [
-					'display_name' => $rate->get_label(),
+					'display_name' => $shipping_rate->get_label(),
+					// Tax is pre-calculated and included in the amount, so we mark it
+					// as inclusive to prevent Stripe from applying tax again.
 					'tax_behavior' => 'inclusive',
 					'fixed_amount' => [
 						'amount'   => $amount,
 						'currency' => strtolower( $currency ),
 					],
 					'metadata'     => [
-						'wc_rate_id' => $rate->get_id(),
+						'wc_rate_id' => $shipping_rate->get_id(),
 					],
 				],
 			];

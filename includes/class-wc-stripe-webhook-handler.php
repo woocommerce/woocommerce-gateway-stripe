@@ -1809,9 +1809,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$response = $this->process_agentic_finalize_checkout_hook( $event );
 					break;
 				default:
-					$response = [
-						'message' => 'Unsupported agentic hook type: ' . $event_type,
-					];
 					WC_Stripe_Logger::error( 'Unsupported agentic hook type: ' . $event_type );
 					status_header( 400 );
 					exit;
@@ -1825,7 +1822,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic hook failed.',
-				[ 'error' => $e->getMessage() ]
+				[
+					'error' => $e->getMessage(),
+					'event' => $event,
+				]
 			);
 
 			status_header( 400 );
@@ -1838,7 +1838,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * This parameter is expected to generate both an HTTP status code and a JSON response.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param stdClass $event The webhook event from Stripe.
 	 * @return array
 	 * @throws Exception
@@ -1920,6 +1920,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			assert( $raw_session instanceof stdClass );
 			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
 
 			if ( ! $session->is_agentic() ) {

@@ -1045,7 +1045,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		$order = $this->mapper->create_order_from_checkout_session( $session );
 
 		$shipping_items = $order->get_items( 'shipping' );
-		$this->assertEmpty( $shipping_items );
+		$this->assertEquals( [], $shipping_items );
 
 		$order->delete( true );
 	}
@@ -1149,15 +1149,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$order = $this->mapper->create_order_from_checkout_session( $session );
 
-		// Order total should be 11.00 (10.00 + 1.00 tax).
-		$this->assertEquals( '11.00', $order->get_total() );
-		$this->assertGreaterThan( 0, (float) $order->get_total_tax() );
+		$order_total = $order->get_total();
+		$total_tax   = $order->get_total_tax();
 
 		$order->delete( true );
 		\WC_Tax::_delete_tax_rate( $tax_rate_id );
 
 		update_option( 'woocommerce_calc_taxes', $original_calc_taxes );
 		update_option( 'woocommerce_tax_based_on', $original_tax_based );
+
+		// Order total should be 11.00 (10.00 + 1.00 tax).
+		$this->assertEquals( '11.00', $order_total );
+		$this->assertGreaterThan( 0, (float) $total_tax );
 	}
 
 	/**

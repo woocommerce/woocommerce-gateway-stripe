@@ -3289,12 +3289,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$session of class WC_Stripe_Agentic_Checkout_Session constructor expects stdClass, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 8

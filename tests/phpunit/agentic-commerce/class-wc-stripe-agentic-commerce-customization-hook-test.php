@@ -190,10 +190,23 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 
 		if ( 'assertEmpty_tax_rates' === $assert_method ) {
 			$this->assertArrayHasKey( 'line_items', $response );
-			$this->assertEmpty( $response['line_items'][0]['tax_rates'] );
+			$this->assertEquals( [], $response['line_items'][0]['tax_rates'] );
 		} else {
 			$this->assertArrayNotHasKey( $assert_key, $response );
 		}
+	}
+
+	/**
+	 * Test that automatic_tax enabled returns empty tax rates even when WC taxes are on.
+	 */
+	public function test_automatic_tax_returns_empty_rates(): void {
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+
+		$event    = $this->build_raw_event_from_products( [ $this->product ], [], true );
+		$response = $this->invoke_hook( $event );
+
+		$this->assertArrayHasKey( 'line_items', $response );
+		$this->assertEquals( [], $response['line_items'][0]['tax_rates'] );
 	}
 
 	/**
