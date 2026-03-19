@@ -4040,7 +4040,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		$this->assertEquals( '$10.00 (' . $expected_amount . ' EUR)', $result );
+		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
 	}
 
 	/**
@@ -4157,7 +4157,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		$this->assertEquals( '$10.00 (' . $expected_amount . ' EUR)', $result );
+		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
 	}
 
 	/**

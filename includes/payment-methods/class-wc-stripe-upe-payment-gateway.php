@@ -1091,7 +1091,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$presentment_currency
 		);
 
-		return $formatted_total . ' (' . $currency_symbol . $amount . ' ' . strtoupper( $presentment_currency ) . ')';
+		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . strtoupper( $presentment_currency ) . ')';
 	}
 
 	/**
