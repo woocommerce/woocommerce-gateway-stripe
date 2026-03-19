@@ -1085,7 +1085,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $formatted_total;
 		}
 
-		$currency_symbol = get_woocommerce_currency_symbol( $presentment_currency );
+		$currency_symbol = get_woocommerce_currency_symbol( strtoupper( $presentment_currency ) );
 		$amount          = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_amount,
 			$presentment_currency
