@@ -103,6 +103,8 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 			$formatted_rates[] = [
 				'shipping_rate_data' => [
 					'display_name' => $shipping_rate->get_label(),
+					// Tax is pre-calculated and included in the amount, so we mark it
+					// as inclusive to prevent Stripe from applying tax again.
 					'tax_behavior' => 'inclusive',
 					'fixed_amount' => [
 						'amount'   => $amount,
