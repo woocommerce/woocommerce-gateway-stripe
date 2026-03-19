@@ -173,7 +173,10 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 		return [
 			'filter declines an approved order' => [
 				'product_args'    => [],
-				'filter_return'   => 'Blocked by custom rule.',
+				'filter_return'   => [
+					'code'   => 'custom_rule',
+					'reason' => 'Blocked by custom rule.',
+				],
 				'expected_type'   => 'declined',
 				'expected_reason' => 'Blocked by custom rule.',
 			],
@@ -191,7 +194,7 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider filter_override_provider
 	 */
-	public function test_filter_overrides_decision( array $product_args, ?string $filter_return, string $expected_type, ?string $expected_reason ): void {
+	public function test_filter_overrides_decision( array $product_args, ?array $filter_return, string $expected_type, ?string $expected_reason ): void {
 		$product = $this->create_product( $product_args );
 		$event   = $this->build_finalize_event( [ $product ] );
 
@@ -214,26 +217,52 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that the filter receives the event object.
+	 * Test that the filter receives the event object and null line item for approved orders.
 	 */
-	public function test_filter_receives_event(): void {
-		$product       = $this->create_product();
-		$event         = $this->build_finalize_event( [ $product ] );
-		$captured_event = null;
+	public function test_filter_receives_event_and_null_line_item(): void {
+		$product            = $this->create_product();
+		$event              = $this->build_finalize_event( [ $product ] );
+		$captured_event     = null;
+		$captured_line_item = 'not_set';
 
 		add_filter(
 			'wc_stripe_agentic_approve_order',
-			function ( $reason, $evt ) use ( &$captured_event ) {
-				$captured_event = $evt;
-				return $reason;
+			function ( $decline, $evt, $line_item ) use ( &$captured_event, &$captured_line_item ) {
+				$captured_event     = $evt;
+				$captured_line_item = $line_item;
+				return $decline;
 			},
 			10,
-			2
+			3
 		);
 
 		$this->approval->validate( $event );
 
 		$this->assertInstanceOf( WC_Stripe_Agentic_Customize_Checkout_Event::class, $captured_event );
+		$this->assertNull( $captured_line_item );
+	}
+
+	/**
+	 * Test that the filter receives the invalid line item for declined orders.
+	 */
+	public function test_filter_receives_invalid_line_item(): void {
+		$product            = $this->create_product( [ 'stock_status' => 'outofstock' ] );
+		$event              = $this->build_finalize_event( [ $product ] );
+		$captured_line_item = null;
+
+		add_filter(
+			'wc_stripe_agentic_approve_order',
+			function ( $decline, $evt, $line_item ) use ( &$captured_line_item ) {
+				$captured_line_item = $line_item;
+				return $decline;
+			},
+			10,
+			3
+		);
+
+		$this->approval->validate( $event );
+
+		$this->assertInstanceOf( \WC_Stripe_Agentic_Customize_Checkout_Line_Item::class, $captured_line_item );
 	}
 
 	/**
