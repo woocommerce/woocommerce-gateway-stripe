@@ -71,9 +71,9 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$shipping->calculate_shipping( [ $package ] );
 
-		$rates = $shipping->get_packages()[0]['rates'] ?? [];
+		$shipping_rates = $shipping->get_packages()[0]['rates'] ?? [];
 
-		if ( empty( $rates ) ) {
+		if ( empty( $shipping_rates ) ) {
 			return [];
 		}
 
@@ -94,22 +94,22 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 
 		$tax_rates = WC_Tax::find_rates( $tax_location );
 
-		foreach ( $rates as $rate ) {
-			$net_cost = (float) $rate->get_cost();
+		foreach ( $shipping_rates as $shipping_rate ) {
+			$net_cost = (float) $shipping_rate->get_cost();
 			$taxes    = WC_Tax::calc_tax( $net_cost, $tax_rates, false );
 			$gross    = $net_cost + array_sum( $taxes );
 			$amount   = WC_Stripe_Helper::get_stripe_amount( $gross, $currency );
 
 			$formatted_rates[] = [
 				'shipping_rate_data' => [
-					'display_name' => $rate->get_label(),
+					'display_name' => $shipping_rate->get_label(),
 					'tax_behavior' => 'inclusive',
 					'fixed_amount' => [
 						'amount'   => $amount,
 						'currency' => strtolower( $currency ),
 					],
 					'metadata'     => [
-						'wc_rate_id' => $rate->get_id(),
+						'wc_rate_id' => $shipping_rate->get_id(),
 					],
 				],
 			];
