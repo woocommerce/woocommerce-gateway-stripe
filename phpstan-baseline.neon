@@ -1831,12 +1831,6 @@ parameters:
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method\(\) should return array but returns array\|stdClass\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
 			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
