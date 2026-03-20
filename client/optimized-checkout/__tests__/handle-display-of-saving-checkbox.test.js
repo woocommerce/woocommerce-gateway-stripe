@@ -2,9 +2,21 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_KLARNA,
 } from 'wcstripe/stripe-utils/constants';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
+
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	...jest.requireActual( 'wcstripe/stripe-utils' ),
+	isLinkEnabled: jest.fn().mockReturnValue( false ),
+	getStripeServerData: jest.fn( () => global.wc_stripe_upe_params ),
+} ) );
 
 describe( 'handleDisplayOfSavingCheckbox', () => {
+	beforeEach( () => {
+		isLinkEnabled.mockReturnValue( false );
+	} );
+
 	describe( 'Block checkout', () => {
 		it( 'Correctly toggle the display of the saving payment method checkbox', () => {
 			document.body.innerHTML = `
@@ -22,6 +34,34 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 
 			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
 			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Hides store checkbox when Link is enabled and card is selected', () => {
+			isLinkEnabled.mockReturnValue( true );
+
+			document.body.innerHTML =
+				'<div class="wc-block-components-payment-methods__save-card-info"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.wc-block-components-payment-methods__save-card-info'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Shows store checkbox for non-card methods even when Link is enabled', () => {
+			isLinkEnabled.mockReturnValue( true );
+
+			document.body.innerHTML =
+				'<div class="wc-block-components-payment-methods__save-card-info"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.wc-block-components-payment-methods__save-card-info'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_KLARNA );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
 		} );
 	} );
 
@@ -107,6 +147,36 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 
 			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
 			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Hides store checkbox when Link is enabled and card is selected (logged in)', () => {
+			isLinkEnabled.mockReturnValue( true );
+			global.wc_stripe_upe_params = { isLoggedIn: true };
+
+			document.body.innerHTML =
+				'<div class="woocommerce-SavedPaymentMethods-saveNew"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Shows store checkbox for non-card methods even when Link is enabled (logged in)', () => {
+			isLinkEnabled.mockReturnValue( true );
+			global.wc_stripe_upe_params = { isLoggedIn: true };
+
+			document.body.innerHTML =
+				'<div class="woocommerce-SavedPaymentMethods-saveNew"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_KLARNA );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
 		} );
 
 		it( 'User is logged out, and the signup option is not available', () => {

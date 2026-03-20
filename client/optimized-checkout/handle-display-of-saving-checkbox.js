@@ -1,5 +1,29 @@
-import { NON_REUSABLE_METHODS } from 'wcstripe/stripe-utils/constants';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import {
+	NON_REUSABLE_METHODS,
+	PAYMENT_METHOD_CARD,
+} from 'wcstripe/stripe-utils/constants';
+import { getStripeServerData, isLinkEnabled } from 'wcstripe/stripe-utils';
+
+/**
+ * Determines whether the store-level save checkbox should be hidden.
+ *
+ * When Link is enabled and the selected method is card, the store-level
+ * checkbox is hidden because Link handles save consent via the Payment Element.
+ *
+ * @param {string} method The selected payment method type.
+ * @return {boolean} True if the checkbox should be hidden.
+ */
+const shouldHideSaveCheckbox = ( method ) => {
+	if ( NON_REUSABLE_METHODS.includes( method ) ) {
+		return true;
+	}
+
+	if ( method === PAYMENT_METHOD_CARD && isLinkEnabled() ) {
+		return true;
+	}
+
+	return false;
+};
 
 export const handleDisplayOfSavingCheckbox = ( method ) => {
 	// For block checkout
@@ -7,8 +31,11 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		'.wc-block-components-payment-methods__save-card-info'
 	);
 	if ( saveCardInfoContainerBlocks ) {
-		saveCardInfoContainerBlocks.style.display =
-			NON_REUSABLE_METHODS.includes( method ) ? 'none' : 'block';
+		saveCardInfoContainerBlocks.style.display = shouldHideSaveCheckbox(
+			method
+		)
+			? 'none'
+			: 'block';
 		return;
 	}
 
@@ -29,7 +56,7 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		if (
 			( getStripeServerData()?.isLoggedIn || signupSelected ) &&
 			! hasSavedPaymentMethodSelected &&
-			! NON_REUSABLE_METHODS.includes( method )
+			! shouldHideSaveCheckbox( method )
 		) {
 			saveCardInfoContainerClassic.style.display = 'block';
 		} else {
