@@ -28,6 +28,7 @@ import {
 import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
@@ -281,6 +282,11 @@ const PaymentProcessor = ( {
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
+			// Hide the store-level save checkbox on initial load if needed
+			// (e.g., when Link is enabled and card is the default method).
+			handleDisplayOfSavingCheckbox(
+				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD
+			);
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
 			const savingPaymentMethodCheckbox = document.querySelector(
