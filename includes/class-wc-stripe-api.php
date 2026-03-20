@@ -47,6 +47,16 @@ class WC_Stripe_API {
 	private static $secret_key = '';
 
 	/**
+	 * Cached Stripe SDK client instance.
+	 *
+	 * Reset whenever the secret key changes so callers always get a client
+	 * that matches the currently active key.
+	 *
+	 * @var \Stripe\StripeClient|null
+	 */
+	private static $stripe_client = null;
+
+	/**
 	 * Instance of WC_Stripe_API.
 	 *
 	 * @var WC_Stripe_API
@@ -80,6 +90,9 @@ class WC_Stripe_API {
 	 * @param string $key
 	 */
 	public static function set_secret_key( $secret_key ) {
+		if ( self::$secret_key !== $secret_key ) {
+			self::$stripe_client = null;
+		}
 		self::$secret_key = $secret_key;
 	}
 
@@ -736,5 +749,42 @@ class WC_Stripe_API {
 			return 'secret_key_not_configured';
 		}
 		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
+	}
+
+	/**
+	 * Return a configured Stripe PHP SDK client.
+	 *
+	 * The client uses the WordPress HTTP API as its transport (via
+	 * WC_Stripe_WP_HTTP_Client) so that WordPress proxy and SSL settings are
+	 * respected. App info is registered with the SDK so Stripe can identify
+	 * requests from this plugin.
+	 *
+	 * Use this method when you need typed, resource-oriented access to the
+	 * Stripe API (e.g. $client->paymentIntents->retrieve(...)). For lower-level
+	 * requests that must pass through WordPress filters, continue to use the
+	 * static request() / retrieve() methods.
+	 *
+	 * @return \Stripe\StripeClient
+	 */
+	public static function get_stripe_client(): \Stripe\StripeClient {
+		if ( null === self::$stripe_client ) {
+			\Stripe\ApiRequestor::setHttpClient( new WC_Stripe_WP_HTTP_Client() );
+
+			\Stripe\Stripe::setAppInfo(
+				'WooCommerce Stripe Gateway',
+				WC_STRIPE_VERSION,
+				'https://woocommerce.com/products/stripe/',
+				'pp_partner_EYuSt9peR0WTMg'
+			);
+
+			self::$stripe_client = new \Stripe\StripeClient(
+				[
+					'api_key'        => self::get_secret_key(),
+					'stripe_version' => self::STRIPE_API_VERSION,
+				]
+			);
+		}
+
+		return self::$stripe_client;
 	}
 }

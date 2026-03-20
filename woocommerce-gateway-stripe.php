@@ -31,6 +31,11 @@ define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( WC_STRIPE_MAIN_FILE ) ) );
 
+// Load Composer autoloader for runtime dependencies (e.g. stripe/stripe-php).
+if ( file_exists( WC_STRIPE_ABSPATH . 'vendor/autoload.php' ) ) {
+	require_once WC_STRIPE_ABSPATH . 'vendor/autoload.php';
+}
+
 // phpcs:disable WordPress.Files.FileName
 
 /**
