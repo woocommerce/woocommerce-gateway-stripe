@@ -61,7 +61,7 @@ const CheckoutForm = ( {
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
-		handleDisplayOfPaymentInstructions( value.type );
+		handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 		setIsPaymentElementComplete( complete );
 	};
 

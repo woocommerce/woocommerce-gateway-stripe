@@ -194,7 +194,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for `test_install_settings`.
+	 * Data provider for {@see test_install_settings_update()}.
 	 *
 	 * @return array
 	 */
@@ -205,8 +205,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'pmc_enabled' => 'no',
 				],
 				'expected settings' => [
-					'pmc_enabled'                => null,
-					'optimized_checkout_element' => null,
+					'pmc_enabled'                        => null,
+					'optimized_checkout_element'         => null,
+					'skip_pmc_express_checkout_defaults' => 'yes',
 				],
 			],
 			'will not enable OCS by default due to OCS being set'  => [
@@ -215,8 +216,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'optimized_checkout_element' => 'no',
 				],
 				'expected settings' => [
-					'pmc_enabled'                => 'yes',
-					'optimized_checkout_element' => 'no',
+					'pmc_enabled'                        => 'yes',
+					'optimized_checkout_element'         => 'no',
+					'skip_pmc_express_checkout_defaults' => null,
 				],
 			],
 		];
