@@ -285,7 +285,8 @@ const PaymentProcessor = ( {
 			// Hide the store-level save checkbox on initial load if needed
 			// (e.g., when Link is enabled and card is the default method).
 			handleDisplayOfSavingCheckbox(
-				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD
+				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD,
+				paymentMethodsConfig
 			);
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
@@ -305,7 +306,12 @@ const PaymentProcessor = ( {
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
+	}, [
+		selectedPaymentMethodType,
+		elements,
+		stripeServerData,
+		paymentMethodsConfig,
+	] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -329,7 +335,7 @@ const PaymentProcessor = ( {
 		setIsPaymentElementComplete( complete );
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		}
 	};
 

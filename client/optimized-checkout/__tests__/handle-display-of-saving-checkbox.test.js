@@ -63,6 +63,38 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_SEPA );
 			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
 		} );
+
+		it( 'Hides store checkbox on OC when Link is in enabledPaymentMethods', () => {
+			document.body.innerHTML =
+				'<div class="wc-block-components-payment-methods__save-card-info"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.wc-block-components-payment-methods__save-card-info'
+			);
+
+			const ocConfig = {
+				card: { enabledPaymentMethods: [ 'card', 'link', 'klarna' ] },
+			};
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD, ocConfig );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Shows store checkbox on OC when Link is NOT in enabledPaymentMethods', () => {
+			document.body.innerHTML =
+				'<div class="wc-block-components-payment-methods__save-card-info"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.wc-block-components-payment-methods__save-card-info'
+			);
+
+			const ocConfig = {
+				card: { enabledPaymentMethods: [ 'card', 'klarna' ] },
+			};
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD, ocConfig );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+		} );
 	} );
 
 	describe( 'Classic checkout', () => {
