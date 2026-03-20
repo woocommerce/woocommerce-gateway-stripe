@@ -17,6 +17,7 @@
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
+* Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
