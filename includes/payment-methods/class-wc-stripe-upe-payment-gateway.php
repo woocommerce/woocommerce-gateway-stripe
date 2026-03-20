@@ -3463,6 +3463,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
+			// When Link is enabled and the method is card (including OC which wraps card),
+			// hide the store-level save checkbox. Link handles save consent via the Payment Element.
+			if ( $payment_method->get_id() === WC_Stripe_Payment_Methods::CARD && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this ) ) {
+				return false;
+			}
+
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			// If force save payment method is true, no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart() && ! WC_Stripe_Helper::should_force_save_payment_method();
