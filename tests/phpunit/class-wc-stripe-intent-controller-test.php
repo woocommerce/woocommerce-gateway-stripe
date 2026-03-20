@@ -121,6 +121,74 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that create_payment_intent uses the order currency instead of the global WooCommerce currency.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4925
+	 */
+	public function test_create_payment_intent_uses_order_currency() {
+		$this->order->set_currency( 'USD' );
+		$this->order->save();
+
+		// Simulate a multicurrency plugin changing the global currency.
+		add_filter(
+			'woocommerce_currency',
+			function () {
+				return 'CAD';
+			}
+		);
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			$this->assertEquals( 'usd', $parsed_args['body']['currency'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 1,
+						'client_secret' => '123',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+	}
+
+	/**
+	 * Test that create_payment_intent falls back to the global currency when no order is provided.
+	 */
+	public function test_create_payment_intent_uses_global_currency_without_order() {
+		add_filter(
+			'woocommerce_currency',
+			function () {
+				return 'EUR';
+			}
+		);
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			$this->assertEquals( 'eur', $parsed_args['body']['currency'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 1,
+						'client_secret' => '123',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent();
+	}
+
+	/**
 	 * Test for `update_and_confirm_payment_intent` method.
 	 *
 	 * @param array $payment_information Payment information.

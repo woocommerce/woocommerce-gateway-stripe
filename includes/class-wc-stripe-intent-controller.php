@@ -388,16 +388,17 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	public function create_payment_intent( $order_id = null, $payment_method_type = null ) {
-		$amount = WC()->cart->get_total( false );
-		$order  = wc_get_order( $order_id );
+		$amount   = WC()->cart->get_total( false );
+		$currency = get_woocommerce_currency();
+		$order    = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
+			$amount   = $order->get_total();
+			$currency = $order->get_currency();
 		}
 
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency = get_woocommerce_currency();
 		$capture  = $gateway->is_automatic_capture_enabled();
 		$request  = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
