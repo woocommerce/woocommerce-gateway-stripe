@@ -278,14 +278,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	private function get_show_save_option() {
 		$saved_cards = $this->get_show_saved_cards();
-
-		// When Link is enabled, hide the store-level save checkbox because
-		// Link handles save consent via the Stripe Payment Element.
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $gateway instanceof WC_Stripe_UPE_Payment_Gateway && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $gateway ) ) {
-			return false;
-		}
-
 		// This assumes that Stripe supports `tokenization` - currently this is true, based on
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L222.
 		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php#L905 and
