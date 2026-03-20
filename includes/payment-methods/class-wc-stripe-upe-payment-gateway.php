@@ -3463,9 +3463,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
-			// When Link is enabled and the method is card (including OC which wraps card),
-			// hide the store-level save checkbox. Link handles save consent via the Payment Element.
-			if ( $payment_method->get_id() === WC_Stripe_Payment_Methods::CARD && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this ) ) {
+			// When Link is enabled and the method is card (non-OC only), hide the
+			// store-level save checkbox. Link handles save consent via the Payment Element.
+			// For OC, the frontend handles this dynamically via handleDisplayOfSavingCheckbox()
+			// because OC wraps multiple methods under one container and the selected method
+			// changes at runtime.
+			if (
+				! $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC &&
+				$payment_method->get_id() === WC_Stripe_Payment_Methods::CARD &&
+				WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this )
+			) {
 				return false;
 			}
 
