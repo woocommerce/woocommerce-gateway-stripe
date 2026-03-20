@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
-* Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups.
+* Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
