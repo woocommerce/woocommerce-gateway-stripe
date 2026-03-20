@@ -1123,8 +1123,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		if ( $stripe_amount <= 0 ) {
+		$order_total = (float) $order->get_total();
+		if ( $order_total <= 0 ) {
 			return;
 		}
 
@@ -1138,7 +1138,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$presentment_currency       = strtolower( $presentment_currency ); // Make sure the original currency code is in lowercase.
 		$presentment_currency_upper = strtoupper( $presentment_currency );
 		$rate_decimals              = WC_Stripe_Helper::get_currency_decimals( $presentment_currency );
-		$rate_amount                = wc_format_decimal( $presentment_amount / $stripe_amount, $rate_decimals );
+		// Divide major-unit amounts so the rate is correct for currencies with different decimal exponents (e.g. JPY↔USD).
+		$rate_amount = wc_format_decimal( (float) $woocommerce_amount / $order_total, $rate_decimals );
 
 		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(

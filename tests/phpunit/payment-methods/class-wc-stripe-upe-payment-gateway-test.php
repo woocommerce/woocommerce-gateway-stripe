@@ -4008,12 +4008,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Data provider for page-context filters used by add_converted_currency_information.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_add_converted_currency_information_page_contexts(): array {
+		return [
+			'order received page' => [ 'woocommerce_is_order_received_page' ],
+			'account page'        => [ 'woocommerce_is_account_page' ],
+		];
+	}
+
+	/**
 	 * Test that add_converted_currency_information appends the converted currency info when presentment details are present.
 	 *
+	 * @dataProvider provide_add_converted_currency_information_page_contexts
+	 *
+	 * @param string $page_context_filter The page-context filter to simulate.
 	 * @return void
 	 */
-	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
-		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+	public function test_add_converted_currency_information_appends_converted_currency_info( string $page_context_filter ): void {
+		add_filter( $page_context_filter, '__return_true' );
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
@@ -4034,50 +4049,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
-		$formatted_total   = '$10.00';
-		$result            = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		try {
+			$formatted_total = '$10.00';
+			$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+			$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
-
-		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
-	}
-
-	/**
-	 * Test that add_converted_currency_information appends the converted currency info on the My Account orders page.
-	 *
-	 * @return void
-	 */
-	public function test_add_converted_currency_information_appends_converted_currency_info_on_my_orders_page(): void {
-		add_filter( 'woocommerce_is_account_page', '__return_true' );
-
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->save();
-
-		$checkout_session_id = 'cs_test_with_presentment_my_orders';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
-
-		$formatted_total = '$10.00';
-		$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-
-		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
-		remove_filter( 'woocommerce_is_account_page', '__return_true' );
-
-		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+			$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+			remove_filter( $page_context_filter, '__return_true' );
+		}
 	}
 
 	/**
