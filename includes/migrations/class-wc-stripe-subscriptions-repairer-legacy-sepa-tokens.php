@@ -197,7 +197,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends \WCS_Backgroun
 		// It's possible that the Legacy SEPA gateway ID was updated by the repairing above, but that the Stripe account
 		// hadn't been migrated from src_ to pm_ at the time.
 		// Thus, we keep checking if the associated payment method is a source in subsequent renewals.
-		$subscription_source = WC_Stripe_Subscription_Helper::get_instance()->get_stripe_source_id( $subscription );
+		$subscription_source = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $subscription );
 
 		if ( is_string( $subscription_source ) && 0 === strpos( $subscription_source, 'src_' ) ) {
 			$token_updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update();

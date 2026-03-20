@@ -3014,7 +3014,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_subscription( $subscription, string $payment_method_id ) {
-		WC_Stripe_Subscription_Helper::get_instance()->update_stripe_source_id( $subscription, $payment_method_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $subscription, $payment_method_id );
 		$subscription->save_meta_data();
 	}
 
@@ -3040,7 +3040,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
-		WC_Stripe_Subscription_Helper::get_instance()->update_stripe_customer_id( $subscription, $customer_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $customer_id );
 		$subscription->save_meta_data();
 	}
 

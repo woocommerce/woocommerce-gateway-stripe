@@ -190,7 +190,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$done = true;
 
 		if ( 0 < count( $subscriptions ) ) {
-			$subscription_helper = WC_Stripe_Subscription_Helper::get_instance();
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
 			foreach ( $subscriptions as $subscription ) {
 				$data_to_export[] = [
 					'group_id'    => 'woocommerce_subscriptions',
@@ -199,11 +199,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription_helper->get_stripe_source_id( $subscription ),
+							'value' => $order_helper->get_stripe_source_id( $subscription ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription_helper->get_stripe_customer_id( $subscription ),
+							'value' => $order_helper->get_stripe_customer_id( $subscription ),
 						],
 					],
 				];
@@ -351,8 +351,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$subscription = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
 
-		$subscription_helper  = WC_Stripe_Subscription_Helper::get_instance();
-		$stripe_source_id     = $subscription_helper->get_stripe_source_id( $subscription );
+		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+		$stripe_source_id = $order_helper->get_stripe_source_id( $subscription );
 
 		if ( empty( $stripe_source_id ) ) {
 			return [ false, false, [] ];
@@ -370,15 +370,14 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$renewal_orders = class_exists( 'WC_Subscriptions_Renewal_Order' ) ? WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id(), 'WC_Order' ) : [];
 		foreach ( $renewal_orders as $renewal_order ) {
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
 			$order_helper->delete_stripe_source_id( $renewal_order );
 			$order_helper->delete_stripe_refund_id( $renewal_order );
 			$order_helper->delete_stripe_customer_id( $renewal_order );
 		}
 
-		$subscription_helper->delete_stripe_source_id( $subscription );
-		$subscription_helper->delete_stripe_refund_id( $subscription );
-		$subscription_helper->delete_stripe_customer_id( $subscription );
+		$order_helper->delete_stripe_source_id( $subscription );
+		$order_helper->delete_stripe_refund_id( $subscription );
+		$order_helper->delete_stripe_customer_id( $subscription );
 
 		return [ true, false, [ __( 'Stripe Subscription Data Erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}
