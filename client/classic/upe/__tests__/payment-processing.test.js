@@ -2,40 +2,52 @@ import * as paymentProcessing from '../payment-processing';
 import * as stripeUtils from 'wcstripe/stripe-utils';
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
-	appendPaymentMethodIdToForm: jest.fn(),
-	appendPaymentIntentIdToForm: jest.fn(),
 	appendCheckoutSessionIdToForm: jest.fn(),
-	getPaymentMethodTypes: jest.fn( () => [ 'card' ] ),
-	initializeUPEAppearance: jest.fn( () => ( {} ) ),
-	isLinkEnabled: jest.fn( () => false ),
-	getDefaultValues: jest.fn( () => ( {} ) ),
-	getUpeSettings: jest.fn( () => ( {} ) ),
+	appendPaymentIntentIdToForm: jest.fn(),
+	appendPaymentMethodIdToForm: jest.fn(),
+	appendSetupIntentToForm: jest.fn(),
+	getAdditionalSetupIntentData: jest.fn().mockReturnValue( {} ),
+	getDefaultValues: jest.fn().mockReturnValue( {} ),
+	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
+	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
+	getStripeServerData: jest.fn().mockReturnValue( {
+		paymentMethodsConfig: {
+			card: { supportsDeferredIntent: true },
+		},
+		isAdaptivePricingEnabled: false,
+		cartTotal: 1000,
+		currency: 'USD',
+		isPaymentNeeded: true,
+		shouldShowOptimizedCheckout: false,
+	} ),
+	getUpeSettings: jest.fn().mockReturnValue( {} ),
+
+	initializeUPEAppearance: jest.fn().mockReturnValue( {} ),
+	isLinkEnabled: jest.fn().mockReturnValue( false ),
+	resetBlockCheckoutPaymentState: jest.fn(),
 	showErrorCheckout: jest.fn(),
 	showErrorPaymentMethod: jest.fn(),
-	appendSetupIntentToForm: jest.fn(),
 	unblockBlockCheckout: jest.fn(),
-	resetBlockCheckoutPaymentState: jest.fn(),
-	getAdditionalSetupIntentData: jest.fn(),
 	validateBlikCode: jest.fn(),
-	getExcludedPaymentMethodTypes: jest.fn( () => [] ),
-	// Read from window at call time so reloading with different globals works.
-	getStripeServerData: () => global.wc_stripe_upe_params,
 } ) );
 
 jest.mock( 'wcstripe/styles/upe', () => ( {
-	getFontRulesFromPage: jest.fn( () => [] ),
+	getFontRulesFromPage: jest.fn().mockReturnValue( [] ),
 } ) );
 
 jest.mock(
 	'wcstripe/optimized-checkout/handle-display-of-payment-instructions',
-	() => ( { handleDisplayOfPaymentInstructions: jest.fn() } )
+	() => ( {
+		handleDisplayOfPaymentInstructions: jest.fn(),
+	} )
 );
 
 jest.mock(
 	'wcstripe/optimized-checkout/handle-display-of-saving-checkbox',
-	() => ( { handleDisplayOfSavingCheckbox: jest.fn() } )
+	() => ( {
+		handleDisplayOfSavingCheckbox: jest.fn(),
+	} )
 );
-
 // Silence console.error for tests that intentionally trigger error paths.
 beforeEach( () => {
 	jest.spyOn( console, 'error' ).mockImplementation( () => {} );
@@ -112,25 +124,36 @@ const createMockForm = () => {
 	return f;
 };
 
+const buildMockStripe = () => {
+	const mockCreate = jest
+		.fn()
+		.mockReturnValue( { mount: jest.fn(), on: jest.fn() } );
+	const mockElements = { create: mockCreate };
+	return {
+		stripe: { elements: jest.fn().mockReturnValue( mockElements ) },
+		mockElements,
+	};
+};
+
+const buildApi = ( stripe ) => ( {
+	getStripe: jest.fn().mockReturnValue( stripe ),
+} );
+
 describe( 'payment-processing', () => {
 	afterEach( () => {
 		jest.resetModules();
 	} );
 
 	describe( 'adaptive pricing disabled (isAdaptivePricingEnabled = false)', () => {
-		let originalServerData;
-
 		beforeEach( () => {
-			originalServerData = global.wc_stripe_upe_params;
-			global.wc_stripe_upe_params = {
+			stripeUtils.getStripeServerData.mockReturnValue( {
 				...BASE_SERVER_DATA,
 				isAdaptivePricingEnabled: false,
-			};
+			} );
 			paymentProcessing.initializeUPEComponents();
 		} );
 
 		afterEach( () => {
-			global.wc_stripe_upe_params = originalServerData;
 			jest.clearAllMocks();
 		} );
 
@@ -206,19 +229,15 @@ describe( 'payment-processing', () => {
 	} );
 
 	describe( 'adaptive pricing enabled (isAdaptivePricingEnabled = true)', () => {
-		let originalServerData;
-
 		beforeEach( () => {
-			originalServerData = global.wc_stripe_upe_params;
-			global.wc_stripe_upe_params = {
+			stripeUtils.getStripeServerData.mockReturnValue( {
 				...BASE_SERVER_DATA,
 				isAdaptivePricingEnabled: true,
-			};
+			} );
 			paymentProcessing.initializeUPEComponents();
 		} );
 
 		afterEach( () => {
-			global.wc_stripe_upe_params = originalServerData;
 			jest.clearAllMocks();
 		} );
 
@@ -542,6 +561,135 @@ describe( 'payment-processing', () => {
 				);
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
+		} );
+	} );
+
+	describe( 'createStripePaymentElement layout option', () => {
+		let domElement;
+
+		beforeEach( () => {
+			paymentProcessing.initializeUPEComponents();
+
+			domElement = document.createElement( 'div' );
+			domElement.dataset.paymentMethodType = 'card';
+			document.body.appendChild( domElement );
+		} );
+
+		afterEach( () => {
+			document.body.removeChild( domElement );
+		} );
+
+		it( 'passes layout:tabs when Optimized Checkout is disabled', async () => {
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				paymentMethodsConfig: {
+					card: { supportsDeferredIntent: true },
+				},
+				isAdaptivePricingEnabled: false,
+				cartTotal: 1000,
+				currency: 'usd',
+				isPaymentNeeded: true,
+				shouldShowOptimizedCheckout: false,
+			} );
+
+			const { stripe, mockElements } = buildMockStripe();
+			await paymentProcessing.mountStripePaymentElement(
+				buildApi( stripe ),
+				domElement
+			);
+
+			expect( mockElements.create ).toHaveBeenCalledTimes( 1 );
+			const [ , paymentElementOptions ] =
+				mockElements.create.mock.calls[ 0 ];
+			expect( paymentElementOptions.layout ).toStrictEqual( {
+				type: 'tabs',
+			} );
+		} );
+
+		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with default layout', async () => {
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				paymentMethodsConfig: {
+					card: { supportsDeferredIntent: true },
+				},
+				isAdaptivePricingEnabled: false,
+				cartTotal: 1000,
+				currency: 'usd',
+				isPaymentNeeded: true,
+				shouldShowOptimizedCheckout: true,
+				OCLayout: undefined,
+			} );
+
+			const { stripe, mockElements } = buildMockStripe();
+			await paymentProcessing.mountStripePaymentElement(
+				buildApi( stripe ),
+				domElement
+			);
+
+			expect( mockElements.create ).toHaveBeenCalledTimes( 1 );
+			const [ , paymentElementOptions ] =
+				mockElements.create.mock.calls[ 0 ];
+			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
+			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
+				false
+			);
+		} );
+
+		it( 'passes accordion layout with radios:false when Optimized Checkout is enabled with an explicit layout - accordion', async () => {
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				paymentMethodsConfig: {
+					card: { supportsDeferredIntent: true },
+				},
+				isAdaptivePricingEnabled: false,
+				cartTotal: 1000,
+				currency: 'usd',
+				isPaymentNeeded: true,
+				shouldShowOptimizedCheckout: true,
+				OCLayout: 'accordion',
+			} );
+
+			const { stripe, mockElements } = buildMockStripe();
+			await paymentProcessing.mountStripePaymentElement(
+				buildApi( stripe ),
+				domElement
+			);
+
+			expect( mockElements.create ).toHaveBeenCalledTimes( 1 );
+			const [ , paymentElementOptions ] =
+				mockElements.create.mock.calls[ 0 ];
+			expect( paymentElementOptions.layout.type ).toBe( 'accordion' );
+			expect( paymentElementOptions.layout.radios ).toBe( false );
+			expect( paymentElementOptions.layout.spacedAccordionItems ).toBe(
+				false
+			);
+		} );
+
+		it( 'passes custom OCLayout when Optimized Checkout is enabled with an explicit layout - tabs', async () => {
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				paymentMethodsConfig: {
+					card: { supportsDeferredIntent: true },
+				},
+				isAdaptivePricingEnabled: false,
+				cartTotal: 1000,
+				currency: 'usd',
+				isPaymentNeeded: true,
+				shouldShowOptimizedCheckout: true,
+				OCLayout: 'tabs',
+			} );
+
+			const { stripe, mockElements } = buildMockStripe();
+			await paymentProcessing.mountStripePaymentElement(
+				buildApi( stripe ),
+				domElement
+			);
+
+			expect( mockElements.create ).toHaveBeenCalledTimes( 1 );
+			const [ , paymentElementOptions ] =
+				mockElements.create.mock.calls[ 0 ];
+			expect( paymentElementOptions.layout.type ).toBe( 'tabs' );
+			expect( paymentElementOptions.layout.radios ).toBeUndefined();
+			expect(
+				paymentElementOptions.layout.spacedAccordionItems
+			).toBeUndefined();
 		} );
 	} );
 } );
