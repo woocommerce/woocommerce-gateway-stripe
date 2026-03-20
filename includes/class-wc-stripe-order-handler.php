@@ -289,6 +289,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order        = wc_get_order( $order_id );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
@@ -368,9 +372,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
 
-					if ( is_callable( [ $order, 'save' ] ) ) {
-						$order->save();
-					}
+					$order->save();
 
 					$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $result );
 

@@ -1,7 +1,10 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
+import {
+	getAppearance,
+	getExpandedOptimizedCheckoutRules,
+} from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -772,26 +775,41 @@ const appearanceCache = {};
  * when available, otherwise computes from the current page styles and caches
  * the result for the lifetime of the page.
  *
- * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
+ * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
+ * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
  *
  * @return {Object} The appearance object for the UPE.
  */
-export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
+export const initializeUPEAppearance = (
+	isBlockCheckout = 'false',
+	shouldExpandOptimizedCheckout = false
+) => {
 	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks ? 'blocks' : 'classic';
+	const location = isBlocks
+		? 'blocks'
+		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
 
 	// Check for custom appearance configuration from the server.
 	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
 	const customAppearance = getStripeServerData()?.[ customServerField ];
 	if ( customAppearance ) {
-		return customAppearance;
+		if ( ! shouldExpandOptimizedCheckout ) {
+			return customAppearance;
+		}
+
+		return {
+			...customAppearance,
+			rules: getExpandedOptimizedCheckoutRules(
+				customAppearance.rules || {}
+			),
+		};
 	}
 
 	if ( appearanceCache[ location ] ) {
 		return appearanceCache[ location ];
 	}
 
-	const appearance = getAppearance( isBlocks );
+	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
 	appearanceCache[ location ] = appearance;
 	return appearance;
 };
