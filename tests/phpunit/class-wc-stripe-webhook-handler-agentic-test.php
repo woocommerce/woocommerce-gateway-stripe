@@ -133,7 +133,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$notification = $this->build_notification( 'cs_test_lock_release' );
 		$this->handler->process_checkout_session( $notification );
 
-		$lock_key = 'agentic_lock_cs_test_lock_release';
+		$lock_key = 'checkout_session_lock_cs_test_lock_release';
 		$this->assertNull( WC_Stripe_Database_Cache::get( $lock_key ) );
 	}
 
