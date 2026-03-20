@@ -1096,39 +1096,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	public function add_currency_conversion_notice( WC_Order $order ): void {
-		$presentment_data = $this->get_presentment_data_from_order( $order );
-		if ( empty( $presentment_data ) || ! ( $presentment_data['amount'] ?? null ) || ! ( $presentment_data['currency'] ?? null ) ) {
+		$notice_data = $this->get_currency_conversion_notice_data( $order );
+		if ( empty( $notice_data ) ) {
 			return;
 		}
-
-		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		if ( $stripe_amount <= 0 ) {
-			return;
-		}
-
-		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$presentment_data['amount'],
-			$presentment_data['currency']
-		);
-
-		// Use the decimal count for the presentment currency, not the store's price decimal
-		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
-		$presentment_currency_lower = strtolower( $presentment_data['currency'] );
-		$rate_decimals              = 2;
-		if ( in_array( $presentment_currency_lower, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			$rate_decimals = 0;
-		} elseif ( in_array( $presentment_currency_lower, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
-			$rate_decimals = 3;
-		}
-		$rate_amount = wc_format_decimal( $presentment_data['amount'] / $stripe_amount, $rate_decimals );
 
 		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(
 				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
 				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
-				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_data['currency'] ) ),
+				esc_html( $notice_data['woocommerce_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] ) ),
 				esc_html( strtoupper( $order->get_currency() ) ),
-				esc_html( $rate_amount . ' ' . strtoupper( $presentment_data['currency'] ) )
+				esc_html( $notice_data['rate_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] ) )
 			);
 		echo '</p>';
 	}
@@ -4282,6 +4261,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		if ( $stripe_amount <= 0 ) {
+			return [];
+		}
+
+		// Use the decimal count for the presentment currency, not the store's price decimal
+		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
+		$presentment_currency_lower = strtolower( $presentment_data['currency'] );
+		$rate_decimals              = 2;
+		if ( in_array( $presentment_currency_lower, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			$rate_decimals = 0;
+		} elseif ( in_array( $presentment_currency_lower, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			$rate_decimals = 3;
+		}
+		$rate_amount = wc_format_decimal( $presentment_data['amount'] / $stripe_amount, $rate_decimals );
 
 		return [
 			'presentment_currency' => $presentment_data['currency'],
@@ -4290,10 +4283,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$presentment_data['amount'],
 				$presentment_data['currency']
 			),
-			'rate_amount'          => wc_format_decimal(
-				$presentment_data['amount'] / $stripe_amount,
-				wc_get_price_decimals()
-			),
+			'rate_amount'          => $rate_amount,
 		];
 	}
 
