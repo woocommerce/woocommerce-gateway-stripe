@@ -251,7 +251,6 @@ class WC_Stripe {
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/ajax-handlers/class-wc-stripe-checkout-sessions-ajax-handler.php';
 		$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 		$checkout_sessions_ajax_handler->init_hooks();
 

@@ -24,6 +24,9 @@
         "yoast/phpunit-polyfills": "^2.0"
     },
     "autoload": {
+      "classmap": [
+        "includes/ajax-handlers/"
+      ],
       "exclude-from-classmap": [
         "/tests/phpunit/helpers/",
         "/tests/phpunit/stubs/"
