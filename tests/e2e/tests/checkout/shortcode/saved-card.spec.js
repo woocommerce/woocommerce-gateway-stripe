@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { payments, api, user } from '../../../utils';
+import { payments, api, user, admin } from '../../../utils';
 
 const {
 	emptyCart,
@@ -28,7 +28,13 @@ test.beforeAll( async () => {
 	await api.create.customer( user );
 } );
 
-test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
+test( 'customer can checkout with a saved card @smoke', async ( {
+	page,
+	browser,
+} ) => {
+	// Disable Link so the store-level save checkbox is visible.
+	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
+	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
 	await test.step( 'customer login', async () => {
 		await user.login(
 			page,
@@ -76,4 +82,7 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 			'Order received'
 		);
 	} );
+
+	// Re-enable Link after the test.
+	await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
 } );
