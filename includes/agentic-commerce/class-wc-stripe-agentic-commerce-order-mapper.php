@@ -53,10 +53,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Save everything we've got so far.
 			$order->save();
 
-			// Coming soon: Add logic for taxes and shipping based on the saved order.
-			// $this->map_shipping();
-			// $this->map_taxes();
-			// $order->save(); // When we add shipping and taxes.
+			// Map shipping data and save again.
+			$this->map_shipping( $order, $session );
 
 			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
@@ -222,7 +220,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				);
 			}
 
-			$product = $this->resolve_product( $product_id, $line_item );
+			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
 			$quantity   = $line_item->get_quantity();
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
@@ -285,43 +283,18 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
-	 * Resolves a WooCommerce product from a line item's external_reference.
-	 *
-	 * @since 10.6.0
-	 * @param int                          $product_id The parsed product ID.
-	 * @param WC_Stripe_Agentic_Line_Item  $line_item  The line item (for error context).
-	 * @return WC_Product The product.
-	 * @throws Exception When no matching product exists.
-	 */
-	private function resolve_product( int $product_id, WC_Stripe_Agentic_Line_Item $line_item ): WC_Product {
-		$product = wc_get_product( $product_id );
-
-		if ( ! $product || ! $product->exists() ) {
-			throw new Exception(
-				sprintf(
-					'Product not found for lookup_key "%d" (line item: %s).',
-					$product_id,
-					$line_item->get_description()
-				)
-			);
-		}
-
-		return $product;
-	}
-
-	/**
 	 * Maps an address from a Stripe address object to the order.
 	 *
 	 * @since 10.6.0
-	 * @param WC_Order $order   The WooCommerce order.
-	 * @param object   $address The Stripe address object.
-	 * @param string   $name    The name of the address to map.
-	 * @param string   $phone   The phone number of the address to map.
-	 * @param string   $type    The type of address to map ('billing' or 'shipping').
+	 * @param WC_Order              $order   The WooCommerce order.
+	 * @param WC_Stripe_API_Address $address The Stripe address object.
+	 * @param string                $name    The name of the address to map.
+	 * @param string                $phone   The phone number of the address to map.
+	 * @param string                $type    The type of address to map ('billing' or 'shipping').
 	 */
 	private function map_address(
 		WC_Order $order,
-		object $address,
+		WC_Stripe_API_Address $address,
 		string $name,
 		string $phone,
 		string $type = self::ADDRESS_TYPE_BILLING
@@ -337,19 +310,19 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		$set_phone = "set_{$type}_phone";
 		$order->$set_phone( $phone );
 
-		$map = [
-			'city'        => 'city',
-			'country'     => 'country',
-			'line1'       => 'address_1',
-			'line2'       => 'address_2',
-			'postal_code' => 'postcode',
-			'state'       => 'state',
-		];
+		$set_city     = "set_{$type}_city";
+		$set_country  = "set_{$type}_country";
+		$set_address1 = "set_{$type}_address_1";
+		$set_address2 = "set_{$type}_address_2";
+		$set_postcode = "set_{$type}_postcode";
+		$set_state    = "set_{$type}_state";
 
-		foreach ( $map as $received_key => $order_key ) {
-			$method_name = sprintf( 'set_%s_%s', $type, $order_key );
-			$order->$method_name( $address->$received_key ?? '' );
-		}
+		$order->$set_city( $address->get_city() ?? '' );
+		$order->$set_country( $address->get_country() ?? '' );
+		$order->$set_address1( $address->get_line1() ?? '' );
+		$order->$set_address2( $address->get_line2() ?? '' );
+		$order->$set_postcode( $address->get_postal_code() ?? '' );
+		$order->$set_state( $address->get_state() ?? '' );
 	}
 
 	/**
@@ -365,14 +338,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 */
 	private function map_addresses( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$billing_address = $session->get_billing_address();
-		if ( ! $billing_address ) {
-			throw new Exception(
-				sprintf(
-					'Checkout session %s has no billing address.',
-					$session->get_id()
-				)
-			);
-		}
 
 		$this->map_address(
 			$order,
@@ -436,6 +401,101 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
+	 * Maps the chosen shipping rate from the checkout session to the order.
+	 *
+	 * Re-runs WooCommerce shipping calculation for the order's destination and
+	 * resolves the chosen rate using the following priority:
+	 *   1. By WC rate ID from the Stripe shipping rate metadata (wc_rate_id).
+	 *   2. If exactly one rate is available, accept it unconditionally.
+	 *   3. By display name match as a last resort.
+	 *
+	 * Does nothing when no shipping rate was chosen (digital goods or not applicable).
+	 *
+	 * @since 10.6.0
+	 * @param WC_Order                           $order   The WooCommerce order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @throws Exception When no matching WC rate can be found.
+	 */
+	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+		$display_name = $session->get_chosen_shipping_rate_display_name();
+
+		if ( null === $display_name ) {
+			return;
+		}
+
+		$address = $session->get_shipping_address() ?? $session->get_billing_address();
+
+		// Populate contents with resolved products for content-dependent
+		// shipping methods (table rate, weight-based). See STRIPE-986.
+		$package = [
+			'contents'        => [],
+			'contents_cost'   => 0,
+			'applied_coupons' => [],
+			'user'            => [ 'ID' => 0 ],
+			'destination'     => [
+				'country'  => $address->get_country() ?? '',
+				'state'    => $address->get_state() ?? '',
+				'postcode' => $address->get_postal_code() ?? '',
+				'city'     => $address->get_city() ?? '',
+				'address'  => '',
+			],
+			'cart_subtotal'   => 0,
+		];
+
+		$wc_shipping = WC()->shipping();
+
+		if ( ! $wc_shipping instanceof WC_Shipping ) {
+			throw new Exception(
+				sprintf( 'WooCommerce shipping is unavailable for session %s.', $session->get_id() )
+			);
+		}
+
+		$wc_shipping->calculate_shipping( [ $package ] );
+		$packages = $wc_shipping->get_packages();
+		$rates    = $packages[0]['rates'] ?? [];
+
+		// 1. Match by WC rate ID stored in Stripe shipping rate metadata.
+		$wc_rate_id   = $session->get_chosen_shipping_rate_wc_id();
+		$matched_rate = null;
+
+		if ( null !== $wc_rate_id && isset( $rates[ $wc_rate_id ] ) ) {
+			$matched_rate = $rates[ $wc_rate_id ];
+		}
+
+		// 2. If exactly one rate is available, accept it unconditionally.
+		if ( null === $matched_rate && 1 === count( $rates ) ) {
+			$matched_rate = reset( $rates );
+		}
+
+		// 3. Fall back to matching by display name.
+		if ( null === $matched_rate ) {
+			foreach ( $rates as $rate ) {
+				if ( $rate->get_label() === $display_name ) {
+					$matched_rate = $rate;
+					break;
+				}
+			}
+		}
+
+		if ( null === $matched_rate ) {
+			throw new Exception(
+				sprintf(
+					'Shipping rate "%s" not available for session %s.',
+					$display_name,
+					$session->get_id()
+				)
+			);
+		}
+
+		$shipping_item = new WC_Order_Item_Shipping();
+		$shipping_item->set_method_title( $matched_rate->get_label() );
+		$shipping_item->set_method_id( $matched_rate->get_method_id() );
+		$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+		$shipping_item->set_total( $matched_rate->get_cost() );
+		$order->add_item( $shipping_item );
+	}
+
+	/**
 	 * Verifies that the WC order total matches the Stripe session total.
 	 *
 	 * Called after all components (line items, shipping, tax) are mapped
@@ -447,7 +507,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @throws Exception When the totals diverge beyond rounding tolerance.
 	 */
 	private function verify_order_total( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$order->calculate_totals( false );
+		$order->calculate_totals();
 
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(
 			$session->get_amount_total() ?? 0,

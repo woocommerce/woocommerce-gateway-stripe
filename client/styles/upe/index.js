@@ -7,7 +7,9 @@ import {
 	getBackgroundColor,
 	isColorLight,
 } from './utils.js';
+import { getExpandedOptimizedCheckoutRules } from './expanded-optimized-checkout';
 import { getFontSizeBase } from 'wcstripe/stripe-utils';
+export { getExpandedOptimizedCheckoutRules };
 
 const appearanceSelectors = {
 	default: {
@@ -141,12 +143,6 @@ const appearanceSelectors = {
 			...this.updateSelectors( this.classicCheckout ),
 		};
 	},
-};
-
-const dashedToCamelCase = ( string ) => {
-	return string.replace( /-([a-z])/g, function ( g ) {
-		return g[ 1 ].toUpperCase();
-	} );
 };
 
 const hiddenElementsForUPE = {
@@ -308,12 +304,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 
 	const filteredStyles = {};
 
-	for ( let i = 0; i < styles.length; i++ ) {
-		const camelCase = dashedToCamelCase( styles[ i ] );
-		if ( validProperties.includes( camelCase ) ) {
-			filteredStyles[ camelCase ] = styles.getPropertyValue(
-				styles[ i ]
-			);
+	for ( const property of validProperties ) {
+		if ( typeof styles[ property ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ property ];
 		}
 	}
 
@@ -392,7 +385,10 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
-export const getAppearance = ( isBlocksCheckout = false ) => {
+export const getAppearance = (
+	isBlocksCheckout = false,
+	shouldExpandOptimizedCheckout = false
+) => {
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
 
 	// Add hidden fields to DOM for generating styles.
@@ -477,6 +473,12 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 			},
 		},
 	};
+
+	if ( shouldExpandOptimizedCheckout ) {
+		appearance.rules = getExpandedOptimizedCheckoutRules(
+			appearance.rules
+		);
+	}
 
 	// Remove hidden fields from DOM.
 	hiddenElementsForUPE.cleanup();
