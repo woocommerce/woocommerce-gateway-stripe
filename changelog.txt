@@ -2,6 +2,7 @@
 
 = 10.6.0 - xxxx-xx-xx =
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
+* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
