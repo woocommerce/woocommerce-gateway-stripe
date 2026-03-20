@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { payments, api, user } from '../../../utils';
+import { payments, api, user, admin } from '../../../utils';
 
 const {
 	emptyCart,
@@ -50,7 +50,13 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 
 	test( 'customer can save and reuse Optimized Checkout payment method @smoke', async ( {
 		page,
+		browser,
 	} ) => {
+		// Disable Link so the store-level save checkbox is visible for this test.
+		// When Link is enabled, the store checkbox is hidden and Link handles save consent,
+		// but these tests verify WC token creation which requires the store checkbox.
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+
 		// First order - Save the payment method.
 		await test.step( 'Save payment method during first checkout', async () => {
 			await user.login(
@@ -86,5 +92,8 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 				'Order received'
 			);
 		} );
+
+		// Re-enable Link after the test.
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
 	} );
 } );

@@ -41,10 +41,16 @@ export const togglePaymentMethod = async (
 
 			// When disabling, we need to click the remove button
 			if ( ! enable ) {
-				await page.getByRole( 'button', { name: 'Remove' } ).click();
+				const removeButton = page.getByRole( 'button', {
+					name: 'Remove',
+				} );
+				await removeButton.waitFor( { state: 'visible' } );
+				await removeButton.click();
 			}
 
-			await page.click( 'text=Save changes' );
+			const saveButton = page.locator( 'text=Save changes' );
+			await saveButton.waitFor( { state: 'visible' } );
+			await saveButton.click();
 			await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
 		}
 	} finally {
