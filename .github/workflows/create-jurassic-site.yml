@@ -1,0 +1,327 @@
+name: Create Jurassic.ninja Test Site
+
+# Creates an ephemeral Jurassic.ninja WordPress site pre-configured with:
+#   - WooCommerce (latest)
+#   - WooCommerce Stripe Gateway (from selected branch)
+#   - WooCommerce Stripe Dev Tools (latest)
+#   - WooCommerce Subscriptions, Bookings, and Pre-Orders (latest)
+#   - Sample physical and virtual products with different prices
+#   - Flat-rate, free, and local-pickup shipping options
+#   - Blocks checkout page (created by WooCommerce) and a classic checkout page (shortcode)
+#
+# Required secrets:
+#   JN_SSH_PRIVATE_KEY  SSH private key registered with the jurassic.ninja WordPress.com account.
+#                       Used to access the newly created site via ssh.atomicsites.net.
+#   E2E_GH_TOKEN        GitHub token with read access to the private WooCommerce plugin repos
+#                       (woocommerce-subscriptions, woocommerce-bookings, woocommerce-pre-orders,
+#                        woocommerce-gateway-stripe-dev-tools).
+
+on:
+  workflow_dispatch:
+    inputs:
+      stripe-branch:
+        description: >
+          Branch for the Stripe extension to build and install.
+          Use 'develop' for the latest development version, or a release branch such as
+          'release/10.5.3'. Available release branches are listed at the start of the run.
+        type: string
+        required: true
+        default: develop
+
+run-name: "Jurassic.ninja site — Stripe @ ${{ inputs.stripe-branch }}"
+
+jobs:
+  create-site:
+    name: Build, create, and configure site
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 0. Show available release branches in the summary so the caller knows
+      #    what values are valid for the stripe-branch input.
+      # -----------------------------------------------------------------------
+      - name: List available release branches
+        run: |
+          echo "## Available Stripe release branches" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          git ls-remote --heads "https://github.com/${{ github.repository }}.git" \
+            'refs/heads/release/*' \
+            | awk '{print $2}' \
+            | sed 's|refs/heads/||' \
+            | grep -vE 'alpha|beta|dry-run' \
+            | sort -t'/' -k2 -V \
+            | tail -15 \
+            | while IFS= read -r branch; do
+                echo "- \`$branch\`" >> "$GITHUB_STEP_SUMMARY"
+              done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_Tip: re-run this workflow with the desired branch name from the list above._" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      # -----------------------------------------------------------------------
+      # 1. Check out the selected Stripe branch and build the extension ZIP.
+      # -----------------------------------------------------------------------
+      - name: Checkout Stripe branch (${{ inputs.stripe-branch }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.stripe-branch }}
+
+      - name: Setup PHP and Node
+        uses: ./.github/actions/setup-env
+
+      - name: Build Stripe extension ZIP
+        run: npm run build
+        # Produces: ${{ github.workspace }}/woocommerce-gateway-stripe.zip
+
+      # -----------------------------------------------------------------------
+      # 2. Clone the Stripe Dev Tools plugin (separate repo, no release assets).
+      # -----------------------------------------------------------------------
+      - name: Clone WooCommerce Stripe Dev Tools
+        env:
+          GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+        run: |
+          git clone \
+            "https://${GH_TOKEN}@github.com/woocommerce/woocommerce-gateway-stripe-dev-tools.git" \
+            /tmp/stripe-dev-tools
+          cd /tmp/stripe-dev-tools
+          zip -r /tmp/woocommerce-gateway-stripe-dev-tools.zip . --exclude '.git/*'
+
+      # -----------------------------------------------------------------------
+      # 3. Download the latest releases of the premium WooCommerce plugins.
+      # -----------------------------------------------------------------------
+      - name: Download WooCommerce Subscriptions
+        env:
+          GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+        run: |
+          ASSET_ID=$(curl -sH "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest" \
+            | jq -r '.assets[0].id')
+          curl -sLJ \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/woocommerce-subscriptions.zip \
+            "https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/${ASSET_ID}"
+
+      - name: Download WooCommerce Bookings
+        env:
+          GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+        run: |
+          ASSET_ID=$(curl -sH "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/woocommerce/woocommerce-bookings/releases/latest" \
+            | jq -r '.assets[0].id')
+          curl -sLJ \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/woocommerce-bookings.zip \
+            "https://api.github.com/repos/woocommerce/woocommerce-bookings/releases/assets/${ASSET_ID}"
+
+      - name: Download WooCommerce Pre-Orders
+        env:
+          GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+        run: |
+          ASSET_ID=$(curl -sH "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/latest" \
+            | jq -r '.assets[0].id')
+          curl -sLJ \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/woocommerce-pre-orders.zip \
+            "https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/${ASSET_ID}"
+
+      # -----------------------------------------------------------------------
+      # 4. Create the Jurassic.ninja site with WooCommerce.
+      #    The API returns { "data": { "url": "https://<subdomain>.jurassic.ninja" } }.
+      #    The subdomain is used as the SSH username for atomicsites.net access.
+      # -----------------------------------------------------------------------
+      - name: Create Jurassic.ninja site
+        id: jn
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            "https://jurassic.ninja/wp-json/jurassic.ninja/create?woocommerce")
+
+          SITE_URL=$(echo "$RESPONSE" | jq -r '.data.url // empty')
+
+          if [ -z "$SITE_URL" ]; then
+            echo "::error::Failed to create Jurassic.ninja site."
+            echo "Response: $RESPONSE"
+            exit 1
+          fi
+
+          SUBDOMAIN=$(echo "$SITE_URL" | sed 's|https://||; s|\.jurassic\.ninja.*||')
+          echo "site_url=${SITE_URL}" >> "$GITHUB_OUTPUT"
+          echo "subdomain=${SUBDOMAIN}"  >> "$GITHUB_OUTPUT"
+          echo "Created: ${SITE_URL} (subdomain: ${SUBDOMAIN})"
+
+      # -----------------------------------------------------------------------
+      # 5. Wait for the site's HTTP stack to respond before attempting SSH.
+      # -----------------------------------------------------------------------
+      - name: Wait for site to be ready
+        run: |
+          SITE_URL="${{ steps.jn.outputs.site_url }}"
+          echo "Waiting for ${SITE_URL} …"
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "301" ] || [ "$STATUS" = "302" ]; then
+              echo "Site ready (HTTP $STATUS)"
+              break
+            fi
+            if [ "$i" = "30" ]; then
+              echo "::error::Site did not become ready after 5 minutes."
+              exit 1
+            fi
+            echo "  Attempt $i/30: HTTP $STATUS — retrying in 10 s…"
+            sleep 10
+          done
+
+      # -----------------------------------------------------------------------
+      # 6. Configure SSH access.
+      #    jurassic.ninja sites are hosted on WordPress.com Atomic; the SSH user
+      #    is the site subdomain and the host is ssh.atomicsites.net.
+      # -----------------------------------------------------------------------
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.JN_SSH_PRIVATE_KEY }}
+
+      - name: Add ssh.atomicsites.net to known_hosts
+        run: ssh-keyscan -H ssh.atomicsites.net >> ~/.ssh/known_hosts
+
+      # -----------------------------------------------------------------------
+      # 7. Copy all plugin ZIPs to the remote server.
+      # -----------------------------------------------------------------------
+      - name: Upload plugin ZIPs via SCP
+        run: |
+          SSH_TARGET="${{ steps.jn.outputs.subdomain }}@ssh.atomicsites.net"
+          scp \
+            "${{ github.workspace }}/woocommerce-gateway-stripe.zip" \
+            /tmp/woocommerce-gateway-stripe-dev-tools.zip \
+            /tmp/woocommerce-subscriptions.zip \
+            /tmp/woocommerce-bookings.zip \
+            /tmp/woocommerce-pre-orders.zip \
+            "${SSH_TARGET}:/tmp/"
+
+      # -----------------------------------------------------------------------
+      # 8. Install and configure everything via WP-CLI over SSH.
+      # -----------------------------------------------------------------------
+      - name: Install plugins and configure site via WP-CLI
+        run: |
+          SSH_TARGET="${{ steps.jn.outputs.subdomain }}@ssh.atomicsites.net"
+
+          # Helper: run a WP-CLI command on the remote site.
+          wp() { ssh "$SSH_TARGET" "wp $*"; }
+
+          # -- Plugins --------------------------------------------------------
+          echo "==> Installing plugins…"
+          wp "plugin install /tmp/woocommerce-gateway-stripe.zip --force --activate"
+          wp "plugin install /tmp/woocommerce-gateway-stripe-dev-tools.zip --force --activate"
+          wp "plugin install /tmp/woocommerce-subscriptions.zip --force --activate"
+          wp "plugin install /tmp/woocommerce-bookings.zip --force --activate"
+          wp "plugin install /tmp/woocommerce-pre-orders.zip --force --activate"
+          wp "plugin install disable-emails --activate"
+
+          # -- Theme ----------------------------------------------------------
+          echo "==> Activating Storefront theme…"
+          wp "theme install storefront --activate"
+
+          # -- Store settings -------------------------------------------------
+          echo "==> Configuring store…"
+          wp "option set woocommerce_store_address '60 29th Street'"
+          wp "option set woocommerce_store_address_2 '#343'"
+          wp "option set woocommerce_store_city 'San Francisco'"
+          wp "option set woocommerce_default_country 'US:CA'"
+          wp "option set woocommerce_store_postcode '94110'"
+          wp "option set woocommerce_currency 'USD'"
+          wp "option set woocommerce_product_type 'both'"
+          wp "option set woocommerce_allow_tracking 'no'"
+          wp "option set woocommerce_coming_soon 'no'"
+
+          # -- WooCommerce default pages (creates the Blocks checkout page) ---
+          echo "==> Creating WooCommerce pages…"
+          wp "--user=1 wc tool run install_pages"
+
+          # -- Shipping -------------------------------------------------------
+          echo "==> Configuring shipping zones…"
+          wp "--user=1 wc shipping_zone create --name='Everywhere' --order=1"
+          wp "--user=1 wc shipping_zone_method create 1 --method_id='flat_rate'"
+          wp "--user=1 wc shipping_zone_method create 1 --method_id='free_shipping'"
+          wp "--user=1 wc shipping_zone_method create 1 --method_id='local_pickup'"
+          wp "option update --format=json woocommerce_flat_rate_1_settings \
+            '{\"title\":\"Standard Shipping\",\"tax_status\":\"taxable\",\"cost\":\"10\"}'"
+          wp "option update --format=json woocommerce_local_pickup_3_settings \
+            '{\"title\":\"Local Pickup\",\"tax_status\":\"taxable\",\"cost\":\"0\"}'"
+
+          # -- Sample products (physical + virtual at various prices) ---------
+          echo "==> Importing WooCommerce sample products…"
+          wp "plugin install wordpress-importer --activate"
+          wp "import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip"
+
+          # Additional virtual products not covered by the sample data.
+          wp "post create \
+            --post_type=product \
+            --post_title='Digital Download - Basic' \
+            --post_status=publish \
+            --post_content='A low-cost virtual product.' \
+            --meta_input='{\"_price\":\"4.99\",\"_regular_price\":\"4.99\",\"_virtual\":\"yes\",\"_downloadable\":\"yes\"}'"
+          wp "post create \
+            --post_type=product \
+            --post_title='Digital Download - Pro' \
+            --post_status=publish \
+            --post_content='A mid-range virtual product.' \
+            --meta_input='{\"_price\":\"29.99\",\"_regular_price\":\"39.99\",\"_sale_price\":\"29.99\",\"_virtual\":\"yes\",\"_downloadable\":\"yes\"}'"
+
+          # -- Classic checkout page (shortcode) ------------------------------
+          # WooCommerce install_pages creates a Blocks-based checkout; we add a
+          # separate page that uses the legacy [woocommerce_checkout] shortcode.
+          echo "==> Creating classic (shortcode) checkout page…"
+          wp "post create \
+            --post_type=page \
+            --post_title='Classic Checkout' \
+            --post_name='classic-checkout' \
+            --post_status=publish \
+            --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'"
+
+          # -- Permalink flush ------------------------------------------------
+          wp "rewrite flush"
+
+          # -- Clean up uploaded ZIPs -----------------------------------------
+          echo "==> Cleaning up remote /tmp/ ZIPs…"
+          ssh "$SSH_TARGET" "rm -f \
+            /tmp/woocommerce-gateway-stripe.zip \
+            /tmp/woocommerce-gateway-stripe-dev-tools.zip \
+            /tmp/woocommerce-subscriptions.zip \
+            /tmp/woocommerce-bookings.zip \
+            /tmp/woocommerce-pre-orders.zip"
+
+      # -----------------------------------------------------------------------
+      # 9. Print a summary with the site URL and key links.
+      # -----------------------------------------------------------------------
+      - name: Print site summary
+        if: always()
+        run: |
+          SITE_URL="${{ steps.jn.outputs.site_url }}"
+          STRIPE_BRANCH="${{ inputs.stripe-branch }}"
+
+          echo "## Jurassic.ninja Test Site" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Site URL** | ${SITE_URL} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **WP Admin** | ${SITE_URL}/wp-admin/ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Classic checkout** | ${SITE_URL}/classic-checkout/ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Blocks checkout** | ${SITE_URL}/checkout/ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Shop** | ${SITE_URL}/shop/ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Installed plugins" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Plugin | Version |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce | latest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce Stripe Gateway | \`${STRIPE_BRANCH}\` (built from source) |" \
+            >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce Stripe Dev Tools | latest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce Subscriptions | latest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce Bookings | latest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| WooCommerce Pre-Orders | latest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> Sites expire automatically 7 days after the last login." \
+            >> "$GITHUB_STEP_SUMMARY"
