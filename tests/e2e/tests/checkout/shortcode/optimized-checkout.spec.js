@@ -56,59 +56,61 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 		// When Link is enabled, the store checkbox is hidden and Link handles save consent.
 		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
 
-		// First order - Save the payment method.
-		await test.step( 'Save payment method during first checkout', async () => {
-			await user.login(
-				page,
-				username,
-				config.get( 'users.customer.password' )
-			);
-			await setupOptimizedCheckout( page, 'shortcode' );
-			// Toggle via label to avoid flaky direct checkbox interactions.
-			const savePaymentMethodCheckbox = page.locator(
-				'#wc-stripe-new-payment-method'
-			);
-			await expect( savePaymentMethodCheckbox ).toBeAttached();
-			await page
-				.locator( "label[for='wc-stripe-new-payment-method']" )
-				.click();
-			await expect( savePaymentMethodCheckbox ).toBeChecked();
-			// Then fill in the payment details.
-			// This order is needed because, if we fill in the payment details and then click the checkbox, payment element will refresh and the fields will be cleared.
-			await fillOCDetails(
-				page,
-				config.get( 'cards.basic' ),
-				'shortcode'
-			);
-			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
-		} );
+		try {
+			// First order - Save the payment method.
+			await test.step( 'Save payment method during first checkout', async () => {
+				await user.login(
+					page,
+					username,
+					config.get( 'users.customer.password' )
+				);
+				await setupOptimizedCheckout( page, 'shortcode' );
+				// Toggle via label to avoid flaky direct checkbox interactions.
+				const savePaymentMethodCheckbox = page.locator(
+					'#wc-stripe-new-payment-method'
+				);
+				await expect( savePaymentMethodCheckbox ).toBeAttached();
+				await page
+					.locator( "label[for='wc-stripe-new-payment-method']" )
+					.click();
+				await expect( savePaymentMethodCheckbox ).toBeChecked();
+				// Then fill in the payment details.
+				// This order is needed because, if we fill in the payment details and then click the checkbox, payment element will refresh and the fields will be cleared.
+				await fillOCDetails(
+					page,
+					config.get( 'cards.basic' ),
+					'shortcode'
+				);
+				await clickPlaceOrder( page );
+				await page.waitForURL( '**/checkout/order-received/**' );
+				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+					'Order received'
+				);
+			} );
 
-		// Second order - Use saved payment method.
-		await test.step( 'Use saved payment method for second checkout', async () => {
-			await emptyCart( page );
-			await setupCart( page );
-			await setupShortcodeCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
-			await page.getByText( 'Visa ending in 4242 (expires' ).click();
-			await page.waitForTimeout( 1000 );
-			await page
-				.locator( '.woocommerce-SavedPaymentMethods-token' )
-				.first()
-				.click();
-			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
-		} );
-
-		// Re-enable Link after the test.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+			// Second order - Use saved payment method.
+			await test.step( 'Use saved payment method for second checkout', async () => {
+				await emptyCart( page );
+				await setupCart( page );
+				await setupShortcodeCheckout(
+					page,
+					config.get( 'addresses.customer.billing' )
+				);
+				await page.getByText( 'Visa ending in 4242 (expires' ).click();
+				await page.waitForTimeout( 1000 );
+				await page
+					.locator( '.woocommerce-SavedPaymentMethods-token' )
+					.first()
+					.click();
+				await clickPlaceOrder( page );
+				await page.waitForURL( '**/checkout/order-received/**' );
+				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+					'Order received'
+				);
+			} );
+		} finally {
+			// Re-enable Link after the test.
+			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		}
 	} );
 } );
