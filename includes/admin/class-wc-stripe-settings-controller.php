@@ -230,6 +230,10 @@ class WC_Stripe_Settings_Controller {
 			// Show the OC promotional banner only if OC is disabled
 			&& ! $is_oc_enabled;
 
+		$show_stripe_tax_banner = get_option( 'wc_stripe_show_stripe_tax_banner', 'yes' ) === 'yes'
+			// Show the Stripe Tax banner only if OC is enabled
+			&& $is_oc_enabled;
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
@@ -238,6 +242,7 @@ class WC_Stripe_Settings_Controller {
 			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
 			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
+			'show_stripe_tax_banner'                => $show_stripe_tax_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),

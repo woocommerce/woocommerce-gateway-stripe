@@ -14,7 +14,7 @@
 * Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
-* Fix - Prevent incorrect re-enablement of express checkout methods during upgrades
+* Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
@@ -161,6 +161,7 @@
 * Fix - Ensure state and postal code are optional in express checkout for Gulf countries (UAE, Bahrain, Kuwait, Oman, Qatar)
 * Dev - Removes the `_wcstripe_feature_upe` feature flag and the related method from the `WC_Stripe_Feature_Flags` class
 * Dev - Fixes some incorrect subscriptions support implementations for payment methods
+* Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Fix - Ensure correct express checkout prices in block cart and checkout with non-default decimal configuration
 * Fix - Disable express checkout when Amazon Pay is disabled and the only method
 * Fix - Don't allow WP-Cron jobs to detach payment methods on staging sites
