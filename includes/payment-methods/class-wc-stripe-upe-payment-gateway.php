@@ -1080,13 +1080,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $formatted_total;
 		}
 
-		$currency_symbol = get_woocommerce_currency_symbol( strtoupper( $presentment_data['currency'] ) );
-		$amount          = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+		$presentment_currency_upper = strtoupper( $presentment_data['currency'] );
+		$currency_symbol            = get_woocommerce_currency_symbol( $presentment_currency_upper );
+		$amount                     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_data['amount'],
 			$presentment_data['currency']
 		);
 
-		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . strtoupper( $presentment_data['currency'] ) . ')';
+		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . $presentment_currency_upper . ')';
 	}
 
 	/**
@@ -1101,13 +1102,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$presentment_currency_upper = strtoupper( $notice_data['presentment_currency'] );
+
 		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(
 				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
 				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
-				esc_html( $notice_data['woocommerce_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] ) ),
+				esc_html( $notice_data['woocommerce_amount'] . ' ' . $presentment_currency_upper ),
 				esc_html( strtoupper( $order->get_currency() ) ),
-				esc_html( $notice_data['rate_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] ) )
+				esc_html( $notice_data['rate_amount'] . ' ' . $presentment_currency_upper )
 			);
 		echo '</p>';
 	}
