@@ -54,6 +54,13 @@ class WC_Stripe_API {
 	private static $instance;
 
 	/**
+	 * Stripe SDK client instance.
+	 *
+	 * @var \Stripe\StripeClient|null
+	 */
+	private static ?Stripe\StripeClient $sdk = null;
+
+	/**
 	 * Get instance of WC_Stripe_API.
 	 *
 	 * @return WC_Stripe_API
@@ -497,11 +504,11 @@ class WC_Stripe_API {
 	public static function get_payment_method( string $payment_method_id ) {
 		// Sources have a separate API.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::retrieve( 'sources/' . $payment_method_id );
+			return self::get_sdk()->sources->retrieve( $payment_method_id )->jsonSerialize();
 		}
 
 		// If it's not a source it's a PaymentMethod.
-		return self::retrieve( 'payment_methods/' . $payment_method_id );
+		return self::get_sdk()->paymentMethods->retrieve( $payment_method_id )->jsonSerialize();
 	}
 
 	/**
@@ -515,10 +522,7 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception If payment method update fails.
 	 */
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
-		return self::request(
-			$payment_method_data,
-			'payment_methods/' . $payment_method_id
-		);
+		return self::get_sdk()->paymentMethods->update( $payment_method_id, $payment_method_data )->jsonSerialize();
 	}
 
 	/**
@@ -533,16 +537,10 @@ class WC_Stripe_API {
 	public static function attach_payment_method_to_customer( string $customer_id, string $payment_method_id ) {
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::request(
-				[ 'source' => $payment_method_id ],
-				'customers/' . $customer_id . '/sources'
-			);
+			return self::get_sdk()->customers->updateSource( $customer_id, $payment_method_id )->jsonSerialize();
 		}
 
-		return self::request(
-			[ 'customer' => $customer_id ],
-			'payment_methods/' . $payment_method_id . '/attach'
-		);
+		return self::get_sdk()->paymentMethods->attach( $payment_method_id, [ 'customer' => $customer_id ] )->jsonSerialize();
 	}
 
 	/**
@@ -563,17 +561,10 @@ class WC_Stripe_API {
 
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::request(
-				[],
-				'customers/' . $customer_id . '/sources/' . $payment_method_id,
-				'DELETE'
-			);
+			return self::get_sdk()->sources->detach( $customer_id, $payment_method_id )->jsonSerialize();
 		}
 
-		return self::request(
-			[],
-			'payment_methods/' . $payment_method_id . '/detach'
-		);
+		return self::get_sdk()->paymentMethods->detach( $payment_method_id )->jsonSerialize();
 	}
 
 	/**
@@ -648,7 +639,7 @@ class WC_Stripe_API {
 	public function get_payment_method_configurations() {
 		// The default limit is 10, so we set it to 100 to get all configurations in a single request.
 		// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
-		return self::retrieve( 'payment_method_configurations?limit=100' );
+		return self::get_sdk()->paymentMethodConfigurations->all( [ 'limit' => 100 ] )->jsonSerialize();
 	}
 
 	/**
@@ -657,10 +648,7 @@ class WC_Stripe_API {
 	 * @param array $payment_method_configurations The payment method configurations to update.
 	 */
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
-		$response = self::request(
-			$payment_method_configurations,
-			'payment_method_configurations/' . $id
-		);
+		$response = self::get_sdk()->paymentMethodConfigurations->update( $id, $payment_method_configurations )->jsonSerialize();
 		return $response;
 	}
 
@@ -736,5 +724,17 @@ class WC_Stripe_API {
 			return 'secret_key_not_configured';
 		}
 		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
+	}
+
+	/**
+	 * Get the Stripe SDK instance.
+	 *
+	 * @return \Stripe\StripeClient
+	 */
+	private static function get_sdk(): \Stripe\StripeClient {
+		if ( ! self::$sdk ) {
+			self::$sdk = new \Stripe\StripeClient( self::get_secret_key() );
+		}
+		return self::$sdk;
 	}
 }

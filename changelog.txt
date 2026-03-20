@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Dev - Integrate the official Stripe PHP SDK for payment method and configuration API calls, replacing raw HTTP requests in WC_Stripe_API
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
