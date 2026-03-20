@@ -39,4 +39,13 @@ class WC_Subscriptions {
 	public static function set_wcs_get_subscription( $callback ) {
 		self::$wcs_get_subscription = $callback;
 	}
+
+	/**
+	 * Stub: check if the current site is a duplicate/staging site.
+	 *
+	 * @return bool
+	 */
+	public static function is_duplicate_site(): bool {
+		return false;
+	}
 }

@@ -3022,9 +3022,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test for `filter_my_account_my_orders_actions`.
 	 *
-	 * @dataProvider payment_method_titles_provider
+	 * @param string $payment_method_title   The payment method title.
+	 * @param bool   $has_checkout_session   Whether the order has a Stripe checkout session ID (hides Pay/Cancel).
+	 * @param array  $expected_action_keys   The action keys that should remain after the filter.
+	 * @return void
+	 * @dataProvider filter_my_account_my_orders_actions_provider
 	 */
-	public function test_filter_my_account_my_orders_actions( $payment_method_title ) {
+	public function test_filter_my_account_my_orders_actions( $payment_method_title, $has_checkout_session, $expected_action_keys ) {
 		add_filter(
 			'woocommerce_is_order_received_page',
 			function () {
@@ -3035,6 +3039,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method_title( $payment_method_title );
 		$order->set_status( OrderStatus::PENDING );
+
+		if ( $has_checkout_session ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, 'cs_test_123' );
+		}
 
 		$actions = [
 			'pay'    => [
@@ -3056,16 +3064,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$actual = $this->mock_gateway->filter_my_account_my_orders_actions( $actions, $order );
 
-		$this->assertEquals(
-			[
-				'view' => [
-					'url'        => $order->get_view_order_url(),
-					'name'       => 'View',
-					'aria-label' => sprintf( 'View order %s', $order->get_order_number() ),
-				],
-			],
-			$actual
-		);
+		$this->assertEquals( $expected_action_keys, array_keys( $actual ) );
 	}
 
 	/**
@@ -3073,9 +3072,28 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @return array
 	 */
-	public function payment_method_titles_provider() {
+	public function filter_my_account_my_orders_actions_provider() {
 		return [
-			'Bacs' => [ WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL ],
+			'Bacs (delayed confirmation)' => [
+				'payment_method_title' => WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
+				'has_checkout_session' => false,
+				'expected_action_keys' => [ 'view' ],
+			],
+			'Bacs (delayed confirmation) with checkout session' => [
+				'payment_method_title' => WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
+				'has_checkout_session' => true,
+				'expected_action_keys' => [ 'view' ],
+			],
+			'Card'                        => [
+				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				'has_checkout_session' => false,
+				'expected_action_keys' => [ 'pay', 'view', 'cancel' ],
+			],
+			'Card with checkout session'  => [
+				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				'has_checkout_session' => true,
+				'expected_action_keys' => [ 'view' ],
+			],
 		];
 	}
 
@@ -3996,6 +4014,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->set_total( 20.00 );
@@ -4022,7 +4042,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		$this->assertEquals( '$10.00 (' . $expected_amount . ' EUR)', $result );
+		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
 	}
 
 	/**
@@ -4081,7 +4101,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
+		// Set total to $20.00 USD (2000 cents) to match the mocked checkout session amount_total.
+		$order->set_total( 20 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_3';
@@ -4105,9 +4126,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
+		// 1500 EUR cents = 15.00 EUR; 1500 / 2000 (USD cents) = 0.75 exchange rate.
+		$expected_amount = '15.00';
+		$expected_rate   = '0.75';
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4121,6 +4142,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_converted_currency_information_reads_from_order_meta_without_api_call(): void {
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
@@ -4137,7 +4160,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		$this->assertEquals( '$10.00 (' . $expected_amount . ' EUR)', $result );
+		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
 	}
 
 	/**

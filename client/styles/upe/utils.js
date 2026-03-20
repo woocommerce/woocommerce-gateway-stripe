@@ -1,5 +1,9 @@
 import tinycolor from 'tinycolor2';
 
+export { getElementBackgroundColor } from './get-element-background-color';
+export { getPaymentMethodRadioStyles } from './get-payment-method-radio-styles';
+export { isTransparentColor } from './is-transparent-color';
+
 /**
  * Generates hover colors from a background color and a text color.
  *

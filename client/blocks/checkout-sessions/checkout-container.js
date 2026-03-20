@@ -20,6 +20,7 @@ export const CheckoutContainer = ( props ) => {
 		setPaymentProcessorLoadErrorMessage,
 		setShouldLoadStripeElements,
 	} = props;
+
 	const checkoutSessionPromise = useMemo( async () => {
 		const response =
 			await api.checkoutSessionsCreateSession( billingAddress );

@@ -3,6 +3,7 @@ import {
 	BNPL_PROMOTION_BANNER,
 	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
+	STRIPE_TAX_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import { BNPL_METHODS } from 'wcstripe/stripe-utils/constants';
 
@@ -29,6 +30,12 @@ export const getPromotionalBannerType = (
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
+	} else if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.is_oc_available &&
+		isOCEnabled
+	) {
+		return STRIPE_TAX_BANNER;
 	} else if (
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.is_oc_available &&
