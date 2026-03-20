@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
