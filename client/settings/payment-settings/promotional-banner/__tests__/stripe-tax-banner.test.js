@@ -1,30 +1,19 @@
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OCPromotionBanner } from '../oc-promotion-banner';
+import { StripeTaxBanner } from '../stripe-tax-banner';
 import apiFetch from '@wordpress/api-fetch';
-import { useDispatch } from '@wordpress/data';
-
-const noticesDispatch = {
-	createErrorNotice: jest.fn(),
-	createSuccessNotice: jest.fn(),
-};
-
-jest.mock( '@wordpress/data' );
+import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch' );
 
-describe( 'OC promotional banner', () => {
+jest.mock( 'wcstripe/tracking', () => ( {
+	recordEvent: jest.fn(),
+} ) );
+
+describe( 'Stripe Tax banner', () => {
 	const setShowPromotionalBanner = jest.fn();
-	const setIsOCEnabled = jest.fn( () => Promise.resolve() );
 
 	beforeEach( () => {
-		useDispatch.mockImplementation( ( storeName ) => {
-			if ( storeName === 'core/notices' ) {
-				return noticesDispatch;
-			}
-
-			return {};
-		} );
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);
@@ -34,21 +23,18 @@ describe( 'OC promotional banner', () => {
 		jest.clearAllMocks();
 	} );
 
-	it( 'should render the OC promotional banner', () => {
+	it( 'should render the Stripe Tax banner', () => {
 		const { getByText } = render(
-			<OCPromotionBanner
+			<StripeTaxBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
 		expect(
-			getByText(
-				"Increase conversion with Stripe's Optimized Checkout Suite"
-			)
+			getByText( 'Automate tax compliance with Stripe Tax' )
 		).toBeInTheDocument();
 		expect(
 			getByText(
-				/Optimize your checkout experience for more sales by dynamically displaying the most relevant payment methods you've enabled for each customer./
+				/Automatically calculate and collect sales tax, value-added tax \(VAT\), and goods and services tax \(GST\) wherever you sell./
 			)
 		).toBeInTheDocument();
 	} );
@@ -60,9 +46,8 @@ describe( 'OC promotional banner', () => {
 		apiFetch.mockImplementation( dismissNoticeMock );
 
 		const { getByText } = render(
-			<OCPromotionBanner
+			<StripeTaxBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
 		const dismissButton = getByText( 'Dismiss' );
@@ -73,18 +58,26 @@ describe( 'OC promotional banner', () => {
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should attempt to enable OC when clicking the "Activate now" button', async () => {
+	it( 'should open the main page when clicking the "Get Stripe Tax" button', async () => {
 		const { getByText } = render(
-			<OCPromotionBanner
+			<StripeTaxBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
-		const activateButton = getByText( 'Activate now' );
+		const activateButton = getByText( 'Get Stripe Tax' );
+
+		expect( activateButton ).toHaveAttribute(
+			'href',
+			'https://woocommerce.com/products/stripe-tax/'
+		);
 
 		await act( async () => {
 			await userEvent.click( activateButton );
 		} );
-		expect( setIsOCEnabled ).toHaveBeenCalled();
+
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_stripe_tax_banner_button_click',
+			{}
+		);
 	} );
 } );

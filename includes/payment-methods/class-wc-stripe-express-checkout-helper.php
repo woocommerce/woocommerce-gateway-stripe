@@ -1851,6 +1851,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
 	 */
 	public function get_booking_id_from_cart() {
+		wc_deprecated_function( __METHOD__, '9.8.0', 'WC_Stripe_Express_Checkout_Helper::get_booking_ids_from_cart()' );
+
 		$booking_ids = $this->get_booking_ids_from_cart();
 		if ( ! empty( $booking_ids ) ) {
 			return $booking_ids[0];
