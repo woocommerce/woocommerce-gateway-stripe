@@ -121,24 +121,31 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that create_payment_intent uses the order currency instead of the global WooCommerce currency.
+	 * Test that create_payment_intent uses the correct currency.
+	 *
+	 * @param string|null $order_currency   Currency to set on the order, or null to skip passing an order.
+	 * @param string      $global_currency  Currency returned by the woocommerce_currency filter.
+	 * @param string      $expected_currency Expected currency in the Stripe API request.
 	 *
 	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4925
+	 * @dataProvider provide_create_payment_intent_currency_data
 	 */
-	public function test_create_payment_intent_uses_order_currency() {
-		$this->order->set_currency( 'USD' );
-		$this->order->save();
+	public function test_create_payment_intent_chooses_currency( $order_currency, $global_currency, $expected_currency ) {
+		$order_id = null;
 
-		// Simulate a multicurrency plugin changing the global currency.
-		add_filter(
-			'woocommerce_currency',
-			function () {
-				return 'CAD';
-			}
-		);
+		if ( null !== $order_currency ) {
+			$this->order->set_currency( $order_currency );
+			$this->order->save();
+			$order_id = $this->order->get_id();
+		}
 
-		$test_request = function ( $preempt, $parsed_args, $url ) {
-			$this->assertEquals( 'usd', $parsed_args['body']['currency'] );
+		$currency_callback = function () use ( $global_currency ) {
+			return $global_currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_callback );
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_currency ) {
+			$this->assertEquals( $expected_currency, $parsed_args['body']['currency'] );
 
 			return [
 				'response' => 200,
@@ -154,38 +161,21 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $order_id );
+
+		remove_filter( 'woocommerce_currency', $currency_callback );
 	}
 
 	/**
-	 * Test that create_payment_intent falls back to the global currency when no order is provided.
+	 * Data provider for test_create_payment_intent_chooses_currency.
+	 *
+	 * @return array[] [ order_currency, global_currency, expected_currency ]
 	 */
-	public function test_create_payment_intent_uses_global_currency_without_order() {
-		add_filter(
-			'woocommerce_currency',
-			function () {
-				return 'EUR';
-			}
-		);
-
-		$test_request = function ( $preempt, $parsed_args, $url ) {
-			$this->assertEquals( 'eur', $parsed_args['body']['currency'] );
-
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'            => 1,
-						'client_secret' => '123',
-					]
-				),
-			];
-		};
-
-		add_filter( 'pre_http_request', $test_request, 10, 3 );
-
-		$this->mock_controller->create_payment_intent();
+	public function provide_create_payment_intent_currency_data() {
+		return [
+			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
+			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
 	}
 
 	/**
