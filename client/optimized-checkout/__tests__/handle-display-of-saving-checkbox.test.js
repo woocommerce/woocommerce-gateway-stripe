@@ -2,7 +2,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_SEPA,
 } from 'wcstripe/stripe-utils/constants';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
@@ -60,7 +60,7 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 				'.wc-block-components-payment-methods__save-card-info'
 			);
 
-			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_KLARNA );
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_SEPA );
 			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
 		} );
 	} );
@@ -175,8 +175,41 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 				'.woocommerce-SavedPaymentMethods-saveNew'
 			);
 
-			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_KLARNA );
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_SEPA );
 			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+		} );
+
+		it( 'Hides store checkbox when Link is enabled and card is selected (logged out with signup)', () => {
+			isLinkEnabled.mockReturnValue( true );
+			global.wc_stripe_upe_params = {
+				isLoggedIn: false,
+				isSignupOnCheckoutAllowed: true,
+			};
+
+			document.body.innerHTML =
+				'<input type="checkbox" id="createaccount" checked /><div class="woocommerce-SavedPaymentMethods-saveNew"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'Hides store checkbox when Link is enabled and card is selected (saved payment method present)', () => {
+			isLinkEnabled.mockReturnValue( true );
+			global.wc_stripe_upe_params = { isLoggedIn: true };
+
+			document.body.innerHTML =
+				'<input type="hidden" name="wc-stripe-payment-token" value="token_123" /><div id="wc-stripe-upe-form" style="display: none;"></div><div class="woocommerce-SavedPaymentMethods-saveNew"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
 		} );
 
 		it( 'User is logged out, and the signup option is not available', () => {
