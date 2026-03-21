@@ -147,6 +147,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
+* Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
+* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
