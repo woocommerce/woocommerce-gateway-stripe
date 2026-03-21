@@ -96,12 +96,11 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 					page,
 					config.get( 'addresses.customer.billing' )
 				);
-				await page.getByText( 'Visa ending in 4242 (expires' ).click();
-				await page.waitForTimeout( 1000 );
-				await page
-					.locator( '.woocommerce-SavedPaymentMethods-token' )
-					.first()
-					.click();
+				const savedTokenRadio = page.locator(
+					'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
+				);
+				await expect( savedTokenRadio ).toBeVisible();
+				await savedTokenRadio.click();
 				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
