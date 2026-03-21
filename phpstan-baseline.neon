@@ -385,73 +385,7 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Call to an undefined method object\:\:get_billing_address_1\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_address_2\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_city\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_country\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_email\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_first_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_last_name\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_phone\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_postcode\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_billing_state\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Call to an undefined method object\:\:get_id\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_total\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -895,18 +829,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_payment\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:unlock_order_refund\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_existing_intent\(\) should return object but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -920,12 +842,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:validate_minimum_order_amount\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -3293,7 +3209,6 @@ parameters:
 			identifier: property.notFound
 			count: 8
 			path: includes/class-wc-stripe-webhook-handler.php
-
 
 		-
 			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'

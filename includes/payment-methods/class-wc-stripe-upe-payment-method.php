@@ -696,7 +696,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
-		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_ideal_enabled() and WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_bancontact_enabled()' );
+
+		return $this->is_sepa_tokens_for_ideal_enabled() || $this->is_sepa_tokens_for_bancontact_enabled();
 	}
 
 	/**
