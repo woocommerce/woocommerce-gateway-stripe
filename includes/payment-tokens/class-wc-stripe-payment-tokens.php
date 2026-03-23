@@ -264,10 +264,11 @@ class WC_Stripe_Payment_Tokens {
 
 	/**
 	 * Splits the existing token list into stored (valid) and deprecated buckets,
-	 * ignoring tokens that don't belong to a reusable UPE gateway.
+	 * ignoring tokens that don't belong to a reusable Stripe gateway.
 	 *
 	 * @param WC_Payment_Token[] $tokens All existing tokens for the customer.
-	 * @return array{stored: array<string, WC_Payment_Token>, deprecated: array<string, WC_Payment_Token>}
+	 *
+	 * @return array{stored: array<string, WC_Payment_Token>, deprecated: array<string, WC_Payment_Token>} List of stored and deprecated Stripe tokens, keyed by token string.
 	 */
 	private function categorize_existing_tokens( array $tokens ): array {
 		$stored     = [];
