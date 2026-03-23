@@ -217,7 +217,7 @@ class WC_Stripe_Payment_Tokens {
 				// The corresponding method for the payment method type is not enabled, skipping.
 				// When OCS is enabled, allow all reusable methods regardless of their individual enabled state,
 				// since they are all accessible through the consolidated OCS element.
-				if ( ! $gateway->is_oc_enabled() && ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
+				if ( ! $gateway->is_optimized_checkout_active() && ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
 					continue;
 				}
 
