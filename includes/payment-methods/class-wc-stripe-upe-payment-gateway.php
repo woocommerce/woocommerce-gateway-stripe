@@ -4134,28 +4134,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_tokens() {
 		$tokens = parent::get_tokens();
+
 		if ( ! is_user_logged_in() ) {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page ) {
-			return $tokens
+		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+			return $tokens;
 		}
-			foreach ( $this->get_upe_enabled_payment_method_ids() as $stripe_id ) {
-				// Not a reusable payment method, skip.
-				if ( ! array_key_exists( $stripe_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD ) ) {
-					continue;
-				}
 
-				// Already handled by the parent method.
-				if ( WC_Stripe_Payment_Methods::CARD === $stripe_id ) {
-					continue;
-				}
-
-				$gateway_id    = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
-				$method_tokens = WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id );
-				$tokens        = array_merge( $tokens, $method_tokens );
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $stripe_id ) {
+			// Not a reusable payment method, skip.
+			if ( ! array_key_exists( $stripe_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD ) ) {
+				continue;
 			}
+
+			// Already handled by the parent method.
+			if ( WC_Stripe_Payment_Methods::CARD === $stripe_id ) {
+				continue;
+			}
+
+			$gateway_id    = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
+			$method_tokens = WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id );
+			$tokens        = array_merge( $tokens, $method_tokens );
 		}
 
 		return array_unique( $tokens );
