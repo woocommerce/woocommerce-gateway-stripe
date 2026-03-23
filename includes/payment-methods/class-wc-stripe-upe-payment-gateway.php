@@ -4265,14 +4265,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Use the decimal count for the presentment currency, not the store's price decimal
 		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
-		$presentment_currency_lower = strtolower( $presentment_data['currency'] );
-		$rate_decimals              = 2;
-		if ( in_array( $presentment_currency_lower, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			$rate_decimals = 0;
-		} elseif ( in_array( $presentment_currency_lower, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
-			$rate_decimals = 3;
-		}
-		$rate_amount = wc_format_decimal( $presentment_data['amount'] / $stripe_amount, $rate_decimals );
+		$rate_decimals = WC_Stripe_Helper::get_currency_decimal_places( $presentment_data['currency'] );
+		$rate_amount   = wc_format_decimal( $presentment_data['amount'] / $stripe_amount, $rate_decimals );
 
 		return [
 			'presentment_currency' => $presentment_data['currency'],

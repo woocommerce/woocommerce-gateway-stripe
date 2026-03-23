@@ -146,7 +146,49 @@ class WC_Stripe_Currency_Code {
 	const YEMENI_RIAL                             = 'YER'; // Yemeni rial.
 	const SOUTH_AFRICAN_RAND                      = 'ZAR'; // South African rand.
 	const ZAMBIAN_KWACHA                          = 'ZMW'; // Zambian kwacha.
+	const KUWAITI_DINAR                           = 'KWD'; // Kuwaiti dinar.
+	const OMANI_RIAL                              = 'OMR'; // Omani rial.
+	const TUNISIAN_DINAR                          = 'TND'; // Tunisian dinar.
+
 	// ... add more currencies as needed.
 	// crypto currencies.
 	const BITCOIN = 'BTC'; // Bitcoin.
+
+	/**
+	 * List of currency codes that do not have a decimal component (i.e., no cents).
+	 *
+	 * Source: https://stripe.com/docs/currencies#zero-decimal
+	 *
+	 * @var string[]
+	 */
+	const NO_DECIMAL_CURRENCY_CODES = [
+		self::BURUNDIAN_FRANC,
+		self::CHILEAN_PESO,
+		self::DJIBOUTIAN_FRANC,
+		self::GUINEAN_FRANC,
+		self::JAPANESE_YEN,
+		self::COMORIAN_FRANC,
+		self::SOUTH_KOREAN_WON,
+		self::MALAGASY_ARIARY,
+		self::PARAGUAYAN_GUARANI,
+		self::RWANDAN_FRANC,
+		self::VIETNAMESE_DONG,
+		self::VANUATU_VATU,
+		self::CENTRAL_AFRICAN_CFA_FRANC,
+		self::WEST_AFRICAN_CFA_FRANC,
+		self::CFP_FRANC,
+	];
+
+	/**
+	 * List of currency codes that have three decimal places.
+	 *
+	 * @var string[]
+	 */
+	const THREE_DECIMAL_CURRENCY_CODES = [
+		self::BAHRAINI_DINAR,
+		self::JORDANIAN_DINAR,
+		self::KUWAITI_DINAR,
+		self::OMANI_RIAL,
+		self::TUNISIAN_DINAR,
+	];
 }
