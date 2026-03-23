@@ -10,10 +10,32 @@ use Automattic\WooCommerce\Enums\ProductTaxStatus;
  * WC_Stripe_Express_Checkout_Helper_Test class.
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
+	/**
+	 * Instance of shipping zone.
+	 *
+	 * @var WC_Shipping_Zone
+	 */
 	private $shipping_zone;
+
+	/**
+	 * Instance of shipping method.
+	 *
+	 * @var WC_Shipping_Method
+	 */
 	private $shipping_method;
+
+	/**
+	 * List of products.
+	 *
+	 * @var array Products used in tests.
+	 */
 	private $products;
 
+	/**
+	 * Set up.
+	 *
+	 * @return void
+	 */
 	public function set_up() {
 		parent::set_up();
 
@@ -25,6 +47,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
+	/**
+	 * Tear down.
+	 *
+	 * @return void
+	 */
 	public function tear_down() {
 		if ( $this->shipping_zone ) {
 			delete_option( $this->shipping_method->get_instance_option_key() );
@@ -37,6 +64,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Set up shipping methods.
+	 *
+	 * @return void
+	 */
 	public function set_up_shipping_methods() {
 		// Add a shipping zone.
 		$this->shipping_zone = new WC_Shipping_Zone();
@@ -71,7 +103,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$tax_based_on,
 		$filter_value,
 		$expected
-	) {
+	): void {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
@@ -140,8 +172,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Create products for test_hides_ece_if_cannot_compute_taxes.
+	 *
+	 * @return void
 	 */
-	private function create_products_for_test_hides_ece_if_cannot_compute_taxes() {
+	private function create_products_for_test_hides_ece_if_cannot_compute_taxes(): void {
 		if (
 			isset( $this->products['virtual_nontaxable'] ) &&
 			isset( $this->products['virtual_taxable'] ) &&
@@ -176,7 +210,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_hides_ece_if_cannot_compute_taxes() {
+	public function provide_test_hides_ece_if_cannot_compute_taxes(): array {
 		$hide = false;
 		$show = true;
 		return [
@@ -249,8 +283,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test should_show_express_checkout_button, gateway logic.
+	 *
+	 * @return void
 	 */
-	public function test_hides_ece_if_stripe_gateway_unavailable() {
+	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
 		$this->set_up_shipping_methods();
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -307,7 +343,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_hides_ece_if_free_trial_requires_shipping() {
+	public function test_shows_ece_if_free_trial_requires_shipping(): void {
 		$this->set_up_shipping_methods();
 
 		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -338,7 +374,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		update_option( 'woocommerce_calc_taxes', 'no' );
 
-		// Should show, as free virtual products does not require shipping.
+		// Should show for free virtual products.
 		$virtual_product = WC_Helper_Product::create_simple_product();
 		$virtual_product->set_virtual( true );
 		$virtual_product->set_tax_status( 'none' );
@@ -355,7 +391,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Should hide if the free product requires shipping.
+		// Should show for free product requiring shipping.
 		$shippable_product = WC_Helper_Product::create_simple_product();
 		$shippable_product->set_virtual( false );
 		$shippable_product->set_tax_status( 'none' );
@@ -369,7 +405,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->method( 'get_product' )
 			->willReturn( $shippable_product );
 
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
 		// Restore original settings.
 		WC()->cart->empty_cart();
@@ -382,8 +418,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for get_checkout_data().
+	 *
+	 * @return void
 	 */
-	public function test_get_checkout_data() {
+	public function test_get_checkout_data(): void {
 		// Local setup
 		update_option( 'woocommerce_checkout_phone_field', 'optional' );
 		update_option( 'woocommerce_default_country', 'US' );
@@ -409,8 +447,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for get_checkout_data(), no shipping zones.
 	 *
 	 * This is in a separate test, to avoid problems with cached data.
+	 *
+	 * @return void
 	 */
-	public function test_get_checkout_data_no_shipping_zones() {
+	public function test_get_checkout_data_no_shipping_zones(): void {
 		// When no shipping zones are set up, the default shipping option should be empty.
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
@@ -423,8 +463,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for is_authentication_required().
+	 *
+	 * @return void
 	 */
-	public function test_is_authentication_required() {
+	public function test_is_authentication_required(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -454,8 +496,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for is_account_creation_possible().
+	 *
+	 * @return void
 	 */
-	public function test_is_account_creation_possible() {
+	public function test_is_account_creation_possible(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -513,7 +557,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_get_normalized_postal_code
 	 */
-	public function test_get_normalized_postal_code( $postal_code, $country, $expected ) {
+	public function test_get_normalized_postal_code( $postal_code, $country, $expected ): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_postal_code( $postal_code, $country ) );
 	}
@@ -523,7 +567,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_normalized_postal_code() {
+	public function provide_test_get_normalized_postal_code(): array {
 		return [
 			'GB country'           => [
 				'postal code' => 'SW1A 1AA',
@@ -553,7 +597,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_get_payment_method_title_suffix() {
+	public function test_get_payment_method_title_suffix(): void {
 		$actual = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 
 		$this->assertEquals( ' (Stripe)', $actual );
@@ -562,9 +606,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test is_express_checkout_context method.
 	 *
+	 * @return void
+	 *
 	 * @dataProvider provide_test_is_express_checkout_context
 	 */
-	public function test_is_express_checkout_context( $is_store_api, $has_express_header, $has_nonce_header, $nonce_valid, $expected ) {
+	public function test_is_express_checkout_context( $is_store_api, $has_express_header, $has_nonce_header, $nonce_valid, $expected ): void {
 		$helper = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[ 'is_request_to_store_api' ]
@@ -604,7 +650,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_express_checkout_context() {
+	public function provide_test_is_express_checkout_context(): array {
 		return [
 			'Not Store API request'                 => [
 				'is_store_api'       => false,
@@ -647,9 +693,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test is_request_to_store_api method.
 	 *
+	 * @return void
+	 *
 	 * @dataProvider provide_test_is_request_to_store_api
 	 */
-	public function test_is_request_to_store_api( $rest_route, $expected ) {
+	public function test_is_request_to_store_api( $rest_route, $expected ): void {
 		$helper = new WC_Stripe_Express_Checkout_Helper();
 
 		// Set up global WP query vars
@@ -679,7 +727,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_request_to_store_api() {
+	public function provide_test_is_request_to_store_api(): array {
 		return [
 			'No rest_route set'         => [
 				'rest_route' => '',
@@ -705,10 +753,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @param string $currency Currency code.
 	 * @param int    $expected Expected number of decimals.
+	 * @return void
 	 *
 	 * @dataProvider provide_test_get_stripe_currency_decimals
 	 */
-	public function test_get_stripe_currency_decimals( $currency, $expected ) {
+	public function test_get_stripe_currency_decimals( $currency, $expected ): void {
 		update_option( 'woocommerce_currency', $currency );
 
 		$actual = WC_Stripe_Express_Checkout_Helper::get_stripe_currency_decimals();
@@ -720,7 +769,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_stripe_currency_decimals() {
+	public function provide_test_get_stripe_currency_decimals(): array {
 		return [
 			// No decimal currencies - should return 0
 			'Japanese Yen (no decimals)'      => [
@@ -753,7 +802,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_test_get_booking_ids_from_cart
 	 */
-	public function test_get_booking_ids_from_cart( $cart_contents, $expected ) {
+	public function test_get_booking_ids_from_cart( $cart_contents, $expected ): void {
 		WC()->session->init();
 		WC()->cart->empty_cart();
 
@@ -774,7 +823,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_booking_ids_from_cart() {
+	public function provide_test_get_booking_ids_from_cart(): array {
 		$product_1 = WC_Helper_Product::create_simple_product();
 		$product_1->save();
 
@@ -916,7 +965,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_has_free_trial() {
+	public function provide_test_has_free_trial(): array {
 		$subscription = new WC_Subscription();
 
 		$subscription_with_trial = new WC_Subscription();
@@ -1008,6 +1057,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertSame( $expected, $actual );
 	}
 
+	/**
+	 * Provider for `test_get_button_locations`.
+	 *
+	 * @return array
+	 */
 	public function provide_test_get_button_locations(): array {
 		return [
 			'payment request, settings exists' => [
@@ -1084,7 +1138,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ) {
+	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ): void {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
@@ -1134,7 +1188,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_opc_detection_scenarios() {
+	public function provide_opc_detection_scenarios(): array {
 		return [
 			'OPC with checkout enabled'     => [ true, [ 'checkout' ], true ],
 			'Non-OPC with checkout enabled' => [ false, [ 'checkout' ], true ],
@@ -1522,6 +1576,101 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'CA', $result['billing_address']['state'] );
 		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
+
+	/**
+	 * Test that maybe_restore_recurring_chosen_shipping_methods() skips free-trial recurring
+	 * carts and only restores shipping methods for non-free-trial recurring carts in a mixed cart.
+	 *
+	 * Covers the early-return branch at the top of the recurring-cart loop:
+	 * when recurring_cart_contains_free_trial() returns true, shipping restoration is skipped
+	 * via `continue` for that cart, but still runs for carts without a free trial.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_restore_recurring_chosen_shipping_methods_skips_free_trial_cart(): void {
+		// Create a free-trial subscription product and a regular (non-subscription) product.
+		$free_trial_product = WC_Helper_Product::create_simple_product();
+		$free_trial_product->save();
+
+		$regular_product = WC_Helper_Product::create_simple_product();
+		$regular_product->save();
+
+		// Make only the free-trial product a subscription and give it a trial period.
+		// The regular product is not in the list, so is_subscription() returns false for it,
+		// which causes recurring_cart_contains_free_trial() to return false for that cart.
+		WC_Subscriptions_Product::set_subscription_product_ids( [ $free_trial_product->get_id() ] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 7 );
+
+		// Build a recurring cart whose single item is a subscription with a free trial.
+		// get_shipping_packages() must never be called — the loop continues past this cart.
+		$free_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$free_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $free_trial_product ],
+			]
+		);
+		$free_trial_recurring_cart->expects( $this->never() )->method( 'get_shipping_packages' );
+
+		// Build a recurring cart whose single item is a regular product (no trial).
+		// get_shipping_packages() is called once, returning one package at index 0.
+		$no_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$no_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $regular_product ],
+			]
+		);
+		$no_trial_recurring_cart->method( 'get_shipping_packages' )->willReturn( [ [] ] );
+
+		// Inject both recurring carts and initialise the session.
+		WC()->session->init();
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC()->cart->recurring_carts = [
+			'sub_freetrial' => $free_trial_recurring_cart,
+			'sub_no_trial'  => $no_trial_recurring_cart,
+		];
+
+		// Tell WC_Subscriptions_Cart that the overall cart contains a free trial.
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( true );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		// cart_contains_free_trial() must return true for the mixed cart.
+		$cart_contains_free_trial = new ReflectionMethod( WC_Stripe_Express_Checkout_Helper::class, 'cart_contains_free_trial' );
+		$cart_contains_free_trial->setAccessible( true );
+		$this->assertTrue( $cart_contains_free_trial->invoke( $helper ) );
+
+		// Previous shipping methods were recorded for both recurring cart keys.
+		$previous_chosen_methods = [
+			'sub_freetrial' => 'flat_rate:1',
+			'sub_no_trial'  => 'flat_rate:1',
+		];
+
+		$helper->maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods );
+
+		$chosen = WC()->session->get( 'chosen_shipping_methods', [] );
+
+		// The non-free-trial cart's shipping method must be restored.
+		$this->assertArrayHasKey( 'sub_no_trial', $chosen, 'Shipping method must be restored for the non-free-trial recurring cart.' );
+		$this->assertSame( 'flat_rate:1', $chosen['sub_no_trial'] );
+
+		// The free-trial cart's shipping method must NOT be restored.
+		$this->assertArrayNotHasKey( 'sub_freetrial', $chosen, 'Shipping method must not be restored for the free-trial recurring cart.' );
+
+		// Clean up.
+		WC()->cart->recurring_carts = [];
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( false );
+		WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 0 );
 	}
 
 	/**

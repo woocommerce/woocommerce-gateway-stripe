@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 10.5.2
+Stable tag: 10.5.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -146,6 +146,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
+* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
+* Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
+* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
+* Add - Support express checkout for free trial subscription products that require shipping
+* Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
@@ -153,5 +159,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Add - Allow additional font domains to be included in Stripe fonts
 * Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
+* Fix - Add order and payment method validation to prevent errors
+* Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
+* Fix - Improve default layout when Optimized Checkout is disabled
+* Fix - Improve performance of CSS style lookups
+* Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
