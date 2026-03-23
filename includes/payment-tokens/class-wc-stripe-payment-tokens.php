@@ -238,25 +238,27 @@ class WC_Stripe_Payment_Tokens {
 					$tokens[ $token->get_id() ] = $token;
 				}
 			}
+
+			$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
+
+			// When OCS is enabled and the main stripe gateway is queried (e.g. blocks checkout), also include
+			// tokens for sub-gateways (stripe_sepa_debit, stripe_bancontact, etc.) since all payment methods
+			// are rendered under the single 'stripe' gateway in that context.
+			// The filter is kept active so each sub-gateway call goes through the normal sync path.
+			// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
+			if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+				foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
+					$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
+				}
+			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
+
+			return $tokens;
 		} finally {
 			// Re-add the filter after we're done adding missing tokens to prevent unnecessary recursion.
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-		}
-
-		$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
-
-		// When OCS is enabled and the main stripe gateway is queried (e.g. blocks checkout), also include
-		// tokens for sub-gateways (stripe_sepa_debit, stripe_bancontact, etc.) since all payment methods
-		// are rendered under the single 'stripe' gateway in that context.
-		// The filter is kept active so each sub-gateway call goes through the normal sync path.
-		// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
-		if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
-			foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
-				$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
-			}
 		}
 
 		return $tokens;
