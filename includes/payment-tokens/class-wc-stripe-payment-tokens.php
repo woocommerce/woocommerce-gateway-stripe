@@ -1025,7 +1025,7 @@ class WC_Stripe_Payment_Tokens {
 
 		// When OCS is enabled, all reusable payment methods can be used via the consolidated OCS element.
 		// Return all reusable types so existing tokens are verified against Stripe and not incorrectly orphaned.
-		if ( $gateway->is_oc_enabled() ) {
+		if ( $gateway->is_oc_enabled() && $gateway->is_valid_optimized_checkout_page() ) {
 			return $reusable_payment_method_types;
 		}
 
