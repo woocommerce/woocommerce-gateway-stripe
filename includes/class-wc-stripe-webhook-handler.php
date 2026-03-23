@@ -1449,6 +1449,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$checkout_session = $notification->data->object;
 		$session_id       = $checkout_session->id;
 
+		// Refresh the cached checkout session with the latest data from the webhook so that
+		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $session_id, $checkout_session, HOUR_IN_SECONDS );
+
 		// Acquire a lock to prevent duplicate order creation from concurrent agentic sessions.
 		$lock_key = 'checkout_session_lock_' . $session_id;
 		if ( null !== WC_Stripe_Database_Cache::get( $lock_key ) ) {

@@ -51,17 +51,26 @@ class WC_Stripe_Feature_Flags {
 	const AGENTIC_COMMERCE_FEATURE_FLAG_NAME = '_wcstripe_feature_agentic_commerce';
 
 	/**
+	 * Feature flag for expanding Optimized Checkout Suite in legacy checkout.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	protected const EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME = '_wcstripe_feature_expand_ocs_legacy_checkout';
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
 	 * @var array
 	 */
 	protected static $feature_flags = [
-		'_wcstripe_feature_upe'                   => 'yes',
-		self::AMAZON_PAY_FEATURE_FLAG_NAME        => 'no',
-		self::OC_FEATURE_FLAG_NAME                => 'no',
-		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME => 'no',
-		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME  => 'no',
+		'_wcstripe_feature_upe'                                              => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
+		self::OC_FEATURE_FLAG_NAME                                           => 'no',
+		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
+		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
+		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
 	];
 
 	/**
@@ -161,6 +170,34 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_upe_checkout_enabled() {
 		return true;
+	}
+
+	/**
+	 * Whether the Optimized Checkout Suite should be expanded in legacy checkout.
+	 *
+	 * @return bool True if the Optimized Checkout Suite should be expanded in legacy checkout, false otherwise.
+	 * @since 10.6.0
+	 */
+	public static function should_expand_ocs_in_legacy_checkout(): bool {
+		if ( ! self::is_oc_available() ) {
+			return false;
+		}
+
+		// Check if Optimized Checkout Suite is enabled.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( 'yes' !== ( $stripe_settings['optimized_checkout_element'] ?? 'no' ) ) {
+			return false;
+		}
+
+		$feature_flag_enabled = 'yes' === self::get_option_with_default( self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME );
+
+		/**
+		 * Filter to control whether the Optimized Checkout Suite should be expanded in the legacy checkout.
+		 *
+		 * @since 10.6.0
+		 * @param bool $always_expand_ocs_in_legacy_checkout Whether the Optimized Checkout Suite should be expanded in the legacy checkout.
+		 */
+		return (bool) apply_filters( 'wc_stripe_expand_ocs_in_legacy_checkout', $feature_flag_enabled );
 	}
 
 	/**
