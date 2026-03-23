@@ -137,9 +137,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_are_keys_set(): array {
 		return [
-			'test mode with valid keys'    => [ true,  'pk_test_key',    'sk_test_key',    true ],
-			'test mode with invalid keys'  => [ true,  'pk_invalid_key', 'sk_invalid_key', false ],
-			'live mode with valid keys'    => [ false, 'pk_live_key',    'sk_live_key',    true ],
+			'test mode with valid keys'    => [ true, 'pk_test_key', 'sk_test_key', true ],
+			'test mode with invalid keys'  => [ true, 'pk_invalid_key', 'sk_invalid_key', false ],
+			'live mode with valid keys'    => [ false, 'pk_live_key', 'sk_live_key', true ],
 			'live mode with invalid keys'  => [ false, 'pk_invalid_key', 'sk_invalid_key', false ],
 		];
 	}

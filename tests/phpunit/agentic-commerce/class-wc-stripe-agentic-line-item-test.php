@@ -35,16 +35,16 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_scalar_getters(): array {
 		return [
-			'get_id with value'                  => [ [ 'id' => 'li_test_123' ], 'get_id',           'li_test_123' ],
-			'get_id when missing'                => [ [],                        'get_id',           '' ],
+			'get_id with value'                  => [ [ 'id' => 'li_test_123' ], 'get_id', 'li_test_123' ],
+			'get_id when missing'                => [ [], 'get_id', '' ],
 			'get_description with value'         => [ [ 'description' => 'Test Widget' ], 'get_description', 'Test Widget' ],
-			'get_description when missing'       => [ [],                        'get_description',  '' ],
-			'get_quantity with value'            => [ [ 'quantity' => 3 ],       'get_quantity',     3 ],
-			'get_quantity defaults to 1'         => [ [],                        'get_quantity',     1 ],
+			'get_description when missing'       => [ [], 'get_description', '' ],
+			'get_quantity with value'            => [ [ 'quantity' => 3 ], 'get_quantity', 3 ],
+			'get_quantity defaults to 1'         => [ [], 'get_quantity', 1 ],
 			'get_amount_total with value'        => [ [ 'amount_total' => 2500 ], 'get_amount_total', 2500 ],
-			'get_amount_total defaults to 0'     => [ [],                        'get_amount_total', 0 ],
-			'get_amount_tax with value'          => [ [ 'amount_tax' => 300 ],   'get_amount_tax',   300 ],
-			'get_amount_tax defaults to 0'       => [ [],                        'get_amount_tax',   0 ],
+			'get_amount_total defaults to 0'     => [ [], 'get_amount_total', 0 ],
+			'get_amount_tax with value'          => [ [ 'amount_tax' => 300 ], 'get_amount_tax', 300 ],
+			'get_amount_tax defaults to 0'       => [ [], 'get_amount_tax', 0 ],
 		];
 	}
 

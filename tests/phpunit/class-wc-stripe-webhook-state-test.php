@@ -287,12 +287,12 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_error_reason(): array {
 		return [
-			'no errors'          => [ 'no_errors',          'No error',                                                      true ],
-			'empty headers'      => [ 'empty_headers',      '/missing expected headers/',                                    false ],
-			'empty body'         => [ 'empty_body',         '/missing expected body/',                                       false ],
-			'invalid signature'  => [ 'invalid_signature',  '/signature was missing or was incorrectly formatted/',          false ],
-			'timestamp mismatch' => [ 'timestamp_mismatch', '/timestamp in the webhook differed more than five minutes/',    false ],
-			'signature mismatch' => [ 'signature_mismatch', '/was not signed with the expected signing secret/',             false ],
+			'no errors'          => [ 'no_errors', 'No error', true ],
+			'empty headers'      => [ 'empty_headers', '/missing expected headers/', false ],
+			'empty body'         => [ 'empty_body', '/missing expected body/', false ],
+			'invalid signature'  => [ 'invalid_signature', '/signature was missing or was incorrectly formatted/', false ],
+			'timestamp mismatch' => [ 'timestamp_mismatch', '/timestamp in the webhook differed more than five minutes/', false ],
+			'signature mismatch' => [ 'signature_mismatch', '/was not signed with the expected signing secret/', false ],
 		];
 	}
 }

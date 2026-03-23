@@ -210,32 +210,32 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		return [
 			// validate_publishable_key
-			'live publishable: blank is valid'     => [ 'validate_publishable_key', 'publishable_key', '',               true ],
-			'live publishable: generic invalid'    => [ 'validate_publishable_key', 'publishable_key', 'asd',            $live_pk_error ],
+			'live publishable: blank is valid'     => [ 'validate_publishable_key', 'publishable_key', '', true ],
+			'live publishable: generic invalid'    => [ 'validate_publishable_key', 'publishable_key', 'asd', $live_pk_error ],
 			'live publishable: pk_live is valid'   => [ 'validate_publishable_key', 'publishable_key', 'pk_live_123123', true ],
 			'live publishable: sk_live is invalid' => [ 'validate_publishable_key', 'publishable_key', 'sk_live_123123', $live_pk_error ],
 			'live publishable: rk_live is invalid' => [ 'validate_publishable_key', 'publishable_key', 'rk_live_123123', $live_pk_error ],
 			'live publishable: pk_test is invalid' => [ 'validate_publishable_key', 'publishable_key', 'pk_test_123123', $live_pk_error ],
 
 			// validate_secret_key
-			'live secret: blank is valid'          => [ 'validate_secret_key', 'secret_key', '',               true ],
-			'live secret: generic invalid'         => [ 'validate_secret_key', 'secret_key', 'asd',            $live_sk_error ],
+			'live secret: blank is valid'          => [ 'validate_secret_key', 'secret_key', '', true ],
+			'live secret: generic invalid'         => [ 'validate_secret_key', 'secret_key', 'asd', $live_sk_error ],
 			'live secret: pk_live is invalid'      => [ 'validate_secret_key', 'secret_key', 'pk_live_123123', $live_sk_error ],
 			'live secret: sk_live is valid'        => [ 'validate_secret_key', 'secret_key', 'sk_live_123123', true ],
 			'live secret: rk_live is valid'        => [ 'validate_secret_key', 'secret_key', 'rk_live_123123', true ],
 			'live secret: sk_test is invalid'      => [ 'validate_secret_key', 'secret_key', 'sk_test_123123', $live_sk_error ],
 
 			// validate_test_publishable_key
-			'test publishable: blank is valid'     => [ 'validate_test_publishable_key', 'test_publishable_key', '',               true ],
-			'test publishable: generic invalid'    => [ 'validate_test_publishable_key', 'test_publishable_key', 'asd',            $test_pk_error ],
+			'test publishable: blank is valid'     => [ 'validate_test_publishable_key', 'test_publishable_key', '', true ],
+			'test publishable: generic invalid'    => [ 'validate_test_publishable_key', 'test_publishable_key', 'asd', $test_pk_error ],
 			'test publishable: pk_test is valid'   => [ 'validate_test_publishable_key', 'test_publishable_key', 'pk_test_123123', true ],
 			'test publishable: sk_test is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'sk_test_123123', $test_pk_error ],
 			'test publishable: rk_test is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'rk_test_123123', $test_pk_error ],
 			'test publishable: pk_live is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'pk_live_123123', $test_pk_error ],
 
 			// validate_test_secret_key
-			'test secret: blank is valid'          => [ 'validate_test_secret_key', 'test_secret_key', '',               true ],
-			'test secret: generic invalid'         => [ 'validate_test_secret_key', 'test_secret_key', 'asd',            $test_sk_error ],
+			'test secret: blank is valid'          => [ 'validate_test_secret_key', 'test_secret_key', '', true ],
+			'test secret: generic invalid'         => [ 'validate_test_secret_key', 'test_secret_key', 'asd', $test_sk_error ],
 			'test secret: pk_test is invalid'      => [ 'validate_test_secret_key', 'test_secret_key', 'pk_test_123123', $test_sk_error ],
 			'test secret: sk_test is valid'        => [ 'validate_test_secret_key', 'test_secret_key', 'sk_test_123123', true ],
 			'test secret: rk_test is valid'        => [ 'validate_test_secret_key', 'test_secret_key', 'rk_test_123123', true ],

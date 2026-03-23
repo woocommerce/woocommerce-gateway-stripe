@@ -120,7 +120,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function provide_test_requirements(): array {
 		return [
 			'no requirements'       => [
-				'account' => [ 'id' => '1234', 'email' => 'test@example.com' ],
+				'account' => [
+					'id' => '1234',
+					'email' => 'test@example.com',
+				],
 				'pending' => false,
 				'overdue' => false,
 			],
@@ -167,7 +170,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function provide_test_account_status(): array {
 		return [
 			'complete'         => [
-				'account'         => [ 'id' => '1234', 'email' => 'test@example.com' ],
+				'account'         => [
+					'id' => '1234',
+					'email' => 'test@example.com',
+				],
 				'expected_status' => 'complete',
 			],
 			'restricted'       => [

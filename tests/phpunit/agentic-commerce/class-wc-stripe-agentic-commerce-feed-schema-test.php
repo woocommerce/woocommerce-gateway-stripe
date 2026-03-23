@@ -197,23 +197,23 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 			'weight is not required'                               => [ 'weight', false ],
 
 			// GTIN: conditional on MPN.
-			'gtin required when mpn is empty'                     => [ 'gtin', true,  [ 'mpn' => '' ] ],
+			'gtin required when mpn is empty'                     => [ 'gtin', true, [ 'mpn' => '' ] ],
 			'gtin not required when mpn is provided'              => [ 'gtin', false, [ 'mpn' => 'ABC123' ] ],
 
 			// availability_date: conditional on availability being preorder.
-			'availability_date required for preorder'             => [ 'availability_date', true,  [ 'availability' => 'preorder' ] ],
+			'availability_date required for preorder'             => [ 'availability_date', true, [ 'availability' => 'preorder' ] ],
 			'availability_date not required for in_stock'         => [ 'availability_date', false, [ 'availability' => 'in_stock' ] ],
 
 			// sale_price_effective_date: conditional on sale_price.
-			'sale_price_effective_date required when sale_price'  => [ 'sale_price_effective_date', true,  [ 'sale_price' => '10.00 USD' ] ],
+			'sale_price_effective_date required when sale_price'  => [ 'sale_price_effective_date', true, [ 'sale_price' => '10.00 USD' ] ],
 			'sale_price_effective_date not required without sale' => [ 'sale_price_effective_date', false, [ 'sale_price' => '' ] ],
 
 			// inventory_quantity: conditional on inventory tracking.
-			'inventory_quantity required when tracked'            => [ 'inventory_quantity', true,  [ 'inventory_not_tracked' => 'false' ] ],
+			'inventory_quantity required when tracked'            => [ 'inventory_quantity', true, [ 'inventory_not_tracked' => 'false' ] ],
 			'inventory_quantity not required when not tracked'    => [ 'inventory_quantity', false, [ 'inventory_not_tracked' => 'true' ] ],
 
 			// product_review_rating: conditional on review count.
-			'product_review_rating required when reviews exist'   => [ 'product_review_rating', true,  [ 'product_review_count' => 10 ] ],
+			'product_review_rating required when reviews exist'   => [ 'product_review_rating', true, [ 'product_review_count' => 10 ] ],
 			'product_review_rating not required without reviews'  => [ 'product_review_rating', false, [ 'product_review_count' => 0 ] ],
 		];
 	}
