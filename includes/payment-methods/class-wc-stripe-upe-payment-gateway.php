@@ -1132,7 +1132,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		echo '<div style="margin-top: 1em; border: solid 1px #007CBA; border-radius: 4px; background-color: #F6F5F8; padding: 1em 2em;">';
 
 		$converted_amount = $notice_data['woocommerce_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] );
-		$store_currency   = get_woocommerce_currency();
 		$exchange_rate    = $notice_data['rate_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] );
 		$order_currency   = $order->get_currency();
 
