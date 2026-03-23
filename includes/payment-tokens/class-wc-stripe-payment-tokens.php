@@ -580,7 +580,7 @@ class WC_Stripe_Payment_Tokens {
 		// (gateway ID 'stripe'). Remap sub-gateway tokens (e.g. stripe_sepa_debit) to the main stripe gateway ID
 		// so that PaymentUtils includes them in the blocks checkout saved methods list.
 		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $main_gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
+		if ( $main_gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
 			$item['method']['gateway'] = WC_Stripe_UPE_Payment_Gateway::ID;
 		}
 
