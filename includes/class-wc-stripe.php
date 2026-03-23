@@ -804,6 +804,11 @@ class WC_Stripe {
 	 * @return WC_Email[]
 	 */
 	public function add_emails( $email_classes ) {
+		if ( ! class_exists( 'WC_Email', false ) ) {
+			WC_Stripe_Logger::debug( 'WC_Email class not found, skipping email class addition' );
+			return $email_classes;
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-renewal-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-preorder-authentication.php';
