@@ -4158,12 +4158,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				continue;
 			}
 
-			// Already handled by the parent method.
-			if ( WC_Stripe_Payment_Methods::CARD === $stripe_id ) {
+			$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
+
+			// parent::get_tokens() already loaded the main stripe gateway.
+			if ( $this->id === $gateway_id ) {
 				continue;
 			}
 
-			$gateway_id    = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
 			$method_tokens = WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id );
 			$tokens        = array_merge( $tokens, $method_tokens );
 		}
