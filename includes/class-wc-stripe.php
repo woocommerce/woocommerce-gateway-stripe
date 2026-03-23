@@ -805,6 +805,7 @@ class WC_Stripe {
 	 */
 	public function add_emails( $email_classes ) {
 		if ( ! class_exists( 'WC_Email', false ) ) {
+			WC_Stripe_Logger::debug( 'WC_Email class not found, skipping email class addition' );
 			return $email_classes;
 		}
 
