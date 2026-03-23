@@ -2167,15 +2167,9 @@ parameters:
 			path: includes/class-wc-stripe-database-cache-prefetch.php
 
 		-
-			message: '#^Expected 3 @param tags, found 2\.$#'
-			identifier: paramTag.count
-			count: 1
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
-			message: '#^Method WC_Stripe_Feature_Flags\:\:is_oc_available\(\) should return bool but returns string\.$#'
-			identifier: return.type
-			count: 1
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
 			path: includes/class-wc-stripe-feature-flags.php
 
 		-
@@ -4705,6 +4699,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
+			message: '#^Callback expects 1\-2 parameters, \$accepted_args is set to 4\.$#'
+			identifier: arguments.count
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
+		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -4797,12 +4797,6 @@ parameters:
 		-
 			message: '#^Constant LOGGED_IN_COOKIE not found\.$#'
 			identifier: constant.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Filter callback return statement is missing\.$#'
-			identifier: return.missing
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
