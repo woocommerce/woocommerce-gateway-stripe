@@ -381,7 +381,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
 		 * the postal code and not calculate shipping zones correctly.
 		 */
-		if ( 'GB' === $country ) {
+		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
 			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
 			// depending on whether the customer put a space in their postcode between the outcode and incode part.
 			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
@@ -405,7 +405,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
 		}
 
-		if ( 'CA' === $country ) {
+		if ( WC_Stripe_Country_Code::CANADA === $country ) {
 			// Replaces a redacted string with something like L4Y***.
 			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
 		}
@@ -1132,7 +1132,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		//
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
-		if ( 'HK' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
@@ -1142,7 +1142,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				}
 			}
 		}
-		if ( 'HK' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
@@ -1325,7 +1325,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
 		// but WooCommerce expects it in the "city" field.
-		if ( 'AE' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
 			$billing_city  = ! empty( $data['billing_address']['city'] ) ? wc_clean( wp_unslash( $data['billing_address']['city'] ) ) : '';
 
@@ -1336,7 +1336,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		if ( 'AE' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $shipping_country ) {
 			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
 			$shipping_city  = ! empty( $data['shipping_address']['city'] ) ? wc_clean( wp_unslash( $data['shipping_address']['city'] ) ) : '';
 
@@ -1359,18 +1359,18 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Puerto Rico: Apple Pay send PR as a US state (country=US, state=PR),
 		// but WooCommerce expects it as a separate country. Convert to country code.
-		if ( 'US' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
-			if ( 'PR' === $billing_state ) {
-				$data['billing_address']['country'] = 'PR';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $billing_state ) {
+				$data['billing_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
 				$data['billing_address']['state']   = '';
 			}
 		}
 
-		if ( 'US' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $shipping_country ) {
 			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
-			if ( 'PR' === $shipping_state ) {
-				$data['shipping_address']['country'] = 'PR';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $shipping_state ) {
+				$data['shipping_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
 				$data['shipping_address']['state']   = '';
 			}
 		}
@@ -1844,6 +1844,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
 	 */
 	public function get_booking_id_from_cart() {
+		wc_deprecated_function( __METHOD__, '9.8.0', 'WC_Stripe_Express_Checkout_Helper::get_booking_ids_from_cart()' );
+
 		$booking_ids = $this->get_booking_ids_from_cart();
 		if ( ! empty( $booking_ids ) ) {
 			return $booking_ids[0];
