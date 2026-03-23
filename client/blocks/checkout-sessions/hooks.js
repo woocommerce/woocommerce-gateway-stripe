@@ -103,10 +103,14 @@ export const usePaymentSetupHandler = (
  *
  * @param {*} checkoutState     The checkout state.
  * @param {*} onCheckoutSuccess The onCheckoutSuccess event.
+ * @param {*} billing           The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {*} shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
-	onCheckoutSuccess
+	onCheckoutSuccess,
+	billing,
+	shippingData
 ) => {
 	useEffect(
 		() =>
@@ -122,11 +126,54 @@ export const useCheckoutSuccessHandler = (
 						};
 					}
 
+					const billingAddress = billing?.billingAddress;
+					const shippingAddress = shippingData?.shippingAddress;
+
 					const { redirect } = paymentDetails;
 					const { checkout } = checkoutState;
-					const confirmResult = await checkout.confirm( {
+					const confirmArgs = {
+						billingAddress: {
+							name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
+							address: {
+								country: billingAddress?.country,
+								line1: billingAddress?.address_1,
+								line2: billingAddress?.address_2,
+								state: billingAddress?.state,
+								city: billingAddress?.city,
+								postal_code: billingAddress?.postcode,
+							},
+						},
+						shippingAddress: {
+							name: `${ shippingAddress.first_name } ${ shippingAddress.last_name }`.trim(),
+							address: {
+								country: shippingAddress?.country,
+								line1: shippingAddress?.address_1,
+								line2: shippingAddress?.address_2,
+								state: shippingAddress?.state,
+								city: shippingAddress?.city,
+								postal_code: shippingAddress?.postcode,
+							},
+						},
 						returnUrl: redirect,
-					} );
+					};
+
+					// If checkout session doesn't have email, attempt to get it from the checkout form.
+					if ( ! checkout.email ) {
+						const userEmail =
+							document.getElementById( 'email' )?.value;
+						if ( userEmail ) {
+							confirmArgs.email = userEmail;
+						}
+					}
+
+					const userPhone =
+						document.getElementById( 'billing-phone' )?.value ||
+						document.getElementById( 'shipping-phone' )?.value;
+					if ( userPhone ) {
+						confirmArgs.phoneNumber = userPhone;
+					}
+
+					const confirmResult = await checkout.confirm( confirmArgs );
 					if ( confirmResult?.type === 'error' ) {
 						return {
 							type: 'error',
@@ -142,7 +189,7 @@ export const useCheckoutSuccessHandler = (
 					};
 				}
 			),
-		[ onCheckoutSuccess, checkoutState ]
+		[ onCheckoutSuccess, checkoutState, billing, shippingData ]
 	);
 };
 
