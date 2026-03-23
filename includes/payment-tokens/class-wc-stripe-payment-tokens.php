@@ -294,7 +294,7 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @return string[]
 	 */
-	private function get_sub_gateway_ids(): array {
+	private function get_reusable_sub_gateway_ids(): array {
 		return array_unique(
 			array_values(
 				array_filter(
