@@ -286,7 +286,10 @@ class WC_Stripe_Payment_Tokens {
 			$stored[ $token->get_token() ] = $token;
 		}
 
-		return compact( 'stored', 'deprecated' );
+		return [
+			'stored'     => $stored,
+			'deprecated' => $deprecated,
+		);
 	}
 
 	/**
