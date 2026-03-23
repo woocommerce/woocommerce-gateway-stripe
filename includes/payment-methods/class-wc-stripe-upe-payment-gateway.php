@@ -315,7 +315,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
 
 		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
-		add_filter( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 4 );
+		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 4 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
