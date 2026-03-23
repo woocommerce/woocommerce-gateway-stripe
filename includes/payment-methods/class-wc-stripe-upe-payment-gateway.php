@@ -305,9 +305,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 
-		// Attach the currency selector div to the classic checkout page.
-		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
-
 		// Include the converted currency information in the order total on the order received page and in the My Account orders list.
 		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
 
@@ -960,8 +957,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$display_tokenization    = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$show_optimized_checkout = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+			$show_adaptive_pricing   = $show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();
 
+			if ( $show_adaptive_pricing ) {
+				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector"></div>';
+			}
 			// Output the form HTML.
 			?>
 			<?php if ( ! empty( $this->get_description() ) ) : ?>
@@ -970,7 +972,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
+				if ( $show_optimized_checkout ) :
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
@@ -1046,19 +1048,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * This is used to render the currency selector element in the checkout page.
 	 *
 	 * @return void
+	 * @deprecated 10.6.0 This method is no longer used.
 	 */
 	public function attach_currency_selector_element() {
-		// Bail if checkout sessionsfeature flag is not enabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
-			return;
-		}
-
-		// Bail if not on the checkout page.
-		if ( ! is_checkout() ) {
-			return;
-		}
-
-		echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
+		wc_deprecated_function( __METHOD__, '10.6.0' );
 	}
 
 	/**
