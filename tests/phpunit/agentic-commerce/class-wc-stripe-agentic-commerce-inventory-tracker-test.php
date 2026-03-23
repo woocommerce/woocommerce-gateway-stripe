@@ -194,26 +194,33 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_track_stock_change_stops_accumulating_at_threshold() {
-		// Pre-fill with MAX_PENDING_UPDATES entries.
-		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		$max        = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		// Create the product first so we know its real DB ID before building the pre-fill.
+		// This prevents the product's auto-increment ID from coinciding with a pre-filled key,
+		// which would make assertArrayNotHasKey fail for the wrong reason.
+		$extra_product = $this->create_simple_product_with_stock( 99 );
+		$product_id    = $extra_product->get_id();
+
+		// Pre-fill with MAX_PENDING_UPDATES entries, deliberately skipping the extra product's ID.
 		$pending = [];
-		for ( $i = 1; $i <= $max; $i++ ) {
-			$pending[ $i ] = [
-				'sku_id' => $i,
-				'quantity' => $i,
-				'timestamp' => time(),
-			];
+		for ( $i = 1; count( $pending ) < $max; $i++ ) {
+			if ( $i !== $product_id ) {
+				$pending[ $i ] = [
+					'sku_id'    => $i,
+					'quantity'  => $i,
+					'timestamp' => time(),
+				];
+			}
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, $pending );
 
-		$extra_product = $this->create_simple_product_with_stock( 99 );
 		$this->sut->track_stock_change( $extra_product );
 
 		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
 
 		// Should still be exactly MAX_PENDING_UPDATES, not MAX + 1.
 		$this->assertCount( $max, $after );
-		$this->assertArrayNotHasKey( $extra_product->get_id(), $after );
+		$this->assertArrayNotHasKey( $product_id, $after );
 	}
 
 	// -------------------------------------------------------------------------
