@@ -1071,7 +1071,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order            Order data.
 	 */
 	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
-		if ( ! is_order_received_page() && ! is_account_page() ) {
+		$is_email_context = did_action( 'woocommerce_email_header' ) && ! did_action( 'woocommerce_email_footer' );
+		if ( ! is_order_received_page() && ! is_account_page() && ! $is_email_context ) {
 			return $formatted_total;
 		}
 
