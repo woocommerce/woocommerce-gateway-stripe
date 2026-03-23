@@ -4127,7 +4127,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns a users saved tokens for this gateway.
+	 * Returns a user's saved tokens for this gateway.
 	 *
 	 * @since 10.6.0
 	 * @return array
