@@ -4302,9 +4302,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->maybe_add_presentment_metadata_to_order( $order );
 
+		$amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
+		$currency = $order_helper->get_stripe_presentment_currency( $order );
+
+		if ( $amount <= 0 || empty( $currency ) ) {
+			return null;
+		}
+
 		return [
-			'amount'   => (int) $order_helper->get_stripe_presentment_amount( $order ),
-			'currency' => $order_helper->get_stripe_presentment_currency( $order ),
+			'amount'   => $amount,
+			'currency' => $currency,
 		];
 	}
 }
