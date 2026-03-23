@@ -182,7 +182,7 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	private function sync_and_retrieve_customer_payment_tokens( array $tokens, int $customer_id, string $gateway_id ): array {
 		// Not a reusable payment gateway.
-		if ( empty( $gateway_id ) || ! in_array( $gateway_id, self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+		if ( ! empty( $gateway_id ) && ! in_array( $gateway_id, self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 			return $tokens;
 		}
 
