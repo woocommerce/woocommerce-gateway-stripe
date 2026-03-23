@@ -139,7 +139,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 					'email'        => 'test@example.com',
 					'requirements' => [ 'past_due' => [ 'example' ] ],
 				],
-				'pending' => false,
+				'pending' => true,
 				'overdue' => true,
 			],
 		];
