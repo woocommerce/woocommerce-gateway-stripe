@@ -1076,7 +1076,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$presentment_data = $this->get_presentment_data_from_order( $order );
-		if ( empty( $presentment_data ) || ! ( $presentment_data['amount'] ?? null ) || ! ( $presentment_data['currency'] ?? null ) ) {
+		if ( null === $presentment_data ) {
 			return $formatted_total;
 		}
 
