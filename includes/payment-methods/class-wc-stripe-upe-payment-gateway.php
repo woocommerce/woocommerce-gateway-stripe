@@ -4259,7 +4259,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_currency_conversion_notice_data( WC_Order $order ): array {
 		$presentment_data = $this->get_presentment_data_from_order( $order );
-		if ( empty( $presentment_data ) || ! ( $presentment_data['amount'] ?? null ) || ! ( $presentment_data['currency'] ?? null ) ) {
+		if ( null === $presentment_data ) {
 			return [];
 		}
 
@@ -4295,14 +4295,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param WC_Order $order The order for which the presentment data should be prepared.
 	 *
-	 * @return array
+	 * @return array|null
 	 */
-	private function get_presentment_data_from_order( WC_Order $order ): array {
+	private function get_presentment_data_from_order( WC_Order $order ): ?array {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
 		if ( ! $checkout_session_id ) {
-			return [];
+			return null;
 		}
 
 		$this->maybe_add_presentment_metadata_to_order( $order );
