@@ -147,6 +147,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
+* Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
+* Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
@@ -158,6 +160,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Disable the Optimized Checkout Suite in the "Add Payment Method" and "Change Subscription Payment Method" screens
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Add - Allow additional font domains to be included in Stripe fonts
+* Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
 * Fix - Add order and payment method validation to prevent errors
 * Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 * Fix - Improve default layout when Optimized Checkout is disabled

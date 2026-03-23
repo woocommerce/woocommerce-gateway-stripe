@@ -122,18 +122,18 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	private function transform_pr_address( $location ) {
 		if ( is_array( $location ) ) {
 			// If either country is PR or state is PR, ensure US/PR format.
-			if ( ( isset( $location['country'] ) && 'PR' === $location['country'] ) ||
-				( isset( $location['state'] ) && 'PR' === $location['state'] ) ) {
-				$location['country'] = 'US';
-				$location['state']   = 'PR';
+			if ( ( isset( $location['country'] ) && WC_Stripe_Country_Code::PUERTO_RICO === $location['country'] ) ||
+				( isset( $location['state'] ) && WC_Stripe_Country_Code::PUERTO_RICO === $location['state'] ) ) {
+				$location['country'] = WC_Stripe_Country_Code::UNITED_STATES;
+				$location['state']   = WC_Stripe_Country_Code::PUERTO_RICO;
 			}
 			return $location;
 		}
 
-		if ( ( isset( $location->address->country ) && 'PR' === $location->address->country ) ||
-			( isset( $location->address->state ) && 'PR' === $location->address->state ) ) {
-			$location->address->country = 'US';
-			$location->address->state   = 'PR';
+		if ( ( isset( $location->address->country ) && WC_Stripe_Country_Code::PUERTO_RICO === $location->address->country ) ||
+			( isset( $location->address->state ) && WC_Stripe_Country_Code::PUERTO_RICO === $location->address->state ) ) {
+			$location->address->country = WC_Stripe_Country_Code::UNITED_STATES;
+			$location->address->state   = WC_Stripe_Country_Code::PUERTO_RICO;
 		}
 		return $location;
 	}
