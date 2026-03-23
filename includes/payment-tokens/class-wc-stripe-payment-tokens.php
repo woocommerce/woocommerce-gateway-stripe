@@ -200,11 +200,11 @@ class WC_Stripe_Payment_Tokens {
 		$customer              = new WC_Stripe_Customer( $customer_id );
 
 		try {
-			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
-			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
-
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
+			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
 
 			foreach ( $payment_methods as $payment_method ) {
 				if ( ! isset( $payment_method->type ) ) {
@@ -238,12 +238,12 @@ class WC_Stripe_Payment_Tokens {
 					$tokens[ $token->get_id() ] = $token;
 				}
 			}
-
-			// Re-add the filter after we're done adding missing tokens to prevent unnecessary recursion.
-			add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
+		} finally {
+			// Re-add the filter after we're done adding missing tokens to prevent unnecessary recursion.
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		}
 
 		$tokens = $this->cleanup_invalid_tokens( $tokens, $stored_tokens, $deprecated_tokens );
