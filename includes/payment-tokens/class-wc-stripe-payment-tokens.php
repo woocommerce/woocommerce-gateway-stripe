@@ -253,7 +253,7 @@ class WC_Stripe_Payment_Tokens {
 		// are rendered under the single 'stripe' gateway in that context.
 		// The filter is kept active so each sub-gateway call goes through the normal sync path.
 		// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
-		if ( $gateway->is_oc_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+		if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 			foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
 				$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
 			}
