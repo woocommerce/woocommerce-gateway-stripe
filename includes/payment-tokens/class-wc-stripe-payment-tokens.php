@@ -1056,20 +1056,22 @@ class WC_Stripe_Payment_Tokens {
 		// Prevent unnecessary recursion, WC_Payment_Token::delete() ends up calling 'woocommerce_payment_token_deleted' in some cases.
 		remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
+		try {
 		// Remove the payment methods that no longer exist in Stripe's side.
-		foreach ( $stored_tokens as $token ) {
-			unset( $tokens[ $token->get_id() ] );
-			$token->delete();
-		}
+			foreach ( $stored_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
 
-		// Remove the APM tokens from before Split PE was in place.
-		foreach ( $deprecated_tokens as $token ) {
-			unset( $tokens[ $token->get_id() ] );
-			$token->delete();
+			// Remove the APM tokens from before Split PE was in place.
+			foreach ( $deprecated_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
+		} finally {
+			// Re-add the action after cleanup is done.
+			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		}
-
-		// Re-add the action after cleanup is done.
-		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		return $tokens;
 	}
