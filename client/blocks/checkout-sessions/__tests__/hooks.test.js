@@ -125,6 +125,31 @@ describe( 'CheckoutSessions hook tests', () => {
 		let onCheckoutSuccessResultPromise;
 		const onCheckoutSuccess = jest.fn();
 
+		const billing = {
+			billingAddress: {
+				first_name: 'John',
+				last_name: 'Doe',
+				country: 'US',
+				address_1: '123 Main St',
+				address_2: 'Apt 1',
+				state: 'CA',
+				city: 'Los Angeles',
+				postcode: '90001',
+			},
+		};
+		const shippingData = {
+			shippingAddress: {
+				first_name: 'Jane',
+				last_name: 'Smith',
+				country: 'US',
+				address_1: '456 Oak Ave',
+				address_2: '',
+				state: 'NY',
+				city: 'New York',
+				postcode: '10001',
+			},
+		};
+
 		beforeEach( () => {
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
@@ -140,7 +165,12 @@ describe( 'CheckoutSessions hook tests', () => {
 
 		it( 'checkoutState.type is not success', async () => {
 			const checkoutState = { type: 'error' };
-			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'error',
 				message: 'Checkout is not ready for confirmation.',
@@ -148,35 +178,160 @@ describe( 'CheckoutSessions hook tests', () => {
 		} );
 
 		it( 'error confirming the session', async () => {
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'error',
+				error: { message: 'Test error.' },
+			} );
 			const checkoutState = {
 				type: 'success',
 				checkout: {
-					confirm: () => ( {
-						type: 'error',
-						error: { message: 'Test error.' },
-					} ),
+					email: 'test@example.com',
+					confirm: mockConfirm,
 				},
 			};
-			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'error',
 				message: 'Test error.',
 			} );
+			expect( mockConfirm ).toHaveBeenCalledWith( {
+				billingAddress: {
+					name: 'John Doe',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						line2: 'Apt 1',
+						state: 'CA',
+						city: 'Los Angeles',
+						postal_code: '90001',
+					},
+				},
+				shippingAddress: {
+					name: 'Jane Smith',
+					address: {
+						country: 'US',
+						line1: '456 Oak Ave',
+						line2: '',
+						state: 'NY',
+						city: 'New York',
+						postal_code: '10001',
+					},
+				},
+				returnUrl: 'https://example.com/return-here',
+			} );
 		} );
 
 		it( 'success', async () => {
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
 			const checkoutState = {
 				type: 'success',
 				checkout: {
-					confirm: () => ( {
-						type: 'success',
-					} ),
+					email: 'test@example.com',
+					confirm: mockConfirm,
 				},
 			};
-			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'success',
 			} );
+		} );
+
+		it( 'includes email from DOM when checkout.email is absent', async () => {
+			const emailInput = document.createElement( 'input' );
+			emailInput.id = 'email';
+			emailInput.value = 'guest@example.com';
+			document.body.appendChild( emailInput );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: '',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( { email: 'guest@example.com' } )
+			);
+
+			document.body.removeChild( emailInput );
+		} );
+
+		it( 'omits email when checkout.email is present', async () => {
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'loggedin@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.not.objectContaining( { email: expect.anything() } )
+			);
+		} );
+
+		it( 'includes phone from billing-phone DOM element', async () => {
+			const phoneInput = document.createElement( 'input' );
+			phoneInput.id = 'billing-phone';
+			phoneInput.value = '555-1234';
+			document.body.appendChild( phoneInput );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( { phoneNumber: '555-1234' } )
+			);
+
+			document.body.removeChild( phoneInput );
 		} );
 	} );
 
