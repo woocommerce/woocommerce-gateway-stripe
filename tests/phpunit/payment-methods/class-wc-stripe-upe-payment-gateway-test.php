@@ -3933,6 +3933,56 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests for `is_optimized_checkout_active`.
+	 *
+	 * @dataProvider provide_test_is_optimized_checkout_active
+	 *
+	 * @param bool $oc_enabled   Whether `oc_enabled` is set on the gateway.
+	 * @param bool $valid_page   Value returned by `is_valid_optimized_checkout_page`.
+	 * @param bool $expected     Expected return value of `is_optimized_checkout_active`.
+	 */
+	public function test_is_optimized_checkout_active( bool $oc_enabled, bool $valid_page, bool $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
+			->getMock();
+
+		$gateway->oc_enabled = $oc_enabled;
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_page );
+
+		$this->assertSame( $expected, $gateway->is_optimized_checkout_active() );
+	}
+
+	/**
+	 * Data provider for `test_is_optimized_checkout_active`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_optimized_checkout_active() {
+		return [
+			'OC enabled on a valid page'     => [
+				'oc_enabled' => true,
+				'valid_page' => true,
+				'expected'   => true,
+			],
+			'OC enabled on an invalid page'  => [
+				'oc_enabled' => true,
+				'valid_page' => false,
+				'expected'   => false,
+			],
+			'OC disabled on a valid page'    => [
+				'oc_enabled' => false,
+				'valid_page' => true,
+				'expected'   => false,
+			],
+			'OC disabled on an invalid page' => [
+				'oc_enabled' => false,
+				'valid_page' => false,
+				'expected'   => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_is_valid_optimized_checkout_page`.
 	 *
 	 * @return array[]

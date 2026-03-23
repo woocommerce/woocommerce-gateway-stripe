@@ -608,7 +608,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		$should_show_optimized_checkout                 = $this->is_optimized_checkout_active();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -779,6 +779,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if the optimized checkout is active based on the setting and whether we are on a valid page to show it.
+	 *
+	 * @return bool True if the optimized checkout is active, false otherwise.
+	 */
+	public function is_optimized_checkout_active(): bool {
+		return $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -792,7 +801,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+		if ( $this->is_optimized_checkout_active() ) {
 			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
@@ -971,7 +980,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
+				if ( $this->is_optimized_checkout_active() ) :
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
@@ -4139,7 +4148,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+		if ( ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 
