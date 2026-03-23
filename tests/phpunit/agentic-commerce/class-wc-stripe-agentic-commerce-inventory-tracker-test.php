@@ -51,6 +51,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'pre_http_request' );
+
+		// Remove any action hooks registered by this test's sut to prevent leaking into subsequent tests.
+		if ( isset( $this->sut ) ) {
+			remove_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] );
+			remove_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] );
+			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
+		}
+
 		parent::tearDown();
 	}
 
@@ -444,6 +452,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$product_a = $this->create_simple_product_with_stock( 10 );
 		$product_b = $this->create_simple_product_with_stock( 0 );
+
+		// Register hooks so WooCommerce stock actions are wired to track_stock_change/sync_inventory.
+		$this->sut->register_hooks();
 
 		// Simulate stock changes via WooCommerce hooks.
 		do_action( 'woocommerce_product_set_stock', $product_a );
