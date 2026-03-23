@@ -1309,7 +1309,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// If the payment method is a card and the card's country is India, disable subscription editing.
-		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && 'IN' === ( $payment_method->card->country ?? '' ) ) {
+		if ( $payment_method && WC_Stripe_Payment_Methods::CARD === $payment_method->type && WC_Stripe_Country_Code::INDIA === ( $payment_method->card->country ?? '' ) ) {
 			return false;
 		}
 
