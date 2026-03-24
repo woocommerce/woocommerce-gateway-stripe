@@ -139,7 +139,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Add to cart error in express checkout.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
+			wp_send_json_error( [ 'message' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
 	}
 
