@@ -5,6 +5,7 @@ import {
 	getUPETerms,
 	maybeClearBlikCodeValidation,
 } from '../../stripe-utils';
+import { initializeAlwaysExpandedOptimizedCheckout } from './always-expanded-optimized-checkout';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
@@ -335,6 +336,14 @@ jQuery( function ( $ ) {
 			} );
 		}
 	} );
+
+	const stripeServerData = getStripeServerData();
+	if (
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		stripeServerData?.shouldExpandOptimizedCheckout
+	) {
+		initializeAlwaysExpandedOptimizedCheckout( $ );
+	}
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.

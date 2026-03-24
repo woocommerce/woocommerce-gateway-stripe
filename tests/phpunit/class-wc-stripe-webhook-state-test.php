@@ -117,7 +117,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	private function process_webhook() {
 		// Fills monitoring, last success and last failure timestamps for current mode.
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
-		$validation_result = $this->wc_stripe_webhook_handler->validate_request( $this->request_headers, $this->request_body );
+		$validation_result = $this->wc_stripe_webhook_handler->validate_request( $this->request_headers, $this->request_body, $this->webhook_secret );
 
 		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED === $validation_result ) {
 			$notification = json_decode( $this->request_body );
@@ -254,6 +254,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Test failure reason: empty secret.
 	public function test_get_error_reason_empty_secret() {
 		$this->cleanup_webhook_secret();
+		$this->webhook_secret = '';
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
