@@ -566,28 +566,26 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
 	let loadActionsError = null;
+	const genericLoadActionsErrorMessage = __(
+		'Failed to load payment method. Please refresh the page and try again.',
+		'woocommerce-gateway-stripe'
+	);
 	try {
 		const actions = await elements.loadActions();
 
 		if ( actions.type === 'error' ) {
-			loadActionsError = actions?.error?.message;
+			loadActionsError =
+				actions?.error?.message ?? genericLoadActionsErrorMessage;
 			// Setting the flag to true to prevent the form from being submitted.
 			component.hasLoadError = true;
 		}
 	} catch ( error ) {
-		loadActionsError = error?.message;
+		loadActionsError = error?.message ?? genericLoadActionsErrorMessage;
 		component.hasLoadError = true;
 	}
 
 	if ( loadActionsError ) {
-		showErrorPaymentMethod(
-			loadActionsError ??
-				__(
-					'Failed to load payment method. Please refresh the page and try again.',
-					'woocommerce-gateway-stripe'
-				),
-			domElement
-		);
+		showErrorPaymentMethod( loadActionsError, domElement );
 	}
 
 	return component;
