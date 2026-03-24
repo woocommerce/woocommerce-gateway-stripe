@@ -31,7 +31,7 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->label                = __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description          = __( 'Pay directly from your Australian bank account via BECS.', 'woocommerce-gateway-stripe' );
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR ];
-		$this->supported_countries  = [ 'AU' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRALIA ];
 		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.

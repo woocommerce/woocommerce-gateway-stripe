@@ -84,6 +84,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -101,6 +103,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -118,6 +122,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -147,6 +153,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -163,6 +171,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -181,6 +191,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -210,6 +222,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -226,6 +240,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -1335,6 +1351,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
+
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
@@ -1451,6 +1469,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
@@ -1491,6 +1511,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
+
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1509,6 +1531,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
+
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
@@ -1525,36 +1549,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_european_economic_area_countries() {
 		return [
-			'AT', // Austria.
-			'BE', // Belgium.
-			'BG', // Bulgaria.
-			'HR', // Croatia.
-			'CY', // Cyprus.
-			'CZ', // Czech Republic.
-			'DK', // Denmark.
-			'EE', // Estonia.
-			'FI', // Finland.
-			'FR', // France.
-			'DE', // Germany.
-			'GR', // Greece.
-			'HU', // Hungary.
-			'IE', // Ireland.
-			'IS', // Iceland
-			'IT', // Italy.
-			'LV', // Latvia.
-			'LI', // Liechtenstein.
-			'LT', // Lithuania.
-			'LU', // Luxembourg.
-			'MT', // Malta.
-			'NO', // Norway.
-			'NL', // Netherlands.
-			'PL', // Poland.
-			'PT', // Portugal.
-			'RO', // Romania.
-			'SK', // Slovakia.
-			'SI', // Slovenia.
-			'ES', // Spain.
-			'SE', // Sweden.
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CROATIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::HUNGARY,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ICELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LIECHTENSTEIN,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::POLAND,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
 		];
 	}
 
@@ -1699,29 +1723,29 @@ class WC_Stripe_Helper {
 	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
 		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
 		$supported_locales = [
-			'AU' => [ 'en-AU' ],
-			'AT' => [ 'de-AT', 'en-AT' ],
-			'BE' => [ 'nl-BE', 'fr-BE', 'en-BE' ],
-			'CA' => [ 'en-CA', 'fr-CA' ],
-			'CZ' => [ 'en-CZ', 'cs-CZ' ],
-			'DK' => [ 'da-DK', 'en-DK' ],
-			'FI' => [ 'fi-FI', 'sv-FI', 'en-FI' ],
-			'FR' => [ 'fr-FR', 'en-FR' ],
-			'DE' => [ 'de-DE', 'en-DE' ],
-			'GR' => [ 'en-GR', 'el-GR' ],
-			'IE' => [ 'en-IE' ],
-			'IT' => [ 'it-IT', 'en-IT' ],
-			'NL' => [ 'nl-NL', 'en-NL' ],
-			'NZ' => [ 'en-NZ' ],
-			'NO' => [ 'nb-NO', 'en-NO' ],
-			'PL' => [ 'pl-PL', 'en-PL' ],
-			'PT' => [ 'pt-PT', 'en-PT' ],
-			'RO' => [ 'ro-RO', 'en-RO' ],
-			'ES' => [ 'es-ES', 'en-ES' ],
-			'SE' => [ 'sv-SE', 'en-SE' ],
-			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
-			'GB' => [ 'en-GB' ],
-			'US' => [ 'en-US', 'es-US' ],
+			WC_Stripe_Country_Code::AUSTRALIA      => [ 'en-AU' ],
+			WC_Stripe_Country_Code::AUSTRIA        => [ 'de-AT', 'en-AT' ],
+			WC_Stripe_Country_Code::BELGIUM        => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			WC_Stripe_Country_Code::CANADA         => [ 'en-CA', 'fr-CA' ],
+			WC_Stripe_Country_Code::CZECH_REPUBLIC => [ 'en-CZ', 'cs-CZ' ],
+			WC_Stripe_Country_Code::DENMARK        => [ 'da-DK', 'en-DK' ],
+			WC_Stripe_Country_Code::FINLAND        => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			WC_Stripe_Country_Code::FRANCE         => [ 'fr-FR', 'en-FR' ],
+			WC_Stripe_Country_Code::GERMANY        => [ 'de-DE', 'en-DE' ],
+			WC_Stripe_Country_Code::GREECE         => [ 'en-GR', 'el-GR' ],
+			WC_Stripe_Country_Code::IRELAND        => [ 'en-IE' ],
+			WC_Stripe_Country_Code::ITALY          => [ 'it-IT', 'en-IT' ],
+			WC_Stripe_Country_Code::NETHERLANDS    => [ 'nl-NL', 'en-NL' ],
+			WC_Stripe_Country_Code::NEW_ZEALAND    => [ 'en-NZ' ],
+			WC_Stripe_Country_Code::NORWAY         => [ 'nb-NO', 'en-NO' ],
+			WC_Stripe_Country_Code::POLAND         => [ 'pl-PL', 'en-PL' ],
+			WC_Stripe_Country_Code::PORTUGAL       => [ 'pt-PT', 'en-PT' ],
+			WC_Stripe_Country_Code::ROMANIA        => [ 'ro-RO', 'en-RO' ],
+			WC_Stripe_Country_Code::SPAIN          => [ 'es-ES', 'en-ES' ],
+			WC_Stripe_Country_Code::SWEDEN         => [ 'sv-SE', 'en-SE' ],
+			WC_Stripe_Country_Code::SWITZERLAND    => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			WC_Stripe_Country_Code::UNITED_KINGDOM => [ 'en-GB' ],
+			WC_Stripe_Country_Code::UNITED_STATES  => [ 'en-US', 'es-US' ],
 		];
 
 		$region = strtoupper( $billing_country );
@@ -1967,6 +1991,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_intent_for_order()' );
+
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
 			$intent_id = $intent;
@@ -2073,6 +2099,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_stripe_gateway_order()' );
+
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
