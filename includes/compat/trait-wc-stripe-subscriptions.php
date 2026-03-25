@@ -486,8 +486,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
-				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
+				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
+				// would just create another blocked charge and inflate the block rate.
+				if ( $this->is_retryable_error( $response->error ) && ! $this->is_charge_blocked_by_radar( $response ) ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
