@@ -167,5 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Improve performance of CSS style lookups
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
+* Dev - Treat misaligned statements as errors in PHPCS ruleset
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
