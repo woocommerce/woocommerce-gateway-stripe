@@ -27,14 +27,14 @@
       "classmap": [
         "includes/ajax-handlers/"
       ],
+    },
+    "autoload-dev": {
+      "classmap": ["tests/phpunit/"],
       "exclude-from-classmap": [
         "/tests/phpunit/helpers/",
         "/tests/phpunit/stubs/"
       ]
-    },
-    "autoload-dev": {
-      "classmap": ["tests/phpunit/"]
-    },
+},
     "scripts": {
       "phpstan": [
         "vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=2G"
