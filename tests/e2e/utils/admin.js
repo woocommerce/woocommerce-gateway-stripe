@@ -55,7 +55,9 @@ export const togglePaymentMethod = async (
 			}
 
 			await page.click( 'text=Save changes' );
-			await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
+			await expect(
+				page.getByText( 'Settings saved.' ).first()
+			).toBeVisible();
 		}
 	} finally {
 		await context.close();
