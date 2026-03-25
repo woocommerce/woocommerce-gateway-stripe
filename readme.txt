@@ -167,5 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Improve performance of CSS style lookups
 * Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
+* Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

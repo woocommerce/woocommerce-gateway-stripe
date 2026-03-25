@@ -21,21 +21,31 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 	}
 
-	public function test_convert_to_stripe_locale() {
-		$result = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( 'en_GB' );
-		$this->assertEquals( 'en-GB', $result );
+	/**
+	 * Test for `convert_wc_locale_to_stripe_locale`.
+	 *
+	 * @param string $wc_locale     The WooCommerce locale.
+	 * @param string $stripe_locale The expected Stripe locale.
+	 * @return void
+	 * @dataProvider provide_test_convert_to_stripe_locale
+	 */
+	public function test_convert_to_stripe_locale( string $wc_locale, string $stripe_locale ) {
+		$this->assertEquals( $stripe_locale, WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( $wc_locale ) );
+	}
 
-		$result = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( 'fr_FR' );
-		$this->assertEquals( 'fr', $result );
-
-		$result = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( 'fr_CA' );
-		$this->assertEquals( 'fr-CA', $result );
-
-		$result = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( 'es_UY' );
-		$this->assertEquals( 'es', $result );
-
-		$result = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( 'es_EC' );
-		$this->assertEquals( 'es-419', $result );
+	/**
+	 * Data provider for `test_convert_to_stripe_locale`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_convert_to_stripe_locale(): array {
+		return [
+			'en_GB → en-GB'   => [ 'en_GB', 'en-GB' ],
+			'fr_FR → fr'      => [ 'fr_FR', 'fr' ],
+			'fr_CA → fr-CA'   => [ 'fr_CA', 'fr-CA' ],
+			'es_UY → es'      => [ 'es_UY', 'es' ],
+			'es_EC → es-419'  => [ 'es_EC', 'es-419' ],
+		];
 	}
 
 	public function test_should_enqueue_in_current_tab_section() {
@@ -53,109 +63,189 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		unset( $current_section );
 	}
 
-	public function test_add_payment_method_to_request_array_should_add_source_to_request() {
-		$source_id = 'src_mock';
-		$request   = WC_Stripe_Helper::add_payment_method_to_request_array( $source_id, [] );
+	/**
+	 * Test for `add_payment_method_to_request_array`.
+	 *
+	 * @param string      $payment_method_id     The payment method ID.
+	 * @param string|null $expected_key          The expected key in the request array, or null if empty.
+	 * @param string|null $expected_value        The expected value in the request array.
+	 * @return void
+	 * @dataProvider provide_test_add_payment_method_to_request_array
+	 */
+	public function test_add_payment_method_to_request_array( string $payment_method_id, ?string $expected_key, ?string $expected_value ) {
+		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $payment_method_id, [] );
 
-		$this->assertArrayHasKey( 'source', $request, 'Source ID was not added to request array' );
-		$this->assertEquals( $source_id, $request['source'] );
+		if ( null === $expected_key ) {
+			$this->assertArrayNotHasKey( 'payment_method', $request );
+			$this->assertArrayNotHasKey( 'source', $request );
+			$this->assertEmpty( $request );
+		} else {
+			$this->assertArrayHasKey( $expected_key, $request );
+			$this->assertEquals( $expected_value, $request[ $expected_key ] );
+		}
 	}
 
-	public function test_add_payment_method_to_request_array_should_add_payment_method_to_request() {
-		$payment_method_id = 'pm_mock';
-		$request           = WC_Stripe_Helper::add_payment_method_to_request_array( $payment_method_id, [] );
-
-		$this->assertArrayHasKey( 'payment_method', $request, 'Payment Method ID was not added to request array' );
-		$this->assertEquals( $payment_method_id, $request['payment_method'] );
+	/**
+	 * Data provider for `test_add_payment_method_to_request_array`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_add_payment_method_to_request_array(): array {
+		return [
+			'source ID is added under source key'                    => [ 'src_mock', 'source', 'src_mock' ],
+			'payment method ID is added under payment_method key'    => [ 'pm_mock', 'payment_method', 'pm_mock' ],
+			'card ID is added under payment_method key'              => [ 'card_mock', 'payment_method', 'card_mock' ],
+			'unknown prefix is not added to the request'             => [ 'cus_mock', null, null ],
+		];
 	}
 
-	public function test_add_payment_method_to_request_array_should_add_card_id_to_request() {
-		$payment_method_id = 'card_mock';
-		$request           = WC_Stripe_Helper::add_payment_method_to_request_array( $payment_method_id, [] );
-
-		$this->assertArrayHasKey( 'payment_method', $request, 'Card ID was not added to request array' );
-		$this->assertEquals( $payment_method_id, $request['payment_method'] );
+	/**
+	 * Test for `is_payment_method_object`.
+	 *
+	 * @param object $input    The object to check.
+	 * @param bool   $expected Whether the object is a payment method.
+	 * @return void
+	 * @dataProvider provide_test_is_payment_method_object
+	 */
+	public function test_is_payment_method_object( object $input, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::is_payment_method_object( $input ) );
 	}
 
-	public function test_add_payment_method_to_request_array_should_not_add_non_source_or_payment_method_to_request() {
-		$not_a_payment_method_id = 'cus_mock';
-		$request                 = WC_Stripe_Helper::add_payment_method_to_request_array( $not_a_payment_method_id, [] );
-
-		$this->assertArrayNotHasKey( 'payment_method', $request, 'Payment Method ID was added to request array when it should not have' );
-		$this->assertArrayNotHasKey( 'source', $request, 'Source was added to request array when it should not have' );
-		$this->assertEmpty( $request, 'Request array is not empty when it should be empty' );
-	}
-
-	public function test_is_payment_method_object() {
+	/**
+	 * Data provider for `test_is_payment_method_object`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_payment_method_object(): array {
 		$payment_method         = new stdClass();
 		$payment_method->object = 'payment_method';
-		$this->assertTrue( WC_Stripe_Helper::is_payment_method_object( $payment_method ) );
 
 		$empty = new stdClass();
-		$this->assertFalse( WC_Stripe_Helper::is_payment_method_object( $empty ) );
 
 		$not_payment_method         = new stdClass();
 		$not_payment_method->object = 'not_payment_method';
-		$this->assertFalse( WC_Stripe_Helper::is_payment_method_object( $not_payment_method ) );
+
+		return [
+			'object is payment_method'     => [ $payment_method, true ],
+			'object has no object property' => [ $empty, false ],
+			'object is not payment_method' => [ $not_payment_method, false ],
+		];
 	}
 
-	public function test_is_reusable_source() {
+	/**
+	 * Test for `is_reusable_payment_method`.
+	 *
+	 * @param object $input    The object to check.
+	 * @param bool   $expected Whether the object is a reusable payment method.
+	 * @return void
+	 * @dataProvider provide_test_is_reusable_source
+	 */
+	public function test_is_reusable_source( object $input, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::is_reusable_payment_method( $input ) );
+	}
+
+	/**
+	 * Data provider for `test_is_reusable_source`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_reusable_source(): array {
 		$payment_method         = new stdClass();
 		$payment_method->object = 'payment_method';
-		$this->assertTrue( WC_Stripe_Helper::is_reusable_payment_method( $payment_method ) );
 
 		$reusable_source        = new stdClass();
 		$reusable_source->usage = 'reusable';
-		$this->assertTrue( WC_Stripe_Helper::is_reusable_payment_method( $reusable_source ) );
 
 		$empty = new stdClass();
-		$this->assertFalse( WC_Stripe_Helper::is_reusable_payment_method( $empty ) );
 
 		$non_reusable_source        = new stdClass();
 		$non_reusable_source->usage = 'single_use';
-		$this->assertFalse( WC_Stripe_Helper::is_reusable_payment_method( $non_reusable_source ) );
+
+		return [
+			'payment_method object is reusable'       => [ $payment_method, true ],
+			'source with usage=reusable is reusable'  => [ $reusable_source, true ],
+			'empty object is not reusable'            => [ $empty, false ],
+			'source with usage=single_use is not reusable' => [ $non_reusable_source, false ],
+		];
 	}
 
-	public function test_is_card_payment_method() {
+	/**
+	 * Test for `is_card_payment_method`.
+	 *
+	 * @param object $input    The object to check.
+	 * @param bool   $expected Whether the object is a card payment method.
+	 * @return void
+	 * @dataProvider provide_test_is_card_payment_method
+	 */
+	public function test_is_card_payment_method( object $input, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::is_card_payment_method( $input ) );
+	}
+
+	/**
+	 * Data provider for `test_is_card_payment_method`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_card_payment_method(): array {
 		$card_payment_method         = new stdClass();
 		$card_payment_method->object = 'payment_method';
 		$card_payment_method->type   = WC_Stripe_Payment_Methods::CARD;
-		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_payment_method ) );
 
 		$card_source         = new stdClass();
 		$card_source->object = 'source';
 		$card_source->type   = WC_Stripe_Payment_Methods::CARD;
-		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_source ) );
 
 		$non_card_payment_method         = new stdClass();
 		$non_card_payment_method->object = 'payment_method';
 		$non_card_payment_method->type   = 'not_card';
-		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $non_card_payment_method ) );
 
 		$non_card_source         = new stdClass();
 		$non_card_source->object = 'source';
 		$non_card_source->type   = 'not_card';
-		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $non_card_source ) );
 
 		$not_payment_method_or_source         = new stdClass();
 		$not_payment_method_or_source->object = 'not_payment_method_or_source';
-		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $not_payment_method_or_source ) );
+
+		return [
+			'card payment method object'           => [ $card_payment_method, true ],
+			'card source object'                   => [ $card_source, true ],
+			'non-card payment method object'       => [ $non_card_payment_method, false ],
+			'non-card source object'               => [ $non_card_source, false ],
+			'object is neither payment_method nor source' => [ $not_payment_method_or_source, false ],
+		];
 	}
 
-	public function test_get_payment_method_from_intent() {
-		$source         = 'src_mock';
-		$payment_method = 'pm_mock';
+	/**
+	 * Test for `get_payment_method_from_intent`.
+	 *
+	 * @param object $intent   The intent object.
+	 * @param mixed  $expected The expected result.
+	 * @return void
+	 * @dataProvider provide_test_get_payment_method_from_intent
+	 */
+	public function test_get_payment_method_from_intent( object $intent, $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_payment_method_from_intent( $intent ) );
+	}
 
+	/**
+	 * Data provider for `test_get_payment_method_from_intent`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_payment_method_from_intent(): array {
 		$intent_with_source         = new stdClass();
-		$intent_with_source->source = $source;
-		$this->assertEquals( $source, WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_source ) );
+		$intent_with_source->source = 'src_mock';
 
 		$intent_with_payment_method                 = new stdClass();
-		$intent_with_payment_method->payment_method = $payment_method;
-		$this->assertEquals( $payment_method, WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_payment_method ) );
+		$intent_with_payment_method->payment_method = 'pm_mock';
 
-		$intent_with_neither_source_nor_payment_method = new stdClass();
-		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
+		$intent_with_neither = new stdClass();
+
+		return [
+			'intent with source returns source'                         => [ $intent_with_source, 'src_mock' ],
+			'intent with payment_method returns payment_method'         => [ $intent_with_payment_method, 'pm_mock' ],
+			'intent with neither source nor payment_method returns null' => [ $intent_with_neither, null ],
+		];
 	}
 
 	/**

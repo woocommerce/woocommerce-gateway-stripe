@@ -112,36 +112,36 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		\WC_Stripe_Database_Cache::delete( \WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
-	public function test_are_keys_set_returns_true_in_test_mode() {
-		$this->gateway->testmode        = true;
-		$this->gateway->publishable_key = 'pk_test_key';
-		$this->gateway->secret_key      = 'sk_test_key';
+	/**
+	 * Test for `are_keys_set`.
+	 *
+	 * @param bool   $testmode       Whether the gateway is in test mode.
+	 * @param string $publishable_key The publishable key.
+	 * @param string $secret_key      The secret key.
+	 * @param bool   $expected        Whether the keys should be considered set.
+	 * @return void
+	 * @dataProvider provide_test_are_keys_set
+	 */
+	public function test_are_keys_set( bool $testmode, string $publishable_key, string $secret_key, bool $expected ) {
+		$this->gateway->testmode        = $testmode;
+		$this->gateway->publishable_key = $publishable_key;
+		$this->gateway->secret_key      = $secret_key;
 
-		$this->assertTrue( $this->gateway->are_keys_set() );
+		$this->assertSame( $expected, $this->gateway->are_keys_set() );
 	}
 
-	public function test_are_keys_set_returns_false_when_invalid_in_test_mode() {
-		$this->gateway->testmode        = true;
-		$this->gateway->publishable_key = 'pk_invalid_key';
-		$this->gateway->secret_key      = 'sk_invalid_key';
-
-		$this->assertFalse( $this->gateway->are_keys_set() );
-	}
-
-	public function test_are_keys_set_returns_true_in_live_mode() {
-		$this->gateway->testmode        = false;
-		$this->gateway->publishable_key = 'pk_live_key';
-		$this->gateway->secret_key      = 'sk_live_key';
-
-		$this->assertTrue( $this->gateway->are_keys_set() );
-	}
-
-	public function test_are_keys_set_returns_false_when_invalid_in_live_mode() {
-		$this->gateway->testmode        = false;
-		$this->gateway->publishable_key = 'pk_invalid_key';
-		$this->gateway->secret_key      = 'sk_invalid_key';
-
-		$this->assertFalse( $this->gateway->are_keys_set() );
+	/**
+	 * Data provider for `test_are_keys_set`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_are_keys_set(): array {
+		return [
+			'test mode with valid keys'    => [ true, 'pk_test_key', 'sk_test_key', true ],
+			'test mode with invalid keys'  => [ true, 'pk_invalid_key', 'sk_invalid_key', false ],
+			'live mode with valid keys'    => [ false, 'pk_live_key', 'sk_live_key', true ],
+			'live mode with invalid keys'  => [ false, 'pk_invalid_key', 'sk_invalid_key', false ],
+		];
 	}
 
 	public function test_is_available_returns_true_in_live_mode_with_ssl() {
