@@ -44,13 +44,17 @@ export const togglePaymentMethod = async (
 				const removeButton = page.getByRole( 'button', {
 					name: 'Remove',
 				} );
-				if (
-					await removeButton
-						.waitFor( { state: 'visible', timeout: 3000 } )
-						.then( () => true )
-						.catch( () => false )
-				) {
+				try {
+					await removeButton.waitFor( {
+						state: 'visible',
+						timeout: 3000,
+					} );
 					await removeButton.click();
+				} catch ( error ) {
+					if ( error?.name !== 'TimeoutError' ) {
+						throw error;
+					}
+					// Remove button is optional for some methods.
 				}
 			}
 
