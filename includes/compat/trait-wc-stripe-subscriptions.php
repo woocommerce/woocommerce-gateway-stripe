@@ -549,13 +549,20 @@ trait WC_Stripe_Subscriptions_Trait {
 			// so that WC Subscriptions does not schedule further retry attempts. Each retry
 			// would create a new charge that Radar would block again, inflating the block rate.
 			if ( isset( $response ) && ! empty( $response->error ) && $this->is_charge_blocked_by_radar( $response ) ) {
-				$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
-					? wcs_get_subscriptions_for_renewal_order( $renewal_order )
-					: [];
-				foreach ( $subscriptions as $subscription ) {
-					$subscription->update_status(
-						OrderStatus::ON_HOLD,
-						__( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' )
+				$radar_note = __( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+				$renewal_order->add_order_note( $radar_note );
+
+				try {
+					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+						: [];
+					foreach ( $subscriptions as $subscription ) {
+						$subscription->update_status( OrderStatus::ON_HOLD, $radar_note );
+					}
+				} catch ( Exception $radar_e ) {
+					WC_Stripe_Logger::error(
+						'Failed to put subscription on hold after Stripe Radar block: ' . $radar_e->getMessage(),
+						[ 'order_id' => $renewal_order->get_id() ]
 					);
 				}
 			}

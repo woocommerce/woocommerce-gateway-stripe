@@ -435,7 +435,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				];
 			}
 
-			if ( str_starts_with( $url, $charges_api_base ) ) {
+			if ( strpos( $url, $charges_api_base ) === 0 ) {
 				return [
 					'headers'  => [],
 					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ),
@@ -461,7 +461,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 
 		// Assert: the parent subscription was put on hold to stop WC Subscriptions retries.
-		$this->assertSame( 'on-hold', $mock_subscription->get_status() );
+		$this->assertSame( OrderStatus::ON_HOLD, $mock_subscription->get_status() );
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $pre_http_request_callback );
