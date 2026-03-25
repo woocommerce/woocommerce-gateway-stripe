@@ -463,38 +463,35 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		variables: globalRules,
 		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
 		labels: isBlocksCheckout ? 'floating' : 'above',
-		// Deep clone rules so floating label adjustments don't mutate shared objects.
-		rules: JSON.parse(
-			JSON.stringify( {
-				'.Input': inputRules,
-				'.Input--invalid': inputInvalidRules,
-				'.Block': blockRules,
-				'.Label': labelRules,
-				'.Label--resting': labelRestingRules,
-				'.Tab': tabRules,
-				'.Tab:hover': tabHoverRules,
-				'.Tab--selected': selectedTabRules,
-				'.TabIcon:hover': tabIconHoverRules,
-				'.TabIcon--selected': selectedTabIconRules,
-				'.Text': isColorLight( backgroundColor )
-					? darkParagraphRules
-					: paragraphRules,
-				'.Text--redirect': isColorLight( backgroundColor )
-					? darkParagraphRules
-					: paragraphRules,
-				'.CheckboxInput': {
-					backgroundColor: 'var(--colorBackground)',
-					borderRadius: 'min(5px, var(--borderRadius))',
-					transition:
-						'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
-					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
-				},
-				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)',
-					borderColor: 'var(--colorPrimary)',
-				},
-			} )
-		),
+		rules: {
+			'.Input': inputRules,
+			'.Input--invalid': inputInvalidRules,
+			'.Block': blockRules,
+			'.Label': labelRules,
+			'.Label--resting': labelRestingRules,
+			'.Tab': tabRules,
+			'.Tab:hover': tabHoverRules,
+			'.Tab--selected': selectedTabRules,
+			'.TabIcon:hover': tabIconHoverRules,
+			'.TabIcon--selected': selectedTabIconRules,
+			'.Text': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
+			'.Text--redirect': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
+			'.CheckboxInput': {
+				backgroundColor: 'var(--colorBackground)',
+				borderRadius: 'min(5px, var(--borderRadius))',
+				transition:
+					'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+				border: '1px solid var(--p-colorBackgroundDeemphasize10)',
+			},
+			'.CheckboxInput--checked': {
+				backgroundColor: 'var(--colorPrimary)',
+				borderColor: 'var(--colorPrimary)',
+			},
+		},
 	};
 
 	if ( isBlocksCheckout ) {

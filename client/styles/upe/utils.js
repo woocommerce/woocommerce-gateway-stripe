@@ -125,6 +125,11 @@ export const isColorLight = ( color ) => {
 	return tinycolor( color ).isLight();
 };
 
+// Constants for floating label padding adjustments.
+const STRIPE_PADDING_TOP = '4px';
+const STRIPE_PADDING_OFFSET = '1px';
+const STRIPE_FLOATING_LABEL_MARGIN_TOP = '3px';
+
 /**
  * Modifies the appearance object to include styles for floating label.
  * Adjusts input padding to prevent fields from growing taller when labels
@@ -178,28 +183,30 @@ export const handleAppearanceForFloatingLabel = (
 	}
 
 	// Subtract the label's lineHeight from padding-top to account for floating label height.
-	// Minus 4px which is a constant value added by Stripe to the padding-top.
-	// Minus 1px for each vertical padding to account for unpredictable input height.
+	// Minus STRIPE_PADDING_TOP which is a constant value added by Stripe to the padding-top.
+	// Minus STRIPE_PADDING_OFFSET for each vertical padding to account for unpredictable input height.
 	if ( appearance.rules[ '.Input' ].paddingTop ) {
 		appearance.rules[
 			'.Input'
-		].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - 4px - 1px)`;
+		].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - ${ STRIPE_PADDING_TOP } - ${ STRIPE_PADDING_OFFSET })`;
 	}
 	if ( appearance.rules[ '.Input' ].paddingBottom ) {
+		const paddingOffset = parseFloat( STRIPE_PADDING_OFFSET );
 		const originalPaddingBottom = parseFloat(
 			appearance.rules[ '.Input' ].paddingBottom
 		);
 		appearance.rules[ '.Input' ].paddingBottom = `${
-			originalPaddingBottom - 1
+			originalPaddingBottom - paddingOffset
 		}px`;
 
 		appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
-			( originalPaddingBottom - 1 ) / 3
+			( originalPaddingBottom - paddingOffset ) / 3
 		) }px`;
 	}
 
 	// Add top margin so the floating label doesn't sit flush against the input border.
-	appearance.rules[ '.Label--floating' ].marginTop = '3px';
+	appearance.rules[ '.Label--floating' ].marginTop =
+		STRIPE_FLOATING_LABEL_MARGIN_TOP;
 
 	return appearance;
 };
