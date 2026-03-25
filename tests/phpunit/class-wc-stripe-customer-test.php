@@ -295,7 +295,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		$mock_order = $this->create_mock_order( $billing_data );
 
-		$args = [];
+		$args     = [];
 		$customer = new \WC_Stripe_Customer();
 
 		$was_exception_thrown = false;
@@ -507,7 +507,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$mock_order = $this->create_mock_order( [ 'address_2' => 'Apt 1' ] );
 
 		$captured_create_request = null;
-		$captured_update_request  = null;
+		$captured_update_request = null;
 
 		// Mock for create_customer
 		$mock_create_call = function ( $return_value, $parsed_args, $url ) use ( &$captured_create_request ) {

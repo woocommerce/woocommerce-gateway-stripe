@@ -526,7 +526,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		ob_start();
 		$this->mock_controller->create_and_confirm_setup_intent_ajax();
-		$output = ob_get_clean();
+		$output   = ob_get_clean();
 		$response = json_decode( $output, true );
 		$this->assertFalse( $response['success'] );
 		$this->assertArrayHasKey( 'error', $response['data'] );

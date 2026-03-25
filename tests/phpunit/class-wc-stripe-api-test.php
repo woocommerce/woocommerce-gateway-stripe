@@ -134,7 +134,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		);
 
 		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
-		$threshold  = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
 
 		// Call retrieve up to the threshold, each should make an HTTP call.
 		for ( $i = 0; $i < $threshold; $i++ ) {
@@ -225,7 +225,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			return $response;
 		};
 
-		$mock_logger = $this->createMock( \WC_Logger::class );
+		$mock_logger               = $this->createMock( \WC_Logger::class );
 		\WC_Stripe_Logger::$logger = $mock_logger;
 
 		$expected_data_keys = [
@@ -428,7 +428,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_cron_request, bool $is_wc_sub_staging_site = false ) {
 		$initial_test_mode = \WC_Stripe_Mode::is_test();
 
-		$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $is_test_mode ? 'yes' : 'no';
 		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -458,7 +458,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		}
 
 		if ( $initial_test_mode !== $is_test_mode ) {
-			$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
 			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
 			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}

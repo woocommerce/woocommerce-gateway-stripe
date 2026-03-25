@@ -61,8 +61,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$amazon_pay           = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();
@@ -87,8 +87,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$supported_currencies = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies();
@@ -136,8 +136,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$amazon_pay   = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();

@@ -40,8 +40,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function test_cache_expiration() {
 		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
-		$key  = 'expiring_key';
-		$data = 'expiring_data';
+		$key        = 'expiring_key';
+		$data       = 'expiring_data';
 
 		// Set cache with 1 hour TTL.
 		WC_Stripe_Database_Cache::set( $key, $data, HOUR_IN_SECONDS );
@@ -51,7 +51,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 		// Update the in-memory-cache to simulate expiration.
 		$reflection = new ReflectionClass( 'WC_Stripe_Database_Cache' );
-		$property = $reflection->getProperty( 'in_memory_cache' );
+		$property   = $reflection->getProperty( 'in_memory_cache' );
 		$property->setAccessible( true );
 		$in_memory_cache = $property->getValue();
 
@@ -65,7 +65,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$property->setValue( null, [] );
 
 		// Update the database option to simulate expiration.
-		$cache_contents = get_option( $key_prefix . $key );
+		$cache_contents             = get_option( $key_prefix . $key );
 		$cache_contents['updated'] -= HOUR_IN_SECONDS + 1; // Set update time to 1h 1s ago.
 		update_option( $key_prefix . $key, $cache_contents );
 
@@ -94,8 +94,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function test_in_memory_cache() {
 		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
-		$key  = 'memory_key';
-		$data = 'memory_data';
+		$key        = 'memory_key';
+		$data       = 'memory_data';
 
 		// Set data.
 		WC_Stripe_Database_Cache::set( $key, $data );
@@ -136,7 +136,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_data_type_test_cases
 	 */
 	public function test_cache_with_different_data_types( $key_suffix, $data ) {
-		$key    = "test_{$key_suffix}";
+		$key = "test_{$key_suffix}";
 		WC_Stripe_Database_Cache::set( $key, $data );
 		$result = WC_Stripe_Database_Cache::get( $key );
 		$this->assertEquals( $data, $result, 'Failed to cache and fetch data type' );
@@ -213,8 +213,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 		// For null mode, verify it's stored with the current mode prefix.
 		if ( null === $mode ) {
-			$current_mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-			$prefixed_key = 'wcstripe_cache_' . $current_mode . '_' . $key;
+			$current_mode   = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$prefixed_key   = 'wcstripe_cache_' . $current_mode . '_' . $key;
 			$cache_contents = get_option( $prefixed_key );
 			$this->assertNotFalse( $cache_contents );
 			$this->assertEquals( $data, $cache_contents['data'] );
@@ -281,9 +281,9 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * Test cross-mode isolation - data stored in different modes are isolated.
 	 */
 	public function test_cross_mode_isolation() {
-		$key        = 'cross_mode_key';
-		$test_data  = 'test_mode_data';
-		$live_data  = 'live_mode_data';
+		$key       = 'cross_mode_key';
+		$test_data = 'test_mode_data';
+		$live_data = 'live_mode_data';
 
 		// Set data in test mode.
 		WC_Stripe_Database_Cache::set_with_mode( $key, $test_data, HOUR_IN_SECONDS, 'test' );

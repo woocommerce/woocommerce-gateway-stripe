@@ -132,7 +132,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
-		$is_checkout_filter = function () {
+		$is_checkout_filter                  = function () {
 			return true;
 		};
 		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
@@ -1049,7 +1049,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_button_locations
 	 */
 	public function test_get_button_locations( string $express_checkout_type, array $settings = [], $expected = [] ): void {
-		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
 		$helper->stripe_settings = $settings;
 
 		$actual = $helper->get_button_locations( $express_checkout_type );
@@ -1154,7 +1154,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->getMock();
 
 		// Create a mock product.
-		$product = WC_Helper_Product::create_simple_product();
+		$product         = WC_Helper_Product::create_simple_product();
 		$is_product_page = $is_opc || in_array( 'product', $button_locations, true );
 
 		// Mock the methods.
@@ -1219,7 +1219,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$helper->method( 'is_link_enabled' )->willReturn( false );
 		$helper->testmode = true;
 
-		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
@@ -1321,8 +1321,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$currency_filter = function () use ( $currency ) {

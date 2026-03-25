@@ -530,7 +530,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// The script should be registered with the version we derived above.
 		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
-		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+		$registered_script    = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
 
 		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -3217,14 +3217,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( string $scenario_name, bool $is_guest, string $existing_stripe_customer_id, string $expected_customer_id, string $api_url_pattern, array $billing_data, array $expected_customer_data ) {
 		// Create user if needed.
-		$user_id = 0;
+		$user_id     = 0;
 		$customer_id = 0;
-		$user_email = '';
+		$user_email  = '';
 		if ( ! $is_guest ) {
 			// For logged-in users, the code uses user email and user meta, not order data.
 			// Set user email to match expected data, and set user meta to match order billing data.
-			$user_email = $billing_data['email'];
-			$user_id = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
+			$user_email  = $billing_data['email'];
+			$user_id     = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
 			$customer_id = $user_id;
 			if ( ! empty( $existing_stripe_customer_id ) ) {
 				update_user_option( $user_id, '_stripe_customer_id', $existing_stripe_customer_id );
@@ -3259,14 +3259,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->delete_stripe_customer_id( $order );
 
 		// Mock the API request to verify billing details are used.
-		$api_called = false;
+		$api_called    = false;
 		$captured_args = null;
 
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
 				if ( preg_match( $api_url_pattern, $url ) ) {
-					$api_called = true;
+					$api_called    = true;
 					$captured_args = $parsed_args;
 
 					// Return a mock successful response.
@@ -3312,7 +3312,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( ! $is_guest ) {
 			$user = get_user_by( 'id', $user_id );
 		} else {
-			$user = new \WP_User();
+			$user     = new \WP_User();
 			$user->ID = 0;
 		}
 
@@ -3726,10 +3726,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                              = $original_settings;
-		$stripe_settings['enabled']                                   = 'yes';
-		$stripe_settings['express_checkout']                          = $express_checkout;
-		$stripe_settings['express_checkout_button_locations']         = $express_checkout_button_locations;
+		$stripe_settings                                      = $original_settings;
+		$stripe_settings['enabled']                           = 'yes';
+		$stripe_settings['express_checkout']                  = $express_checkout;
+		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = $upe_checkout_experience_accepted_payments;
 		$stripe_settings['amazon_pay_button_locations']               = $amazon_pay_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -4034,9 +4034,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
-		$formatted_total   = '$10.00';
-		$result            = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		$formatted_total = '$10.00';
+		$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 

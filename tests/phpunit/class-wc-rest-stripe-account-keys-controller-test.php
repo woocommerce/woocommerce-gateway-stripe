@@ -203,10 +203,10 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 * @return array
 	 */
 	public function provide_test_validate_api_key(): array {
-		$live_pk_error   = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
-		$live_sk_error   = new WP_Error( 400, 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.' );
-		$test_pk_error   = new WP_Error( 400, 'The "Test Publishable Key" should start with "pk_test", enter the correct key.' );
-		$test_sk_error   = new WP_Error( 400, 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.' );
+		$live_pk_error = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
+		$live_sk_error = new WP_Error( 400, 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.' );
+		$test_pk_error = new WP_Error( 400, 'The "Test Publishable Key" should start with "pk_test", enter the correct key.' );
+		$test_sk_error = new WP_Error( 400, 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.' );
 
 		return [
 			// validate_publishable_key
