@@ -115,8 +115,8 @@ class WC_Payment_Token_ACH_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'matching fingerprint'    => [ 'test_fingerprint', true ],
-			'mismatched fingerprint'  => [ 'different_fingerprint', false ],
+			'matching fingerprint'   => [ 'test_fingerprint', true ],
+			'mismatched fingerprint' => [ 'different_fingerprint', false ],
 		];
 	}
 }

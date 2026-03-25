@@ -54,9 +54,9 @@ class WC_Payment_Token_Bacs_Debit_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_getters_setters(): array {
 		return [
-			'last4'              => [ 'set_last4', 'get_last4', '1234', 'The last4 property should match the value that was set.' ],
+			'last4'               => [ 'set_last4', 'get_last4', '1234', 'The last4 property should match the value that was set.' ],
 			'payment_method_type' => [ 'set_payment_method_type', 'get_payment_method_type', 'bacs_debit_test', 'The payment_method_type property should match the value that was set.' ],
-			'fingerprint'        => [ 'set_fingerprint', 'get_fingerprint', 'test_fp_123', 'The fingerprint property should match the value that was set.' ],
+			'fingerprint'         => [ 'set_fingerprint', 'get_fingerprint', 'test_fp_123', 'The fingerprint property should match the value that was set.' ],
 		];
 	}
 
@@ -91,9 +91,9 @@ class WC_Payment_Token_Bacs_Debit_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'type and fingerprint match'    => [ 'test_fp_123', WC_Stripe_Payment_Methods::BACS_DEBIT, 'test_fp_123', true, 'is_equal_payment_method() should return true when type and fingerprint match.' ],
-			'mismatched type'               => [ 'test_fp_abc', 'card', 'test_fp_abc', false, 'is_equal_payment_method() should return false when the type is not bacs_debit.' ],
-			'mismatched fingerprint'        => [ 'test_fp_123', WC_Stripe_Payment_Methods::BACS_DEBIT, 'different_fp', false, 'is_equal_payment_method() should return false when the fingerprint does not match.' ],
+			'type and fingerprint match' => [ 'test_fp_123', WC_Stripe_Payment_Methods::BACS_DEBIT, 'test_fp_123', true, 'is_equal_payment_method() should return true when type and fingerprint match.' ],
+			'mismatched type'            => [ 'test_fp_abc', 'card', 'test_fp_abc', false, 'is_equal_payment_method() should return false when the type is not bacs_debit.' ],
+			'mismatched fingerprint'     => [ 'test_fp_123', WC_Stripe_Payment_Methods::BACS_DEBIT, 'different_fp', false, 'is_equal_payment_method() should return false when the fingerprint does not match.' ],
 		];
 	}
 }

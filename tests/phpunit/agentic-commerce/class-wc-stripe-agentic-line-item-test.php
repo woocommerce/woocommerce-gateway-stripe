@@ -35,16 +35,16 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_scalar_getters(): array {
 		return [
-			'get_id with value'                  => [ [ 'id' => 'li_test_123' ], 'get_id', 'li_test_123' ],
-			'get_id when missing'                => [ [], 'get_id', '' ],
-			'get_description with value'         => [ [ 'description' => 'Test Widget' ], 'get_description', 'Test Widget' ],
-			'get_description when missing'       => [ [], 'get_description', '' ],
-			'get_quantity with value'            => [ [ 'quantity' => 3 ], 'get_quantity', 3 ],
-			'get_quantity defaults to 1'         => [ [], 'get_quantity', 1 ],
-			'get_amount_total with value'        => [ [ 'amount_total' => 2500 ], 'get_amount_total', 2500 ],
-			'get_amount_total defaults to 0'     => [ [], 'get_amount_total', 0 ],
-			'get_amount_tax with value'          => [ [ 'amount_tax' => 300 ], 'get_amount_tax', 300 ],
-			'get_amount_tax defaults to 0'       => [ [], 'get_amount_tax', 0 ],
+			'get_id with value'              => [ [ 'id' => 'li_test_123' ], 'get_id', 'li_test_123' ],
+			'get_id when missing'            => [ [], 'get_id', '' ],
+			'get_description with value'     => [ [ 'description' => 'Test Widget' ], 'get_description', 'Test Widget' ],
+			'get_description when missing'   => [ [], 'get_description', '' ],
+			'get_quantity with value'        => [ [ 'quantity' => 3 ], 'get_quantity', 3 ],
+			'get_quantity defaults to 1'     => [ [], 'get_quantity', 1 ],
+			'get_amount_total with value'    => [ [ 'amount_total' => 2500 ], 'get_amount_total', 2500 ],
+			'get_amount_total defaults to 0' => [ [], 'get_amount_total', 0 ],
+			'get_amount_tax with value'      => [ [ 'amount_tax' => 300 ], 'get_amount_tax', 300 ],
+			'get_amount_tax defaults to 0'   => [ [], 'get_amount_tax', 0 ],
 		];
 	}
 
@@ -61,35 +61,35 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 */
 	public function provide_product_id_cases(): array {
 		return [
-			'valid integer string'         => [
+			'valid integer string'       => [
 				(object) [ 'price' => (object) [ 'external_reference' => '42' ] ],
 				42,
 			],
-			'zero string'                  => [
+			'zero string'                => [
 				(object) [ 'price' => (object) [ 'external_reference' => '0' ] ],
 				0,
 			],
-			'non-numeric string'           => [
+			'non-numeric string'         => [
 				(object) [ 'price' => (object) [ 'external_reference' => 'abc' ] ],
 				0,
 			],
-			'null external_reference'      => [
+			'null external_reference'    => [
 				(object) [ 'price' => (object) [ 'external_reference' => null ] ],
 				0,
 			],
-			'missing external_reference'   => [
+			'missing external_reference' => [
 				(object) [ 'price' => (object) [] ],
 				0,
 			],
-			'null price'                   => [
+			'null price'                 => [
 				(object) [ 'price' => null ],
 				0,
 			],
-			'missing price'                => [
+			'missing price'              => [
 				(object) [],
 				0,
 			],
-			'price is not an object'       => [
+			'price is not an object'     => [
 				(object) [ 'price' => 'not_an_object' ],
 				0,
 			],
@@ -109,15 +109,15 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 */
 	public function provide_has_product_id_cases(): array {
 		return [
-			'has valid product ID'    => [
+			'has valid product ID' => [
 				(object) [ 'price' => (object) [ 'external_reference' => '99' ] ],
 				true,
 			],
-			'zero product ID'         => [
+			'zero product ID'      => [
 				(object) [ 'price' => (object) [ 'external_reference' => '0' ] ],
 				false,
 			],
-			'missing price'           => [
+			'missing price'        => [
 				(object) [],
 				false,
 			],

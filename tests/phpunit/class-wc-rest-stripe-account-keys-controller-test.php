@@ -157,11 +157,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		// Default options
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'publishable_key' => 'pk_live-key',
-				'secret_key'      => 'sk_live-key',
-				'testmode'        => 'no',
-				'connection_type' => 'connect',
-				'pmc_enabled'     => 'yes',
+				'publishable_key'                                            => 'pk_live-key',
+				'secret_key'                                                 => 'sk_live-key',
+				'testmode'                                                   => 'no',
+				'connection_type'                                            => 'connect',
+				'pmc_enabled'                                                => 'yes',
 				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);

@@ -136,8 +136,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Base template for Stripe's Klarna
 	 */
 	const MOCK_KLARNA_PAYMENT_METHOD_TEMPLATE = [
-		'id'                                  => 'pm_mock_payment_method_id',
-		'type'                                => WC_Stripe_Payment_Methods::KLARNA,
+		'id'                              => 'pm_mock_payment_method_id',
+		'type'                            => WC_Stripe_Payment_Methods::KLARNA,
 		WC_Stripe_Payment_Methods::KLARNA => [
 			'dob' => [
 				'day'   => 1,
@@ -1106,10 +1106,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'not add method page - non-reusable, saved cards enabled'  => [ false, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, true, true ],
 		];
 		$reusable_cases = [
-			'add method page - reusable, saved cards disabled'         => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
-			'add method page - reusable, saved cards enabled'          => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
-			'not add method page - reusable, saved cards disabled'     => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
-			'not add method page - reusable, saved cards enabled'      => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+			'add method page - reusable, saved cards disabled'     => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
+			'add method page - reusable, saved cards enabled'      => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+			'not add method page - reusable, saved cards disabled' => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
+			'not add method page - reusable, saved cards enabled'  => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
 		];
 
 		$test_cases = [];
