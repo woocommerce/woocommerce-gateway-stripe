@@ -333,6 +333,37 @@ describe( 'CheckoutSessions hook tests', () => {
 
 			document.body.removeChild( phoneInput );
 		} );
+
+		it( 'falls back to shipping-phone when billing-phone is absent', async () => {
+			const phoneInput = document.createElement( 'input' );
+			phoneInput.id = 'shipping-phone';
+			phoneInput.value = '555-5678';
+			document.body.appendChild( phoneInput );
+
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+
+			expect( mockConfirm ).toHaveBeenCalledWith(
+				expect.objectContaining( { phoneNumber: '555-5678' } )
+			);
+
+			document.body.removeChild( phoneInput );
+		} );
 	} );
 
 	describe( 'usePaymentFailHandler hook', () => {
