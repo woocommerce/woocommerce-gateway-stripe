@@ -213,28 +213,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( $expected_message, $message );
 	}
 
-	// Test failure reason: no error.
-	public function test_get_error_reason_no_errors() {
-		$this->set_valid_request_data();
-		$this->process_webhook();
-		$this->assertEquals( 'No error', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
-
-	// Test failure reason: empty headers.
-	public function test_get_error_reason_empty_headers() {
-		$this->set_valid_request_data();
-		$this->request_headers = [];
-		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/missing expected headers/', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
-
-	// Test failure reason: empty body.
-	public function test_get_error_reason_empty_body() {
-		$this->set_valid_request_data();
-		$this->request_body = '';
-		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/missing expected body/', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
 
 	// Test user agent validation ignored
 	public function test_skip_user_agent_validation() {
@@ -261,27 +239,60 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'The webhook secret is not set in the store. Please configure the webhooks', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
-	// Test failure reason: invalid signature.
-	public function test_get_error_reason_invalid_signature() {
+	/**
+	 * Test the error reason returned by `get_last_error_reason()` after processing a webhook
+	 * with various request configurations.
+	 *
+	 * @param string $scenario       One of: no_errors, empty_headers, empty_body,
+	 *                                invalid_signature, timestamp_mismatch, signature_mismatch.
+	 * @param string $expected       Exact string or regex pattern for the expected error reason.
+	 * @param bool   $exact_match    When true use assertEquals; otherwise assertMatchesRegularExpression.
+	 * @return void
+	 * @dataProvider provide_test_get_error_reason
+	 */
+	public function test_get_error_reason( string $scenario, string $expected, bool $exact_match ) {
 		$this->set_valid_request_data();
-		$this->request_headers['STRIPE-SIGNATURE'] = 'foo';
+
+		switch ( $scenario ) {
+			case 'empty_headers':
+				$this->request_headers = [];
+				break;
+			case 'empty_body':
+				$this->request_body = '';
+				break;
+			case 'invalid_signature':
+				$this->request_headers['STRIPE-SIGNATURE'] = 'foo';
+				break;
+			case 'timestamp_mismatch':
+				$this->set_valid_request_data( time() - 600 ); // 10 minutes ago.
+				break;
+			case 'signature_mismatch':
+				$this->request_headers['STRIPE-SIGNATURE'] = 't=' . time() . ',v1=0';
+				break;
+		}
+
 		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/signature was missing or was incorrectly formatted/', WC_Stripe_Webhook_State::get_last_error_reason() );
+
+		if ( $exact_match ) {
+			$this->assertEquals( $expected, WC_Stripe_Webhook_State::get_last_error_reason() );
+		} else {
+			$this->assertMatchesRegularExpression( $expected, WC_Stripe_Webhook_State::get_last_error_reason() );
+		}
 	}
 
-	// Test failure reason: timestamp mismatch.
-	public function test_get_error_reason_timestamp_mismatch() {
-		$timestamp = time() - 600; // 10 minutes ago.
-		$this->set_valid_request_data( $timestamp );
-		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/timestamp in the webhook differed more than five minutes/', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
-
-	// Test failure reason: signature mismatch.
-	public function test_get_error_reason_signature_mismatch() {
-		$this->set_valid_request_data();
-		$this->request_headers['STRIPE-SIGNATURE'] = 't=' . time() . ',v1=0';
-		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/was not signed with the expected signing secret/', WC_Stripe_Webhook_State::get_last_error_reason() );
+	/**
+	 * Data provider for `test_get_error_reason`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_error_reason(): array {
+		return [
+			'no errors'          => [ 'no_errors', 'No error', true ],
+			'empty headers'      => [ 'empty_headers', '/missing expected headers/', false ],
+			'empty body'         => [ 'empty_body', '/missing expected body/', false ],
+			'invalid signature'  => [ 'invalid_signature', '/signature was missing or was incorrectly formatted/', false ],
+			'timestamp mismatch' => [ 'timestamp_mismatch', '/timestamp in the webhook differed more than five minutes/', false ],
+			'signature mismatch' => [ 'signature_mismatch', '/was not signed with the expected signing secret/', false ],
+		];
 	}
 }
