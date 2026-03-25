@@ -96,89 +96,103 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertEquals( [], $this->account->get_cached_account_data() );
 	}
 
-	public function test_no_pending_requirements() {
+	/**
+	 * Test for `has_pending_requirements` and `has_overdue_requirements`.
+	 *
+	 * @param array $account        The account data to set.
+	 * @param bool  $pending        Whether pending requirements are expected.
+	 * @param bool  $overdue        Whether overdue requirements are expected.
+	 * @return void
+	 * @dataProvider provide_test_requirements
+	 */
+	public function test_requirements( array $account, bool $pending, bool $overdue ) {
 		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'    => '1234',
-			'email' => 'test@example.com',
-		];
 		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertFalse( $this->account->has_pending_requirements() );
+		$this->assertSame( $pending, $this->account->has_pending_requirements() );
+		$this->assertSame( $overdue, $this->account->has_overdue_requirements() );
 	}
 
-	public function test_has_pending_requirements() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'           => '1234',
-			'email'        => 'test@example.com',
-			'requirements' => [
-				'currently_due' => [ 'example' ],
+	/**
+	 * Data provider for `test_requirements`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_requirements(): array {
+		return [
+			'no requirements'       => [
+				'account' => [
+					'id' => '1234',
+					'email' => 'test@example.com',
+				],
+				'pending' => false,
+				'overdue' => false,
+			],
+			'pending requirements'  => [
+				'account' => [
+					'id'           => '1234',
+					'email'        => 'test@example.com',
+					'requirements' => [ 'currently_due' => [ 'example' ] ],
+				],
+				'pending' => true,
+				'overdue' => false,
+			],
+			'overdue requirements'  => [
+				'account' => [
+					'id'           => '1234',
+					'email'        => 'test@example.com',
+					'requirements' => [ 'past_due' => [ 'example' ] ],
+				],
+				'pending' => true,
+				'overdue' => true,
 			],
 		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertTrue( $this->account->has_pending_requirements() );
 	}
 
-	public function test_has_no_overdue_requirements() {
+	/**
+	 * Test for `get_account_status`.
+	 *
+	 * @param array  $account         The account data to set.
+	 * @param string $expected_status The expected status.
+	 * @return void
+	 * @dataProvider provide_test_account_status
+	 */
+	public function test_account_status( array $account, string $expected_status ) {
 		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'           => '1234',
-			'email'        => 'test@example.com',
-			'requirements' => [
-				'currently_due' => [ 'example' ],
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+		$this->assertEquals( $expected_status, $this->account->get_account_status() );
+	}
+
+	/**
+	 * Data provider for `test_account_status`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_account_status(): array {
+		return [
+			'complete'         => [
+				'account'         => [
+					'id' => '1234',
+					'email' => 'test@example.com',
+				],
+				'expected_status' => 'complete',
+			],
+			'restricted'       => [
+				'account'         => [
+					'id'           => '1234',
+					'email'        => 'test@example.com',
+					'requirements' => [ 'disabled_reason' => 'other' ],
+				],
+				'expected_status' => 'restricted',
+			],
+			'restricted_soon'  => [
+				'account'         => [
+					'id'           => '1234',
+					'email'        => 'test@example.com',
+					'requirements' => [ 'eventually_due' => [ 'example' ] ],
+				],
+				'expected_status' => 'restricted_soon',
 			],
 		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertFalse( $this->account->has_overdue_requirements() );
-	}
-
-	public function test_has_overdue_requirements() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'           => '1234',
-			'email'        => 'test@example.com',
-			'requirements' => [
-				'past_due' => [ 'example' ],
-			],
-		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertTrue( $this->account->has_overdue_requirements() );
-	}
-
-	public function test_account_status_complete() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'    => '1234',
-			'email' => 'test@example.com',
-		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertEquals( 'complete', $this->account->get_account_status() );
-	}
-
-	public function test_account_status_restricted() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'           => '1234',
-			'email'        => 'test@example.com',
-			'requirements' => [
-				'disabled_reason' => 'other',
-			],
-		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertEquals( 'restricted', $this->account->get_account_status() );
-	}
-
-	public function test_account_status_restricted_soon() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'           => '1234',
-			'email'        => 'test@example.com',
-			'requirements' => [
-				'eventually_due' => [ 'example' ],
-			],
-		];
-		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
-		$this->assertEquals( 'restricted_soon', $this->account->get_account_status() );
 	}
 
 	/**

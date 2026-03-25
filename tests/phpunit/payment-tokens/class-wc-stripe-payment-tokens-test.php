@@ -17,15 +17,34 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$this->stripe_payment_tokens = new WC_Stripe_Payment_Tokens();
 	}
 
-	public function test_is_valid_payment_method_id() {
-		$this->assertTrue( $this->stripe_payment_tokens->is_valid_payment_method_id( 'pm_1234567890' ) );
-		$this->assertTrue( $this->stripe_payment_tokens->is_valid_payment_method_id( 'pm_1234567890', 'card' ) );
-		$this->assertTrue( $this->stripe_payment_tokens->is_valid_payment_method_id( 'pm_1234567890', 'sepa' ) );
+	/**
+	 * Test for `is_valid_payment_method_id`.
+	 *
+	 * @param string  $payment_method_id   The payment method ID to test.
+	 * @param string  $payment_method_type The payment method type.
+	 * @param bool    $expected            Expected result.
+	 * @return void
+	 * @dataProvider provide_test_is_valid_payment_method_id
+	 */
+	public function test_is_valid_payment_method_id( string $payment_method_id, string $payment_method_type, bool $expected ) {
+		$result = $this->stripe_payment_tokens->is_valid_payment_method_id( $payment_method_id, $payment_method_type );
+		$this->assertSame( $expected, $result );
+	}
 
-		// Test with source id (only card payment method type is valid).
-		$this->assertTrue( $this->stripe_payment_tokens->is_valid_payment_method_id( 'src_1234567890', 'card' ) );
-		$this->assertFalse( $this->stripe_payment_tokens->is_valid_payment_method_id( 'src_1234567890', 'sepa' ) );
-		$this->assertFalse( $this->stripe_payment_tokens->is_valid_payment_method_id( 'src_1234567890', 'giropay' ) );
+	/**
+	 * Data provider for `test_is_valid_payment_method_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_valid_payment_method_id(): array {
+		return [
+			'pm_ without type is valid'           => [ 'pm_1234567890', '', true ],
+			'pm_ with card type is valid'         => [ 'pm_1234567890', 'card', true ],
+			'pm_ with sepa type is valid'         => [ 'pm_1234567890', 'sepa', true ],
+			'src_ with card type is valid'        => [ 'src_1234567890', 'card', true ],
+			'src_ with sepa type is invalid'      => [ 'src_1234567890', 'sepa', false ],
+			'src_ with giropay type is invalid'   => [ 'src_1234567890', 'giropay', false ],
+		];
 	}
 
 	/**
