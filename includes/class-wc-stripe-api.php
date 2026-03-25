@@ -675,7 +675,7 @@ class WC_Stripe_API {
 	 */
 	private static function log_error_response( $response, string $api, string $method, array $data = [] ): void {
 		$error_message = "Stripe API error: {$method} {$api}";
-		$error_data = array_merge(
+		$error_data    = array_merge(
 			$data,
 			[
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
@@ -698,7 +698,7 @@ class WC_Stripe_API {
 			if ( $resolved_ip_address === $stripe_api_host ) {
 				$error_data['validation_details'] = "$stripe_api_host could not be resolved to an IP address";
 			} else {
-				$error_message .= "; Possible DNS resolution problem for $stripe_api_host";
+				$error_message                   .= "; Possible DNS resolution problem for $stripe_api_host";
 				$error_data['validation_details'] = "$stripe_api_host resolved to $resolved_ip_address";
 			}
 		}

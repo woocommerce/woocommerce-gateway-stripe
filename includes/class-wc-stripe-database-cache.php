@@ -122,7 +122,7 @@ class WC_Stripe_Database_Cache {
 	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get_with_mode( $key, ?string $mode = null ) {
-		$prefixed_key = self::add_key_prefix( $key, $mode );
+		$prefixed_key   = self::add_key_prefix( $key, $mode );
 		$cache_contents = self::get_from_cache( $prefixed_key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
 			if ( self::is_expired( $prefixed_key, $cache_contents ) ) {
@@ -371,14 +371,14 @@ class WC_Stripe_Database_Cache {
 		$query_args = [ self::CACHE_KEY_PREFIX . '%' ];
 
 		if ( null !== $last_key ) {
-			$raw_query .= ' AND option_name > %s';
+			$raw_query   .= ' AND option_name > %s';
 			$query_args[] = $last_key;
 		}
 
 		$raw_query .= ' ORDER BY option_name ASC';
 
 		if ( $max_rows > 0 ) {
-			$raw_query .= ' LIMIT %d';
+			$raw_query   .= ' LIMIT %d';
 			$query_args[] = $max_rows;
 		}
 
@@ -475,7 +475,7 @@ class WC_Stripe_Database_Cache {
 		}
 
 		$one_am_tomorrow = strtotime( 'tomorrow 01:00' );
-		$schedule_id = as_schedule_recurring_action( $one_am_tomorrow, DAY_IN_SECONDS, self::ASYNC_CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+		$schedule_id     = as_schedule_recurring_action( $one_am_tomorrow, DAY_IN_SECONDS, self::ASYNC_CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
 
 		if ( 0 === $schedule_id ) {
 			WC_Stripe_Logger::error( 'Failed to schedule daily asynchronous cache cleanup' );
@@ -557,7 +557,7 @@ class WC_Stripe_Database_Cache {
 
 		$job_data['processed'] += $delete_result['processed'];
 		$job_data['deleted']   += $delete_result['deleted'];
-		$job_data['last_key']  = $delete_result['last_key'];
+		$job_data['last_key']   = $delete_result['last_key'];
 
 		if ( $delete_result['more_entries'] && null !== $delete_result['last_key'] ) {
 			$job_delay = MINUTE_IN_SECONDS;
