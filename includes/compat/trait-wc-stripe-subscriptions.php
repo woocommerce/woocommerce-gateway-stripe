@@ -399,23 +399,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			return false;
 		}
 
-		$cache_key     = 'radar_check_' . $charge_id;
-		$cached_result = WC_Stripe_Database_Cache::get( $cache_key );
-
-		if ( null !== $cached_result ) {
-			return (bool) $cached_result;
-		}
-
 		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
 
 		if ( empty( $charge ) || ! empty( $charge->error ) ) {
 			return false;
 		}
 
-		$is_blocked = isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type;
-		WC_Stripe_Database_Cache::set( $cache_key, $is_blocked, HOUR_IN_SECONDS );
-
-		return $is_blocked;
+		return isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type;
 	}
 
 	/**
