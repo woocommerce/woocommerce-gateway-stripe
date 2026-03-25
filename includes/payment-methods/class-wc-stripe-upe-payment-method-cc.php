@@ -46,7 +46,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function should_show_save_option() {
-		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( woocommerce_gateway_stripe() ) ) {
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( woocommerce_gateway_stripe()->get_main_stripe_gateway() ) ) {
 			return false;
 		}
 

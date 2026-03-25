@@ -143,6 +143,77 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 		} );
 	} );
 
+	describe( 'Classic checkout with OC (no block DOM, config map present)', () => {
+		it( 'Hides checkbox via body class when card showSaveOption is false', () => {
+			// No block checkout DOM elements at all.
+			const config = makeOCConfig( {
+				card: false,
+				sepa_debit: true,
+			} );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD, config );
+			expect( isHidden() ).toBe( true );
+		} );
+
+		it( 'Shows checkbox via body class when card showSaveOption is true', () => {
+			const config = makeOCConfig( {
+				card: true,
+				sepa_debit: true,
+			} );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD, config );
+			expect( isHidden() ).toBe( false );
+		} );
+
+		it( 'Hides checkbox for non-reusable methods regardless of config', () => {
+			const config = makeOCConfig( {
+				card: true,
+				alipay: true,
+			} );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY, config );
+			expect( isHidden() ).toBe( true );
+		} );
+
+		it( 'Removes body class when switching from hidden to visible', () => {
+			const config = makeOCConfig( {
+				card: false,
+				sepa_debit: true,
+			} );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD, config );
+			expect( isHidden() ).toBe( true );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_SEPA, config );
+			expect( isHidden() ).toBe( false );
+		} );
+	} );
+
+	describe( 'shouldHideSaveCheckbox error handling', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it( 'Shows checkbox when isLinkEnabled throws an exception', () => {
+			isLinkEnabled.mockImplementation( () => {
+				throw new Error( 'Unexpected error' );
+			} );
+			global.wc_stripe_upe_params = { isLoggedIn: true };
+
+			document.body.innerHTML =
+				'<div class="woocommerce-SavedPaymentMethods-saveNew"></div>';
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+		} );
+	} );
+
 	describe( 'Classic checkout', () => {
 		const globalValues = global.wc_stripe_upe_params;
 
