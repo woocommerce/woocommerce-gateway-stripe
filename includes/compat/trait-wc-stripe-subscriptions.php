@@ -374,6 +374,41 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Determines whether a failed payment was blocked by Stripe Radar.
+	 *
+	 * When Stripe Radar blocks a charge it still creates a charge object (for audit
+	 * purposes) with outcome.type === 'blocked'. The charge ID is surfaced in the
+	 * error response so we can fetch it and inspect the outcome.
+	 *
+	 * @param object $response The Stripe API response containing the error.
+	 * @return bool True if Stripe Radar blocked the charge.
+	 */
+	protected function is_charge_blocked_by_radar( $response ): bool {
+		$charge_id = null;
+
+		// For both the Charges API (e.g. SEPA) and the Payment Intents API, the
+		// charge ID appears at error.charge when a charge was actually attempted.
+		if ( ! empty( $response->error->charge ) && is_string( $response->error->charge ) ) {
+			$charge_id = $response->error->charge;
+		} elseif ( ! empty( $response->error->payment_intent->latest_charge ) && is_string( $response->error->payment_intent->latest_charge ) ) {
+			// Fallback: Payment Intents API may surface the charge ID via latest_charge.
+			$charge_id = $response->error->payment_intent->latest_charge;
+		}
+
+		if ( empty( $charge_id ) ) {
+			return false;
+		}
+
+		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
+
+		if ( empty( $charge ) || ! empty( $charge->error ) ) {
+			return false;
+		}
+
+		return isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type;
+	}
+
+	/**
 	 * Process a payment for a subscription renewal.
 	 *
 	 * @since 3.0
@@ -509,6 +544,21 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
 			$renewal_order->update_status( OrderStatus::FAILED );
+
+			// If the payment was blocked by Stripe Radar, suspend the parent subscription(s)
+			// so that WC Subscriptions does not schedule further retry attempts. Each retry
+			// would create a new charge that Radar would block again, inflating the block rate.
+			if ( isset( $response ) && ! empty( $response->error ) && $this->is_charge_blocked_by_radar( $response ) ) {
+				$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+					? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+					: [];
+				foreach ( $subscriptions as $subscription ) {
+					$subscription->update_status(
+						'on-hold',
+						__( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' )
+					);
+				}
+			}
 
 			if ( $order_locked && isset( $order_helper ) ) {
 				$order_helper->unlock_order_payment( $renewal_order );
