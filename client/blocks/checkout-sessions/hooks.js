@@ -133,7 +133,7 @@ export const useCheckoutSuccessHandler = (
 					const { checkout } = checkoutState;
 					const confirmArgs = {
 						billingAddress: {
-							name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
+							name: `${ billingAddress?.first_name ?? '' } ${ billingAddress?.last_name ?? '' }`.trim(),
 							address: {
 								country: billingAddress?.country,
 								line1: billingAddress?.address_1,
