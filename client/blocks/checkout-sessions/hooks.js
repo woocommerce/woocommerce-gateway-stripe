@@ -144,7 +144,7 @@ export const useCheckoutSuccessHandler = (
 							},
 						},
 						shippingAddress: {
-							name: `${ shippingAddress.first_name } ${ shippingAddress.last_name }`.trim(),
+							name: `${ shippingAddress?.first_name ?? '' } ${ shippingAddress?.last_name ?? '' }`.trim(),
 							address: {
 								country: shippingAddress?.country,
 								line1: shippingAddress?.address_1,
