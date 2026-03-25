@@ -560,9 +560,9 @@ class WC_Stripe_Intent_Controller {
 					WC_Stripe_Logger::critical(
 						'Error: Failed to update intent due to invalid operation',
 						[
-							'intent_id'   => $intent_id,
-							'order_id'    => $order_id,
-							'error'       => $result->error,
+							'intent_id' => $intent_id,
+							'order_id'  => $order_id,
+							'error'     => $result->error,
 						]
 					);
 

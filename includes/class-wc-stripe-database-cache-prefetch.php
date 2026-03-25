@@ -90,7 +90,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 		}
 
 		$logging_context = [
-			'cache_key' => $key,
+			'cache_key'   => $key,
 			'expiry_time' => $expiry_time,
 		];
 

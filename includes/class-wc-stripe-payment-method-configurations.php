@@ -248,8 +248,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 
 			return [
-				'pmc'     => null,
-				'reason'  => 'no_eligible_pmcs',
+				'pmc'    => null,
+				'reason' => 'no_eligible_pmcs',
 			];
 		}
 

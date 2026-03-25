@@ -516,11 +516,11 @@ class WC_Stripe_Database_Cache {
 
 		if ( ! isset( $job_data['run_id'] ) || ! is_int( $job_data['run_id'] ) ) {
 			$job_data = [
-				'run_id'     => rand( 1, 1000000 ),
-				'processed'  => 0,
-				'deleted'    => 0,
-				'job_runs'   => 1,
-				'last_key'   => null,
+				'run_id'    => rand( 1, 1000000 ),
+				'processed' => 0,
+				'deleted'   => 0,
+				'job_runs'  => 1,
+				'last_key'  => null,
 			];
 
 			WC_Stripe_Logger::info(
@@ -565,8 +565,8 @@ class WC_Stripe_Database_Cache {
 			WC_Stripe_Logger::info(
 				"Asynchronous cache cleanup progress update [run_id: {$job_data['run_id']}]. Scheduling next run in {$job_delay} seconds.",
 				[
-					'max_rows'  => $max_rows,
-					'job_data'  => $job_data,
+					'max_rows' => $max_rows,
+					'job_data' => $job_data,
 				]
 			);
 

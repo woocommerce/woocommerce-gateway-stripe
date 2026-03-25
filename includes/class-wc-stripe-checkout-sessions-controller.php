@@ -58,13 +58,13 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 				$line_items[] = [
 					'price_data' => [
-						'currency' => strtolower( $currency ),
+						'currency'     => strtolower( $currency ),
 						'product_data' => [
 							'name' => $raw_line_item['label'],
 						],
-						'unit_amount' => $raw_line_item['amount'],
+						'unit_amount'  => $raw_line_item['amount'],
 					],
-					'quantity' => 1, // @TODO: Handle quantity properly if needed.
+					'quantity'   => 1, // @TODO: Handle quantity properly if needed.
 				];
 			}
 
@@ -90,8 +90,8 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				'customer'                      => $stripe_customer->get_id(),
 				'line_items'                    => $line_items,
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'  => [
-					'metadata' => $payment_intent_metadata,
+				'payment_intent_data'           => [
+					'metadata'      => $payment_intent_metadata,
 					'receipt_email' => $email,
 					'shipping'      => [
 						'name'    => $full_name,

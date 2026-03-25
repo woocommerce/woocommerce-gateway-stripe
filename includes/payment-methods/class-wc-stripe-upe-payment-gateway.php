@@ -974,13 +974,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
-							'div' => [
+							'div'    => [
 								'id'    => [],
 								'class' => [],
 								'style' => [],
 							],
 							'strong' => [],
-							'a'    => [
+							'a'      => [
 								'href'   => [],
 								'target' => [],
 							],

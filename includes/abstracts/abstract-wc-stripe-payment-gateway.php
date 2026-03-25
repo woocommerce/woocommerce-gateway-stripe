@@ -519,11 +519,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['expand[]'] = 'balance_transaction';
 
 		$metadata = [
-			__( 'customer_name', 'woocommerce-gateway-stripe' ) => trim( sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ) ),
+			__( 'customer_name', 'woocommerce-gateway-stripe' )  => trim( sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ) ),
 			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
-			'order_id'  => $order->get_order_number(),
-			'site_url'  => esc_url( get_site_url() ),
-			'signature' => $this->get_order_signature( $order ),
+			'order_id'                                           => $order->get_order_number(),
+			'site_url'                                           => esc_url( get_site_url() ),
+			'signature'                                          => $this->get_order_signature( $order ),
 		];
 
 		if ( $this->has_subscription( $order->get_id() ) ) {
@@ -572,7 +572,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'Processing charge response',
 			[
 				'response' => $response,
-				'order' => $order,
+				'order'    => $order,
 			]
 		);
 
