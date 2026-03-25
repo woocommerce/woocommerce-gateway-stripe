@@ -33,6 +33,16 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Link handles its own save consent via the Payment Element, so the
+	 * store-level save checkbox is never needed for Link.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		return false;
+	}
+
+	/**
 	 * Return if Stripe Link is enabled
 	 *
 	 * @param WC_Stripe_UPE_Payment_Gateway $gateway The gateway instance.
