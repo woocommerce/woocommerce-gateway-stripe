@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -650,6 +652,29 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_mandate_id( ?WC_Order $order = null, string $mandate_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_MANDATE_ID, $mandate_id );
+	}
+
+	/**
+	 * Gets the most recent non-terminal order by Stripe mandate ID.
+	 *
+	 * @since 10.2.0
+	 *
+	 * @param string $mandate_id The Stripe mandate ID.
+	 * @return WC_Order|null The order, or null if not found.
+	 */
+	public function get_order_by_mandate_id( string $mandate_id ): ?WC_Order {
+		$orders = wc_get_orders(
+			[
+				'meta_key'   => self::META_STRIPE_MANDATE_ID,
+				'meta_value' => $mandate_id,
+				'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::ON_HOLD ],
+				'orderby'    => 'date',
+				'order'      => 'DESC',
+				'limit'      => 1,
+			]
+		);
+
+		return ! empty( $orders ) ? $orders[0] : null;
 	}
 
 	/**
