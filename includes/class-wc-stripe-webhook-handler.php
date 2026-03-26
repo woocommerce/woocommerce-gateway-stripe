@@ -526,7 +526,186 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The webhook notification from Stripe.
 	 */
 	public function process_webhook_mandate_updated( $notification ) {
-		// Will be implemented in the next task.
+		$mandate = $notification->data->object ?? null;
+
+		if ( ! isset( $mandate->id, $mandate->status ) ) {
+			WC_Stripe_Logger::warning( 'mandate.updated webhook received with missing mandate ID or status.' );
+			return;
+		}
+
+		$mandate_id     = $mandate->id;
+		$mandate_status = $mandate->status;
+
+		WC_Stripe_Logger::info(
+			sprintf( 'Processing mandate.updated webhook for mandate %s with status %s', $mandate_id, $mandate_status )
+		);
+
+		$order = WC_Stripe_Order_Helper::get_instance()->get_order_by_mandate_id( $mandate_id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::warning( 'Could not find order via mandate ID: ' . $mandate_id );
+			return;
+		}
+
+		$this->resolved_order = $order;
+
+		// Determine if this is a revocation by checking payment_method_details.
+		$revocation_reason = $this->get_mandate_revocation_reason( $mandate );
+
+		// Compute target order status.
+		$target_order_status = null;
+		if ( 'inactive' === $mandate_status && $revocation_reason ) {
+			$target_order_status = OrderStatus::CANCELLED;
+		} elseif ( 'inactive' === $mandate_status ) {
+			$target_order_status = OrderStatus::ON_HOLD;
+		}
+
+		// Idempotency guard: skip if order is already in the target status (for actionable states)
+		// or if a non-actionable state webhook is redelivered.
+		if ( $target_order_status && $order->has_status( $target_order_status ) ) {
+			WC_Stripe_Logger::info(
+				sprintf( 'Order %d already has status %s, skipping mandate update.', $order->get_id(), $target_order_status )
+			);
+			return;
+		}
+
+		// For non-actionable states (active, pending), check if the last order note already
+		// matches this mandate status to avoid duplicate notes on webhook redelivery.
+		if ( ! $target_order_status ) {
+			$existing_notes = wc_get_order_notes( [ 'order_id' => $order->get_id(), 'limit' => 1 ] );
+			$note_preview   = $this->get_mandate_order_note( $mandate_id, $mandate_status, $revocation_reason );
+			if ( ! empty( $existing_notes ) && $existing_notes[0]->content === $note_preview ) {
+				WC_Stripe_Logger::info(
+					sprintf( 'Duplicate mandate.updated webhook for order %d with status %s, skipping.', $order->get_id(), $mandate_status )
+				);
+				return;
+			}
+		}
+
+		// Generate order note for this mandate state change.
+		$note = $this->get_mandate_order_note( $mandate_id, $mandate_status, $revocation_reason );
+
+		// Update order status for actionable states (note is passed to update_status which adds it).
+		// For non-actionable states, add the note manually and save.
+		if ( $target_order_status ) {
+			$order->update_status( $target_order_status, $note );
+		} else {
+			$order->add_order_note( $note );
+			$order->save();
+		}
+
+		// Update subscription status if applicable.
+		$this->update_subscription_for_mandate( $order, $mandate_status, $revocation_reason );
+
+		WC_Stripe_Logger::info(
+			sprintf(
+				'Mandate %s update processed for order %d. Mandate status: %s, payment method type: %s',
+				$mandate_id,
+				$order->get_id(),
+				$mandate_status,
+				$mandate->payment_method_type ?? 'unknown'
+			)
+		);
+	}
+
+	/**
+	 * Extracts the revocation reason from a mandate's payment_method_details.
+	 *
+	 * The revocation reason is nested under payment_method_details.{type}
+	 * where {type} varies by payment method (e.g., card, au_becs_debit, acss_debit).
+	 *
+	 * @since 10.2.0
+	 * @param object $mandate The Stripe mandate object.
+	 * @return string|null The revocation reason, or null if not revoked.
+	 */
+	private function get_mandate_revocation_reason( $mandate ): ?string {
+		if ( ! isset( $mandate->payment_method_details, $mandate->payment_method_type ) ) {
+			return null;
+		}
+
+		$type = $mandate->payment_method_type;
+
+		if ( isset( $mandate->payment_method_details->$type->revocation_reason ) ) {
+			return $mandate->payment_method_details->$type->revocation_reason;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Generates the order note message for a mandate status change.
+	 *
+	 * @since 10.2.0
+	 * @param string      $mandate_id        The Stripe mandate ID.
+	 * @param string      $mandate_status    The new mandate status.
+	 * @param string|null $revocation_reason The revocation reason, if applicable.
+	 * @return string The order note message.
+	 */
+	private function get_mandate_order_note( string $mandate_id, string $mandate_status, ?string $revocation_reason ): string {
+		if ( 'inactive' === $mandate_status && $revocation_reason ) {
+			return sprintf(
+				/* translators: 1) Stripe mandate ID 2) revocation reason */
+				__( 'Stripe mandate %1$s was revoked by the customer (via webhook). Reason: %2$s', 'woocommerce-gateway-stripe' ),
+				$mandate_id,
+				$revocation_reason
+			);
+		}
+
+		if ( 'inactive' === $mandate_status ) {
+			return sprintf(
+				/* translators: %s Stripe mandate ID */
+				__( 'Stripe mandate %s is now inactive (via webhook)', 'woocommerce-gateway-stripe' ),
+				$mandate_id
+			);
+		}
+
+		if ( 'active' === $mandate_status ) {
+			return sprintf(
+				/* translators: %s Stripe mandate ID */
+				__( 'Stripe mandate %s is now active (via webhook)', 'woocommerce-gateway-stripe' ),
+				$mandate_id
+			);
+		}
+
+		return sprintf(
+			/* translators: 1) Stripe mandate ID 2) mandate status */
+			__( 'Stripe mandate %1$s status updated to %2$s (via webhook)', 'woocommerce-gateway-stripe' ),
+			$mandate_id,
+			$mandate_status
+		);
+	}
+
+	/**
+	 * Updates the subscription status based on a mandate status change.
+	 *
+	 * Only updates if WooCommerce Subscriptions is active and the order
+	 * has associated subscriptions.
+	 *
+	 * @since 10.2.0
+	 * @param WC_Order    $order             The WooCommerce order.
+	 * @param string      $mandate_status    The new mandate status.
+	 * @param string|null $revocation_reason The revocation reason, if applicable.
+	 */
+	private function update_subscription_for_mandate( WC_Order $order, string $mandate_status, ?string $revocation_reason ): void {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return;
+		}
+
+		$subscriptions = wcs_get_subscriptions_for_order( $order );
+
+		if ( empty( $subscriptions ) ) {
+			return;
+		}
+
+		foreach ( $subscriptions as $subscription ) {
+			if ( 'inactive' === $mandate_status && $revocation_reason ) {
+				$subscription->update_status( 'cancelled', __( 'Subscription cancelled due to mandate revocation.', 'woocommerce-gateway-stripe' ) );
+			} elseif ( 'inactive' === $mandate_status ) {
+				$subscription->update_status( 'on-hold', __( 'Subscription paused due to mandate becoming inactive.', 'woocommerce-gateway-stripe' ) );
+			} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) ) {
+				$subscription->update_status( 'active', __( 'Subscription reactivated due to mandate becoming active.', 'woocommerce-gateway-stripe' ) );
+			}
+		}
 	}
 
 	/**
