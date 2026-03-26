@@ -306,12 +306,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 	public function provide_build_url_cases() {
 		return [
-			'default expand only'    => [
+			'default expand only'           => [
 				'cs_123',
 				[],
 				'checkout/sessions/cs_123?expand[]=payment_intent.agent_details',
 			],
-			'with additional expand' => [
+			'with additional expand'        => [
 				'cs_456',
 				[ 'line_items' ],
 				'checkout/sessions/cs_456?expand[]=payment_intent.agent_details&expand[]=line_items',

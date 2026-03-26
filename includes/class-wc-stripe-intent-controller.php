@@ -548,7 +548,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
 			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
-			$result = WC_Stripe_API::request_with_level3_data(
+			$result   = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
 				$level3_data,
@@ -560,9 +560,9 @@ class WC_Stripe_Intent_Controller {
 					WC_Stripe_Logger::critical(
 						'Error: Failed to update intent due to invalid operation',
 						[
-							'intent_id'   => $intent_id,
-							'order_id'    => $order_id,
-							'error'       => $result->error,
+							'intent_id' => $intent_id,
+							'order_id'  => $order_id,
+							'error'     => $result->error,
 						]
 					);
 
@@ -696,7 +696,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order    = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -769,7 +769,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order     = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 
 			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {

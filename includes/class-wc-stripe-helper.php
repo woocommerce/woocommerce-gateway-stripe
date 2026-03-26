@@ -1995,7 +1995,7 @@ class WC_Stripe_Helper {
 
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
@@ -2129,11 +2129,11 @@ class WC_Stripe_Helper {
 	 * @return array The display items.
 	 */
 	public static function build_line_items( bool $itemized_display_items = false ): array {
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
-		$has_deposits  = false;
+		$items        = [];
+		$lines        = [];
+		$subtotal     = 0;
+		$discounts    = 0;
+		$has_deposits = false;
 
 		if ( $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item ) {
@@ -2171,9 +2171,9 @@ class WC_Stripe_Helper {
 			$discounts += (float) $amount;
 		}
 
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+		$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax       = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping  = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [
