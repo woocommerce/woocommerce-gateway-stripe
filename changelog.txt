@@ -21,6 +21,7 @@
 * Fix - Improve performance of CSS style lookups
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
+* Dev - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 
 = 10.5.3 - 2026-03-19 =
