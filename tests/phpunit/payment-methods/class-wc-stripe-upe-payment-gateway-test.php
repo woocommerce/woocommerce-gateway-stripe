@@ -247,7 +247,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	private function set_postvars_for_saved_payment_method() {
 		$token = WC_Helper_Token::create_token( 'pm_mock' );
 		$_POST = [
-			'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID,
+			'payment_method'                                             => WC_Stripe_UPE_Payment_Gateway::ID,
 			'wc-' . WC_Stripe_UPE_Payment_Gateway::ID . '-payment-token' => (string) $token->get_id(),
 		];
 		return $token;
@@ -530,7 +530,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// The script should be registered with the version we derived above.
 		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
-		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+		$registered_script    = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
 
 		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -3074,7 +3074,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function filter_my_account_my_orders_actions_provider() {
 		return [
-			'Bacs (delayed confirmation)' => [
+			'Bacs (delayed confirmation)'                       => [
 				'payment_method_title' => WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 				'has_checkout_session' => false,
 				'expected_action_keys' => [ 'view' ],
@@ -3084,12 +3084,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'has_checkout_session' => true,
 				'expected_action_keys' => [ 'view' ],
 			],
-			'Card'                        => [
+			'Card'                                              => [
 				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 				'has_checkout_session' => false,
 				'expected_action_keys' => [ 'pay', 'view', 'cancel' ],
 			],
-			'Card with checkout session'  => [
+			'Card with checkout session'                        => [
 				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 				'has_checkout_session' => true,
 				'expected_action_keys' => [ 'view' ],
@@ -3217,14 +3217,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( string $scenario_name, bool $is_guest, string $existing_stripe_customer_id, string $expected_customer_id, string $api_url_pattern, array $billing_data, array $expected_customer_data ) {
 		// Create user if needed.
-		$user_id = 0;
+		$user_id     = 0;
 		$customer_id = 0;
-		$user_email = '';
+		$user_email  = '';
 		if ( ! $is_guest ) {
 			// For logged-in users, the code uses user email and user meta, not order data.
 			// Set user email to match expected data, and set user meta to match order billing data.
-			$user_email = $billing_data['email'];
-			$user_id = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
+			$user_email  = $billing_data['email'];
+			$user_id     = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
 			$customer_id = $user_id;
 			if ( ! empty( $existing_stripe_customer_id ) ) {
 				update_user_option( $user_id, '_stripe_customer_id', $existing_stripe_customer_id );
@@ -3259,14 +3259,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->delete_stripe_customer_id( $order );
 
 		// Mock the API request to verify billing details are used.
-		$api_called = false;
+		$api_called    = false;
 		$captured_args = null;
 
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
 				if ( preg_match( $api_url_pattern, $url ) ) {
-					$api_called = true;
+					$api_called    = true;
 					$captured_args = $parsed_args;
 
 					// Return a mock successful response.
@@ -3312,7 +3312,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( ! $is_guest ) {
 			$user = get_user_by( 'id', $user_id );
 		} else {
-			$user = new \WP_User();
+			$user     = new \WP_User();
 			$user->ID = 0;
 		}
 
@@ -3379,13 +3379,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_get_customer_id_for_order_billing_details_test_cases() {
 		return [
-			'creating customer for guest user' => [
-				'scenario_name'            => 'create customer',
-				'is_guest'                 => true,
+			'creating customer for guest user'     => [
+				'scenario_name'               => 'create customer',
+				'is_guest'                    => true,
 				'existing_stripe_customer_id' => '',
-				'expected_customer_id'     => 'cus_test123',
-				'api_url_pattern'          => '#/v1/customers$#',
-				'billing_data'             => [
+				'expected_customer_id'        => 'cus_test123',
+				'api_url_pattern'             => '#/v1/customers$#',
+				'billing_data'                => [
 					'email'      => 'test-billing@example.com',
 					'first_name' => 'TestFirstName',
 					'last_name'  => 'TestLastName',
@@ -3396,7 +3396,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'postcode'   => '90210',
 					'country'    => 'US',
 				],
-				'expected_customer_data'   => [
+				'expected_customer_data'      => [
 					'email'       => 'test-billing@example.com',
 					'name'        => 'TestFirstName TestLastName',
 					'description' => 'Name: TestFirstName TestLastName, Guest',
@@ -3411,12 +3411,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 			'updating customer for logged-in user' => [
-				'scenario_name'            => 'update customer',
-				'is_guest'                 => false,
+				'scenario_name'               => 'update customer',
+				'is_guest'                    => false,
 				'existing_stripe_customer_id' => 'cus_existing123',
-				'expected_customer_id'     => 'cus_existing123',
-				'api_url_pattern'          => '#/v1/customers/cus_existing123$#',
-				'billing_data'             => [
+				'expected_customer_id'        => 'cus_existing123',
+				'api_url_pattern'             => '#/v1/customers/cus_existing123$#',
+				'billing_data'                => [
 					'email'      => 'updated-billing@example.com',
 					'first_name' => 'UpdatedFirstName',
 					'last_name'  => 'UpdatedLastName',
@@ -3429,10 +3429,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 				// For logged-in users, user email and user meta are used (not order data).
 				// The expected data should match what will be in user meta (set in the test).
-				'expected_customer_data'   => [
-					'email'       => 'updated-billing@example.com', // User email matches order email (set in test)
-					'name'        => 'UpdatedFirstName UpdatedLastName',
-					'address'     => [
+				'expected_customer_data'      => [
+					'email'   => 'updated-billing@example.com', // User email matches order email (set in test)
+					'name'    => 'UpdatedFirstName UpdatedLastName',
+					'address' => [
 						'line1'       => '456 Updated Street',
 						'line2'       => '',
 						'city'        => 'UpdatedCity',
@@ -3560,13 +3560,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_get_excluded_payment_method_types(): array {
 		return [
-			'No filter, unsupported methods'  => [
+			'No filter, unsupported methods'                                     => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal' ],
 				'filter_callback'       => null,
 				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with unsupported methods' => [
+			'Filter with unsupported methods'                                    => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'abc' ],
 				'filter_callback'       => function () {
 					return [ 'abc' ];
@@ -3574,7 +3574,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [ 'abc' ],
 			],
-			'Filter with empty array'         => [
+			'Filter with empty array'                                            => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
 				'filter_callback'       => function () {
 					return [];
@@ -3582,7 +3582,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with non-string values'   => [
+			'Filter with non-string values'                                      => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal', 'abc' ],
 				'filter_callback'       => function () {
 					return [ 123, null, 'abc', [], 'valid_method' ];
@@ -3598,13 +3598,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [ 'link', 'apple_pay', 'abc' ],
 			],
-			'No unsupported methods'          => [
+			'No unsupported methods'                                             => [
 				'unsupported_methods'   => [],
 				'filter_callback'       => null,
 				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with duplicate values'    => [
+			'Filter with duplicate values'                                       => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
 				'filter_callback'       => function () {
 					return [ 'fpx', 'fpx', 'naver_pay' ];
@@ -3625,68 +3625,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
 		 */
 		return [
-			'Product page with ECE off, no Amazon Pay' => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'no',
+			'Product page with ECE off, no Amazon Pay'            => [
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => false,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE off, no Amazon Pay'    => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'no',
+			'Cart page with ECE off, no Amazon Pay'               => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => false,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE on at cart'            => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'yes',
+			'Cart page with ECE on at cart'                       => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'cart' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Cart page with ECE off, Amazon Pay on at cart'    => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'no',
+			'Cart page with ECE off, Amazon Pay on at cart'       => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Product page with ECE on at product'      => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'yes',
+			'Product page with ECE on at product'                 => [
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'product' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
 			'Product page with ECE off, Amazon Pay on at product' => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'no',
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'product' ],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Checkout page with ECE off and Amazon Pay off'               => [
-				'page_type'                                => 'checkout',
-				'express_checkout'                         => 'no',
+			'Checkout page with ECE off and Amazon Pay off'       => [
+				'page_type'                                 => 'checkout',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
 		];
 	}
@@ -3726,10 +3726,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                              = $original_settings;
-		$stripe_settings['enabled']                                   = 'yes';
-		$stripe_settings['express_checkout']                          = $express_checkout;
-		$stripe_settings['express_checkout_button_locations']         = $express_checkout_button_locations;
+		$stripe_settings                                      = $original_settings;
+		$stripe_settings['enabled']                           = 'yes';
+		$stripe_settings['express_checkout']                  = $express_checkout;
+		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = $upe_checkout_experience_accepted_payments;
 		$stripe_settings['amazon_pay_button_locations']               = $amazon_pay_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -3864,22 +3864,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_javascript_params_permitted_font_domains(): array {
 		return [
-			'no filter hooked — key is omitted'                                         => [
+			'no filter hooked — key is omitted'                                        => [
 				'filter_return'      => null,
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns empty array — key is omitted'                               => [
+			'filter returns empty array — key is omitted'                              => [
 				'filter_return'      => [],
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns non-empty array — key is set'                               => [
+			'filter returns non-empty array — key is set'                              => [
 				'filter_return'      => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 			],
-			'filter returns non-array string — key is omitted'                          => [
+			'filter returns non-array string — key is omitted'                         => [
 				'filter_return'      => 'custom-fonts.example.com',
 				'expected_in_params' => false,
 				'expected_value'     => null,
@@ -3909,7 +3909,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_in_params' => true,
 				'expected_value'     => [ 'fonts.example.com', 'type.mysite.org' ],
 			],
-			'filter returns mixed valid and invalid domains — only valid are included'  => [
+			'filter returns mixed valid and invalid domains — only valid are included' => [
 				'filter_return'      => [ 'fonts.example.com', 'localhost', '.bad.com', 'good.fonts.io', 'also.bad.' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'fonts.example.com', 'good.fonts.io' ],
@@ -4034,9 +4034,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
-		$formatted_total   = '$10.00';
-		$result            = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		$formatted_total = '$10.00';
+		$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 

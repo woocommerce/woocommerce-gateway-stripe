@@ -86,7 +86,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'Not express checkout context - locale unchanged' => [
+			'Not express checkout context - locale unchanged'                         => [
 				'is_express_context'      => false,
 				'input_locale'            => $base_locale,
 				'expected_state_required' => true,
