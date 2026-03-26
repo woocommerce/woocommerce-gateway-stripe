@@ -103,26 +103,33 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test ajax_add_to_cart sends wp_send_json_error payload on failure.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_ajax_add_to_cart_returns_error_for_invalid_product() {
 		Ajax_Test_Helper::init_hooks();
 
-		$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
-		$_REQUEST['security'] = $security_nonce;
-		$_POST['security']    = $security_nonce;
-		$_POST['product_id']  = 0;
-		$_POST['qty']         = 1;
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = 0;
+			$_POST['qty']         = 1;
 
-		WC()->session->init();
-		WC()->cart->empty_cart();
+			WC()->session->init();
+			WC()->cart->empty_cart();
 
-		ob_start();
-		$this->ajax_handler->ajax_add_to_cart();
-		$output = ob_get_clean();
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
 
-		$response = json_decode( $output, true );
-
-		Ajax_Test_Helper::remove_hooks();
+			$response = json_decode( $output, true );
+		} finally {
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
 
 		$this->assertIsArray( $response );
 		$this->assertArrayHasKey( 'success', $response );
@@ -133,6 +140,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test ajax_add_to_cart returns success payload for a supported simple product.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_ajax_add_to_cart_returns_success_for_simple_product() {
 		Ajax_Test_Helper::init_hooks();
@@ -162,21 +172,24 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			->method( 'build_display_items' )
 			->willReturn( $display_items );
 
-		$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
-		$_REQUEST['security'] = $security_nonce;
-		$_POST['security']    = $security_nonce;
-		$_POST['product_id']  = $product->get_id();
-		$_POST['qty']         = 1;
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
 
-		WC()->session->init();
-		WC()->cart->empty_cart();
+			WC()->session->init();
+			WC()->cart->empty_cart();
 
-		ob_start();
-		$this->ajax_handler->ajax_add_to_cart();
-		$output = ob_get_clean();
-
-		Ajax_Test_Helper::remove_hooks();
-		unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			$output = ob_get_clean();
+		} finally {
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['security'], $_REQUEST['security'] );
+		}
 
 		$response = json_decode( $output, true );
 
