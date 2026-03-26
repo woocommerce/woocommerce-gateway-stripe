@@ -813,6 +813,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings['upe_checkout_experience_accepted_payments']       = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::ACSS_DEBIT ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
+		// Reset the stripe gateway so it re-reads settings.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
 		$mocked_methods = [
 			'get_capabilities_response',
 			'get_woocommerce_currency',
@@ -826,7 +836,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			->onlyMethods( $mocked_methods )
 			->getMock();
 
-		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( 'active' );
+		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( $currency );
 		$mocked_payment_method->method( 'is_subscription_item_in_cart' )->willReturn( false );
 
