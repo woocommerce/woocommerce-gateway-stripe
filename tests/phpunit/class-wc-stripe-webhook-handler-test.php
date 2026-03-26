@@ -850,6 +850,123 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that checkout session failure returns early when no order is found.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_failure_returns_when_order_is_not_found(): void {
+		$notification = (object) [
+			'type' => 'checkout.session.expired',
+			'data' => (object) [
+				'object' => (object) [
+					'id' => 'cs_missing_order',
+				],
+			],
+		];
+
+		$hook_calls = 0;
+		$hook       = function () use ( &$hook_calls ) {
+			++$hook_calls;
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $notification );
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$resolved_order_property = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
+		$resolved_order_property->setAccessible( true );
+
+		$this->assertNull( $resolved_order_property->getValue( $this->mock_webhook_handler ) );
+		$this->assertSame( 0, $hook_calls );
+	}
+
+	/**
+	 * Test that checkout session failure marks pending orders as failed.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_failure_marks_order_as_failed(): void {
+		$checkout_session_id = 'cs_test_failed';
+		$order               = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'is_stripe_status_final' ] );
+		$order_helper->expects( $this->once() )
+			->method( 'is_stripe_status_final' )
+			->willReturn( false );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.expired',
+			'data' => (object) [
+				'object' => (object) [
+					'id' => $checkout_session_id,
+				],
+			],
+		];
+
+		$hook_calls = 0;
+		$hook       = function ( $hook_order, $hook_notification ) use ( $order, $notification, &$hook_calls ) {
+			++$hook_calls;
+			$this->assertSame( $order->get_id(), $hook_order->get_id() );
+			$this->assertSame( $notification, $hook_notification );
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $notification );
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+		$this->assertSame( 1, $hook_calls );
+	}
+
+	/**
+	 * Test that checkout session failure does not change status for final Stripe orders.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_failure_returns_for_final_stripe_status(): void {
+		$checkout_session_id = 'cs_test_final_status';
+		$order               = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'is_stripe_status_final' ] );
+		$order_helper->expects( $this->once() )
+			->method( 'is_stripe_status_final' )
+			->willReturn( true );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = (object) [
+			'type' => 'checkout.session.async_payment_failed',
+			'data' => (object) [
+				'object' => (object) [
+					'id' => $checkout_session_id,
+				],
+			],
+		];
+
+		$hook_calls = 0;
+		$hook       = function () use ( &$hook_calls ) {
+			++$hook_calls;
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$this->mock_webhook_handler->process_checkout_session_failure( $notification );
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( 0, $hook_calls );
+	}
+
+	/**
 	 * Provider for `test_process_webhook_refund_updated`.
 	 *
 	 * @return array
