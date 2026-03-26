@@ -194,7 +194,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_track_stock_change_stops_accumulating_at_threshold() {
-		$max        = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		$max = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
 		// Create the product first so we know its real DB ID before building the pre-fill.
 		// This prevents the product's auto-increment ID from coinciding with a pre-filled key,
 		// which would make assertArrayNotHasKey fail for the wrong reason.
@@ -202,15 +202,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$product_id    = $extra_product->get_id();
 
 		// Pre-fill with MAX_PENDING_UPDATES entries, deliberately skipping the extra product's ID.
-		$pending = [];
-		for ( $i = 1; count( $pending ) < $max; $i++ ) {
+		$pending       = [];
+		$pending_count = 0;
+		$i             = 1;
+		while ( $pending_count < $max ) {
 			if ( $i !== $product_id ) {
 				$pending[ $i ] = [
 					'sku_id'    => $i,
 					'quantity'  => $i,
 					'timestamp' => time(),
 				];
+				++$pending_count;
 			}
+			++$i;
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, $pending );
 
@@ -357,8 +361,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$pending = [];
 		for ( $i = 1; $i <= $max; $i++ ) {
 			$pending[ $i ] = [
-				'sku_id' => $i,
-				'quantity' => $i,
+				'sku_id'    => $i,
+				'quantity'  => $i,
 				'timestamp' => time(),
 			];
 		}
