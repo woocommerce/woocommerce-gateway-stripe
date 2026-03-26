@@ -1125,7 +1125,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		echo '<div style="margin-top: 1em; border: solid 1px #007CBA; border-radius: 4px; background-color: #F6F5F8; padding: 1em 2em;">';
+		/**
+		 * Filters the inline styles applied to the adaptive pricing currency conversion notice in order emails.
+		 *
+		 * @since 9.5.0
+		 *
+		 * @param array $styles {
+		 *     Associative array of CSS property => value pairs.
+		 *
+		 *     @type string $border-color     Border colour (hex or CSS colour value). Default '#007CBA'.
+		 *     @type string $border-radius    Border radius. Default '4px'.
+		 *     @type string $background-color Background colour (hex or CSS colour value). Default '#F6F5F8'.
+		 * }
+		 * @param WC_Order $order          The order the email is being sent for.
+		 * @param bool     $sent_to_admin  Whether the email is sent to admin.
+		 */
+		$styles = apply_filters(
+			'wc_stripe_adaptive_pricing_email_notice_styles',
+			[
+				'border-color'     => '#007CBA',
+				'border-radius'    => '4px',
+				'background-color' => '#F6F5F8',
+			],
+			$order,
+			$sent_to_admin
+		);
+
+		$inline_style = sprintf(
+			'margin-top: 1em; border: solid 1px %s; border-radius: %s; background-color: %s; padding: 1em 2em;',
+			esc_attr( $styles['border-color'] ?? '#007CBA' ),
+			esc_attr( $styles['border-radius'] ?? '4px' ),
+			esc_attr( $styles['background-color'] ?? '#F6F5F8' )
+		);
+
+		echo '<div style="' . esc_attr( $inline_style ) . '">';
 
 		$converted_amount = $notice_data['woocommerce_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] );
 		$exchange_rate    = $notice_data['rate_amount'] . ' ' . strtoupper( $notice_data['presentment_currency'] );
