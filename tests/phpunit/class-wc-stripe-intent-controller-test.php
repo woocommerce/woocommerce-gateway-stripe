@@ -52,10 +52,22 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			->willReturn( true );
 	}
 
-	public function test_wether_default_capture_method_is_set_in_the_intent() {
-		$test_request = function ( $preempt, $parsed_args, $url ) {
+	/**
+	 * Test that the capture method is correctly set in the intent based on the settings.
+	 *
+	 * @param ?string $capture_setting   The value of the `capture` setting (null = not set, 'yes', or 'no').
+	 * @param string  $expected_method   The expected `capture_method` in the request ('automatic' or 'manual').
+	 * @return void
+	 * @dataProvider provide_test_capture_method
+	 */
+	public function test_capture_method( ?string $capture_setting, string $expected_method ) {
+		if ( null !== $capture_setting ) {
+			$this->gateway->settings['capture'] = $capture_setting;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_method ) {
 			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
-			$this->assertEquals( 'automatic', $parsed_args['body']['capture_method'] );
+			$this->assertEquals( $expected_method, $parsed_args['body']['capture_method'] );
 
 			return [
 				'response' => 200,
@@ -74,50 +86,17 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
 
-	public function test_manual_capture_from_the_settings() {
-		$this->gateway->settings['capture'] = 'no';
-		$test_request                       = function ( $preempt, $parsed_args, $url ) {
-			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
-			$this->assertEquals( 'manual', $parsed_args['body']['capture_method'] );
-
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'            => 1,
-						'client_secret' => '123',
-					]
-				),
-			];
-		};
-
-		add_filter( 'pre_http_request', $test_request, 10, 3 );
-
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
-	}
-
-	public function test_automatic_capture_from_the_settings() {
-		$this->gateway->settings['capture'] = 'yes';
-		$test_request                       = function ( $preempt, $parsed_args, $url ) {
-			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
-			$this->assertEquals( 'automatic', $parsed_args['body']['capture_method'] );
-
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'            => 1,
-						'client_secret' => '123',
-					]
-				),
-			];
-		};
-
-		add_filter( 'pre_http_request', $test_request, 10, 3 );
-
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+	/**
+	 * Data provider for `test_capture_method`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_capture_method(): array {
+		return [
+			'default (no setting) uses automatic' => [ null, 'automatic' ],
+			'capture=no uses manual'              => [ 'no', 'manual' ],
+			'capture=yes uses automatic'          => [ 'yes', 'automatic' ],
+		];
 	}
 
 	/**

@@ -2,6 +2,7 @@
 
 = 10.6.0 - xxxx-xx-xx =
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
+* Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
@@ -20,6 +21,7 @@
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
+* Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
@@ -27,6 +29,7 @@
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages
+* Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 
 = 10.5.1 - 2026-03-11 =
 * Fix - Reinstate custom appearance logic

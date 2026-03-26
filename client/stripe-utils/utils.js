@@ -508,6 +508,21 @@ export const getUpeSettings = () => {
 	return upeSettings;
 };
 
+export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
+	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	if ( existingElement.length ) {
+		existingElement.val( checkoutSessionId );
+		return;
+	}
+
+	const hiddenInput = document.createElement( 'input' );
+	hiddenInput.type = 'hidden';
+	hiddenInput.id = 'wc_stripe_checkout_session_id';
+	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.value = checkoutSessionId;
+	form.append( hiddenInput );
+};
+
 /**
  * Craft the defaultValues parameter, used to pre-fill
  * user email and phone number for Link in the Payment Element.
