@@ -119,15 +119,15 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_requirements(): array {
 		return [
-			'no requirements'       => [
+			'no requirements'      => [
 				'account' => [
-					'id' => '1234',
+					'id'    => '1234',
 					'email' => 'test@example.com',
 				],
 				'pending' => false,
 				'overdue' => false,
 			],
-			'pending requirements'  => [
+			'pending requirements' => [
 				'account' => [
 					'id'           => '1234',
 					'email'        => 'test@example.com',
@@ -136,7 +136,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'pending' => true,
 				'overdue' => false,
 			],
-			'overdue requirements'  => [
+			'overdue requirements' => [
 				'account' => [
 					'id'           => '1234',
 					'email'        => 'test@example.com',
@@ -169,14 +169,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_account_status(): array {
 		return [
-			'complete'         => [
+			'complete'        => [
 				'account'         => [
-					'id' => '1234',
+					'id'    => '1234',
 					'email' => 'test@example.com',
 				],
 				'expected_status' => 'complete',
 			],
-			'restricted'       => [
+			'restricted'      => [
 				'account'         => [
 					'id'           => '1234',
 					'email'        => 'test@example.com',
@@ -184,7 +184,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				],
 				'expected_status' => 'restricted',
 			],
-			'restricted_soon'  => [
+			'restricted_soon' => [
 				'account'         => [
 					'id'           => '1234',
 					'email'        => 'test@example.com',

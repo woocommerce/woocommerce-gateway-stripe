@@ -40,8 +40,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function test_cache_expiration() {
 		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
-		$key  = 'expiring_key';
-		$data = 'expiring_data';
+		$key        = 'expiring_key';
+		$data       = 'expiring_data';
 
 		// Set cache with 1 hour TTL.
 		WC_Stripe_Database_Cache::set( $key, $data, HOUR_IN_SECONDS );
@@ -51,7 +51,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 		// Update the in-memory-cache to simulate expiration.
 		$reflection = new ReflectionClass( 'WC_Stripe_Database_Cache' );
-		$property = $reflection->getProperty( 'in_memory_cache' );
+		$property   = $reflection->getProperty( 'in_memory_cache' );
 		$property->setAccessible( true );
 		$in_memory_cache = $property->getValue();
 
@@ -65,7 +65,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$property->setValue( null, [] );
 
 		// Update the database option to simulate expiration.
-		$cache_contents = get_option( $key_prefix . $key );
+		$cache_contents             = get_option( $key_prefix . $key );
 		$cache_contents['updated'] -= HOUR_IN_SECONDS + 1; // Set update time to 1h 1s ago.
 		update_option( $key_prefix . $key, $cache_contents );
 
@@ -94,8 +94,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function test_in_memory_cache() {
 		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
-		$key  = 'memory_key';
-		$data = 'memory_data';
+		$key        = 'memory_key';
+		$data       = 'memory_data';
 
 		// Set data.
 		WC_Stripe_Database_Cache::set( $key, $data );
@@ -136,7 +136,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_data_type_test_cases
 	 */
 	public function test_cache_with_different_data_types( $key_suffix, $data ) {
-		$key    = "test_{$key_suffix}";
+		$key = "test_{$key_suffix}";
 		WC_Stripe_Database_Cache::set( $key, $data );
 		$result = WC_Stripe_Database_Cache::get( $key );
 		$this->assertEquals( $data, $result, 'Failed to cache and fetch data type' );
@@ -213,8 +213,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 		// For null mode, verify it's stored with the current mode prefix.
 		if ( null === $mode ) {
-			$current_mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-			$prefixed_key = 'wcstripe_cache_' . $current_mode . '_' . $key;
+			$current_mode   = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$prefixed_key   = 'wcstripe_cache_' . $current_mode . '_' . $key;
 			$cache_contents = get_option( $prefixed_key );
 			$this->assertNotFalse( $cache_contents );
 			$this->assertEquals( $data, $cache_contents['data'] );
@@ -281,9 +281,9 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * Test cross-mode isolation - data stored in different modes are isolated.
 	 */
 	public function test_cross_mode_isolation() {
-		$key        = 'cross_mode_key';
-		$test_data  = 'test_mode_data';
-		$live_data  = 'live_mode_data';
+		$key       = 'cross_mode_key';
+		$test_data = 'test_mode_data';
+		$live_data = 'live_mode_data';
 
 		// Set data in test mode.
 		WC_Stripe_Database_Cache::set_with_mode( $key, $test_data, HOUR_IN_SECONDS, 'test' );
@@ -316,23 +316,23 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function provide_delete_stale_entries_test_cases() {
 		return [
-			'only_valid_test_and_live_entries' => [
-				'expected_processed' => 4,
+			'only_valid_test_and_live_entries'                      => [
+				'expected_processed'    => 4,
 				'expected_deleted_keys' => [],
 				'expected_more_entries' => false,
-				'expected_last_key' => 'wcstripe_cache_test_test_key_2',
-				'valid_entries' => [
+				'expected_last_key'     => 'wcstripe_cache_test_test_key_2',
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [],
-				'max_rows' => 500,
-				'last_key' => null,
+				'stale_entry_keys'      => [],
+				'max_rows'              => 500,
+				'last_key'              => null,
 			],
-			'partially_valid_test_and_live_entries' => [
-				'expected_processed' => 8,
+			'partially_valid_test_and_live_entries'                 => [
+				'expected_processed'    => 8,
 				'expected_deleted_keys' => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
@@ -340,24 +340,24 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 					'wcstripe_cache_live_stale_key_2',
 				],
 				'expected_more_entries' => false,
-				'expected_last_key' => 'wcstripe_cache_test_valid_key_2',
-				'valid_entries' => [
+				'expected_last_key'     => 'wcstripe_cache_test_valid_key_2',
+				'valid_entries'         => [
 					'wcstripe_cache_test_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'max_rows' => 500,
-				'last_key' => null,
+				'max_rows'              => 500,
+				'last_key'              => null,
 			],
-			'only_stale_entries' => [
-				'expected_processed' => 4,
+			'only_stale_entries'                                    => [
+				'expected_processed'    => 4,
 				'expected_deleted_keys' => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
@@ -365,62 +365,62 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 					'wcstripe_cache_live_stale_key_2',
 				],
 				'expected_more_entries' => false,
-				'expected_last_key' => 'wcstripe_cache_test_stale_key_2',
-				'valid_entries' => [],
-				'stale_entry_keys' => [
+				'expected_last_key'     => 'wcstripe_cache_test_stale_key_2',
+				'valid_entries'         => [],
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'max_rows' => 500,
-				'last_key' => null,
+				'max_rows'              => 500,
+				'last_key'              => null,
 			],
-			'partially_valid_and_stale_entries_with_initial_key' => [
-				'expected_processed' => 5,
-				'expected_deleted' => [
+			'partially_valid_and_stale_entries_with_initial_key'    => [
+				'expected_processed'    => 5,
+				'expected_deleted'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 				],
 				'expected_more_entries' => false,
-				'expected_last_key' => 'wcstripe_cache_test_valid_key_2',
-				'valid_entries' => [
+				'expected_last_key'     => 'wcstripe_cache_test_valid_key_2',
+				'valid_entries'         => [
 					'wcstripe_cache_test_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'max_rows' => 500,
-				'last_key' => 'wcstripe_cache_live_valid_key_1',
+				'max_rows'              => 500,
+				'last_key'              => 'wcstripe_cache_live_valid_key_1',
 			],
 			'partially_valid_and_stale_entries_with_small_max_rows' => [
-				'expected_processed' => 4,
+				'expected_processed'    => 4,
 				'expected_deleted_keys' => [
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_live_stale_key_2',
 				],
 				'expected_more_entries' => true,
-				'expected_last_key' => 'wcstripe_cache_live_valid_key_2',
-				'valid_entries' => [
+				'expected_last_key'     => 'wcstripe_cache_live_valid_key_2',
+				'valid_entries'         => [
 					'wcstripe_cache_test_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_valid_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_valid_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'max_rows' => 4,
-				'last_key' => null,
+				'max_rows'              => 4,
+				'last_key'              => null,
 			],
 		];
 	}
@@ -487,88 +487,88 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function provide_delete_all_stale_entries_test_cases() {
 		return [
-			'only_valid_test_and_live_entries_inline' => [
-				'expected_processed' => 4,
+			'only_valid_test_and_live_entries_inline'                      => [
+				'expected_processed'    => 4,
 				'expected_deleted_keys' => [],
-				'expected_error' => null,
-				'approach' => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
-				'max_rows' => 500,
-				'valid_entries' => [
+				'expected_error'        => null,
+				'approach'              => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
+				'max_rows'              => 500,
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [],
+				'stale_entry_keys'      => [],
 			],
-			'invalid_approach_returns_error' => [
-				'expected_processed' => 0,
+			'invalid_approach_returns_error'                               => [
+				'expected_processed'    => 0,
 				'expected_deleted_keys' => [],
-				'expected_error' => new \WP_Error( 'invalid_approach', 'Invalid approach' ),
-				'approach' => 'invalid_approach',
-				'max_rows' => 500,
+				'expected_error'        => new \WP_Error( 'invalid_approach', 'Invalid approach' ),
+				'approach'              => 'invalid_approach',
+				'max_rows'              => 500,
 			],
-			'valid_and_stale_test_and_live_entries_inline' => [
-				'expected_processed' => 8,
+			'valid_and_stale_test_and_live_entries_inline'                 => [
+				'expected_processed'    => 8,
 				'expected_deleted_keys' => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'expected_error' => null,
-				'approach' => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
-				'max_rows' => 500,
-				'valid_entries' => [
+				'expected_error'        => null,
+				'approach'              => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
+				'max_rows'              => 500,
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
 			],
-			'valid_and_stale_test_and_live_entries_inline_with_max_rows' => [
-				'expected_processed' => 8,
+			'valid_and_stale_test_and_live_entries_inline_with_max_rows'   => [
+				'expected_processed'    => 8,
 				'expected_deleted_keys' => [
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_live_stale_key_2',
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 				],
-				'expected_error' => null,
-				'approach' => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
-				'max_rows' => 4,
-				'valid_entries' => [
+				'expected_error'        => null,
+				'approach'              => WC_Stripe_Database_Cache::CLEANUP_APPROACH_INLINE,
+				'max_rows'              => 4,
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
 			],
-			'valid_and_stale_test_and_live_entries_async' => [
-				'expected_processed' => 0,
+			'valid_and_stale_test_and_live_entries_async'                  => [
+				'expected_processed'    => 0,
 				'expected_deleted_keys' => [],
-				'expected_error' => null,
-				'approach' => WC_Stripe_Database_Cache::CLEANUP_APPROACH_ASYNC,
-				'max_rows' => 500,
-				'valid_entries' => [
+				'expected_error'        => null,
+				'approach'              => WC_Stripe_Database_Cache::CLEANUP_APPROACH_ASYNC,
+				'max_rows'              => 500,
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
@@ -576,24 +576,24 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 				],
 			],
 			'valid_and_stale_test_and_live_entries_async_with_queue_error' => [
-				'expected_processed' => 0,
+				'expected_processed'    => 0,
 				'expected_deleted_keys' => [],
-				'expected_error' => new \WP_Error( 'failed_to_enqueue_async_action', 'Failed to enqueue async action' ),
-				'approach' => WC_Stripe_Database_Cache::CLEANUP_APPROACH_ASYNC,
-				'max_rows' => 500,
-				'valid_entries' => [
+				'expected_error'        => new \WP_Error( 'failed_to_enqueue_async_action', 'Failed to enqueue async action' ),
+				'approach'              => WC_Stripe_Database_Cache::CLEANUP_APPROACH_ASYNC,
+				'max_rows'              => 500,
+				'valid_entries'         => [
 					'wcstripe_cache_test_test_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test123' ] ),
 					'wcstripe_cache_live_live_key_1' => $this->generate_valid_cache_entry( [ 'test' => 'test321' ] ),
 					'wcstripe_cache_test_test_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test456' ] ),
 					'wcstripe_cache_live_live_key_2' => $this->generate_valid_cache_entry( [ 'test' => 'test654' ] ),
 				],
-				'stale_entry_keys' => [
+				'stale_entry_keys'      => [
 					'wcstripe_cache_test_stale_key_1',
 					'wcstripe_cache_live_stale_key_1',
 					'wcstripe_cache_test_stale_key_2',
 					'wcstripe_cache_live_stale_key_2',
 				],
-				'as_queue_error' => true,
+				'as_queue_error'        => true,
 			],
 		];
 	}

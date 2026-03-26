@@ -73,9 +73,9 @@ class WC_Payment_Token_Amazon_Pay_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'type and email match'   => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'john.doe@example.com', true, 'is_equal_payment_method() should return true when type and email match.' ],
-			'mismatched type'        => [ 'card', 'john.doe@example.com', false, 'is_equal_payment_method() should return false when the type is not amazon_pay.' ],
-			'mismatched email'       => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'different_email@example.com', false, 'is_equal_payment_method() should return false when the email does not match.' ],
+			'type and email match' => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'john.doe@example.com', true, 'is_equal_payment_method() should return true when type and email match.' ],
+			'mismatched type'      => [ 'card', 'john.doe@example.com', false, 'is_equal_payment_method() should return false when the type is not amazon_pay.' ],
+			'mismatched email'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'different_email@example.com', false, 'is_equal_payment_method() should return false when the email does not match.' ],
 		];
 	}
 }
