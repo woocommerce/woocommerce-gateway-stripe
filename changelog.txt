@@ -28,6 +28,7 @@
 
 = 10.5.2 - 2026-03-13 =
 * Fix - Ensure that we enqueue all needed scripts on payment pages
+* Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 
 = 10.5.1 - 2026-03-11 =
 * Fix - Reinstate custom appearance logic

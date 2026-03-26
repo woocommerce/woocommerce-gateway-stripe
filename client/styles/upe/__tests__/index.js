@@ -209,6 +209,22 @@ describe( 'Getting styles for automated theming', () => {
 		] );
 	} );
 
+	it( 'getAppearance returns floating labels for Blocks checkout', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
+			return mockElement;
+		} );
+		jest.spyOn( window, 'getComputedStyle' ).mockImplementation( () => {
+			return mockCSStyleDeclaration;
+		} );
+
+		const appearance = upeStyles.getAppearance( true );
+		expect( appearance.labels ).toBe( 'floating' );
+		expect( appearance.rules[ '.Label--floating' ] ).toBeDefined();
+		expect( appearance.rules[ '.Label--resting' ] ).toBeDefined();
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
@@ -221,6 +237,7 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			labels: 'above',
 			theme: 'stripe',
 			variables: {
 				colorBackground: '#ffffff',
@@ -249,6 +266,7 @@ describe( 'Getting styles for automated theming', () => {
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
+				'.Label--resting': {},
 				'.Tab': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
@@ -293,7 +311,7 @@ describe( 'Getting styles for automated theming', () => {
 					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 				},
 				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)	',
+					backgroundColor: 'var(--colorPrimary)',
 					borderColor: 'var(--colorPrimary)',
 				},
 			},
