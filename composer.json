@@ -23,8 +23,19 @@
         "wp-cli/wp-cli-bundle": "^2.12",
         "yoast/phpunit-polyfills": "^2.0"
     },
+    "autoload": {
+      "classmap": [
+        "includes/ajax-handlers/"
+      ]
+    },
     "autoload-dev": {
-      "classmap": ["tests/phpunit/"]
+      "classmap": [
+				"tests/phpunit/"
+			],
+      "exclude-from-classmap": [
+        "/tests/phpunit/helpers/",
+        "/tests/phpunit/stubs/"
+      ]
     },
     "scripts": {
       "phpstan": [
