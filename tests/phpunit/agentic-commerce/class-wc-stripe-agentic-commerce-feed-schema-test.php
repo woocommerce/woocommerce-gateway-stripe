@@ -164,125 +164,58 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test is_field_required returns true for required fields.
+	 * Test is_field_required returns the expected result.
 	 *
+	 * @param string $field    The field name to check.
+	 * @param bool   $expected The expected result.
+	 * @param array  $context  Optional context data for conditional requirements.
 	 * @return void
+	 * @dataProvider provide_test_is_field_required
 	 */
-	public function test_is_field_required_for_required_fields() {
-		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'id' ) );
-		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'title' ) );
-		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'price' ) );
-	}
-
-	/**
-	 * Test is_field_required returns false for optional fields.
-	 *
-	 * @return void
-	 */
-	public function test_is_field_required_for_optional_fields() {
-		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'color' ) );
-		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'size' ) );
-		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'weight' ) );
-	}
-
-	/**
-	 * Test conditional requirement: gtin required when mpn is empty.
-	 *
-	 * @return void
-	 */
-	public function test_conditional_requirement_gtin_when_mpn_empty() {
-		$data_without_mpn = [ 'mpn' => '' ];
-		$data_with_mpn    = [ 'mpn' => 'ABC123' ];
-
-		$this->assertTrue(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'gtin', $data_without_mpn ),
-			'GTIN should be required when MPN is empty'
-		);
-
-		$this->assertFalse(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'gtin', $data_with_mpn ),
-			'GTIN should not be required when MPN is provided'
+	public function test_is_field_required( string $field, bool $expected, array $context = [] ) {
+		$this->assertSame(
+			$expected,
+			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( $field, $context )
 		);
 	}
 
 	/**
-	 * Test conditional requirement: availability_date required when availability is preorder.
+	 * Data provider for `test_is_field_required`.
 	 *
-	 * @return void
+	 * @return array
 	 */
-	public function test_conditional_requirement_availability_date_for_preorder() {
-		$preorder_data = [ 'availability' => 'preorder' ];
-		$instock_data  = [ 'availability' => 'in_stock' ];
+	public function provide_test_is_field_required(): array {
+		return [
+			// Absolutely required fields.
+			'id is required'                                       => [ 'id', true ],
+			'title is required'                                    => [ 'title', true ],
+			'price is required'                                    => [ 'price', true ],
 
-		$this->assertTrue(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'availability_date', $preorder_data ),
-			'availability_date should be required for preorder items'
-		);
+			// Optional fields.
+			'color is not required'                                => [ 'color', false ],
+			'size is not required'                                 => [ 'size', false ],
+			'weight is not required'                               => [ 'weight', false ],
 
-		$this->assertFalse(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'availability_date', $instock_data ),
-			'availability_date should not be required for in_stock items'
-		);
-	}
+			// GTIN: conditional on MPN.
+			'gtin required when mpn is empty'                     => [ 'gtin', true, [ 'mpn' => '' ] ],
+			'gtin not required when mpn is provided'              => [ 'gtin', false, [ 'mpn' => 'ABC123' ] ],
 
-	/**
-	 * Test conditional requirement: sale_price_effective_date required when sale_price exists.
-	 *
-	 * @return void
-	 */
-	public function test_conditional_requirement_sale_date_when_sale_price() {
-		$with_sale    = [ 'sale_price' => '10.00 USD' ];
-		$without_sale = [ 'sale_price' => '' ];
+			// availability_date: conditional on availability being preorder.
+			'availability_date required for preorder'             => [ 'availability_date', true, [ 'availability' => 'preorder' ] ],
+			'availability_date not required for in_stock'         => [ 'availability_date', false, [ 'availability' => 'in_stock' ] ],
 
-		$this->assertTrue(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'sale_price_effective_date', $with_sale ),
-			'sale_price_effective_date should be required when sale_price exists'
-		);
+			// sale_price_effective_date: conditional on sale_price.
+			'sale_price_effective_date required when sale_price'  => [ 'sale_price_effective_date', true, [ 'sale_price' => '10.00 USD' ] ],
+			'sale_price_effective_date not required without sale' => [ 'sale_price_effective_date', false, [ 'sale_price' => '' ] ],
 
-		$this->assertFalse(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'sale_price_effective_date', $without_sale ),
-			'sale_price_effective_date should not be required without sale_price'
-		);
-	}
+			// inventory_quantity: conditional on inventory tracking.
+			'inventory_quantity required when tracked'            => [ 'inventory_quantity', true, [ 'inventory_not_tracked' => 'false' ] ],
+			'inventory_quantity not required when not tracked'    => [ 'inventory_quantity', false, [ 'inventory_not_tracked' => 'true' ] ],
 
-	/**
-	 * Test conditional requirement: inventory_quantity required when inventory_not_tracked is false.
-	 *
-	 * @return void
-	 */
-	public function test_conditional_requirement_inventory_quantity() {
-		$tracked     = [ 'inventory_not_tracked' => 'false' ];
-		$not_tracked = [ 'inventory_not_tracked' => 'true' ];
-
-		$this->assertTrue(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'inventory_quantity', $tracked ),
-			'inventory_quantity should be required when inventory is tracked'
-		);
-
-		$this->assertFalse(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'inventory_quantity', $not_tracked ),
-			'inventory_quantity should not be required when inventory is not tracked'
-		);
-	}
-
-	/**
-	 * Test conditional requirement: product_review_rating required when review_count > 0.
-	 *
-	 * @return void
-	 */
-	public function test_conditional_requirement_rating_when_reviews_exist() {
-		$with_reviews    = [ 'product_review_count' => 10 ];
-		$without_reviews = [ 'product_review_count' => 0 ];
-
-		$this->assertTrue(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'product_review_rating', $with_reviews ),
-			'product_review_rating should be required when reviews exist'
-		);
-
-		$this->assertFalse(
-			\WC_Stripe_Agentic_Commerce_Feed_Schema::is_field_required( 'product_review_rating', $without_reviews ),
-			'product_review_rating should not be required without reviews'
-		);
+			// product_review_rating: conditional on review count.
+			'product_review_rating required when reviews exist'   => [ 'product_review_rating', true, [ 'product_review_count' => 10 ] ],
+			'product_review_rating not required without reviews'  => [ 'product_review_rating', false, [ 'product_review_count' => 0 ] ],
+		];
 	}
 
 	/**
