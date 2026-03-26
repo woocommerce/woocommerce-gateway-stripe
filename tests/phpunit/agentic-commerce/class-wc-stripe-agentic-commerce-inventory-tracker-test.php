@@ -51,6 +51,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'pre_http_request' );
+
+		// Remove any action hooks registered by this test's sut to prevent leaking into subsequent tests.
+		if ( isset( $this->sut ) ) {
+			remove_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] );
+			remove_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] );
+			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
+		}
+
 		parent::tearDown();
 	}
 
@@ -186,26 +194,37 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_track_stock_change_stops_accumulating_at_threshold() {
-		// Pre-fill with MAX_PENDING_UPDATES entries.
-		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
-		$pending = [];
-		for ( $i = 1; $i <= $max; $i++ ) {
-			$pending[ $i ] = [
-				'sku_id' => $i,
-				'quantity' => $i,
-				'timestamp' => time(),
-			];
+		$max = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		// Create the product first so we know its real DB ID before building the pre-fill.
+		// This prevents the product's auto-increment ID from coinciding with a pre-filled key,
+		// which would make assertArrayNotHasKey fail for the wrong reason.
+		$extra_product = $this->create_simple_product_with_stock( 99 );
+		$product_id    = $extra_product->get_id();
+
+		// Pre-fill with MAX_PENDING_UPDATES entries, deliberately skipping the extra product's ID.
+		$pending       = [];
+		$pending_count = 0;
+		$i             = 1;
+		while ( $pending_count < $max ) {
+			if ( $i !== $product_id ) {
+				$pending[ $i ] = [
+					'sku_id'    => $i,
+					'quantity'  => $i,
+					'timestamp' => time(),
+				];
+				++$pending_count;
+			}
+			++$i;
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, $pending );
 
-		$extra_product = $this->create_simple_product_with_stock( 99 );
 		$this->sut->track_stock_change( $extra_product );
 
 		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
 
 		// Should still be exactly MAX_PENDING_UPDATES, not MAX + 1.
 		$this->assertCount( $max, $after );
-		$this->assertArrayNotHasKey( $extra_product->get_id(), $after );
+		$this->assertArrayNotHasKey( $product_id, $after );
 	}
 
 	// -------------------------------------------------------------------------
@@ -342,8 +361,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$pending = [];
 		for ( $i = 1; $i <= $max; $i++ ) {
 			$pending[ $i ] = [
-				'sku_id' => $i,
-				'quantity' => $i,
+				'sku_id'    => $i,
+				'quantity'  => $i,
 				'timestamp' => time(),
 			];
 		}
@@ -444,6 +463,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$product_a = $this->create_simple_product_with_stock( 10 );
 		$product_b = $this->create_simple_product_with_stock( 0 );
+
+		// Register hooks so WooCommerce stock actions are wired to track_stock_change/sync_inventory.
+		$this->sut->register_hooks();
 
 		// Simulate stock changes via WooCommerce hooks.
 		do_action( 'woocommerce_product_set_stock', $product_a );
