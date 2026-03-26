@@ -4373,4 +4373,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringContainsString( '8px', $output );
 		$this->assertStringContainsString( '#FFFFFF', $output );
 	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs plain text (no HTML) for plain-text emails.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_customer(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_with_presentment_email_plain_customer';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( '<div', $output );
+		$this->assertStringNotContainsString( '<p', $output );
+		$this->assertStringContainsString( 'Currency Conversion', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs plain text (no HTML) for plain-text admin emails.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_admin(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_with_presentment_email_plain_admin';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, true, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( '<div', $output );
+		$this->assertStringNotContainsString( '<p', $output );
+		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
+	}
 }
