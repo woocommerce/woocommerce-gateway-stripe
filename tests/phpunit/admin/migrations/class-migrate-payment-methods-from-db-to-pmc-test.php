@@ -18,7 +18,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$this->pmc = new WC_Stripe_Payment_Method_Configurations();
 
 		// Set up test connection info to enable PMC
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
 		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
 		$stripe_settings['test_connection_type'] = 'connect';
@@ -27,7 +27,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 	public function test_migration_not_executed_when_pmc_enabled_is_yes() {
 		// Set up environment with pmc_enabled = 'yes'
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -50,7 +50,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	 */
 	public function test_migration_executed_when_pmc_enabled_is_yes_and_force_migration_is_true() {
 		// Set up environment with pmc_enabled = 'yes'
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -68,9 +68,9 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 	public function test_migration_executed_when_pmc_enabled_is_not_set() {
 		// Set pmc_enabled to '' to trigger migration
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type']                      = 'connect';
-		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['express_checkout']     = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'link', 'sepa_debit' ];
 		$stripe_settings['pmc_enabled']                               = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -89,7 +89,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 	public function test_migration_handles_empty_enabled_payment_methods() {
 		// Set up environment with pmc_enabled not set
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = '';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -108,9 +108,9 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 	public function test_migration_sets_default_payment_method_order() {
 		// Set up environment with pmc_enabled not set and no payment method order
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type'] = 'connect';
-		$stripe_settings['pmc_enabled'] = '';
+		$stripe_settings                                    = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']            = 'connect';
+		$stripe_settings['pmc_enabled']                     = '';
 		$stripe_settings['stripe_upe_payment_method_order'] = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -127,10 +127,10 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 	public function test_migration_preserves_existing_payment_method_order() {
 		// Set up environment with pmc_enabled not set and existing payment method order
-		$existing_order = [ 'card', 'sepa_debit', 'ideal' ];
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type'] = 'connect';
-		$stripe_settings['pmc_enabled'] = '';
+		$existing_order                                     = [ 'card', 'sepa_debit', 'ideal' ];
+		$stripe_settings                                    = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']            = 'connect';
+		$stripe_settings['pmc_enabled']                     = '';
 		$stripe_settings['stripe_upe_payment_method_order'] = $existing_order;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -172,9 +172,9 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	 */
 	public function test_migration_executed_and_amazon_pay_enabled_correctly( ?bool $should_auto_enable_amazon_pay, string $account_country, string $store_currency, bool $expect_amazon_pay ) {
 		// Set pmc_enabled to '' to trigger migration
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type']                      = 'connect';
-		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['express_checkout']     = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'link', 'sepa_debit' ];
 		$stripe_settings['pmc_enabled']                               = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -223,8 +223,8 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	 * @return void
 	 */
 	public function test_migration_replicates_express_methods_enabled_in_pmc() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
 		unset( $stripe_settings['pmc_enabled'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -257,10 +257,10 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	 * @return void
 	 */
 	public function test_migration_replicates_express_methods_from_pmc_even_with_skip_flag() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type']                      = 'connect';
-		$stripe_settings['express_checkout']                          = 'yes';
-		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
+		$stripe_settings                                       = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type']               = 'connect';
+		$stripe_settings['express_checkout']                   = 'yes';
+		$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 		unset( $stripe_settings['pmc_enabled'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -293,9 +293,9 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	 * @return void
 	 */
 	public function test_migration_skips_express_checkout_methods_when_skip_flag_is_set() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_connection_type']                      = 'connect';
-		$stripe_settings['express_checkout']                          = 'yes';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['express_checkout']     = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'sepa_debit' ];
 		$stripe_settings['skip_pmc_express_checkout_defaults']        = 'yes';
 		unset( $stripe_settings['pmc_enabled'] );

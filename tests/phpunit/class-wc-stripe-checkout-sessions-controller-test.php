@@ -137,11 +137,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 
 		return [
 			'invalid nonce'            => [
-				'is valid nonce'             => false,
-				'customer data'              => [],
-				'is cart empty'              => true,
-				'checkout session response'  => null,
-				'expected response'          => (object) [
+				'is valid nonce'            => false,
+				'customer data'             => [],
+				'is cart empty'             => true,
+				'checkout session response' => null,
+				'expected response'         => (object) [
 					'success' => false,
 					'data'    => (object) [
 						'message' => "We're not able to process this request. Please refresh the page and try again.",
@@ -149,11 +149,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				],
 			],
 			'missing customer data'    => [
-				'is valid nonce'             => true,
-				'customer data'              => [],
-				'is cart empty'              => true,
-				'checkout session response'  => null,
-				'expected response'          => (object) [
+				'is valid nonce'            => true,
+				'customer data'             => [],
+				'is cart empty'             => true,
+				'checkout session response' => null,
+				'expected response'         => (object) [
 					'success' => false,
 					'data'    => (object) [
 						'message' => 'Unable to create or retrieve Stripe customer.',
@@ -161,11 +161,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				],
 			],
 			'cart is empty'            => [
-				'is valid nonce'             => true,
-				'customer data'              => $customer_data,
-				'is cart empty'              => true,
-				'checkout session response'  => null,
-				'expected response'          => (object) [
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => true,
+				'checkout session response' => null,
+				'expected response'         => (object) [
 					'success' => false,
 					'data'    => (object) [
 						'message' => 'Your cart is currently empty.',
@@ -173,11 +173,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				],
 			],
 			'error creating session'   => [
-				'is valid nonce'             => true,
-				'customer data'              => $customer_data,
-				'is cart empty'              => false,
-				'checkout session response'  => $checkout_session_error,
-				'expected response'          => (object) [
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => $checkout_session_error,
+				'expected response'         => (object) [
 					'success' => false,
 					'data'    => (object) [
 						'message' => $mocked_error_message,
@@ -185,11 +185,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				],
 			],
 			'client secret is missing' => [
-				'is valid nonce'             => true,
-				'customer data'              => $customer_data,
-				'is cart empty'              => false,
-				'checkout session response'  => $checkout_session_missing_secret,
-				'expected response'          => (object) [
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => $checkout_session_missing_secret,
+				'expected response'         => (object) [
 					'success' => false,
 					'data'    => (object) [
 						'message' => 'Unable to create Stripe Checkout Session.',
@@ -197,11 +197,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 				],
 			],
 			'successful creation'      => [
-				'is valid nonce'             => true,
-				'customer data'              => $customer_data,
-				'is cart empty'              => false,
-				'checkout session response'  => $checkout_session_success,
-				'expected response'          => (object) [
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => $checkout_session_success,
+				'expected response'         => (object) [
 					'success' => true,
 					'data'    => (object) [
 						'client_secret' => $mocked_secret,

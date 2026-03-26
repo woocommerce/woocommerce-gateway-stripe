@@ -61,8 +61,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$amazon_pay           = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();
@@ -87,8 +87,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$supported_currencies = \WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies();
@@ -101,26 +101,26 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 
 	public function provide_test_is_available_for_account_country(): array {
 		return [
-			'AT is available'      => [ 'AT', true ],
-			'BE is available'      => [ 'BE', true ],
-			'CY is available'      => [ 'CY', true ],
-			'DK is available'      => [ 'DK', true ],
-			'FR is available'      => [ 'FR', true ],
-			'DE is available'      => [ 'DE', true ],
-			'HU is available'      => [ 'HU', true ],
-			'IE is available'      => [ 'IE', true ],
-			'IT is available'      => [ 'IT', true ],
-			'LU is available'      => [ 'LU', true ],
-			'NL is available'      => [ 'NL', true ],
-			'PT is available'      => [ 'PT', true ],
-			'ES is available'      => [ 'ES', true ],
-			'SE is available'      => [ 'SE', true ],
-			'CH is available'      => [ 'CH', true ],
-			'GB is available'      => [ 'GB', true ],
-			'US is available'      => [ 'US', true ],
-			'ZA is not available'  => [ 'ZA', false ],
-			'CA is not available'  => [ 'CA', false ],
-			'GR is not available'  => [ 'GR', false ],
+			'AT is available'     => [ 'AT', true ],
+			'BE is available'     => [ 'BE', true ],
+			'CY is available'     => [ 'CY', true ],
+			'DK is available'     => [ 'DK', true ],
+			'FR is available'     => [ 'FR', true ],
+			'DE is available'     => [ 'DE', true ],
+			'HU is available'     => [ 'HU', true ],
+			'IE is available'     => [ 'IE', true ],
+			'IT is available'     => [ 'IT', true ],
+			'LU is available'     => [ 'LU', true ],
+			'NL is available'     => [ 'NL', true ],
+			'PT is available'     => [ 'PT', true ],
+			'ES is available'     => [ 'ES', true ],
+			'SE is available'     => [ 'SE', true ],
+			'CH is available'     => [ 'CH', true ],
+			'GB is available'     => [ 'GB', true ],
+			'US is available'     => [ 'US', true ],
+			'ZA is not available' => [ 'ZA', false ],
+			'CA is not available' => [ 'CA', false ],
+			'GR is not available' => [ 'GR', false ],
 		];
 	}
 
@@ -136,8 +136,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay_Test extends \WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$amazon_pay   = new \WC_Stripe_UPE_Payment_Method_Amazon_Pay();

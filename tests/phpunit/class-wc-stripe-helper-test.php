@@ -40,11 +40,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_convert_to_stripe_locale(): array {
 		return [
-			'en_GB → en-GB'   => [ 'en_GB', 'en-GB' ],
-			'fr_FR → fr'      => [ 'fr_FR', 'fr' ],
-			'fr_CA → fr-CA'   => [ 'fr_CA', 'fr-CA' ],
-			'es_UY → es'      => [ 'es_UY', 'es' ],
-			'es_EC → es-419'  => [ 'es_EC', 'es-419' ],
+			'en_GB → en-GB'  => [ 'en_GB', 'en-GB' ],
+			'fr_FR → fr'     => [ 'fr_FR', 'fr' ],
+			'fr_CA → fr-CA'  => [ 'fr_CA', 'fr-CA' ],
+			'es_UY → es'     => [ 'es_UY', 'es' ],
+			'es_EC → es-419' => [ 'es_EC', 'es-419' ],
 		];
 	}
 
@@ -92,10 +92,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_add_payment_method_to_request_array(): array {
 		return [
-			'source ID is added under source key'                    => [ 'src_mock', 'source', 'src_mock' ],
-			'payment method ID is added under payment_method key'    => [ 'pm_mock', 'payment_method', 'pm_mock' ],
-			'card ID is added under payment_method key'              => [ 'card_mock', 'payment_method', 'card_mock' ],
-			'unknown prefix is not added to the request'             => [ 'cus_mock', null, null ],
+			'source ID is added under source key'                 => [ 'src_mock', 'source', 'src_mock' ],
+			'payment method ID is added under payment_method key' => [ 'pm_mock', 'payment_method', 'pm_mock' ],
+			'card ID is added under payment_method key'           => [ 'card_mock', 'payment_method', 'card_mock' ],
+			'unknown prefix is not added to the request'          => [ 'cus_mock', null, null ],
 		];
 	}
 
@@ -126,9 +126,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$not_payment_method->object = 'not_payment_method';
 
 		return [
-			'object is payment_method'     => [ $payment_method, true ],
+			'object is payment_method'      => [ $payment_method, true ],
 			'object has no object property' => [ $empty, false ],
-			'object is not payment_method' => [ $not_payment_method, false ],
+			'object is not payment_method'  => [ $not_payment_method, false ],
 		];
 	}
 
@@ -162,9 +162,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$non_reusable_source->usage = 'single_use';
 
 		return [
-			'payment_method object is reusable'       => [ $payment_method, true ],
-			'source with usage=reusable is reusable'  => [ $reusable_source, true ],
-			'empty object is not reusable'            => [ $empty, false ],
+			'payment_method object is reusable'            => [ $payment_method, true ],
+			'source with usage=reusable is reusable'       => [ $reusable_source, true ],
+			'empty object is not reusable'                 => [ $empty, false ],
 			'source with usage=single_use is not reusable' => [ $non_reusable_source, false ],
 		];
 	}
@@ -207,10 +207,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$not_payment_method_or_source->object = 'not_payment_method_or_source';
 
 		return [
-			'card payment method object'           => [ $card_payment_method, true ],
-			'card source object'                   => [ $card_source, true ],
-			'non-card payment method object'       => [ $non_card_payment_method, false ],
-			'non-card source object'               => [ $non_card_source, false ],
+			'card payment method object'                  => [ $card_payment_method, true ],
+			'card source object'                          => [ $card_source, true ],
+			'non-card payment method object'              => [ $non_card_payment_method, false ],
+			'non-card source object'                      => [ $non_card_source, false ],
 			'object is neither payment_method nor source' => [ $not_payment_method_or_source, false ],
 		];
 	}
@@ -242,8 +242,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$intent_with_neither = new stdClass();
 
 		return [
-			'intent with source returns source'                         => [ $intent_with_source, 'src_mock' ],
-			'intent with payment_method returns payment_method'         => [ $intent_with_payment_method, 'pm_mock' ],
+			'intent with source returns source'                          => [ $intent_with_source, 'src_mock' ],
+			'intent with payment_method returns payment_method'          => [ $intent_with_payment_method, 'pm_mock' ],
 			'intent with neither source nor payment_method returns null' => [ $intent_with_neither, null ],
 		];
 	}
@@ -319,22 +319,22 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_stripe_amount(): array {
 		return [
-			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR             => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected' => 10000,
 			],
-			WC_Stripe_Currency_Code::JAPANESE_YEN         => [
+			WC_Stripe_Currency_Code::JAPANESE_YEN                     => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::JAPANESE_YEN,
 				'expected' => 100,
 			],
-			WC_Stripe_Currency_Code::EURO                 => [
+			WC_Stripe_Currency_Code::EURO                             => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::EURO,
 				'expected' => 10000,
 			],
-			WC_Stripe_Currency_Code::BAHRAINI_DINAR       => [
+			WC_Stripe_Currency_Code::BAHRAINI_DINAR                   => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected' => 100000,
@@ -345,12 +345,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'               => 100000,
 				'price_decimals_setting' => 3,
 			],
-			WC_Stripe_Currency_Code::JORDANIAN_DINAR      => [
+			WC_Stripe_Currency_Code::JORDANIAN_DINAR                  => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
 				'expected' => 100000,
 			],
-			WC_Stripe_Currency_Code::BURUNDIAN_FRANC      => [
+			WC_Stripe_Currency_Code::BURUNDIAN_FRANC                  => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
 				'expected' => 100,
@@ -387,42 +387,42 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_convert_from_stripe_amount(): array {
 		return [
-			'USD standard'                 => [
+			'USD standard'            => [
 				'stripe_amount' => 10000,
 				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected'      => 100.00,
 			],
-			'USD small amount'             => [
+			'USD small amount'        => [
 				'stripe_amount' => 99,
 				'currency'      => WC_Stripe_Currency_Code::EURO,
 				'expected'      => 0.99,
 			],
-			'JPY no-decimal'               => [
+			'JPY no-decimal'          => [
 				'stripe_amount' => 1000,
 				'currency'      => WC_Stripe_Currency_Code::JAPANESE_YEN,
 				'expected'      => 1000.0,
 			],
-			'BIF no-decimal'               => [
+			'BIF no-decimal'          => [
 				'stripe_amount' => 100,
 				'currency'      => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
 				'expected'      => 100.0,
 			],
-			'BHD three-decimal'            => [
+			'BHD three-decimal'       => [
 				'stripe_amount' => 100000,
 				'currency'      => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected'      => 100.0,
 			],
-			'JOD three-decimal'            => [
+			'JOD three-decimal'       => [
 				'stripe_amount' => 1000,
 				'currency'      => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
 				'expected'      => 1.0,
 			],
-			'zero amount'                  => [
+			'zero amount'             => [
 				'stripe_amount' => 0,
 				'currency'      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected'      => 0.0,
 			],
-			'uppercase currency code'      => [
+			'uppercase currency code' => [
 				'stripe_amount' => 500,
 				'currency'      => 'USD',
 				'expected'      => 5.00,
@@ -439,42 +439,42 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_woocommerce_amount_from_stripe_amount(): array {
 		return [
-			'USD two-decimal: 10000 cents' => [
+			'USD two-decimal: 10000 cents'           => [
 				'stripe_amount' => 10000,
 				'currency'      => 'usd',
 				'expected'      => '100.00',
 			],
-			'USD two-decimal: 10050 cents' => [
+			'USD two-decimal: 10050 cents'           => [
 				'stripe_amount' => 10050,
 				'currency'      => 'usd',
 				'expected'      => '100.50',
 			],
-			'USD two-decimal: 1 cent' => [
+			'USD two-decimal: 1 cent'                => [
 				'stripe_amount' => 1,
 				'currency'      => 'usd',
 				'expected'      => '0.01',
 			],
-			'USD two-decimal: zero' => [
+			'USD two-decimal: zero'                  => [
 				'stripe_amount' => 0,
 				'currency'      => 'usd',
 				'expected'      => '0.00',
 			],
-			'USD currency case insensitivity' => [
+			'USD currency case insensitivity'        => [
 				'stripe_amount' => 10000,
 				'currency'      => 'USD',
 				'expected'      => '100.00',
 			],
-			'JPY no-decimal: whole units' => [
+			'JPY no-decimal: whole units'            => [
 				'stripe_amount' => 100,
 				'currency'      => 'jpy',
 				'expected'      => '100',
 			],
-			'JPY no-decimal: single unit' => [
+			'JPY no-decimal: single unit'            => [
 				'stripe_amount' => 1,
 				'currency'      => 'jpy',
 				'expected'      => '1',
 			],
-			'JPY no-decimal: zero' => [
+			'JPY no-decimal: zero'                   => [
 				'stripe_amount' => 0,
 				'currency'      => 'jpy',
 				'expected'      => '0',
@@ -484,17 +484,17 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'currency'      => 'bhd',
 				'expected'      => '0.005',
 			],
-			'BHD three-decimal: 100 fils' => [
+			'BHD three-decimal: 100 fils'            => [
 				'stripe_amount' => 100,
 				'currency'      => 'bhd',
 				'expected'      => '0.100',
 			],
-			'BHD three-decimal: 100500 fils' => [
+			'BHD three-decimal: 100500 fils'         => [
 				'stripe_amount' => 100500,
 				'currency'      => 'bhd',
 				'expected'      => '100.500',
 			],
-			'BHD three-decimal: 0' => [
+			'BHD three-decimal: 0'                   => [
 				'stripe_amount' => 0,
 				'currency'      => 'bhd',
 				'expected'      => '0.000',
@@ -777,11 +777,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_refund_reason_description() {
 		return [
-			'The charge has been disputed'                 => [
+			'The charge has been disputed'                            => [
 				'key'      => 'charge_for_pending_refund_disputed',
 				'expected' => 'The charge has been disputed',
 			],
-			'The refund was declined'                      => [
+			'The refund was declined'                                 => [
 				'key'      => 'declined',
 				'expected' => 'The refund was declined',
 			],
@@ -789,27 +789,27 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'key'      => 'expired_or_canceled_card',
 				'expected' => 'The original payment method has expired or was canceled',
 			],
-			'We could not process the refund at this time' => [
+			'We could not process the refund at this time'            => [
 				'key'      => 'insufficient_funds',
 				'expected' => 'We could not process the refund at this time',
 			],
-			'The original payment method was lost or stolen' => [
+			'The original payment method was lost or stolen'          => [
 				'key'      => 'lost_or_stolen_card',
 				'expected' => 'The original payment method was lost or stolen',
 			],
-			'We stopped processing the refund'             => [
+			'We stopped processing the refund'                        => [
 				'key'      => 'merchant_request',
 				'expected' => 'We stopped processing the refund',
 			],
-			'Unknown reason (random)'                      => [
+			'Unknown reason (random)'                                 => [
 				'key'      => 'random',
 				'expected' => 'Unknown reason',
 			],
-			'Unknown reason (null)'                        => [
+			'Unknown reason (null)'                                   => [
 				'key'      => null,
 				'expected' => 'Unknown reason',
 			],
-			'Unknown reason (empty)'                       => [
+			'Unknown reason (empty)'                                  => [
 				'key'      => '',
 				'expected' => 'Unknown reason',
 			],
@@ -1121,7 +1121,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response(): array {
 		return [
-			'card_error with localized message'    => [
+			'card_error with localized message'     => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'invalid_cvc',
 				'error_message'    => 'Mock invalid CVC',
@@ -1130,14 +1130,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => "The card's security code is invalid.",
 			],
-			'card_error without localized message' => [
+			'card_error without localized message'  => [
 				'error_type'       => 'card_error',
 				'error_code'       => 'unexpected_error_code',
 				'error_message'    => 'Unexpected error',
 				'localized_data'   => [],
 				'expected_message' => 'Unexpected error',
 			],
-			'other error with localized message'   => [
+			'other error with localized message'    => [
 				'error_type'       => 'invalid_request_error',
 				'error_code'       => 'amount_too_small',
 				'error_message'    => 'Amount too small',
@@ -1175,72 +1175,72 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_get_localized_error_message_from_response_with_unexpected_data(): array {
 		return [
-			'String response' => [
+			'String response'                                                              => [
 				'response'         => 'Unexpected data',
 				'expected_message' => '',
 			],
-			'Integer response' => [
+			'Integer response'                                                             => [
 				'response'         => 123,
 				'expected_message' => '',
 			],
-			'Float response' => [
+			'Float response'                                                               => [
 				'response'         => 123.45,
 				'expected_message' => '',
 			],
-			'Boolean response' => [
+			'Boolean response'                                                             => [
 				'response'         => true,
 				'expected_message' => '',
 			],
-			'Array response' => [
+			'Array response'                                                               => [
 				'response'         => [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
-			'Object response with string error' => [
+			'Object response with string error'                                            => [
 				'response'         => (object) [ 'error' => 'Unexpected data' ],
 				'expected_message' => '',
 			],
-			'Object response with array error' => [
+			'Object response with array error'                                             => [
 				'response'         => (object) [ 'error' => [ 'message' => 'Unexpected data' ] ],
 				'expected_message' => '',
 			],
-			'Object response with object error but no type or message property' => [
+			'Object response with object error but no type or message property'            => [
 				'response'         => (object) [ 'error' => (object) [ 'code' => 'unexpected_error_code' ] ],
 				'expected_message' => '',
 			],
-			'Object response with object error but no type property' => [
+			'Object response with object error but no type property'                       => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => 'Unexpected error' ] ],
 				'expected_message' => 'Unexpected error',
 			],
-			'Object response with object error, no type, and integer message property' => [
+			'Object response with object error, no type, and integer message property'     => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => 123 ] ],
 				'expected_message' => '123',
 			],
-			'Object response with object error, no type, and float message property' => [
+			'Object response with object error, no type, and float message property'       => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => 123.45 ] ],
 				'expected_message' => '123.45',
 			],
-			'Object response with object error, no type, and boolean message property' => [
+			'Object response with object error, no type, and boolean message property'     => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => true ] ],
 				'expected_message' => '1',
 			],
-			'Object response with object error, no type, and array message property' => [
+			'Object response with object error, no type, and array message property'       => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => [ 'test' => 'Unexpected error' ] ] ],
 				'expected_message' => '',
 			],
-			'Object response with object error, no type, and object message property' => [
+			'Object response with object error, no type, and object message property'      => [
 				'response'         => (object) [ 'error' => (object) [ 'message' => (object) [ 'test' => 'Unexpected error' ] ] ],
 				'expected_message' => '',
 			],
-			'Object response with object error, type, and object message property' => [
+			'Object response with object error, type, and object message property'         => [
 				'response'         => (object) [
 					'error' => (object) [
-						'type' => 'card_error',
+						'type'    => 'card_error',
 						'message' => (object) [ 'test' => 'Unexpected error' ],
 					],
 				],
 				'expected_message' => '',
 			],
-			'Object response with valid card_error but no code property' => [
+			'Object response with valid card_error but no code property'                   => [
 				'response'         => (object) [
 					'error' => (object) [
 						'type'    => 'card_error',
@@ -1249,7 +1249,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => 'Unexpected card error',
 			],
-			'Object response with valid card_error, array message, and no code property' => [
+			'Object response with valid card_error, array message, and no code property'   => [
 				'response'         => (object) [
 					'error' => (object) [
 						'type'    => 'card_error',
@@ -1258,7 +1258,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => '',
 			],
-			'Object response with valid card_error, object message, and no code property' => [
+			'Object response with valid card_error, object message, and no code property'  => [
 				'response'         => (object) [
 					'error' => (object) [
 						'type'    => 'card_error',
@@ -1276,7 +1276,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_message' => '456',
 			],
-			'Object response with valid card_error, float message, and no code property' => [
+			'Object response with valid card_error, float message, and no code property'   => [
 				'response'         => (object) [
 					'error' => (object) [
 						'type'    => 'card_error',
@@ -1543,7 +1543,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'   => [
+			'itemized'     => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -1551,7 +1551,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'amount' => 1000,
 					],
 					[
-						'label' => 'Tax',
+						'label'  => 'Tax',
 						'amount' => 0,
 					],
 					[
@@ -1566,7 +1566,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized'            => [
+			'non-itemized' => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -1575,7 +1575,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 							'amount' => 1000,
 						],
 						[
-							'label' => 'Tax',
+							'label'  => 'Tax',
 							'amount' => 0,
 						],
 						[
