@@ -19,8 +19,8 @@ const textFontTransitionProps = [
 	'textShadow',
 	'textTransform',
 	'transition',
-	'MozOsxFontSmoothing', // Firefox seems to use `Moz` as the prefix rather than `moz`.
-	'webkitFontSmoothing',
+	'-webkit-font-smoothing',
+	'-moz-osx-font-smoothing',
 ];
 const borderOutlineBackgroundProps = [
 	'border',
