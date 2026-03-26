@@ -4141,9 +4141,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		// 1500 EUR cents = 15.00 EUR; 1500 / 2000 (USD cents) = 0.75 exchange rate.
+		// 1500 EUR cents = 15.00 EUR; 15.00 / 20.00 (order total) = 0.750 exchange rate (always 3 decimal places).
 		$expected_amount = '15.00';
-		$expected_rate   = '0.75';
+		$expected_rate   = '0.750';
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4199,9 +4199,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->add_currency_conversion_notice( $order );
 		$output = ob_get_clean();
 
-		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		// Rate is always formatted to at least 3 decimal places; uses major-unit amounts.
+		$expected_rate   = wc_format_decimal( (float) $expected_amount / $order->get_total(), max( WC_Stripe_Helper::get_currency_decimals( 'eur' ), 3 ) );
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );

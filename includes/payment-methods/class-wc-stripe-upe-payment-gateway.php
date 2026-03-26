@@ -1135,11 +1135,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$presentment_currency
 		);
 
-		// Use the decimal count for the presentment currency, not the store's price decimal
-		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
 		$presentment_currency       = strtolower( $presentment_currency ); // Make sure the original currency code is in lowercase.
 		$presentment_currency_upper = strtoupper( $presentment_currency );
-		$rate_decimals              = WC_Stripe_Helper::get_currency_decimals( $presentment_currency );
+		// Use at least 3 decimal places for the rate regardless of the presentment currency's own decimal
+		// exponent — a conversion rate is not a currency amount, and rounding e.g. 149.567 JPY/USD to 150
+		// gives a misleading representation.
+		$rate_decimals = max( WC_Stripe_Helper::get_currency_decimals( $presentment_currency ), 3 );
 		// Divide major-unit amounts so the rate is correct for currencies with different decimal exponents (e.g. JPY↔USD).
 		$rate_amount = wc_format_decimal( (float) $woocommerce_amount / $order_total, $rate_decimals );
 
