@@ -1,20 +1,20 @@
 <?php
 
 /**
- * These tests make assertions against the WC_Stripe_Checkout_Sessions_Controller class.
+ * These tests make assertions against the WC_Stripe_Checkout_Sessions_Ajax_Handler class.
  */
-class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
+class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Test that hooks are initialized correctly.
 	 */
 	public function test_init_hooks(): void {
-		$controller = new WC_Stripe_Checkout_Sessions_Controller();
-		$controller->init_hooks();
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+		$ajax_handler->init_hooks();
 
 		$this->assertTrue(
 			(bool) has_action(
 				'wc_ajax_wc_stripe_create_checkout_session',
-				[ $controller, 'create_checkout_session' ]
+				[ $ajax_handler, 'create_checkout_session' ]
 			)
 		);
 	}
@@ -84,11 +84,11 @@ class WC_Stripe_Checkout_Sessions_Controller_Test extends WP_UnitTestCase {
 		// Set up the AJAX request nonce.
 		$_REQUEST['_ajax_nonce'] = $is_valid_nonce ? wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' ) : 'invalid_nonce_value';
 
-		$controller = new WC_Stripe_Checkout_Sessions_Controller();
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
 
 		try {
 			ob_start();
-			$controller->create_checkout_session();
+			$ajax_handler->create_checkout_session();
 			$output = ob_get_clean();
 		} catch ( \Exception $e ) {
 			ob_end_clean();

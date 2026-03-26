@@ -121,8 +121,8 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install && npx playwright install",
-    "prebuild": "npm install && composer install",
+    "postinstall": "composer install --classmap-authoritative && npx playwright install",
+    "prebuild": "npm install && composer install --classmap-authoritative",
     "prepare": "is-ci || husky install",
     "build": "npm run uglify && npm run sass && rimraf build/* && npm run build:webpack && npm run build:i18n && npm run build:release",
     "build:i18n": "npm run i18n:makepot && npm run i18n:merge",
