@@ -797,6 +797,62 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Test that non-deferred-intent methods are available in OC mode.
+	 *
+	 * Non-deferred-intent methods like BLIK and ACSS cannot be rendered inside the
+	 * OC Payment Element, so they need their own separate payment method tab.
+	 *
+	 * @dataProvider provide_non_deferred_intent_methods_available_in_oc_mode
+	 */
+	public function test_non_deferred_intent_methods_are_available_in_oc_mode( $payment_method_class, $currency ) {
+		// Enable optimized checkout by setting required settings.
+		$stripe_settings                                                    = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                                     = 'yes';
+		$stripe_settings['optimized_checkout_element']                      = 'yes';
+		$stripe_settings['enabled']                                         = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments']       = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$mocked_methods = [
+			'get_capabilities_response',
+			'get_woocommerce_currency',
+			'is_subscription_item_in_cart',
+			'get_current_order_amount',
+			'is_inside_currency_limits',
+		];
+
+		/** @var WC_Stripe_UPE_Payment_Method $mocked_payment_method */
+		$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods( $mocked_methods )
+			->getMock();
+
+		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( 'active' );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( $currency );
+		$mocked_payment_method->method( 'is_subscription_item_in_cart' )->willReturn( false );
+
+		$this->assertFalse( $mocked_payment_method->supports_deferred_intent() );
+		$this->assertTrue( $mocked_payment_method->is_available() );
+	}
+
+	/**
+	 * Data provider for test_non_deferred_intent_methods_are_available_in_oc_mode.
+	 *
+	 * @return array
+	 */
+	public function provide_non_deferred_intent_methods_available_in_oc_mode() {
+		return [
+			'BLIK with PLN currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_BLIK::class,
+				'currency'             => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			],
+			'ACSS with CAD currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_ACSS::class,
+				'currency'             => WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			],
+		];
+	}
+
+	/**
 	 * Test the type of payment token created for the user.
 	 */
 	public function test_create_payment_token_for_user() {

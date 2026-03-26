@@ -754,6 +754,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 		}
 
+		// Exclude non-deferred-intent methods (e.g. BLIK, ACSS) from the Payment Element since they
+		// render their own payment forms outside the OC container.
+		foreach ( $this->payment_methods as $method ) {
+			if ( ! $method->supports_deferred_intent() && ! in_array( $method->get_id(), $excluded_methods, true ) ) {
+				$excluded_methods[] = $method->get_id();
+			}
+		}
+
 		return array_values( array_unique( $excluded_methods ) );
 	}
 
@@ -797,7 +805,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
-			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods );
+
+			// Non-deferred-intent methods (e.g. BLIK, ACSS) cannot be rendered inside the OC Payment Element,
+			// so they need their own separate entries in the config alongside the OC container.
+			$non_deferred_methods = array_filter(
+				$enabled_payment_methods,
+				function ( $method_id ) use ( $payment_methods ) {
+					return isset( $payment_methods[ $method_id ] ) && ! $payment_methods[ $method_id ]->supports_deferred_intent();
+				}
+			);
+
+			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods, $non_deferred_methods );
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
