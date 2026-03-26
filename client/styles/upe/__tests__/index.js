@@ -2,6 +2,15 @@ import * as upeStyles from '..';
 
 describe( 'Getting styles for automated theming', () => {
 	const mockElement = document.createElement( 'input' );
+	const mockCssProperties = {
+		fontFamily:
+			'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+		color: 'rgb(109, 109, 109)',
+		backgroundColor: 'rgba(0, 0, 0, 0)',
+		unsuportedProperty: 'some value',
+		outlineColor: 'rgb(150, 88, 138)',
+		outlineWidth: '1px',
+	};
 	const mockCSStyleDeclaration = {
 		length: 6,
 		0: 'color',
@@ -10,17 +19,9 @@ describe( 'Getting styles for automated theming', () => {
 		3: 'unsuportedProperty',
 		4: 'outlineColor',
 		5: 'outlineWidth',
+		...mockCssProperties,
 		getPropertyValue: ( propertyName ) => {
-			const cssProperties = {
-				fontFamily:
-					'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
-				color: 'rgb(109, 109, 109)',
-				backgroundColor: 'rgba(0, 0, 0, 0)',
-				unsuportedProperty: 'some value',
-				outlineColor: 'rgb(150, 88, 138)',
-				outlineWidth: '1px',
-			};
-			return cssProperties[ propertyName ];
+			return mockCssProperties[ propertyName ];
 		},
 	};
 
@@ -208,6 +209,22 @@ describe( 'Getting styles for automated theming', () => {
 		] );
 	} );
 
+	it( 'getAppearance returns floating labels for Blocks checkout', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
+			return mockElement;
+		} );
+		jest.spyOn( window, 'getComputedStyle' ).mockImplementation( () => {
+			return mockCSStyleDeclaration;
+		} );
+
+		const appearance = upeStyles.getAppearance( true );
+		expect( appearance.labels ).toBe( 'floating' );
+		expect( appearance.rules[ '.Label--floating' ] ).toBeDefined();
+		expect( appearance.rules[ '.Label--resting' ] ).toBeDefined();
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
@@ -220,6 +237,7 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			labels: 'above',
 			theme: 'stripe',
 			variables: {
 				colorBackground: '#ffffff',
@@ -248,6 +266,7 @@ describe( 'Getting styles for automated theming', () => {
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
+				'.Label--resting': {},
 				'.Tab': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
@@ -292,7 +311,7 @@ describe( 'Getting styles for automated theming', () => {
 					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 				},
 				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)	',
+					backgroundColor: 'var(--colorPrimary)',
 					borderColor: 'var(--colorPrimary)',
 				},
 			},

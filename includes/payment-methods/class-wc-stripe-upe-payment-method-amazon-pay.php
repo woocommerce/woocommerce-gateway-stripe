@@ -25,7 +25,25 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 *
 	 * @var string[]
 	 */
-	private const SUPPORTED_COUNTRIES = [ 'AT', 'BE', 'CY', 'DK', 'FR', 'DE', 'HU', 'IE', 'IT', 'LU', 'NL', 'PT', 'ES', 'SE', 'CH', 'GB', 'US' ];
+	private const SUPPORTED_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::HUNGARY,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
 
 	/**
 	 * Supported currencies for Amazon Pay.
@@ -95,7 +113,7 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public static function get_amazon_pay_supported_currencies(): array {
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
 
-		if ( 'US' === $account_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $account_country ) {
 			return [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		}
 

@@ -5,15 +5,19 @@ import {
 	generateHoverRules,
 	generateOutlineStyle,
 	getBackgroundColor,
+	handleAppearanceForFloatingLabel,
 	isColorLight,
 } from './utils.js';
+import { getExpandedOptimizedCheckoutRules } from './expanded-optimized-checkout';
 import { getFontSizeBase } from 'wcstripe/stripe-utils';
+export { getExpandedOptimizedCheckoutRules };
 
 const appearanceSelectors = {
 	default: {
 		hiddenContainer: '#wc-stripe-hidden-div',
 		hiddenInput: '#wc-stripe-hidden-input',
 		hiddenInvalidInput: '#wc-stripe-hidden-invalid-input',
+		hiddenValidActiveLabel: '#wc-stripe-hidden-valid-active-label',
 	},
 	classicCheckout: {
 		appendTarget: '.woocommerce-billing-fields__field-wrapper',
@@ -58,20 +62,21 @@ const appearanceSelectors = {
 		],
 	},
 	blocksCheckout: {
-		appendTarget: '#billing.wc-block-components-address-form',
-		upeThemeInputSelector: '#billing-first_name',
-		upeThemeLabelSelector:
-			'.wc-block-components-checkout-step__description',
+		appendTarget: '.wc-block-checkout__contact-fields',
+		upeThemeInputSelector: '.wc-block-components-text-input #email',
+		upeThemeLabelSelector: '.wc-block-components-text-input label',
 		upeThemeTextSelectors: [
 			'.wc-block-components-checkout-step__description',
 			'.wc-block-components-text-input',
+			'.wc-block-components-radio-control__label',
+			'.wc-block-checkout__terms',
 		],
 		rowElement: 'div',
-		validClasses: [ 'wc-block-components-text-input' ],
+		validClasses: [ 'wc-block-components-text-input', 'is-active' ],
 		invalidClasses: [ 'wc-block-components-text-input', 'has-error' ],
 		alternateSelectors: {
-			appendTarget: '#shipping.wc-block-components-address-form',
-			upeThemeInputSelector: '#shipping-first_name',
+			appendTarget: '#billing.wc-block-components-address-form',
+			upeThemeInputSelector: '#billing-first_name',
 			upeThemeLabelSelector:
 				'.wc-block-components-checkout-step__description',
 		},
@@ -141,12 +146,6 @@ const appearanceSelectors = {
 			...this.updateSelectors( this.classicCheckout ),
 		};
 	},
-};
-
-const dashedToCamelCase = ( string ) => {
-	return string.replace( /-([a-z])/g, function ( g ) {
-		return g[ 1 ].toUpperCase();
-	} );
 };
 
 const hiddenElementsForUPE = {
@@ -268,6 +267,13 @@ const hiddenElementsForUPE = {
 			selectors.hiddenInput
 		);
 
+		// Clone & append target label to hidden valid row.
+		this.appendClone(
+			hiddenValidRow,
+			selectors.upeThemeLabelSelector,
+			selectors.hiddenValidActiveLabel
+		);
+
 		// Clone & append target element to hidden invalid row.
 		this.appendClone(
 			hiddenInvalidRow,
@@ -308,12 +314,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 
 	const filteredStyles = {};
 
-	for ( let i = 0; i < styles.length; i++ ) {
-		const camelCase = dashedToCamelCase( styles[ i ] );
-		if ( validProperties.includes( camelCase ) ) {
-			filteredStyles[ camelCase ] = styles.getPropertyValue(
-				styles[ i ]
-			);
+	for ( const property of validProperties ) {
+		if ( typeof styles[ property ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ property ];
 		}
 	}
 
@@ -392,7 +395,10 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
-export const getAppearance = ( isBlocksCheckout = false ) => {
+export const getAppearance = (
+	isBlocksCheckout = false,
+	shouldExpandOptimizedCheckout = false
+) => {
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
 
 	// Add hidden fields to DOM for generating styles.
@@ -414,6 +420,10 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		selectors.upeThemeLabelSelector,
 		'.Label'
 	);
+
+	const labelRestingRules = {
+		fontSize: labelRules.fontSize,
+	};
 
 	const tabRules = getFieldStyles( selectors.upeThemeInputSelector, '.Tab' );
 	const selectedTabRules = getFieldStyles(
@@ -445,14 +455,16 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		fontSizeBase: getFontSizeBase( paragraphRules.fontSize ),
 	};
 
-	const appearance = {
+	let appearance = {
 		variables: globalRules,
 		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
+		labels: isBlocksCheckout ? 'floating' : 'above',
 		rules: {
 			'.Input': inputRules,
 			'.Input--invalid': inputInvalidRules,
 			'.Block': blockRules,
 			'.Label': labelRules,
+			'.Label--resting': labelRestingRules,
 			'.Tab': tabRules,
 			'.Tab:hover': tabHoverRules,
 			'.Tab--selected': selectedTabRules,
@@ -472,11 +484,27 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 				border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 			},
 			'.CheckboxInput--checked': {
-				backgroundColor: 'var(--colorPrimary)	',
+				backgroundColor: 'var(--colorPrimary)',
 				borderColor: 'var(--colorPrimary)',
 			},
 		},
 	};
+
+	if ( isBlocksCheckout ) {
+		appearance = handleAppearanceForFloatingLabel(
+			appearance,
+			getFieldStyles(
+				selectors.hiddenValidActiveLabel,
+				'.Label--floating'
+			)
+		);
+	}
+
+	if ( shouldExpandOptimizedCheckout ) {
+		appearance.rules = getExpandedOptimizedCheckoutRules(
+			appearance.rules
+		);
+	}
 
 	// Remove hidden fields from DOM.
 	hiddenElementsForUPE.cleanup();

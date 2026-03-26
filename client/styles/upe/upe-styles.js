@@ -18,9 +18,9 @@ const textFontTransitionProps = [
 	'textDecoration',
 	'textShadow',
 	'textTransform',
-	'-webkit-font-smoothing',
-	'-moz-osx-font-smoothing',
 	'transition',
+	'MozOsxFontSmoothing', // Firefox seems to use `Moz` as the prefix rather than `moz`.
+	'webkitFontSmoothing',
 ];
 const borderOutlineBackgroundProps = [
 	'border',
@@ -94,6 +94,7 @@ const restrictedTabIconSelectedProperties = [ 'color' ];
 
 export const upeRestrictedProperties = {
 	'.Label': upeSupportedProperties[ '.Label' ],
+	'.Label--floating': [ ...upeSupportedProperties[ '.Label' ], 'transform' ],
 	'.Input': [
 		...upeSupportedProperties[ '.Input' ],
 		'outlineColor',
