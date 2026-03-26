@@ -243,9 +243,10 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 
 		if ( ! empty( $last_sync['timestamp'] ) ) {
 			$timestamp = (int) $last_sync['timestamp'];
+			$formatted_date = (string) wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
 			echo '<tr><th>' . esc_html__( 'Last Sync', 'woocommerce-gateway-stripe' ) . '</th>'
 				. '<td>' . esc_html( human_time_diff( $timestamp ) . ' ' . __( 'ago', 'woocommerce-gateway-stripe' ) )
-				. ' <small>(' . esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp ) ) . ')</small>'
+				. ' <small>(' . esc_html( $formatted_date ) . ')</small>'
 				. '</td></tr>';
 		}
 
@@ -391,8 +392,9 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 			$status        = $entry['status'] ?? 'unknown';
 			$import_set_id = $entry['import_set_id'] ?? '';
 
+			$formatted_timestamp = $timestamp ? (string) wp_date( 'Y-m-d H:i', $timestamp ) : '—';
 			echo '<tr>';
-			echo '<td>' . esc_html( $timestamp ? wp_date( 'Y-m-d H:i', $timestamp ) : '—' ) . '</td>';
+			echo '<td>' . esc_html( $formatted_timestamp ) . '</td>';
 			echo '<td>' . esc_html( number_format_i18n( $products ) ) . '</td>';
 			echo '<td>';
 			$this->render_status_badge( $status );
