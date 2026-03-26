@@ -397,11 +397,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Order $order
+	 *
+	 * @return void
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_minimum_order_amount() instead.
 	 */
 	public function validate_minimum_order_amount( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_minimum_order_amount()' );
+
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
@@ -748,12 +752,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return object $details
 	 *
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_owner_details() instead.
 	 */
 	public function get_owner_details( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_owner_details()' );
+
 		$billing_first_name = $order->get_billing_first_name();
 		$billing_last_name  = $order->get_billing_last_name();
 
@@ -1787,6 +1793,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_payment().
 	 */
 	public function lock_order_payment( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::lock_order_payment()' );
+
 		if ( $this->is_order_payment_locked( $order ) ) {
 			// If the order is already locked, return true.
 			return true;
@@ -1806,9 +1814,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 4.2
 	 * @param WC_Order $order The order that is being unlocked.
 	 *
+	 * @return void
+	 *
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_payment().
 	 */
 	public function unlock_order_payment( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::unlock_order_payment()' );
+
 		$order->delete_meta_data( '_stripe_lock_payment' );
 		$order->save_meta_data();
 	}
@@ -1822,6 +1834,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::get_order_payment_lock().
 	 */
 	protected function get_order_existing_lock( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_order_payment_lock()' );
+
 		$order->read_meta_data( true );
 		return $order->get_meta( '_stripe_lock_payment', true );
 	}
@@ -1835,6 +1849,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::is_order_payment_locked().
 	 */
 	protected function is_order_payment_locked( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_order_payment_locked()' );
+
 		$existing_lock = $this->get_order_existing_lock( $order );
 		if ( $existing_lock ) {
 			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
@@ -1859,6 +1875,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_refund().
 	 */
 	public function lock_order_refund( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::lock_order_refund()' );
+
 		$order->read_meta_data( true );
 
 		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
@@ -1886,9 +1904,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 9.1.0
 	 * @param WC_Order $order The order that is being unlocked.
 	 *
+	 * @return void
+	 *
 	 * @deprecated 10.0.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_refund().
 	 */
 	public function unlock_order_refund( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::unlock_order_refund()' );
+
 		$order->delete_meta_data( '_stripe_lock_refund' );
 		$order->save_meta_data();
 	}

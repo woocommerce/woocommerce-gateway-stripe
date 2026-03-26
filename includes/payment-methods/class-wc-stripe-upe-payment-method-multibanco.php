@@ -22,7 +22,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 		$this->title                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
-		$this->supported_countries  = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GIBRALTAR, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::HUNGARY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LIECHTENSTEIN, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
 		$this->label                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
@@ -153,8 +153,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Multibanco is available for the following countries: 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US'.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */

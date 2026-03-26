@@ -94,6 +94,7 @@ const restrictedTabIconSelectedProperties = [ 'color' ];
 
 export const upeRestrictedProperties = {
 	'.Label': upeSupportedProperties[ '.Label' ],
+	'.Label--floating': [ ...upeSupportedProperties[ '.Label' ], 'transform' ],
 	'.Input': [
 		...upeSupportedProperties[ '.Input' ],
 		'outlineColor',
