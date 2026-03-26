@@ -178,91 +178,68 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->controller->set_account_keys( $request );
 	}
 
-	public function test_validate_publishable_key() {
-		$expected_wp_error = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
+	/**
+	 * Test the various API key validation methods.
+	 *
+	 * @param string $method     Controller method to call.
+	 * @param string $param_name Request parameter name.
+	 * @param string $value      The key value to validate.
+	 * @param mixed  $expected   `true` on success or a `WP_Error` on failure.
+	 * @return void
+	 * @dataProvider provide_test_validate_api_key
+	 */
+	public function test_validate_api_key( string $method, string $param_name, string $value, $expected ) {
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( $param_name, $value );
 
-		$data_provider = [
-			''               => true,
-			'asd'            => $expected_wp_error,
-			'pk_live_123123' => true,
-			'sk_live_123123' => $expected_wp_error,
-			'rk_live_123123' => $expected_wp_error,
-			'pk_test_123123' => $expected_wp_error,
-		];
+		$response = $this->controller->$method( $value, $request, $param_name );
 
-		foreach ( $data_provider as $param => $expected ) {
-			$request = new WP_REST_Request( 'POST', self::ROUTE );
-			$request->set_param( 'publishable_key', $param );
-
-			$response = $this->controller->validate_publishable_key( $param, $request, 'publishable_key' );
-
-			$this->assertEquals( $expected, $response, "Testing param: $param" );
-		}
+		$this->assertEquals( $expected, $response, "Testing param: $value" );
 	}
 
-	public function test_validate_secret_key() {
-		$expected_wp_error = new WP_Error( 400, 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.' );
+	/**
+	 * Data provider for `test_validate_api_key`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_validate_api_key(): array {
+		$live_pk_error   = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
+		$live_sk_error   = new WP_Error( 400, 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.' );
+		$test_pk_error   = new WP_Error( 400, 'The "Test Publishable Key" should start with "pk_test", enter the correct key.' );
+		$test_sk_error   = new WP_Error( 400, 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.' );
 
-		$data_provider = [
-			''               => true,
-			'asd'            => $expected_wp_error,
-			'pk_live_123123' => $expected_wp_error,
-			'sk_live_123123' => true,
-			'rk_live_123123' => true,
-			'sk_test_123123' => $expected_wp_error,
+		return [
+			// validate_publishable_key
+			'live publishable: blank is valid'     => [ 'validate_publishable_key', 'publishable_key', '', true ],
+			'live publishable: generic invalid'    => [ 'validate_publishable_key', 'publishable_key', 'asd', $live_pk_error ],
+			'live publishable: pk_live is valid'   => [ 'validate_publishable_key', 'publishable_key', 'pk_live_123123', true ],
+			'live publishable: sk_live is invalid' => [ 'validate_publishable_key', 'publishable_key', 'sk_live_123123', $live_pk_error ],
+			'live publishable: rk_live is invalid' => [ 'validate_publishable_key', 'publishable_key', 'rk_live_123123', $live_pk_error ],
+			'live publishable: pk_test is invalid' => [ 'validate_publishable_key', 'publishable_key', 'pk_test_123123', $live_pk_error ],
+
+			// validate_secret_key
+			'live secret: blank is valid'          => [ 'validate_secret_key', 'secret_key', '', true ],
+			'live secret: generic invalid'         => [ 'validate_secret_key', 'secret_key', 'asd', $live_sk_error ],
+			'live secret: pk_live is invalid'      => [ 'validate_secret_key', 'secret_key', 'pk_live_123123', $live_sk_error ],
+			'live secret: sk_live is valid'        => [ 'validate_secret_key', 'secret_key', 'sk_live_123123', true ],
+			'live secret: rk_live is valid'        => [ 'validate_secret_key', 'secret_key', 'rk_live_123123', true ],
+			'live secret: sk_test is invalid'      => [ 'validate_secret_key', 'secret_key', 'sk_test_123123', $live_sk_error ],
+
+			// validate_test_publishable_key
+			'test publishable: blank is valid'     => [ 'validate_test_publishable_key', 'test_publishable_key', '', true ],
+			'test publishable: generic invalid'    => [ 'validate_test_publishable_key', 'test_publishable_key', 'asd', $test_pk_error ],
+			'test publishable: pk_test is valid'   => [ 'validate_test_publishable_key', 'test_publishable_key', 'pk_test_123123', true ],
+			'test publishable: sk_test is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'sk_test_123123', $test_pk_error ],
+			'test publishable: rk_test is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'rk_test_123123', $test_pk_error ],
+			'test publishable: pk_live is invalid' => [ 'validate_test_publishable_key', 'test_publishable_key', 'pk_live_123123', $test_pk_error ],
+
+			// validate_test_secret_key
+			'test secret: blank is valid'          => [ 'validate_test_secret_key', 'test_secret_key', '', true ],
+			'test secret: generic invalid'         => [ 'validate_test_secret_key', 'test_secret_key', 'asd', $test_sk_error ],
+			'test secret: pk_test is invalid'      => [ 'validate_test_secret_key', 'test_secret_key', 'pk_test_123123', $test_sk_error ],
+			'test secret: sk_test is valid'        => [ 'validate_test_secret_key', 'test_secret_key', 'sk_test_123123', true ],
+			'test secret: rk_test is valid'        => [ 'validate_test_secret_key', 'test_secret_key', 'rk_test_123123', true ],
+			'test secret: sk_live is invalid'      => [ 'validate_test_secret_key', 'test_secret_key', 'sk_live_123123', $test_sk_error ],
 		];
-
-		foreach ( $data_provider as $param => $expected ) {
-			$request = new WP_REST_Request( 'POST', self::ROUTE );
-			$request->set_param( 'secret_key', $param );
-
-			$response = $this->controller->validate_secret_key( $param, $request, 'secret_key' );
-
-			$this->assertEquals( $expected, $response, "Testing param: $param" );
-		}
-	}
-
-	public function test_validate_test_publishable_key() {
-		$expected_wp_error = new WP_Error( 400, 'The "Test Publishable Key" should start with "pk_test", enter the correct key.' );
-
-		$data_provider = [
-			''               => true,
-			'asd'            => $expected_wp_error,
-			'pk_test_123123' => true,
-			'sk_test_123123' => $expected_wp_error,
-			'rk_test_123123' => $expected_wp_error,
-			'pk_live_123123' => $expected_wp_error,
-		];
-
-		foreach ( $data_provider as $param => $expected ) {
-			$request = new WP_REST_Request( 'POST', self::ROUTE );
-			$request->set_param( 'test_publishable_key', $param );
-
-			$response = $this->controller->validate_test_publishable_key( $param, $request, 'test_publishable_key' );
-
-			$this->assertEquals( $expected, $response, "Testing param: $param" );
-		}
-	}
-
-	public function test_validate_test_secret_key() {
-		$expected_wp_error = new WP_Error( 400, 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.' );
-
-		$data_provider = [
-			''               => true,
-			'asd'            => $expected_wp_error,
-			'pk_test_123123' => $expected_wp_error,
-			'sk_test_123123' => true,
-			'rk_test_123123' => true,
-			'sk_live_123123' => $expected_wp_error,
-		];
-
-		foreach ( $data_provider as $param => $expected ) {
-			$request = new WP_REST_Request( 'POST', self::ROUTE );
-			$request->set_param( 'test_secret_key', $param );
-
-			$response = $this->controller->validate_test_secret_key( $param, $request, 'test_secret_key' );
-
-			$this->assertEquals( $expected, $response, "Testing param: $param" );
-		}
 	}
 }

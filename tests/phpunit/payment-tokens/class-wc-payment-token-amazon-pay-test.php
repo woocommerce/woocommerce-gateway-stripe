@@ -46,53 +46,36 @@ class WC_Payment_Token_Amazon_Pay_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test is_equal_payment_method() returns true when type and email match.
+	 * Test for `is_equal_payment_method`.
+	 *
+	 * @param string $payment_method_type  The type set on the payment method mock.
+	 * @param string $payment_method_email The email set on the payment method mock's billing_details.
+	 * @param bool   $expected             The expected result.
+	 * @param string $message              The assertion failure message.
+	 * @return void
+	 * @dataProvider provide_test_is_equal_payment_method
 	 */
-	public function test_is_equal_payment_method_returns_true_on_valid_object() {
+	public function test_is_equal_payment_method( string $payment_method_type, string $payment_method_email, bool $expected, string $message ) {
 		$payment_method_mock = (object) [
-			'type'            => WC_Stripe_Payment_Methods::AMAZON_PAY,
+			'type'            => $payment_method_type,
 			'billing_details' => (object) [
-				'email' => 'john.doe@example.com',
+				'email' => $payment_method_email,
 			],
 		];
 
-		$this->assertTrue(
-			$this->token->is_equal_payment_method( $payment_method_mock ),
-			'is_equal_payment_method() should return true when type and email match.'
-		);
+		$this->assertSame( $expected, $this->token->is_equal_payment_method( $payment_method_mock ), $message );
 	}
 
 	/**
-	 * Test is_equal_payment_method() returns false for a mismatched type.
+	 * Data provider for `test_is_equal_payment_method`.
+	 *
+	 * @return array
 	 */
-	public function test_is_equal_payment_method_returns_false_mismatched_type() {
-		$payment_method_mock = (object) [
-			'type'            => 'card',
-			'billing_details' => (object) [
-				'email' => 'john.doe@example.com',
-			],
+	public function provide_test_is_equal_payment_method(): array {
+		return [
+			'type and email match'   => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'john.doe@example.com', true, 'is_equal_payment_method() should return true when type and email match.' ],
+			'mismatched type'        => [ 'card', 'john.doe@example.com', false, 'is_equal_payment_method() should return false when the type is not amazon_pay.' ],
+			'mismatched email'       => [ WC_Stripe_Payment_Methods::AMAZON_PAY, 'different_email@example.com', false, 'is_equal_payment_method() should return false when the email does not match.' ],
 		];
-
-		$this->assertFalse(
-			$this->token->is_equal_payment_method( $payment_method_mock ),
-			'is_equal_payment_method() should return false when the type is not amazon_pay.'
-		);
-	}
-
-	/**
-	 * Test is_equal_payment_method() returns false for a mismatched email.
-	 */
-	public function test_is_equal_payment_method_returns_false_mismatched_email() {
-		$payment_method_mock = (object) [
-			'type'            => WC_Stripe_Payment_Methods::AMAZON_PAY,
-			'billing_details' => (object) [
-				'email' => 'different_email@example.com',
-			],
-		];
-
-		$this->assertFalse(
-			$this->token->is_equal_payment_method( $payment_method_mock ),
-			'is_equal_payment_method() should return false when the email does not match.'
-		);
 	}
 }

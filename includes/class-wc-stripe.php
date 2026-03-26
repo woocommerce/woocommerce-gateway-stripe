@@ -164,6 +164,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-currency-code.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-country-code.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-methods.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-intent-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
@@ -215,6 +216,8 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-resolver.php';
+
 		// Load Agentic Commerce classes.
 		// Requires WooCommerce 10.5.0+ with FeedInterface.
 		if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
@@ -234,9 +237,19 @@ class WC_Stripe {
 		}
 
 		// Load Agentic Commerce classes that do not depend on FeedInterface/core.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-api-address.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-line-item.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-checkout-session.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-order-mapper.php';
+
+		// Customize checkout (tax calculation) hook — used by the webhook handler.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-line-item.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-event.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-tax-calculator.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-shipping-calculator.php';
+
+		// Finalize checkout (manual approval) hook — used by the webhook handler.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-manual-approval.php';
 
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
@@ -429,8 +442,9 @@ class WC_Stripe {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
 			unset( $stripe_settings['pmc_enabled'] );
+			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-			WC_Stripe_Logger::warning( 'Settings synchronization eligibility will be re-checked after upgrade' );
+			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
 
@@ -791,6 +805,11 @@ class WC_Stripe {
 	 * @return WC_Email[]
 	 */
 	public function add_emails( $email_classes ) {
+		if ( ! class_exists( 'WC_Email', false ) ) {
+			WC_Stripe_Logger::debug( 'WC_Email class not found, skipping email class addition' );
+			return $email_classes;
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-renewal-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-preorder-authentication.php';

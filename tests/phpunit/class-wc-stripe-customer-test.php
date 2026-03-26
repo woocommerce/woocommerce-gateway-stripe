@@ -381,6 +381,120 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that generate_customer_request falls back to order data when user meta is empty.
+	 *
+	 * This covers the race condition in issue #4697: during auto-account-creation flows,
+	 * the user exists but billing meta hasn't been saved yet. The address fields should
+	 * fall back to order data (or $_POST) instead of being empty.
+	 */
+	public function test_generate_customer_request_falls_back_to_order_when_user_meta_empty() {
+		// Create a user with name but no billing address meta.
+		$user_id = $this->factory->user->create( [ 'user_email' => 'test@example.com' ] );
+		update_user_meta( $user_id, 'first_name', 'Test' );
+		update_user_meta( $user_id, 'last_name', 'User' );
+		wp_set_current_user( $user_id );
+
+		$mock_order = $this->create_mock_order(
+			[
+				'address_1' => '123 Main St',
+				'city'      => 'Springfield',
+				'postcode'  => '62704',
+				'country'   => 'US',
+				'state'     => 'IL',
+			]
+		);
+
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		// Capture the args passed to the Stripe API via the filter.
+		$captured_args  = null;
+		$capture_filter = function ( $args ) use ( &$captured_args ) {
+			$captured_args = $args;
+			return $args;
+		};
+		add_filter( 'wc_stripe_create_customer_args', $capture_filter, 10, 1 );
+
+		// Mock Stripe API calls to prevent real requests.
+		$mock_http = function ( $return_value, $parsed_args, $url ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_test_fallback' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$customer->create_customer( [], null, $mock_order );
+
+			$this->assertNotNull( $captured_args, 'Customer args should have been captured' );
+			$this->assertEquals( '123 Main St', $captured_args['address']['line1'], 'line1 should fall back to order billing_address_1' );
+			$this->assertEquals( 'Springfield', $captured_args['address']['city'], 'city should fall back to order billing_city' );
+			$this->assertEquals( '62704', $captured_args['address']['postal_code'], 'postal_code should fall back to order billing_postcode' );
+			$this->assertEquals( 'US', $captured_args['address']['country'], 'country should fall back to order billing_country' );
+		} finally {
+			remove_filter( 'wc_stripe_create_customer_args', $capture_filter, 10 );
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+			wp_delete_user( $user_id );
+		}
+	}
+
+	/**
+	 * Test that generate_customer_request falls back to order data for name when user meta is empty.
+	 *
+	 * Same race condition as address (issue #4697): during auto-account creation,
+	 * user meta for first/last name may not yet be saved.
+	 */
+	public function test_generate_customer_request_falls_back_to_order_for_name_when_user_meta_empty() {
+		// Create a user with no name meta at all.
+		$user_id = $this->factory->user->create( [ 'user_email' => 'test@example.com' ] );
+		wp_set_current_user( $user_id );
+
+		$mock_order = $this->create_mock_order(
+			[
+				'first_name' => 'Jane',
+				'last_name'  => 'Doe',
+			]
+		);
+
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$captured_args  = null;
+		$capture_filter = function ( $args ) use ( &$captured_args ) {
+			$captured_args = $args;
+			return $args;
+		};
+		add_filter( 'wc_stripe_create_customer_args', $capture_filter, 10, 1 );
+
+		$mock_http = function ( $return_value, $parsed_args, $url ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_test_name_fallback' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$customer->create_customer( [], null, $mock_order );
+
+			$this->assertNotNull( $captured_args, 'Customer args should have been captured' );
+			$this->assertEquals( 'Jane Doe', $captured_args['name'], 'name should fall back to order billing first/last name' );
+			$this->assertStringContainsString( 'Jane', $captured_args['description'], 'description should contain the fallback first name' );
+		} finally {
+			remove_filter( 'wc_stripe_create_customer_args', $capture_filter, 10 );
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+			wp_delete_user( $user_id );
+		}
+	}
+
+	/**
 	 * Test that order data is excluded from Stripe API requests when passed via $args['order'].
 	 *
 	 * This test verifies the fix for backwards compatibility: when order is passed via $args['order'],
