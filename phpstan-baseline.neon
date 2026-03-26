@@ -2167,12 +2167,6 @@ parameters:
 			path: includes/class-wc-stripe-database-cache-prefetch.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 2
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
 			message: '#^@param string \$order_id does not accept actual type of parameter\: string\|null\.$#'
 			identifier: parameter.phpDocType
 			count: 1
