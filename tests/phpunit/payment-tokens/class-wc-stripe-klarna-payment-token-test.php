@@ -60,19 +60,19 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_getters_setters(): array {
 		return [
-			'February 1, 2000'  => [
+			'February 1, 2000' => [
 				(object) [
-					'day' => 1,
+					'day'   => 1,
 					'month' => 2,
-					'year' => 2000,
+					'year'  => 2000,
 				],
 				'2000-02-01',
 			],
-			'October 18, 1999'  => [
+			'October 18, 1999' => [
 				(object) [
-					'day' => 18,
+					'day'   => 18,
 					'month' => 10,
-					'year' => 1999,
+					'year'  => 1999,
 				],
 				'1999-10-18',
 			],
@@ -106,9 +106,9 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 			'type'   => WC_Stripe_Payment_Methods::KLARNA,
 			'klarna' => (object) [
 				'dob' => (object) [
-					'day' => 1,
+					'day'   => 1,
 					'month' => 2,
-					'year' => 2000,
+					'year'  => 2000,
 				],
 			],
 		];
@@ -118,30 +118,30 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 			'type'   => WC_Stripe_Payment_Methods::KLARNA,
 			'klarna' => (object) [
 				'dob' => (object) [
-					'day' => 2,
+					'day'   => 2,
 					'month' => 2,
-					'year' => 2000,
+					'year'  => 2000,
 				],
 			],
 		];
 
 		return [
-			'equal payment method'   => [
+			'equal payment method' => [
 				'pm_123',
 				(object) [
-					'day' => 1,
+					'day'   => 1,
 					'month' => 2,
-					'year' => 2000,
+					'year'  => 2000,
 				],
 				$matching_pm,
 				true,
 			],
-			'different DOB'          => [
+			'different DOB'        => [
 				'pm_123',
 				(object) [
-					'day' => 1,
+					'day'   => 1,
 					'month' => 2,
-					'year' => 2000,
+					'year'  => 2000,
 				],
 				$different_dob_pm,
 				false,

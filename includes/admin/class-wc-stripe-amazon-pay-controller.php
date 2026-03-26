@@ -69,9 +69,9 @@ class WC_Stripe_Amazon_Pay_Controller {
 	public function admin_options() {
 		global $hide_save_button;
 		$hide_save_button = true;
-		$return_url      = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
-		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		$return_text     = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+		$header           = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+		$return_text      = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 		echo '<div class="wrap"><div id="wc-stripe-amazon-pay-settings-container"></div></div>';

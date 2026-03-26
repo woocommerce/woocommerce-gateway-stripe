@@ -120,7 +120,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
-		$is_test_mode       = WC_Stripe_Mode::is_test();
+		$is_test_mode = WC_Stripe_Mode::is_test();
 
 		/**
 		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
@@ -134,7 +134,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
 			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			$error = null;
+			$error         = null;
 			if ( is_wp_error( $configuration ) ) {
 				$error = $configuration;
 			} elseif ( ! empty( $configuration->error ) ) {
@@ -248,8 +248,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 
 			return [
-				'pmc'     => null,
-				'reason'  => 'no_eligible_pmcs',
+				'pmc'    => null,
+				'reason' => 'no_eligible_pmcs',
 			];
 		}
 
