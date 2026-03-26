@@ -72,7 +72,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 
 		$order        = WC_Helper_Order::create_order();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$endpoint = '/' . strval( $order->get_id() ) . '/create_customer';
+		$endpoint     = '/' . strval( $order->get_id() ) . '/create_customer';
 		$order_helper->update_stripe_customer_id( $order, 'cus_12345' );
 		$order->save();
 		$this->assertEquals( 'cus_12345', $order_helper->get_stripe_customer_id( $order ) );

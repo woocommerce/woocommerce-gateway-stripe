@@ -38,6 +38,13 @@ rm( 'build/*.map' );
 // copy the directories to the release folder
 cp( '-Rf', filesToCopy, targetFolder );
 
+// Install production-only Composer dependencies in the release folder
+cp( 'composer.json', targetFolder );
+cp( 'composer.lock', targetFolder );
+exec( `composer install --no-dev --classmap-authoritative --working-dir=${ targetFolder }` );
+rm( targetFolder + '/composer.json' );
+rm( targetFolder + '/composer.lock' );
+
 const output = fs.createWriteStream(
 	releaseFolder + '/' + pluginSlug + '.zip'
 );

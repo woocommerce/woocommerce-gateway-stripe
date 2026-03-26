@@ -146,7 +146,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_start_creates_temp_file_and_writes_headers() {
 		$headers = [ 'id', 'title', 'price' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 
@@ -161,7 +161,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_special_characters_are_escaped() {
 		$headers = [ 'id', 'description' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->add_entry( [ '1', 'Description with "quotes" and, commas' ] );
@@ -188,7 +188,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_utf8_encoding_preserved() {
 		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->add_entry( [ '1', 'Product with café and 日本語' ] );
@@ -210,7 +210,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_null_values_converted_to_empty_strings() {
 		$headers = [ 'id', 'description', 'optional' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->add_entry( [ '1', 'Product', null ] );
@@ -230,7 +230,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_boolean_values_converted() {
 		$headers = [ 'id', 'in_stock', 'featured' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->add_entry( [ '1', true, false ] );
@@ -250,7 +250,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_arrays_throw_exception() {
 		$headers = [ 'id', 'categories' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 
@@ -268,7 +268,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_objects_throw_exception() {
 		$headers = [ 'id', 'data' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 
@@ -286,7 +286,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_preformatted_comma_separated_string() {
 		$headers = [ 'id', 'categories' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		// Caller should format arrays as comma-separated strings.
@@ -306,7 +306,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_add_entry_before_start_throws_exception() {
 		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 
 		$this->expectException( \Exception::class );
@@ -322,7 +322,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_add_entry_after_end_throws_exception() {
 		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->end();
@@ -340,7 +340,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_wrong_column_count_throws_exception() {
 		$headers = [ 'id', 'title', 'price' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 
@@ -357,7 +357,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	 */
 	public function test_file_in_temp_directory() {
 		$headers = [ 'id', 'title' ];
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'test-feed' );
 		$feed->set_columns( $headers );
 		$feed->start();
 		$feed->end();

@@ -77,8 +77,8 @@ class WC_Stripe_Express_Checkout_Controller {
 
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
-		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		$return_text     = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
+		$header           = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+		$return_text      = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
