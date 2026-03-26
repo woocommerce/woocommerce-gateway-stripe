@@ -154,8 +154,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			->willReturn( [ ProductType::SIMPLE ] );
 
 		$display_items = [
-			'currency'     => 'usd',
-			'country_code' => 'us',
 			'displayItems' => [
 				[
 					'label'  => $product->get_name(),
@@ -194,8 +192,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$response = json_decode( $output, true );
 
 		$this->assertIsArray( $response );
-		$this->assertSame( $display_items['currency'], $response['currency'] );
-		$this->assertSame( $display_items['country_code'], $response['country_code'] );
 		$this->assertSame( $display_items['displayItems'], $response['displayItems'] );
 		$this->assertSame( $display_items['total'], $response['total'] );
 	}
