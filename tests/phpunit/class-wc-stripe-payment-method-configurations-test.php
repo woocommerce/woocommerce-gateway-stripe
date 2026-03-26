@@ -298,77 +298,77 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function provide_get_payment_method_configuration_from_stripe_tests(): array {
 		return [
-			'no_pmcs_returned'                             => [
+			'no_pmcs_returned'                                                                   => [
 				'mock_pmc_response'        => [],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => false,
 			],
-			'only_live_child_pmc_returned'                 => [
+			'only_live_child_pmc_returned'                                                       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => false,
 			],
-			'only_live_child_pmc_returned_after_fallback_pmc_id_is_set' => [
+			'only_live_child_pmc_returned_after_fallback_pmc_id_is_set'                          => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => false,
 			],
-			'only_live_other_platform_child_no_pmc_returned' => [
+			'only_live_other_platform_child_no_pmc_returned'                                     => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_LIVE_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => false,
 			],
-			'only_live_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set' => [
+			'only_live_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set'        => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_LIVE_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => false,
 			],
-			'only_test_child_pmc_returned'                 => [
+			'only_test_child_pmc_returned'                                                       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => true,
 			],
-			'only_test_child_pmc_returned_after_fallback_pmc_id_is_set' => [
+			'only_test_child_pmc_returned_after_fallback_pmc_id_is_set'                          => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => true,
 			],
-			'only_test_other_platform_child_no_pmc_returned' => [
+			'only_test_other_platform_child_no_pmc_returned'                                     => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_TEST_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => true,
 			],
-			'only_test_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set' => [
+			'only_test_other_platform_child_no_pmc_returned_after_fallback_pmc_id_is_set'        => [
 				'mock_pmc_response'        => [ (object) self::MOCK_CHILD_OTHER_TEST_PMC ],
 				'expected_pmc_id'          => null,
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => true,
 			],
-			'only_live_non_child_default_pmc_returned'     => [
+			'only_live_non_child_default_pmc_returned'                                           => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => false,
 			],
-			'only_live_non_child_non_default_pmc_returned' => [
+			'only_live_non_child_non_default_pmc_returned'                                       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
@@ -389,7 +389,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => false,
 			],
-			'only_live_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
+			'only_live_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc'  => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
@@ -403,14 +403,14 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'only_test_non_child_default_pmc_returned'     => [
+			'only_test_non_child_default_pmc_returned'                                           => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'initial_fallback_pmc_id'  => null,
 				'is_test_mode'             => true,
 			],
-			'only_test_non_child_non_default_pmc_returned' => [
+			'only_test_non_child_non_default_pmc_returned'                                       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
@@ -431,7 +431,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => 'pmc_id_test',
 				'is_test_mode'             => true,
 			],
-			'only_test_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc' => [
+			'only_test_non_child_default_pmc_returned_after_fallback_pmc_id_is_set_to_same_pmc'  => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_TEST_NON_CHILD_DEFAULT_PMC['id'],
@@ -445,7 +445,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => true,
 			],
-			'live_non_child_default_active_pmc_returned_with_inactive_and_other_child_pmc' => [
+			'live_non_child_default_active_pmc_returned_with_inactive_and_other_child_pmc'       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_INACTIVE_PMC, (object) self::MOCK_CHILD_OTHER_LIVE_PMC, (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
@@ -487,28 +487,28 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'fallback_pmc_ignored_when_live_child_pmc_is_returned' => [
+			'fallback_pmc_ignored_when_live_child_pmc_is_returned'                               => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'default_pmc_ignored_when_live_child_pmc_is_returned' => [
+			'default_pmc_ignored_when_live_child_pmc_is_returned'                                => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_CHILD_LIVE_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_LIVE_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'fallback_pmc_ignored_when_test_child_pmc_is_returned' => [
+			'fallback_pmc_ignored_when_test_child_pmc_is_returned'                               => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC, (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
 				'initial_fallback_pmc_id'  => self::MOCK_TEST_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => true,
 			],
-			'default_pmc_ignored_when_test_child_pmc_is_returned' => [
+			'default_pmc_ignored_when_test_child_pmc_is_returned'                                => [
 				'mock_pmc_response'        => [ (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_CHILD_TEST_PMC ],
 				'expected_pmc_id'          => self::MOCK_CHILD_TEST_PMC['id'],
 				'expected_fallback_pmc_id' => null,
@@ -522,7 +522,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'initial_fallback_pmc_id'  => self::MOCK_LIVE_NON_CHILD_NON_DEFAULT_PMC['id'],
 				'is_test_mode'             => false,
 			],
-			'existing_fallback_pmc_returned_when_multiple_non_child_default_pmcs_returned' => [
+			'existing_fallback_pmc_returned_when_multiple_non_child_default_pmcs_returned'       => [
 				'mock_pmc_response'        => [ (object) self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC, (object) self::MOCK_TEST_NON_CHILD_DEFAULT_PMC ],
 				'expected_pmc_id'          => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
 				'expected_fallback_pmc_id' => self::MOCK_LIVE_NON_CHILD_DEFAULT_PMC['id'],
@@ -642,7 +642,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function provide_get_configuration_id_tests(): array {
 		return [
-			'PMC is disabled - live'                       => [
+			'PMC is disabled - live'                               => [
 				'is_test_mode'              => false,
 				'pmc_enabled'               => false,
 				'account_connected'         => true,
@@ -651,7 +651,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'PMC is disabled - test'                       => [
+			'PMC is disabled - test'                               => [
 				'is_test_mode'              => true,
 				'pmc_enabled'               => false,
 				'account_connected'         => true,
@@ -660,7 +660,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Account is not connected - live'              => [
+			'Account is not connected - live'                      => [
 				'is_test_mode'              => false,
 				'pmc_enabled'               => true,
 				'account_connected'         => false,
@@ -669,7 +669,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Account is not connected - test'              => [
+			'Account is not connected - test'                      => [
 				'is_test_mode'              => true,
 				'pmc_enabled'               => true,
 				'account_connected'         => false,
@@ -678,7 +678,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Does not have a primary configuration - live' => [
+			'Does not have a primary configuration - live'         => [
 				'is_test_mode'              => false,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
@@ -687,7 +687,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Does not have a primary configuration - test' => [
+			'Does not have a primary configuration - test'         => [
 				'is_test_mode'              => true,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
@@ -696,7 +696,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Has a primary configuration with no id - live' => [
+			'Has a primary configuration with no id - live'        => [
 				'is_test_mode'              => false,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
@@ -705,7 +705,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => null,
 			],
-			'Has a primary configuration with no id - test' => [
+			'Has a primary configuration with no id - test'        => [
 				'is_test_mode'              => true,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
@@ -732,7 +732,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => true,
 				'expected_configuration_id' => null,
 			],
-			'Has a primary configuration with an id - live' => [
+			'Has a primary configuration with an id - live'        => [
 				'is_test_mode'              => false,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
@@ -741,7 +741,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'from_cache'                => false,
 				'expected_configuration_id' => 'pmc_12345',
 			],
-			'Has a primary configuration with an id - test' => [
+			'Has a primary configuration with an id - test'        => [
 				'is_test_mode'              => true,
 				'pmc_enabled'               => true,
 				'account_connected'         => true,
