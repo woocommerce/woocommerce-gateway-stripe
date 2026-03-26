@@ -516,6 +516,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook for mandate status updates.
+	 *
+	 * Handles mandate cancellation (revocation), pause (inactive), and
+	 * reactivation (active) for Indian recurring payments and other
+	 * mandate-based payment methods.
+	 *
+	 * @since 10.2.0
+	 * @param object $notification The webhook notification from Stripe.
+	 */
+	public function process_webhook_mandate_updated( $notification ) {
+		// Will be implemented in the next task.
+	}
+
+	/**
 	 * Process webhook capture. This is used for an authorized only
 	 * transaction that is later captured via Stripe not WC.
 	 *
@@ -1769,6 +1783,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':
 				$this->process_checkout_session_failure( $notification );
+				break;
+
+			case 'mandate.updated':
+				$this->process_webhook_mandate_updated( $notification );
 				break;
 		}
 
