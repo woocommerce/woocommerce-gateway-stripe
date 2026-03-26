@@ -45,6 +45,9 @@ function _manually_load_plugin() {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+
+	// Agentic Commerce admin dashboard (not autoloaded outside is_admin()).
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-agentic-commerce-admin-dashboard.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );

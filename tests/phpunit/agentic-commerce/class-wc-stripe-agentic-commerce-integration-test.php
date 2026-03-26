@@ -175,4 +175,102 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_feed', \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
 		$this->assertEquals( 900, \WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL ); // 15 * 60
 	}
+
+	// -------------------------------------------------------------------------
+	// store_sync_result
+	// -------------------------------------------------------------------------
+
+	/**
+	 * store_sync_result persists an entry in the history option and updates last sync.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_persists_entry(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$result = [
+			'products'      => 100,
+			'status'        => 'succeeded',
+			'file_id'       => 'file_abc',
+			'import_set_id' => 'impset_xyz',
+			'error'         => '',
+		];
+
+		$integration->store_sync_result( $result );
+
+		$history   = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertCount( 1, $history );
+		$this->assertEquals( 100, $history[0]['products'] );
+		$this->assertEquals( 'succeeded', $history[0]['status'] );
+		$this->assertEquals( 'impset_xyz', $history[0]['import_set_id'] );
+		$this->assertArrayHasKey( 'timestamp', $history[0] );
+
+		$this->assertEquals( $history[0], $last_sync );
+	}
+
+	/**
+	 * store_sync_result caps history at SYNC_HISTORY_LIMIT entries.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_caps_history_at_limit(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		// Pre-fill history at the limit.
+		$history = [];
+		for ( $i = 0; $i < \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_LIMIT; $i++ ) {
+			$history[] = [
+				'timestamp'     => time() - ( $i * 60 ),
+				'products'      => $i,
+				'status'        => 'succeeded',
+				'file_id'       => "file_{$i}",
+				'import_set_id' => "impset_{$i}",
+				'error'         => '',
+			];
+		}
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		// Add one more entry.
+		$integration->store_sync_result(
+			[
+				'products'      => 999,
+				'status'        => 'succeeded',
+				'file_id'       => 'file_new',
+				'import_set_id' => 'impset_new',
+				'error'         => '',
+			]
+		);
+
+		$stored = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertCount( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_LIMIT, $stored );
+		// The newest entry should be last.
+		$this->assertEquals( 'impset_new', end( $stored )['import_set_id'] );
+	}
+
+	/**
+	 * store_sync_result records error information.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_records_error(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$integration->store_sync_result(
+			[
+				'products'      => 0,
+				'status'        => 'failed',
+				'file_id'       => '',
+				'import_set_id' => '',
+				'error'         => 'Stripe API key not configured',
+			]
+		);
+
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertEquals( 'failed', $last_sync['status'] );
+		$this->assertEquals( 'Stripe API key not configured', $last_sync['error'] );
+	}
 }

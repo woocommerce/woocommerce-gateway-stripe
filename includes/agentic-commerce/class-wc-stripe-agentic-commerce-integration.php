@@ -202,6 +202,27 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Option key for the last sync result.
+	 *
+	 * @var string
+	 */
+	const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
+
+	/**
+	 * Option key for the sync history.
+	 *
+	 * @var string
+	 */
+	const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
+
+	/**
+	 * Maximum number of sync history entries to retain.
+	 *
+	 * @var int
+	 */
+	const SYNC_HISTORY_LIMIT = 50;
+
+	/**
 	 * Execute feed sync process.
 	 *
 	 * Generates product feed using ProductWalker.
@@ -293,6 +314,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
 				wp_delete_file( $file_path );
 			}
+
+			// Persist sync result for dashboard display.
+			$this->store_sync_result(
+				[
+					'products'      => $total_products,
+					'status'        => $result['status'] ?? 'unknown',
+					'file_id'       => $result['file_id'] ?? '',
+					'import_set_id' => $result['import_set_id'] ?? '',
+					'error'         => '',
+				]
+			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
@@ -303,7 +335,54 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'line'  => $e->getLine(),
 				]
 			);
+
+			// Persist failure for dashboard display.
+			$this->store_sync_result(
+				[
+					'products'      => 0,
+					'status'        => 'failed',
+					'file_id'       => '',
+					'import_set_id' => '',
+					'error'         => $e->getMessage(),
+				]
+			);
 		}
+	}
+
+	/**
+	 * Persist a sync result to the history option and update the last-sync snapshot.
+	 *
+	 * @since 10.5.0
+	 * @param array $result {
+	 *     Sync result data.
+	 *
+	 *     @type int    $products      Number of products synced.
+	 *     @type string $status        Sync status (e.g. "succeeded", "failed").
+	 *     @type string $file_id       Stripe file ID.
+	 *     @type string $import_set_id Stripe ImportSet ID.
+	 *     @type string $error         Error message, if any.
+	 * }
+	 * @return void
+	 */
+	public function store_sync_result( array $result ): void {
+		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
+
+		$entry = [
+			'timestamp'     => time(),
+			'products'      => $result['products'] ?? 0,
+			'status'        => $result['status'] ?? 'unknown',
+			'file_id'       => $result['file_id'] ?? '',
+			'import_set_id' => $result['import_set_id'] ?? '',
+			'error'         => $result['error'] ?? '',
+		];
+
+		$history[] = $entry;
+
+		// Cap history to the configured limit.
+		$history = array_slice( $history, -self::SYNC_HISTORY_LIMIT );
+
+		update_option( self::SYNC_HISTORY_OPTION, $history );
+		update_option( self::LAST_SYNC_OPTION, end( $history ) );
 	}
 
 	/**
