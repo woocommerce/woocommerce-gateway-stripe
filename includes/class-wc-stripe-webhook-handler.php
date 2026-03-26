@@ -572,7 +572,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// For non-actionable states (active, pending), check if the last order note already
 		// matches this mandate status to avoid duplicate notes on webhook redelivery.
 		if ( ! $target_order_status ) {
-			$existing_notes = wc_get_order_notes( [ 'order_id' => $order->get_id(), 'limit' => 1 ] );
+			$existing_notes = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			);
 			$note_preview   = $this->get_mandate_order_note( $mandate_id, $mandate_status, $revocation_reason );
 			if ( ! empty( $existing_notes ) && $existing_notes[0]->content === $note_preview ) {
 				WC_Stripe_Logger::info(
