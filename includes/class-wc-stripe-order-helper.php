@@ -663,18 +663,47 @@ class WC_Stripe_Order_Helper {
 	 * @return WC_Order|null The order, or null if not found.
 	 */
 	public function get_order_by_mandate_id( string $mandate_id ): ?WC_Order {
-		$orders = wc_get_orders(
-			[
-				'meta_key'   => self::META_STRIPE_MANDATE_ID,
-				'meta_value' => $mandate_id,
-				'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::ON_HOLD ],
-				'orderby'    => 'date',
-				'order'      => 'DESC',
-				'limit'      => 1,
-			]
+		if ( empty( $mandate_id ) ) {
+			return null;
+		}
+
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'status'     => [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::ON_HOLD ],
+					'orderby'    => 'date',
+					'order'      => 'DESC',
+					'meta_query' => [
+						[
+							'key'   => self::META_STRIPE_MANDATE_ID,
+							'value' => $mandate_id,
+						],
+					],
+				]
+			);
+
+			return ! empty( $orders ) ? $orders[0] : null;
+		}
+
+		$order_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_status IN ('wc-pending', 'wc-processing', 'wc-on-hold') ORDER BY posts.post_date DESC LIMIT 1",
+				$mandate_id,
+				'_stripe_mandate_id'
+			)
 		);
 
-		return ! empty( $orders ) ? $orders[0] : null;
+		if ( ! empty( $order_id ) ) {
+			$order = wc_get_order( $order_id );
+			if ( $order && $order->get_status() !== OrderStatus::TRASH ) {
+				return $order;
+			}
+		}
+
+		return null;
 	}
 
 	/**
