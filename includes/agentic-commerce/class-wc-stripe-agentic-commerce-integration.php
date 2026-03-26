@@ -352,7 +352,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Persist a sync result to the history option and update the last-sync snapshot.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param array $result {
 	 *     Sync result data.
 	 *

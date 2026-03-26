@@ -6,7 +6,7 @@
  * Provides a status overview, sync history table, error display, and a manual sync button.
  *
  * @package WooCommerce_Stripe
- * @since 10.5.0
+ * @since 10.6.0
  */
 
 declare(strict_types=1);
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Stripe Agentic Commerce Admin Dashboard
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 
@@ -60,7 +60,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Register WordPress hooks.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function register_hooks(): void {
@@ -73,7 +73,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Register the admin page under WooCommerce.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function register_admin_page(): void {
@@ -90,7 +90,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Enqueue admin scripts and styles.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param string $hook_suffix Current admin page hook.
 	 * @return void
 	 */
@@ -110,7 +110,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the dashboard page.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function render_page(): void {
@@ -128,7 +128,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Handle the manual sync form submission.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function handle_manual_sync(): void {
@@ -163,7 +163,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Display an admin notice after manual sync is triggered.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function render_sync_triggered_notice(): void {
@@ -190,7 +190,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the sync status card.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function render_sync_status(): void {
@@ -216,7 +216,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render a status badge for the given sync status string.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param string $status Sync status value.
 	 * @return void
 	 */
@@ -234,7 +234,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the sync details rows (timestamp, products, IDs).
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param array $last_sync Last sync data from option.
 	 * @return void
 	 */
@@ -273,7 +273,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Display error information if the last sync had errors.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param array $last_sync Last sync data from option.
 	 * @return void
 	 */
@@ -300,7 +300,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the action buttons (Sync Now).
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	private function render_action_buttons(): void {
@@ -334,7 +334,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the next scheduled sync time.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function render_next_sync(): void {
@@ -363,7 +363,7 @@ class WC_Stripe_Agentic_Commerce_Admin_Dashboard {
 	/**
 	 * Render the sync history table.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function render_sync_history(): void {
