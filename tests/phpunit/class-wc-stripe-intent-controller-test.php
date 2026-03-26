@@ -421,12 +421,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function test_create_and_confirm_setup_intent_error() {
 		$payment_information = [
 			'payment_method'        => 'pm_mock',
-			'customer'             => 'cus_mock',
+			'customer'              => 'cus_mock',
 			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
-			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
-			'return_url'           => 'https://example.com/return',
-			'order'               => $this->order,
-			'use_stripe_sdk'      => 'true',
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
 		];
 
 		$test_request = function ( $preempt, $parsed_args, $url ) {
@@ -526,7 +526,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		ob_start();
 		$this->mock_controller->create_and_confirm_setup_intent_ajax();
-		$output = ob_get_clean();
+		$output   = ob_get_clean();
 		$response = json_decode( $output, true );
 		$this->assertFalse( $response['success'] );
 		$this->assertArrayHasKey( 'error', $response['data'] );
