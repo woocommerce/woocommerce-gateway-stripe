@@ -131,6 +131,7 @@ export const useCheckoutSuccessHandler = (
 
 					const { redirect } = paymentDetails;
 					const { checkout } = checkoutState;
+
 					const confirmArgs = {
 						billingAddress: {
 							name: `${ billingAddress?.first_name ?? '' } ${
@@ -145,24 +146,67 @@ export const useCheckoutSuccessHandler = (
 								postal_code: billingAddress?.postcode,
 							},
 						},
-						shippingAddress: {
-							name: `${ shippingAddress?.first_name ?? '' } ${
-								shippingAddress?.last_name ?? ''
-							}`.trim(),
-							address: {
-								country: shippingAddress?.country,
-								line1: shippingAddress?.address_1,
-								line2: shippingAddress?.address_2,
-								state: shippingAddress?.state,
-								city: shippingAddress?.city,
-								postal_code: shippingAddress?.postcode,
-							},
-						},
 						returnUrl: redirect,
 					};
 
-					// If checkout session doesn't have email, attempt to get it from the checkout form.
+					// Only include shipping information if the min. requirement is met.
+					if (
+						shippingAddress?.address_1 &&
+						shippingAddress?.country
+					) {
+						confirmArgs.shippingAddress = {
+							address: {
+								country: shippingAddress?.country,
+								line1: shippingAddress?.address_1,
+								postal_code: shippingAddress?.postcode,
+							},
+						};
+
+						// API do not accept empty values.
+						if ( shippingAddress?.recipient ) {
+							confirmArgs.shippingAddress.name = `${
+								shippingAddress?.recipient
+									?.split( ' ' )
+									?.slice( 0, 1 )
+									?.join( ' ' ) ?? ''
+							} ${
+								shippingAddress?.recipient
+									?.split( ' ' )
+									?.slice( 1 )
+									?.join( ' ' ) ?? ''
+							}`.trim();
+						}
+
+						// If the shipping address name is still empty, attempt to use the billing name (it is a required parameter).
+						if ( ! confirmArgs.shippingAddress.name ) {
+							confirmArgs.shippingAddress.name = `${
+								billingAddress?.first_name ?? ''
+							} ${ billingAddress?.last_name ?? '' }`.trim();
+						}
+
+						if ( shippingAddress?.address_2 ) {
+							confirmArgs.shippingAddress.address.line2 =
+								shippingAddress?.address_2;
+						}
+
+						if ( shippingAddress?.state ) {
+							confirmArgs.shippingAddress.address.state =
+								shippingAddress?.state;
+						}
+
+						if ( shippingAddress?.city ) {
+							confirmArgs.shippingAddress.address.city =
+								shippingAddress?.city;
+						}
+
+						if ( shippingAddress?.postcode ) {
+							confirmArgs.shippingAddress.address.postal_code =
+								shippingAddress?.postcode;
+						}
+					}
+
 					if ( ! checkout.email ) {
+						// If checkout session doesn't have email, attempt to get it from the checkout form.
 						const userEmail =
 							document.getElementById( 'email' )?.value;
 						if ( userEmail ) {
