@@ -2167,18 +2167,6 @@ parameters:
 			path: includes/class-wc-stripe-database-cache-prefetch.php
 
 		-
-			message: '#^Expected 3 @param tags, found 2\.$#'
-			identifier: paramTag.count
-			count: 1
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
-			message: '#^Method WC_Stripe_Feature_Flags\:\:is_oc_available\(\) should return bool but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-feature-flags.php
-
-		-
 			message: '#^@param string \$order_id does not accept actual type of parameter\: string\|null\.$#'
 			identifier: parameter.phpDocType
 			count: 1
@@ -4703,6 +4691,7 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
+
 
 		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
