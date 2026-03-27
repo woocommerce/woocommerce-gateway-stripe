@@ -786,26 +786,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function should_use_optimized_checkout_payment_method_layout(): bool {
-		return $this->oc_enabled && $this->is_valid_optimized_checkout_page() && $this->is_stripe_first_available_gateway();
-	}
-
-	/**
-	 * Checks whether Stripe is the first available gateway in checkout.
-	 *
-	 * @return bool True if Stripe is first available gateway, false otherwise.
-	 */
-	protected function is_stripe_first_available_gateway(): bool {
-		$payment_gateways = WC()->payment_gateways();
-		if ( ! $payment_gateways || ! is_callable( [ $payment_gateways, 'get_available_payment_gateways' ] ) ) {
-			return false;
-		}
-
-		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( ! is_array( $available_gateways ) || empty( $available_gateways ) ) {
-			return false;
-		}
-
-		return self::ID === array_key_first( $available_gateways );
+		return $this->oc_enabled && $this->is_valid_optimized_checkout_page() && WC_Stripe_Helper::is_stripe_first_available_gateway( self::ID );
 	}
 
 	/**

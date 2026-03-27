@@ -741,6 +741,30 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
+	 *
+	 * @param string|null $stripe_gateway_id Main Stripe gateway id. Defaults to `stripe` (see WC_Stripe_UPE_Payment_Gateway::ID).
+	 * @return bool
+	 */
+	public static function is_stripe_first_available_gateway( $stripe_gateway_id = null ) {
+		if ( null === $stripe_gateway_id ) {
+			$stripe_gateway_id = 'stripe';
+		}
+
+		$payment_gateways = WC()->payment_gateways();
+		if ( ! $payment_gateways || ! is_callable( [ $payment_gateways, 'get_available_payment_gateways' ] ) ) {
+			return false;
+		}
+
+		$available_gateways = $payment_gateways->get_available_payment_gateways();
+		if ( ! is_array( $available_gateways ) || empty( $available_gateways ) ) {
+			return false;
+		}
+
+		return array_key_first( $available_gateways ) === $stripe_gateway_id;
+	}
+
+	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
