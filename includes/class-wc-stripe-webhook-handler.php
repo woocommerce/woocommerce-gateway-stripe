@@ -1614,6 +1614,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_checkout_session_failure( object $notification ): void {
 		$checkout_session = $notification->data->object;
+
+		if ( ! isset( $checkout_session->id ) ) {
+			WC_Stripe_Logger::debug( 'Checkout session ID is missing from the event data.' );
+			return;
+		}
+
 		$order            = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 
 		if ( ! $order instanceof \WC_Order ) {
