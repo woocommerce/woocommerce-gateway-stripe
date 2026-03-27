@@ -381,9 +381,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * error response so we can fetch it and inspect the outcome.
 	 *
 	 * @param object $response The Stripe API response containing the error.
-	 * @return bool True if Stripe Radar blocked the charge.
+	 * @return string|false The Radar block reason (e.g. 'highest_risk_level', 'rule') when the
+	 *                      charge is blocked, false otherwise.
 	 */
-	protected function is_charge_blocked_by_radar( $response ): bool {
+	protected function is_charge_blocked_by_radar( $response ) {
 		$charge_id = null;
 
 		// For both the Charges API (e.g. SEPA) and the Payment Intents API, the
@@ -405,7 +406,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			return false;
 		}
 
-		return isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type;
+		if ( isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type ) {
+			return isset( $charge->outcome->reason ) ? (string) $charge->outcome->reason : 'unknown';
+		}
+
+		return false;
 	}
 
 	/**
@@ -488,7 +493,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
-				if ( $this->is_retryable_error( $response->error ) && ! $this->is_charge_blocked_by_radar( $response ) ) {
+				if ( $this->is_retryable_error( $response->error ) && false === $this->is_charge_blocked_by_radar( $response ) ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -549,8 +554,23 @@ trait WC_Stripe_Subscriptions_Trait {
 			// If the payment was blocked by Stripe Radar, suspend the parent subscription(s)
 			// so that WC Subscriptions does not schedule further retry attempts. Each retry
 			// would create a new charge that Radar would block again, inflating the block rate.
-			if ( isset( $response ) && ! empty( $response->error ) && $this->is_charge_blocked_by_radar( $response ) ) {
-				$radar_note = __( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+			$radar_reason = ( isset( $response ) && ! empty( $response->error ) )
+				? $this->is_charge_blocked_by_radar( $response )
+				: false;
+
+			if ( false !== $radar_reason ) {
+				switch ( $radar_reason ) {
+					case 'rule':
+						$radar_note = __( 'Stripe Radar blocked this payment due to a custom Radar rule. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						break;
+					case 'low_probability_of_authorization':
+						$radar_note = __( 'Stripe blocked this payment due to low probability of authorization. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						break;
+					case 'highest_risk_level':
+					default:
+						$radar_note = __( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
+						break;
+				}
 				$renewal_order->add_order_note( $radar_note );
 
 				try {
