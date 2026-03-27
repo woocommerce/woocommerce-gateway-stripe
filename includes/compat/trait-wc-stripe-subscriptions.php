@@ -402,7 +402,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
 
-		if ( empty( $charge ) || ! empty( $charge->error ) ) {
+		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
 			return false;
 		}
 
