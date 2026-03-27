@@ -134,7 +134,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		);
 
 		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
-		$threshold  = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
 
 		// Call retrieve up to the threshold, each should make an HTTP call.
 		for ( $i = 0; $i < $threshold; $i++ ) {
@@ -225,7 +225,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			return $response;
 		};
 
-		$mock_logger = $this->createMock( \WC_Logger::class );
+		$mock_logger               = $this->createMock( \WC_Logger::class );
 		\WC_Stripe_Logger::$logger = $mock_logger;
 
 		$expected_data_keys = [
@@ -298,62 +298,62 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_log_error_response_tests(): array {
 		return [
-			'generic error for GET account' => [
+			'generic error for GET account'                             => [
 				'response' => new \WP_Error( 'mock_error', 'Mock Error' ),
-				'api' => 'account',
-				'method' => 'GET',
+				'api'      => 'account',
+				'method'   => 'GET',
 			],
-			'generic error for POST account' => [
-				'response' => new \WP_Error( 'mock_error', 'Mock Error' ),
-				'api' => 'account',
-				'method' => 'POST',
+			'generic error for POST account'                            => [
+				'response'     => new \WP_Error( 'mock_error', 'Mock Error' ),
+				'api'          => 'account',
+				'method'       => 'POST',
 				'request_data' => [ 'test' => 'test' ],
 			],
-			'general http_request_failed error for GET account' => [
+			'general http_request_failed error for GET account'         => [
 				'response' => new \WP_Error( 'http_request_failed', 'Mock Error' ),
-				'api' => 'account',
-				'method' => 'GET',
+				'api'      => 'account',
+				'method'   => 'GET',
 			],
-			'general http_request_failed error for POST account' => [
-				'response' => new \WP_Error( 'http_request_failed', 'Mock Error' ),
-				'api' => 'account',
-				'method' => 'POST',
+			'general http_request_failed error for POST account'        => [
+				'response'     => new \WP_Error( 'http_request_failed', 'Mock Error' ),
+				'api'          => 'account',
+				'method'       => 'POST',
 				'request_data' => [ 'test' => 'test' ],
 			],
-			'URL validation http_request_failed error for GET account' => [
+			'URL validation http_request_failed error for GET account'  => [
 				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
-				'api' => 'account',
-				'method' => 'GET',
+				'api'      => 'account',
+				'method'   => 'GET',
 			],
 			'URL validation http_request_failed error for POST account' => [
 				// phpcs:ignore WordPress.WP.I18n.MissingArgDomain
-				'response' => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
-				'api' => 'account',
-				'method' => 'POST',
+				'response'     => new \WP_Error( 'http_request_failed', __( 'A valid URL was not provided.' ) ),
+				'api'          => 'account',
+				'method'       => 'POST',
 				'request_data' => [ 'test' => 'test' ],
 			],
-			'empty response body for GET account' => [
+			'empty response body for GET account'                       => [
 				'response' => [
 					'response' => [
-						'code' => 200,
+						'code'    => 200,
 						'message' => 'OK',
 					],
-					'body' => '',
+					'body'     => '',
 				],
-				'api' => 'account',
-				'method' => 'GET',
+				'api'      => 'account',
+				'method'   => 'GET',
 			],
-			'empty response body for POST account' => [
-				'response' => [
+			'empty response body for POST account'                      => [
+				'response'     => [
 					'response' => [
-						'code' => 200,
+						'code'    => 200,
 						'message' => 'OK',
 					],
-					'body' => '',
+					'body'     => '',
 				],
-				'api' => 'account',
-				'method' => 'POST',
+				'api'          => 'account',
+				'method'       => 'POST',
 				'request_data' => [ 'test' => 'test' ],
 			],
 		];
@@ -361,49 +361,49 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 
 	public function provide_test_should_detach_payment_method_from_customer(): array {
 		return [
-			'test mode from non-admin context should detach' => [
+			'test mode from non-admin context should detach'                                  => [
 				'expected_return'        => true,
 				'is_test_mode'           => true,
 				'is_admin_request'       => false,
 				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
-			'live mode from non-admin context should detach' => [
+			'live mode from non-admin context should detach'                                  => [
 				'expected_return'        => true,
 				'is_test_mode'           => false,
 				'is_admin_request'       => false,
 				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
-			'test mode from admin context should detach' => [
+			'test mode from admin context should detach'                                      => [
 				'expected_return'        => true,
 				'is_test_mode'           => true,
 				'is_admin_request'       => true,
 				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
-			'test mode from wp cron context should detach' => [
+			'test mode from wp cron context should detach'                                    => [
 				'expected_return'        => true,
 				'is_test_mode'           => true,
 				'is_admin_request'       => false,
 				'is_cron_request'        => true,
 				'is_wc_sub_staging_site' => false,
 			],
-			'live mode from admin context with no subscription staging site should detach' => [
+			'live mode from admin context with no subscription staging site should detach'    => [
 				'expected_return'        => true,
 				'is_test_mode'           => false,
 				'is_admin_request'       => true,
 				'is_cron_request'        => false,
 				'is_wc_sub_staging_site' => false,
 			],
-			'live mode from wp cron context with no subscription staging site should detach' => [
+			'live mode from wp cron context with no subscription staging site should detach'  => [
 				'expected_return'        => true,
 				'is_test_mode'           => false,
 				'is_admin_request'       => false,
 				'is_cron_request'        => true,
 				'is_wc_sub_staging_site' => false,
 			],
-			'live mode from admin context with subscription staging site should not detach' => [
+			'live mode from admin context with subscription staging site should not detach'   => [
 				'expected_return'        => false,
 				'is_test_mode'           => false,
 				'is_admin_request'       => true,
@@ -428,7 +428,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_should_detach_payment_method_from_customer( bool $expected_return, bool $is_test_mode, bool $is_admin_request, bool $is_cron_request, bool $is_wc_sub_staging_site = false ) {
 		$initial_test_mode = \WC_Stripe_Mode::is_test();
 
-		$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $is_test_mode ? 'yes' : 'no';
 		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -458,7 +458,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		}
 
 		if ( $initial_test_mode !== $is_test_mode ) {
-			$stripe_settings = \WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
 			$stripe_settings['testmode'] = $initial_test_mode ? 'yes' : 'no';
 			\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}

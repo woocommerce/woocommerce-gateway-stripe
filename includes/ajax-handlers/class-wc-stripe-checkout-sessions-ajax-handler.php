@@ -5,9 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WC_Stripe_Checkout_Sessions_Controller class.
+ * WC_Stripe_Checkout_Sessions_Ajax_Handler class.
  */
-class WC_Stripe_Checkout_Sessions_Controller {
+class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Initialize hooks.
 	 *
