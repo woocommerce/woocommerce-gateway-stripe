@@ -119,7 +119,7 @@ return apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'express_checkout'                     => [
+		'express_checkout'                    => [
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
 			'label'       => sprintf(
 				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
@@ -135,7 +135,7 @@ return apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'express_checkout_button_type'         => [
+		'express_checkout_button_type'        => [
 			'title'       => __( 'Payment Request Button Type', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Type', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
@@ -149,7 +149,7 @@ return apply_filters(
 				'book'    => __( 'Book', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'express_checkout_button_theme'        => [
+		'express_checkout_button_theme'       => [
 			'title'       => __( 'Payment Request Button Theme', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Theme', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
@@ -190,7 +190,7 @@ return apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'express_checkout_button_locations'    => [
+		'express_checkout_button_locations'   => [
 			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
 			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
@@ -206,7 +206,7 @@ return apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'express_checkout_button_size'         => [
+		'express_checkout_button_size'        => [
 			'title'       => __( 'Payment Request Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
@@ -226,7 +226,7 @@ return apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
-		'sepa_tokens_for_ideal'       => [
+		'sepa_tokens_for_ideal'               => [
 			'title'       => __( 'SEPA Direct Debit tokens when saving iDEAL | Wero methods', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable saved iDEAL | Wero payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
@@ -234,7 +234,7 @@ return apply_filters(
 			'default'     => 'no',
 			'desc_tip'    => true,
 		],
-		'sepa_tokens_for_bancontact'       => [
+		'sepa_tokens_for_bancontact'          => [
 			'title'       => __( 'SEPA Direct Debit tokens when saving Bancontact methods', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable saved Bancontact payments for repeat payments', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',

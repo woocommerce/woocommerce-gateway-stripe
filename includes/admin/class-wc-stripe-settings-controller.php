@@ -109,8 +109,8 @@ class WC_Stripe_Settings_Controller {
 
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
-		$header          = $gateway->get_method_title();
-		$return_text     = __( 'Return to payments', 'woocommerce-gateway-stripe' );
+		$header           = $gateway->get_method_title();
+		$return_text      = __( 'Return to payments', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 

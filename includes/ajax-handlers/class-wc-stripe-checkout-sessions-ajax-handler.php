@@ -58,20 +58,20 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 				$line_items[] = [
 					'price_data' => [
-						'currency' => strtolower( $currency ),
+						'currency'     => strtolower( $currency ),
 						'product_data' => [
 							'name' => $raw_line_item['label'],
 						],
-						'unit_amount' => $raw_line_item['amount'],
+						'unit_amount'  => $raw_line_item['amount'],
 					],
-					'quantity' => 1, // @TODO: Handle quantity properly if needed.
+					'quantity'   => 1, // @TODO: Handle quantity properly if needed.
 				];
 			}
 
 			$first_name = get_user_meta( $user_id, 'first_name', true );
-			$last_name = get_user_meta( $user_id, 'last_name', true );
-			$full_name = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
-			$email     = $wc_customer->get_email();
+			$last_name  = get_user_meta( $user_id, 'last_name', true );
+			$full_name  = trim( sanitize_text_field( $first_name ) . ' ' . sanitize_text_field( $last_name ) );
+			$email      = $wc_customer->get_email();
 
 			$payment_intent_metadata = apply_filters(
 				'wc_stripe_payment_metadata',
@@ -90,8 +90,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'customer'                      => $stripe_customer->get_id(),
 				'line_items'                    => $line_items,
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'  => [
-					'metadata' => $payment_intent_metadata,
+				'payment_intent_data'           => [
+					'metadata'      => $payment_intent_metadata,
 					'receipt_email' => $email,
 					'shipping'      => [
 						'name'    => $full_name,

@@ -532,7 +532,7 @@ class WC_Stripe_Admin_Notices {
 				}
 				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 				if ( ! empty( $detached_messages ) ) {
-					$notice_content = '<p>';
+					$notice_content  = '<p>';
 					$notice_content .= wp_kses(
 						$detached_messages,
 						[
