@@ -122,9 +122,11 @@ class WC_Stripe_Payment_Tokens {
 		// When OCS is active, sub-gateway tokens (e.g. stripe_us_bank_account) are surfaced under
 		// the main 'stripe' gateway, so accept them when checking out through the main gateway.
 		if ( $payment_method !== $token->get_gateway_id() ) {
+			$main_gateway       = WC_Stripe::get_instance()->get_main_stripe_gateway();
 			$is_ocs_sub_gateway = WC_Stripe_UPE_Payment_Gateway::ID === $payment_method
 				&& in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
-				&& WC_Stripe::get_instance()->get_main_stripe_gateway()->is_optimized_checkout_active();
+				&& null !== $main_gateway
+				&& $main_gateway->is_optimized_checkout_active();
 
 			if ( ! $is_ocs_sub_gateway ) {
 				return null;
@@ -273,8 +275,9 @@ class WC_Stripe_Payment_Tokens {
 			// When OCS is enabled and the main stripe gateway is queried (e.g. blocks checkout), also include
 			// tokens for sub-gateways (stripe_sepa_debit, stripe_bancontact, etc.) since all payment methods
 			// are rendered under the single 'stripe' gateway in that context.
-			// The filter is kept active so each sub-gateway call goes through the normal sync path.
-			// There is no recursion risk because the OCS block only runs when gateway_id === 'stripe'.
+			// The filter has already been removed (above) so these calls read raw WooCommerce DB
+			// tokens without triggering the sync path. There is no recursion risk because the filter
+			// is absent for the duration of this try block.
 			if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 				foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
 					$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
