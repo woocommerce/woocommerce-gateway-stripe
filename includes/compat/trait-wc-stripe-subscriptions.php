@@ -429,6 +429,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		$order_locked = false;
+		$radar_reason = false;
 
 		try {
 			$order_id = $renewal_order->get_id();
@@ -491,9 +492,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
+				// Compute once here so the catch block can reuse the result without a second API call.
+				$radar_reason = $this->is_charge_blocked_by_radar( $response );
+
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
-				if ( $this->is_retryable_error( $response->error ) && false === $this->is_charge_blocked_by_radar( $response ) ) {
+				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -554,10 +558,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			// If the payment was blocked by Stripe Radar, suspend the parent subscription(s)
 			// so that WC Subscriptions does not schedule further retry attempts. Each retry
 			// would create a new charge that Radar would block again, inflating the block rate.
-			$radar_reason = ( isset( $response ) && ! empty( $response->error ) )
-				? $this->is_charge_blocked_by_radar( $response )
-				: false;
-
 			if ( false !== $radar_reason ) {
 				switch ( $radar_reason ) {
 					case 'rule':
