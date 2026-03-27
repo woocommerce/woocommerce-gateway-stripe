@@ -1076,42 +1076,45 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function provide_update_fees_scenarios() {
+		// API fee/net values are in cents (Stripe smallest denomination).
+		// format_balance_fee() converts to dollars (divides by 100 for USD).
+		// Existing and expected values are in dollars (already formatted).
 		return [
-			'add mode - refund adjusts existing fees' => [
-				'existing_fee' => 150,
-				'existing_net' => 4850,
+			'add mode - refund adjusts existing fees'       => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
 				'api_fee'      => -30,
 				'api_net'      => -970,
 				'replace'      => false,
-				'expected_fee' => 120,
-				'expected_net' => 3880,
+				'expected_fee' => 1.20,
+				'expected_net' => 38.80,
 			],
 			'replace mode - capture replaces existing fees' => [
-				'existing_fee' => 150,
-				'existing_net' => 4850,
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
 				'api_fee'      => 75,
 				'api_net'      => 2425,
 				'replace'      => true,
-				'expected_fee' => 75,
-				'expected_net' => 2425,
+				'expected_fee' => 0.75,
+				'expected_net' => 24.25,
 			],
-			'replace mode - works with no existing fees' => [
+			'replace mode - works with no existing fees'    => [
 				'existing_fee' => 0,
 				'existing_net' => 0,
 				'api_fee'      => 50,
 				'api_net'      => 950,
 				'replace'      => true,
-				'expected_fee' => 50,
-				'expected_net' => 950,
+				'expected_fee' => 0.50,
+				'expected_net' => 9.50,
 			],
-			'add mode - first time fee setting' => [
+			'add mode - first time fee setting'             => [
 				'existing_fee' => 0,
 				'existing_net' => 0,
 				'api_fee'      => 100,
 				'api_net'      => 4900,
 				'replace'      => false,
-				'expected_fee' => 100,
-				'expected_net' => 4900,
+				'expected_fee' => 1.00,
+				'expected_net' => 49.00,
 			],
 		];
 	}
