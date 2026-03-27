@@ -85,6 +85,10 @@ const appearanceSelectors = {
 			'#payment-method',
 			'form.wc-block-checkout__form',
 			'.wc-block-checkout',
+			'main',
+			'.wp-block-group',
+			'.entry-content',
+			'.site-content',
 			'body',
 		],
 	},
@@ -355,9 +359,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 const DEFAULT_FONT_DOMAINS = [
 	'fonts.googleapis.com',
 	'fonts.gstatic.com',
-	'fast.fonts.com',
 	'use.typekit.net',
 	'fonts-api.wp.com',
+	'fonts.bunny.net',
 ];
 
 /**
