@@ -1062,14 +1062,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 
-		add_filter(
-			'pre_http_request',
-			function () use ( $mock_response ) {
-				return $mock_response;
-			}
-		);
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
 
 		$this->gateway->update_fees( $order, 'txn_test123', $replace );
+
+		remove_filter( 'pre_http_request', $filter );
 
 		$this->assertEquals( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
 		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
