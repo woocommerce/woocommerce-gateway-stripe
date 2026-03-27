@@ -631,7 +631,19 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
 
 		// Enable OCS on the mock main gateway.
-		$this->set_main_gateway( $this->get_mock_gateway( true ) );
+		// Also populate payment_methods with a CashApp stub so the sub-gateway sync (triggered by
+		// the second WC_Stripe_Payment_Tokens instance created during plugin init) does not treat
+		// the stored token as orphaned and delete it before the OCS merge can return it.
+		$mock_cashapp_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled_at_checkout', 'is_enabled' ] )
+			->getMock();
+		$mock_cashapp_pm->method( 'is_enabled_at_checkout' )->willReturn( true );
+		$mock_cashapp_pm->method( 'is_enabled' )->willReturn( true );
+
+		$mock_gateway = $this->get_mock_gateway( true );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] = $mock_cashapp_pm;
+		$this->set_main_gateway( $mock_gateway );
 
 		try {
 			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
