@@ -114,9 +114,21 @@ class WC_Stripe_Payment_Tokens {
 		//phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		$token = \WC_Payment_Tokens::get( wc_clean( $request[ $token_request_key ] ) );
 
-		// If the token doesn't belong to this gateway or the current user it's invalid.
-		if ( ! $token || $payment_method !== $token->get_gateway_id() || $token->get_user_id() !== get_current_user_id() ) {
+		if ( ! $token || $token->get_user_id() !== get_current_user_id() ) {
 			return null;
+		}
+
+		// If the token doesn't belong to this gateway it's invalid.
+		// When OCS is active, sub-gateway tokens (e.g. stripe_us_bank_account) are surfaced under
+		// the main 'stripe' gateway, so accept them when checking out through the main gateway.
+		if ( $payment_method !== $token->get_gateway_id() ) {
+			$is_ocs_sub_gateway = WC_Stripe_UPE_Payment_Gateway::ID === $payment_method
+				&& in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
+				&& WC_Stripe::get_instance()->get_main_stripe_gateway()->is_optimized_checkout_active();
+
+			if ( ! $is_ocs_sub_gateway ) {
+				return null;
+			}
 		}
 
 		return $token;
@@ -214,10 +226,27 @@ class WC_Stripe_Payment_Tokens {
 				// Retrieve the real APM behind SEPA PaymentMethods.
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
-				// The corresponding method for the payment method type is not enabled, skipping.
-				// When OCS is enabled, allow all reusable methods regardless of their individual enabled state,
-				// since they are all accessible through the consolidated OCS element.
-				if ( ! $gateway->is_optimized_checkout_active() && ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
+				$method_obj = $gateway->payment_methods[ $payment_method_type ] ?? null;
+				if ( null === $method_obj ) {
+					continue;
+				}
+
+				// When OCS is enabled, skip the individual "enabled" toggle but still enforce
+				// currency/capability constraints via is_enabled_at_checkout(). This prevents methods
+				// like ACH from appearing when unsupported for the current store currency.
+				// When OCS is not active, use the simple is_enabled() toggle check.
+				if ( $gateway->is_optimized_checkout_active() ) {
+					if ( ! $method_obj->is_enabled_at_checkout() ) {
+						// Preserve existing tokens in the DB but exclude them from the results.
+						// This avoids deleting tokens that are temporarily unavailable (e.g. currency change).
+						if ( isset( $stored_tokens[ $payment_method->id ] ) ) {
+							$excluded_token = $stored_tokens[ $payment_method->id ];
+							unset( $stored_tokens[ $payment_method->id ] );
+							unset( $tokens[ $excluded_token->get_id() ] );
+						}
+						continue;
+					}
+				} elseif ( ! $method_obj->is_enabled() ) {
 					continue;
 				}
 
