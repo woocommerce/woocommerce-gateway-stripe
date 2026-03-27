@@ -1075,6 +1075,45 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
 	}
 
+	/**
+	 * Tests that update_fees leaves existing meta intact when the API returns an error.
+	 */
+	public function test_update_fees_with_api_error_leaves_meta_unchanged() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_fee( $order, 1.50 );
+		$order_helper->update_stripe_net( $order, 48.50 );
+
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => 'No such balance transaction',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 404,
+				'message' => 'Not Found',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_invalid', true );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( 1.50, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( 48.50, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
 	public function provide_update_fees_scenarios() {
 		// API fee/net values are in cents (Stripe smallest denomination).
 		// format_balance_fee() converts to dollars (divides by 100 for USD).
