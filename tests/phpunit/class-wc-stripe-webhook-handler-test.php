@@ -881,11 +881,33 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that checkout session failure marks pending orders as failed.
+	 * Provider for checkout session failure event types.
 	 *
+	 * @return array
+	 */
+	public function provide_checkout_session_failure_event_types(): array {
+		return [
+			'checkout.session.expired'              => [
+				'event_type'    => 'checkout.session.expired',
+				'expected_note' => 'The checkout session has expired.',
+			],
+			'checkout.session.async_payment_failed' => [
+				'event_type'    => 'checkout.session.async_payment_failed',
+				'expected_note' => 'The async payment for this checkout session has failed.',
+			],
+		];
+	}
+
+	/**
+	 * Test that checkout session failure marks pending orders as failed for both event types.
+	 *
+	 * @dataProvider provide_checkout_session_failure_event_types
+	 *
+	 * @param string $event_type Event type.
+	 * @param string $expected_note Expected note content.
 	 * @return void
 	 */
-	public function test_process_checkout_session_failure_marks_order_as_failed(): void {
+	public function test_process_checkout_session_failure_marks_order_as_failed_for_event_type( string $event_type, string $expected_note ): void {
 		$checkout_session_id = 'cs_test_failed';
 		$order               = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
@@ -900,7 +922,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$notification = (object) [
-			'type' => 'checkout.session.expired',
+			'type' => $event_type,
 			'data' => (object) [
 				'object' => (object) [
 					'id' => $checkout_session_id,
@@ -922,6 +944,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
 		$this->assertSame( 1, $hook_calls );
+
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 1,
+			]
+		);
+		$this->assertNotEmpty( $notes );
+		$this->assertStringContainsString( $expected_note, $notes[0]->content );
 	}
 
 	/**
@@ -964,6 +995,74 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
 		$this->assertSame( 0, $hook_calls );
+	}
+
+	/**
+	 * Test that duplicate checkout session failure webhooks return early when the order is already failed.
+	 *
+	 * @dataProvider provide_checkout_session_failure_event_types
+	 *
+	 * @param string $event_type Event type.
+	 * @param string $unused_note Unused; provider shares rows with other tests.
+	 * @return void
+	 */
+	public function test_process_checkout_session_failure_returns_early_when_order_already_failed( string $event_type, string $unused_note ): void {
+		$checkout_session_id = 'cs_test_duplicate';
+		$order               = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$notes_before = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 100,
+			]
+		);
+
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'is_stripe_status_final' ] );
+		$order_helper->expects( $this->once() )
+			->method( 'is_stripe_status_final' )
+			->willReturn( false );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+
+		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id' => $checkout_session_id,
+				],
+			],
+		];
+
+		$hook_calls = 0;
+		$hook       = function () use ( &$hook_calls ) {
+			++$hook_calls;
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$webhook_handler->process_checkout_session_failure( $notification );
+
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+		$this->assertSame( 0, $hook_calls );
+
+		$notes_after = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 100,
+			]
+		);
+		$this->assertCount( count( $notes_before ), $notes_after );
 	}
 
 	/**
