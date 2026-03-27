@@ -607,7 +607,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		// Keep OCS gated to cases where Stripe is the first available gateway.
+		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page() && $this->is_stripe_first_available_gateway();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -775,6 +776,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
 		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
+	 * Checks whether Stripe is the first available gateway in checkout.
+	 *
+	 * @return bool True if Stripe is first available gateway, false otherwise.
+	 */
+	protected function is_stripe_first_available_gateway(): bool {
+		if ( ! isset( WC()->payment_gateways ) || ! is_callable( [ WC()->payment_gateways, 'get_available_payment_gateways' ] ) ) {
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! is_array( $available_gateways ) || empty( $available_gateways ) ) {
+			return false;
+		}
+
+		return self::ID === array_key_first( $available_gateways );
 	}
 
 	/**
