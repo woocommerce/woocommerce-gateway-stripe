@@ -1162,7 +1162,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		/**
 		 * Filters the inline styles applied to the adaptive pricing currency conversion notice in order emails.
 		 *
-		 * @since 9.5.0
+		 * @since 10.6.0
 		 *
 		 * @param array $styles {
 		 *     Associative array of CSS property => value pairs.
