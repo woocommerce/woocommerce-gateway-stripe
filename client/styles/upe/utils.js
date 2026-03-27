@@ -128,3 +128,89 @@ export const getBackgroundColor = ( selectors ) => {
 export const isColorLight = ( color ) => {
 	return tinycolor( color ).isLight();
 };
+
+// Constants for floating label padding adjustments.
+const STRIPE_PADDING_TOP = '4px';
+const STRIPE_PADDING_OFFSET = '1px';
+const STRIPE_FLOATING_LABEL_MARGIN_TOP = '3px';
+
+/**
+ * Modifies the appearance object to include styles for floating label.
+ * Adjusts input padding to prevent fields from growing taller when labels
+ * are rendered inside the input.
+ *
+ * @param {Object} appearance          Appearance object to modify.
+ * @param {Object} floatingLabelStyles Floating label styles extracted from the DOM.
+ * @return {Object} Modified appearance object.
+ */
+export const handleAppearanceForFloatingLabel = (
+	appearance,
+	floatingLabelStyles
+) => {
+	// Add floating label styles.
+	appearance.rules[ '.Label--floating' ] = floatingLabelStyles;
+
+	// Update line-height for floating label to account for scaling.
+	if (
+		appearance.rules[ '.Label--floating' ].transform &&
+		appearance.rules[ '.Label--floating' ].transform !== 'none'
+	) {
+		const transformMatrix =
+			appearance.rules[ '.Label--floating' ].transform;
+		const matrixValues = transformMatrix.match( /matrix\((.+)\)/ );
+		if ( matrixValues && matrixValues[ 1 ] ) {
+			const splitMatrixValues = matrixValues[ 1 ].split( /\s*,\s*/ );
+			const scaleX = parseFloat( splitMatrixValues[ 0 ] );
+			const scaleY = parseFloat( splitMatrixValues[ 3 ] );
+			if ( ! Number.isFinite( scaleX ) || ! Number.isFinite( scaleY ) ) {
+				delete appearance.rules[ '.Label--floating' ].transform;
+				return appearance;
+			}
+			const scale = ( scaleX + scaleY ) / 2;
+
+			const lineHeight = parseFloat(
+				appearance.rules[ '.Label--floating' ].lineHeight
+			);
+			if ( isNaN( lineHeight ) ) {
+				delete appearance.rules[ '.Label--floating' ].transform;
+				return appearance;
+			}
+			const newLineHeight = Math.floor( lineHeight * scale );
+			appearance.rules[
+				'.Label--floating'
+			].lineHeight = `${ newLineHeight }px`;
+			appearance.rules[
+				'.Label--floating'
+			].fontSize = `${ newLineHeight }px`;
+		}
+		delete appearance.rules[ '.Label--floating' ].transform;
+	}
+
+	// Subtract the label's lineHeight from padding-top to account for floating label height.
+	// Minus STRIPE_PADDING_TOP which is a constant value added by Stripe to the padding-top.
+	// Minus STRIPE_PADDING_OFFSET for each vertical padding to account for unpredictable input height.
+	if ( appearance.rules[ '.Input' ].paddingTop ) {
+		appearance.rules[
+			'.Input'
+		].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - ${ STRIPE_PADDING_TOP } - ${ STRIPE_PADDING_OFFSET })`;
+	}
+	if ( appearance.rules[ '.Input' ].paddingBottom ) {
+		const paddingOffset = parseFloat( STRIPE_PADDING_OFFSET );
+		const originalPaddingBottom = parseFloat(
+			appearance.rules[ '.Input' ].paddingBottom
+		);
+		appearance.rules[ '.Input' ].paddingBottom = `${
+			originalPaddingBottom - paddingOffset
+		}px`;
+
+		appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
+			( originalPaddingBottom - paddingOffset ) / 3
+		) }px`;
+	}
+
+	// Add top margin so the floating label doesn't sit flush against the input border.
+	appearance.rules[ '.Label--floating' ].marginTop =
+		STRIPE_FLOATING_LABEL_MARGIN_TOP;
+
+	return appearance;
+};
