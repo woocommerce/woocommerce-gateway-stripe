@@ -1031,4 +1031,88 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * @dataProvider provide_update_fees_scenarios
+	 */
+	public function test_update_fees( $existing_fee, $existing_net, $api_fee, $api_net, $replace, $expected_fee, $expected_net ) {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( 0 !== $existing_fee ) {
+			$order_helper->update_stripe_fee( $order, $existing_fee );
+		}
+		if ( 0 !== $existing_net ) {
+			$order_helper->update_stripe_net( $order, $existing_net );
+		}
+
+		// Mock the Stripe API balance transaction response.
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'fee'      => $api_fee,
+					'net'      => $api_net,
+					'currency' => 'usd',
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+
+		add_filter(
+			'pre_http_request',
+			function () use ( $mock_response ) {
+				return $mock_response;
+			}
+		);
+
+		$this->gateway->update_fees( $order, 'txn_test123', $replace );
+
+		$this->assertEquals( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	public function provide_update_fees_scenarios() {
+		return [
+			'add mode - refund adjusts existing fees' => [
+				'existing_fee' => 150,
+				'existing_net' => 4850,
+				'api_fee'      => -30,
+				'api_net'      => -970,
+				'replace'      => false,
+				'expected_fee' => 120,
+				'expected_net' => 3880,
+			],
+			'replace mode - capture replaces existing fees' => [
+				'existing_fee' => 150,
+				'existing_net' => 4850,
+				'api_fee'      => 75,
+				'api_net'      => 2425,
+				'replace'      => true,
+				'expected_fee' => 75,
+				'expected_net' => 2425,
+			],
+			'replace mode - works with no existing fees' => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 50,
+				'api_net'      => 950,
+				'replace'      => true,
+				'expected_fee' => 50,
+				'expected_net' => 950,
+			],
+			'add mode - first time fee setting' => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 100,
+				'api_net'      => 4900,
+				'replace'      => false,
+				'expected_fee' => 100,
+				'expected_net' => 4900,
+			],
+		];
+	}
 }

@@ -546,7 +546,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->set_transaction_id( $notification->data->object->id );
 
 				if ( isset( $notification->data->object->balance_transaction ) ) {
-					$this->update_fees( $order, $notification->data->object->balance_transaction );
+					$this->update_fees( $order, $notification->data->object->balance_transaction, true );
 				}
 
 				// Check and see if capture is partial.
@@ -626,7 +626,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order->set_transaction_id( $charge->id );
 
 		if ( isset( $charge->balance_transaction ) ) {
-			$this->update_fees( $order, $charge->balance_transaction );
+			$this->update_fees( $order, $charge->balance_transaction, true );
 		}
 
 		/**
