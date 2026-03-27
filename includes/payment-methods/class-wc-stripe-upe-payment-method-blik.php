@@ -120,9 +120,9 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 							'wc-stripe-blik-code',
 							[
 								'maxlength' => 6,
-								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-								'required' => true,
-								'type' => 'text',
+								'label'     => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required'  => true,
+								'type'      => 'text',
 							]
 						);
 					?>

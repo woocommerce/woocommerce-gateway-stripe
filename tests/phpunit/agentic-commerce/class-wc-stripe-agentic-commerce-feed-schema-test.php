@@ -187,14 +187,14 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 	public function provide_test_is_field_required(): array {
 		return [
 			// Absolutely required fields.
-			'id is required'                                       => [ 'id', true ],
-			'title is required'                                    => [ 'title', true ],
-			'price is required'                                    => [ 'price', true ],
+			'id is required'                                      => [ 'id', true ],
+			'title is required'                                   => [ 'title', true ],
+			'price is required'                                   => [ 'price', true ],
 
 			// Optional fields.
-			'color is not required'                                => [ 'color', false ],
-			'size is not required'                                 => [ 'size', false ],
-			'weight is not required'                               => [ 'weight', false ],
+			'color is not required'                               => [ 'color', false ],
+			'size is not required'                                => [ 'size', false ],
+			'weight is not required'                              => [ 'weight', false ],
 
 			// GTIN: conditional on MPN.
 			'gtin required when mpn is empty'                     => [ 'gtin', true, [ 'mpn' => '' ] ],

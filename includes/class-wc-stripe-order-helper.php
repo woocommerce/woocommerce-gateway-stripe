@@ -1043,7 +1043,7 @@ class WC_Stripe_Order_Helper {
 	public function validate_intent_for_order( WC_Order $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );

@@ -50,9 +50,9 @@ class WC_Payment_Token_Becs_Debit_Test extends WP_UnitTestCase {
 			'set_fingerprint' => 'test_fingerprint',
 		];
 		return [
-			'all valid'       => [ $valid, true ],
-			'missing last4'   => [ array_merge( $valid, [ 'set_last4' => '' ] ), false ],
-			'missing token'   => [ array_merge( $valid, [ 'set_token' => '' ] ), false ],
+			'all valid'     => [ $valid, true ],
+			'missing last4' => [ array_merge( $valid, [ 'set_last4' => '' ] ), false ],
+			'missing token' => [ array_merge( $valid, [ 'set_token' => '' ] ), false ],
 		];
 	}
 

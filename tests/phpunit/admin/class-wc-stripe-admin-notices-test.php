@@ -538,10 +538,10 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[
 				[
 					'woocommerce_stripe_settings' => [
-						'enabled'         => 'yes',
-						'testmode'        => 'no',
-						'publishable_key' => 'pk_live_valid_test_key',
-						'secret_key'      => 'sk_live_valid_test_key',
+						'enabled'                                   => 'yes',
+						'testmode'                                  => 'no',
+						'publishable_key'                           => 'pk_live_valid_test_key',
+						'secret_key'                                => 'sk_live_valid_test_key',
 						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
 					],
 					'wc_stripe_show_style_notice' => 'no',
@@ -849,13 +849,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected count'   => 1,
 				'expected content' => 'No detached subscriptions found.',
 			],
-			'detached subscription IDs, with actual subscriptions' => [
+			'detached subscription IDs, with actual subscriptions'    => [
 				'request params'   => [ 'detached-subscriptions' => '123' ],
 				'subscriptions'    => [ $subscription ],
 				'expected count'   => 1,
 				'expected content' => 'Below are the affected subscriptions and their update links:',
 			],
-			'no detached subscriptions' => [
+			'no detached subscriptions'                               => [
 				'request params'   => null,
 				'subscriptions'    => [],
 				'expected count'   => 0,
@@ -964,33 +964,33 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
 				true,
 			],
-			'not shown when express checkout disabled' => [
+			'not shown when express checkout disabled'                => [
 				'yes',
 				array_merge(
 					$base_settings,
 					[
-						'express_checkout'                 => 'no',
+						'express_checkout'                  => 'no',
 						'express_checkout_button_locations' => [ 'product', 'cart' ],
 					]
 				),
 				false,
 			],
-			'not shown when checkout already in locations' => [
+			'not shown when checkout already in locations'            => [
 				'yes',
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
 				false,
 			],
-			'not shown when product not in locations' => [
+			'not shown when product not in locations'                 => [
 				'yes',
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
 				false,
 			],
-			'not shown when notice dismissed' => [
+			'not shown when notice dismissed'                         => [
 				'no',
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
 				false,
 			],
-			'not shown when flag never set' => [
+			'not shown when flag never set'                           => [
 				null,
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
 				false,

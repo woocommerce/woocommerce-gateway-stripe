@@ -45,24 +45,24 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_title() {
 		return [
-			'with payment details' => [
-				'payment details'         => [
+			'with payment details'                => [
+				'payment details' => [
 					'type' => WC_Stripe_Payment_Methods::ALIPAY,
 				],
-				'query params'            => [],
-				'expected'                => 'Alipay',
+				'query params'    => [],
+				'expected'        => 'Alipay',
 			],
 			'block checkout page / pay for order' => [
-				'payment details'         => false,
-				'query params'            => [
+				'payment details' => false,
+				'query params'    => [
 					'pay_for_order' => 'true',
 				],
-				'expected'                => 'Stripe',
+				'expected'        => 'Stripe',
 			],
-			'default, hardcoded'                       => [
-				'payment details'         => false,
-				'query params'            => [],
-				'expected'                => 'Stripe',
+			'default, hardcoded'                  => [
+				'payment details' => false,
+				'query params'    => [],
+				'expected'        => 'Stripe',
 			],
 		];
 	}

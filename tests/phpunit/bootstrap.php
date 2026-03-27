@@ -51,9 +51,9 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
-# Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
-# To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
-# These helpers cannot be autoloaded, so we need to require them manually.
+# Load test helpers manually. The helpers/ directory is excluded from the Composer classmap
+# (to prevent stub classes like WC_Subscriptions from being autoloaded in E2E environments
+# where the real plugin is active), so all helpers must be explicitly required here.
 require_once __DIR__ . '/helpers/class-wc-subscription.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-cart.php';
@@ -63,3 +63,13 @@ require_once __DIR__ . '/helpers/class-wc-subscriptions-switcher.php';
 require_once __DIR__ . '/helpers/class-wc-pre-orders-product.php';
 require_once __DIR__ . '/helpers/class-wc-deposits-product-manager.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-change-payment-gateway.php';
+require_once __DIR__ . '/helpers/class-wc-helper-order.php';
+require_once __DIR__ . '/helpers/class-wc-helper-product.php';
+require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
+require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
+require_once __DIR__ . '/helpers/class-wc-helper-token.php';
+require_once __DIR__ . '/helpers/class-wcs-staging.php';
+require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
+require_once __DIR__ . '/helpers/class-oc-test-helper.php';
+require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
+require_once __DIR__ . '/helpers/class-upe-test-helper.php';
