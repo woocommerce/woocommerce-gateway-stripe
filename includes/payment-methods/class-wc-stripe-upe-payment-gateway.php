@@ -608,7 +608,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
 		// Keep OCS gated to cases where Stripe is the first available gateway.
-		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page() && $this->is_stripe_first_available_gateway();
+		$should_show_optimized_checkout                 = $this->should_use_optimized_checkout_payment_method_layout();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -779,6 +779,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether to use Optimized Checkout (single PE + PMC) for script params and payment method config.
+	 *
+	 * When false, split Payment Element registration is used so all enabled methods render as separate gateways.
+	 *
+	 * @return bool
+	 */
+	protected function should_use_optimized_checkout_payment_method_layout(): bool {
+		return $this->oc_enabled && $this->is_valid_optimized_checkout_page() && $this->is_stripe_first_available_gateway();
+	}
+
+	/**
 	 * Checks whether Stripe is the first available gateway in checkout.
 	 *
 	 * @return bool True if Stripe is first available gateway, false otherwise.
@@ -809,9 +820,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
-		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+		// If Optimized Checkout is active for this request, return the OC pseudo-method + express methods only.
+		// All payment methods are rendered inside the card container. Otherwise use split PE (one gateway per method).
+		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
 			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
