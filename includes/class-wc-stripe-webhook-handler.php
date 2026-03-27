@@ -1629,18 +1629,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
+			return;
+		}
+
 		$message = 'checkout.session.expired' === $notification->type ? __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) : __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' );
 
-		$status_update = [];
-		if ( ! $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
-			$status_update['from'] = $order->get_status();
-			$status_update['to']   = OrderStatus::FAILED;
-			$order->update_status( OrderStatus::FAILED, $message );
+		$status_update         = [];
+		$status_update['from'] = $order->get_status();
+		$status_update['to']   = OrderStatus::FAILED;
+		$order->update_status( OrderStatus::FAILED, $message );
 
-			$this->send_failed_order_email( $order->get_id(), $status_update );
-		} else {
-			$order->add_order_note( $message );
-		}
+		$this->send_failed_order_email( $order->get_id(), $status_update );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 	}
