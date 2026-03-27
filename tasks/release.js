@@ -41,7 +41,9 @@ cp( '-Rf', filesToCopy, targetFolder );
 // Install production-only Composer dependencies in the release folder
 cp( 'composer.json', targetFolder );
 cp( 'composer.lock', targetFolder );
-exec( `composer install --no-dev --classmap-authoritative --working-dir=${ targetFolder }` );
+exec(
+	`composer install --no-dev --classmap-authoritative --working-dir=${ targetFolder }`
+);
 rm( targetFolder + '/composer.json' );
 rm( targetFolder + '/composer.lock' );
 
