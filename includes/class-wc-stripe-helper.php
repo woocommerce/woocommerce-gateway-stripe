@@ -20,6 +20,9 @@ class WC_Stripe_Helper {
 	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
+	private const FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY = 'checkout_first_available_payment_gateway';
+	private const FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_TTL = 15 * MINUTE_IN_SECONDS;
+
 	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
@@ -751,6 +754,12 @@ class WC_Stripe_Helper {
 			$stripe_gateway_id = 'stripe';
 		}
 
+		$cached = WC_Stripe_Database_Cache::get( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY );
+
+		if ( $cached ) {
+			return $cached === $stripe_gateway_id;
+		}
+
 		$payment_gateways = WC()->payment_gateways();
 		if ( ! $payment_gateways || ! is_callable( [ $payment_gateways, 'get_available_payment_gateways' ] ) ) {
 			return false;
@@ -760,6 +769,8 @@ class WC_Stripe_Helper {
 		if ( ! is_array( $available_gateways ) || empty( $available_gateways ) ) {
 			return false;
 		}
+
+		WC_Stripe_Database_Cache::set( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY, array_key_first( $available_gateways ), self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_TTL );
 
 		return array_key_first( $available_gateways ) === $stripe_gateway_id;
 	}
