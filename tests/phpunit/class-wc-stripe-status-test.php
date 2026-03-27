@@ -30,7 +30,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$account->method( 'get_cached_account_data' )
 			->willReturn(
 				[
-					'id'    => 'acct_123',
+					'id' => 'acct_123',
 				]
 			);
 

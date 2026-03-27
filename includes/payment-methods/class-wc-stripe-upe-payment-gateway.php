@@ -264,16 +264,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$this->title                         = $this->payment_methods['card']->get_title();
-		$this->description                   = $this->payment_methods['card']->get_description();
-		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->sepa_tokens_for_ideal         = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
-		$this->sepa_tokens_for_bancontact    = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
-		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
-		$this->testmode                      = WC_Stripe_Mode::is_test();
-		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$this->title                      = $this->payment_methods['card']->get_title();
+		$this->description                = $this->payment_methods['card']->get_description();
+		$this->enabled                    = $this->get_option( 'enabled' );
+		$this->sepa_tokens_for_ideal      = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
+		$this->sepa_tokens_for_bancontact = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
+		$this->saved_cards                = 'yes' === $this->get_option( 'saved_cards' );
+		$this->testmode                   = WC_Stripe_Mode::is_test();
+		$this->publishable_key            = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key                 = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor       = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
@@ -699,8 +699,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['isAddPaymentMethod'] = true;
-			$stripe_params['cartTotal']    = 0;
-			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
+			$stripe_params['cartTotal']          = 0;
+			$stripe_params['customerData']       = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
 
 		// Pre-orders and free trial subscriptions don't require payments.
@@ -792,8 +792,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
 		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
-			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
-			$enabled_express_methods = array_intersect(
+			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
+			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
@@ -974,13 +974,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
-							'div' => [
+							'div'    => [
 								'id'    => [],
 								'class' => [],
 								'style' => [],
 							],
 							'strong' => [],
-							'a'    => [
+							'a'      => [
 								'href'   => [],
 								'target' => [],
 							],
@@ -2811,7 +2811,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// Otherwise use the payment method type from the API.
 				$selected_payment_type = $payment_method_details->type;
 			}
-			$payment_method_types  = [ $selected_payment_type ];
+			$payment_method_types = [ $selected_payment_type ];
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -3759,8 +3759,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$net      = $order_helper->get_stripe_net( $order );
-		$currency = $order_helper->get_stripe_currency( $order );
+		$net          = $order_helper->get_stripe_net( $order );
+		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;

@@ -12,7 +12,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @deprecated This feature flag will be removed in version 10.5.0. Amazon Pay is permanently enabled as of version 10.4.0.
 	 */
-	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
+	const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
 
 	/**
 	 * Feature flag for Stripe ECE (Express Checkout Element).
