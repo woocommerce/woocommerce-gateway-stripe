@@ -785,7 +785,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	protected function should_use_optimized_checkout_payment_method_layout(): bool {
+	public function should_use_optimized_checkout_payment_method_layout(): bool {
 		return $this->oc_enabled && $this->is_valid_optimized_checkout_page() && $this->is_stripe_first_available_gateway();
 	}
 
@@ -1001,7 +1001,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
+				if ( $this->should_use_optimized_checkout_payment_method_layout() ) :
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
