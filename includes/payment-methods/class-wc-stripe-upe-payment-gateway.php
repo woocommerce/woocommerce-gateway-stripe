@@ -784,7 +784,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if Stripe is first available gateway, false otherwise.
 	 */
 	protected function is_stripe_first_available_gateway(): bool {
-		if ( ! isset( WC()->payment_gateways ) || ! is_callable( [ WC()->payment_gateways, 'get_available_payment_gateways' ] ) ) {
+		$payment_gateways = WC()->payment_gateways();
+		if ( ! $payment_gateways || ! is_callable( [ $payment_gateways, 'get_available_payment_gateways' ] ) ) {
 			return false;
 		}
 
