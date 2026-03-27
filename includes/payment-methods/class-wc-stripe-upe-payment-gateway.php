@@ -315,7 +315,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
 
 		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
-		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 4 );
+		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -1115,13 +1115,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Shows a notice in order confirmation emails to inform the customer (or merchant) about the
 	 * currency conversion when the order is paid with a different currency than the store currency.
 	 *
-	 * @param WC_Order        $order         Order data.
-	 * @param bool            $sent_to_admin Whether the email is being sent to admin or customer.
-	 * @param bool            $plain_text    Whether the email is plain text (no HTML).
-	 * @param WC_Email|null   $email         The email object (unused, accepted for hook compatibility).
+	 * @since 10.6.0
+	 *
+	 * @param WC_Order $order         Order data.
+	 * @param bool     $sent_to_admin Whether the email is being sent to admin or customer.
+	 * @param bool     $plain_text    Whether the email is plain text (no HTML).
 	 * @return void
 	 */
-	public function add_email_currency_conversion_notice( WC_Order $order, bool $sent_to_admin = false, bool $plain_text = false, $email = null ): void {
+	public function add_email_currency_conversion_notice( WC_Order $order, bool $sent_to_admin = false, bool $plain_text = false ): void {
 		$notice_data = $this->get_currency_conversion_notice_data( $order );
 		if ( empty( $notice_data ) ) {
 			return;
@@ -1186,10 +1187,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 
 		$inline_style = sprintf(
-			'margin-top: 1em; border: solid 1px %s; border-radius: %s; background-color: %s; padding: 1em 2em;',
-			esc_attr( $styles['border-color'] ?? '#007CBA' ),
-			esc_attr( $styles['border-radius'] ?? '4px' ),
-			esc_attr( $styles['background-color'] ?? '#F6F5F8' )
+			'margin-top: 1em; margin-bottom: 1em; border: solid 1px %s; border-radius: %s; background-color: %s; padding: 1em 2em;',
+			$styles['border-color'] ?? '#007CBA',
+			$styles['border-radius'] ?? '4px',
+			$styles['background-color'] ?? '#F6F5F8'
 		);
 
 		echo '<div style="' . esc_attr( $inline_style ) . '">';
