@@ -1549,36 +1549,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_european_economic_area_countries() {
 		return [
-			'AT', // Austria.
-			'BE', // Belgium.
-			'BG', // Bulgaria.
-			'HR', // Croatia.
-			'CY', // Cyprus.
-			'CZ', // Czech Republic.
-			'DK', // Denmark.
-			'EE', // Estonia.
-			'FI', // Finland.
-			'FR', // France.
-			'DE', // Germany.
-			'GR', // Greece.
-			'HU', // Hungary.
-			'IE', // Ireland.
-			'IS', // Iceland
-			'IT', // Italy.
-			'LV', // Latvia.
-			'LI', // Liechtenstein.
-			'LT', // Lithuania.
-			'LU', // Luxembourg.
-			'MT', // Malta.
-			'NO', // Norway.
-			'NL', // Netherlands.
-			'PL', // Poland.
-			'PT', // Portugal.
-			'RO', // Romania.
-			'SK', // Slovakia.
-			'SI', // Slovenia.
-			'ES', // Spain.
-			'SE', // Sweden.
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CROATIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::HUNGARY,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ICELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LIECHTENSTEIN,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::POLAND,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
 		];
 	}
 
@@ -1723,29 +1723,29 @@ class WC_Stripe_Helper {
 	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
 		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
 		$supported_locales = [
-			'AU' => [ 'en-AU' ],
-			'AT' => [ 'de-AT', 'en-AT' ],
-			'BE' => [ 'nl-BE', 'fr-BE', 'en-BE' ],
-			'CA' => [ 'en-CA', 'fr-CA' ],
-			'CZ' => [ 'en-CZ', 'cs-CZ' ],
-			'DK' => [ 'da-DK', 'en-DK' ],
-			'FI' => [ 'fi-FI', 'sv-FI', 'en-FI' ],
-			'FR' => [ 'fr-FR', 'en-FR' ],
-			'DE' => [ 'de-DE', 'en-DE' ],
-			'GR' => [ 'en-GR', 'el-GR' ],
-			'IE' => [ 'en-IE' ],
-			'IT' => [ 'it-IT', 'en-IT' ],
-			'NL' => [ 'nl-NL', 'en-NL' ],
-			'NZ' => [ 'en-NZ' ],
-			'NO' => [ 'nb-NO', 'en-NO' ],
-			'PL' => [ 'pl-PL', 'en-PL' ],
-			'PT' => [ 'pt-PT', 'en-PT' ],
-			'RO' => [ 'ro-RO', 'en-RO' ],
-			'ES' => [ 'es-ES', 'en-ES' ],
-			'SE' => [ 'sv-SE', 'en-SE' ],
-			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
-			'GB' => [ 'en-GB' ],
-			'US' => [ 'en-US', 'es-US' ],
+			WC_Stripe_Country_Code::AUSTRALIA      => [ 'en-AU' ],
+			WC_Stripe_Country_Code::AUSTRIA        => [ 'de-AT', 'en-AT' ],
+			WC_Stripe_Country_Code::BELGIUM        => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			WC_Stripe_Country_Code::CANADA         => [ 'en-CA', 'fr-CA' ],
+			WC_Stripe_Country_Code::CZECH_REPUBLIC => [ 'en-CZ', 'cs-CZ' ],
+			WC_Stripe_Country_Code::DENMARK        => [ 'da-DK', 'en-DK' ],
+			WC_Stripe_Country_Code::FINLAND        => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			WC_Stripe_Country_Code::FRANCE         => [ 'fr-FR', 'en-FR' ],
+			WC_Stripe_Country_Code::GERMANY        => [ 'de-DE', 'en-DE' ],
+			WC_Stripe_Country_Code::GREECE         => [ 'en-GR', 'el-GR' ],
+			WC_Stripe_Country_Code::IRELAND        => [ 'en-IE' ],
+			WC_Stripe_Country_Code::ITALY          => [ 'it-IT', 'en-IT' ],
+			WC_Stripe_Country_Code::NETHERLANDS    => [ 'nl-NL', 'en-NL' ],
+			WC_Stripe_Country_Code::NEW_ZEALAND    => [ 'en-NZ' ],
+			WC_Stripe_Country_Code::NORWAY         => [ 'nb-NO', 'en-NO' ],
+			WC_Stripe_Country_Code::POLAND         => [ 'pl-PL', 'en-PL' ],
+			WC_Stripe_Country_Code::PORTUGAL       => [ 'pt-PT', 'en-PT' ],
+			WC_Stripe_Country_Code::ROMANIA        => [ 'ro-RO', 'en-RO' ],
+			WC_Stripe_Country_Code::SPAIN          => [ 'es-ES', 'en-ES' ],
+			WC_Stripe_Country_Code::SWEDEN         => [ 'sv-SE', 'en-SE' ],
+			WC_Stripe_Country_Code::SWITZERLAND    => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			WC_Stripe_Country_Code::UNITED_KINGDOM => [ 'en-GB' ],
+			WC_Stripe_Country_Code::UNITED_STATES  => [ 'en-US', 'es-US' ],
 		];
 
 		$region = strtoupper( $billing_country );
@@ -1995,7 +1995,7 @@ class WC_Stripe_Helper {
 
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
@@ -2129,11 +2129,11 @@ class WC_Stripe_Helper {
 	 * @return array The display items.
 	 */
 	public static function build_line_items( bool $itemized_display_items = false ): array {
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
-		$has_deposits  = false;
+		$items        = [];
+		$lines        = [];
+		$subtotal     = 0;
+		$discounts    = 0;
+		$has_deposits = false;
 
 		if ( $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item ) {
@@ -2171,9 +2171,9 @@ class WC_Stripe_Helper {
 			$discounts += (float) $amount;
 		}
 
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+		$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax       = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping  = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [

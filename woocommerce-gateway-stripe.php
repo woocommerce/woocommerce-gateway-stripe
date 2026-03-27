@@ -81,6 +81,12 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
+		// Attempts to include the default composer autoloader.
+		$autoload_filepath = WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
+		if ( file_exists( $autoload_filepath ) ) {
+			require $autoload_filepath;
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
