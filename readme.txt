@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that we enqueue all needed scripts on payment pages
 * Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 * Fix - Improve performance of CSS style lookups
+* Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
