@@ -4195,6 +4195,35 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Creates an order with presentment data cached for email notice tests.
+	 *
+	 * @param string $checkout_session_id The checkout session ID to use.
+	 * @return WC_Order
+	 */
+	private function create_order_with_presentment_email_data( string $checkout_session_id ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		return $order;
+	}
+
+	/**
 	 * Test that add_email_currency_conversion_notice outputs nothing when no checkout session is associated with the order.
 	 *
 	 * @return void
@@ -4247,25 +4276,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
-		$order->save();
-
 		$checkout_session_id = 'cs_test_with_presentment_email_1';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
 
 		ob_start();
 		$this->mock_gateway->add_email_currency_conversion_notice( $order );
@@ -4289,25 +4301,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate_for_merchant(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
-		$order->save();
-
-		$checkout_session_id = 'cs_test_with_presentment_email_1';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+		$checkout_session_id = 'cs_test_with_presentment_email_merchant';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
 
 		ob_start();
 		$this->mock_gateway->add_email_currency_conversion_notice( $order, true );
@@ -4331,25 +4326,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_email_currency_conversion_notice_respects_styles_filter(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
-		$order->save();
-
 		$checkout_session_id = 'cs_test_with_presentment_email_styles';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
 
 		add_filter(
 			'wc_stripe_adaptive_pricing_email_notice_styles',
@@ -4380,25 +4358,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_customer(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
-		$order->save();
-
 		$checkout_session_id = 'cs_test_with_presentment_email_plain_customer';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
 
 		ob_start();
 		$this->mock_gateway->add_email_currency_conversion_notice( $order, false, true );
@@ -4417,25 +4378,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_admin(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20.00 );
-		$order->save();
-
 		$checkout_session_id = 'cs_test_with_presentment_email_plain_admin';
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
-
-		$checkout_session = $this->array_to_object(
-			[
-				'id'                  => $checkout_session_id,
-				'amount_total'        => 2000,
-				'presentment_details' => [
-					'presentment_amount'   => 1500,
-					'presentment_currency' => 'eur',
-				],
-			]
-		);
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
 
 		ob_start();
 		$this->mock_gateway->add_email_currency_conversion_notice( $order, true, true );
