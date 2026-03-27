@@ -577,7 +577,11 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
 						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
 						: [];
+					$terminal_statuses = [ 'cancelled', 'expired', 'trash', 'completed', OrderStatus::ON_HOLD ];
 					foreach ( $subscriptions as $subscription ) {
+						if ( in_array( $subscription->get_status(), $terminal_statuses, true ) ) {
+							continue;
+						}
 						$subscription->update_status( OrderStatus::ON_HOLD, $radar_note );
 					}
 				} catch ( Exception $radar_e ) {
