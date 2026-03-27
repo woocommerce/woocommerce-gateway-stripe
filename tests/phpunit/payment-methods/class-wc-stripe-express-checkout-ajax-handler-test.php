@@ -192,6 +192,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		$response = json_decode( $output, true );
 
 		$this->assertIsArray( $response );
+		$this->assertSame( 'success', $response['result'] );
 		$this->assertSame( $display_items['displayItems'], $response['displayItems'] );
 		$this->assertSame( $display_items['total'], $response['total'] );
 	}
