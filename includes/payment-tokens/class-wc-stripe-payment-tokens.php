@@ -494,7 +494,7 @@ class WC_Stripe_Payment_Tokens {
 			// Retrieve the payment methods for the enabled reusable gateways.
 			$reusable_payment_method_types = array_keys( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD );
 
-			$enabled_payment_methods = $gateway->get_upe_enabled_payment_method_ids();
+			$enabled_payment_methods              = $gateway->get_upe_enabled_payment_method_ids();
 			$active_reusable_payment_method_types = array_intersect( $enabled_payment_methods, $reusable_payment_method_types );
 
 			// Add SEPA if it is disabled and iDEAL or Bancontact are enabled. iDEAL and Bancontact tokens are saved as SEPA tokens.

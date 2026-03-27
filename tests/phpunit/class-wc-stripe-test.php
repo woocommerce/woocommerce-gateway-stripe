@@ -201,7 +201,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function provide_test_install_settings(): array {
 		return [
 			'will not enable OCS by default due to PMC being disabled' => [
-				'stripe settings' => [
+				'stripe settings'   => [
 					'pmc_enabled' => 'no',
 				],
 				'expected settings' => [
@@ -210,8 +210,8 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'skip_pmc_express_checkout_defaults' => 'yes',
 				],
 			],
-			'will not enable OCS by default due to OCS being set'  => [
-				'stripe settings' => [
+			'will not enable OCS by default due to OCS being set'      => [
+				'stripe settings'   => [
 					'pmc_enabled'                => 'yes',
 					'optimized_checkout_element' => 'no',
 				],
@@ -438,36 +438,36 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$sepa_gateway->method( 'is_enabled_at_checkout' )->willReturn( false );
 
 		return [
-			'none active' => [
+			'none active'                                                         => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 			],
-			'none active admin' => [
+			'none active admin'                                                   => [
 				'payment_methods'   => [],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'card only non-admin is filtered out' => [
+			'card only non-admin is filtered out'                                 => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 			],
-			'card only admin is filtered out' => [
+			'card only admin is filtered out'                                     => [
 				'payment_methods'   => [
 					'card' => $card_gateway,
 				],
 				'expected_gateways' => [],
 				'is_admin'          => true,
 			],
-			'link correctly included non-admin' => [
+			'link correctly included non-admin'                                   => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
 				],
 				'expected_gateways' => [ $klarna_gateway, $link_gateway ],
 			],
-			'link correctly filtered out admin' => [
+			'link correctly filtered out admin'                                   => [
 				'payment_methods'   => [
 					'klarna' => $klarna_gateway,
 					'link'   => $link_gateway,
@@ -475,7 +475,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $klarna_gateway ],
 				'is_admin'          => true,
 			],
-			'amazon pay correctly included non-admin' => [
+			'amazon pay correctly included non-admin'                             => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -483,7 +483,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 			],
-			'amazon pay correctly filtered out admin' => [
+			'amazon pay correctly filtered out admin'                             => [
 				'payment_methods'   => [
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
 					'klarna'            => $klarna_gateway,
@@ -502,7 +502,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway, $link_gateway ],
 			],
-			'card, amazon pay, and link filtered out admin' => [
+			'card, amazon pay, and link filtered out admin'                       => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -513,7 +513,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 			],
-			'disabled at checkout payment methods are filtered out in admin' => [
+			'disabled at checkout payment methods are filtered out in admin'      => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -526,7 +526,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway ],
 				'is_admin'          => true,
 			],
-			'optimized checkout enabled admin' => [
+			'optimized checkout enabled admin'                                    => [
 				'payment_methods'   => [
 					'card'              => $card_gateway,
 					'afterpay_clearpay' => $afterpay_clearpay_gateway,
@@ -579,7 +579,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled() {
 		return [
-			'AP and OC newly enabled'                      => [
+			'AP and OC newly enabled'                            => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'no',
 					'optimized_checkout_element' => 'no',
@@ -590,7 +590,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => true,
 			],
-			'AP newly enabled, OC already enabled'         => [
+			'AP newly enabled, OC already enabled'               => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'no',
 					'optimized_checkout_element' => 'yes',
@@ -601,7 +601,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => true,
 			],
-			'OC newly enabled, AP already enabled'         => [
+			'OC newly enabled, AP already enabled'               => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'yes',
 					'optimized_checkout_element' => 'no',
@@ -612,7 +612,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => true,
 			],
-			'AP and OC unchanged and both enabled'         => [
+			'AP and OC unchanged and both enabled'               => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'yes',
 					'optimized_checkout_element' => 'yes',
@@ -623,7 +623,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => false,
 			],
-			'AP disabled in new value'                     => [
+			'AP disabled in new value'                           => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'yes',
 					'optimized_checkout_element' => 'yes',
@@ -634,7 +634,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => false,
 			],
-			'OC disabled in new value'                     => [
+			'OC disabled in new value'                           => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'yes',
 					'optimized_checkout_element' => 'yes',
@@ -645,7 +645,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => false,
 			],
-			'both disabled in new value'                   => [
+			'both disabled in new value'                         => [
 				'old_value'   => [
 					'adaptive_pricing'           => 'yes',
 					'optimized_checkout_element' => 'yes',
@@ -656,7 +656,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => false,
 			],
-			'old value not array, AP enabled in new value' => [
+			'old value not array, AP enabled in new value'       => [
 				'old_value'   => false,
 				'new_value'   => [
 					'adaptive_pricing'           => 'yes',
@@ -664,7 +664,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => true,
 			],
-			'old value not array, AP disabled in new value' => [
+			'old value not array, AP disabled in new value'      => [
 				'old_value'   => false,
 				'new_value'   => [
 					'adaptive_pricing'           => 'no',
@@ -672,7 +672,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expect_call' => false,
 			],
-			'old value missing AP key, AP enabled in new value' => [
+			'old value missing AP key, AP enabled in new value'  => [
 				'old_value'   => [
 					'optimized_checkout_element' => 'yes',
 				],
