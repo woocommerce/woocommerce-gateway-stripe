@@ -312,11 +312,19 @@ const PaymentProcessor = ( {
 			return;
 		}
 
+		let cancelled = false;
 		document.fonts?.ready?.then( () => {
+			if ( cancelled ) {
+				return;
+			}
 			invalidateAppearanceCache();
 			const appearance = initializeUPEAppearance( 'true' );
 			elements.update( { appearance } );
 		} );
+
+		return () => {
+			cancelled = true;
+		};
 	}, [ elements ] );
 
 	usePaymentCompleteHandler(

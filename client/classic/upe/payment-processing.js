@@ -275,6 +275,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// font families and update the live Stripe Elements instance.
 	if ( document.fonts?.status !== 'loaded' ) {
 		document.fonts?.ready?.then( () => {
+			if ( typeof elements?.update !== 'function' ) {
+				return;
+			}
 			invalidateAppearanceCache();
 			const appearance = initializeUPEAppearance(
 				'false',
