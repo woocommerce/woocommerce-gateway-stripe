@@ -273,8 +273,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// After web fonts finish loading, re-compute appearance with correct
 	// font families and update the live Stripe Elements instance.
-	if ( document.fonts.status !== 'loaded' ) {
-		document.fonts.ready.then( () => {
+	if ( document.fonts?.status !== 'loaded' ) {
+		document.fonts?.ready?.then( () => {
 			invalidateAppearanceCache();
 			const appearance = initializeUPEAppearance(
 				'false',

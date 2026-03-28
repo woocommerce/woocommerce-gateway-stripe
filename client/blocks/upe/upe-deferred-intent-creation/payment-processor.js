@@ -308,11 +308,11 @@ const PaymentProcessor = ( {
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.
 	useEffect( () => {
-		if ( ! elements || document.fonts.status === 'loaded' ) {
+		if ( ! elements || document.fonts?.status === 'loaded' ) {
 			return;
 		}
 
-		document.fonts.ready.then( () => {
+		document.fonts?.ready?.then( () => {
 			invalidateAppearanceCache();
 			const appearance = initializeUPEAppearance( 'true' );
 			elements.update( { appearance } );
