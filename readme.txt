@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Resolve incorrect Stripe PE background color on block themes by adding missing background selectors and replacing defunct fast.fonts.com with fonts.bunny.net
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
