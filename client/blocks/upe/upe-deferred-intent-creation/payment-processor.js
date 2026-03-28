@@ -25,7 +25,11 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	invalidateAppearanceCache,
+	initializeUPEAppearance,
+} from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
@@ -300,6 +304,20 @@ const PaymentProcessor = ( {
 			);
 		}
 	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
+
+	// After web fonts finish loading, re-compute the appearance so the PE
+	// uses the correct font families instead of fallback generics.
+	useEffect( () => {
+		if ( ! elements || document.fonts.status === 'loaded' ) {
+			return;
+		}
+
+		document.fonts.ready.then( () => {
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance( 'true' );
+			elements.update( { appearance } );
+		} );
+	}, [ elements ] );
 
 	usePaymentCompleteHandler(
 		api,
