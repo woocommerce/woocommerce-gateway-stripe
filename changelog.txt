@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Re-compute Stripe PE appearance after web fonts load to prevent fallback font rendering
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
