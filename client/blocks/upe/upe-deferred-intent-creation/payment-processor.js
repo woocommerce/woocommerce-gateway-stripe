@@ -308,7 +308,7 @@ const PaymentProcessor = ( {
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.
 	useEffect( () => {
-		if ( ! elements || document.fonts?.status === 'loaded' ) {
+		if ( ! elements ) {
 			return;
 		}
 

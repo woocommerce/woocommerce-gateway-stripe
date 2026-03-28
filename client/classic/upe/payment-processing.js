@@ -273,19 +273,17 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// After web fonts finish loading, re-compute appearance with correct
 	// font families and update the live Stripe Elements instance.
-	if ( document.fonts?.status !== 'loaded' ) {
-		document.fonts?.ready?.then( () => {
-			if ( typeof elements?.update !== 'function' ) {
-				return;
-			}
-			invalidateAppearanceCache();
-			const appearance = initializeUPEAppearance(
-				'false',
-				shouldExpandOptimizedCheckout
-			);
-			elements.update( { appearance } );
-		} );
-	}
+	document.fonts?.ready?.then( () => {
+		invalidateAppearanceCache();
+		if ( typeof elements?.update !== 'function' ) {
+			return;
+		}
+		const appearance = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		);
+		elements.update( { appearance } );
+	} );
 
 	const attachDefaultValuesUpdateEvent = (
 		element,
