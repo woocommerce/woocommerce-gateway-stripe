@@ -4,6 +4,7 @@ import {
 	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	invalidateAppearanceCache,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -268,6 +269,19 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
 		elements = api.getStripe().elements( options );
+	}
+
+	// After web fonts finish loading, re-compute appearance with correct
+	// font families and update the live Stripe Elements instance.
+	if ( document.fonts.status !== 'loaded' ) {
+		document.fonts.ready.then( () => {
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance(
+				'false',
+				shouldExpandOptimizedCheckout
+			);
+			elements.update( { appearance } );
+		} );
 	}
 
 	const attachDefaultValuesUpdateEvent = (
