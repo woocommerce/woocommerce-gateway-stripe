@@ -21,6 +21,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Shared data/state: `client/data/`
 - Shared utility logic: `client/utils/`, `client/stripe-utils/`
 - Payment method visuals: `client/payment-method-icons/`
+- UPE appearance/theming: `client/styles/upe/` (samples page styles for Stripe PE appearance matching)
 
 ## Task-to-Command Matrix
 
@@ -47,6 +48,8 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Changing state shape in `client/data/` without updating all consumers.
 - Forgetting to rebuild assets when source changes require refreshed build output.
 - Mixing display amounts and API minor-unit amounts in per-feature logic.
+- Using `document.fonts.status` as a gate before subscribing to `document.fonts.ready`. The `ready` promise retains its resolved state — `.then()` runs as a microtask even when fonts are already loaded. A `status` check creates a race window. Always subscribe unconditionally.
+- Calling `elements.update()` without checking the object type. The Adaptive Pricing path uses `stripe.initCheckout()` which returns a Checkout object that may lack `.update()`. Always guard with `typeof elements?.update === 'function'`.
 
 ## Test Mapping
 
