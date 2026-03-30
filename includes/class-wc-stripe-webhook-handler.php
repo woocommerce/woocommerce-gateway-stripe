@@ -1646,9 +1646,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$status_update['to']   = OrderStatus::FAILED;
 		$order->update_status( OrderStatus::FAILED, $message );
 
-		$this->send_failed_order_email( $order->get_id(), $status_update );
-
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+		$this->send_failed_order_email( $order->get_id(), $status_update );
 	}
 
 	/**
