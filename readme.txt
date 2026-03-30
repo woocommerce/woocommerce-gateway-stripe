@@ -174,5 +174,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
+* Fix - Prevent TypeError when Action Scheduler runs deferred webhooks by restoring the Stripe notification payload as an object after deserialization
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

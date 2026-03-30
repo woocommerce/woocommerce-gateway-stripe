@@ -26,6 +26,7 @@
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
+* Fix - Prevent TypeError when Action Scheduler runs deferred webhooks by restoring the Stripe notification payload as an object after deserialization
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
