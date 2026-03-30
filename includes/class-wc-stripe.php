@@ -232,9 +232,8 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-inventory-tracker.php';
 
-			if ( is_admin() ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-agentic-commerce-admin-dashboard.php';
-			}
+			// Load outside is_admin() so constants are available in REST API requests.
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-agentic-commerce-admin-dashboard.php';
 
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-cli.php';
