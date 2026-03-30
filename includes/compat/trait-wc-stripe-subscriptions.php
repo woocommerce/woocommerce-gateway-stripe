@@ -750,6 +750,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return WC_Order|null The renewal order.
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
+		if ( ! $renewal_order instanceof WC_Order ) {
+			return $renewal_order;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
