@@ -230,7 +230,7 @@ const AgenticCommercePanel = () => {
 		}
 	};
 
-	const { lastSync, history, nextSync } = data ?? {};
+	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
 	const nextSyncLabel = () => {
 		if ( ! nextSync ) return null;

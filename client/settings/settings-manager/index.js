@@ -39,22 +39,18 @@ const BASE_TABS = [
 	},
 ];
 
-/* eslint-disable camelcase */
-const isAgenticCommerceEnabled =
-	wc_stripe_settings_params?.is_agentic_commerce_enabled;
-/* eslint-enable camelcase */
-
-const TABS_CONTENT = isAgenticCommerceEnabled
-	? [
-			...BASE_TABS,
-			{
-				name: 'agentic-commerce',
-				title: __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
-			},
-	  ]
-	: BASE_TABS;
+const AGENTIC_TAB = {
+	name: 'agentic-commerce',
+	title: __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
+};
 
 const SettingsManager = () => {
+	const isAgenticCommerceEnabled =
+		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
+
+	const TABS_CONTENT = isAgenticCommerceEnabled
+		? [ ...BASE_TABS, AGENTIC_TAB ]
+		: BASE_TABS;
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
 	const { data } = useAccount();
