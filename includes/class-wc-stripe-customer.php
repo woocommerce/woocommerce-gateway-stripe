@@ -838,7 +838,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
+		$cache_key           = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
 		$all_payment_methods = get_transient( $cache_key );
 
 		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {

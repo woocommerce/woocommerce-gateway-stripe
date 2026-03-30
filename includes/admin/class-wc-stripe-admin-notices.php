@@ -487,7 +487,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$customer_stripe_page = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
@@ -532,7 +532,7 @@ class WC_Stripe_Admin_Notices {
 				}
 				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 				if ( ! empty( $detached_messages ) ) {
-					$notice_content = '<p>';
+					$notice_content  = '<p>';
 					$notice_content .= wp_kses(
 						$detached_messages,
 						[
