@@ -624,13 +624,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscriptions = [];
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		foreach ( $subscriptions as $subscription ) {
-			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order_helper->update_stripe_customer_id( $subscription, $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
-				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
+				$order_helper->update_stripe_source_id( $subscription, $source->payment_method );
 			} else {
-				$subscription->update_meta_data( '_stripe_source_id', $source->source );
+				$order_helper->update_stripe_source_id( $subscription, $source->source );
 			}
 
 			// Update the payment method.
@@ -690,8 +691,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper       = WC_Stripe_Order_Helper::get_instance();
 		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
 		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
-		$subscription->update_meta_data( '_stripe_customer_id', $stripe_customer_id ? $stripe_customer_id : '' );
-		$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id ? $stripe_source_id : '' );
+
+		$order_helper->update_stripe_customer_id( $subscription, $stripe_customer_id ? $stripe_customer_id : '' );
+		$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ? $stripe_source_id : '' );
 		$subscription->save();
 	}
 
@@ -707,22 +709,23 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = $subscription->get_id();
-		$source_id       = $subscription->get_meta( '_stripe_source_id', true );
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$source_id       = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $source_id );
-			$subscription->delete_meta_data( '_stripe_card_id' );
+			$order_helper->update_stripe_source_id( $subscription, $source_id ? $source_id : '' );
+			$order_helper->delete_stripe_card_id( $subscription );
 			$subscription->save();
 		}
 
 		$payment_meta[ $this->id ] = [
 			'post_meta' => [
 				'_stripe_customer_id' => [
-					'value' => $subscription->get_meta( '_stripe_customer_id', true ),
+					'value' => $order_helper->get_stripe_customer_id( $subscription ),
 					'label' => 'Stripe Customer ID',
 				],
 				'_stripe_source_id'   => [
@@ -993,18 +996,19 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $payment_method_to_display;
 		}
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+		$stripe_source_id = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$stripe_source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id );
+			$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ? $stripe_source_id : '' );
 			$subscription->save();
 		}
 
-		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
+		$stripe_customer_id = $order_helper->get_stripe_customer_id( $subscription );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
@@ -1294,8 +1298,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $editable;
 		}
 
-		// Not using the helper class here since $order is actually a subscription.
-		$source_id = $order->get_meta( '_stripe_source_id', true );
+		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $order );
 		if ( empty( $source_id ) ) {
 			return $editable;
 		}

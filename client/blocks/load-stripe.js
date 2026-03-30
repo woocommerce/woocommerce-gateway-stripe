@@ -1,5 +1,6 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { getApiKey, getBlocksConfiguration } from './utils';
+import { STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT } from 'wcstripe/stripe-utils/constants';
 
 const stripePromise = () =>
 	new Promise( ( resolve ) => {
@@ -7,7 +8,12 @@ const stripePromise = () =>
 			// Default to the 'auto' locale so Stripe chooses the browser's locale
 			// if the store's locale is not available.
 			const locale = getBlocksConfiguration()?.stripe_locale ?? 'auto';
-			resolve( loadStripe( getApiKey(), { locale } ) );
+			resolve(
+				loadStripe( getApiKey(), {
+					locale,
+					...STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
+				} )
+			);
 		} catch ( error ) {
 			// In order to avoid showing console error publicly to users,
 			// we resolve instead of rejecting when there is an error.
