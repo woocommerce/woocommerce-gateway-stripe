@@ -1258,7 +1258,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Verify the metadata contains the correct order data.
 		$this->assertNotNull( $scheduled_args );
@@ -1319,7 +1319,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Needed to avoid flagging the test as `risky`. Actual assertions happen in the mock expectations above.
 		$this->assertTrue( true );
