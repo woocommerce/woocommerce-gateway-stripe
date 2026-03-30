@@ -7,6 +7,7 @@ import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
+import AgenticCommercePanel from '../agentic-commerce';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -27,7 +28,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS_CONTENT = [
+const BASE_TABS = [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -37,6 +38,21 @@ const TABS_CONTENT = [
 		title: __( 'Settings', 'woocommerce-gateway-stripe' ),
 	},
 ];
+
+/* eslint-disable camelcase */
+const isAgenticCommerceEnabled =
+	wc_stripe_settings_params?.is_agentic_commerce_enabled;
+/* eslint-enable camelcase */
+
+const TABS_CONTENT = isAgenticCommerceEnabled
+	? [
+			...BASE_TABS,
+			{
+				name: 'agentic-commerce',
+				title: __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
+			},
+	  ]
+	: BASE_TABS;
 
 const SettingsManager = () => {
 	const { settings, isLoading } = useSettings();
@@ -98,43 +114,65 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
+	const getInitialTab = () => {
+		if ( panel === 'settings' ) return 'settings';
+		if ( panel === 'agentic-commerce' && isAgenticCommerceEnabled )
+			return 'agentic-commerce';
+		return 'methods';
+	};
+
 	return (
 		<SettingsLayout>
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
-				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
+				initialTabName={ getInitialTab() }
 				tabs={ TABS_CONTENT }
 				onSelect={ updatePanelUri }
 			>
-				{ ( tab ) => (
-					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' ? (
-							<PaymentSettingsPanel
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) : (
-							<PaymentMethodsPanel
-								onSaveChanges={ onSaveChanges }
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-						/>
-					</div>
-				) }
+				{ ( tab ) => {
+					const isAgenticTab = tab.name === 'agentic-commerce';
+					return (
+						<div data-testid={ `${ tab.name }-tab` }>
+							{ isAgenticTab && <AgenticCommercePanel /> }
+							{ tab.name === 'settings' && (
+								<PaymentSettingsPanel
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) }
+							{ tab.name === 'methods' && (
+								<PaymentMethodsPanel
+									onSaveChanges={ onSaveChanges }
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) }
+							{ ! isAgenticTab && (
+								<SaveSettingsSection
+									onSettingsSave={ onSettingsSave }
+								/>
+							) }
+						</div>
+					);
+				} }
 			</StyledTabPanel>
 		</SettingsLayout>
 	);
