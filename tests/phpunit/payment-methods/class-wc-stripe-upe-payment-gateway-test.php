@@ -1468,6 +1468,81 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that a customer-cancelled redirect (e.g. Klarna popup closed) throws
+	 * WC_Stripe_Payment_Cancelled_Exception so the order is not permanently failed.
+	 */
+	public function test_intent_error_with_requires_payment_method_throws_cancellation_exception() {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Customer cancelled checkout on Klarna' ];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Payment_Cancelled_Exception to be thrown' );
+		$this->assertInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertStringContainsString( 'Customer cancelled checkout on Klarna', $exception->getMessage() );
+	}
+
+	/**
+	 * Test that a hard payment error (non-cancellation) still throws a generic WC_Stripe_Exception.
+	 *
+	 * @dataProvider provider_hard_payment_error_intent_statuses
+	 */
+	public function test_intent_hard_error_throws_generic_exception( $intent_status ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = $intent_status;
+		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Your card was declined.' ];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Exception to be thrown' );
+		$this->assertNotInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertMatchesRegularExpression( '/not able to process this payment\./', $exception->getMessage() );
+	}
+
+	public function provider_hard_payment_error_intent_statuses() {
+		return [
+			'succeeded'  => [ WC_Stripe_Intent_Status::SUCCEEDED ],
+			'canceled'   => [ WC_Stripe_Intent_Status::CANCELED ],
+			'processing' => [ WC_Stripe_Intent_Status::PROCESSING ],
+		];
+	}
+
+	/**
 	 * Test order status corresponds with charge status.
 	 */
 	public function test_process_response_updates_order_by_charge_status() {
