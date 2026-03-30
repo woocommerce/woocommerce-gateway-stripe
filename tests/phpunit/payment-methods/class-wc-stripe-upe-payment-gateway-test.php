@@ -4204,8 +4204,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		// Rate is always formatted to at least 3 decimal places; uses major-unit amounts.
-		$expected_rate = wc_format_decimal( (float) $expected_amount / $order->get_total(), max( WC_Stripe_Helper::get_currency_decimals( 'eur' ), 3 ) );
+		// Rate is always formatted to exactly 3 decimal places; uses major-unit amounts.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / $order->get_total(), 3 );
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4305,7 +4305,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
 
 		$this->assertStringContainsString( '<div', $output );
 		$this->assertStringContainsString( 'Currency Conversion', $output );
@@ -4330,7 +4331,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
 
 		$this->assertStringContainsString( '<div', $output );
 		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );

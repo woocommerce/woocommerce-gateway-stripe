@@ -1090,11 +1090,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Shows a notice to the order received page to inform the customer about the currency conversion
 	 * when the order is paid with a different currency than the store currency.
 	 *
-	 * @param WC_Abstract_Order The order object.
+	 * @param WC_Abstract_Order $order The order object.
 	 *
 	 * @return void
 	 */
-	public function add_currency_conversion_notice( $order ): void {
+	public function add_currency_conversion_notice( WC_Abstract_Order $order ): void {
 		$notice_data = $this->get_currency_conversion_notice_data( $order );
 		if ( null === $notice_data ) {
 			return;
@@ -1172,7 +1172,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 *     @type string $border-radius    Border radius. Default '4px'.
 		 *     @type string $background-color Background colour (hex or CSS colour value). Default '#F6F5F8'.
 		 * }
-		 * @param WC_Order $order          The order the email is being sent for.
+		 * @param WC_Abstract_Order $order The order the email is being sent for.
 		 * @param bool     $sent_to_admin  Whether the email is sent to admin.
 		 */
 		$styles = apply_filters(
@@ -4340,7 +4340,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$rate_decimals = 3;
 
 		// Divide major-unit amounts so the rate is correct for currencies with different decimal exponents (e.g. JPY↔USD).
-		$rate_amount = wc_format_decimal( $presentment_data['amount'] / $woocommerce_amount, $rate_decimals );
+		$rate_amount = wc_format_decimal( (float) $woocommerce_amount / $order_total, $rate_decimals );
 
 		return [
 			'presentment_currency' => $presentment_currency_upper,
