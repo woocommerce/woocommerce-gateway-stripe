@@ -234,10 +234,17 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
+		$stripe_settings  = WC_Stripe_Helper::get_stripe_settings();
+		$is_test_mode     = $this->get_gateway()->is_in_test_mode();
+		$publishable_key  = $is_test_mode
+			? ( $stripe_settings['test_publishable_key'] ?? '' )
+			: ( $stripe_settings['publishable_key'] ?? '' );
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
 			'is_upe_checkout_enabled'               => true,
+			'publishable_key'                       => $publishable_key,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,

@@ -4,6 +4,16 @@ import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
 
+// Stripe Connect packages are not designed for jsdom. Mock them out so tests
+// focus on the product-feed dashboard rather than the embedded component.
+jest.mock( '@stripe/connect-js', () => ( {
+	loadConnectAndInitialize: jest.fn(),
+} ) );
+jest.mock( '@stripe/react-connect-js', () => ( {
+	ConnectComponentsProvider: ( { children } ) => children,
+	useConnectComponents: jest.fn( () => ( { connectInstance: null } ) ),
+} ) );
+
 // Static baseline response. next_sync is intentionally omitted here so
 // individual tests can provide a value that is always relative to real time.
 const LAST_SYNC_SUCCESS = {
@@ -42,8 +52,16 @@ const makeResponse = ( overrides = {} ) => ( {
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
 describe( 'AgenticCommercePanel', () => {
+	beforeEach( () => {
+		// Provide the global injected by wp_localize_script. No publishable_key
+		// means AgenticCommerceConnectPanel renders null, keeping tests focused
+		// on the product-feed dashboard.
+		global.wc_stripe_settings_params = {};
+	} );
+
 	afterEach( () => {
 		jest.resetAllMocks();
+		delete global.wc_stripe_settings_params;
 	} );
 
 	// -------------------------------------------------------------------------

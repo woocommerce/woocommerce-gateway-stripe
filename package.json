@@ -102,6 +102,8 @@
   },
   "dependencies": {
     "@automattic/interpolate-components": "^1.2.1",
+    "@stripe/connect-js": "3.3.34",
+    "@stripe/react-connect-js": "3.3.33",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.6.0",
     "@woocommerce/settings": "^1.0.0",

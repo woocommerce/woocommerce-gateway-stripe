@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { loadConnectAndInitialize } from '@stripe/connect-js';
+import {
+	ConnectComponentsProvider,
+	useConnectComponents,
+} from '@stripe/react-connect-js';
 import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
@@ -167,6 +172,76 @@ const humanTimeDiff = ( timestamp ) => {
 // Minimal sprintf for %d substitution.
 const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
 
+/* global wc_stripe_settings_params */
+
+/**
+ * Mounts the Stripe Connect agentic-commerce-settings web component.
+ * Uses the imperative API until ConnectAgenticCommerceSettings is
+ * available in the react-connect-js package.
+ */
+const AgenticCommerceSettingsComponent = () => {
+	const containerRef = useRef( null );
+	const { connectInstance } = useConnectComponents();
+
+	useEffect( () => {
+		if ( ! containerRef.current || ! connectInstance ) {
+			return;
+		}
+		// 'agentic-commerce-settings' is not yet in ConnectElementTagName;
+		// cast through unknown until the package ships the type.
+		const tagName = /** @type {unknown} */ ( 'agentic-commerce-settings' );
+		const el = connectInstance.create( tagName );
+		containerRef.current.appendChild( el );
+		const container = containerRef.current;
+		return () => {
+			if ( container.contains( el ) ) {
+				container.removeChild( el );
+			}
+		};
+	}, [ connectInstance ] );
+
+	return <div ref={ containerRef } />;
+};
+
+/**
+ * Initialises a Stripe Connect instance and renders the agentic commerce
+ * settings embedded component. Returns null when no publishable key is set.
+ */
+const AgenticCommerceConnectPanel = () => {
+	// eslint-disable-next-line camelcase
+	const publishableKey = wc_stripe_settings_params?.publishable_key;
+
+	const [ connectInstance ] = useState( () => {
+		if ( ! publishableKey ) {
+			return null;
+		}
+		return loadConnectAndInitialize( {
+			publishableKey,
+			fetchClientSecret: async () => {
+				try {
+					const result = await apiFetch( {
+						path: '/wc/v3/wc_stripe/agentic-commerce/account-session',
+						method: 'POST',
+					} );
+					return result?.client_secret ?? undefined;
+				} catch {
+					return undefined;
+				}
+			},
+		} );
+	} );
+
+	if ( ! connectInstance ) {
+		return null;
+	}
+
+	return (
+		<ConnectComponentsProvider connectInstance={ connectInstance }>
+			<AgenticCommerceSettingsComponent />
+		</ConnectComponentsProvider>
+	);
+};
+
 const AgenticCommercePanel = () => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -259,6 +334,8 @@ const AgenticCommercePanel = () => {
 
 	return (
 		<div>
+			<AgenticCommerceConnectPanel />
+
 			<p className="description">
 				{ __(
 					'Monitors the product feed sync status for the Agentic Commerce integration.',

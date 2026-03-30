@@ -51,6 +51,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/account-session',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'create_account_session' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -140,5 +150,76 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			'import_set_id' => $entry['import_set_id'] ?? null,
 			'error'         => $entry['error'] ?? null,
 		];
+	}
+
+	/**
+	 * Create a Stripe account session for the agentic_commerce_settings embedded component.
+	 *
+	 * @since 10.7.0
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_account_session() {
+		$account = WC_Stripe_API::retrieve( 'account' );
+
+		if ( is_wp_error( $account ) || isset( $account->error ) ) {
+			return new WP_Error(
+				'stripe_account_unavailable',
+				__( 'Unable to retrieve Stripe account.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 503 ]
+			);
+		}
+
+		$account_id = $account->id ?? null;
+
+		if ( ! $account_id ) {
+			return new WP_Error(
+				'stripe_account_id_missing',
+				__( 'Stripe account ID not found.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 503 ]
+			);
+		}
+
+		// Temporarily add the embedded_connect_beta header required for account sessions.
+		$add_beta_version = function ( array $headers ): array {
+			$headers['Stripe-Version'] .= '; embedded_connect_beta=v2';
+			return $headers;
+		};
+		add_filter( 'wc_stripe_request_headers', $add_beta_version );
+
+		try {
+			$response = WC_Stripe_API::request(
+				[
+					'account'    => $account_id,
+					'components' => [
+						'agentic_commerce_settings' => [
+							'enabled' => 'true',
+						],
+					],
+				],
+				'account_sessions',
+				'POST'
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			remove_filter( 'wc_stripe_request_headers', $add_beta_version );
+			return new WP_Error(
+				'stripe_account_session_failed',
+				$e->getMessage(),
+				[ 'status' => 503 ]
+			);
+		}
+
+		remove_filter( 'wc_stripe_request_headers', $add_beta_version );
+
+		if ( isset( $response->error ) ) {
+			return new WP_Error(
+				'stripe_account_session_failed',
+				$response->error->message ?? __( 'Failed to create account session.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 503 ]
+			);
+		}
+
+		$client_secret = is_object( $response ) ? ( $response->client_secret ?? null ) : null;
+
+		return rest_ensure_response( [ 'client_secret' => $client_secret ] );
 	}
 }
