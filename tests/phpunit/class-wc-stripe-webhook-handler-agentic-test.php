@@ -3,7 +3,7 @@
 /**
  * Tests for agentic commerce checkout.session.completed webhook handling.
  *
- * @covers WC_Stripe_Webhook_Handler::process_checkout_session
+ * @covers WC_Stripe_Webhook_Handler::process_checkout_session_success
  */
 class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
