@@ -244,10 +244,11 @@ class WC_Stripe_Feature_Flags {
 		 *
 		 * @since 9.6.0
 		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
-		 * @param string $default_value The default value for the feature flag.
-		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
+		 * @param bool   $default_value  The default value for the feature flag.
+		 * @param string $default_pmc    The default value of the 'pmc_enabled' setting passed to the filter.
+		 * @param string $pmc_enabled    The actual value of the 'pmc_enabled' setting.
 		 */
-		return apply_filters(
+		return (bool) apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
 			true,
 			'yes',

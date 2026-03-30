@@ -146,6 +146,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
+* Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
 * Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
@@ -168,7 +170,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that we enqueue all needed scripts on payment pages
 * Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 * Fix - Improve performance of CSS style lookups
+* Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
+* Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Dev - Hide Stripe's testing assistant on checkout page
+* Dev - Treat misaligned statements as errors in PHPCS ruleset
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
