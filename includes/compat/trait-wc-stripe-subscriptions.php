@@ -571,8 +571,6 @@ trait WC_Stripe_Subscriptions_Trait {
 						$radar_note = __( 'Stripe Radar blocked this payment as high risk. The subscription has been put on hold to prevent further blocked payment attempts.', 'woocommerce-gateway-stripe' );
 						break;
 				}
-				$renewal_order->add_order_note( $radar_note );
-
 				try {
 					$subscriptions     = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
 						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
@@ -584,6 +582,7 @@ trait WC_Stripe_Subscriptions_Trait {
 						}
 						$subscription->update_status( OrderStatus::ON_HOLD, $radar_note );
 					}
+					$renewal_order->add_order_note( $radar_note );
 				} catch ( Exception $radar_e ) {
 					WC_Stripe_Logger::error(
 						'Failed to put subscription on hold after Stripe Radar block: ' . $radar_e->getMessage(),
