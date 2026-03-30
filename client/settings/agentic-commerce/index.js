@@ -175,7 +175,8 @@ const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
 /* global wc_stripe_settings_params */
 
 /**
- * Mounts the Stripe Connect agentic-commerce-settings web component.
+ * Mounts the Stripe Connect agentic-commerce-settings web component
+ * imperatively. Must be rendered inside ConnectComponentsProvider.
  * Uses the imperative API until ConnectAgenticCommerceSettings is
  * available in the react-connect-js package.
  */
@@ -204,41 +205,94 @@ const AgenticCommerceSettingsComponent = () => {
 };
 
 /**
- * Initialises a Stripe Connect instance and renders the agentic commerce
- * settings embedded component. Returns null when no publishable key is set.
+ * Fetches a Stripe account session, then initialises a Connect instance
+ * and renders the agentic-commerce-settings embedded component.
+ *
+ * Pre-fetching the client_secret before calling loadConnectAndInitialize
+ * prevents the element being mounted without valid authentication, which
+ * would otherwise cause a cascade of Stripe Connect errors in the console.
+ *
+ * Returns null when no publishable key is configured or while loading.
+ * Shows an error notice when the account session endpoint fails.
  */
 const AgenticCommerceConnectPanel = () => {
 	// eslint-disable-next-line camelcase
 	const publishableKey = wc_stripe_settings_params?.publishable_key;
+	const [ connectInstance, setConnectInstance ] = useState( null );
+	const [ sessionError, setSessionError ] = useState( null );
+	const [ isLoading, setIsLoading ] = useState( true );
 
-	const [ connectInstance ] = useState( () => {
+	useEffect( () => {
 		if ( ! publishableKey ) {
-			return null;
+			setIsLoading( false );
+			return;
 		}
-		return loadConnectAndInitialize( {
-			publishableKey,
-			fetchClientSecret: async () => {
-				try {
-					const result = await apiFetch( {
-						path: '/wc/v3/wc_stripe/agentic-commerce/account-session',
-						method: 'POST',
-					} );
-					return result?.client_secret ?? undefined;
-				} catch {
-					return undefined;
+
+		apiFetch( {
+			path: '/wc/v3/wc_stripe/agentic-commerce/account-session',
+			method: 'POST',
+		} )
+			.then( ( result ) => {
+				const secret = result?.client_secret;
+				if ( ! secret ) {
+					throw new Error(
+						__(
+							'No client_secret in account session response.',
+							'woocommerce-gateway-stripe'
+						)
+					);
 				}
-			},
-		} );
-	} );
+				setConnectInstance(
+					loadConnectAndInitialize( {
+						publishableKey,
+						fetchClientSecret: () => Promise.resolve( secret ),
+					} )
+				);
+			} )
+			.catch( ( err ) => {
+				setSessionError(
+					err?.message ??
+						__(
+							'Failed to load agent settings.',
+							'woocommerce-gateway-stripe'
+						)
+				);
+			} )
+			.finally( () => {
+				setIsLoading( false );
+			} );
+	}, [ publishableKey ] );
+
+	if ( ! publishableKey || isLoading ) {
+		return null;
+	}
+
+	if ( sessionError ) {
+		return (
+			<Card>
+				<CardTitle>
+					{ __( 'Agent Settings', 'woocommerce-gateway-stripe' ) }
+				</CardTitle>
+				<Notice status="error" isDismissible={ false }>
+					{ sessionError }
+				</Notice>
+			</Card>
+		);
+	}
 
 	if ( ! connectInstance ) {
 		return null;
 	}
 
 	return (
-		<ConnectComponentsProvider connectInstance={ connectInstance }>
-			<AgenticCommerceSettingsComponent />
-		</ConnectComponentsProvider>
+		<Card>
+			<CardTitle>
+				{ __( 'Agent Settings', 'woocommerce-gateway-stripe' ) }
+			</CardTitle>
+			<ConnectComponentsProvider connectInstance={ connectInstance }>
+				<AgenticCommerceSettingsComponent />
+			</ConnectComponentsProvider>
+		</Card>
 	);
 };
 

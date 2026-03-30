@@ -161,7 +161,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	public function create_account_session() {
 		$account = WC_Stripe_API::retrieve( 'account' );
 
-		if ( is_wp_error( $account ) || isset( $account->error ) ) {
+		if ( is_null( $account ) || is_wp_error( $account ) || isset( $account->error ) ) {
 			return new WP_Error(
 				'stripe_account_unavailable',
 				__( 'Unable to retrieve Stripe account.', 'woocommerce-gateway-stripe' ),
@@ -169,7 +169,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			);
 		}
 
-		$account_id = $account->id ?? null;
+		$account_id = is_object( $account ) ? ( $account->id ?? null ) : null;
 
 		if ( ! $account_id ) {
 			return new WP_Error(
