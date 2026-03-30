@@ -43,8 +43,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 1 );
 
 		// Ensure options start clean.
-		delete_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION );
-		delete_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::SYNC_HISTORY_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 	}
 
 	/**
@@ -53,8 +53,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION );
-		delete_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::SYNC_HISTORY_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		parent::tear_down();
 	}
 
@@ -114,7 +114,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function test_get_status_returns_last_sync(): void {
 		$now = time();
 		update_option(
-			WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
 			[
 				'status'        => 'succeeded',
 				'timestamp'     => $now,
@@ -156,7 +156,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 				'error'         => '',
 			];
 		}
-		update_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::SYNC_HISTORY_OPTION, $history );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
 
 		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
 		$response = rest_do_request( $request );
@@ -176,7 +176,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_history_entry_shape(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Admin_Dashboard::SYNC_HISTORY_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
 				[
 					'status'        => 'failed',
@@ -210,7 +210,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_casts_numeric_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
 			[
 				'status'        => 'succeeded',
 				'timestamp'     => '1700000000', // string from old storage
@@ -236,7 +236,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_status_returns_null_for_missing_optional_fields(): void {
 		update_option(
-			WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION,
+			WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION,
 			[ 'status' => 'pending' ] // minimal entry, no other keys
 		);
 

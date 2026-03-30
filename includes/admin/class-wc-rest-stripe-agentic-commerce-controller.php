@@ -60,8 +60,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @return WP_REST_Response
 	 */
 	public function get_status(): WP_REST_Response {
-		$last_sync   = get_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::LAST_SYNC_OPTION, [] );
-		$history_raw = get_option( WC_Stripe_Agentic_Commerce_Admin_Dashboard::SYNC_HISTORY_OPTION, [] );
+		$last_sync   = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+		$history_raw = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
 
 		// Return the 20 most recent history entries, newest first.
 		$history = array_map(

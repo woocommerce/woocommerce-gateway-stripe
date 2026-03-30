@@ -232,9 +232,6 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-inventory-tracker.php';
 
-			// Load outside is_admin() so constants are available in REST API requests.
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-agentic-commerce-admin-dashboard.php';
-
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-cli.php';
 			}
@@ -989,11 +986,6 @@ class WC_Stripe {
 		// Schedule recurring sync if not already scheduled.
 		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION ) ) {
 			$integration->activate();
-		}
-
-		// Register admin dashboard.
-		if ( is_admin() && class_exists( 'WC_Stripe_Agentic_Commerce_Admin_Dashboard' ) ) {
-			( new WC_Stripe_Agentic_Commerce_Admin_Dashboard() )->register_hooks();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
