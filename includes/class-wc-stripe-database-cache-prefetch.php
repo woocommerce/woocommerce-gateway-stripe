@@ -90,7 +90,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 		}
 
 		$logging_context = [
-			'cache_key' => $key,
+			'cache_key'   => $key,
 			'expiry_time' => $expiry_time,
 		];
 
@@ -265,7 +265,7 @@ class WC_Stripe_Database_Cache_Prefetch {
 		switch ( $key ) {
 			case WC_Stripe_Account::ACCOUNT_CACHE_KEY:
 				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( null, true );
-				$prefetched = ! empty( $account_data );
+				$prefetched   = ! empty( $account_data );
 				break;
 			case WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY:
 				if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
