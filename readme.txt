@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Guard 'delete_renewal_meta' when the renewal order is missing or not a 'WC_Order'
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
