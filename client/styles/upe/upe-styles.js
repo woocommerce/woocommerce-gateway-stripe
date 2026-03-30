@@ -8,6 +8,16 @@ const paddingColorProps = [
 	'paddingLeft',
 ];
 
+export const fontSmoothingProps = [
+	'-webkit-font-smoothing',
+	'-moz-osx-font-smoothing',
+];
+
+export const computedStylePropertyMaps = {
+	'-webkit-font-smoothing': 'WebkitFontSmoothing',
+	'-moz-osx-font-smoothing': 'MozOsxFontSmoothing',
+};
+
 const textFontTransitionProps = [
 	'fontFamily',
 	'fontSize',
@@ -19,8 +29,7 @@ const textFontTransitionProps = [
 	'textShadow',
 	'textTransform',
 	'transition',
-	'-webkit-font-smoothing',
-	'-moz-osx-font-smoothing',
+	...fontSmoothingProps,
 ];
 const borderOutlineBackgroundProps = [
 	'border',
