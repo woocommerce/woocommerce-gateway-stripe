@@ -204,40 +204,43 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		add_action( 'wc_stripe_webhook_received', $listener, 10, 3 );
 
-		$order        = WC_Helper_Order::create_order();
-		$intent_id    = 'pi_mock_1234';
-		$data         = [
-			'order_id'  => $order->get_id(),
-			'intent_id' => $intent_id,
-		];
-		$notification = (object) [
-			'type' => 'payment_intent.succeeded',
-			'data' => (object) [
-				'object' => (object) [
-					'id'                 => $intent_id,
-					'charges'            => (object) [
-						'total_count' => 1,
-						'data'        => [
-							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+		try {
+
+			$order        = WC_Helper_Order::create_order();
+			$intent_id    = 'pi_mock_1234';
+			$data         = [
+				'order_id'  => $order->get_id(),
+				'intent_id' => $intent_id,
+			];
+			$notification = (object) [
+				'type' => 'payment_intent.succeeded',
+				'data' => (object) [
+					'object' => (object) [
+						'id'                 => $intent_id,
+						'charges'            => (object) [
+							'total_count' => 1,
+							'data'        => [
+								(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+							],
 						],
+						'last_payment_error' => null,
 					],
-					'last_payment_error' => null,
 				],
-			],
-		];
+			];
 
-		$notification_as_arrays = json_decode( wp_json_encode( $notification ), true );
-		$this->assertIsArray( $notification_as_arrays );
+			$notification_as_arrays = json_decode( wp_json_encode( $notification ), true );
+			$this->assertIsArray( $notification_as_arrays );
 
-		$this->mock_webhook_handler->expects( $this->once() )
-			->method( 'handle_deferred_payment_intent_succeeded' );
+			$this->mock_webhook_handler->expects( $this->once() )
+				->method( 'handle_deferred_payment_intent_succeeded' );
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification_as_arrays );
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification_as_arrays );
 
-		$this->assertIsObject( $captured_notification );
-		$this->assertSame( 'payment_intent.succeeded', $captured_notification->type );
-
-		remove_action( 'wc_stripe_webhook_received', $listener, 10 );
+			$this->assertIsObject( $captured_notification );
+			$this->assertSame( 'payment_intent.succeeded', $captured_notification->type );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener, 10 );
+		}
 	}
 
 	/**
