@@ -159,7 +159,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_is_checkout_sessions_available(): array {
 		return [
-			'All prerequisites met, feature flag enabled'  => [
+			'All prerequisites met, feature flag enabled'                      => [
 				'PMC enabled'       => true,
 				'OC enabled'        => true,
 				'automatic capture' => true,
@@ -167,7 +167,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '',
 				'expected'          => true,
 			],
-			'All prerequisites met, feature flag disabled' => [
+			'All prerequisites met, feature flag disabled'                     => [
 				'PMC enabled'       => true,
 				'OC enabled'        => true,
 				'automatic capture' => true,
@@ -175,7 +175,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '',
 				'expected'          => false,
 			],
-			'PMC disabled'                                 => [
+			'PMC disabled'                                                     => [
 				'PMC enabled'       => false,
 				'OC enabled'        => true,
 				'automatic capture' => true,
@@ -183,7 +183,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '',
 				'expected'          => false,
 			],
-			'OC disabled'                                  => [
+			'OC disabled'                                                      => [
 				'PMC enabled'       => true,
 				'OC enabled'        => false,
 				'automatic capture' => true,
@@ -191,7 +191,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '',
 				'expected'          => false,
 			],
-			'Manual capture enabled'                       => [
+			'Manual capture enabled'                                           => [
 				'PMC enabled'       => true,
 				'OC enabled'        => true,
 				'automatic capture' => false,
@@ -199,7 +199,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '',
 				'expected'          => false,
 			],
-			'PMC disabled, filter set to true (filter ignored)' => [
+			'PMC disabled, filter set to true (filter ignored)'                => [
 				'PMC enabled'       => false,
 				'OC enabled'        => true,
 				'automatic capture' => true,
@@ -207,7 +207,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '__return_true',
 				'expected'          => false,
 			],
-			'OC disabled, filter set to true (filter ignored)' => [
+			'OC disabled, filter set to true (filter ignored)'                 => [
 				'PMC enabled'       => true,
 				'OC enabled'        => false,
 				'automatic capture' => true,
@@ -215,7 +215,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '__return_true',
 				'expected'          => false,
 			],
-			'Manual capture, filter set to true (filter ignored)' => [
+			'Manual capture, filter set to true (filter ignored)'              => [
 				'PMC enabled'       => true,
 				'OC enabled'        => true,
 				'automatic capture' => false,
@@ -223,7 +223,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'filter function'   => '__return_true',
 				'expected'          => false,
 			],
-			'All prerequisites met, feature flag enabled, filter set to true' => [
+			'All prerequisites met, feature flag enabled, filter set to true'  => [
 				'PMC enabled'       => true,
 				'OC enabled'        => true,
 				'automatic capture' => true,

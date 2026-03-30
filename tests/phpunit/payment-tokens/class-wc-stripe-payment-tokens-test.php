@@ -38,12 +38,12 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_valid_payment_method_id(): array {
 		return [
-			'pm_ without type is valid'           => [ 'pm_1234567890', '', true ],
-			'pm_ with card type is valid'         => [ 'pm_1234567890', 'card', true ],
-			'pm_ with sepa type is valid'         => [ 'pm_1234567890', 'sepa', true ],
-			'src_ with card type is valid'        => [ 'src_1234567890', 'card', true ],
-			'src_ with sepa type is invalid'      => [ 'src_1234567890', 'sepa', false ],
-			'src_ with giropay type is invalid'   => [ 'src_1234567890', 'giropay', false ],
+			'pm_ without type is valid'         => [ 'pm_1234567890', '', true ],
+			'pm_ with card type is valid'       => [ 'pm_1234567890', 'card', true ],
+			'pm_ with sepa type is valid'       => [ 'pm_1234567890', 'sepa', true ],
+			'src_ with card type is valid'      => [ 'src_1234567890', 'card', true ],
+			'src_ with sepa type is invalid'    => [ 'src_1234567890', 'sepa', false ],
+			'src_ with giropay type is invalid' => [ 'src_1234567890', 'giropay', false ],
 		];
 	}
 
@@ -285,43 +285,43 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_woocommerce_payment_token_class() {
 		return [
-			WC_Payment_Token_CC::class      => [
+			WC_Payment_Token_CC::class         => [
 				'class'    => WC_Payment_Token_CC::class,
 				'expected' => WC_Stripe_Payment_Token_CC::class,
 			],
-			WC_Payment_Token_CashApp::class => [
+			WC_Payment_Token_CashApp::class    => [
 				'class'    => WC_Payment_Token_CashApp::class,
 				'expected' => WC_Payment_Token_CashApp::class,
 			],
-			WC_Payment_Token_SEPA::class    => [
+			WC_Payment_Token_SEPA::class       => [
 				'class'    => WC_Payment_Token_SEPA::class,
 				'expected' => WC_Payment_Token_SEPA::class,
 			],
-			WC_Payment_Token_Link::class    => [
+			WC_Payment_Token_Link::class       => [
 				'class'    => WC_Payment_Token_Link::class,
 				'expected' => WC_Payment_Token_Link::class,
 			],
-			WC_Payment_Token_ACH::class    => [
+			WC_Payment_Token_ACH::class        => [
 				'class'    => 'test',
 				'expected' => WC_Payment_Token_ACH::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 			],
-			WC_Payment_Token_ACSS::class    => [
+			WC_Payment_Token_ACSS::class       => [
 				'class'    => 'test',
 				'expected' => WC_Payment_Token_ACSS::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 			],
-			WC_Payment_Token_Becs_Debit::class    => [
+			WC_Payment_Token_Becs_Debit::class => [
 				'class'    => 'test',
 				'expected' => WC_Payment_Token_Becs_Debit::class,
 				'type'     => WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 			],
-			'Klarna with overridden class'    => [
+			'Klarna with overridden class'     => [
 				'class'    => 'test_klarna',
 				'expected' => 'test_klarna',
 				'type'     => \WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 			],
-			'Klarna with default class'    => [
+			'Klarna with default class'        => [
 				'class'    => 'WC_Payment_Token_klarna',
 				'expected' => \WC_Stripe_Klarna_Payment_Token::class,
 				'type'     => \WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
@@ -363,7 +363,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$amazon_pay_token->set_email( 'amazon.test@example.com' );
 
 		return [
-			'Non-Stripe payment token' => [
+			'Non-Stripe payment token'                          => [
 				'payment_token'   => new \WC_Payment_Token_CC(),
 				'expected_result' => [],
 			],
@@ -371,58 +371,58 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'payment_token'   => $mock_sepa_collision_token,
 				'expected_result' => [],
 			],
-			'Stripe payment token with unhandled type' => [
+			'Stripe payment token with unhandled type'          => [
 				'payment_token'   => new \WC_Stripe_Payment_Token_CC(),
 				'expected_result' => [],
 			],
-			'SEPA token' => [
+			'SEPA token'                                        => [
 				'payment_token'   => $sepa_token,
 				'expected_result' => [
 					'last4' => '1234',
 					'brand' => 'SEPA IBAN',
 				],
 			],
-			'BACS Debit token' => [
+			'BACS Debit token'                                  => [
 				'payment_token'   => $bacs_debit_token,
 				'expected_result' => [
 					'last4' => '2345',
 					'brand' => 'Bacs Direct Debit',
 				],
 			],
-			'CashApp token' => [
+			'CashApp token'                                     => [
 				'payment_token'   => new \WC_Payment_Token_CashApp(),
 				'expected_result' => [
 					'brand' => 'Cash App Pay',
 				],
 			],
-			'ACH token' => [
+			'ACH token'                                         => [
 				'payment_token'   => $ach_token,
 				'expected_result' => [
 					'last4' => '3456',
 					'brand' => 'Test ACH Bank',
 				],
 			],
-			'ACSS token' => [
+			'ACSS token'                                        => [
 				'payment_token'   => $acss_token,
 				'expected_result' => [
 					'last4' => '4567',
 					'brand' => 'Test ACSS Bank',
 				],
 			],
-			'BECS Debit token' => [
+			'BECS Debit token'                                  => [
 				'payment_token'   => $becs_debit_token,
 				'expected_result' => [
 					'last4' => '5678',
 					'brand' => 'BECS Direct Debit',
 				],
 			],
-			'Link token' => [
+			'Link token'                                        => [
 				'payment_token'   => $link_token,
 				'expected_result' => [
 					'brand' => 'Stripe Link (link.test@example.com)',
 				],
 			],
-			'Amazon Pay token' => [
+			'Amazon Pay token'                                  => [
 				'payment_token'   => $amazon_pay_token,
 				'expected_result' => [
 					'brand' => 'Amazon Pay (amazon.test@example.com)',

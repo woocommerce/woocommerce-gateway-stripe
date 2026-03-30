@@ -99,9 +99,9 @@ class WC_Payment_Token_ACH_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_equal_payment_method
 	 */
 	public function test_is_equal_payment_method( string $token_fingerprint, bool $expected ) {
-		$payment_method       = new stdClass();
-		$payment_method->type = WC_Stripe_Payment_Methods::ACH;
-		$payment_method->{WC_Stripe_Payment_Methods::ACH}              = new stdClass();
+		$payment_method                                   = new stdClass();
+		$payment_method->type                             = WC_Stripe_Payment_Methods::ACH;
+		$payment_method->{WC_Stripe_Payment_Methods::ACH} = new stdClass();
 		$payment_method->{WC_Stripe_Payment_Methods::ACH}->fingerprint = 'test_fingerprint';
 
 		$this->token->set_fingerprint( $token_fingerprint );
@@ -115,8 +115,8 @@ class WC_Payment_Token_ACH_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'matching fingerprint'    => [ 'test_fingerprint', true ],
-			'mismatched fingerprint'  => [ 'different_fingerprint', false ],
+			'matching fingerprint'   => [ 'test_fingerprint', true ],
+			'mismatched fingerprint' => [ 'different_fingerprint', false ],
 		];
 	}
 }

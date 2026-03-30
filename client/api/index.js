@@ -11,6 +11,7 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
+	STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 } from 'wcstripe/stripe-utils/constants';
 
 /**
@@ -94,6 +95,7 @@ export default class WCStripeAPI {
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
+			...STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 		};
 
 		if ( betas.length ) {
