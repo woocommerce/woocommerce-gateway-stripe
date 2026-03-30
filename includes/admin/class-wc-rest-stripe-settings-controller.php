@@ -280,9 +280,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
-		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+		$payment_method_ids_to_enable   = $this->get_payment_method_ids_to_enable( $request );
+		$is_upe_enabled                 = $request->get_param( 'is_upe_enabled' );
+		$update_payment_methods_result  = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+		if ( is_wp_error( $update_payment_methods_result ) ) {
+			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 500 );
+		}
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
@@ -630,18 +633,18 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param array $payment_method_ids_to_enable The list of payment method ids to enable.
 	 * @param bool  $is_upe_enabled               Whether UPE is enabled.
 	 *
-	 * @return void
+	 * @return true|\WP_Error|null True on success, WP_Error on failure, null if skipped.
 	 */
 	private function update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled ) {
 		if ( null === $is_upe_enabled ) {
-			return;
+			return null;
 		}
 
 		if ( null === $payment_method_ids_to_enable ) {
-			return;
+			return null;
 		}
 
-		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
+		return $this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**
