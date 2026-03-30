@@ -45,6 +45,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// Ensure options start clean.
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
 	}
 
 	/**
@@ -55,6 +56,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function tear_down(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
 		parent::tear_down();
 	}
 
@@ -81,6 +83,33 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 0 );
 
 		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	/**
+	 * Unauthenticated GET /merchant-settings requests should be refused.
+	 */
+	public function test_get_merchant_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/merchant-settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	/**
+	 * Unauthenticated POST /merchant-settings requests should be refused.
+	 */
+	public function test_save_merchant_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/merchant-settings' );
+		$request->set_body_params(
+			[ 'terms_of_service_url' => 'https://example.com/terms' ]
+		);
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 401, $response->get_status() );
@@ -312,6 +341,188 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		if ( 200 === $response->get_status() ) {
 			$this->assertTrue( $response->get_data()['success'] );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/merchant-settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /merchant-settings returns defaults when no settings are stored.
+	 */
+	public function test_get_merchant_settings_returns_empty_defaults(): void {
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/merchant-settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertArrayHasKey( 'terms_of_service_url', $data );
+		$this->assertArrayHasKey( 'privacy_policy_url', $data );
+		$this->assertArrayHasKey( 'refund_policy_url', $data );
+		$this->assertArrayHasKey( 'hook_url', $data );
+		$this->assertArrayHasKey( 'hook_secret', $data );
+		$this->assertArrayHasKey( 'hook_secret_is_set', $data );
+		$this->assertSame( '', $data['terms_of_service_url'] );
+		$this->assertSame( '', $data['hook_secret'] );
+		$this->assertFalse( $data['hook_secret_is_set'] );
+	}
+
+	/**
+	 * GET /merchant-settings returns stored URL values.
+	 */
+	public function test_get_merchant_settings_returns_stored_urls(): void {
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION,
+			[
+				'terms_of_service_url' => 'https://example.com/terms',
+				'privacy_policy_url'   => 'https://example.com/privacy',
+				'refund_policy_url'    => 'https://example.com/returns',
+				'hook_url'             => 'https://example.com/hook',
+				'hook_secret'          => 'whsec_abc123',
+			]
+		);
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/merchant-settings' );
+		$response = rest_do_request( $request );
+
+		$data = $response->get_data();
+		$this->assertEquals( 'https://example.com/terms', $data['terms_of_service_url'] );
+		$this->assertEquals( 'https://example.com/privacy', $data['privacy_policy_url'] );
+		$this->assertEquals( 'https://example.com/returns', $data['refund_policy_url'] );
+		$this->assertEquals( 'https://example.com/hook', $data['hook_url'] );
+	}
+
+	/**
+	 * GET /merchant-settings masks the hook_secret.
+	 */
+	public function test_get_merchant_settings_masks_hook_secret(): void {
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION,
+			[ 'hook_secret' => 'whsec_supersecret' ]
+		);
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/merchant-settings' );
+		$response = rest_do_request( $request );
+
+		$data = $response->get_data();
+		// The real secret must NOT be exposed.
+		$this->assertNotEquals( 'whsec_supersecret', $data['hook_secret'] );
+		$this->assertTrue( $data['hook_secret_is_set'] );
+		// Placeholder mask is returned instead.
+		$this->assertStringContainsString( '•', $data['hook_secret'] );
+	}
+
+	/**
+	 * GET /merchant-settings sets hook_secret_is_set to false when no secret is stored.
+	 */
+	public function test_get_merchant_settings_secret_is_set_false_when_empty(): void {
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION,
+			[ 'terms_of_service_url' => 'https://example.com/terms' ]
+		);
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/merchant-settings' );
+		$response = rest_do_request( $request );
+
+		$data = $response->get_data();
+		$this->assertFalse( $data['hook_secret_is_set'] );
+		$this->assertSame( '', $data['hook_secret'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// POST /wc/v3/wc_stripe/agentic-commerce/merchant-settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * POST /merchant-settings saves URL fields and returns masked response.
+	 *
+	 * @return void
+	 */
+	public function test_save_merchant_settings_persists_urls(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/merchant-settings' );
+		$request->set_body_params(
+			[
+				'terms_of_service_url' => 'https://example.com/terms',
+				'privacy_policy_url'   => 'https://example.com/privacy',
+				'refund_policy_url'    => 'https://example.com/returns',
+				'hook_url'             => 'https://example.com/hook',
+			]
+		);
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		// Verify the option was actually written.
+		$stored = get_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
+		$this->assertEquals( 'https://example.com/terms', $stored['terms_of_service_url'] );
+		$this->assertEquals( 'https://example.com/hook', $stored['hook_url'] );
+	}
+
+	/**
+	 * POST /merchant-settings saves the hook_secret when provided.
+	 */
+	public function test_save_merchant_settings_saves_hook_secret(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/merchant-settings' );
+		$request->set_body_params( [ 'hook_secret' => 'whsec_newsecret' ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$stored = get_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
+		$this->assertEquals( 'whsec_newsecret', $stored['hook_secret'] );
+
+		// Response should mask the secret.
+		$data = $response->get_data();
+		$this->assertNotEquals( 'whsec_newsecret', $data['hook_secret'] );
+		$this->assertTrue( $data['hook_secret_is_set'] );
+	}
+
+	/**
+	 * POST /merchant-settings does not overwrite an existing secret when none is supplied.
+	 */
+	public function test_save_merchant_settings_preserves_existing_secret_when_blank(): void {
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION,
+			[ 'hook_secret' => 'whsec_existing' ]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/merchant-settings' );
+		$request->set_body_params(
+			[
+				'terms_of_service_url' => 'https://example.com/terms',
+				'hook_secret'          => '', // blank → should not overwrite
+			]
+		);
+		rest_do_request( $request );
+
+		$stored = get_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
+		$this->assertEquals( 'whsec_existing', $stored['hook_secret'] );
+	}
+
+	/**
+	 * POST /merchant-settings merges new values with existing ones.
+	 */
+	public function test_save_merchant_settings_merges_with_existing(): void {
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION,
+			[
+				'terms_of_service_url' => 'https://old.example.com/terms',
+				'privacy_policy_url'   => 'https://example.com/privacy',
+			]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/merchant-settings' );
+		$request->set_body_params(
+			[ 'terms_of_service_url' => 'https://new.example.com/terms' ]
+		);
+		rest_do_request( $request );
+
+		$stored = get_option( WC_REST_Stripe_Agentic_Commerce_Controller::MERCHANT_SETTINGS_OPTION );
+		// Updated field.
+		$this->assertEquals( 'https://new.example.com/terms', $stored['terms_of_service_url'] );
+		// Untouched field preserved.
+		$this->assertEquals( 'https://example.com/privacy', $stored['privacy_policy_url'] );
 	}
 
 	// -------------------------------------------------------------------------

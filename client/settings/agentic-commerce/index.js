@@ -2,7 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
-import { Button, Notice } from '@wordpress/components';
+import {
+	Button,
+	Notice,
+	TextControl,
+	ExternalLink,
+} from '@wordpress/components';
 
 const Card = styled.div`
 	background: #fff;
@@ -100,6 +105,28 @@ const HistoryTable = styled.table`
 	}
 `;
 
+const FieldRow = styled.div`
+	margin-bottom: 16px;
+
+	label {
+		display: block;
+		font-weight: 600;
+		margin-bottom: 4px;
+	}
+
+	p.description {
+		margin: 4px 0 0;
+		color: #646970;
+		font-size: 13px;
+	}
+`;
+
+const SecretPlaceholder = styled.span`
+	font-family: monospace;
+	color: #646970;
+	font-size: 13px;
+`;
+
 const STATUS_CONFIG = {
 	succeeded: {
 		label: __( 'Success', 'woocommerce-gateway-stripe' ),
@@ -166,6 +193,277 @@ const humanTimeDiff = ( timestamp ) => {
 
 // Minimal sprintf for %d substitution.
 const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
+
+// ---------------------------------------------------------------------------
+// Onboarding panel
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders the merchant onboarding form for the Agentic Commerce integration.
+ * Collects policy URLs, a customization hook URL, and a webhook secret, then
+ * saves them via the REST API. Also provides a link to the Stripe Dashboard.
+ */
+const AgenticCommerceOnboardingPanel = () => {
+	const [ settings, setSettings ] = useState( null );
+	const [ isLoading, setIsLoading ] = useState( true );
+	const [ isSaving, setIsSaving ] = useState( false );
+	const [ notice, setNotice ] = useState( null );
+
+	// Local form state — keyed identically to the API fields.
+	const [ termsUrl, setTermsUrl ] = useState( '' );
+	const [ privacyUrl, setPrivacyUrl ] = useState( '' );
+	const [ refundUrl, setRefundUrl ] = useState( '' );
+	const [ hookUrl, setHookUrl ] = useState( '' );
+	const [ hookSecret, setHookSecret ] = useState( '' );
+
+	const fetchSettings = useCallback( async () => {
+		setIsLoading( true );
+		try {
+			const result = await apiFetch( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/merchant-settings',
+			} );
+			setSettings( result );
+			setTermsUrl( result.terms_of_service_url ?? '' );
+			setPrivacyUrl( result.privacy_policy_url ?? '' );
+			setRefundUrl( result.refund_policy_url ?? '' );
+			setHookUrl( result.hook_url ?? '' );
+			// Never pre-fill the secret — show placeholder only.
+			setHookSecret( '' );
+		} catch ( err ) {
+			setNotice( {
+				status: 'error',
+				message:
+					err?.message ??
+					__(
+						'Failed to load Agentic Commerce settings.',
+						'woocommerce-gateway-stripe'
+					),
+			} );
+		} finally {
+			setIsLoading( false );
+		}
+	}, [] );
+
+	useEffect( () => {
+		fetchSettings();
+	}, [ fetchSettings ] );
+
+	const handleSave = async () => {
+		setIsSaving( true );
+		setNotice( null );
+		try {
+			const body = {
+				terms_of_service_url: termsUrl,
+				privacy_policy_url: privacyUrl,
+				refund_policy_url: refundUrl,
+				hook_url: hookUrl,
+			};
+			// Only send secret when the user typed something new.
+			if ( hookSecret ) {
+				body.hook_secret = hookSecret;
+			}
+			const result = await apiFetch( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/merchant-settings',
+				method: 'POST',
+				data: body,
+			} );
+			setSettings( result );
+			setHookSecret( '' );
+			setNotice( {
+				status: 'success',
+				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
+			} );
+		} catch ( err ) {
+			setNotice( {
+				status: 'error',
+				message:
+					err?.message ??
+					__(
+						'Failed to save settings.',
+						'woocommerce-gateway-stripe'
+					),
+			} );
+		} finally {
+			setIsSaving( false );
+		}
+	};
+
+	return (
+		<Card>
+			<CardTitle>
+				{ __( 'Agentic Commerce Setup', 'woocommerce-gateway-stripe' ) }
+			</CardTitle>
+
+			<p className="description">
+				{ __(
+					'Agentic Commerce lets AI agents browse and purchase products from your store on behalf of customers. Configure the policies and webhook below so Stripe can display accurate terms and notify your store about agent-initiated events.',
+					'woocommerce-gateway-stripe'
+				) }
+			</p>
+
+			{ notice && (
+				<Notice
+					status={ notice.status }
+					onRemove={ () => setNotice( null ) }
+					isDismissible
+				>
+					{ notice.message }
+				</Notice>
+			) }
+
+			{ isLoading && (
+				<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
+			) }
+
+			{ ! isLoading && (
+				<>
+					<FieldRow>
+						<TextControl
+							label={ __(
+								'Terms & Conditions URL',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ termsUrl }
+							onChange={ setTermsUrl }
+							placeholder="https://example.com/terms"
+							type="url"
+						/>
+						<p className="description">
+							{ __(
+								"Your store's Terms & Conditions page. Shown to customers during AI agent-assisted checkout.",
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					</FieldRow>
+
+					<FieldRow>
+						<TextControl
+							label={ __(
+								'Privacy Policy URL',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ privacyUrl }
+							onChange={ setPrivacyUrl }
+							placeholder="https://example.com/privacy"
+							type="url"
+						/>
+						<p className="description">
+							{ __(
+								"Your store's Privacy Policy page.",
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					</FieldRow>
+
+					<FieldRow>
+						<TextControl
+							label={ __(
+								'Refund & Return Policy URL',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ refundUrl }
+							onChange={ setRefundUrl }
+							placeholder="https://example.com/returns"
+							type="url"
+						/>
+						<p className="description">
+							{ __(
+								"Your store's Refund & Return Policy page.",
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					</FieldRow>
+
+					<FieldRow>
+						<TextControl
+							label={ __(
+								'Customization Webhook URL',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ hookUrl }
+							onChange={ setHookUrl }
+							placeholder="https://example.com/stripe-hook"
+							type="url"
+						/>
+						<p className="description">
+							{ __(
+								'URL that Stripe calls to allow real-time checkout customization by your store (for example custom line items or discounts).',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					</FieldRow>
+
+					<FieldRow>
+						<TextControl
+							label={ __(
+								'Webhook Secret',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ hookSecret }
+							onChange={ setHookSecret }
+							placeholder={
+								settings?.hook_secret_is_set
+									? __(
+											'Leave blank to keep current secret',
+											'woocommerce-gateway-stripe'
+									  )
+									: __(
+											'Enter webhook signing secret',
+											'woocommerce-gateway-stripe'
+									  )
+							}
+							type="password"
+							autoComplete="off"
+						/>
+						{ settings?.hook_secret_is_set && ! hookSecret && (
+							<p className="description">
+								{ __(
+									'A webhook secret is already configured.',
+									'woocommerce-gateway-stripe'
+								) }{ ' ' }
+								<SecretPlaceholder aria-hidden="true">
+									{ settings.hook_secret }
+								</SecretPlaceholder>
+							</p>
+						) }
+						<p className="description">
+							{ __(
+								'Used to verify that webhook events originate from Stripe. Generate one in your Stripe Dashboard webhook settings.',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					</FieldRow>
+
+					<Actions>
+						<Button
+							variant="primary"
+							isBusy={ isSaving }
+							disabled={ isSaving }
+							onClick={ handleSave }
+						>
+							{ isSaving
+								? __( 'Saving…', 'woocommerce-gateway-stripe' )
+								: __(
+										'Save Settings',
+										'woocommerce-gateway-stripe'
+								  ) }
+						</Button>
+						<ExternalLink href="https://dashboard.stripe.com/settings/agentic-commerce">
+							{ __(
+								'Manage on Stripe Dashboard',
+								'woocommerce-gateway-stripe'
+							) }
+						</ExternalLink>
+					</Actions>
+				</>
+			) }
+		</Card>
+	);
+};
+
+// ---------------------------------------------------------------------------
+// Feed status panel
+// ---------------------------------------------------------------------------
 
 const AgenticCommercePanel = () => {
 	const [ data, setData ] = useState( null );
@@ -259,6 +557,8 @@ const AgenticCommercePanel = () => {
 
 	return (
 		<div>
+			<AgenticCommerceOnboardingPanel />
+
 			<p className="description">
 				{ __(
 					'Monitors the product feed sync status for the Agentic Commerce integration.',

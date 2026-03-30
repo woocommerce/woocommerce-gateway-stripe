@@ -10129,6 +10129,12 @@ parameters:
 			path: woocommerce-gateway-stripe.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:save_merchant_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
+
+		-
 			message: '#^Function woocommerce_stripe_wc_not_supported\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1

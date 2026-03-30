@@ -262,6 +262,7 @@ class WC_Stripe_Settings_Controller {
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'is_agentic_commerce_enabled'           => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+			'stripe_publishable_key'                => $this->get_publishable_key(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
@@ -275,6 +276,19 @@ class WC_Stripe_Settings_Controller {
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
 		wp_enqueue_style( 'woocommerce_stripe_admin' );
+	}
+
+	/**
+	 * Returns the publishable key appropriate for the current mode (live or test).
+	 *
+	 * @return string
+	 */
+	private function get_publishable_key(): string {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( $this->get_gateway()->is_in_test_mode() ) {
+			return $settings['test_publishable_key'] ?? '';
+		}
+		return $settings['publishable_key'] ?? '';
 	}
 
 	/**
