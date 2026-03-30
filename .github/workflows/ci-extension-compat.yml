@@ -16,6 +16,18 @@ on:
         description: 'QIT extension set to test (e.g. "compatibility"). Mutually exclusive with plugin-slug.'
         type: string
         default: ''
+      wp-version:
+        description: 'WordPress version'
+        type: string
+        default: 'stable'
+      wc-version:
+        description: 'WooCommerce version'
+        type: string
+        default: 'stable'
+      php-version:
+        description: 'PHP version'
+        type: string
+        default: '8.4'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -77,6 +89,9 @@ jobs:
       test-additional-plugins: ${{ matrix['additional-plugins'] }}
       test-extension-set: ${{ matrix['extension-set'] }}
       results-artifact: "qit-results-${{ matrix['name'] }}"
+      wp-version: ${{ inputs['wp-version'] }}
+      wc-version: ${{ inputs['wc-version'] }}
+      php-version: ${{ inputs['php-version'] }}
 
   handle-error:
     if: ${{ failure() }}
