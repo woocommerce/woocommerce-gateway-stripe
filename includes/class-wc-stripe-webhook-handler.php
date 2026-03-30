@@ -1445,7 +1445,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The notification from Stripe
 	 * @return void
 	 */
-	public function process_checkout_session( object $notification ): void {
+	public function process_checkout_session_success( object $notification ): void {
 		$checkout_session = $notification->data->object;
 		$session_id       = $checkout_session->id;
 
@@ -1727,7 +1727,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'checkout.session.completed':
 			case 'checkout.session.async_payment_succeeded':
-				$this->process_checkout_session( $notification );
+				$this->process_checkout_session_success( $notification );
 				break;
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':
