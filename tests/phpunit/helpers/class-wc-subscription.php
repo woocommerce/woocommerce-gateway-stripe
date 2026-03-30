@@ -145,6 +145,15 @@ class WC_Subscription extends WC_Order {
 
 	/**
 	 * @inheritDoc
+	 * @return bool
+	 */
+	public function update_status( $new_status, $note = '', $manual = false ) {
+		$this->set_status( $new_status, $note, $manual );
+		return true;
+	}
+
+	/**
+	 * @inheritDoc
 	 * @return string
 	 */
 	public function get_status( $context = 'view' ) {
