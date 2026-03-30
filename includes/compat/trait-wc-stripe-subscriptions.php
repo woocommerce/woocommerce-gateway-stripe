@@ -717,7 +717,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$order_helper->update_stripe_source_id( $subscription, $source_id ?: '' );
+			$order_helper->update_stripe_source_id( $subscription, $source_id ? $source_id : '' );
 			$order_helper->delete_stripe_card_id( $subscription );
 			$subscription->save();
 		}
@@ -1004,7 +1004,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$stripe_source_id = $order_helper->get_stripe_card_id( $subscription );
 
 			// Take this opportunity to update the key name.
-			$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ?: '' );
+			$order_helper->update_stripe_source_id( $subscription, $stripe_source_id ? $stripe_source_id : '' );
 			$subscription->save();
 		}
 
