@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
 * Add - Process payment with adaptive pricing in the classic checkout
@@ -21,9 +22,13 @@
 * Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
+* Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
+* Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Dev - Hide Stripe's testing assistant on checkout page
+* Dev - Treat misaligned statements as errors in PHPCS ruleset
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled

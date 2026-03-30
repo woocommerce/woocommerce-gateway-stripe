@@ -2210,4 +2210,24 @@ class WC_Stripe_Helper {
 
 		return $items;
 	}
+
+	/**
+	 * Returns the number of decimals to use for a given currency.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param string $currency_code The currency code (e.g., 'usd', 'jpy').
+	 *
+	 * @return int The number of decimals to use for the currency.
+	 */
+	public static function get_currency_decimals( string $currency_code ): int {
+		$currency_code = strtolower( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			return 0;
+		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			return 3;
+		}
+
+		return 2;
+	}
 }
