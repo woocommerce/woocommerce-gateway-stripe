@@ -47,6 +47,8 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Changing state shape in `client/data/` without updating all consumers.
 - Forgetting to rebuild assets when source changes require refreshed build output.
 - Mixing display amounts and API minor-unit amounts in per-feature logic.
+- Assuming `colorBackground` in the Stripe appearance API paints the PE container. The PE iframe is transparent — the page background shows through. `colorBackground` is a reference color Stripe uses internally for theme selection (`stripe` vs `night`), text contrast, tab/checkbox styling, and OTP popups. Getting it wrong causes subtle mismatches in secondary UI, not the container background.
+- Classic themes (e.g., Storefront) set content area backgrounds on wrappers like `#content.site-content` or `#primary` that sit between `.wc-block-checkout` and `body`. When using blocks checkout on a classic theme, `getBackgroundColor` must include these selectors or it falls through to `body` and picks up the wrong color — visible in PE tab styling, OTP backgrounds, and theme selection.
 
 ## Test Mapping
 
