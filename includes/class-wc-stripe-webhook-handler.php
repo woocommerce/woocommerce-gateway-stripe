@@ -1307,11 +1307,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Deferred webhooks are scheduled by @see defer_webhook_processing().
 	 *
-	 * @param string $webhook_type    The webhook event name/type.
-	 * @param array  $additional_data Additional data passed to the scheduled job.
-	 * @param stdClass $notification  The webhook notification payload.
+	 * @param string         $webhook_type    The webhook event name/type.
+	 * @param array          $additional_data Additional data passed to the scheduled job.
+	 * @param stdClass|array $notification    The webhook notification payload. Action Scheduler
+	 *                                        deserializes stored args via json_decode( $args, true ),
+	 *                                        so this may arrive as an array and is normalized to stdClass.
 	 */
 	public function process_deferred_webhook( $webhook_type, $additional_data, $notification = null ) {
+		// Action Scheduler deserializes stored args with json_decode( $args, true ), which converts
+		// stdClass objects to associative arrays. Re-hydrate to stdClass recursively so downstream
+		// code (and the strict object type hint on run_webhook_received_action) receives an object.
+		if ( is_array( $notification ) ) {
+			$normalized = json_decode( json_encode( $notification ) );
+			if ( is_object( $normalized ) ) {
+				$notification = $normalized;
+			}
+		}
+
 		try {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
@@ -1344,7 +1356,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$this->run_webhook_received_action( (string) $webhook_type, $notification );
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			WC_Stripe_Logger::error(
 				'Error processing deferred webhook.',
 				[

@@ -302,6 +302,76 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that process_deferred_webhook normalizes an array notification to an object.
+	 *
+	 * Action Scheduler deserializes stored args with json_decode( $args, true ), which converts
+	 * stdClass objects to associative arrays. This test simulates that by passing an array
+	 * notification and verifying no TypeError is thrown and the wc_stripe_webhook_received
+	 * action fires with an object.
+	 */
+	public function test_process_deferred_webhook_normalizes_array_notification() {
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = self::MOCK_PAYMENT_INTENT['id'];
+		$data      = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => $intent_id,
+		];
+
+		// Simulate what Action Scheduler does: json_decode( json_encode( $object ), true )
+		// converts a stdClass notification to a plain PHP array.
+		$notification_as_array = json_decode(
+			json_encode(
+				[
+					'type' => 'payment_intent.succeeded',
+					'data' => [
+						'object' => self::MOCK_PAYMENT_INTENT,
+					],
+				]
+			),
+			true
+		);
+
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'handle_deferred_payment_intent_succeeded' );
+
+		$received_notification = null;
+		add_action(
+			'wc_stripe_webhook_received',
+			function ( $type, $notification ) use ( &$received_notification ) {
+				$received_notification = $notification;
+			},
+			10,
+			2
+		);
+
+		try {
+			// Should not throw a TypeError despite receiving an array.
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification_as_array );
+		} finally {
+			remove_all_actions( 'wc_stripe_webhook_received' );
+		}
+
+		$this->assertIsObject( $received_notification, 'Notification passed to wc_stripe_webhook_received must be an object, not an array.' );
+		$this->assertEquals( 'payment_intent.succeeded', $received_notification->type );
+	}
+
+	/**
+	 * Test that process_deferred_webhook handles a null notification without a TypeError.
+	 *
+	 * $notification defaults to null, and null is a pre-existing acceptable value for webhook
+	 * types where the notification is not consumed. The catch block should handle any resulting
+	 * Throwable so Action Scheduler's retry loop is not triggered unexpectedly.
+	 */
+	public function test_process_deferred_webhook_null_notification_throws_expected_exception() {
+		// An unsupported webhook type always throws before run_webhook_received_action is called,
+		// so null notification is safe for it. Verify no TypeError or fatal escapes.
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessageMatches( '/Unsupported webhook type/' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'unsupported.event', [], null );
+	}
+
+	/**
 	 * Test for `process_webhook_charge_failed`.
 	 *
 	 * @param string $order_status       The order status.
