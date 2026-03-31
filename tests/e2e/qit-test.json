@@ -11,13 +11,13 @@
 	},
 	"test": {
 		"phases": {
-			"globalSetup": [ "./bootstrap/global-setup.sh" ],
+			"globalSetup": [ "./qit/bootstrap/global-setup.sh" ],
 			"setup": [ "npm install", "npx playwright install chromium" ],
 			"run": [
-				"npx playwright test --project=default-setup --project=default"
+				"npx playwright test --config=./qit/playwright.config.js --project=default-setup --project=default"
 			],
 			"teardown": [],
-			"globalTeardown": [ "./bootstrap/global-teardown.sh" ]
+			"globalTeardown": [ "./qit/bootstrap/global-teardown.sh" ]
 		},
 		"results": {
 			"ctrf-json": "./results/ctrf.json",
@@ -31,7 +31,7 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --project=acss-setup --project=acss"
+						"npx playwright test --config=./qit/playwright.config.js --project=acss-setup --project=acss"
 					]
 				}
 			}
@@ -46,7 +46,7 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --project=becs-setup --project=becs"
+						"npx playwright test --config=./qit/playwright.config.js --project=becs-setup --project=becs"
 					]
 				}
 			}
@@ -61,7 +61,7 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --project=blik-setup --project=blik"
+						"npx playwright test --config=./qit/playwright.config.js --project=blik-setup --project=blik"
 					]
 				}
 			}
@@ -71,7 +71,7 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --project=oc-setup --project=optimized-checkout"
+						"npx playwright test --config=./qit/playwright.config.js --project=oc-setup --project=optimized-checkout"
 					]
 				}
 			}
@@ -80,7 +80,7 @@
 			"description": "ISK/Icelandic Króna express checkout tests",
 			"test": {
 				"phases": {
-					"run": [ "npx playwright test --project=isk" ]
+					"run": [ "npx playwright test --config=./qit/playwright.config.js --project=isk" ]
 				}
 			}
 		}

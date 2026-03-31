@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import {
 	loginAdminAndSaveState,
 	createApiTokens,
-} from './utils/playwright-setup.js';
+} from '../utils/playwright-setup.js';
 
 const ADMIN_USER =
 	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';

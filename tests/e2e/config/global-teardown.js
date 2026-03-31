@@ -2,11 +2,11 @@ import path from 'path';
 import fs from 'fs';
 
 import { chromium } from '@playwright/test';
-import { user } from '../utils';
+import { user } from '../utils/index.js';
 
 const { ADMIN_USER, ADMIN_PASSWORD, PLUGIN_VERSION } = process.env;
 
-module.exports = async ( config ) => {
+export default async ( config ) => {
 	const { baseURL, userAgent } = config.projects[ 0 ].use;
 
 	console.log( `\n======\n` );
@@ -49,6 +49,7 @@ module.exports = async ( config ) => {
 	}
 
 	// Delete the tmp folder.
+	const __dirname = path.dirname( new URL( import.meta.url ).pathname );
 	fs.rmSync( path.resolve( __dirname, `../../tmp` ), {
 		recursive: true,
 		force: true,

@@ -1,5 +1,5 @@
 {
-	"name": "woocommerce-gateway-stripe-qit-e2e",
+	"name": "woocommerce-gateway-stripe-e2e",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -12,8 +12,5 @@
 		"config": "^3.3.8",
 		"playwright-ctrf-json-reporter": "^0.0.29",
 		"stripe": "^11.4.0"
-	},
-	"config": {
-		"configDir": "./test-data"
 	}
 }

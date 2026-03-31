@@ -1,8 +1,9 @@
 /**
- * Update Stripe test keys in WordPress via the admin page.
+ * Update Stripe test keys in WordPress via a custom REST endpoint.
  *
- * Replaces the previous approach of calling set-keys.sh with WP-CLI,
- * which is not available from the host in QIT environments.
+ * Used in QIT environments where WP-CLI is not available from the host.
+ * The REST endpoint is provided by the qit-option-api mu-plugin
+ * (installed during QIT globalSetup).
  *
  * @param {Page} page An admin-authenticated Playwright page.
  * @param {string} publishableKey The Stripe test publishable key.
@@ -32,7 +33,7 @@ export async function updateStripeKeys( page, publishableKey, secretKey ) {
 			if ( ! getRes.ok ) {
 				return {
 					success: false,
-					error: `GET options failed: ${ getRes.status }`,
+					error: `GET option failed: ${ getRes.status }`,
 				};
 			}
 

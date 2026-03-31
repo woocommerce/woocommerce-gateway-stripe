@@ -1,5 +1,5 @@
 import { chromium } from '@playwright/test';
-import { user } from './utils/index.js';
+import { user } from '../utils/index.js';
 
 const ADMIN_USER =
 	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';

@@ -7,7 +7,7 @@ const { QIT_SITE_URL, BASE_URL, CI, E2E_WORKERS, E2E_MAX_FAILURES, TIMEOUT } =
 
 // Point the `config` npm module at our test-data directory.
 process.env.NODE_CONFIG_DIR = new URL(
-	'./test-data',
+	'../test-data',
 	import.meta.url
 ).pathname;
 
@@ -15,7 +15,7 @@ const config = {
 	globalSetup: './global-setup.js',
 	globalTeardown: './global-teardown.js',
 
-	testDir: './tests',
+	testDir: '../tests',
 
 	// Increased from 90s to 120s to reduce flakiness with Stripe iframe/modal flow.
 	timeout: TIMEOUT ? Number( TIMEOUT ) : 120 * 1000,
@@ -26,7 +26,7 @@ const config = {
 	},
 
 	// Folder for test artifacts such as screenshots, videos, traces, etc
-	outputDir: './results/output',
+	outputDir: '../results/output',
 
 	/* Retry on CI only */
 	retries: CI ? 3 : 0,

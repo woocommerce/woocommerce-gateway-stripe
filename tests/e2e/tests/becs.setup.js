@@ -1,5 +1,6 @@
 import { test as setup } from '@playwright/test';
 import { admin } from '../utils';
+import { updateStripeKeys } from '../utils/stripe-keys.js';
 import { execSync } from 'child_process';
 
 const setKeysForLocalEnv = async ( page ) => {
@@ -24,7 +25,28 @@ setup( 'Configure store for BECS tests', async ( { browser } ) => {
 	} );
 	const page = await adminContext.newPage();
 
-	if ( ! process.env.CI ) {
+	if ( process.env.QIT_SITE_URL ) {
+		// QIT: update keys via REST API.
+		if (
+			process.env.STRIPE_PUB_KEY_AU &&
+			process.env.STRIPE_SECRET_KEY_AU
+		) {
+			await updateStripeKeys(
+				page,
+				process.env.STRIPE_PUB_KEY_AU,
+				process.env.STRIPE_SECRET_KEY_AU
+			);
+
+			// Refresh account data in Stripe settings.
+			await page.goto(
+				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+			);
+			await page.getByLabel( 'Edit details or disconnect' ).click();
+			await page
+				.getByRole( 'menuitem', { name: 'Refresh account details' } )
+				.click();
+		}
+	} else if ( ! process.env.CI ) {
 		await setKeysForLocalEnv( page );
 	}
 
