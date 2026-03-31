@@ -41,6 +41,28 @@ const makeResponse = ( overrides = {} ) => ( {
 
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
+const SETTINGS_RESPONSE = { is_enabled: false, webhook_secret: '' };
+
+/**
+ * Set up apiFetch to route by path. Status calls return `statusResponse`
+ * and settings calls return `settingsResponse`. Additional one-off mocks
+ * (mockResolvedValueOnce) take priority and are consumed first.
+ *
+ * @param {Object} statusResponse   Response for the status endpoint.
+ * @param {Object} settingsResponse Response for the settings endpoint.
+ */
+const mockFetchByPath = (
+	statusResponse = EMPTY_RESPONSE,
+	settingsResponse = SETTINGS_RESPONSE
+) => {
+	apiFetch.mockImplementation( ( { path } ) => {
+		if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+			return Promise.resolve( settingsResponse );
+		}
+		return Promise.resolve( statusResponse );
+	} );
+};
+
 describe( 'AgenticCommercePanel', () => {
 	afterEach( () => {
 		jest.resetAllMocks();
@@ -51,7 +73,7 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'shows loading indicators while fetching', () => {
-		apiFetch.mockReturnValueOnce( new Promise( () => {} ) );
+		apiFetch.mockReturnValue( new Promise( () => {} ) );
 
 		render( <AgenticCommercePanel /> );
 
@@ -65,7 +87,7 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'shows "No syncs yet" when last_sync is null', async () => {
-		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE );
+		mockFetchByPath( EMPTY_RESPONSE );
 
 		render( <AgenticCommercePanel /> );
 
@@ -75,7 +97,7 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows "No sync history available" when history is empty', async () => {
-		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE );
+		mockFetchByPath( EMPTY_RESPONSE );
 
 		render( <AgenticCommercePanel /> );
 
@@ -91,7 +113,7 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'renders a success status badge when last sync succeeded', async () => {
-		apiFetch.mockResolvedValueOnce( makeResponse() );
+		mockFetchByPath( makeResponse() );
 
 		render( <AgenticCommercePanel /> );
 
@@ -105,7 +127,7 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'renders product count from last_sync', async () => {
-		apiFetch.mockResolvedValueOnce( makeResponse() );
+		mockFetchByPath( makeResponse() );
 
 		render( <AgenticCommercePanel /> );
 
@@ -118,7 +140,7 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'renders import_set_id from last_sync', async () => {
-		apiFetch.mockResolvedValueOnce( makeResponse() );
+		mockFetchByPath( makeResponse() );
 
 		render( <AgenticCommercePanel /> );
 
@@ -134,7 +156,7 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'renders the history table with correct row count', async () => {
-		apiFetch.mockResolvedValueOnce( makeResponse() );
+		mockFetchByPath( makeResponse() );
 
 		render( <AgenticCommercePanel /> );
 
@@ -144,7 +166,7 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows an info icon next to failed history rows that have an error', async () => {
-		apiFetch.mockResolvedValueOnce( makeResponse() );
+		mockFetchByPath( makeResponse() );
 
 		render( <AgenticCommercePanel /> );
 
@@ -161,7 +183,7 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'renders the last sync error notice when last_sync has an error', async () => {
-		apiFetch.mockResolvedValueOnce(
+		mockFetchByPath(
 			makeResponse( {
 				last_sync: {
 					...LAST_SYNC_SUCCESS,
@@ -186,9 +208,7 @@ describe( 'AgenticCommercePanel', () => {
 
 	it( 'shows next sync countdown when next_sync is in the future', async () => {
 		const futureTs = Math.floor( Date.now() / 1000 ) + 1800; // 30 min ahead
-		apiFetch.mockResolvedValueOnce(
-			makeResponse( { next_sync: futureTs } )
-		);
+		mockFetchByPath( makeResponse( { next_sync: futureTs } ) );
 
 		render( <AgenticCommercePanel /> );
 
@@ -201,7 +221,7 @@ describe( 'AgenticCommercePanel', () => {
 
 	it( 'shows "imminent" label when next_sync is in the past', async () => {
 		const pastTs = Math.floor( Date.now() / 1000 ) - 100;
-		apiFetch.mockResolvedValueOnce( makeResponse( { next_sync: pastTs } ) );
+		mockFetchByPath( makeResponse( { next_sync: pastTs } ) );
 
 		render( <AgenticCommercePanel /> );
 
@@ -211,11 +231,11 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	// -------------------------------------------------------------------------
-	// API fetch call
+	// API fetch calls
 	// -------------------------------------------------------------------------
 
 	it( 'fetches status from the correct REST path on mount', async () => {
-		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE );
+		mockFetchByPath( EMPTY_RESPONSE );
 
 		render( <AgenticCommercePanel /> );
 
@@ -226,12 +246,24 @@ describe( 'AgenticCommercePanel', () => {
 		} );
 	} );
 
+	it( 'fetches settings from the correct REST path on mount', async () => {
+		mockFetchByPath( EMPTY_RESPONSE );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
+			} );
+		} );
+	} );
+
 	// -------------------------------------------------------------------------
 	// Sync Now button
 	// -------------------------------------------------------------------------
 
 	it( 'renders the Sync Now button', async () => {
-		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE );
+		mockFetchByPath( EMPTY_RESPONSE );
 
 		render( <AgenticCommercePanel /> );
 
@@ -243,10 +275,26 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows success notice and re-fetches after a successful sync', async () => {
-		apiFetch
-			.mockResolvedValueOnce( EMPTY_RESPONSE )
-			.mockResolvedValueOnce( { success: true } )
-			.mockResolvedValueOnce( makeResponse() );
+		// Mount: status → EMPTY_RESPONSE, settings → SETTINGS_RESPONSE (from implementation).
+		// Sync POST → success, re-fetch status → populated response.
+		mockFetchByPath( EMPTY_RESPONSE );
+
+		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE ); // initial status
+		// settings call is handled by the implementation set in mockFetchByPath
+
+		// Override sync-related calls with once-mocks that take priority.
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/sync'
+			) {
+				return Promise.resolve( { success: true } );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.resolve( makeResponse() );
+		} );
 
 		render( <AgenticCommercePanel /> );
 
@@ -277,9 +325,18 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows error notice when sync POST fails', async () => {
-		apiFetch
-			.mockResolvedValueOnce( EMPTY_RESPONSE )
-			.mockRejectedValueOnce( { message: 'Server error' } );
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/sync'
+			) {
+				return Promise.reject( { message: 'Server error' } );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
 
 		render( <AgenticCommercePanel /> );
 
@@ -296,9 +353,18 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows fallback error message when sync POST fails without a message', async () => {
-		apiFetch
-			.mockResolvedValueOnce( EMPTY_RESPONSE )
-			.mockRejectedValueOnce( {} );
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/sync'
+			) {
+				return Promise.reject( {} );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
 
 		render( <AgenticCommercePanel /> );
 
@@ -321,13 +387,142 @@ describe( 'AgenticCommercePanel', () => {
 	// -------------------------------------------------------------------------
 
 	it( 'shows an error notice when the initial fetch fails', async () => {
-		apiFetch.mockRejectedValueOnce( { message: 'Connection refused' } );
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.reject( { message: 'Connection refused' } );
+		} );
 
 		render( <AgenticCommercePanel /> );
 
 		await waitFor( () => {
 			expect(
 				screen.getAllByText( /Connection refused/i ).length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
+	} );
+
+	// -------------------------------------------------------------------------
+	// Settings card
+	// -------------------------------------------------------------------------
+
+	it( 'renders the Enable Agentic Commerce toggle', async () => {
+		mockFetchByPath( EMPTY_RESPONSE );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByLabelText( /Enable Agentic Commerce/i )
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'does not show webhook secret input when feature is disabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: false,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByLabelText( /Webhook Secret/i )
+			).not.toBeInTheDocument();
+		} );
+	} );
+
+	it( 'shows webhook secret input when feature is enabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByLabelText( /Agentic Commerce Webhook Secret/i )
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'prefills webhook secret from settings response', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: 'whsec_test',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			const input = screen.getByLabelText(
+				/Agentic Commerce Webhook Secret/i
+			);
+			expect( input.value ).toBe( 'whsec_test' );
+		} );
+	} );
+
+	it( 'saves settings and shows success notice', async () => {
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
+			) {
+				return Promise.resolve( {
+					is_enabled: true,
+					webhook_secret: 'whsec_new',
+				} );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( {
+					is_enabled: true,
+					webhook_secret: 'whsec_new',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		const saveBtn = await screen.findByRole( 'button', {
+			name: /Save Settings/i,
+		} );
+		fireEvent.click( saveBtn );
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( /Settings saved/i ).length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
+	} );
+
+	it( 'shows error notice when settings save fails', async () => {
+		apiFetch.mockImplementation( ( { path, method } ) => {
+			if (
+				method === 'POST' &&
+				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
+			) {
+				return Promise.reject( { message: 'Save failed' } );
+			}
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		const saveBtn = await screen.findByRole( 'button', {
+			name: /Save Settings/i,
+		} );
+		fireEvent.click( saveBtn );
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( /Save failed/i ).length
 			).toBeGreaterThanOrEqual( 1 );
 		} );
 	} );

@@ -26,6 +26,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	protected $rest_base = 'wc_stripe/agentic-commerce';
 
 	/**
+	 * Option key for the Agentic Commerce webhook secret.
+	 *
+	 * @var string
+	 */
+	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+
+	/**
 	 * Configure REST API routes.
 	 *
 	 * @since 10.6.0
@@ -49,6 +56,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'trigger_sync' ],
 				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/settings',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_agentic_settings' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => [ $this, 'update_agentic_settings' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'is_enabled'     => [
+							'description'       => __( 'Whether Agentic Commerce is enabled.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'boolean',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+						'webhook_secret' => [
+							'description'       => __( 'Webhook signing secret for Agentic Commerce delegated checkout events.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'string',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+					],
+				],
 			]
 		);
 	}
@@ -105,6 +141,41 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$integration->sync_feed();
 
 		return rest_ensure_response( [ 'success' => true ] );
+	}
+
+	/**
+	 * Return the Agentic Commerce feature settings.
+	 *
+	 * @since 10.6.0
+	 * @return WP_REST_Response
+	 */
+	public function get_agentic_settings(): WP_REST_Response {
+		return rest_ensure_response(
+			[
+				'is_enabled'     => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+				'webhook_secret' => (string) get_option( self::WEBHOOK_SECRET_OPTION, '' ),
+			]
+		);
+	}
+
+	/**
+	 * Update the Agentic Commerce feature settings.
+	 *
+	 * @since 10.6.0
+	 * @param WP_REST_Request $request Full request data.
+	 * @return WP_REST_Response
+	 */
+	public function update_agentic_settings( WP_REST_Request $request ): WP_REST_Response {
+		if ( $request->has_param( 'is_enabled' ) ) {
+			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
+			update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, $value );
+		}
+
+		if ( $request->has_param( 'webhook_secret' ) ) {
+			update_option( self::WEBHOOK_SECRET_OPTION, sanitize_text_field( $request->get_param( 'webhook_secret' ) ) );
+		}
+
+		return $this->get_agentic_settings();
 	}
 
 	/**

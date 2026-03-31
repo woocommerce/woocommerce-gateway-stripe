@@ -55,6 +55,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function tear_down(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
 		parent::tear_down();
 	}
 
@@ -312,6 +314,146 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		if ( 200 === $response->get_status() ) {
 			$this->assertTrue( $response->get_data()['success'] );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /settings returns default values when no options are set.
+	 */
+	public function test_get_settings_returns_defaults(): void {
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertArrayHasKey( 'is_enabled', $data );
+		$this->assertArrayHasKey( 'webhook_secret', $data );
+		$this->assertFalse( $data['is_enabled'] );
+		$this->assertSame( '', $data['webhook_secret'] );
+	}
+
+	/**
+	 * GET /settings reflects stored option values.
+	 */
+	public function test_get_settings_reflects_stored_values(): void {
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_test123' );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['is_enabled'] );
+		$this->assertSame( 'whsec_test123', $data['webhook_secret'] );
+	}
+
+	/**
+	 * Unauthenticated GET /settings requests should be refused.
+	 */
+	public function test_get_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	// -------------------------------------------------------------------------
+	// POST /wc/v3/wc_stripe/agentic-commerce/settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * POST /settings enables the feature flag.
+	 */
+	public function test_update_settings_enables_feature(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params( [ 'is_enabled' => true ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['is_enabled'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME ) );
+	}
+
+	/**
+	 * POST /settings disables the feature flag.
+	 */
+	public function test_update_settings_disables_feature(): void {
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params( [ 'is_enabled' => false ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $response->get_data()['is_enabled'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME ) );
+	}
+
+	/**
+	 * POST /settings stores the webhook secret.
+	 */
+	public function test_update_settings_stores_webhook_secret(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params( [ 'webhook_secret' => 'whsec_abc123' ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'whsec_abc123', $response->get_data()['webhook_secret'] );
+		$this->assertSame( 'whsec_abc123', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
+	}
+
+	/**
+	 * POST /settings can update both is_enabled and webhook_secret together.
+	 */
+	public function test_update_settings_updates_both_fields(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params(
+			[
+				'is_enabled'     => true,
+				'webhook_secret' => 'whsec_combined',
+			]
+		);
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['is_enabled'] );
+		$this->assertSame( 'whsec_combined', $data['webhook_secret'] );
+	}
+
+	/**
+	 * POST /settings sanitizes the webhook secret value.
+	 */
+	public function test_update_settings_sanitizes_webhook_secret(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params( [ 'webhook_secret' => "  whsec_trimmed\t" ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		// sanitize_text_field strips leading/trailing whitespace and tabs.
+		$this->assertSame( 'whsec_trimmed', $response->get_data()['webhook_secret'] );
+	}
+
+	/**
+	 * Unauthenticated POST /settings requests should be refused.
+	 */
+	public function test_update_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_json_params( [ 'is_enabled' => true ] );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
 	}
 
 	// -------------------------------------------------------------------------
