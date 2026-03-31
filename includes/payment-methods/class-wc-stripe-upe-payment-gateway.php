@@ -1563,10 +1563,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$return_url = $this->get_return_url( $order );
 
-			if ( WC()->cart ) {
-				WC()->cart->empty_cart();
-			}
-
 			return [
 				'result'   => 'success',
 				'redirect' => $return_url,
