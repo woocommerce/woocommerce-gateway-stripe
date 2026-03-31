@@ -288,6 +288,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		},
 	};
 
+	// When Link is shown as an Express Checkout Element button, hide it from inside
+	// the Payment Element to prevent it from appearing twice on the checkout page.
+	if ( stripeServerData?.isLinkEnabled ) {
+		paymentElementOptions.wallets.link = 'never';
+	}
+
 	// Set the layout to accordion if OC is enabled.
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const ocsLayout = shouldExpandOptimizedCheckout

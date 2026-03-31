@@ -183,6 +183,13 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		},
 	};
 
+	// When Link is shown as an Express Checkout Element button, hide it from inside
+	// the Payment Element to prevent it from appearing twice on the checkout page.
+	const stripeConfig = getBlocksConfiguration();
+	if ( stripeConfig?.isLinkEnabled ) {
+		options.wallets.link = 'never';
+	}
+
 	// Prefill Link customer data if available.
 	if ( isLinkEnabled() && ! forCheckoutSession ) {
 		const userEmail = document.getElementById( 'email' )?.value;
