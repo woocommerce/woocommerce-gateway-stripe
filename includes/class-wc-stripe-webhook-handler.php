@@ -1516,7 +1516,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 
-			$intent_id = $checkout_session->payment_intent;
+			$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
 
 			// Store the payment intent ID on the order.
 			if ( ! empty( $intent_id ) ) {
