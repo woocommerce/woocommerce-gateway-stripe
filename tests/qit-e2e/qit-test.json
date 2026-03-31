@@ -1,0 +1,88 @@
+{
+	"package": "woocommerce-gateway-stripe/e2e",
+	"package_type": "test",
+	"test_type": "e2e",
+	"description": "E2E tests for WooCommerce Stripe Payment Gateway",
+	"requires": {
+		"network": true,
+		"tunnel": true,
+		"secrets": [ "STRIPE_PUB_KEY", "STRIPE_SECRET_KEY" ],
+		"plugins": [ "woocommerce-subscriptions", "woocommerce-pre-orders" ]
+	},
+	"test": {
+		"phases": {
+			"globalSetup": [ "./bootstrap/global-setup.sh" ],
+			"setup": [ "npm install", "npx playwright install chromium" ],
+			"run": [
+				"npx playwright test --project=default-setup --project=default"
+			],
+			"teardown": [],
+			"globalTeardown": [ "./bootstrap/global-teardown.sh" ]
+		},
+		"results": {
+			"ctrf-json": "./results/ctrf.json",
+			"blob-dir": "./results/blob",
+			"allure-dir": "./results/allure"
+		}
+	},
+	"subpackages": {
+		"woocommerce-gateway-stripe/e2e-acss": {
+			"description": "ACSS Pre-Authorized Debit tests (CAD)",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --project=acss-setup --project=acss"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-becs": {
+			"description": "BECS Direct Debit tests (AUD, AU Stripe account)",
+			"requires": {
+				"network": true,
+				"tunnel": true,
+				"secrets": [ "STRIPE_PUB_KEY_AU", "STRIPE_SECRET_KEY_AU" ]
+			},
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --project=becs-setup --project=becs"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-blik": {
+			"description": "BLIK payment tests (PLN, PL Stripe account)",
+			"requires": {
+				"network": true,
+				"tunnel": true,
+				"secrets": [ "STRIPE_PUB_KEY_PL", "STRIPE_SECRET_KEY_PL" ]
+			},
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --project=blik-setup --project=blik"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-optimized-checkout": {
+			"description": "Optimized Checkout Element tests",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --project=oc-setup --project=optimized-checkout"
+					]
+				}
+			}
+		},
+		"woocommerce-gateway-stripe/e2e-isk": {
+			"description": "ISK/Icelandic Króna express checkout tests",
+			"test": {
+				"phases": {
+					"run": [ "npx playwright test --project=isk" ]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,53 @@
+import { chromium } from '@playwright/test';
+import { user } from './utils/index.js';
+
+const ADMIN_USER =
+	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD =
+	process.env.QIT_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password';
+
+export default async function globalTeardown( config ) {
+	const { baseURL, userAgent } = config.projects[ 0 ].use;
+
+	console.log( `\n======\n` );
+
+	const contextOptions = { baseURL, userAgent };
+
+	const browser = await chromium.launch();
+	const context = await browser.newContext( contextOptions );
+	const adminPage = await context.newPage();
+
+	let consumerTokenCleared = false;
+
+	await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
+
+	// Clean up the consumer keys.
+	const keysRetries = 5;
+	for ( let i = 1; i <= keysRetries; i++ ) {
+		try {
+			console.log( '- Trying to clear consumer token... Try:' + i );
+
+			await adminPage.goto(
+				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
+			);
+			await adminPage.dispatchEvent( 'a.submitdelete', 'click' );
+			console.log( '\u2714 Cleared up consumer token successfully.' );
+			consumerTokenCleared = true;
+			break;
+		} catch ( e ) {
+			console.error(
+				`Failed to clear consumer token. Retrying... ${ i }/${ keysRetries }. Error:`,
+				e
+			);
+		}
+	}
+
+	if ( ! consumerTokenCleared ) {
+		console.error( 'Could not clear consumer token.' );
+	}
+
+	await context.close();
+	await browser.close();
+
+	console.log( `\n======\n` );
+}

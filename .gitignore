@@ -33,6 +33,10 @@ tests/e2e/report
 tests/e2e/test-results
 tests/e2e/e2e-setup.log
 
+# QIT E2E test results
+tests/qit-e2e/results/*
+!tests/qit-e2e/results/.gitkeep
+
 # Volumes mounted by Docker containers
 docker/bin/jt
 docker/data

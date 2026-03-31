@@ -1,0 +1,61 @@
+{
+	"sut": {
+		"type": "plugin",
+		"slug": "woocommerce-gateway-stripe",
+		"source": {
+			"type": "local",
+			"path": ".",
+			"build": "npm run build:webpack"
+		}
+	},
+	"test_types": {
+		"e2e": {
+			"default": {
+				"test_packages": [ "./tests/qit-e2e" ]
+			},
+			"acss": {
+				"test_packages": [
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-acss"
+				]
+			},
+			"becs": {
+				"test_packages": [
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-becs"
+				]
+			},
+			"blik": {
+				"test_packages": [
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-blik"
+				]
+			},
+			"optimized-checkout": {
+				"test_packages": [
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-optimized-checkout"
+				]
+			},
+			"isk": {
+				"test_packages": [
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-isk"
+				]
+			},
+			"full": {
+				"test_packages": [
+					"./tests/qit-e2e",
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-acss",
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-becs",
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-blik",
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-optimized-checkout",
+					"./tests/qit-e2e:woocommerce-gateway-stripe/e2e-isk"
+				]
+			}
+		}
+	},
+	"groups": {
+		"ci-quick": {
+			"e2e": [ "default" ]
+		},
+		"ci-full": {
+			"e2e": [ "full" ]
+		}
+	}
+}

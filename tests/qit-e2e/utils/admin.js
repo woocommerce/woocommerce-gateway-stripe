@@ -1,0 +1,147 @@
+import { expect } from '@playwright/test';
+import { user } from './index.js';
+
+const ADMIN_USER =
+	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD =
+	process.env.QIT_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password';
+
+/**
+ * Get a new admin page with admin context.
+ * If the stored admin state is stale (e.g. tunnel cookies expired),
+ * re-authenticates automatically.
+ * @param {Browser} browser Playwright browser fixture.
+ * @returns {Promise<{context: BrowserContext, page: Page}>} The admin context and page.
+ */
+export const getAdminPage = async ( browser ) => {
+	const context = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+	const page = await context.newPage();
+
+	// Verify the admin session is valid by navigating to wp-admin.
+	await page.goto( '/wp-admin/' );
+	if ( page.url().includes( 'wp-login.php' ) ) {
+		// Re-authenticate if the session cookies are stale.
+		await user.login( page, ADMIN_USER, ADMIN_PASSWORD );
+	}
+
+	return { context, page };
+};
+
+/**
+ * Enable or disable a payment method in Stripe settings.
+ * @param {Browser} browser Playwright browser fixture.
+ * @param {string} methodName The payment method name as shown in admin.
+ * @param {boolean} enable Whether to enable or disable the payment method.
+ */
+export const togglePaymentMethod = async (
+	browser,
+	methodName,
+	enable = true
+) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		await page.goto(
+			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+		);
+
+		const checkbox = page.getByRole( 'checkbox', {
+			name: methodName,
+		} );
+		const isChecked = await checkbox.isChecked();
+
+		if ( ( enable && ! isChecked ) || ( ! enable && isChecked ) ) {
+			await checkbox.click();
+
+			// When disabling, we need to click the remove button
+			if ( ! enable ) {
+				await page.getByRole( 'button', { name: 'Remove' } ).click();
+			}
+
+			await page.click( 'text=Save changes' );
+			await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+		}
+	} finally {
+		await context.close();
+	}
+};
+
+/**
+ * Update the store currency in WooCommerce settings.
+ * @param {Browser} browser Playwright browser fixture.
+ * @param {string} currency The currency to set.
+ */
+export const updateStoreCurrency = async ( browser, currency ) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		await page.goto( '/wp-admin/admin.php?page=wc-settings&tab=general' );
+
+		// Check if the store currency is already set to the desired currency.
+		if (
+			currency ===
+			( await page.$eval( '#woocommerce_currency', ( el ) => el.value ) )
+		) {
+			return;
+		}
+
+		await page.selectOption( '#woocommerce_currency', { value: currency } );
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.getByText( 'Your settings have been saved.' )
+		).toBeDefined();
+	} finally {
+		await context.close();
+	}
+};
+
+/**
+ * Enable or disable the Optimized Checkout feature in Stripe settings.
+ *
+ * @param {Browser} browser      Playwright browser fixture.
+ * @param {boolean} shouldEnable Whether to enable or disable the Optimized Checkout element.
+ */
+export const initializeOptimizedCheckout = async (
+	browser,
+	shouldEnable = true
+) => {
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+
+	const page = await adminContext.newPage();
+
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+
+	const checkbox = page.getByTestId( 'optimized-checkout-element-checkbox' );
+	const isChecked = await checkbox.isChecked();
+
+	const updateNeeded =
+		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
+
+	if ( updateNeeded ) {
+		await checkbox.click();
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
+
+		if ( shouldEnable ) {
+			await expect(
+				page.getByTestId( 'optimized-checkout-element-checkbox' )
+			).toBeChecked();
+		} else {
+			await expect(
+				page.getByTestId( 'optimized-checkout-element-checkbox' )
+			).not.toBeChecked();
+		}
+	}
+
+	await adminContext.close();
+};
