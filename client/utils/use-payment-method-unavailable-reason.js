@@ -1,5 +1,6 @@
 import { getSetting } from '@woocommerce/settings';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
+import { useIsAdaptivePricingEnabled } from 'wcstripe/data';
 
 /**
  * React hook to return the reason why a payment method is unavailable, or null if it is available.
@@ -9,10 +10,12 @@ import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavaila
  */
 const usePaymentMethodUnavailableReason = ( paymentMethodId ) => {
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
 
 	return getPaymentMethodUnavailableReason( {
 		paymentMethodId,
 		storeCurrencyCode,
+		isAdaptivePricingEnabled,
 	} );
 };
 
