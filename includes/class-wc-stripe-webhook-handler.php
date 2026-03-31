@@ -1450,7 +1450,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_checkout_session_success( object $notification ): void {
 		$checkout_session = $notification->data->object;
-		$session_id       = $checkout_session->id;
+
+		if ( ! isset( $checkout_session->id ) ) {
+			WC_Stripe_Logger::debug( 'Checkout session ID is missing from the event data.' );
+			return;
+		}
+
+		$session_id = $checkout_session->id;
 
 		// Refresh the cached checkout session with the latest data from the webhook so that
 		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
