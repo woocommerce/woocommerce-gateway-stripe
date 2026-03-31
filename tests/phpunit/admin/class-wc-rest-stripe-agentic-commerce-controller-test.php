@@ -38,7 +38,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$wp_rest_server = null;
 
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
-		$this->controller->register_routes();
+		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
+		do_action( 'rest_api_init' );
 
 		wp_set_current_user( 1 );
 
@@ -374,7 +375,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_update_settings_enables_feature(): void {
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params( [ 'is_enabled' => true ] );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -389,7 +391,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params( [ 'is_enabled' => false ] );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -402,7 +405,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_update_settings_stores_webhook_secret(): void {
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params( [ 'webhook_secret' => 'whsec_abc123' ] );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => 'whsec_abc123' ] ) );
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -415,12 +419,15 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_update_settings_updates_both_fields(): void {
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params(
-			[
-				'is_enabled'     => true,
-				'webhook_secret' => 'whsec_combined',
-			]
+		$request->set_body(
+			wp_json_encode(
+				[
+					'is_enabled'     => true,
+					'webhook_secret' => 'whsec_combined',
+				]
+			)
 		);
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -435,7 +442,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_update_settings_sanitizes_webhook_secret(): void {
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params( [ 'webhook_secret' => "  whsec_trimmed\t" ] );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => "  whsec_trimmed\t" ] ) );
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -450,7 +458,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 0 );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_json_params( [ 'is_enabled' => true ] );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 401, $response->get_status() );
