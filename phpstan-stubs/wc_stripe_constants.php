@@ -18,6 +18,5 @@ if ( ! defined( 'WC_STRIPE_PLUGIN_PATH' ) ) {
 
 if ( ! defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ) {
 	// This constant is expected to be defined in wp-config.php for the agentic commerce webhook.
-	// The stub uses a non-empty placeholder so PHPStan does not treat truthiness checks as always-false.
-	define( 'AGENTIC_COMMERCE_WEBHOOK_SECRET', 'stub_placeholder' );
+	define( 'AGENTIC_COMMERCE_WEBHOOK_SECRET', '' );
 }
