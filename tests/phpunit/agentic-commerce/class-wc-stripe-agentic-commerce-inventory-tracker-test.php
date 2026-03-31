@@ -87,7 +87,22 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 *
 	 * @return void
 	 */
+	/**
+	 * Test register_hooks does not attach hooks when the merchant setting is disabled.
+	 *
+	 * @return void
+	 */
+	public function test_register_hooks_skips_when_merchant_setting_disabled() {
+		// ENABLED_OPTION not set — defaults to 'no'.
+		$this->sut->register_hooks();
+
+		$this->assertFalse( has_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] ) );
+		$this->assertFalse( has_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] ) );
+		$this->assertFalse( has_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] ) );
+	}
+
 	public function test_register_hooks_attaches_stock_hooks() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		$this->sut->register_hooks();
 
 		$this->assertNotFalse( has_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] ) );
@@ -100,6 +115,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_register_hooks_attaches_sync_action() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		$this->sut->register_hooks();
 
 		$this->assertNotFalse(
@@ -318,7 +334,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test sync_inventory skips when feature flag is disabled.
+	 * Test sync_inventory skips when the merchant setting is disabled.
 	 *
 	 * @return void
 	 */
