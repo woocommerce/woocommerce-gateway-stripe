@@ -167,8 +167,20 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 */
 	public function update_agentic_settings( WP_REST_Request $request ): WP_REST_Response {
 		if ( $request->has_param( 'is_enabled' ) ) {
-			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
-			update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, $value );
+			$enabled       = (bool) $request->get_param( 'is_enabled' );
+			$was_enabled   = WC_Stripe_Feature_Flags::is_agentic_commerce_enabled();
+
+			update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, $enabled ? 'yes' : 'no' );
+
+			// Manage the recurring sync schedule when the enabled state changes.
+			if ( class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+				$integration = new WC_Stripe_Agentic_Commerce_Integration();
+				if ( $enabled && ! $was_enabled ) {
+					$integration->activate();
+				} elseif ( ! $enabled && $was_enabled ) {
+					$integration->deactivate();
+				}
+			}
 		}
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
