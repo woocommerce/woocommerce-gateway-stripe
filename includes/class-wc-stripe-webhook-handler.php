@@ -1318,9 +1318,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// stdClass objects to associative arrays. Re-hydrate to stdClass recursively so downstream
 		// code (and the strict object type hint on run_webhook_received_action) receives an object.
 		if ( is_array( $notification ) ) {
-			$normalized = json_decode( json_encode( $notification ) );
-			if ( is_object( $normalized ) ) {
-				$notification = $normalized;
+			$encoded = json_encode( $notification );
+			if ( is_string( $encoded ) ) {
+				$normalized = json_decode( $encoded );
+				if ( is_object( $normalized ) ) {
+					$notification = $normalized;
+				}
 			}
 		}
 
@@ -1355,7 +1358,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 			}
 
-			$this->run_webhook_received_action( (string) $webhook_type, $notification );
+			if ( is_object( $notification ) ) {
+				$this->run_webhook_received_action( (string) $webhook_type, $notification );
+			}
 		} catch ( \Throwable $e ) {
 			WC_Stripe_Logger::error(
 				'Error processing deferred webhook.',
