@@ -1,8 +1,18 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import AgenticCommercePanel from '..';
 import apiFetch from '@wordpress/api-fetch';
+import { useTestMode } from 'wcstripe/data';
+import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@wordpress/api-fetch' );
+
+jest.mock( 'wcstripe/data', () => ( {
+	useTestMode: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+} ) );
 
 // Static baseline response. next_sync is intentionally omitted here so
 // individual tests can provide a value that is always relative to real time.
@@ -64,6 +74,11 @@ const mockFetchByPath = (
 };
 
 describe( 'AgenticCommercePanel', () => {
+	beforeEach( () => {
+		useTestMode.mockReturnValue( [ false ] );
+		useAccount.mockReturnValue( { data: null } );
+	} );
+
 	afterEach( () => {
 		jest.resetAllMocks();
 	} );
