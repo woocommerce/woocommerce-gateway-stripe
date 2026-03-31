@@ -16,23 +16,34 @@
 namespace Automattic\WooCommerce\Internal\ProductFeed\Feed;
 
 if ( ! interface_exists( FeedInterface::class ) ) {
-	interface FeedInterface {}
+	interface FeedInterface {
+		public function set_columns( array $headers ): self;
+		public function start(): void;
+		public function add_entry( array $entry ): void;
+		public function end(): void;
+		public function get_file_path(): ?string;
+		public function get_file_url(): ?string;
+	}
 }
 
 if ( ! interface_exists( ProductMapperInterface::class ) ) {
-	interface ProductMapperInterface {}
+	interface ProductMapperInterface {
+		public function map_product( \WC_Product $product ): array;
+	}
 }
 
 if ( ! interface_exists( FeedValidatorInterface::class ) ) {
-	interface FeedValidatorInterface {}
+	interface FeedValidatorInterface {
+		public function validate_entry( array $row, \WC_Product $product ): array;
+	}
 }
 
 if ( ! class_exists( WalkerProgress::class ) ) {
 	class WalkerProgress {
-		public int $processed_batches  = 0;
-		public int $total_batch_count  = 0;
-		public int $processed_items    = 0;
-		public int $total_count        = 0;
+		public int $processed_batches = 0;
+		public int $total_batch_count = 0;
+		public int $processed_items   = 0;
+		public int $total_count       = 0;
 	}
 }
 
@@ -58,6 +69,19 @@ if ( ! interface_exists( IntegrationInterface::class ) ) {
 		public function create_feed(): \Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
 		public function get_product_mapper(): \Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
 		public function is_enabled(): bool;
+	}
+}
+
+namespace Automattic\WooCommerce\Internal\ProductFeed\Utils;
+
+if ( ! class_exists( StringHelper::class ) ) {
+	class StringHelper {
+		public static function truncate( string $value, int $max_length ): string {
+			if ( $max_length <= 0 || mb_strlen( $value ) <= $max_length ) {
+				return $value;
+			}
+			return mb_substr( $value, 0, $max_length );
+		}
 	}
 }
 
