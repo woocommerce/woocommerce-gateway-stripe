@@ -41,10 +41,7 @@ const makeResponse = ( overrides = {} ) => ( {
 
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
-// Default to enabled so that the sync/status cards render in tests that
-// focus on sync behaviour. Tests that specifically check the disabled state
-// pass their own { is_enabled: false } to mockFetchByPath.
-const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
+const SETTINGS_RESPONSE = { is_enabled: false, webhook_secret: '' };
 
 /**
  * Set up apiFetch to route by path. Status calls return `statusResponse`
