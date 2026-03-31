@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
@@ -165,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Allow additional font domains to be included in Stripe fonts
 * Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
 * Fix - Add order and payment method validation to prevent errors
+* Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
 * Tweak - Hide pay and cancel actions for pending orders processed via Checkout Session in order received page and My Account orders list
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Ensure that we enqueue all needed scripts on payment pages
@@ -176,5 +178,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
+* Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
