@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
+import interpolateComponents from '@automattic/interpolate-components';
 import AgenticCommerceSyncStatus from './sync-status';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
@@ -10,6 +11,8 @@ import {
 	TextControl,
 	ExternalLink,
 } from '@wordpress/components';
+import { useAccount } from 'wcstripe/data/account';
+import { useTestMode } from 'wcstripe/data';
 
 const Card = styled.div`
 	background: #fff;
@@ -50,6 +53,12 @@ const AgenticCommercePanel = () => {
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ isSavingSettings, setIsSavingSettings ] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
+	const [ webhookURLCopied, setWebhookURLCopied ] = useState( false );
+
+	const [ isTestMode ] = useTestMode();
+	const mode = isTestMode ? 'test' : 'live';
+	const { data } = useAccount();
+	const webhookURLForDisplay = data?.configured_webhook_urls?.[ mode ] ?? '';
 
 	const fetchSettings = useCallback( async () => {
 		setIsLoadingSettings( true );
@@ -103,6 +112,12 @@ const AgenticCommercePanel = () => {
 		}
 	};
 
+	const handleCopy = () => {
+		navigator.clipboard.writeText( webhookURLForDisplay );
+		setWebhookURLCopied( true );
+		setTimeout( () => setWebhookURLCopied( false ), 2000 ); // Reset after 2s
+	};
+
 	return (
 		<div>
 			{ /* Introduction card */ }
@@ -139,24 +154,50 @@ const AgenticCommercePanel = () => {
 						) }
 					</strong>
 				</p>
+
 				<OnboardingSteps>
 					<li>
-						{ __(
-							'Log in to your Stripe Dashboard.',
-							'woocommerce-gateway-stripe'
-						) }
+						{ interpolateComponents( {
+							mixedString: __(
+								'Log in to your {{settingsLink}}Stripe Dashboard{{/settingsLink}}.',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								settingsLink: (
+									<ExternalLink href="https://dashboard.stripe.com/" />
+								),
+							},
+						} ) }
+					</li>
+					<li>
+						{ interpolateComponents( {
+							mixedString: __(
+								'Go to {{strong}}Payments > Agentic Commerce.{{/strong}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								strong: <strong />,
+							},
+						} ) }
 					</li>
 					<li>
 						{ __(
-							'Go to Payments > Agentic Commerce.',
+							'Follow the setup instructions to enable the feature and set webhook endpoint for delegated checkout events as:',
 							'woocommerce-gateway-stripe'
 						) }
-					</li>
-					<li>
-						{ __(
-							'Follow the setup instructions to enable the feature and create a webhook endpoint for delegated checkout events.',
-							'woocommerce-gateway-stripe'
-						) }
+						<TextControl
+							type="text"
+							value={ decodeURIComponent( webhookURLForDisplay ) }
+							autoComplete="off"
+							disabled={ true }
+						/>
+						<Button
+							variant="primary"
+							isBusy={ isSavingSettings }
+							onClick={ handleCopy }
+						>
+							{ webhookURLCopied ? 'Copied!' : 'Copy' }
+						</Button>
 					</li>
 					<li>
 						{ __(
@@ -243,7 +284,7 @@ const AgenticCommercePanel = () => {
 				) }
 			</Card>
 
-			<AgenticCommerceSyncStatus isFeatureEnabled={ isFeatureEnabled } />
+			<AgenticCommerceSyncStatus />
 		</div>
 	);
 };

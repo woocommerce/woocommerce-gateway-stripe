@@ -111,9 +111,14 @@ const SettingsManager = () => {
 	};
 
 	const getInitialTab = () => {
-		if ( panel === 'settings' ) return 'settings';
-		if ( panel === 'agentic-commerce' && isAgenticCommerceEnabled )
+		if ( panel === 'settings' ) {
+			return 'settings';
+		}
+
+		if ( panel === 'agentic-commerce' && isAgenticCommerceEnabled ) {
 			return 'agentic-commerce';
+		}
+
 		return 'methods';
 	};
 
