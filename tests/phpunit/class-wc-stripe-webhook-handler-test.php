@@ -1374,5 +1374,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
 		$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertInstanceOf( WC_Order::class, $updated_order );
+		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
 	}
 }
