@@ -288,6 +288,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		},
 	};
 
+	// When Link is enabled as a payment method, hide it from the Payment Element
+	// so it only appears via the Express Checkout Element where placement settings
+	// (product, cart, checkout) are respected. This prevents Link from showing
+	// inside the OCS card form when the merchant has not enabled ECE on checkout.
+	if ( isLinkEnabled() ) {
+		paymentElementOptions.wallets.link = 'never';
+	}
+
 	// Set the layout to accordion if OC is enabled.
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const ocsLayout = shouldExpandOptimizedCheckout

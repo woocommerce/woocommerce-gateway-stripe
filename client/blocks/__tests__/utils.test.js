@@ -84,6 +84,16 @@ describe( 'Blocks Utils', () => {
 				} );
 			} );
 
+			it( 'sets wallets.link to never when Link is enabled', () => {
+				isLinkEnabled.mockReturnValue( true );
+				const options = getStripeElementOptions();
+				expect( options.wallets ).toStrictEqual( {
+					applePay: 'never',
+					googlePay: 'never',
+					link: 'never',
+				} );
+			} );
+
 			it( 'preserves billing details fields', () => {
 				const options = getStripeElementOptions();
 				expect( options.fields.billingDetails.name ).toBe( 'never' );

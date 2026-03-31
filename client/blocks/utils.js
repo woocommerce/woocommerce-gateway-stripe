@@ -183,6 +183,14 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		},
 	};
 
+	// When Link is enabled as a payment method, hide it from the Payment Element
+	// so it only appears via the Express Checkout Element where placement settings
+	// (product, cart, checkout) are respected. This prevents Link from showing
+	// inside the OCS card form when the merchant has not enabled ECE on checkout.
+	if ( isLinkEnabled() ) {
+		options.wallets.link = 'never';
+	}
+
 	// Prefill Link customer data if available.
 	if ( isLinkEnabled() && ! forCheckoutSession ) {
 		const userEmail = document.getElementById( 'email' )?.value;
