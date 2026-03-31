@@ -48,7 +48,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function tearDown(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
-		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'pre_http_request' );
 
@@ -339,7 +339,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_skips_when_no_pending() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 
 		// Should complete without error.
 		$this->sut->sync_inventory();
@@ -355,7 +355,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_clears_pending_when_threshold_exceeded() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 
 		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
 		$pending = [];
@@ -380,7 +380,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_clears_pending_on_success() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
 
 		$product = $this->create_simple_product_with_stock( 5 );
@@ -427,7 +427,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_retains_pending_on_failure() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
 
 		$product = $this->create_simple_product_with_stock( 5 );
@@ -458,7 +458,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_full_flow_stock_change_to_upload() {
-		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
 
 		$product_a = $this->create_simple_product_with_stock( 10 );

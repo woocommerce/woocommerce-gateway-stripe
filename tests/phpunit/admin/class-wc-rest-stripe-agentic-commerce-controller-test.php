@@ -55,7 +55,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function tear_down(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
-		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
 		parent::tear_down();
 	}
@@ -340,7 +340,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * GET /settings reflects stored option values.
 	 */
 	public function test_get_settings_reflects_stored_values(): void {
-		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_test123' );
 
 		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
@@ -379,14 +379,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertTrue( $response->get_data()['is_enabled'] );
-		$this->assertSame( 'yes', get_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
 	}
 
 	/**
 	 * POST /settings disables the feature flag.
 	 */
 	public function test_update_settings_disables_feature(): void {
-		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
 		$request->set_json_params( [ 'is_enabled' => false ] );
@@ -394,7 +394,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertFalse( $response->get_data()['is_enabled'] );
-		$this->assertSame( 'no', get_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME ) );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
 	}
 
 	/**

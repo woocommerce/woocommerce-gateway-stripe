@@ -152,7 +152,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	public function get_agentic_settings(): WP_REST_Response {
 		return rest_ensure_response(
 			[
-				'is_enabled'     => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+				'is_enabled'     => WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled(),
 				'webhook_secret' => (string) get_option( self::WEBHOOK_SECRET_OPTION, '' ),
 			]
 		);
@@ -168,7 +168,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	public function update_agentic_settings( WP_REST_Request $request ): WP_REST_Response {
 		if ( $request->has_param( 'is_enabled' ) ) {
 			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
-			update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, $value );
+			update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $value );
 		}
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
