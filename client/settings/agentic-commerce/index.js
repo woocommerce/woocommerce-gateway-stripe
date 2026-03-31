@@ -8,6 +8,7 @@ import {
 	Notice,
 	ToggleControl,
 	TextControl,
+	ExternalLink,
 } from '@wordpress/components';
 
 const Card = styled.div`
@@ -119,7 +120,7 @@ const AgenticCommercePanel = () => {
 					) }
 				</p>
 				<p>
-					<a
+					<ExternalLink
 						href="https://docs.stripe.com/agentic-commerce"
 						target="_blank"
 						rel="noopener noreferrer"
@@ -128,7 +129,7 @@ const AgenticCommercePanel = () => {
 							'Read the Stripe Agentic Commerce documentation',
 							'woocommerce-gateway-stripe'
 						) }
-					</a>
+					</ExternalLink>
 				</p>
 				<p>
 					<strong>
@@ -165,7 +166,6 @@ const AgenticCommercePanel = () => {
 					</li>
 				</OnboardingSteps>
 			</Card>
-
 			{ /* Settings card */ }
 			<Card>
 				<CardTitle>
@@ -243,7 +243,7 @@ const AgenticCommercePanel = () => {
 				) }
 			</Card>
 
-			<AgenticCommerceSyncStatus />
+			<AgenticCommerceSyncStatus isFeatureEnabled={ isFeatureEnabled } />
 		</div>
 	);
 };
