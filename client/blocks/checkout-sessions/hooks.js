@@ -165,17 +165,8 @@ export const useCheckoutSuccessHandler = (
 
 						// API do not accept empty values.
 						if ( shippingAddress?.recipient ) {
-							confirmArgs.shippingAddress.name = `${
-								shippingAddress?.recipient
-									?.split( ' ' )
-									?.slice( 0, 1 )
-									?.join( ' ' ) ?? ''
-							} ${
-								shippingAddress?.recipient
-									?.split( ' ' )
-									?.slice( 1 )
-									?.join( ' ' ) ?? ''
-							}`.trim();
+							confirmArgs.shippingAddress.name =
+								shippingAddress?.recipient.trim();
 						}
 
 						// If the shipping address name is still empty, attempt to use the billing name (it is a required parameter).
