@@ -1141,7 +1141,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *                                         reflects the captured amount. Default false (add mode
 	 *                                         for refunds and adjustments).
 	 */
-	public function update_fees( $order, $balance_transaction_id, $replace = false ) {
+	public function update_fees( $order, $balance_transaction_id, bool $replace = false ) {
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
 
 		if ( empty( $balance_transaction->error ) ) {
