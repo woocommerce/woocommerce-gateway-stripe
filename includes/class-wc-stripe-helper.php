@@ -752,7 +752,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return void
 	 */
-	public static function clear_first_available_payment_gateway_cache() {
+	public static function clear_first_available_payment_gateway_record() {
 		self::$first_gateway_id_from_available_list = null;
 	}
 
