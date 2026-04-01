@@ -23,7 +23,6 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CHINESE_YUAN,
-			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
 			WC_Stripe_Currency_Code::JAPANESE_YEN,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
@@ -56,9 +55,6 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 				break;
 			case 'CA':
 				$currency = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
-				break;
-			case 'GB':
-				$currency = [ WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'HK':
 				$currency = [ WC_Stripe_Currency_Code::HONG_KONG_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
