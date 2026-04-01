@@ -46,7 +46,9 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --config=./qit/playwright.config.js --project=becs-setup --project=becs"
+						{ "command": "wp option patch update woocommerce_stripe_settings test_publishable_key \"$STRIPE_PUB_KEY_AU\" && wp option patch update woocommerce_stripe_settings test_secret_key \"$STRIPE_SECRET_KEY_AU\"", "runs_on": "docker" },
+						"npx playwright test --config=./qit/playwright.config.js --project=becs-setup --project=becs",
+						{ "command": "wp option patch update woocommerce_stripe_settings test_publishable_key \"$STRIPE_PUB_KEY\" && wp option patch update woocommerce_stripe_settings test_secret_key \"$STRIPE_SECRET_KEY\"", "runs_on": "docker", "continue_on_error": true }
 					]
 				}
 			}
@@ -61,7 +63,9 @@
 			"test": {
 				"phases": {
 					"run": [
-						"npx playwright test --config=./qit/playwright.config.js --project=blik-setup --project=blik"
+						{ "command": "wp option patch update woocommerce_stripe_settings test_publishable_key \"$STRIPE_PUB_KEY_PL\" && wp option patch update woocommerce_stripe_settings test_secret_key \"$STRIPE_SECRET_KEY_PL\"", "runs_on": "docker" },
+						"npx playwright test --config=./qit/playwright.config.js --project=blik-setup --project=blik",
+						{ "command": "wp option patch update woocommerce_stripe_settings test_publishable_key \"$STRIPE_PUB_KEY\" && wp option patch update woocommerce_stripe_settings test_secret_key \"$STRIPE_SECRET_KEY\"", "runs_on": "docker", "continue_on_error": true }
 					]
 				}
 			}

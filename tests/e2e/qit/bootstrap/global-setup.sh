@@ -16,38 +16,6 @@ set -e
 
 echo "=== QIT Global Setup: Configuring WooCommerce store ==="
 
-# Install a mu-plugin that exposes a REST API for reading/writing WP options.
-# This allows host-side Playwright code to update settings like webhook secrets.
-echo " - Installing QIT option REST API mu-plugin"
-mkdir -p /var/www/html/wp-content/mu-plugins
-cat > /var/www/html/wp-content/mu-plugins/qit-option-api.php << 'MUEOF'
-<?php
-add_action( 'rest_api_init', function() {
-	register_rest_route( 'qit/v1', '/option/(?P<key>[a-zA-Z0-9_-]+)', [
-		[
-			'methods'             => 'GET',
-			'callback'            => function( $request ) {
-				return rest_ensure_response( get_option( $request['key'] ) );
-			},
-			'permission_callback' => function() {
-				return current_user_can( 'manage_options' );
-			},
-		],
-		[
-			'methods'             => 'PUT',
-			'callback'            => function( $request ) {
-				$value = $request->get_json_params();
-				update_option( $request['key'], $value );
-				return rest_ensure_response( get_option( $request['key'] ) );
-			},
-			'permission_callback' => function() {
-				return current_user_can( 'manage_options' );
-			},
-		],
-	] );
-} );
-MUEOF
-
 # Helper plugins
 echo " - Installing disable-emails plugin"
 wp plugin install disable-emails --activate
