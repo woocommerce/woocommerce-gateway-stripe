@@ -122,19 +122,27 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $oc_enabled;
 
 	/**
+	 * Whether this payment method is the first available payment method.
+	 *
+	 * @var bool
+	 */
+	protected $is_first_available_payment_method;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->has_fields               = true;
-		$this->testmode                 = WC_Stripe_Mode::is_test();
-		$this->supports                 = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
-		$this->supports_deferred_intent = true;
-		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->enabled                           = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id                               = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->has_fields                        = true;
+		$this->testmode                          = WC_Stripe_Mode::is_test();
+		$this->supports                          = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
+		$this->supports_deferred_intent          = true;
+		$this->oc_enabled                        = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->is_first_available_payment_method = WC_Stripe_Helper::is_stripe_first_available_gateway( WC_Stripe_UPE_Payment_Gateway::ID );
 	}
 
 	/**
@@ -212,7 +220,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() && WC_Stripe_Helper::is_stripe_first_available_gateway( WC_Stripe_UPE_Payment_Gateway::ID ) ) {
+		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() && $this->is_first_available_payment_method ) {
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
