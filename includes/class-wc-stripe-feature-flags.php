@@ -109,6 +109,8 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
+	 * TODO: Remove this method from the class and add a new method in WC_Stripe_Helper instead in version 10.8.0 to check the necessary conditions in settings.
+	 *
 	 * @return bool
 	 * @since 10.4.0
 	 */
