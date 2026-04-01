@@ -20,8 +20,12 @@ class WC_Stripe_Helper {
 	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
-	private const FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY = 'first_available_payment_gateway';
-	private const FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_TTL = 15 * MINUTE_IN_SECONDS;
+	/**
+	 * First gateway ID from the woocommerce_available_payment_gateways.
+	 *
+	 * @var string|null
+	 */
+	private static $first_gateway_id_from_available_list = null;
 
 	/**
 	 * The identifier for the official Affirm gateway plugin.
@@ -744,30 +748,27 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Drops the cached first available gateway for both plugin modes (e.g. after `woocommerce_gateway_order` changes).
+	 * Resets the memoized first gateway ID from the available gateways list.
 	 *
 	 * @return void
 	 */
 	public static function clear_first_available_payment_gateway_cache() {
-		WC_Stripe_Database_Cache::delete_with_mode( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY, 'test' );
-		WC_Stripe_Database_Cache::delete_with_mode( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY, 'live' );
+		self::$first_gateway_id_from_available_list = null;
 	}
 
 	/**
-	 * Stores the first gateway id in cache from the available gateways list (woocommerce_available_payment_gateways).
+	 * Memoizes the first gateway ID from the available gateways list (woocommerce_available_payment_gateways).
 	 *
 	 * @param array<string, WC_Payment_Gateway> $gateways Available payment gateways keyed by gateway ID.
 	 * @return array<string, WC_Payment_Gateway>
 	 */
-	public static function cache_first_available_payment_gateway( $gateways ) {
-		// Bail if cache is already set
-		$cached = WC_Stripe_Database_Cache::get( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY );
-		if ( ! empty( $cached ) ) {
+	public static function record_first_gateway_id_from_available_list( $gateways ) {
+		if ( null !== self::$first_gateway_id_from_available_list ) {
 			return $gateways;
 		}
 
 		if ( is_array( $gateways ) && [] !== $gateways ) {
-			WC_Stripe_Database_Cache::set( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY, array_key_first( $gateways ), self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_TTL );
+			self::$first_gateway_id_from_available_list = array_key_first( $gateways );
 		}
 
 		return $gateways;
@@ -775,11 +776,6 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
-	 *
-	 * Must not call {@see WC_Payment_Gateways::get_available_payment_gateways()} — that runs `is_available()` on each
-	 * gateway, and Stripe's `is_available()` consults this helper → infinite recursion. Use only the cache written from
-	 * {@see cache_first_available_payment_gateway()} on `woocommerce_available_payment_gateways` (priority 99999).
-	 * Returns false until that filter has run on this request.
 	 *
 	 * @param string|null $stripe_gateway_id Main Stripe gateway id. Defaults to `stripe` (see WC_Stripe_UPE_Payment_Gateway::ID).
 	 * @return bool
@@ -789,12 +785,11 @@ class WC_Stripe_Helper {
 			$stripe_gateway_id = 'stripe';
 		}
 
-		$cached = WC_Stripe_Database_Cache::get( self::FIRST_AVAILABLE_PAYMENT_GATEWAY_CACHE_KEY );
-		if ( null === $cached ) {
+		if ( null === self::$first_gateway_id_from_available_list ) {
 			return false;
 		}
 
-		return $stripe_gateway_id === $cached;
+		return $stripe_gateway_id === self::$first_gateway_id_from_available_list;
 	}
 
 	/**

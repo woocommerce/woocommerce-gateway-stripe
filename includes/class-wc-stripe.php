@@ -329,7 +329,7 @@ class WC_Stripe {
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
 		// Cache the first available payment gateway.
-		add_filter( 'woocommerce_available_payment_gateways', [ 'WC_Stripe_Helper', 'cache_first_available_payment_gateway' ], 99999 );
+		add_filter( 'woocommerce_available_payment_gateways', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ], 99999 );
 
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
