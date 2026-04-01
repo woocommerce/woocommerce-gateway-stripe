@@ -234,6 +234,9 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
+		// Adaptive Pricing is only available for accounts not based in a European Economic Area country.
+		$is_ap_available_for_account = ! in_array( $this->account->get_account_country(), WC_Stripe_Helper::get_european_economic_area_countries(), true );
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
@@ -250,7 +253,7 @@ class WC_Stripe_Settings_Controller {
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
-			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available(),
+			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available() && $is_ap_available_for_account,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
