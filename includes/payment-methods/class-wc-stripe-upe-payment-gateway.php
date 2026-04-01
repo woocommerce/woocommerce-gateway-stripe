@@ -331,8 +331,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Add metadata to Stripe intents for easier debugging of BNPL issues.
 		add_filter( 'wc_stripe_intent_metadata', [ $this, 'add_bnpl_debug_metadata' ], 10, 2 );
-
-		add_action( 'update_option_woocommerce_gateway_order', [ 'WC_Stripe_Helper', 'clear_first_available_payment_gateway_cache' ] );
 	}
 
 	/**
