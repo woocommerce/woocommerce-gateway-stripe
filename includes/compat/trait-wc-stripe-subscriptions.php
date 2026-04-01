@@ -731,6 +731,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
+		if ( ! $resubscribe_order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_source_id( $resubscribe_order );
 
@@ -750,6 +754,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return WC_Order|null The renewal order.
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
+		if ( ! $renewal_order instanceof WC_Order ) {
+			return $renewal_order;
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
@@ -769,6 +777,14 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
+		if ( ! $subscription instanceof WC_Subscription ) {
+			return;
+		}
+
+		if ( ! $renewal_order instanceof WC_Order ) {
+			return;
+		}
+
 		$order_helper       = WC_Stripe_Order_Helper::get_instance();
 		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
 		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
