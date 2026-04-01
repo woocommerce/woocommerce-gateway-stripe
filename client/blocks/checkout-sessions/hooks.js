@@ -160,7 +160,6 @@ export const useCheckoutSuccessHandler = (
 							address: {
 								country: shippingAddress?.country,
 								line1: shippingAddress?.address_1,
-								postal_code: shippingAddress?.postcode,
 							},
 						};
 
