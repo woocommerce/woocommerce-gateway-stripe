@@ -754,10 +754,10 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Stores the first gateway id cache from the available list of payment gateways.
+	 * Stores the first gateway id in cache from the available gateways list (woocommerce_available_payment_gateways).
 	 *
-	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
-	 * @return WC_Payment_Gateways
+	 * @param array<string, WC_Payment_Gateway> $gateways Available payment gateways keyed by gateway ID.
+	 * @return array<string, WC_Payment_Gateway>
 	 */
 	public static function cache_first_available_payment_gateway( $gateways ) {
 		// Bail if cache is already set
