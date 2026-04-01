@@ -318,7 +318,7 @@ jQuery( function ( $ ) {
 				stripeServerData?.shouldShowOptimizedCheckout &&
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
-				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
+				$( 'label[for=payment_method_stripe]' ).text( 'TBD' );
 			}
 
 			maybeClearBlikCodeValidation();
