@@ -20,12 +20,12 @@
 			},
 			"becs": {
 				"test_packages": [
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-becs"
+					"./tests/e2e/becs"
 				]
 			},
 			"blik": {
 				"test_packages": [
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-blik"
+					"./tests/e2e/blik"
 				]
 			},
 			"optimized-checkout": {
@@ -42,8 +42,8 @@
 				"test_packages": [
 					"./tests/e2e",
 					"./tests/e2e:woocommerce-gateway-stripe/e2e-acss",
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-becs",
-					"./tests/e2e:woocommerce-gateway-stripe/e2e-blik",
+					"./tests/e2e/becs",
+					"./tests/e2e/blik",
 					"./tests/e2e:woocommerce-gateway-stripe/e2e-optimized-checkout",
 					"./tests/e2e:woocommerce-gateway-stripe/e2e-isk"
 				]
