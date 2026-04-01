@@ -46,6 +46,9 @@ function _manually_load_plugin() {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
+	// Stub WooCommerce ProductFeed interfaces/classes when running against an older WooCommerce
+	// that does not ship them. Individual tests skip themselves when real implementations are needed.
+	require_once __DIR__ . '/helpers/woocommerce-product-feed-stubs.php';
 	// Agentic Commerce integration classes (needed by the controller).
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
 }
