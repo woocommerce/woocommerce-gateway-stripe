@@ -268,6 +268,121 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Helper to build a CC payment method object.
+	 *
+	 * @param string $fingerprint Card fingerprint.
+	 * @param string $exp_month   Expiry month.
+	 * @param string $exp_year    Expiry year.
+	 * @param string $brand       Card brand.
+	 * @return object
+	 */
+	private function make_cc_payment_method( string $fingerprint, string $exp_month, string $exp_year, string $brand = 'visa' ): object {
+		return (object) [
+			'id'                            => 'pm_new_' . $fingerprint,
+			'type'                          => WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'brand'       => $brand,
+				'exp_month'   => $exp_month,
+				'exp_year'    => $exp_year,
+				'last4'       => '4242',
+				'fingerprint' => $fingerprint,
+			],
+		];
+	}
+
+	/**
+	 * Helper to create a mock WC_Stripe_Customer for user ID 1.
+	 *
+	 * @return WC_Stripe_Customer&MockObject
+	 */
+	private function make_mock_customer() {
+		$customer = $this->getMockBuilder( WC_Stripe_Customer::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_user_id', 'clear_cache' ] )
+			->getMock();
+
+		$customer->method( 'get_user_id' )->willReturn( 1 );
+		$customer->method( 'clear_cache' )->willReturn( null );
+
+		return $customer;
+	}
+
+	/**
+	 * Helper to call the private add_token_to_user method via reflection.
+	 *
+	 * @param object            $payment_method    Stripe payment method object.
+	 * @param WC_Stripe_Customer $customer          Customer object.
+	 * @param array             $payment_method_ids Known Stripe PM IDs.
+	 * @return WC_Payment_Token
+	 */
+	private function call_add_token_to_user( object $payment_method, $customer, array $payment_method_ids = [] ): WC_Payment_Token {
+		$method = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$method->setAccessible( true );
+		return $method->invoke( $this->stripe_payment_tokens, $payment_method, $customer, $payment_method_ids );
+	}
+
+	/**
+	 * Tests that CC expiry is updated when the same card is re-added with a new expiry date.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_updates_cc_expiry_on_duplicate(): void {
+		// Saved token with old expiry.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2024' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_old' );
+		$token->set_user_id( 1 );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->save();
+		$token_id = $token->get_id();
+
+		// New PM with same fingerprint but updated expiry.
+		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031' );
+
+		$this->call_add_token_to_user( $payment_method, $this->make_mock_customer(), [ 'pm_old' ] );
+
+		$updated_token = WC_Payment_Tokens::get( $token_id );
+		$this->assertSame( '02', $updated_token->get_expiry_month() );
+		$this->assertSame( '2031', $updated_token->get_expiry_year() );
+	}
+
+	/**
+	 * Tests that no unnecessary save occurs when CC metadata is already up to date.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_does_not_update_when_cc_metadata_unchanged(): void {
+		// Saved token — expiry matches what Stripe returns.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_expiry_month( '2' );
+		$token->set_expiry_year( '2031' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_existing' );
+		$token->set_user_id( 1 );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->save();
+		$token_id = $token->get_id();
+
+		// PM with identical expiry and PM ID already in Stripe's list (nothing should change).
+		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031' );
+
+		$customer = $this->make_mock_customer();
+		$customer->expects( $this->never() )->method( 'clear_cache' );
+
+		$this->call_add_token_to_user( $payment_method, $customer, [ 'pm_existing' ] );
+
+		$reloaded_token = WC_Payment_Tokens::get( $token_id );
+		$this->assertSame( '02', $reloaded_token->get_expiry_month() );
+		$this->assertSame( '2031', $reloaded_token->get_expiry_year() );
+	}
+
+	/**
 	 * Test for `woocommerce_payment_token_class`.
 	 *
 	 * @return void

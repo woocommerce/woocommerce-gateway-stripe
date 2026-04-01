@@ -552,13 +552,39 @@ class WC_Stripe_Payment_Tokens {
 
 		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
 		if ( $found_token ) {
+			$token_updated = false;
+
 			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
 			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
+				$found_token->set_token( $payment_method->id );
+				$token_updated = true;
+			}
+
+			// Update CC metadata (expiry, card type) if the card was reissued with new details.
+			if ( $found_token instanceof WC_Stripe_Payment_Token_CC && isset( $payment_method->card ) ) {
+				// Zero-pad month to match WooCommerce's stored format (e.g. 2 → '02').
+				$new_exp_month = str_pad( (string) $payment_method->card->exp_month, 2, '0', STR_PAD_LEFT );
+				$new_exp_year  = (string) $payment_method->card->exp_year;
+				$new_card_type = strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand );
+
+				if (
+					$found_token->get_expiry_month() !== $new_exp_month ||
+					$found_token->get_expiry_year() !== $new_exp_year ||
+					$found_token->get_card_type() !== $new_card_type
+				) {
+					$found_token->set_expiry_month( $new_exp_month );
+					$found_token->set_expiry_year( $new_exp_year );
+					$found_token->set_card_type( $new_card_type );
+					$token_updated = true;
+				}
+			}
+
+			if ( $token_updated ) {
 				// Clear cached payment methods.
 				$customer->clear_cache();
-				$found_token->set_token( $payment_method->id );
 				$found_token->save();
 			}
+
 			return $found_token;
 		}
 
