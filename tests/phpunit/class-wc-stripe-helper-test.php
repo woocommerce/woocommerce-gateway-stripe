@@ -1588,4 +1588,93 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * Clears the first-available gateway cache so tests do not leak state.
+	 *
+	 * @return void
+	 */
+	private function reset_first_available_payment_gateway_cache(): void {
+		WC_Stripe_Helper::clear_first_available_payment_gateway_cache();
+	}
+
+	/**
+	 * @covers WC_Stripe_Helper::clear_first_available_payment_gateway_cache
+	 * @covers WC_Stripe_Helper::cache_first_available_payment_gateway
+	 * @covers WC_Stripe_Helper::is_stripe_first_available_gateway
+	 */
+	public function test_cache_first_available_payment_gateway_stores_first_key_and_returns_gateways_unchanged(): void {
+		$this->reset_first_available_payment_gateway_cache();
+
+		$gateways = [
+			'bacs'   => $this->createMock( WC_Payment_Gateway::class ),
+			'stripe' => $this->createMock( WC_Payment_Gateway::class ),
+		];
+
+		$result = WC_Stripe_Helper::cache_first_available_payment_gateway( $gateways );
+
+		$this->assertSame( $gateways, $result );
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_first_available_gateway( 'bacs' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_first_available_gateway( 'stripe' ) );
+	}
+
+	/**
+	 * @covers WC_Stripe_Helper::cache_first_available_payment_gateway
+	 * @covers WC_Stripe_Helper::is_stripe_first_available_gateway
+	 */
+	public function test_cache_first_available_payment_gateway_does_not_overwrite_existing_cache(): void {
+		$this->reset_first_available_payment_gateway_cache();
+
+		$first = [ 'stripe' => $this->createMock( WC_Payment_Gateway::class ) ];
+		WC_Stripe_Helper::cache_first_available_payment_gateway( $first );
+
+		$second = [ 'paypal' => $this->createMock( WC_Payment_Gateway::class ) ];
+		WC_Stripe_Helper::cache_first_available_payment_gateway( $second );
+
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_first_available_gateway( 'stripe' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_first_available_gateway( 'paypal' ) );
+	}
+
+	/**
+	 * @covers WC_Stripe_Helper::cache_first_available_payment_gateway
+	 * @covers WC_Stripe_Helper::is_stripe_first_available_gateway
+	 */
+	public function test_cache_first_available_payment_gateway_with_empty_array_does_not_populate_cache(): void {
+		$this->reset_first_available_payment_gateway_cache();
+
+		$result = WC_Stripe_Helper::cache_first_available_payment_gateway( [] );
+
+		$this->assertSame( [], $result );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_first_available_gateway( 'stripe' ) );
+	}
+
+	/**
+	 * @covers WC_Stripe_Helper::clear_first_available_payment_gateway_cache
+	 * @covers WC_Stripe_Helper::is_stripe_first_available_gateway
+	 */
+	public function test_clear_first_available_payment_gateway_cache_removes_cached_first_gateway(): void {
+		$this->reset_first_available_payment_gateway_cache();
+
+		WC_Stripe_Helper::cache_first_available_payment_gateway(
+			[ 'stripe' => $this->createMock( WC_Payment_Gateway::class ) ]
+		);
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_first_available_gateway( 'stripe' ) );
+
+		WC_Stripe_Helper::clear_first_available_payment_gateway_cache();
+
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_first_available_gateway( 'stripe' ) );
+	}
+
+	/**
+	 * @covers WC_Stripe_Helper::is_stripe_first_available_gateway
+	 */
+	public function test_is_stripe_first_available_gateway_defaults_to_main_stripe_gateway_id(): void {
+		$this->reset_first_available_payment_gateway_cache();
+
+		WC_Stripe_Helper::cache_first_available_payment_gateway(
+			[ 'stripe' => $this->createMock( WC_Payment_Gateway::class ) ]
+		);
+
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_first_available_gateway() );
+	}
 }
