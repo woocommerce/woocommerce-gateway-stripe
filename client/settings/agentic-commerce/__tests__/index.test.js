@@ -51,7 +51,7 @@ const makeResponse = ( overrides = {} ) => ( {
 
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
-const SETTINGS_RESPONSE = { is_enabled: false, webhook_secret: '' };
+const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
 
 /**
  * Set up apiFetch to route by path. Status calls return `statusResponse`
@@ -290,14 +290,8 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	it( 'shows success notice and re-fetches after a successful sync', async () => {
-		// Mount: status → EMPTY_RESPONSE, settings → SETTINGS_RESPONSE (from implementation).
+		// Mount: settings → SETTINGS_RESPONSE (is_enabled: true), status → EMPTY_RESPONSE.
 		// Sync POST → success, re-fetch status → populated response.
-		mockFetchByPath( EMPTY_RESPONSE );
-
-		apiFetch.mockResolvedValueOnce( EMPTY_RESPONSE ); // initial status
-		// settings call is handled by the implementation set in mockFetchByPath
-
-		// Override sync-related calls with once-mocks that take priority.
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&

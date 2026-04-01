@@ -62,7 +62,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function register_hooks(): void {
-		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
+		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ) ) {
 			return;
 		}
 
@@ -155,7 +155,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function sync_inventory(): void {
-		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() ) {
+		if ( 'yes' !== get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ) ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Inventory sync skipped - feature not enabled' );
 			return;
 		}

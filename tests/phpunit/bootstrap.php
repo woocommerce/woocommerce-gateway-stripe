@@ -51,6 +51,7 @@ function _manually_load_plugin() {
 	require_once __DIR__ . '/helpers/woocommerce-product-feed-stubs.php';
 	// Agentic Commerce integration classes (needed by the controller).
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-inventory-tracker.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );

@@ -53,6 +53,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
 
 	/**
+	 * Option key for the merchant-facing enabled toggle.
+	 *
+	 * Distinct from the developer feature flag. This is the value the merchant
+	 * controls via the Agentic Commerce settings UI.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+
+	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int

@@ -50,6 +50,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_import_set_pre_request' );
 		remove_all_filters( 'pre_http_request' );
 
 		// Remove any action hooks registered by this test's sut to prevent leaking into subsequent tests.
@@ -397,7 +398,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_sync_inventory_clears_pending_on_success() {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'   => 'no',
+				'secret_key' => 'sk_test_fake',
+			]
+		);
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -412,23 +419,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		// Short-circuit the ImportSet creation.
 		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( false !== strpos( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'impset_test_456',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $pre;
-			},
-			10,
-			3
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			function () {
+				return [
+					'id'     => 'impset_test_456',
+					'status' => 'pending',
+				];
+			}
 		);
 
 		$this->sut->sync_inventory();
@@ -444,7 +441,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_sync_inventory_retains_pending_on_failure() {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'   => 'no',
+				'secret_key' => 'sk_test_fake',
+			]
+		);
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -475,7 +478,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_full_flow_stock_change_to_upload() {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'testmode'   => 'no',
+				'secret_key' => 'sk_test_fake',
+			]
+		);
 
 		$product_a = $this->create_simple_product_with_stock( 10 );
 		$product_b = $this->create_simple_product_with_stock( 0 );
@@ -500,23 +509,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		);
 
 		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( false !== strpos( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'impset_test_999',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $pre;
-			},
-			10,
-			3
+			'wc_stripe_agentic_commerce_import_set_pre_request',
+			function () {
+				return [
+					'id'     => 'impset_test_999',
+					'status' => 'pending',
+				];
+			}
 		);
 
 		// Trigger sync.

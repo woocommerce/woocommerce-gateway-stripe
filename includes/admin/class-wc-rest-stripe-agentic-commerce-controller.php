@@ -152,7 +152,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	public function get_agentic_settings(): WP_REST_Response {
 		return rest_ensure_response(
 			[
-				'is_enabled'     => WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled(),
+				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
 				'webhook_secret' => (string) get_option( self::WEBHOOK_SECRET_OPTION, '' ),
 			]
 		);
