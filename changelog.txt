@@ -33,6 +33,7 @@
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
+* Update - Hide Adaptive Pricing option for Stripe accounts based in European Economic Area countries
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
