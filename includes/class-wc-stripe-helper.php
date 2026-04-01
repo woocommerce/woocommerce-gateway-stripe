@@ -1221,6 +1221,12 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
+		// False if the Stripe account is based in a European Economic Area country.
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		if ( in_array( $account_country, self::get_european_economic_area_countries(), true ) ) {
+			return false;
+		}
+
 		// False if adaptive pricing option is disabled.
 		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
 			return false;
