@@ -284,7 +284,7 @@ const AgenticCommercePanel = () => {
 				) }
 			</Card>
 
-			<AgenticCommerceSyncStatus />
+			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
 		</div>
 	);
 };
