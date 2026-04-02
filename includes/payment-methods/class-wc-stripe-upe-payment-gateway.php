@@ -264,16 +264,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$this->title                         = $this->payment_methods['card']->get_title();
-		$this->description                   = $this->payment_methods['card']->get_description();
-		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->sepa_tokens_for_ideal         = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
-		$this->sepa_tokens_for_bancontact    = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
-		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
-		$this->testmode                      = WC_Stripe_Mode::is_test();
-		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$this->title                      = $this->payment_methods['card']->get_title();
+		$this->description                = $this->payment_methods['card']->get_description();
+		$this->enabled                    = $this->get_option( 'enabled' );
+		$this->sepa_tokens_for_ideal      = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
+		$this->sepa_tokens_for_bancontact = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
+		$this->saved_cards                = 'yes' === $this->get_option( 'saved_cards' );
+		$this->testmode                   = WC_Stripe_Mode::is_test();
+		$this->publishable_key            = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key                 = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor       = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
@@ -310,6 +310,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Add a notice about currency conversion when the order currency is different from the store currency on the order details page.
 		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
+
+		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
+		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -696,8 +699,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['isAddPaymentMethod'] = true;
-			$stripe_params['cartTotal']    = 0;
-			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
+			$stripe_params['cartTotal']          = 0;
+			$stripe_params['customerData']       = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
 
 		// Pre-orders and free trial subscriptions don't require payments.
@@ -789,8 +792,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
 		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
-			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
-			$enabled_express_methods = array_intersect(
+			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
+			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
@@ -976,13 +979,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					echo wp_kses(
 						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
 						[
-							'div' => [
+							'div'    => [
 								'id'    => [],
 								'class' => [],
 								'style' => [],
 							],
 							'strong' => [],
-							'a'    => [
+							'a'      => [
 								'href'   => [],
 								'target' => [],
 							],
@@ -1057,92 +1060,161 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Adds the converted currency information to the order total on the order received page and My Account orders when the order is paid with a different currency than the store currency.
 	 *
-	 * @param string   $formatted_total  Total to display.
-	 * @param WC_Order $order            Order data.
+	 * @param string            $formatted_total  Total to display.
+	 * @param WC_Abstract_Order $order            Order data.
 	 */
-	public function add_converted_currency_information( string $formatted_total, WC_Order $order ): string {
-		if ( ! is_order_received_page() && ! is_account_page() ) {
+	public function add_converted_currency_information( string $formatted_total, $order ): string {
+		$presentment_data = $this->get_presentment_data_from_order( $order );
+		if ( null === $presentment_data ) {
 			return $formatted_total;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
-		if ( ! $checkout_session_id ) {
-			return $formatted_total;
-		}
-
-		$this->maybe_add_presentment_metadata_to_order( $order );
-
-		$presentment_amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
-		$presentment_currency = $order_helper->get_stripe_presentment_currency( $order );
-
-		if ( ! $presentment_amount || ! $presentment_currency ) {
-			return $formatted_total;
-		}
-
-		$currency_symbol = get_woocommerce_currency_symbol( strtoupper( $presentment_currency ) );
-		$amount          = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$presentment_amount,
-			$presentment_currency
+		$presentment_currency_upper = strtoupper( $presentment_data['currency'] );
+		$currency_symbol            = get_woocommerce_currency_symbol( $presentment_currency_upper );
+		$amount                     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_data['amount'],
+			$presentment_data['currency']
 		);
 
-		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . strtoupper( $presentment_currency ) . ')';
+		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . $presentment_currency_upper . ')';
 	}
 
 	/**
 	 * Shows a notice to the order received page to inform the customer about the currency conversion
 	 * when the order is paid with a different currency than the store currency.
 	 *
+	 * @param WC_Abstract_Order $order The order object.
+	 *
 	 * @return void
 	 */
-	public function add_currency_conversion_notice( WC_Order $order ): void {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
-		if ( ! $checkout_session_id ) {
+	public function add_currency_conversion_notice( WC_Abstract_Order $order ): void {
+		$notice_data = $this->get_currency_conversion_notice_data( $order );
+		if ( null === $notice_data ) {
 			return;
 		}
-
-		$this->maybe_add_presentment_metadata_to_order( $order );
-
-		$presentment_amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
-		$presentment_currency = $order_helper->get_stripe_presentment_currency( $order );
-
-		if ( ! $presentment_amount || ! $presentment_currency ) {
-			return;
-		}
-
-		$stripe_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		if ( $stripe_amount <= 0 ) {
-			return;
-		}
-
-		$woocommerce_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-			$presentment_amount,
-			$presentment_currency
-		);
-
-		// Use the decimal count for the presentment currency, not the store's price decimal
-		// setting, to avoid incorrect rounding (e.g. JPY stores with 0 decimal places).
-		$presentment_currency_lower = strtolower( $presentment_currency );
-		$rate_decimals              = 2;
-		if ( in_array( $presentment_currency_lower, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			$rate_decimals = 0;
-		} elseif ( in_array( $presentment_currency_lower, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
-			$rate_decimals = 3;
-		}
-		$rate_amount = wc_format_decimal( $presentment_amount / $stripe_amount, $rate_decimals );
 
 		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
 			printf(
 				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
 				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
-				esc_html( $woocommerce_amount . ' ' . strtoupper( $presentment_currency ) ),
+				esc_html( $notice_data['woocommerce_amount'] . ' ' . $notice_data['presentment_currency'] ),
 				esc_html( strtoupper( $order->get_currency() ) ),
-				esc_html( $rate_amount . ' ' . strtoupper( $presentment_currency ) )
+				esc_html( $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'] )
 			);
 		echo '</p>';
+	}
+
+	/**
+	 * Shows a notice in order confirmation emails to inform the customer (or merchant) about the
+	 * currency conversion when the order is paid with a different currency than the store currency.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Abstract_Order $order         Order data.
+	 * @param bool              $sent_to_admin Whether the email is being sent to admin or customer.
+	 * @param bool              $plain_text    Whether the email is plain text (no HTML).
+	 * @return void
+	 */
+	public function add_email_currency_conversion_notice( $order, bool $sent_to_admin = false, bool $plain_text = false ): void {
+		$notice_data = $this->get_currency_conversion_notice_data( $order );
+		if ( null === $notice_data ) {
+			return;
+		}
+
+		$converted_amount = $notice_data['woocommerce_amount'] . ' ' . $notice_data['presentment_currency'];
+		$exchange_rate    = $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'];
+		$order_currency   = strtoupper( $order->get_currency() );
+
+		if ( $plain_text ) {
+			if ( $sent_to_admin ) {
+				printf(
+					"\n%s\n",
+					sprintf(
+						/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. %4$s Original store amount. */
+						esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (1 %2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
+						esc_html( $converted_amount ),
+						esc_html( $order_currency ),
+						esc_html( $exchange_rate ),
+						esc_html( $order->get_total() . ' ' . $order_currency )
+					)
+				);
+			} else {
+				printf(
+					"\n%s\n",
+					sprintf(
+						/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
+						esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+						esc_html( $converted_amount ),
+						esc_html( $order_currency ),
+						esc_html( $exchange_rate )
+					)
+				);
+			}
+			return;
+		}
+
+		/**
+		 * Filters the inline styles applied to the adaptive pricing currency conversion notice in order emails.
+		 *
+		 * @since 10.6.0
+		 *
+		 * @param array $styles {
+		 *     Associative array of CSS property => value pairs.
+		 *
+		 *     @type string $border-color     Border colour (hex or CSS colour value). Default '#007CBA'.
+		 *     @type string $border-radius    Border radius. Default '4px'.
+		 *     @type string $background-color Background colour (hex or CSS colour value). Default '#F6F5F8'.
+		 * }
+		 * @param WC_Abstract_Order $order The order the email is being sent for.
+		 * @param bool     $sent_to_admin  Whether the email is sent to admin.
+		 */
+		$styles = apply_filters(
+			'wc_stripe_adaptive_pricing_email_notice_styles',
+			[
+				'border-color'     => '#007CBA',
+				'border-radius'    => '4px',
+				'background-color' => '#F6F5F8',
+			],
+			$order,
+			$sent_to_admin
+		);
+
+		$inline_style = sprintf(
+			'margin-top: 1em; margin-bottom: 1em; border: solid 1px %s; border-radius: %s; background-color: %s; padding: 1em 2em;',
+			$styles['border-color'] ?? '#007CBA',
+			$styles['border-radius'] ?? '4px',
+			$styles['background-color'] ?? '#F6F5F8'
+		);
+
+		echo '<div style="' . esc_attr( $inline_style ) . '">';
+
+		if ( $sent_to_admin ) {
+			$original_price = wc_price(
+				$order->get_total(),
+				[
+					'currency' => $order_currency,
+					'in_span'  => false,
+				]
+			) . ' ' . strtoupper( $order_currency );
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. %4$s Original store amount. */
+				esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (1 %2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $converted_amount ),
+				esc_html( $order_currency ),
+				esc_html( $exchange_rate ),
+				esc_html( $original_price )
+			);
+		} else {
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
+				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $converted_amount ),
+				esc_html( $order_currency ),
+				esc_html( $exchange_rate )
+			);
+		}
+
+		echo '</div>';
 	}
 
 	/**
@@ -2804,7 +2876,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// Otherwise use the payment method type from the API.
 				$selected_payment_type = $payment_method_details->type;
 			}
-			$payment_method_types  = [ $selected_payment_type ];
+			$payment_method_types = [ $selected_payment_type ];
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -3155,7 +3227,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_subscription( $subscription, string $payment_method_id ) {
-		$subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $subscription, $payment_method_id );
 		$subscription->save_meta_data();
 	}
 
@@ -3181,7 +3253,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $customer_id );
 		$subscription->save_meta_data();
 	}
 
@@ -3752,8 +3824,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$net      = $order_helper->get_stripe_net( $order );
-		$currency = $order_helper->get_stripe_currency( $order );
+		$net          = $order_helper->get_stripe_net( $order );
+		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;
@@ -4228,5 +4300,79 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order->save_meta_data();
+	}
+
+	/**
+	 * Prepares the data for the currency conversion notice based on the presentment amount and currency stored in the order meta.
+	 *
+	 * @param WC_Abstract_Order $order The order for which the currency conversion notice data should be prepared.
+	 *
+	 * @return array|null
+	 */
+	private function get_currency_conversion_notice_data( $order ): ?array {
+		$presentment_data = $this->get_presentment_data_from_order( $order );
+		if ( null === $presentment_data ) {
+			return null;
+		}
+
+		$order_total = (float) $order->get_total();
+		if ( $order_total <= 0 ) {
+			return null;
+		}
+
+		$presentment_data['currency'] = strtolower( $presentment_data['currency'] ); // Make sure the original currency code is in lowercase.
+		$presentment_currency_upper   = strtoupper( $presentment_data['currency'] );
+		$woocommerce_amount           = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_data['amount'],
+			$presentment_data['currency']
+		);
+
+		// Use at least 3 decimal places for the rate regardless of the presentment currency's own decimal
+		// exponent — a conversion rate is not a currency amount, and rounding e.g. 149.567 JPY/USD to 150
+		// gives a misleading representation.
+		$rate_decimals = 3;
+
+		// Divide major-unit amounts so the rate is correct for currencies with different decimal exponents (e.g. JPY↔USD).
+		$rate_amount = wc_format_decimal( (float) $woocommerce_amount / $order_total, $rate_decimals );
+
+		return [
+			'presentment_currency' => $presentment_currency_upper,
+			'woocommerce_amount'   => $woocommerce_amount,
+			'rate_amount'          => $rate_amount,
+		];
+	}
+
+	/**
+	 * Prepares the presentment amount and currency data based on the order meta to be used in the order details and emails.
+	 *
+	 * @param WC_Abstract_Order $order The order for which the presentment data should be prepared.
+	 *
+	 * @return array|null
+	 */
+	private function get_presentment_data_from_order( $order ): ?array {
+		if ( ! $order instanceof WC_Order ) {
+			return null;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
+			return null;
+		}
+
+		$this->maybe_add_presentment_metadata_to_order( $order );
+
+		$amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
+		$currency = $order_helper->get_stripe_presentment_currency( $order );
+
+		if ( $amount <= 0 || empty( $currency ) ) {
+			return null;
+		}
+
+		return [
+			'amount'   => $amount,
+			'currency' => $currency,
+		];
 	}
 }

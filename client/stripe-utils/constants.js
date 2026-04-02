@@ -188,3 +188,15 @@ export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
  * @type {string}
  */
 export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
+
+/**
+ * Stripe.js options to hide the testing assistant on Clover+ when using Adaptive Pricing
+ * with Checkout Sessions.
+ */
+export const STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT = {
+	developerTools: {
+		assistant: {
+			enabled: false,
+		},
+	},
+};
