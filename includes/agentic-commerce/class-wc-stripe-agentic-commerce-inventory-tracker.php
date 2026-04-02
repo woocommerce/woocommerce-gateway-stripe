@@ -35,11 +35,25 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
 
 	/**
+	 * Option key used to store pending product deletions.
+	 *
+	 * @var string
+	 */
+	const PENDING_DELETIONS_OPTION = 'wc_stripe_agentic_pending_deletions';
+
+	/**
 	 * Action Scheduler hook name for inventory sync.
 	 *
 	 * @var string
 	 */
 	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
+
+	/**
+	 * Action Scheduler hook name for deletion sync.
+	 *
+	 * @var string
+	 */
+	const DELETION_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_deletions';
 
 	/**
 	 * Maximum number of pending updates before falling back to full catalog sync.
@@ -65,6 +79,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		add_action( 'woocommerce_product_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( 'woocommerce_variation_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_inventory' ] );
+		add_action( 'woocommerce_before_delete_product', [ $this, 'track_product_deletion' ] );
+		add_action( 'woocommerce_trash_product', [ $this, 'track_product_deletion' ] );
+		add_action( self::DELETION_SCHEDULED_ACTION, [ $this, 'sync_deletions' ] );
 	}
 
 	/**
@@ -97,6 +114,44 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 
 		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
 			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::SCHEDULED_ACTION, [], 'wc-stripe' );
+		}
+	}
+
+	/**
+	 * Track a product deletion (permanent delete or trash).
+	 *
+	 * Stores the product ID in the pending deletions option and schedules a sync
+	 * 60 seconds later if one is not already scheduled. The product is also
+	 * removed from any pending inventory updates since the stock quantity is
+	 * no longer relevant once the product is removed.
+	 *
+	 * @since 10.5.0
+	 * @param int $product_id The ID of the product being deleted or trashed.
+	 * @return void
+	 */
+	public function track_product_deletion( int $product_id ): void {
+		// Remove from pending inventory updates — stock quantity is irrelevant for deleted products.
+		$pending_inventory = get_option( self::PENDING_UPDATES_OPTION, [] );
+		if ( isset( $pending_inventory[ $product_id ] ) ) {
+			unset( $pending_inventory[ $product_id ] );
+			update_option( self::PENDING_UPDATES_OPTION, $pending_inventory, false );
+		}
+
+		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+
+		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
+			return;
+		}
+
+		$pending[ $product_id ] = [
+			'id'        => $product_id,
+			'timestamp' => time(),
+		];
+
+		update_option( self::PENDING_DELETIONS_OPTION, $pending, false );
+
+		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::DELETION_SCHEDULED_ACTION ) ) {
+			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::DELETION_SCHEDULED_ACTION, [], 'wc-stripe' );
 		}
 	}
 
@@ -215,6 +270,125 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 				]
 			);
 			// Do not clear pending updates on failure — next scheduled action will retry.
+		}
+	}
+
+	/**
+	 * Generate a deletion feed CSV from pending product deletions.
+	 *
+	 * Returns a finalized CSV feed containing only the product ID and a delete
+	 * flag, or null if there are no pending deletions.
+	 *
+	 * @since 10.5.0
+	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
+	 */
+	public function generate_deletion_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
+		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+
+		if ( empty( $pending ) ) {
+			return null;
+		}
+
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'stripe-deletion-feed' );
+		$feed->set_columns( [ 'id', 'delete' ] );
+		$feed->start();
+
+		foreach ( $pending as $deletion ) {
+			$feed->add_entry(
+				[
+					'id'     => $deletion['id'],
+					'delete' => true,
+				]
+			);
+		}
+
+		$feed->end();
+
+		return $feed;
+	}
+
+	/**
+	 * Execute deletion sync process.
+	 *
+	 * Called by Action Scheduler one minute after the first tracked deletion.
+	 * Generates a minimal product catalog CSV (id + delete: true) and uploads
+	 * it to Stripe as a product_catalog_feed ImportSet.
+	 *
+	 * On success, pending deletions are cleared. On failure they are retained so
+	 * the next scheduled sync can retry.
+	 *
+	 * If the number of pending deletions exceeds MAX_PENDING_UPDATES, the queue
+	 * is cleared and the regular full catalog sync will handle the backlog on its
+	 * next run.
+	 *
+	 * @since 10.5.0
+	 * @return void
+	 */
+	public function sync_deletions(): void {
+		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Deletion sync skipped - feature not enabled' );
+			return;
+		}
+
+		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+
+		if ( empty( $pending ) ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Deletion sync skipped - no pending deletions' );
+			return;
+		}
+
+		// Too many pending deletions — fall back to full catalog sync on its next scheduled run.
+		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
+			WC_Stripe_Logger::info(
+				'Agentic Commerce: Deletion sync - pending deletion threshold exceeded, deferring to full catalog sync',
+				[ 'pending_count' => count( $pending ) ]
+			);
+			delete_option( self::PENDING_DELETIONS_OPTION );
+			return;
+		}
+
+		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $this->get_secret_key() );
+
+		if ( ! $delivery->check_setup() ) {
+			WC_Stripe_Logger::error( 'Agentic Commerce: Deletion sync skipped - Stripe API key not configured' );
+			return;
+		}
+
+		try {
+			$feed = $this->generate_deletion_feed();
+
+			if ( null === $feed ) {
+				return;
+			}
+
+			$result = $delivery->deliver( $feed );
+
+			WC_Stripe_Logger::info(
+				'Agentic Commerce: Deletion feed uploaded',
+				[
+					'deletions'     => count( $pending ),
+					'import_set_id' => $result['import_set_id'] ?? null,
+					'status'        => $result['status'] ?? 'unknown',
+				]
+			);
+
+			// Clear pending deletions on success.
+			delete_option( self::PENDING_DELETIONS_OPTION );
+
+			// Clean up the temporary file.
+			$file_path = $feed->get_file_path();
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Agentic Commerce: Deletion sync failed',
+				[
+					'error' => $e->getMessage(),
+					'code'  => $e->getCode(),
+				]
+			);
+			// Do not clear pending deletions on failure — next scheduled action will retry.
 		}
 	}
 
