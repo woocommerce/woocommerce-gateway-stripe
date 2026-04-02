@@ -1,4 +1,4 @@
-/* global wc_add_to_cart_variation_params */
+/* global wc_add_to_cart_variation_params, wc_stripe_settings_params */
 import apiFetch from '@wordpress/api-fetch';
 
 export const getAddToCartVariationParams = ( key ) => {

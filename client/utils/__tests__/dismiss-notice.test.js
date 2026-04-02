@@ -82,17 +82,33 @@ describe( 'dismissNotice', () => {
 	it( 'should not throw when wc_stripe_settings_params is undefined', async () => {
 		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
 
-		// Should not throw.
 		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', jest.fn() );
 		await new Promise( process.nextTick );
+
+		// The API call should still be made even without the global.
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/wc/v3/wc_stripe/settings/notice',
+			method: 'POST',
+			data: { wc_stripe_show_bnpl_promotion_banner: 'no' },
+		} );
+		// The global should remain absent (not created as a side-effect).
+		expect( global.wc_stripe_settings_params ).toBeUndefined();
 	} );
 
 	it( 'should handle null callback gracefully', async () => {
 		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
 
-		// Should not throw with null/undefined callback.
 		dismissNotice( 'wc_stripe_show_test_notice', null );
 		await new Promise( process.nextTick );
+
+		// The API call should still be made with null callback.
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/wc/v3/wc_stripe/settings/notice',
+			method: 'POST',
+			data: { wc_stripe_show_test_notice: 'no' },
+		} );
 	} );
 
 	it( 'should not update wc_stripe_settings_params when apiFetch rejects', async () => {
