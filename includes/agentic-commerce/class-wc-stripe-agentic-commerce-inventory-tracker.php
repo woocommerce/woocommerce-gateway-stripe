@@ -35,11 +35,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	const PENDING_UPDATES_OPTION = 'wc_stripe_agentic_pending_inventory';
 
 	/**
-	 * Option key used to store pending product deletions.
+	 * Option key used to store pending product archives.
 	 *
 	 * @var string
 	 */
-	const PENDING_DELETIONS_OPTION = 'wc_stripe_agentic_pending_deletions';
+	const PENDING_ARCHIVES_OPTION = 'wc_stripe_agentic_pending_archives';
 
 	/**
 	 * Action Scheduler hook name for inventory sync.
@@ -49,11 +49,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	const SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_inventory';
 
 	/**
-	 * Action Scheduler hook name for deletion sync.
+	 * Action Scheduler hook name for archive sync.
 	 *
 	 * @var string
 	 */
-	const DELETION_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_deletions';
+	const ARCHIVE_SCHEDULED_ACTION = 'wc_stripe_agentic_commerce_sync_archives';
 
 	/**
 	 * Maximum number of pending updates before falling back to full catalog sync.
@@ -79,9 +79,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		add_action( 'woocommerce_product_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( 'woocommerce_variation_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_inventory' ] );
-		add_action( 'woocommerce_before_delete_product', [ $this, 'track_product_deletion' ] );
-		add_action( 'woocommerce_trash_product', [ $this, 'track_product_deletion' ] );
-		add_action( self::DELETION_SCHEDULED_ACTION, [ $this, 'sync_deletions' ] );
+		add_action( 'woocommerce_before_delete_product', [ $this, 'track_product_archive' ] );
+		add_action( 'woocommerce_trash_product', [ $this, 'track_product_archive' ] );
+		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
 
 	/**
@@ -118,9 +118,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Track a product deletion (permanent delete or trash).
+	 * Track a product deletion (permanent delete or trash) for archiving on Stripe.
 	 *
-	 * Stores the product ID in the pending deletions option and schedules a sync
+	 * Stores the product ID in the pending archives option and schedules a sync
 	 * 60 seconds later if one is not already scheduled. The product is also
 	 * removed from any pending inventory updates since the stock quantity is
 	 * no longer relevant once the product is removed.
@@ -129,15 +129,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @param int $product_id The ID of the product being deleted or trashed.
 	 * @return void
 	 */
-	public function track_product_deletion( int $product_id ): void {
-		// Remove from pending inventory updates — stock quantity is irrelevant for deleted products.
+	public function track_product_archive( int $product_id ): void {
+		// Remove from pending inventory updates — stock quantity is irrelevant for archived products.
 		$pending_inventory = get_option( self::PENDING_UPDATES_OPTION, [] );
 		if ( isset( $pending_inventory[ $product_id ] ) ) {
 			unset( $pending_inventory[ $product_id ] );
 			update_option( self::PENDING_UPDATES_OPTION, $pending_inventory, false );
 		}
 
-		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
 
 		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
 			return;
@@ -148,10 +148,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			'timestamp' => time(),
 		];
 
-		update_option( self::PENDING_DELETIONS_OPTION, $pending, false );
+		update_option( self::PENDING_ARCHIVES_OPTION, $pending, false );
 
-		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::DELETION_SCHEDULED_ACTION ) ) {
-			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::DELETION_SCHEDULED_ACTION, [], 'wc-stripe' );
+		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ARCHIVE_SCHEDULED_ACTION ) ) {
+			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::ARCHIVE_SCHEDULED_ACTION, [], 'wc-stripe' );
 		}
 	}
 
@@ -274,30 +274,32 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Generate a deletion feed CSV from pending product deletions.
+	 * Generate an archive feed CSV from pending product archives.
 	 *
-	 * Returns a finalized CSV feed containing only the product ID and a delete
-	 * flag, or null if there are no pending deletions.
+	 * Returns a finalized CSV feed containing the product ID and availability set
+	 * to out_of_stock, or null if there are no pending archives. Sending
+	 * availability: out_of_stock marks the product as unavailable on Stripe without
+	 * permanently removing it from the catalog.
 	 *
 	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
 	 */
-	public function generate_deletion_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
-		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+	public function generate_archive_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
+		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
 
 		if ( empty( $pending ) ) {
 			return null;
 		}
 
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'stripe-deletion-feed' );
-		$feed->set_columns( [ 'id', 'delete' ] );
+		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'stripe-archive-feed' );
+		$feed->set_columns( [ 'id', 'availability' ] );
 		$feed->start();
 
-		foreach ( $pending as $deletion ) {
+		foreach ( $pending as $archive ) {
 			$feed->add_entry(
 				[
-					'id'     => $deletion['id'],
-					'delete' => true,
+					'id'           => $archive['id'],
+					'availability' => 'out_of_stock',
 				]
 			);
 		}
@@ -308,54 +310,55 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
-	 * Execute deletion sync process.
+	 * Execute archive sync process.
 	 *
-	 * Called by Action Scheduler one minute after the first tracked deletion.
-	 * Generates a minimal product catalog CSV (id + delete: true) and uploads
-	 * it to Stripe as a product_catalog_feed ImportSet.
+	 * Called by Action Scheduler one minute after the first tracked product deletion
+	 * or trash event. Generates a minimal product catalog CSV (id + availability:
+	 * out_of_stock) and uploads it to Stripe as a product_catalog_feed ImportSet,
+	 * marking each product as unavailable without permanently removing it.
 	 *
-	 * On success, pending deletions are cleared. On failure they are retained so
+	 * On success, pending archives are cleared. On failure they are retained so
 	 * the next scheduled sync can retry.
 	 *
-	 * If the number of pending deletions exceeds MAX_PENDING_UPDATES, the queue
+	 * If the number of pending archives exceeds MAX_PENDING_UPDATES, the queue
 	 * is cleared and the regular full catalog sync will handle the backlog on its
 	 * next run.
 	 *
 	 * @since 10.6.0
 	 * @return void
 	 */
-	public function sync_deletions(): void {
+	public function sync_archives(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			WC_Stripe_Logger::info( 'Agentic Commerce: Deletion sync skipped - feature not enabled' );
+			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - feature not enabled' );
 			return;
 		}
 
-		$pending = get_option( self::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
 
 		if ( empty( $pending ) ) {
-			WC_Stripe_Logger::info( 'Agentic Commerce: Deletion sync skipped - no pending deletions' );
+			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - no pending archives' );
 			return;
 		}
 
-		// Too many pending deletions — fall back to full catalog sync on its next scheduled run.
+		// Too many pending archives — fall back to full catalog sync on its next scheduled run.
 		if ( count( $pending ) >= self::MAX_PENDING_UPDATES ) {
 			WC_Stripe_Logger::info(
-				'Agentic Commerce: Deletion sync - pending deletion threshold exceeded, deferring to full catalog sync',
+				'Agentic Commerce: Archive sync - pending archive threshold exceeded, deferring to full catalog sync',
 				[ 'pending_count' => count( $pending ) ]
 			);
-			delete_option( self::PENDING_DELETIONS_OPTION );
+			delete_option( self::PENDING_ARCHIVES_OPTION );
 			return;
 		}
 
 		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $this->get_secret_key() );
 
 		if ( ! $delivery->check_setup() ) {
-			WC_Stripe_Logger::error( 'Agentic Commerce: Deletion sync skipped - Stripe API key not configured' );
+			WC_Stripe_Logger::error( 'Agentic Commerce: Archive sync skipped - Stripe API key not configured' );
 			return;
 		}
 
 		try {
-			$feed = $this->generate_deletion_feed();
+			$feed = $this->generate_archive_feed();
 
 			if ( null === $feed ) {
 				return;
@@ -364,16 +367,16 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			$result = $delivery->deliver( $feed );
 
 			WC_Stripe_Logger::info(
-				'Agentic Commerce: Deletion feed uploaded',
+				'Agentic Commerce: Archive feed uploaded',
 				[
-					'deletions'     => count( $pending ),
+					'archives'      => count( $pending ),
 					'import_set_id' => $result['import_set_id'] ?? null,
 					'status'        => $result['status'] ?? 'unknown',
 				]
 			);
 
-			// Clear pending deletions on success.
-			delete_option( self::PENDING_DELETIONS_OPTION );
+			// Clear pending archives on success.
+			delete_option( self::PENDING_ARCHIVES_OPTION );
 
 			// Clean up the temporary file.
 			$file_path = $feed->get_file_path();
@@ -382,13 +385,13 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
-				'Agentic Commerce: Deletion sync failed',
+				'Agentic Commerce: Archive sync failed',
 				[
 					'error' => $e->getMessage(),
 					'code'  => $e->getCode(),
 				]
 			);
-			// Do not clear pending deletions on failure — next scheduled action will retry.
+			// Do not clear pending archives on failure — next scheduled action will retry.
 		}
 	}
 

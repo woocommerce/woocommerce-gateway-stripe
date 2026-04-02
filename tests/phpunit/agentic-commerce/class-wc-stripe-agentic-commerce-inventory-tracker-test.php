@@ -48,7 +48,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function tearDown(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
-		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
 		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'pre_http_request' );
@@ -58,9 +58,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
-			remove_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_deletion' ] );
-			remove_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_deletion' ] );
-			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::DELETION_SCHEDULED_ACTION, [ $this->sut, 'sync_deletions' ] );
+			remove_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_archive' ] );
+			remove_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_archive' ] );
+			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
 		parent::tearDown();
@@ -77,9 +77,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_constants() {
 		$this->assertEquals( 'wc_stripe_agentic_pending_inventory', WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
-		$this->assertEquals( 'wc_stripe_agentic_pending_deletions', WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION );
+		$this->assertEquals( 'wc_stripe_agentic_pending_archives', WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
 		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_inventory', WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION );
-		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_deletions', WC_Stripe_Agentic_Commerce_Inventory_Tracker::DELETION_SCHEDULED_ACTION );
+		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_archives', WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 		$this->assertEquals( 1000, WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES );
 		$this->assertEquals( 60, WC_Stripe_Agentic_Commerce_Inventory_Tracker::BATCH_DELAY_SECONDS );
 	}
@@ -117,19 +117,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test register_hooks attaches deletion hooks.
+	 * Test register_hooks attaches archive hooks.
 	 *
 	 * @return void
 	 */
-	public function test_register_hooks_attaches_deletion_hooks() {
+	public function test_register_hooks_attaches_archive_hooks() {
 		$this->sut->register_hooks();
 
-		$this->assertNotFalse( has_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_deletion' ] ) );
-		$this->assertNotFalse( has_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_deletion' ] ) );
+		$this->assertNotFalse( has_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_archive' ] ) );
 		$this->assertNotFalse(
 			has_action(
-				WC_Stripe_Agentic_Commerce_Inventory_Tracker::DELETION_SCHEDULED_ACTION,
-				[ $this->sut, 'sync_deletions' ]
+				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
+				[ $this->sut, 'sync_archives' ]
 			)
 		);
 	}
@@ -536,20 +536,20 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	// -------------------------------------------------------------------------
-	// track_product_deletion
+	// track_product_archive
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test that a product deletion is stored in the pending deletions option.
+	 * Test that a product archive is stored in the pending archives option.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_deletion_stores_pending_deletion() {
+	public function test_track_product_archive_stores_pending_archive() {
 		$product = $this->create_simple_product_with_stock( 5 );
 
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 
 		$this->assertArrayHasKey( $product->get_id(), $pending );
 		$this->assertEquals( $product->get_id(), $pending[ $product->get_id() ]['id'] );
@@ -557,38 +557,38 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test that tracking a deletion removes the product from pending inventory updates.
+	 * Test that tracking an archive removes the product from pending inventory updates.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_deletion_removes_from_pending_inventory() {
+	public function test_track_product_archive_removes_from_pending_inventory() {
 		$product = $this->create_simple_product_with_stock( 10 );
 
-		// First track a stock change, then delete the product.
+		// First track a stock change, then archive the product.
 		$this->sut->track_stock_change( $product );
 
 		$inventory_before = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
 		$this->assertArrayHasKey( $product->get_id(), $inventory_before );
 
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
 		$inventory_after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
 		$this->assertArrayNotHasKey( $product->get_id(), $inventory_after );
 	}
 
 	/**
-	 * Test that multiple deletions are batched into a single option.
+	 * Test that multiple archives are batched into a single option.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_deletion_batches_multiple_products() {
+	public function test_track_product_archive_batches_multiple_products() {
 		$product_a = $this->create_simple_product_with_stock( 5 );
 		$product_b = $this->create_simple_product_with_stock( 10 );
 
-		$this->sut->track_product_deletion( $product_a->get_id() );
-		$this->sut->track_product_deletion( $product_b->get_id() );
+		$this->sut->track_product_archive( $product_a->get_id() );
+		$this->sut->track_product_archive( $product_b->get_id() );
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 
 		$this->assertCount( 2, $pending );
 		$this->assertArrayHasKey( $product_a->get_id(), $pending );
@@ -596,11 +596,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test that no new deletions are added once the MAX_PENDING_UPDATES threshold is reached.
+	 * Test that no new archives are added once the MAX_PENDING_UPDATES threshold is reached.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_deletion_stops_accumulating_at_threshold() {
+	public function test_track_product_archive_stops_accumulating_at_threshold() {
 		$max           = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
 		$extra_product = $this->create_simple_product_with_stock( 1 );
 		$product_id    = $extra_product->get_id();
@@ -618,40 +618,40 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			}
 			++$i;
 		}
-		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, $pending );
+		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
 
-		$this->sut->track_product_deletion( $product_id );
+		$this->sut->track_product_archive( $product_id );
 
-		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 
 		$this->assertCount( $max, $after );
 		$this->assertArrayNotHasKey( $product_id, $after );
 	}
 
 	// -------------------------------------------------------------------------
-	// generate_deletion_feed
+	// generate_archive_feed
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test generate_deletion_feed returns null when there are no pending deletions.
+	 * Test generate_archive_feed returns null when there are no pending archives.
 	 *
 	 * @return void
 	 */
-	public function test_generate_deletion_feed_returns_null_when_no_pending() {
-		$result = $this->sut->generate_deletion_feed();
+	public function test_generate_archive_feed_returns_null_when_no_pending() {
+		$result = $this->sut->generate_archive_feed();
 		$this->assertNull( $result );
 	}
 
 	/**
-	 * Test generate_deletion_feed returns a finalized feed.
+	 * Test generate_archive_feed returns a finalized feed.
 	 *
 	 * @return void
 	 */
-	public function test_generate_deletion_feed_returns_finalized_feed() {
+	public function test_generate_archive_feed_returns_finalized_feed() {
 		$product = $this->create_simple_product_with_stock( 5 );
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
-		$feed = $this->sut->generate_deletion_feed();
+		$feed = $this->sut->generate_archive_feed();
 
 		$this->assertInstanceOf( WC_Stripe_Agentic_Commerce_Csv_Feed::class, $feed );
 		$this->assertNotNull( $feed->get_file_path() );
@@ -659,15 +659,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test generate_deletion_feed CSV contains correct id and delete columns.
+	 * Test generate_archive_feed CSV contains correct id and availability columns.
 	 *
 	 * @return void
 	 */
-	public function test_generate_deletion_feed_csv_content() {
+	public function test_generate_archive_feed_csv_content() {
 		$product = $this->create_simple_product_with_stock( 5 );
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
-		$feed      = $this->sut->generate_deletion_feed();
+		$feed      = $this->sut->generate_archive_feed();
 		$file_path = $feed->get_file_path();
 		$content   = file_get_contents( $file_path );
 		$lines     = array_filter( explode( "\n", trim( $content ) ) );
@@ -677,31 +677,31 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$header_cols = str_getcsv( array_shift( $lines ) );
 		$this->assertContains( 'id', $header_cols );
-		$this->assertContains( 'delete', $header_cols );
+		$this->assertContains( 'availability', $header_cols );
 
-		// Verify data row contains the expected product ID and delete flag.
+		// Verify data row contains the expected product ID and out_of_stock availability.
 		$data_row = str_getcsv( reset( $lines ) );
 		$row      = array_combine( $header_cols, $data_row );
 
 		$this->assertEquals( (string) $product->get_id(), $row['id'] );
-		$this->assertEquals( 'true', $row['delete'] );
+		$this->assertEquals( 'out_of_stock', $row['availability'] );
 
 		wp_delete_file( $file_path );
 	}
 
 	/**
-	 * Test generate_deletion_feed includes all pending products.
+	 * Test generate_archive_feed includes all pending products.
 	 *
 	 * @return void
 	 */
-	public function test_generate_deletion_feed_includes_all_pending_products() {
+	public function test_generate_archive_feed_includes_all_pending_products() {
 		$product_a = $this->create_simple_product_with_stock( 3 );
 		$product_b = $this->create_simple_product_with_stock( 8 );
 
-		$this->sut->track_product_deletion( $product_a->get_id() );
-		$this->sut->track_product_deletion( $product_b->get_id() );
+		$this->sut->track_product_archive( $product_a->get_id() );
+		$this->sut->track_product_archive( $product_b->get_id() );
 
-		$feed      = $this->sut->generate_deletion_feed();
+		$feed      = $this->sut->generate_archive_feed();
 		$file_path = $feed->get_file_path();
 		$content   = file_get_contents( $file_path );
 		$lines     = array_values( array_filter( explode( "\n", trim( $content ) ) ) );
@@ -713,44 +713,44 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	// -------------------------------------------------------------------------
-	// sync_deletions
+	// sync_archives
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test sync_deletions skips when feature flag is disabled.
+	 * Test sync_archives skips when feature flag is disabled.
 	 *
 	 * @return void
 	 */
-	public function test_sync_deletions_skips_when_feature_disabled() {
+	public function test_sync_archives_skips_when_feature_disabled() {
 		$product = $this->create_simple_product_with_stock( 5 );
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
-		$this->sut->sync_deletions();
+		$this->sut->sync_archives();
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertNotEmpty( $pending );
 	}
 
 	/**
-	 * Test sync_deletions skips when there are no pending deletions.
+	 * Test sync_archives skips when there are no pending archives.
 	 *
 	 * @return void
 	 */
-	public function test_sync_deletions_skips_when_no_pending() {
+	public function test_sync_archives_skips_when_no_pending() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
-		$this->sut->sync_deletions();
+		$this->sut->sync_archives();
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertEmpty( $pending );
 	}
 
 	/**
-	 * Test sync_deletions clears pending deletions when threshold is exceeded.
+	 * Test sync_archives clears pending archives when threshold is exceeded.
 	 *
 	 * @return void
 	 */
-	public function test_sync_deletions_clears_pending_when_threshold_exceeded() {
+	public function test_sync_archives_clears_pending_when_threshold_exceeded() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
 		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
@@ -761,31 +761,31 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 				'timestamp' => time(),
 			];
 		}
-		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, $pending );
+		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
 
-		$this->sut->sync_deletions();
+		$this->sut->sync_archives();
 
-		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertEmpty( $after );
 	}
 
 	/**
-	 * Test sync_deletions clears pending deletions after a successful upload.
+	 * Test sync_archives clears pending archives after a successful upload.
 	 *
 	 * @return void
 	 */
-	public function test_sync_deletions_clears_pending_on_success() {
+	public function test_sync_archives_clears_pending_on_success() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
 
 		$product = $this->create_simple_product_with_stock( 5 );
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
 		// Short-circuit the Files API upload.
 		add_filter(
 			'wc_stripe_agentic_commerce_files_api_pre_request',
 			function () {
-				return [ 'id' => 'file_test_del_123' ];
+				return [ 'id' => 'file_test_arc_123' ];
 			}
 		);
 
@@ -798,7 +798,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 						'response' => [ 'code' => 200 ],
 						'body'     => wp_json_encode(
 							[
-								'id'     => 'impset_test_del_456',
+								'id'     => 'impset_test_arc_456',
 								'status' => 'pending',
 							]
 						),
@@ -810,23 +810,23 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			3
 		);
 
-		$this->sut->sync_deletions();
+		$this->sut->sync_archives();
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertEmpty( $pending );
 	}
 
 	/**
-	 * Test sync_deletions retains pending deletions when upload fails.
+	 * Test sync_archives retains pending archives when upload fails.
 	 *
 	 * @return void
 	 */
-	public function test_sync_deletions_retains_pending_on_failure() {
+	public function test_sync_archives_retains_pending_on_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
 
 		$product = $this->create_simple_product_with_stock( 5 );
-		$this->sut->track_product_deletion( $product->get_id() );
+		$this->sut->track_product_archive( $product->get_id() );
 
 		// Make the Files API upload throw an exception.
 		add_filter(
@@ -836,10 +836,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			}
 		);
 
-		$this->sut->sync_deletions();
+		$this->sut->sync_archives();
 
-		// Pending deletions must be retained so the next run can retry.
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_DELETIONS_OPTION, [] );
+		// Pending archives must be retained so the next run can retry.
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertNotEmpty( $pending );
 	}
 
