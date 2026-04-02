@@ -349,6 +349,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$updated_token = WC_Payment_Tokens::get( $token_id );
 		$this->assertSame( '02', $updated_token->get_expiry_month() );
 		$this->assertSame( '2031', $updated_token->get_expiry_year() );
+		$this->assertSame( 'visa', $updated_token->get_card_type() );
 	}
 
 	/**
@@ -382,6 +383,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$reloaded_token = WC_Payment_Tokens::get( $token_id );
 		$this->assertSame( '02', $reloaded_token->get_expiry_month() );
 		$this->assertSame( '2031', $reloaded_token->get_expiry_year() );
+		$this->assertSame( 'visa', $reloaded_token->get_card_type() );
 	}
 
 	/**
