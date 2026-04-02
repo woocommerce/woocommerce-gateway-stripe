@@ -125,7 +125,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * removed from any pending inventory updates since the stock quantity is
 	 * no longer relevant once the product is removed.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param int $product_id The ID of the product being deleted or trashed.
 	 * @return void
 	 */
@@ -279,7 +279,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * Returns a finalized CSV feed containing only the product ID and a delete
 	 * flag, or null if there are no pending deletions.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
 	 */
 	public function generate_deletion_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
@@ -321,7 +321,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * is cleared and the regular full catalog sync will handle the backlog on its
 	 * next run.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function sync_deletions(): void {
