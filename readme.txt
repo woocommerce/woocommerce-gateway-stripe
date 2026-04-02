@@ -182,5 +182,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
+* Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
