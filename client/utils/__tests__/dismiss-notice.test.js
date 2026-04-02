@@ -94,4 +94,26 @@ describe( 'dismissNotice', () => {
 		dismissNotice( 'wc_stripe_show_test_notice', null );
 		await new Promise( process.nextTick );
 	} );
+
+	it( 'should not update wc_stripe_settings_params when apiFetch rejects', async () => {
+		global.wc_stripe_settings_params = {
+			show_bnpl_promotional_banner: '1',
+		};
+
+		const callback = jest.fn();
+		apiFetch.mockImplementation( () =>
+			Promise.reject( new Error( 'fail' ) )
+		);
+
+		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', callback );
+		await new Promise( process.nextTick );
+
+		// The global should remain unchanged because the API call failed.
+		expect(
+			global.wc_stripe_settings_params.show_bnpl_promotional_banner
+		).toBe( '1' );
+		// The callback should still be called (via .finally) so callers
+		// can clean up regardless of success or failure.
+		expect( callback ).toHaveBeenCalled();
+	} );
 } );
