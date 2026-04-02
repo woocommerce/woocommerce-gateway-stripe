@@ -6,7 +6,7 @@
  * (e.g. closing the Klarna popup). Unlike WC_Stripe_Exception, this does not cause the
  * order to be set to the failed status — the shopper is returned to checkout and may retry.
  *
- * @since 9.5.0
+ * @since 10.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
