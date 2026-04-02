@@ -233,12 +233,12 @@ class WC_Stripe_Payment_Tokens {
 					continue;
 				}
 
-				// When OCS is enabled, skip the individual "enabled" toggle but still enforce
-				// currency/capability constraints via is_enabled_at_checkout(). This prevents methods
-				// like ACH from appearing when unsupported for the current store currency.
+				// Enforce both the individual enabled toggle and currency/capability constraints.
+				// When OCS is active, is_enabled_at_checkout() handles currency/capability; is_enabled()
+				// ensures explicitly disabled methods are still hidden.
 				// When OCS is not active, use the simple is_enabled() toggle check.
 				if ( $gateway->is_optimized_checkout_active() ) {
-					if ( ! $method_obj->is_enabled_at_checkout() ) {
+					if ( ! $method_obj->is_enabled() || ! $method_obj->is_enabled_at_checkout() ) {
 						// Preserve existing tokens in the DB but exclude them from the results.
 						// This avoids deleting tokens that are temporarily unavailable (e.g. currency change).
 						if ( isset( $stored_tokens[ $payment_method->id ] ) ) {
@@ -278,8 +278,21 @@ class WC_Stripe_Payment_Tokens {
 			// The filter has already been removed (above) so these calls read raw WooCommerce DB
 			// tokens without triggering the sync path. There is no recursion risk because the filter
 			// is absent for the duration of this try block.
+			// Only merge tokens for sub-gateways whose payment method is currently enabled.
 			if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+				$sub_gateway_to_method_type = [];
+				foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $method_type => $gw_id ) {
+					if ( WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id ) {
+						$sub_gateway_to_method_type[ $gw_id ] = $method_type;
+					}
+				}
+
 				foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
+					$method_type = $sub_gateway_to_method_type[ $sub_gateway_id ] ?? null;
+					$method_obj  = null !== $method_type ? ( $gateway->payment_methods[ $method_type ] ?? null ) : null;
+					if ( null === $method_obj || ! $method_obj->is_enabled() ) {
+						continue;
+					}
 					$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );
 				}
 			}
