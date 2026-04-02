@@ -6,6 +6,7 @@ jest.mock( '@wordpress/api-fetch' );
 describe( 'dismissNotice', () => {
 	afterEach( () => {
 		jest.clearAllMocks();
+		delete global.wc_stripe_settings_params;
 	} );
 
 	it( 'should call apiFetch with the correct path and method', () => {
@@ -31,5 +32,66 @@ describe( 'dismissNotice', () => {
 		await new Promise( process.nextTick );
 
 		expect( callback ).toHaveBeenCalled();
+	} );
+
+	it( 'should update wc_stripe_settings_params when dismissing a known notice', async () => {
+		global.wc_stripe_settings_params = {
+			show_bnpl_promotional_banner: '1',
+			show_oc_promotional_banner: '1',
+			show_stripe_tax_banner: '1',
+			show_customization_notice: true,
+			show_optimized_checkout_notice: true,
+		};
+
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', jest.fn() );
+		await new Promise( process.nextTick );
+
+		expect( global.wc_stripe_settings_params.show_bnpl_promotional_banner ).toBe( false );
+		// Other params should remain unchanged.
+		expect( global.wc_stripe_settings_params.show_oc_promotional_banner ).toBe( '1' );
+	} );
+
+	it( 'should update wc_stripe_settings_params for OC promotion banner', async () => {
+		global.wc_stripe_settings_params = {
+			show_oc_promotional_banner: '1',
+		};
+
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		dismissNotice( 'wc_stripe_show_oc_promotion_banner', jest.fn() );
+		await new Promise( process.nextTick );
+
+		expect( global.wc_stripe_settings_params.show_oc_promotional_banner ).toBe( false );
+	} );
+
+	it( 'should update wc_stripe_settings_params for Stripe Tax banner', async () => {
+		global.wc_stripe_settings_params = {
+			show_stripe_tax_banner: '1',
+		};
+
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		dismissNotice( 'wc_stripe_show_stripe_tax_banner', jest.fn() );
+		await new Promise( process.nextTick );
+
+		expect( global.wc_stripe_settings_params.show_stripe_tax_banner ).toBe( false );
+	} );
+
+	it( 'should not throw when wc_stripe_settings_params is undefined', async () => {
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		// Should not throw.
+		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', jest.fn() );
+		await new Promise( process.nextTick );
+	} );
+
+	it( 'should handle null callback gracefully', async () => {
+		apiFetch.mockImplementation( () => Promise.resolve( {} ) );
+
+		// Should not throw with null/undefined callback.
+		dismissNotice( 'wc_stripe_show_test_notice', null );
+		await new Promise( process.nextTick );
 	} );
 } );
