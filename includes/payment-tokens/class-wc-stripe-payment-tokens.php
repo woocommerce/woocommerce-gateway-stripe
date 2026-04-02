@@ -360,8 +360,12 @@ class WC_Stripe_Payment_Tokens {
 					// If add_token_to_user updated an existing token's payment method ID (e.g. re-issued card),
 					// remove the stale old-ID key from $stored_tokens so the orphan-cleanup loop below
 					// does not delete the token that was just saved under the new ID.
+					// Only unset when the token was actually re-keyed ($old_pm_id differs from the token's
+					// current PM ID). When the token was not re-keyed the old key must stay so that the
+					// next outer-loop iteration for that PM hits the else-branch instead of calling
+					// add_token_to_user a second time with stale metadata.
 					foreach ( $stored_tokens as $old_pm_id => $stored_token ) {
-						if ( $stored_token->get_id() === $token->get_id() ) {
+						if ( $stored_token->get_id() === $token->get_id() && $old_pm_id !== $token->get_token() ) {
 							unset( $stored_tokens[ $old_pm_id ] );
 							break;
 						}

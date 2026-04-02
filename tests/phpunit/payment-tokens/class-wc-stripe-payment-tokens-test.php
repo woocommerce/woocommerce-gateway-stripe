@@ -387,6 +387,54 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the newer PM's metadata is preserved when Stripe returns two PMs sharing the same
+	 * card fingerprint in a single sync (e.g. an old and a new ID both present during a migration).
+	 *
+	 * The outer loop in woocommerce_get_customer_upe_payment_tokens processes pm_new first.
+	 * add_token_to_user finds the stored token (keyed pm_old) via fingerprint and updates the expiry
+	 * to pm_new's values.  Because pm_old is still present in $payment_method_ids the token is NOT
+	 * re-keyed (get_token() stays 'pm_old').  The guard condition ($old_pm_id !== $token->get_token())
+	 * therefore leaves $stored_tokens['pm_old'] intact so the next outer-loop iteration for pm_old
+	 * hits the else-branch and does NOT call add_token_to_user a second time with stale metadata.
+	 *
+	 * This test simulates that first add_token_to_user call and asserts the expiry is correct.
+	 * Calling add_token_to_user a second time with pm_old's stale data would revert the expiry —
+	 * the loop guard is what prevents that from happening in production.
+	 *
+	 * @return void
+	 */
+	public function test_newer_pm_metadata_wins_when_both_pms_share_fingerprint_in_sync(): void {
+		// Stored token with old expiry, keyed by pm_old.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2024' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_old' );
+		$token->set_user_id( 1 );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->save();
+		$token_id = $token->get_id();
+
+		// Stripe returns both pm_new (updated expiry) and pm_old in the same sync.
+		// $payment_method_ids includes both, so pm_old is still "valid" — no ID replacement occurs.
+		$pm_new             = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031' );
+		$payment_method_ids = [ $pm_new->id, 'pm_old' ];
+
+		// Simulate the outer loop processing pm_new first.
+		$this->call_add_token_to_user( $pm_new, $this->make_mock_customer(), $payment_method_ids );
+
+		// The newer PM's expiry must be stored. If add_token_to_user were called a second time
+		// with pm_old's stale data (exp 12/2024), the expiry would revert — the outer loop guard
+		// prevents that call.
+		$updated_token = WC_Payment_Tokens::get( $token_id );
+		$this->assertSame( '02', $updated_token->get_expiry_month() );
+		$this->assertSame( '2031', $updated_token->get_expiry_year() );
+		$this->assertSame( 'visa', $updated_token->get_card_type() );
+	}
+
+	/**
 	 * Tests that the stored token's Stripe PM ID is updated when the card is re-issued under a new
 	 * payment method ID (i.e. the old ID is absent from the list of current Stripe PM IDs).
 	 *
