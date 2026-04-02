@@ -1322,6 +1322,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @throws Exception When the payload cannot be normalized.
 	 */
 	private function normalize_deferred_webhook_notification_to_object( $notification ) {
+		if ( is_object( $notification ) ) {
+			return $notification;
+		}
+
 		if ( is_array( $notification ) ) {
 			$json = wp_json_encode( $notification );
 			if ( false === $json ) {
@@ -1334,10 +1338,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			return $object;
-		}
-
-		if ( is_object( $notification ) ) {
-			return $notification;
 		}
 
 		throw new Exception( 'Deferred webhook notification data is missing or invalid.' );
