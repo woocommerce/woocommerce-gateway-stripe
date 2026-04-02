@@ -274,11 +274,12 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 * @param string $exp_month   Expiry month.
 	 * @param string $exp_year    Expiry year.
 	 * @param string $brand       Card brand.
+	 * @param string $id          Optional Stripe payment method ID override.
 	 * @return object
 	 */
-	private function make_cc_payment_method( string $fingerprint, string $exp_month, string $exp_year, string $brand = 'visa' ): object {
+	private function make_cc_payment_method( string $fingerprint, string $exp_month, string $exp_year, string $brand = 'visa', string $id = '' ): object {
 		return (object) [
-			'id'                            => 'pm_new_' . $fingerprint,
+			'id'                            => '' !== $id ? $id : 'pm_new_' . $fingerprint,
 			'type'                          => WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::CARD => (object) [
 				'brand'       => $brand,
@@ -356,9 +357,9 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_add_token_to_user_does_not_update_when_cc_metadata_unchanged(): void {
-		// Saved token — expiry matches what Stripe returns.
+		// Saved token — expiry already zero-padded to match what the code stores after an update.
 		$token = new WC_Stripe_Payment_Token_CC();
-		$token->set_expiry_month( '2' );
+		$token->set_expiry_month( '02' );
 		$token->set_expiry_year( '2031' );
 		$token->set_card_type( 'visa' );
 		$token->set_last4( '4242' );
@@ -369,8 +370,9 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$token->save();
 		$token_id = $token->get_id();
 
-		// PM with identical expiry and PM ID already in Stripe's list (nothing should change).
-		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031' );
+		// PM uses the same ID as the stored token so the ID-replacement branch is skipped,
+		// and the expiry/brand values are identical — nothing should be saved.
+		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031', 'visa', 'pm_existing' );
 
 		$customer = $this->make_mock_customer();
 		$customer->expects( $this->never() )->method( 'clear_cache' );
@@ -380,6 +382,37 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$reloaded_token = WC_Payment_Tokens::get( $token_id );
 		$this->assertSame( '02', $reloaded_token->get_expiry_month() );
 		$this->assertSame( '2031', $reloaded_token->get_expiry_year() );
+	}
+
+	/**
+	 * Tests that the stored token's Stripe PM ID is updated when the card is re-issued under a new
+	 * payment method ID (i.e. the old ID is absent from the list of current Stripe PM IDs).
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_replaces_stale_token_id_when_pm_replaced(): void {
+		// Saved token with the old Stripe PM ID.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2024' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_old' );
+		$token->set_user_id( 1 );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->save();
+		$token_id = $token->get_id();
+
+		// Stripe now returns a new PM ID for the same card fingerprint.
+		// $payment_method_ids contains only the current (new) PM ID — pm_old is absent,
+		// triggering the stale-ID replacement branch in add_token_to_user.
+		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '12', '2024' );
+
+		$this->call_add_token_to_user( $payment_method, $this->make_mock_customer(), [ $payment_method->id ] );
+
+		$updated_token = WC_Payment_Tokens::get( $token_id );
+		$this->assertSame( $payment_method->id, $updated_token->get_token() );
 	}
 
 	/**
