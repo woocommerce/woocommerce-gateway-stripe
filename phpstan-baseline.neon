@@ -3535,12 +3535,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#2 \$notification of method WC_Stripe_Webhook_Handler\:\:run_webhook_received_action\(\) expects object, stdClass\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4685,7 +4679,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
 
 		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
