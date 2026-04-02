@@ -215,7 +215,7 @@ class WC_Stripe_Payment_Tokens {
 
 		try {
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
-			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10 );
 
 			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
 			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );

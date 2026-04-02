@@ -10051,12 +10051,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Function remove_filter invoked with 4 parameters, 2\-3 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Parameter \#1 \$payment_method of static method WC_Stripe_Helper\:\:is_card_payment_method\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
