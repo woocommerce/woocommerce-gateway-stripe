@@ -1,6 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsManager from '..';
+import PaymentMethodsPanel from '../../payment-methods';
+import {
+	BNPL_PROMOTION_BANNER,
+	OC_PROMOTION_BANNER,
+} from '../../payment-settings/constants';
 
 jest.mock( '../../payment-settings' );
 
@@ -24,10 +30,12 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	updateQueryString: jest.fn(),
 } ) );
 
+const mockGetPromotionalBannerType = jest.fn().mockReturnValue( null );
 jest.mock(
 	'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type',
 	() => ( {
-		getPromotionalBannerType: jest.fn().mockReturnValue( null ),
+		getPromotionalBannerType: ( ...args ) =>
+			mockGetPromotionalBannerType( ...args ),
 	} )
 );
 
@@ -42,6 +50,16 @@ describe( 'SettingsManager', () => {
 				accountLink: 'https://stripe.com/support',
 			},
 		};
+		mockGetPromotionalBannerType.mockReturnValue( null );
+		getQuery.mockReturnValue( {} );
+		PaymentMethodsPanel.mockImplementation(
+			( { showPromotionalBanner } ) => (
+				<div
+					data-testid="payment-methods-panel"
+					data-show-banner={ String( showPromotionalBanner ) }
+				/>
+			)
+		);
 	} );
 
 	afterEach( () => {
@@ -92,6 +110,55 @@ describe( 'SettingsManager', () => {
 			expect(
 				screen.queryByTestId( 'methods-tab' )
 			).not.toBeInTheDocument();
+		} );
+	} );
+
+	it( 'should show the banner when the promotional banner type is set and params indicate it should show', async () => {
+		global.wc_stripe_settings_params.show_bnpl_promotional_banner = '1';
+		mockGetPromotionalBannerType.mockReturnValue( BNPL_PROMOTION_BANNER );
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'payment-methods-panel' )
+			).toBeInTheDocument();
+		} );
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'payment-methods-panel' ).dataset
+					.showBanner
+			).toBe( 'true' );
+		} );
+	} );
+
+	it( 'should reset showPromotionalBanner when the promotional banner type changes', async () => {
+		// Start: BNPL banner shown
+		global.wc_stripe_settings_params.show_bnpl_promotional_banner = '1';
+		global.wc_stripe_settings_params.show_oc_promotional_banner = '';
+		mockGetPromotionalBannerType.mockReturnValue( BNPL_PROMOTION_BANNER );
+
+		const { rerender } = render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'payment-methods-panel' ).dataset
+					.showBanner
+			).toBe( 'true' );
+		} );
+
+		// Change: switch to OC banner type where OC banner is not set to show
+		mockGetPromotionalBannerType.mockReturnValue( OC_PROMOTION_BANNER );
+
+		await act( async () => {
+			rerender( <SettingsManager /> );
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'payment-methods-panel' ).dataset
+					.showBanner
+			).toBe( 'false' );
 		} );
 	} );
 } );

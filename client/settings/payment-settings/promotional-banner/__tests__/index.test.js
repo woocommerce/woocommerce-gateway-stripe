@@ -40,6 +40,7 @@ describe( 'PromotionalBanner', () => {
 	// Keep the original function.
 	const reload = window.location.reload;
 	beforeEach( () => {
+		global.wc_stripe_settings_params = {};
 		Object.defineProperty( window, 'location', {
 			value: { reload: jest.fn() },
 		} );

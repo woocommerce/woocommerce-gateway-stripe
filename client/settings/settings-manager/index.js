@@ -38,6 +38,23 @@ const TABS_CONTENT = [
 	},
 ];
 
+const getBannerStateFromParams = ( type ) => {
+	// eslint-disable-next-line camelcase
+	if ( type === BNPL_PROMOTION_BANNER ) {
+		// eslint-disable-next-line camelcase
+		return wc_stripe_settings_params?.show_bnpl_promotional_banner === '1';
+	}
+	if ( type === STRIPE_TAX_BANNER ) {
+		// eslint-disable-next-line camelcase
+		return wc_stripe_settings_params?.show_stripe_tax_banner === '1';
+	}
+	if ( type === OC_PROMOTION_BANNER ) {
+		// eslint-disable-next-line camelcase
+		return wc_stripe_settings_params?.show_oc_promotional_banner === '1';
+	}
+	return false;
+};
+
 const SettingsManager = () => {
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
@@ -49,30 +66,15 @@ const SettingsManager = () => {
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
-	let initialBannerState;
-	if (
-		promotionalBannerType === BNPL_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === STRIPE_TAX_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_stripe_tax_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	if (
-		promotionalBannerType === OC_PROMOTION_BANNER &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
-	) {
-		initialBannerState = true;
-	}
-	const [ showPromotionalBanner, setShowPromotionalBanner ] =
-		useState( initialBannerState );
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState( () =>
+		getBannerStateFromParams( promotionalBannerType )
+	);
+
+	useEffect( () => {
+		setShowPromotionalBanner(
+			getBannerStateFromParams( promotionalBannerType )
+		);
+	}, [ promotionalBannerType ] );
 
 	useEffect( () => {
 		if ( isLoading && ! isEmpty( settings ) ) {

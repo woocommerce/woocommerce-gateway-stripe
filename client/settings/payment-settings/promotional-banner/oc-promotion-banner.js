@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
@@ -30,6 +31,8 @@ export const OCPromotionBanner = ( {
 
 	const handleBannerDismiss = () => {
 		dismissNotice( 'wc_stripe_show_oc_promotion_banner', () => {
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.show_oc_promotional_banner = false;
 			setShowPromotionalBanner( false );
 		} );
 	};

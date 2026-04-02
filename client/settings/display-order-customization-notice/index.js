@@ -30,6 +30,8 @@ const DisplayOrderCustomizationNotice = ( { isOCEnabled } ) => {
 
 	const handleDismissNotice = () => {
 		dismissNotice( 'wc_stripe_show_customization_notice', () => {
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.show_customization_notice = false;
 			setShowNotice( false );
 		} );
 	};

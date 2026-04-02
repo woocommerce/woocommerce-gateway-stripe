@@ -14,6 +14,7 @@ describe( 'Stripe Tax banner', () => {
 	const setShowPromotionalBanner = jest.fn();
 
 	beforeEach( () => {
+		global.wc_stripe_settings_params = {};
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);

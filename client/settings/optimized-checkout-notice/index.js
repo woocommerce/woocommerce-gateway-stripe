@@ -33,6 +33,8 @@ const OptimizedCheckoutNotice = ( { isOCEnabled } ) => {
 
 	const handleDismissNotice = () => {
 		dismissNotice( 'wc_stripe_show_optimized_checkout_notice', () => {
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.show_optimized_checkout_notice = false;
 			setShowNotice( false );
 		} );
 	};

@@ -70,4 +70,41 @@ describe( 'OptimizedCheckoutNotice', () => {
 
 		expect( container.firstChild ).toBeNull();
 	} );
+
+	it( 'should update wc_stripe_settings_params after dismissal', async () => {
+		render( <OptimizedCheckoutNotice isOCEnabled={ true } /> );
+
+		const dismissButton = screen.queryByRole( 'button', {
+			'aria-label': 'Dismiss this notice',
+		} );
+		await act( async () => {
+			await userEvent.click( dismissButton );
+		} );
+
+		expect(
+			global.wc_stripe_settings_params.show_optimized_checkout_notice
+		).toBe( false );
+	} );
+
+	it( 'should not re-appear after dismissal when remounted', async () => {
+		const { unmount } = render(
+			<OptimizedCheckoutNotice isOCEnabled={ true } />
+		);
+
+		const dismissButton = screen.queryByRole( 'button', {
+			'aria-label': 'Dismiss this notice',
+		} );
+		await act( async () => {
+			await userEvent.click( dismissButton );
+		} );
+
+		unmount();
+		render( <OptimizedCheckoutNotice isOCEnabled={ true } /> );
+
+		expect(
+			screen.queryByRole( 'button', {
+				'aria-label': 'Dismiss this notice',
+			} )
+		).not.toBeInTheDocument();
+	} );
 } );

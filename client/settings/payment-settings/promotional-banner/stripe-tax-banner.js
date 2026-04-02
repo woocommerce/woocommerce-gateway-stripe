@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
@@ -49,6 +50,8 @@ export const StripeTaxBanner = ( { setShowPromotionalBanner } ) => {
 			method: 'POST',
 			data: { wc_stripe_show_stripe_tax_banner: 'no' },
 		} ).finally( () => {
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.show_stripe_tax_banner = false;
 			setShowPromotionalBanner( false );
 		} );
 	};

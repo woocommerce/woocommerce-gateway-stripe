@@ -68,4 +68,41 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 
 		expect( container.firstChild ).toBeNull();
 	} );
+
+	it( 'should update wc_stripe_settings_params after dismissal', async () => {
+		render( <DisplayOrderCustomizationNotice isOCEnabled={ false } /> );
+
+		const dismissButton = screen.queryByRole( 'button', {
+			'aria-label': 'Dismiss this notice',
+		} );
+		await act( async () => {
+			await userEvent.click( dismissButton );
+		} );
+
+		expect(
+			global.wc_stripe_settings_params.show_customization_notice
+		).toBe( false );
+	} );
+
+	it( 'should not re-appear after dismissal when remounted', async () => {
+		const { unmount } = render(
+			<DisplayOrderCustomizationNotice isOCEnabled={ false } />
+		);
+
+		const dismissButton = screen.queryByRole( 'button', {
+			'aria-label': 'Dismiss this notice',
+		} );
+		await act( async () => {
+			await userEvent.click( dismissButton );
+		} );
+
+		unmount();
+		render( <DisplayOrderCustomizationNotice isOCEnabled={ false } /> );
+
+		expect(
+			screen.queryByRole( 'button', {
+				'aria-label': 'Dismiss this notice',
+			} )
+		).not.toBeInTheDocument();
+	} );
 } );

@@ -18,6 +18,7 @@ describe( 'OC promotional banner', () => {
 	const setIsOCEnabled = jest.fn( () => Promise.resolve() );
 
 	beforeEach( () => {
+		global.wc_stripe_settings_params = {};
 		useDispatch.mockImplementation( ( storeName ) => {
 			if ( storeName === 'core/notices' ) {
 				return noticesDispatch;
