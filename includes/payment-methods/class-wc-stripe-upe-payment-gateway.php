@@ -3343,7 +3343,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		} elseif ( WC_Stripe_Payment_Methods::CARD !== $selected_payment_type ) {
 			// Use the locally configured statement descriptor, falling back to the Stripe account-level descriptor.
-			$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
+			$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( (string) $this->statement_descriptor );
 			if ( empty( $full_statement_descriptor ) ) {
 				$account_data              = WC_Stripe::get_instance()->account->get_cached_account_data();
 				$full_statement_descriptor = $account_data['settings']['payments']['statement_descriptor'] ?? '';
