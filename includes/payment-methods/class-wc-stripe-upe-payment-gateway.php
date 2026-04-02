@@ -1964,6 +1964,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
 		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+			$order_helper->remove_payment_awaiting_action( $order, false );
 			$order_helper->unlock_order_payment( $order );
 
 			WC_Stripe_Logger::info( 'UPE redirect payment cancelled for order: ' . $order_id . '. Reason: ' . $e->getMessage() );

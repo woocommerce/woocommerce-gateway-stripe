@@ -723,6 +723,19 @@ class WC_Stripe_Intent_Controller {
 				],
 				200
 			);
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			// Customer-initiated cancellation (e.g. closed Klarna popup). Do not fail the
+			// order — leave it retryable and return an error so the frontend can notify the customer.
+			WC_Stripe_Logger::info(
+				'Payment cancelled by customer via AJAX for order: ' . $order_id . '. Reason: ' . $e->getMessage()
+			);
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => __( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
+					],
+				]
+			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::error(

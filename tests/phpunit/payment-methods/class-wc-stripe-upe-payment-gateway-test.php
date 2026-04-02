@@ -1543,6 +1543,60 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that a customer-cancelled redirect (e.g. Klarna popup closed) during
+	 * process_upe_redirect_payment does NOT fail the order and redirects to checkout.
+	 */
+	public function test_process_upe_redirect_payment_cancellation_does_not_fail_order() {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Customer cancelled checkout on Klarna' ];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		// Intercept wp_safe_redirect so that exit() is never reached, allowing assertions to run.
+		$redirect_url = null;
+		add_filter(
+			'wp_redirect',
+			function ( $location ) use ( &$redirect_url ) {
+				$redirect_url = $location;
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( OrderStatus::FAILED, $final_order->get_status() );
+
+		// A 'notice' (not 'error') should be added so checkout remains retryable.
+		$notices = wc_get_notices( 'notice' );
+		$this->assertNotEmpty( $notices );
+
+		// Should redirect back to checkout, not to an error page.
+		$this->assertNotNull( $redirect_url );
+		$this->assertStringContainsString( 'checkout', $redirect_url );
+	}
+
+	/**
 	 * Test order status corresponds with charge status.
 	 */
 	public function test_process_response_updates_order_by_charge_status() {
