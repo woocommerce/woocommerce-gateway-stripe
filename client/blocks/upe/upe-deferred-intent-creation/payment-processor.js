@@ -325,6 +325,9 @@ const PaymentProcessor = ( {
 				return;
 			}
 			invalidateAppearanceCache();
+			if ( typeof elements?.update !== 'function' ) {
+				return;
+			}
 			const appearance = initializeUPEAppearance( 'true' );
 			elements.update( { appearance } );
 		} );
