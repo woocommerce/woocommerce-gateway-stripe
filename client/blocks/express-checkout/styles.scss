@@ -1,6 +1,11 @@
-// Cart Block
+// Cart Block — zero out block-theme flow-layout margins.
+// WordPress applies `margin-block-start` (logical property) via `.is-layout-flow > * + *`.
+// WooCommerce core counters with `margin: 0` (physical shorthand), but Safari doesn't
+// reliably resolve physical-vs-logical property conflicts. Using the same logical property
+// here eliminates the cross-browser ambiguity.
 .wc-block-components-express-payment--cart {
 	.wc-block-components-express-payment__event-buttons > li {
+		margin-block-start: 0 !important;
 		padding-bottom: 12px !important;
 
 		&:last-child {
