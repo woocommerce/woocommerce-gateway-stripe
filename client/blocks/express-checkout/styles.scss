@@ -2,8 +2,8 @@
 // WooCommerce core uses block layout with padding-bottom on each <li>, which
 // produces inconsistent gaps in Safari. Switching to flex + gap gives explicit
 // spacing control. Safari also renders the Stripe Element wrapper (~78px)
-// taller than the visible button (~48px), so we clip with overflow: hidden
-// on the <li> to prevent the invisible Stripe internals from inflating gaps.
+// taller than the visible button (~48px). We collapse inline baseline whitespace
+// on the <li> via `font-size: 0` and `line-height: 0` to prevent inflated gaps.
 .wc-block-components-express-payment--cart {
 	.wc-block-components-express-payment__event-buttons {
 		display: flex !important;
