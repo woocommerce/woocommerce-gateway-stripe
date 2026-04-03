@@ -103,7 +103,11 @@ jQuery( function ( $ ) {
 		// This prevents unnecessary Stripe API calls before WC's server-side validation.
 		// jQuery :visible filters out fields hidden by conditional checkout logic
 		// (e.g. shipping fields when "Ship to different address" is unchecked).
-		if ( hasEmptyRequiredFields( $form.find( '.validate-required:visible' ).toArray() ) ) {
+		if (
+			hasEmptyRequiredFields(
+				$form.find( '.validate-required:visible' ).toArray()
+			)
+		) {
 			return;
 		}
 

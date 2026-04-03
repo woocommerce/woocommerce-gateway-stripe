@@ -1152,7 +1152,7 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 			if ( ! input.checked ) {
 				return true;
 			}
-		} else if ( input.value === '' || input.value === null ) {
+		} else if ( ! input.value || input.value.trim() === '' ) {
 			return true;
 		}
 	}

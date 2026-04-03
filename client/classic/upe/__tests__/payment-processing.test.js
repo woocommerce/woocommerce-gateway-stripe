@@ -1,6 +1,7 @@
 import * as paymentProcessing from '../payment-processing';
-const { hasEmptyRequiredFields } = paymentProcessing;
 import * as stripeUtils from 'wcstripe/stripe-utils';
+
+const { hasEmptyRequiredFields } = paymentProcessing;
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	appendCheckoutSessionIdToForm: jest.fn(),
@@ -704,8 +705,7 @@ describe( 'payment-processing', () => {
 			document.body.appendChild( form );
 		} );
 
-		const getWrappers = () =>
-			form.querySelectorAll( '.validate-required' );
+		const getWrappers = () => form.querySelectorAll( '.validate-required' );
 
 		it( 'returns false when there are no required fields', () => {
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
@@ -715,6 +715,14 @@ describe( 'payment-processing', () => {
 			form.innerHTML =
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+		} );
+
+		it( 'returns true when a required text input has only whitespace', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="   " />' +
 				'</p>';
 			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
 		} );
