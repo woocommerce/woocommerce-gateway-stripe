@@ -1,15 +1,23 @@
-// Cart Block — zero out block-theme flow-layout margins.
-// WordPress applies `margin-block-start` (logical property) via `.is-layout-flow > * + *`.
-// WooCommerce core counters with `margin: 0` (physical shorthand), but Safari doesn't
-// reliably resolve physical-vs-logical property conflicts. Using the same logical property
-// here eliminates the cross-browser ambiguity.
+// Cart Block — use flexbox for consistent button spacing across browsers.
+// WooCommerce core uses block layout with padding-bottom on each <li>, which
+// produces inconsistent gaps in Safari. Switching to flex + gap gives explicit
+// spacing control. Safari also renders the Stripe Element wrapper (~78px)
+// taller than the visible button (~48px), so we clip with overflow: hidden
+// on the <li> to prevent the invisible Stripe internals from inflating gaps.
 .wc-block-components-express-payment--cart {
-	.wc-block-components-express-payment__event-buttons > li {
-		margin-block-start: 0 !important;
-		padding-bottom: 12px !important;
+	.wc-block-components-express-payment__event-buttons {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: 12px !important;
 
-		&:last-child {
-			padding-bottom: 0 !important;
+		> li {
+			margin: 0 !important;
+			padding: 0 !important;
+			width: 100% !important;
+			// Collapse the inline-element line box so the iframe doesn't add
+			// extra whitespace below the baseline (Safari's classic "image gap").
+			font-size: 0 !important;
+			line-height: 0 !important;
 		}
 	}
 }
@@ -20,11 +28,11 @@
 	height: 20px;
 }
 
+// StripeElement iframe max-width reset for consistent rendering.
 .wc-block-components-express-payment
 	.wc-block-components-express-payment__event-buttons
-	> li {
-	margin-left: 1px !important;
-	width: 99% !important;
+	.StripeElement iframe {
+	max-width: unset;
 }
 
 // Preview button
