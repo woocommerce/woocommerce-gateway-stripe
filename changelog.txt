@@ -14,6 +14,7 @@
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
+* Fix - Normalize express checkout button spacing on the block cart page in Safari
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
