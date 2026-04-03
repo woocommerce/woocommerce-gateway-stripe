@@ -2959,12 +2959,6 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Parameter \#2 \$balance_transaction_id of method WC_Stripe_Payment_Gateway\:\:update_fees\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3189,7 +3183,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 42
+			count: 43
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3213,7 +3207,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3538,12 +3532,6 @@ parameters:
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
 			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#2 \$notification of method WC_Stripe_Webhook_Handler\:\:run_webhook_received_action\(\) expects object, stdClass\|null given\.$#'
-			identifier: argument.type
-			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -4691,7 +4679,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
 
 		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'

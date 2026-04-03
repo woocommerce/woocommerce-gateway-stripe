@@ -4009,12 +4009,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Data provider for page-context filters used by add_converted_currency_information.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_add_converted_currency_information_page_contexts(): array {
+		return [
+			'order received page' => [ 'woocommerce_is_order_received_page' ],
+			'account page'        => [ 'woocommerce_is_account_page' ],
+		];
+	}
+
+	/**
 	 * Test that add_converted_currency_information appends the converted currency info when presentment details are present.
 	 *
+	 * @dataProvider provide_add_converted_currency_information_page_contexts
+	 *
+	 * @param string $page_context_filter The page-context filter to simulate.
 	 * @return void
 	 */
-	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
-		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+	public function test_add_converted_currency_information_appends_converted_currency_info( string $page_context_filter ): void {
+		add_filter( $page_context_filter, '__return_true' );
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
@@ -4036,13 +4051,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
-		$formatted_total = '$10.00';
-		$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		try {
+			$formatted_total = '$10.00';
+			$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+			$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
-
-		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+			$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+			remove_filter( $page_context_filter, '__return_true' );
+		}
 	}
 
 	/**
@@ -4126,9 +4144,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		// 1500 EUR cents = 15.00 EUR; 1500 / 2000 (USD cents) = 0.75 exchange rate.
+		// 1500 EUR cents = 15.00 EUR; 15.00 / 20.00 (order total) = 0.750 exchange rate (always 3 decimal places).
 		$expected_amount = '15.00';
-		$expected_rate   = '0.75';
+		$expected_rate   = '0.750';
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4184,9 +4202,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->add_currency_conversion_notice( $order );
 		$output = ob_get_clean();
 
-		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+
+		// Rate is always formatted to exactly 3 decimal places; uses major-unit amounts.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / $order->get_total(), 3 );
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4286,7 +4305,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
 
 		$this->assertStringContainsString( '<div', $output );
 		$this->assertStringContainsString( 'Currency Conversion', $output );
@@ -4311,7 +4331,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$expected_rate   = wc_format_decimal( 1500 / 2000, wc_get_price_decimals() );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
 
 		$this->assertStringContainsString( '<div', $output );
 		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
