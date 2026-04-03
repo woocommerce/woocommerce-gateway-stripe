@@ -1023,6 +1023,14 @@ class WC_Stripe_Intent_Controller {
 
 		$order = $payment_information['order'];
 
+		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
+			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
+		}
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
