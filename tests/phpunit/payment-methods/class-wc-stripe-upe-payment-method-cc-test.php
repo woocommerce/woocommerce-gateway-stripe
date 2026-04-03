@@ -35,21 +35,21 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_title() {
 		return [
-			'Google Pay'                               => [
-				'payment details'         => [
+			'Google Pay'         => [
+				'payment details' => [
 					'card' => [
 						'wallet' => [
 							'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 						],
 					],
 				],
-				'query params'            => [],
-				'expected'                => 'Google Pay (Stripe)',
+				'query params'    => [],
+				'expected'        => 'Google Pay (Stripe)',
 			],
-			'default, hardcoded'                       => [
-				'payment details'         => false,
-				'query params'            => [],
-				'expected'                => 'Credit / Debit Card',
+			'default, hardcoded' => [
+				'payment details' => false,
+				'query params'    => [],
+				'expected'        => 'Credit / Debit Card',
 			],
 		];
 	}

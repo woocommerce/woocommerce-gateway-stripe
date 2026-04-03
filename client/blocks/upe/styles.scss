@@ -23,6 +23,9 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	align-items: center;
 	justify-content: center;
 }
+.wcstripe-payment-element + .wc-block-components-payment-methods__save-card-info {
+	margin-top: 1.4em;
+}
 /* stylelint-disable selector-id-pattern */
 #radio-control-wc-payment-method-options-stripe__content.optimized-checkout-element {
 	padding-top: 1.4em;

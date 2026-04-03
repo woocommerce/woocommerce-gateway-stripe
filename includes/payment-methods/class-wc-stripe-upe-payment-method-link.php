@@ -15,7 +15,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id   = self::STRIPE_ID;
+		$this->stripe_id = self::STRIPE_ID;
 		// Note that the title and label are not translated, as "Link" should not be translated.
 		$this->title       = 'Link';
 		$this->is_reusable = true;

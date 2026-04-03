@@ -137,10 +137,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_are_keys_set(): array {
 		return [
-			'test mode with valid keys'    => [ true, 'pk_test_key', 'sk_test_key', true ],
-			'test mode with invalid keys'  => [ true, 'pk_invalid_key', 'sk_invalid_key', false ],
-			'live mode with valid keys'    => [ false, 'pk_live_key', 'sk_live_key', true ],
-			'live mode with invalid keys'  => [ false, 'pk_invalid_key', 'sk_invalid_key', false ],
+			'test mode with valid keys'   => [ true, 'pk_test_key', 'sk_test_key', true ],
+			'test mode with invalid keys' => [ true, 'pk_invalid_key', 'sk_invalid_key', false ],
+			'live mode with valid keys'   => [ false, 'pk_live_key', 'sk_live_key', true ],
+			'live mode with invalid keys' => [ false, 'pk_invalid_key', 'sk_invalid_key', false ],
 		];
 	}
 
@@ -336,7 +336,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function provide_test_render_subscription_payment_method_cases(): array {
 		return [
-			'VISA card ending in 4242' => [
+			'VISA card ending in 4242'                => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'visa',
@@ -344,7 +344,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Visa card ending in 4242',
 			],
-			'MasterCard ending in 1234' => [
+			'MasterCard ending in 1234'               => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'mastercard',
@@ -352,7 +352,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via MasterCard card ending in 1234',
 			],
-			'American Express card ending in 5678' => [
+			'American Express card ending in 5678'    => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'amex',
@@ -360,7 +360,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Amex card ending in 5678',
 			],
-			'JCB card ending in 9012' => [
+			'JCB card ending in 9012'                 => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'jcb',
@@ -368,7 +368,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via JCB card ending in 9012',
 			],
-			'Unknown card type ending in 0000' => [
+			'Unknown card type ending in 0000'        => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'dummy',
@@ -376,14 +376,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
 			],
-			'SEPA Debit ending in 1234' => [
+			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
 				'payment_method_fields' => [
 					'last4' => '1234',
 				],
 				'expected_result'       => 'Via SEPA Direct Debit ending in 1234',
 			],
-			'Cash App Pay with cashtag TEST321' => [
+			'Cash App Pay with cashtag TEST321'       => [
 				'payment_method_type'   => 'cashapp',
 				'payment_method_fields' => [
 					'cashtag' => 'TEST321',
@@ -397,7 +397,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Stripe Link (test@example.com)',
 			],
-			'ACH checking ending in 1357' => [
+			'ACH checking ending in 1357'             => [
 				'payment_method_type'   => 'us_bank_account',
 				'payment_method_fields' => [
 					'account_type' => 'checking',
@@ -405,7 +405,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Checking Account ending in 1357',
 			],
-			'ACH savings ending in 2468' => [
+			'ACH savings ending in 2468'              => [
 				'payment_method_type'   => 'us_bank_account',
 				'payment_method_fields' => [
 					'account_type' => 'savings',
@@ -413,14 +413,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Savings Account ending in 2468',
 			],
-			'BECS Debit ending in 3579' => [
+			'BECS Debit ending in 3579'               => [
 				'payment_method_type'   => 'au_becs_debit',
 				'payment_method_fields' => [
 					'last4' => '3579',
 				],
 				'expected_result'       => 'BECS Direct Debit ending in 3579',
 			],
-			'ACSS Debit ending in 4680' => [
+			'ACSS Debit ending in 4680'               => [
 				'payment_method_type'   => 'acss_debit',
 				'payment_method_fields' => [
 					'bank_name' => 'Test Bank',
@@ -428,14 +428,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_result'       => 'Via Test Bank ending in 4680',
 			],
-			'BACS Debit ending in 5791' => [
+			'BACS Debit ending in 5791'               => [
 				'payment_method_type'   => 'bacs_debit',
 				'payment_method_fields' => [
 					'last4' => '5791',
 				],
 				'expected_result'       => 'Via Bacs Direct Debit ending in (5791)',
 			],
-			'Amazon Pay with email test@example.com' => [
+			'Amazon Pay with email test@example.com'  => [
 				'payment_method_type'   => 'amazon_pay',
 				'payment_method_fields' => [],
 				'expected_result'       => 'Via Amazon Pay (test@example.com)',
@@ -445,12 +445,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'Unknown payment method' => [
+			'Unknown payment method'                  => [
 				'payment_method_type'   => 'unknown',
 				'payment_method_fields' => [],
 				'expected_result'       => 'N/A',
 			],
-			'Payment method with customer mismatch' => [
+			'Payment method with customer mismatch'   => [
 				'payment_method_type'   => 'card',
 				'payment_method_fields' => [
 					'brand' => 'visa',
@@ -477,14 +477,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		static $mock_payment_method_id_counter = 0;
 		$mock_payment_method_id_counter++;
 
-		$id_suffix = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
+		$id_suffix              = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
 		$mock_payment_method_id = 'pm_mock' . $payment_method_type . '_' . $id_suffix;
 
 		$mock_subscription->update_meta_data( '_stripe_source_id', $mock_payment_method_id );
 		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
 		$mock_subscription->save();
 
-		$mock_payment_method_data = [
+		$mock_payment_method_data                         = [
 			'id'       => $mock_payment_method_id,
 			'type'     => $payment_method_type,
 			'customer' => 'cus_mock',
@@ -982,7 +982,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'supported_types' => [],
 					],
 				],
-				'expected'         => true,
+				'expected'          => true,
 			],
 			'method is card, but not indian'   => [
 				'is subscription'   => true,
@@ -1018,9 +1018,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'has parent order'  => true,
 				'parent mandate ID' => 'mandate_123',
 				'payment method'    => [
-					'id'   => 'pm_789',
-					'type' => 'card',
-					'card' => [
+					'id'     => 'pm_789',
+					'type'   => 'card',
+					'card'   => [
 						'country' => 'IN',
 					],
 					'wallet' => [
@@ -1028,6 +1028,132 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 				'expected'          => false,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_update_fees_scenarios
+	 */
+	public function test_update_fees( $existing_fee, $existing_net, $api_fee, $api_net, $replace, $expected_fee, $expected_net ) {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( 0 !== $existing_fee ) {
+			$order_helper->update_stripe_fee( $order, $existing_fee );
+		}
+		if ( 0 !== $existing_net ) {
+			$order_helper->update_stripe_net( $order, $existing_net );
+		}
+
+		// Mock the Stripe API balance transaction response.
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'fee'      => $api_fee,
+					'net'      => $api_net,
+					'currency' => 'usd',
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_test123', $replace );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	/**
+	 * Tests that update_fees leaves existing meta intact when the API returns an error.
+	 */
+	public function test_update_fees_with_api_error_leaves_meta_unchanged() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_fee( $order, 1.50 );
+		$order_helper->update_stripe_net( $order, 48.50 );
+
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => 'No such balance transaction',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 404,
+				'message' => 'Not Found',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_invalid', true );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( 1.50, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( 48.50, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	public function provide_update_fees_scenarios() {
+		// API fee/net values are in cents (Stripe smallest denomination).
+		// format_balance_fee() converts to dollars (divides by 100 for USD).
+		// Existing and expected values are in dollars (already formatted).
+		return [
+			'add mode - refund adjusts existing fees'       => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => -30,
+				'api_net'      => -970,
+				'replace'      => false,
+				'expected_fee' => 1.20,
+				'expected_net' => 38.80,
+			],
+			'replace mode - capture replaces existing fees' => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => 75,
+				'api_net'      => 2425,
+				'replace'      => true,
+				'expected_fee' => 0.75,
+				'expected_net' => 24.25,
+			],
+			'replace mode - works with no existing fees'    => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 50,
+				'api_net'      => 950,
+				'replace'      => true,
+				'expected_fee' => 0.50,
+				'expected_net' => 9.50,
+			],
+			'add mode - first time fee setting'             => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 100,
+				'api_net'      => 4900,
+				'replace'      => false,
+				'expected_fee' => 1.00,
+				'expected_net' => 49.00,
 			],
 		];
 	}
