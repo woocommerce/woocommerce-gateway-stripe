@@ -6269,9 +6269,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that statement_descriptor is forwarded when updating an existing compatible payment intent.
+	 * Test that statement_descriptor is set in payment_information when using the intent update path.
+	 *
+	 * Note: The Stripe /confirm endpoint does not accept statement_descriptor, so the intent
+	 * controller intentionally does not forward it. This test verifies the gateway still sets
+	 * the value in payment_information for the update path.
 	 */
-	public function test_statement_descriptor_forwarded_on_intent_update() {
+	public function test_statement_descriptor_set_in_payment_info_on_intent_update() {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
 

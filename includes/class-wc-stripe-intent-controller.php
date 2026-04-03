@@ -1023,13 +1023,9 @@ class WC_Stripe_Intent_Controller {
 
 		$order = $payment_information['order'];
 
-		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
-			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
-		}
-
-		if ( isset( $payment_information['statement_descriptor'] ) ) {
-			$request['statement_descriptor'] = $payment_information['statement_descriptor'];
-		}
+		// Note: statement_descriptor and statement_descriptor_suffix are intentionally
+		// NOT forwarded here. The Stripe /confirm endpoint does not accept these
+		// parameters — they can only be set at PaymentIntent creation time.
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
