@@ -704,12 +704,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		foreach ( $subscriptions as $subscription ) {
 			if ( 'inactive' === $mandate_status && $revocation_reason ) {
-				$subscription->update_status( OrderStatus::CANCELLED, __( 'Subscription cancelled due to mandate revocation.', 'woocommerce-gateway-stripe' ) );
+				$subscription->update_status( 'cancelled', __( 'Subscription cancelled due to mandate revocation.', 'woocommerce-gateway-stripe' ) );
 			} elseif ( 'inactive' === $mandate_status ) {
-				$subscription->update_status( OrderStatus::ON_HOLD, __( 'Subscription paused due to mandate becoming inactive.', 'woocommerce-gateway-stripe' ) );
-			} elseif ( 'active' === $mandate_status && $subscription->has_status( OrderStatus::ON_HOLD ) ) {
-				// 'active' is a WooCommerce Subscriptions status, not a core WooCommerce order status,
-				// so OrderStatus::ACTIVE does not exist. Using string literal instead.
+				$subscription->update_status( 'on-hold', __( 'Subscription paused due to mandate becoming inactive.', 'woocommerce-gateway-stripe' ) );
+			} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) ) {
 				$subscription->update_status( 'active', __( 'Subscription reactivated due to mandate becoming active.', 'woocommerce-gateway-stripe' ) );
 			}
 		}

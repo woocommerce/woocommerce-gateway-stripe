@@ -1491,6 +1491,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::CANCELLED,
 				'expected_note_pattern' => '/revoked by the customer/',
 			],
+			'unknown mandate status adds generic note without error'    => [
+				'order_status'          => OrderStatus::PROCESSING,
+				'mandate_status'        => 'some_unknown_status',
+				'payment_method_type'   => 'card',
+				'revocation_reason'     => null,
+				'expected_order_status' => OrderStatus::PROCESSING,
+				'expected_note_pattern' => '/status updated to some_unknown_status/',
+			],
 		];
 	}
 

@@ -692,7 +692,7 @@ class WC_Stripe_Order_Helper {
 			$wpdb->prepare(
 				"SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s AND posts.post_status IN ('wc-pending', 'wc-processing', 'wc-on-hold') ORDER BY posts.post_date DESC LIMIT 1",
 				$mandate_id,
-				'_stripe_mandate_id'
+				self::META_STRIPE_MANDATE_ID
 			)
 		);
 
