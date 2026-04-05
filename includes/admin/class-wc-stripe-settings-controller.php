@@ -234,8 +234,7 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
-		// Adaptive Pricing is only available for accounts not based in a European Economic Area country.
-		$is_ap_available_for_account = ! in_array( $this->account->get_account_country(), WC_Stripe_Helper::get_european_economic_area_countries(), true );
+		$is_ap_available_for_account = WC_Stripe_Helper::is_adaptive_pricing_available_for_account();
 
 		$params = [
 			'time'                                  => time(),
