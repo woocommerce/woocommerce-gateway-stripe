@@ -147,6 +147,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Add - Allow enabling payment methods in Stripe settings when the store currency does not match, if Adaptive Pricing is enabled
+* Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
+* Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
+* Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
@@ -180,5 +183,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
+* Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
+* Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

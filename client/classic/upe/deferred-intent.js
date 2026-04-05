@@ -190,13 +190,19 @@ jQuery( function ( $ ) {
 				const cartContainsSubscription =
 					stripeServerData?.cartContainsSubscription;
 
-				// Update only the setupFutureUsage on the Elements object and preserve user input.
-				component.elements.update( {
-					setupFutureUsage:
-						cartContainsSubscription || isChecked
-							? 'off_session'
-							: null,
-				} );
+				// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+				// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
+				// not a client-side Elements update.
+				// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
+				// because we might be using the payment element as a fallback though the flag is set to true.
+				if ( typeof component.elements.update === 'function' ) {
+					component.elements.update( {
+						setupFutureUsage:
+							cartContainsSubscription || isChecked
+								? 'off_session'
+								: null,
+					} );
+				}
 			}
 		} );
 	}
