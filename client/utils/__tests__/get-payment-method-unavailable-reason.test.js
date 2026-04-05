@@ -79,22 +79,22 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT );
 	} );
 
-	it( 'should return UNSUPPORTED_CURRENCY when the payment method is unavailable due to an unsupported currency - EUR needed; store in USD and Adaptive Pricing is disabled', () => {
+	it( 'should return UNSUPPORTED_CURRENCY when the payment method is unavailable due to an unsupported currency - EUR needed; store in USD and Adaptive Pricing is not supported', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {
 				paymentMethodId: PAYMENT_METHOD_SEPA,
 				storeCurrencyCode: 'USD',
-				isAdaptivePricingEnabled: false,
+				isAdaptivePricingSupported: false,
 			} )
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY );
 	} );
 
-	it( 'should return null for unsupported currency when Adaptive Pricing is enabled', () => {
+	it( 'should return null for unsupported currency when Adaptive Pricing is supported', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {
 				paymentMethodId: PAYMENT_METHOD_SEPA,
 				storeCurrencyCode: 'USD',
-				isAdaptivePricingEnabled: true,
+				isAdaptivePricingSupported: true,
 			} )
 		).toBeNull();
 	} );

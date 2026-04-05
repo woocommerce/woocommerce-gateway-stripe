@@ -550,13 +550,14 @@ describe( 'GeneralSettingsSection', () => {
 		);
 	} );
 
-	it( 'should enable payment method checkbox when store currency does not support the method but Adaptive Pricing is enabled', () => {
+	it( 'should enable payment method checkbox when store currency does not support the method but Optimized Checkout and Adaptive Pricing are enabled', () => {
 		const actual = jest.requireActual(
 			'../../../utils/get-payment-method-unavailable-reason'
 		).default;
 		getPaymentMethodUnavailableReason.mockImplementation( ( ctx ) =>
 			actual( ctx )
 		);
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ true, jest.fn() ] );
 		mockCurrencyCode( 'USD' );
 		useEnabledPaymentMethodIds.mockReturnValue( [
