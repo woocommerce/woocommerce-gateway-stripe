@@ -200,6 +200,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		return [
 			'US account + feature available'              => [ 'US', true, true ],
 			'DE account (EEA) + feature available'        => [ 'DE', true, false ],
+			'DE account (EEA) + feature unavailable'      => [ 'DE', false, false ],
 			'US account + feature unavailable'            => [ 'US', false, false ],
 			'CA account + feature available (not in EEA)' => [ 'CA', true, true ],
 		];
