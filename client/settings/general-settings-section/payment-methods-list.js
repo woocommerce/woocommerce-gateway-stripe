@@ -129,14 +129,11 @@ const StyledFees = styled( PaymentMethodFeesPill )`
  * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
  * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
  *
- * @param {string[]} orderedPaymentMethodIds  Ordered payment method IDs.
- * @param {boolean}  isAdaptivePricingEnabled When true, currency mismatch does not sort methods as unavailable.
+ * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
  * @return {string[]} Sorted payment method IDs.
  */
-const usePaymentMethodsSortedByAvailability = (
-	orderedPaymentMethodIds,
-	isAdaptivePricingEnabled
-) => {
+const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
 	const sortedPaymentMethodIds = useMemo( () => {
@@ -168,9 +165,9 @@ const usePaymentMethodsSortedByAvailability = (
 			...unavailablePaymentMethodIds,
 		];
 	}, [
+		isAdaptivePricingEnabled,
 		orderedPaymentMethodIds,
 		storeCurrencyCode,
-		isAdaptivePricingEnabled,
 	] );
 
 	return sortedPaymentMethodIds;
@@ -179,7 +176,6 @@ const usePaymentMethodsSortedByAvailability = (
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
 	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
 		useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
@@ -203,8 +199,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	};
 
 	const sortedPaymentMethodIds = usePaymentMethodsSortedByAvailability(
-		availablePaymentMethods,
-		isAdaptivePricingEnabled
+		availablePaymentMethods
 	);
 
 	return isChangingDisplayOrder ? (
