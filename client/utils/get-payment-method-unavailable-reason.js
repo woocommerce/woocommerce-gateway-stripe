@@ -13,15 +13,15 @@ import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
  * Intentionally outside of a React hook to support looping over payment methods.
  *
  * @param {Object}      context
- * @param {string}      context.paymentMethodId            The payment method ID.
- * @param {string|null} context.storeCurrencyCode          The store currency code. If null, the payment method is available.
- * @param {boolean}     [context.isAdaptivePricingEnabled] When true, store currency mismatch does not block (Adaptive Pricing can settle in shopper-presented currency).
+ * @param {string}      context.paymentMethodId              The payment method ID.
+ * @param {string|null} context.storeCurrencyCode            The store currency code. If null, the payment method is available.
+ * @param {boolean}     [context.isAdaptivePricingSupported] When true, store currency mismatch does not block (Adaptive Pricing can settle in shopper-presented currency).
  * @return {string|null} The reason why the payment method is unavailable, or null if it is available. See `PAYMENT_METHOD_UNAVAILABLE_REASONS` for possible values.
  */
 const getPaymentMethodUnavailableReason = ( {
 	paymentMethodId,
 	storeCurrencyCode,
-	isAdaptivePricingEnabled = false,
+	isAdaptivePricingSupported = false,
 } ) => {
 	if (
 		paymentMethodId === PAYMENT_METHOD_KLARNA &&
@@ -69,7 +69,7 @@ const getPaymentMethodUnavailableReason = ( {
 		return null;
 	}
 
-	if ( isAdaptivePricingEnabled ) {
+	if ( isAdaptivePricingSupported ) {
 		return null;
 	}
 
