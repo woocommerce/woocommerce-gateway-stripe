@@ -146,6 +146,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				->getMock();
 			$account->method( 'get_account_country' )->willReturn( $account_country );
 
+			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
+			WC_Stripe::get_instance()->account = $account;
+
 			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 				->disableOriginalConstructor()
 				->setMethods(
@@ -184,6 +187,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$this->assertSame( $expected_cs_param, $params['is_cs_available'] );
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
+			if ( isset( $stripe_singleton_account_backup ) ) {
+				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
+			}
 			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
 			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
 			unset( $current_tab, $current_section );
