@@ -207,7 +207,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$mocked_error_message = 'Simulated error for testing.';
 
-		$mocked_secret = 'cs_test_1234567890abcdef';
+		$mocked_secret     = 'cs_test_1234567890abcdef';
+		$mocked_session_id = 'cs_test_session_id';
 
 		$checkout_session_error = (object) [
 			'error' => (object) [
@@ -219,6 +220,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$checkout_session_success = (object) [
 			'client_secret' => $mocked_secret,
+			'id'            => $mocked_session_id,
 		];
 
 		return [
@@ -291,6 +293,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => true,
 					'data'    => (object) [
 						'client_secret' => $mocked_secret,
+						'session_id'    => $mocked_session_id,
 					],
 				],
 			],
