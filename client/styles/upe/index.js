@@ -92,9 +92,10 @@ const appearanceSelectors = {
 			'form.wc-block-checkout__form',
 			'.wc-block-checkout',
 			'main',
-			'.wp-block-group',
 			'.entry-content',
 			'.site-content',
+			// Broad fallback — kept last to avoid matching header/hero blocks.
+			'.wp-block-group',
 			'body',
 		],
 	},
