@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
+import styled from '@emotion/styled';
 import AgenticCommerceSyncStatus from './sync-status';
+import { Card, CardTitle, Actions } from './styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -13,29 +14,6 @@ import {
 } from '@wordpress/components';
 import { useAccount } from 'wcstripe/data/account';
 import { useTestMode } from 'wcstripe/data';
-
-const Card = styled.div`
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	padding: 20px 24px;
-	margin-bottom: 20px;
-`;
-
-const CardTitle = styled.h2`
-	font-size: 14px;
-	font-weight: 600;
-	margin: 0 0 16px;
-	padding-bottom: 8px;
-	border-bottom: 1px solid #eee;
-`;
-
-const Actions = styled.div`
-	display: flex;
-	gap: 8px;
-	margin-top: 16px;
-	align-items: center;
-`;
 
 const OnboardingSteps = styled.ol`
 	margin: 12px 0 0;
@@ -113,9 +91,36 @@ const AgenticCommercePanel = () => {
 	};
 
 	const handleCopy = () => {
-		navigator.clipboard.writeText( webhookURLForDisplay );
-		setWebhookURLCopied( true );
-		setTimeout( () => setWebhookURLCopied( false ), 2000 ); // Reset after 2s
+		const doCopy = ( text ) => {
+			if ( navigator.clipboard?.writeText ) {
+				return navigator.clipboard.writeText( text );
+			}
+			// Fallback for browsers without clipboard API.
+			const el = document.createElement( 'textarea' );
+			el.value = text;
+			el.style.position = 'fixed';
+			el.style.opacity = '0';
+			document.body.appendChild( el );
+			el.select();
+			document.execCommand( 'copy' );
+			document.body.removeChild( el );
+			return Promise.resolve();
+		};
+
+		doCopy( webhookURLForDisplay )
+			.then( () => {
+				setWebhookURLCopied( true );
+				setTimeout( () => setWebhookURLCopied( false ), 2000 );
+			} )
+			.catch( () => {
+				setSettingsNotice( {
+					status: 'error',
+					message: __(
+						'Failed to copy URL to clipboard.',
+						'woocommerce-gateway-stripe'
+					),
+				} );
+			} );
 	};
 
 	return (
