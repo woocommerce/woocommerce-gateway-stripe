@@ -255,7 +255,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider ipp_channel_data_provider
 	 */
-	public function test_capture_payment_ipp_channel_storage( $ipp_channel_value, $metadata, $expected ) {
+	public function test_capture_payment_ipp_channel_storage( $metadata, $expected ) {
 		wp_set_current_user( 1 );
 		$order = WC_Helper_Order::create_order();
 
@@ -292,23 +292,17 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-
-		$stored = WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order );
-		if ( '' === $expected ) {
-			$this->assertEmpty( $stored );
-		} else {
-			$this->assertEquals( $expected, $stored );
-		}
+		$this->assertSame( $expected, WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 
 	public function ipp_channel_data_provider() {
 		return [
-			'mobile_pos channel is stored'              => [ 'mobile_pos', [ 'ipp_channel' => 'mobile_pos' ], 'mobile_pos' ],
-			'mobile_store_management channel is stored' => [ 'mobile_store_management', [ 'ipp_channel' => 'mobile_store_management' ], 'mobile_store_management' ],
-			'unknown channel is not stored'             => [ 'unknown_channel', [ 'ipp_channel' => 'unknown_channel' ], '' ],
-			'missing ipp_channel is not stored'         => [ null, (object) [], '' ],
+			'mobile_pos channel is stored'              => [ [ 'ipp_channel' => 'mobile_pos' ], 'mobile_pos' ],
+			'mobile_store_management channel is stored' => [ [ 'ipp_channel' => 'mobile_store_management' ], 'mobile_store_management' ],
+			'unknown channel is not stored'             => [ [ 'ipp_channel' => 'unknown_channel' ], '' ],
+			'missing ipp_channel is not stored'         => [ (object) [], '' ],
 		];
 	}
 

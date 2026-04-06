@@ -904,6 +904,8 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Gets the In-Person Payments channel for the order.
 	 *
+	 * @since 10.6.0
+	 *
 	 * @param WC_Order|null $order
 	 * @return false|string|null
 	 */
@@ -913,6 +915,8 @@ class WC_Stripe_Order_Helper {
 
 	/**
 	 * Updates the In-Person Payments channel for the order.
+	 *
+	 * @since 10.6.0
 	 *
 	 * @param WC_Order|null $order
 	 * @param string $channel The IPP channel value (e.g. 'mobile_pos', 'mobile_store_management').
