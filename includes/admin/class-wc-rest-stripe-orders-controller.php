@@ -200,8 +200,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
 			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
 			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {
-				$order_helper = WC_Stripe_Order_Helper::get_instance();
-				$order_helper->update_stripe_ipp_channel( $order, $ipp_channel );
+				$order->update_meta_data( '_stripe_ipp_channel', $ipp_channel );
 				$order->save_meta_data();
 			}
 
