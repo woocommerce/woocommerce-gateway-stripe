@@ -499,33 +499,41 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		string $adaptive_pricing,
 		bool $expect_selector
 	): void {
+		// The gateway exposes is_adaptive_pricing_supported() as a protected instance method,
+		// allowing us to mock it directly without depending on the full settings/API stack.
+		$show_adaptive_pricing = $oc_enabled && $valid_oc_page && $feature_flag && 'yes' === $adaptive_pricing;
+
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page' ] )
+			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
 			->getMock();
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $show_adaptive_pricing );
 		$gateway->oc_enabled = $oc_enabled;
 
-		$original_stripe_settings         = WC_Stripe_Helper::get_stripe_settings();
-		$original_feature_flag            = get_option( WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
-		$new_settings                     = $original_stripe_settings;
-		$new_settings['adaptive_pricing'] = $adaptive_pricing;
-		WC_Stripe_Helper::update_main_stripe_settings( $new_settings );
-		update_option( WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
-		ob_start();
-		$gateway->payment_fields();
-		$output = ob_get_clean();
-
-		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		update_option( WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $original_feature_flag );
-		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		try {
+			ob_start();
+			$gateway->payment_fields();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
 
 		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector"></div>';
 		if ( $expect_selector ) {
 			$this->assertStringContainsString( $selector_div, $output );
+			$selector_position    = strpos( $output, $selector_div );
+			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
+			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
+			$this->assertLessThan(
+				$upe_element_position,
+				$selector_position,
+				'Currency selector should render before the payment element.'
+			);
 		} else {
 			$this->assertStringNotContainsString( $selector_div, $output );
 		}
