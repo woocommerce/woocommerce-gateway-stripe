@@ -324,12 +324,20 @@ const PaymentProcessor = ( {
 			if ( cancelled ) {
 				return;
 			}
+
+			// Compare cached font with a fresh computation — skip if unchanged
+			// (e.g. fast connections where fonts loaded before initial render).
+			const oldFont =
+				initializeUPEAppearance( 'true' )?.variables?.fontFamily;
 			invalidateAppearanceCache();
-			if ( typeof elements?.update !== 'function' ) {
+			const appearance = initializeUPEAppearance( 'true' );
+			if ( appearance?.variables?.fontFamily === oldFont ) {
 				return;
 			}
-			const appearance = initializeUPEAppearance( 'true' );
-			elements.update( { appearance } );
+
+			if ( typeof elements?.update === 'function' ) {
+				elements.update( { appearance } );
+			}
 		} );
 
 		return () => {
