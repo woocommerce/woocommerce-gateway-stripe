@@ -1575,7 +1575,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
 		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
-		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Customer cancelled checkout on Klarna' ];
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => 'payment_method_customer_decline',
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
