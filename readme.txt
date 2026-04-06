@@ -147,6 +147,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag; inventory tracker now gates on the merchant setting
+* Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
+* Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
@@ -182,5 +184,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
+* Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
+* Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
