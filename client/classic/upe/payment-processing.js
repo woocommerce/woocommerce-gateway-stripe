@@ -740,9 +740,14 @@ export const processPayment = (
 
 				const { actions } = loadActionsResult;
 
+				const shouldSavePaymentMethod = jQueryForm
+					.find( '#wc-stripe-new-payment-method' )
+					.is( ':checked' );
+
 				const confirmResult = await actions.confirm( {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
+					savePaymentMethod: shouldSavePaymentMethod,
 				} );
 
 				if ( confirmResult.type === 'error' ) {
