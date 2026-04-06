@@ -530,7 +530,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	public function get_stripe_save_payment_method( ?WC_Order $order = null ): bool {
-		return (bool) $this->get_order_meta( $order, self::META_STRIPE_SAVE_PAYMENT_METHOD );
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SAVE_PAYMENT_METHOD ) );
 	}
 
 	/**
