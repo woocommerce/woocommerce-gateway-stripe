@@ -196,6 +196,15 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$order->set_payment_method_title( __( 'WooCommerce Stripe In-Person Payments', 'woocommerce-gateway-stripe' ) );
 			$this->gateway->save_intent_to_order( $order, $intent );
 
+			// Store IPP channel from intent metadata for POS identification.
+			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
+			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
+			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {
+				$order_helper = WC_Stripe_Order_Helper::get_instance();
+				$order_helper->update_stripe_ipp_channel( $order, $ipp_channel );
+				$order->save_meta_data();
+			}
+
 			// Capture payment intent.
 			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
 			$this->gateway->process_response( $charge, $order );

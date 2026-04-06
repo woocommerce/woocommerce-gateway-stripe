@@ -260,6 +260,184 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 
+	public function test_capture_payment_stores_ipp_channel_for_pos_order() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		// Mock response from Stripe API with ipp_channel metadata.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'       => 'pi_12345',
+						'object'   => 'payment_intent',
+						'status'   => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+						'metadata' => [
+							'ipp_channel' => 'mobile_pos',
+						],
+						'charges'  => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'mobile_pos', WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
+
+	public function test_capture_payment_stores_store_management_ipp_channel() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		// Mock response with mobile_store_management channel.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'       => 'pi_12345',
+						'object'   => 'payment_intent',
+						'status'   => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+						'metadata' => [
+							'ipp_channel' => 'mobile_store_management',
+						],
+						'charges'  => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'mobile_store_management', WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
+
+	public function test_capture_payment_does_not_store_unknown_ipp_channel() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		// Mock response with an unknown ipp_channel value.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'       => 'pi_12345',
+						'object'   => 'payment_intent',
+						'status'   => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+						'metadata' => [
+							'ipp_channel' => 'unknown_channel',
+						],
+						'charges'  => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
+
+	public function test_capture_payment_without_ipp_channel_metadata() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		// Mock response without ipp_channel in metadata.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'       => 'pi_12345',
+						'object'   => 'payment_intent',
+						'status'   => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+						'metadata' => [],
+						'charges'  => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
+
 	public function test_capture_payment_amount_too_small_supported_currency() {
 		wp_set_current_user( 1 );
 		$order = WC_Helper_Order::create_order();
