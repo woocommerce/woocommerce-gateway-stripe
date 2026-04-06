@@ -362,6 +362,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Expands <number> placeholder tags in testing instructions into copy-to-clipboard button markup.
+	 *
+	 * Converts `<number>4242...</number>` into a `<button>` wrapping the number text,
+	 * with a copy icon and accessible labels.
+	 *
+	 * @param string $instructions The testing instructions containing <number> tags.
+	 * @return string Instructions with <number> tags replaced by copy button HTML.
+	 */
+	public static function expand_copy_button_markup( $instructions ) {
+		$copy_label = esc_attr__( 'Copy to clipboard', 'woocommerce-gateway-stripe' );
+
+		return preg_replace(
+			'/<number>(.*?)<\/number>/',
+			'<button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>$1</span></button>',
+			$instructions
+		) ?? $instructions;
+	}
+
+	/**
 	 * Removes all saved payment methods when the setting to save cards is disabled.
 	 *
 	 * @param  array $list         List of payment methods passed from wc_get_customer_saved_methods_list().
@@ -825,7 +844,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'isReusable'             => $payment_method->is_reusable(),
 				'title'                  => $payment_method->get_title(),
 				'description'            => $payment_method->get_description(),
-				'testingInstructions'    => $payment_method->get_testing_instructions(),
+				'testingInstructions'    => self::expand_copy_button_markup( $payment_method->get_testing_instructions() ),
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
@@ -987,33 +1006,44 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
+				$allowed_tags = [
+					'strong' => [],
+					'a'      => [
+						'href'   => [],
+						'target' => [],
+					],
+					'button' => [
+						'type'       => [],
+						'class'      => [],
+						'aria-label' => [],
+						'title'      => [],
+					],
+					'i'      => [],
+					'span'   => [],
+				];
+
 				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
 					echo wp_kses(
-						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
-						[
-							'div'    => [
-								'id'    => [],
-								'class' => [],
-								'style' => [],
+						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
+						array_merge(
+							[
+								'div' => [
+									'id'    => [],
+									'class' => [],
+									'style' => [],
+								],
 							],
-							'strong' => [],
-							'a'      => [
-								'href'   => [],
-								'target' => [],
-							],
-						]
+							$allowed_tags
+						)
 					);
 				else :
+					$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
 					?>
 				<p class="testmode-info">
 					<?php
-					printf(
-					/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-						esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
-						'<strong>',
-						'</strong>',
-						'<a href="https://docs.stripe.com/testing" target="_blank">',
-						'</a>'
+					echo wp_kses(
+						self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
+						$allowed_tags
 					);
 					?>
 				</p>
