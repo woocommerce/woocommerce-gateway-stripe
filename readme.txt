@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag; inventory tracker now gates on the merchant setting
+* Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
