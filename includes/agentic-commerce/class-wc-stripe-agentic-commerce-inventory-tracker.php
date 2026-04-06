@@ -225,11 +225,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			);
 
 			// Clean up the temporary file even on failure.
-			if ( null !== $feed ) {
-				$file_path = $feed->get_file_path();
-				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
-					wp_delete_file( $file_path );
-				}
+			// $feed is non-null here: if generate_inventory_feed() returned null we
+			// would have returned early before any exception could be thrown.
+			$file_path = $feed->get_file_path();
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
 			}
 
 			// Reschedule a retry in case no new stock changes arrive to trigger a fresh sync.
