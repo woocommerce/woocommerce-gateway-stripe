@@ -355,7 +355,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertFalse( $blik_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use any 6-digit number to authorize payment.',
+			'<strong>Test mode:</strong> use any 6-digit number.',
 			$blik_method->get_testing_instructions()
 		);
 
@@ -365,7 +365,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $card_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
 			$card_method->get_testing_instructions()
 		);
 
@@ -399,7 +399,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $sepa_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $sepa_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use account <number>AT611904300234573201</number>. <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">More test methods</a>.',
 			$sepa_method->get_testing_instructions()
 		);
 
