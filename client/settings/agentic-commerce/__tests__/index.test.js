@@ -413,6 +413,62 @@ describe( 'AgenticCommercePanel', () => {
 	} );
 
 	// -------------------------------------------------------------------------
+	// Onboarding steps visibility
+	// -------------------------------------------------------------------------
+
+	it( 'shows onboarding steps when feature is enabled and no webhook secret is saved', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( /Getting started on the Stripe side/i )
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'hides onboarding steps when feature is disabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: false,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByLabelText( /Webhook Secret/i )
+			).not.toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByText( /Getting started on the Stripe side/i )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'hides onboarding steps when feature is enabled and webhook secret is already saved', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: 'whsec_existing',
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			// Webhook secret input should be visible (feature enabled)
+			expect(
+				screen.getByLabelText( /Agentic Commerce Webhook Secret/i )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByText( /Getting started on the Stripe side/i )
+		).not.toBeInTheDocument();
+	} );
+
+	// -------------------------------------------------------------------------
 	// Settings card
 	// -------------------------------------------------------------------------
 

@@ -146,73 +146,76 @@ const AgenticCommercePanel = () => {
 						rel="noopener noreferrer"
 					>
 						{ __(
-							'Read the Stripe Agentic Commerce documentation',
+							'Learn more about Agentic Checkout',
 							'woocommerce-gateway-stripe'
 						) }
 					</ExternalLink>
 				</p>
-				<p>
-					<strong>
-						{ __(
-							'Getting started on the Stripe side:',
-							'woocommerce-gateway-stripe'
-						) }
-					</strong>
-				</p>
 
-				<OnboardingSteps>
-					<li>
-						{ interpolateComponents( {
-							mixedString: __(
-								'Log in to your {{settingsLink}}Stripe Dashboard{{/settingsLink}}.',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								settingsLink: (
-									<ExternalLink href="https://dashboard.stripe.com/" />
-								),
-							},
-						} ) }
-					</li>
-					<li>
-						{ interpolateComponents( {
-							mixedString: __(
-								'Go to {{strong}}Payments > Agentic Commerce.{{/strong}}',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								strong: <strong />,
-							},
-						} ) }
-					</li>
-					<li>
-						{ __(
-							'Follow the setup instructions to enable the feature and set webhook endpoint for delegated checkout events as:',
-							'woocommerce-gateway-stripe'
-						) }
-						<TextControl
-							type="text"
-							value={ decodeURIComponent( webhookURLForDisplay ) }
-							autoComplete="off"
-							disabled={ true }
-						/>
-						<Button
-							variant="primary"
-							isBusy={ isSavingSettings }
-							onClick={ handleCopy }
-						>
-							{ webhookURLCopied
-								? __( 'Copied!', 'woocommerce-gateway-stripe' )
-								: __( 'Copy', 'woocommerce-gateway-stripe' ) }
-						</Button>
-					</li>
-					<li>
-						{ __(
-							'Copy the webhook signing secret and paste it in the settings below.',
-							'woocommerce-gateway-stripe'
-						) }
-					</li>
-				</OnboardingSteps>
+				{ ! isLoadingSettings &&
+					isFeatureEnabled &&
+					! webhookSecret && (
+						<>
+							<p>
+								<strong>
+									{ __(
+										'Getting started on the Stripe side:',
+										'woocommerce-gateway-stripe'
+									) }
+								</strong>
+							</p>
+
+							<OnboardingSteps>
+								<li>
+									{ interpolateComponents( {
+										mixedString: __(
+											'Go to {{agenticLink}}Payments > Agentic Commerce{{/agenticLink}} in your Stripe Dashboard.',
+											'woocommerce-gateway-stripe'
+										),
+										components: {
+											agenticLink: (
+												<ExternalLink href="https://dashboard.stripe.com/agentic-commerce" />
+											),
+										},
+									} ) }
+								</li>
+								<li>
+									{ __(
+										'Follow the setup instructions to enable the feature and add a webhook endpoint for delegated checkout events:',
+										'woocommerce-gateway-stripe'
+									) }
+									<TextControl
+										type="text"
+										value={ decodeURIComponent(
+											webhookURLForDisplay
+										) }
+										autoComplete="off"
+										disabled={ true }
+									/>
+									<Button
+										variant="secondary"
+										onClick={ handleCopy }
+									>
+										{ webhookURLCopied
+											? __(
+													'Copied!',
+													'woocommerce-gateway-stripe'
+											  )
+											: __(
+													'Copy',
+													'woocommerce-gateway-stripe'
+											  ) }
+									</Button>
+								</li>
+								<li>
+									{ __(
+										'Copy the webhook signing secret from Developers > Webhooks and paste it in the settings below.',
+										'woocommerce-gateway-stripe'
+									) }
+								</li>
+							</OnboardingSteps>
+						</>
+					) }
 			</Card>
 			{ /* Settings card */ }
 			<Card>
