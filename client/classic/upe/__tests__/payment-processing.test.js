@@ -258,7 +258,14 @@ describe( 'payment-processing', () => {
 
 				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
 				expect( api._stripe.initCheckout ).toHaveBeenCalledWith(
-					expect.objectContaining( { clientSecret: 'cs_test_abc' } )
+					expect.objectContaining( {
+						clientSecret: 'cs_test_abc',
+						elementsOptions: expect.objectContaining( {
+							savedPaymentMethod: {
+								enableRedisplay: 'never',
+							},
+						} ),
+					} )
 				);
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
