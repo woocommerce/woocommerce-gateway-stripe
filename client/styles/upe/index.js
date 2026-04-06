@@ -80,6 +80,12 @@ const appearanceSelectors = {
 			upeThemeLabelSelector:
 				'.wc-block-components-checkout-step__description',
 		},
+		// The PE iframe is transparent — colorBackground is a reference color
+		// Stripe uses for theme selection, text contrast, and secondary UI
+		// (tabs, OTP popups), not the container fill. These selectors must
+		// cover block themes (main, .wp-block-group) and classic themes
+		// (.entry-content, .site-content) so getBackgroundColor doesn't fall
+		// through to body, which often has a different color.
 		backgroundSelectors: [
 			'#payment-method .wc-block-components-radio-control-accordion-option',
 			'#payment-method',

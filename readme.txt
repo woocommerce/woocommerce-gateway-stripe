@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Fix - Resolve incorrect Stripe PE background color on block themes by adding missing background selectors and replacing defunct fast.fonts.com with fonts.bunny.net
+* Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
