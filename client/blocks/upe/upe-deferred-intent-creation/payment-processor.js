@@ -13,6 +13,7 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
+import AcssMessageElement from './acss-message-element';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
@@ -27,6 +28,7 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { validateBlikCode } from 'wcstripe/stripe-utils';
 import {
+	PAYMENT_METHOD_ACSS,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
@@ -355,12 +357,17 @@ const PaymentProcessor = ( {
 			{ isBlikSelected ? (
 				<BlikCodeElement />
 			) : (
-				<PaymentElement
-					options={ getStripeElementOptions() }
-					onChange={ onSelectedPaymentMethodChange }
-					onLoadError={ setHasLoadError }
-					className="wcstripe-payment-element"
-				/>
+				<>
+					<PaymentElement
+						options={ getStripeElementOptions() }
+						onChange={ onSelectedPaymentMethodChange }
+						onLoadError={ setHasLoadError }
+						className="wcstripe-payment-element"
+					/>
+					{ paymentMethodId === PAYMENT_METHOD_ACSS && (
+						<AcssMessageElement />
+					) }
+				</>
 			) }
 		</>
 	);
