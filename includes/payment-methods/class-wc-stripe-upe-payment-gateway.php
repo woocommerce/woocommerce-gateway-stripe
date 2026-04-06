@@ -1008,23 +1008,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $show_optimized_checkout ) :
-					$allowed_tags = [
-						'strong' => [],
-						'a'      => [
-							'href'   => [],
-							'target' => [],
-						],
-						'button' => [
-							'type'       => [],
-							'class'      => [],
-							'aria-label' => [],
-							'title'      => [],
-						],
-						'i'      => [],
-						'span'   => [],
-					];
+				$allowed_tags = [
+					'strong' => [],
+					'a'      => [
+						'href'   => [],
+						'target' => [],
+					],
+					'button' => [
+						'type'       => [],
+						'class'      => [],
+						'aria-label' => [],
+						'title'      => [],
+					],
+					'i'      => [],
+					'span'   => [],
+				];
 
+				if ( $show_optimized_checkout ) :
 					echo wp_kses(
 						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
 						array_merge(
