@@ -104,6 +104,92 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Checkout Sessions should send one line item whose amount matches the full cart total (Stripe minor units).
+	 */
+	public function test_create_checkout_session_sends_single_line_item_matching_cart_total(): void {
+		Ajax_Test_Helper::init_hooks();
+
+		WC()->customer = new \WC_Customer( 1 );
+
+		$customer_data = [
+			'billing_first_name' => 'John',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '123 Main St',
+			'billing_city'       => 'New York',
+			'billing_state'      => 'NY',
+			'billing_postcode'   => '10001',
+			'billing_country'    => 'US',
+			'billing_email'      => 'john@example.com',
+		];
+		foreach ( $customer_data as $key => $value ) {
+			update_user_meta( 1, $key, $value );
+		}
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 2 );
+
+		$captured_request = null;
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+
+		$test_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( strpos( $url, '/v1/customers' ) !== false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'client_secret' => 'cs_test_secret' ] ),
+				];
+			}
+
+			return $return_value;
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			ob_end_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$this->assertIsArray( $captured_request );
+		$this->assertArrayHasKey( 'line_items', $captured_request );
+		$this->assertCount( 1, $captured_request['line_items'] );
+
+		$expected_amount = WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( 'edit' ), get_woocommerce_currency() );
+		$line_item       = $captured_request['line_items'][0];
+
+		$this->assertSame( __( 'Cart total', 'woocommerce-gateway-stripe' ), $line_item['price_data']['product_data']['name'] );
+		$this->assertSame( $expected_amount, $line_item['price_data']['unit_amount'] );
+		$this->assertSame( 1, $line_item['quantity'] );
+	}
+
+	/**
 	 * Data provider for `test_create_checkout_session`.
 	 *
 	 * @return array
