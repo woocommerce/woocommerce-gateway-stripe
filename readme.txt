@@ -185,5 +185,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
+* Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
