@@ -1468,10 +1468,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that a customer-cancelled redirect (e.g. Klarna popup closed) throws
-	 * WC_Stripe_Payment_Cancelled_Exception so the order is not permanently failed.
+	 * Test that customer-cancelled redirects throw WC_Stripe_Payment_Cancelled_Exception so
+	 * the order is not permanently failed.
+	 *
+	 * @dataProvider provider_cancellation_error_codes
 	 */
-	public function test_intent_error_with_requires_payment_method_throws_cancellation_exception() {
+	public function test_intent_error_with_requires_payment_method_throws_cancellation_exception( $error_code ) {
 		$payment_intent_id = 'pi_mock';
 		$order             = WC_Helper_Order::create_order();
 
@@ -1481,7 +1483,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
 		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
-		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Customer cancelled checkout on Klarna' ];
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
@@ -1500,12 +1505,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringContainsString( 'Customer cancelled checkout on Klarna', $exception->getMessage() );
 	}
 
+	public function provider_cancellation_error_codes() {
+		return [
+			'customer closed popup' => [ 'payment_method_customer_decline' ],
+			'session expired'       => [ 'payment_intent_payment_attempt_expired' ],
+		];
+	}
+
 	/**
 	 * Test that a hard payment error (non-cancellation) still throws a generic WC_Stripe_Exception.
 	 *
 	 * @dataProvider provider_hard_payment_error_intent_statuses
 	 */
-	public function test_intent_hard_error_throws_generic_exception( $intent_status ) {
+	public function test_intent_hard_error_throws_generic_exception( $intent_status, $error_code ) {
 		$payment_intent_id = 'pi_mock';
 		$order             = WC_Helper_Order::create_order();
 
@@ -1515,7 +1527,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
 		$payment_intent_mock['status']             = $intent_status;
-		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Your card was declined.' ];
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Your card was declined.',
+		];
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
@@ -1536,9 +1551,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	public function provider_hard_payment_error_intent_statuses() {
 		return [
-			'succeeded'  => [ WC_Stripe_Intent_Status::SUCCEEDED ],
-			'canceled'   => [ WC_Stripe_Intent_Status::CANCELED ],
-			'processing' => [ WC_Stripe_Intent_Status::PROCESSING ],
+			'succeeded status'                                          => [ WC_Stripe_Intent_Status::SUCCEEDED, 'card_declined' ],
+			'canceled status'                                           => [ WC_Stripe_Intent_Status::CANCELED, 'card_declined' ],
+			'processing status'                                         => [ WC_Stripe_Intent_Status::PROCESSING, 'card_declined' ],
+			'requires_payment_method + card_declined'                   => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'card_declined' ],
+			'requires_payment_method + payment_method_provider decline' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'payment_method_provider_decline' ],
+			'requires_payment_method + insufficient_funds'              => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'insufficient_funds' ],
 		];
 	}
 

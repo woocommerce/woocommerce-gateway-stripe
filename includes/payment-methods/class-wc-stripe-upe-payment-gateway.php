@@ -2063,12 +2063,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! empty( $error ) ) {
-			WC_Stripe_Logger::error( 'Error when processing payment for order: ' . $order->get_id(), [ 'error_message' => $error->message ] );
-			// If the intent is back to requires_payment_method, the customer cancelled the redirect
-			// (e.g. closed the Klarna popup). Treat this as a recoverable cancellation so the
-			// order is not permanently failed and the shopper can retry with another method.
-			if ( isset( $intent->status ) && WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status ) {
-				throw new WC_Stripe_Payment_Cancelled_Exception( $error->message );
+			$error_message = isset( $error->message ) ? $error->message : '';
+			$error_code    = isset( $error->code ) ? $error->code : '';
+			WC_Stripe_Logger::error( 'Error when processing payment for order: ' . $order->get_id(), [ 'error_message' => $error_message ] );
+			// Treat customer-initiated cancellations (e.g. closing the Klarna popup or letting the
+			// redirect session expire) as recoverable: leave the order retryable rather than failing
+			// it permanently. These are identified by specific Stripe error codes that mean no payment
+			// attempt was made, as opposed to a genuine decline (provider decline, card decline, etc.)
+			// which warrants the order being marked as failed.
+			$cancellation_codes = [
+				'payment_method_customer_decline',        // customer closed the redirect popup.
+				'payment_intent_payment_attempt_expired', // session expired without customer action.
+			];
+			if (
+				isset( $intent->status ) &&
+				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status &&
+				in_array( $error_code, $cancellation_codes, true )
+			) {
+				throw new WC_Stripe_Payment_Cancelled_Exception( $error_message );
 			}
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
@@ -4346,7 +4358,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( ! $order_helper->get_stripe_checkout_session_id( $order )
-			 || ( $order_helper->get_stripe_presentment_currency( $order ) && $order_helper->get_stripe_presentment_amount( $order ) ) ) {
+			|| ( $order_helper->get_stripe_presentment_currency( $order ) && $order_helper->get_stripe_presentment_amount( $order ) ) ) {
 			return;
 		}
 
