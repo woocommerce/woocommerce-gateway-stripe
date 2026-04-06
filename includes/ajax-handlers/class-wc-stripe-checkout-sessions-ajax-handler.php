@@ -48,25 +48,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$currency   = get_woocommerce_currency();
-			$line_items = [];
-			foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
-				if ( 'total_discount' === ( $raw_line_item['key'] ?? '' ) ) {
-					// TODO: Stripe Checkout handles discounts/coupons differently. Skip for now.
-					continue;
-				}
+			$currency = get_woocommerce_currency();
+			// Payable cart total: subtotal, tax, shipping, fees, minus discounts (same as checkout order total).
+			$cart_total = WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( 'edit' ), $currency );
 
-				$line_items[] = [
+			$line_items = [
+				[
 					'price_data' => [
 						'currency'     => strtolower( $currency ),
 						'product_data' => [
-							'name' => $raw_line_item['label'],
+							'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
 						],
-						'unit_amount'  => $raw_line_item['amount'],
+						'unit_amount'  => $cart_total,
 					],
-					'quantity'   => 1, // @TODO: Handle quantity properly if needed.
-				];
-			}
+					// As we are using one aggregate line item: the payable total lives in unit_amount, not in quantity × unit price.
+					'quantity'   => 1,
+				],
+			];
 
 			$first_name = get_user_meta( $user_id, 'first_name', true );
 			$last_name  = get_user_meta( $user_id, 'last_name', true );
