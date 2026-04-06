@@ -405,6 +405,26 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
+/**
+ * Reads the current fontFamily from the first available text selector via a
+ * single getComputedStyle() call. Used to detect whether web fonts have changed
+ * since the appearance was last computed, without running the full getAppearance
+ * pipeline.
+ *
+ * @param {boolean} isBlocksCheckout Whether the checkout is a blocks checkout.
+ * @return {string|undefined} The current fontFamily, or undefined if no selector matches.
+ */
+export const sampleFontFamily = ( isBlocksCheckout = false ) => {
+	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
+	for ( const selector of selectors.upeThemeTextSelectors ) {
+		const el = document.querySelector( selector );
+		if ( el ) {
+			return window.getComputedStyle( el ).fontFamily;
+		}
+	}
+	return undefined;
+};
+
 export const getAppearance = (
 	isBlocksCheckout = false,
 	shouldExpandOptimizedCheckout = false

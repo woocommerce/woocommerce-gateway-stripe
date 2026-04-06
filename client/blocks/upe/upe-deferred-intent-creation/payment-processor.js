@@ -30,6 +30,7 @@ import {
 	invalidateAppearanceCache,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
+import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
@@ -325,16 +326,17 @@ const PaymentProcessor = ( {
 				return;
 			}
 
-			// Compare cached font with a fresh computation — skip if unchanged
-			// (e.g. fast connections where fonts loaded before initial render).
-			const oldFont =
+			// Compare the live font with the cached appearance — only
+			// invalidate and recompute if they actually differ.
+			const cachedFont =
 				initializeUPEAppearance( 'true' )?.variables?.fontFamily;
-			invalidateAppearanceCache();
-			const appearance = initializeUPEAppearance( 'true' );
-			if ( appearance?.variables?.fontFamily === oldFont ) {
+			const liveFont = sampleFontFamily( true );
+			if ( ! liveFont || liveFont === cachedFont ) {
 				return;
 			}
 
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance( 'true' );
 			if ( typeof elements?.update === 'function' ) {
 				elements.update( { appearance } );
 			}
