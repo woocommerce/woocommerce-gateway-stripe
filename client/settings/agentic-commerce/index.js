@@ -196,7 +196,9 @@ const AgenticCommercePanel = () => {
 							isBusy={ isSavingSettings }
 							onClick={ handleCopy }
 						>
-							{ webhookURLCopied ? 'Copied!' : 'Copy' }
+							{ webhookURLCopied
+								? __( 'Copied!', 'woocommerce-gateway-stripe' )
+								: __( 'Copy', 'woocommerce-gateway-stripe' ) }
 						</Button>
 					</li>
 					<li>
