@@ -113,7 +113,7 @@ const createMockApi = ( checkoutElements ) => {
 	};
 };
 
-const createMockForm = () => {
+const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
 	const f = {};
 	f.addClass = jest.fn( () => f );
 	f.removeClass = jest.fn( () => f );
@@ -121,6 +121,9 @@ const createMockForm = () => {
 	f.unblock = jest.fn( () => f );
 	f.trigger = jest.fn( () => f );
 	f.attr = jest.fn( () => 'checkout' );
+	f.find = jest.fn( () => ( {
+		is: jest.fn( () => savePaymentMethodChecked ),
+	} ) );
 	return f;
 };
 
@@ -426,11 +429,39 @@ describe( 'payment-processing', () => {
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
+					savePaymentMethod: false,
 				} );
 				expect(
 					stripeUtils.appendCheckoutSessionIdToForm
 				).toHaveBeenCalledWith( form, 'cs_session_xyz' );
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
+			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+					savePaymentMethod: true,
+				} );
 			} );
 
 			it( 'shows error and does not submit when loadActions returns an error', async () => {
