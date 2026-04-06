@@ -109,6 +109,47 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * @throws Exception If upload or ImportSet creation fails.
 	 */
 	public function deliver( FeedInterface $feed ): array {
+		return $this->upload_and_import( $feed, 'product_catalog_feed', 'Product catalog' );
+	}
+
+	/**
+	 * Upload an inventory feed to Stripe Files API and create an inventory_feed ImportSet.
+	 *
+	 * Uses the same two-step upload as deliver(), but creates the ImportSet with the
+	 * 'inventory_feed' standard_data_format for incremental stock quantity updates.
+	 *
+	 * @since 10.5.3
+	 * @param FeedInterface $feed The finalized inventory feed to deliver.
+	 * @return array {
+	 *     Response with file and import set details.
+	 *
+	 *     @type string $file_id       Stripe file ID (e.g. "file_...").
+	 *     @type string $import_set_id ImportSet ID.
+	 *     @type string $status        ImportSet status.
+	 * }
+	 * @throws Exception If upload or ImportSet creation fails.
+	 */
+	public function deliver_inventory_feed( FeedInterface $feed ): array {
+		return $this->upload_and_import( $feed, 'inventory_feed', 'Inventory' );
+	}
+
+	/**
+	 * Upload a feed file to Stripe Files API and create an ImportSet.
+	 *
+	 * Shared implementation for deliver() and deliver_inventory_feed().
+	 *
+	 * @since 10.5.3
+	 * @param FeedInterface $feed                 The feed to deliver.
+	 * @param string        $standard_data_format The ImportSet standard_data_format value.
+	 * @param string        $log_prefix           Label used in log messages (e.g. "Product catalog", "Inventory").
+	 * @return array {
+	 *     @type string $file_id       Stripe file ID.
+	 *     @type string $import_set_id ImportSet ID.
+	 *     @type string $status        ImportSet status.
+	 * }
+	 * @throws Exception If upload or ImportSet creation fails.
+	 */
+	private function upload_and_import( FeedInterface $feed, string $standard_data_format, string $log_prefix ): array {
 		$file_path = $feed->get_file_path();
 
 		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
@@ -128,80 +169,17 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		}
 
 		WC_Stripe_Logger::info(
-			'Agentic Commerce: File uploaded to Stripe',
+			"Agentic Commerce: {$log_prefix} file uploaded to Stripe",
 			[ 'file_id' => $file_id ]
 		);
 
 		// Step 2: Create ImportSet to trigger processing.
-		$import_set = $this->create_import_set( $file_id, 'product_catalog_feed' );
-
+		$import_set    = $this->create_import_set( $file_id, $standard_data_format );
 		$import_set_id = $import_set['id'] ?? '';
 		$status        = $import_set['status'] ?? 'unknown';
 
 		WC_Stripe_Logger::info(
-			'Agentic Commerce: ImportSet created',
-			[
-				'import_set_id' => $import_set_id,
-				'status'        => $status,
-			]
-		);
-
-		return [
-			'file_id'       => $file_id,
-			'import_set_id' => $import_set_id,
-			'status'        => $status,
-		];
-	}
-
-	/**
-	 * Upload an inventory feed to Stripe Files API and create an inventory_feed ImportSet.
-	 *
-	 * Uses the same two-step upload as deliver(), but creates the ImportSet with the
-	 * 'inventory_feed' standard_data_format for incremental stock quantity updates.
-	 *
-	 * @since 10.5.0
-	 * @param FeedInterface $feed The finalized inventory feed to deliver.
-	 * @return array {
-	 *     Response with file and import set details.
-	 *
-	 *     @type string $file_id       Stripe file ID (e.g. "file_...").
-	 *     @type string $import_set_id ImportSet ID.
-	 *     @type string $status        ImportSet status.
-	 * }
-	 * @throws Exception If upload or ImportSet creation fails.
-	 */
-	public function deliver_inventory_feed( FeedInterface $feed ): array {
-		$file_path = $feed->get_file_path();
-
-		if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
-			throw new Exception(
-				esc_html__( 'Inventory feed file does not exist or path is empty.', 'woocommerce-gateway-stripe' )
-			);
-		}
-
-		// Step 1: Upload CSV to Stripe Files API.
-		$file_response = $this->upload_to_files_api( $file_path );
-		$file_id       = $file_response['id'] ?? '';
-
-		if ( empty( $file_id ) ) {
-			throw new Exception(
-				esc_html__( 'Stripe Files API did not return a file ID.', 'woocommerce-gateway-stripe' )
-			);
-		}
-
-		WC_Stripe_Logger::info(
-			'Agentic Commerce: Inventory file uploaded to Stripe',
-			[ 'file_id' => $file_id ]
-		);
-
-		// Step 2: Create ImportSet with inventory_feed format.
-		$import_set = $this->create_import_set( $file_id, 'inventory_feed' );
-
-		$import_set_id = $import_set['id'] ?? '';
-		$status        = $import_set['status'] ?? 'unknown';
-
-		WC_Stripe_Logger::info(
-			'Agentic Commerce: Inventory ImportSet created',
+			"Agentic Commerce: {$log_prefix} ImportSet created",
 			[
 				'import_set_id' => $import_set_id,
 				'status'        => $status,
