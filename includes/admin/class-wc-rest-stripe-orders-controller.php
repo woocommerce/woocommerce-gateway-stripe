@@ -191,18 +191,18 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 				return new WP_Error( 'wc_stripe_payment_uncapturable', __( 'The payment cannot be captured', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
 			}
 
+			// Store IPP channel from intent metadata for POS identification.
+			$order_helper     = WC_Stripe_Order_Helper::get_instance();
+			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
+			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
+			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {
+				$order_helper->update_stripe_ipp_channel( $order, $ipp_channel );
+			}
+
 			// Update order with payment method and intent details.
 			$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 			$order->set_payment_method_title( __( 'WooCommerce Stripe In-Person Payments', 'woocommerce-gateway-stripe' ) );
 			$this->gateway->save_intent_to_order( $order, $intent );
-
-			// Store IPP channel from intent metadata for POS identification.
-			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
-			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
-			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {
-				$order->update_meta_data( '_stripe_ipp_channel', $ipp_channel );
-				$order->save_meta_data();
-			}
 
 			// Capture payment intent.
 			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
