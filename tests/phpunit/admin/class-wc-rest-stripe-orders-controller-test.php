@@ -306,9 +306,9 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 	public function ipp_channel_data_provider() {
 		return [
 			'mobile_pos channel is stored'              => [ 'mobile_pos', [ 'ipp_channel' => 'mobile_pos' ], 'mobile_pos' ],
-			'mobile_store_management channel is stored'  => [ 'mobile_store_management', [ 'ipp_channel' => 'mobile_store_management' ], 'mobile_store_management' ],
-			'unknown channel is not stored'              => [ 'unknown_channel', [ 'ipp_channel' => 'unknown_channel' ], '' ],
-			'missing ipp_channel is not stored'          => [ null, (object) [], '' ],
+			'mobile_store_management channel is stored' => [ 'mobile_store_management', [ 'ipp_channel' => 'mobile_store_management' ], 'mobile_store_management' ],
+			'unknown channel is not stored'             => [ 'unknown_channel', [ 'ipp_channel' => 'unknown_channel' ], '' ],
+			'missing ipp_channel is not stored'         => [ null, (object) [], '' ],
 		];
 	}
 
