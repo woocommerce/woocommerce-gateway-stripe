@@ -1612,9 +1612,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$notices = wc_get_notices( 'notice' );
 		$this->assertNotEmpty( $notices );
 
-		// Should redirect back to checkout, not to an error page.
-		$this->assertNotNull( $redirect_url );
-		$this->assertStringContainsString( 'checkout', $redirect_url );
+		// Should redirect back to the checkout URL, not to an error page.
+		$this->assertSame( wc_get_checkout_url(), $redirect_url );
 	}
 
 	/**
