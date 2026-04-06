@@ -140,8 +140,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$session_id = wc_clean( wp_unslash( $_POST['checkout_session_id'] ?? '' ) );
-			if ( ! $session_id ) {
+			$session_id = isset( $_POST['checkout_session_id'] )
+				? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) )
+				: '';
+			if ( ! is_string( $session_id ) || '' === $session_id ) {
 				throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -149,7 +151,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			WC()->cart->calculate_totals();
 
 			$currency   = get_woocommerce_currency();
-			$cart_total = WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( 'edit' ), $currency );
+			$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
 			$request    = [
 				'line_items' => [
 					[
