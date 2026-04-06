@@ -15,6 +15,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 */
 	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
+		add_action( 'wc_ajax_wc_stripe_update_checkout_session', [ $this, 'update_checkout_session' ] );
 	}
 
 	/**
@@ -123,6 +124,58 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
+			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+		}
+	}
+
+	/**
+	 * Update a Stripe Checkout Session. Currently only used to update the line items.
+	 *
+	 * @return void
+	 */
+	public function update_checkout_session(): void {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_checkout_session_nonce', 'security', false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$session_id = wc_clean( wp_unslash( $_POST['checkout_session_id'] ?? '' ) );
+			if ( ! $session_id ) {
+				throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Recalculate totals.
+			WC()->cart->calculate_totals();
+
+			$currency   = get_woocommerce_currency();
+			$cart_total = WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( 'edit' ), $currency );
+			$request    = [
+				'line_items' => [
+					[
+						'price_data' => [
+							'currency'     => strtolower( $currency ),
+							'product_data' => [
+								'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
+							],
+							'unit_amount'  => $cart_total,
+						],
+						'quantity'   => 1,
+					],
+				],
+			];
+
+			$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
+
+			if ( ! empty( $checkout_session->error ) ) {
+				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+				throw new Exception( $message );
+			}
+
+			wp_send_json_success( [ 'result' => 'success' ] );
+
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Update checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		}
 	}
