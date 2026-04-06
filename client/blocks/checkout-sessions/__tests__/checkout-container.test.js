@@ -62,7 +62,6 @@ describe( 'CheckoutSessionsContainer', () => {
 				options: expect.objectContaining( {
 					elementsOptions: expect.objectContaining( {
 						savedPaymentMethod: {
-							// Stripe must not list saved Customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
 							enableRedisplay: 'never',
 							enableSave: 'never',
 						},
