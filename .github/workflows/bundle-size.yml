@@ -1,0 +1,129 @@
+name: Bundle Size
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: 'Base branch to compare against'
+        default: 'trunk'
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  measure-head:
+    name: Build & measure (head)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: ./.github/actions/measure-bundle-sizes
+        with:
+          commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          side: head
+
+  measure-base:
+    name: Build & measure (base)
+    runs-on: ubuntu-latest
+    env:
+      BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.base_ref || 'trunk' }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Get merge base SHA
+        id: base-sha
+        run: |
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          git fetch origin "${{ env.BASE_REF }}"
+          MERGE_BASE=$(git merge-base "$HEAD_SHA" "origin/${{ env.BASE_REF }}")
+          echo "sha=$MERGE_BASE" >> $GITHUB_OUTPUT
+
+      - uses: ./.github/actions/measure-bundle-sizes
+        with:
+          commit-sha: ${{ steps.base-sha.outputs.sha }}
+          side: base
+
+  compare:
+    name: Compare & report
+    needs: [measure-head, measure-base]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: bundle-sizes-head
+          path: artifacts/head
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: bundle-sizes-base
+          path: artifacts/base
+
+      - name: Compare bundle sizes
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.base_ref || 'trunk' }}
+          HEAD_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+        run: |
+          node .github/scripts/compare-bundle-sizes.js \
+            artifacts/base/sizes.json \
+            artifacts/head/sizes.json \
+            report.md
+
+      - name: Write to job summary
+        run: cat report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Find existing bundle size comment (pull_request)
+        if: github.event_name == 'pull_request'
+        id: find-comment-pr
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- bundle-size-report -->'
+
+      - name: Post or update PR comment (pull_request)
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+        with:
+          comment-id: ${{ steps.find-comment-pr.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: report.md
+          edit-mode: replace
+
+      - name: Find PR for branch (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        id: find-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // ""')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Find existing bundle size comment (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
+        id: find-comment-dispatch
+        continue-on-error: true
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
+        with:
+          issue-number: ${{ steps.find-pr.outputs.pr_number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- bundle-size-report -->'
+
+      - name: Post or update PR comment (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
+        continue-on-error: true
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+        with:
+          comment-id: ${{ steps.find-comment-dispatch.outputs.comment-id }}
+          issue-number: ${{ steps.find-pr.outputs.pr_number }}
+          body-path: report.md
+          edit-mode: replace

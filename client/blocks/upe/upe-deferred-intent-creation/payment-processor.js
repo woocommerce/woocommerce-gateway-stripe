@@ -92,7 +92,8 @@ const PaymentProcessor = ( {
 		useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const stripeServerData = getBlocksConfiguration();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
 
@@ -100,7 +101,7 @@ const PaymentProcessor = ( {
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
 	// If thats the case, we need to force it to true.
 	shouldSavePayment =
-		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+		shouldSavePayment || stripeServerData?.cartContainsSubscription;
 
 	const hasLoadErrorRef = useRef( false );
 
@@ -225,7 +226,6 @@ const PaymentProcessor = ( {
 								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
-								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
 								save_payment_method: shouldSavePayment
@@ -272,14 +272,14 @@ const PaymentProcessor = ( {
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
-				Number( getBlocksConfiguration()?.cartTotal ),
+				Number( stripeServerData?.cartTotal ),
 				true
 			);
 		} else {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
@@ -289,18 +289,24 @@ const PaymentProcessor = ( {
 			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
-					elements.update( {
-						setupFutureUsage:
-							getBlocksConfiguration()
-								?.cartContainsSubscription ||
-							savingPaymentMethodCheckbox?.checked
-								? 'off_session'
-								: null,
-					} );
+					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+					// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
+					// not a client-side Elements update.
+					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
+					// because we might be using the payment element as a fallback though the flag is set to true.
+					if ( typeof elements.update === 'function' ) {
+						elements.update( {
+							setupFutureUsage:
+								stripeServerData?.cartContainsSubscription ||
+								savingPaymentMethodCheckbox?.checked
+									? 'off_session'
+									: null,
+						} );
+					}
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements ] );
+	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -322,8 +328,8 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
-		if ( getBlocksConfiguration()?.isOCEnabled ) {
-			handleDisplayOfPaymentInstructions( value.type );
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
 	};

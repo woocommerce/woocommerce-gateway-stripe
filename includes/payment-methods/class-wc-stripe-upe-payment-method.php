@@ -199,20 +199,21 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
+		$main_stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
 		if ( is_add_payment_method_page() ) {
 			if ( ! $this->is_reusable() ) {
 				return false;
 			}
 
-			$main_stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 			if ( $main_stripe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! $main_stripe_gateway->is_saved_cards_enabled() ) {
 				return false;
 			}
 		}
 
-		// When OC is enabled, we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled ) {
-			$enabled_methods     = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_upe_enabled_at_checkout_payment_method_ids();
+		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
+		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() ) {
+			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
 				function ( $method_id ) {
@@ -537,6 +538,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * Wrap test card/account numbers in `<number>` tags (e.g. `<number>4242 4242 4242 4242</number>`)
+	 * so they are rendered as copy-to-clipboard buttons at checkout.
+	 *
+	 * @see WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup()
+	 *
 	 * @return string
 	 */
 	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
@@ -695,7 +701,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
-		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_ideal_enabled() and WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_bancontact_enabled()' );
+
+		return $this->is_sepa_tokens_for_ideal_enabled() || $this->is_sepa_tokens_for_bancontact_enabled();
 	}
 
 	/**

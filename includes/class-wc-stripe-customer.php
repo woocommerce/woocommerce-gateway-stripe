@@ -177,6 +177,14 @@ class WC_Stripe_Customer {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
 
+			// If still empty, fall back to POST/order data (e.g. during auto-account creation).
+			if ( empty( $billing_first_name ) ) {
+				$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $order );
+			}
+			if ( empty( $billing_last_name ) ) {
+				$billing_last_name = $this->get_billing_data_field( 'billing_last_name', $order );
+			}
+
 			$email = $user->user_email;
 
 			// If the user email is not set, use the billing email.
@@ -229,11 +237,14 @@ class WC_Stripe_Customer {
 			'country'     => 'billing_country',
 		];
 		foreach ( $address_fields as $key => $field ) {
+			$value = '';
 			if ( $user ) {
-				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
-			} else {
-				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $order );
+				$value = get_user_meta( $user->ID, $field, true );
 			}
+			if ( empty( $value ) ) {
+				$value = $this->get_billing_data_field( $field, $order );
+			}
+			$defaults['address'][ $key ] = $value;
 		}
 
 		return wp_parse_args( $args, $defaults );
@@ -827,7 +838,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
+		$cache_key           = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
 		$all_payment_methods = get_transient( $cache_key );
 
 		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
@@ -953,7 +964,7 @@ class WC_Stripe_Customer {
 	 * @return bool True if the default source was set successfully, false otherwise.
 	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_source( $source_id ) {
+	public function set_default_source( $source_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'default_source' => sanitize_text_field( $source_id ),
@@ -981,7 +992,7 @@ class WC_Stripe_Customer {
 	 * @return bool True if the default payment method was set successfully, false otherwise.
 	 * @throws WC_Stripe_Exception
 	 */
-	public function set_default_payment_method( $payment_method_id ) {
+	public function set_default_payment_method( $payment_method_id ): bool {
 		$response = WC_Stripe_API::request(
 			[
 				'invoice_settings' => [

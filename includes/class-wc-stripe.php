@@ -164,6 +164,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-currency-code.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-country-code.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-methods.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-intent-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
@@ -205,7 +206,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		new WC_Stripe_Inbox_Notes();
 
@@ -214,6 +214,8 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-resolver.php';
 
 		// Load Agentic Commerce classes.
 		// Requires WooCommerce 10.5.0+ with FeedInterface.
@@ -233,6 +235,21 @@ class WC_Stripe {
 			}
 		}
 
+		// Load Agentic Commerce classes that do not depend on FeedInterface/core.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-api-address.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-line-item.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-checkout-session.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-order-mapper.php';
+
+		// Customize checkout (tax calculation) hook — used by the webhook handler.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-line-item.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-event.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-tax-calculator.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-shipping-calculator.php';
+
+		// Finalize checkout (manual approval) hook — used by the webhook handler.
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-manual-approval.php';
+
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 		new Sepa_Tokens_For_Other_Methods_Settings_Update();
@@ -247,8 +264,8 @@ class WC_Stripe {
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
 
-		$checkout_sessions_controller = new WC_Stripe_Checkout_Sessions_Controller();
-		$checkout_sessions_controller->init_hooks();
+		$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+		$checkout_sessions_ajax_handler->init_hooks();
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -787,6 +804,11 @@ class WC_Stripe {
 	 * @return WC_Email[]
 	 */
 	public function add_emails( $email_classes ) {
+		if ( ! class_exists( 'WC_Email', false ) ) {
+			WC_Stripe_Logger::debug( 'WC_Email class not found, skipping email class addition' );
+			return $email_classes;
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-renewal-authentication.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-preorder-authentication.php';
@@ -928,6 +950,12 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function initialize_agentic_commerce() {
+		// Check if required WooCommerce interfaces exist before loading our integration class
+		// (which implements IntegrationInterface at the class level and will fatal if it's missing).
+		if ( ! interface_exists( \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface::class ) ) {
+			return;
+		}
+
 		// Check if required classes exist.
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			return;
