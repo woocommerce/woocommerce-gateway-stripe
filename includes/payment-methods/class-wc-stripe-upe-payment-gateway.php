@@ -781,6 +781,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the payment method title.
+	 *
+	 * When Optimized Checkout is enabled, returns the title from the OC payment method class.
+	 *
+	 * @return string
+	 */
+	public function get_title() {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+		}
+		return parent::get_title();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
