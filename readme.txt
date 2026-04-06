@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout by moving it into payment_fields() instead of the woocommerce_review_order_before_payment hook
+* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
