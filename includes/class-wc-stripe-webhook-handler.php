@@ -1592,12 +1592,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
-				if ( ! empty( $payment_method_object ) && empty( $payment_method_object->error ) ) {
+				if ( ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
 					$upe_gateway->handle_saving_payment_method( $order, $payment_method_object, $payment_method_object->type );
-				}
 
-				// Clear the flag so it does not run again on webhook retries.
-				$order_helper->delete_stripe_save_payment_method( $order );
+					// Clear the flag so it does not run again on webhook retries.
+					$order_helper->delete_stripe_save_payment_method( $order );
+				}
 			}
 
 			$order->save();
