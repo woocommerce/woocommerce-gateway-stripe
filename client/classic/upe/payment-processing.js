@@ -71,7 +71,10 @@ export function initializeUPEComponents() {
 
 /**
  * After classic checkout AJAX refresh (e.g. shipping or coupon), sync line items on the Stripe Checkout Session
- * so the Payment Element amount matches the cart. Uses checkoutSessionId from create session (same value as clientSecret).
+ * so the Payment Element amount matches the cart. Uses checkoutSessionId from the create-session response.
+ *
+ * Wraps the server request in Stripe Custom Checkout {@link https://docs.stripe.com/js/custom_checkout/run_server_update runServerUpdate}
+ * when available so the embedded session state stays consistent after the update.
  *
  * @param {Object} api WCStripeAPI instance.
  * @return {Promise<void>}
@@ -83,12 +86,47 @@ export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
 
 	const seen = new Set();
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
-		const sessionId =
-			gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
+		const component = gatewayUPEComponents[ paymentMethodType ];
+		const sessionId = component?.checkoutSessionId;
 		if ( ! sessionId || seen.has( sessionId ) ) {
 			continue;
 		}
 		seen.add( sessionId );
+
+		const checkout = component?.elements;
+
+		if ( checkout && typeof checkout.loadActions === 'function' ) {
+			try {
+				const loadResult = await checkout.loadActions();
+				if (
+					loadResult.type === 'success' &&
+					typeof loadResult.actions?.runServerUpdate === 'function'
+				) {
+					try {
+						const updateResult =
+							await loadResult.actions.runServerUpdate(
+								async () => {
+									await api.checkoutSessionsUpdateSession(
+										sessionId
+									);
+								}
+							);
+						if ( updateResult.type === 'error' ) {
+							// eslint-disable-next-line no-console
+							console.error( updateResult.error );
+						}
+					} catch ( error ) {
+						// eslint-disable-next-line no-console
+						console.error( error );
+					}
+					continue;
+				}
+			} catch ( error ) {
+				// eslint-disable-next-line no-console
+				console.error( error );
+			}
+		}
+
 		try {
 			await api.checkoutSessionsUpdateSession( sessionId );
 		} catch ( error ) {
