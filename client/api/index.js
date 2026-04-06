@@ -687,4 +687,17 @@ export default class WCStripeAPI {
 			security: this.options?.createCheckoutSessionNonce,
 		} );
 	}
+
+	/**
+	 * Update a Stripe Checkout Session.
+	 *
+	 * @param {string} sessionId The ID of the checkout session to update.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	checkoutSessionsUpdateSession( sessionId ) {
+		return this.request( this.getAjaxUrl( 'update_checkout_session' ), {
+			security: this.options?.updateCheckoutSessionNonce,
+			checkout_session_id: sessionId,
+		} );
+	}
 }
