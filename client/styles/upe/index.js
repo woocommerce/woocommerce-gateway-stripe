@@ -416,13 +416,11 @@ export const getFontRulesFromPage = () => {
  */
 export const sampleFontFamily = ( isBlocksCheckout = false ) => {
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
-	for ( const selector of selectors.upeThemeTextSelectors ) {
-		const el = document.querySelector( selector );
-		if ( el ) {
-			return window.getComputedStyle( el ).fontFamily;
-		}
-	}
-	return undefined;
+	// Pass the array directly to querySelector — JS coerces it to a
+	// comma-separated CSS selector list, matching the same element
+	// resolution that getFieldStyles uses for paragraphRules.fontFamily.
+	const el = document.querySelector( selectors.upeThemeTextSelectors );
+	return el ? window.getComputedStyle( el ).fontFamily : undefined;
 };
 
 export const getAppearance = (
