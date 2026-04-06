@@ -263,6 +263,7 @@ describe( 'payment-processing', () => {
 						elementsOptions: expect.objectContaining( {
 							savedPaymentMethod: {
 								enableRedisplay: 'never',
+								enableSave: 'never',
 							},
 						} ),
 					} )

@@ -252,6 +252,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
 					savedPaymentMethod: {
 						enableRedisplay: 'never',
+						enableSave: 'never',
 					},
 				},
 				adaptivePricing: {

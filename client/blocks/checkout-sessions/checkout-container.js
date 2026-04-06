@@ -43,6 +43,7 @@ export const CheckoutContainer = ( props ) => {
 				// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
 				savedPaymentMethod: {
 					enableRedisplay: 'never',
+					enableSave: 'never',
 				},
 			},
 		} ),
