@@ -627,6 +627,59 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that update_order_status_ajax does not fail the order when a customer cancels the payment
+	 * (e.g. closes the Klarna popup), and returns an appropriate JSON error response.
+	 */
+	public function test_update_order_status_ajax_cancellation_does_not_fail_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$intent_id = 'pi_mock_cancel';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Payment_Cancelled_Exception( 'Customer cancelled checkout on Klarna' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		// Response must indicate failure so the frontend can show a message.
+		$this->assertFalse( $response['success'] );
+		$this->assertArrayHasKey( 'error', $response['data'] );
+		$this->assertStringContainsString( 'cancelled', strtolower( $response['data']['error']['message'] ) );
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( 'failed', $final_order->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
 	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
 	 */
 	public function test_confirm_change_payment_rejects_non_owner() {
