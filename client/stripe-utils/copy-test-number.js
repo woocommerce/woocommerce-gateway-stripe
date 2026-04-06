@@ -3,7 +3,12 @@ import './copy-test-number.scss';
 
 /**
  * Event-delegation handler for copy-to-clipboard buttons in test mode instructions.
- * Copies the test card/account number and shows a snackbar notification.
+ * Copies the test card/account number and shows a visual success state (icon toggle).
+ *
+ * Used by both Blocks and classic checkout (imported from each surface's entry point).
+ * The snackbar notification only appears on Blocks checkout where the `core/notices`
+ * data store renders into the DOM; on classic checkout only the icon toggle provides
+ * feedback.
  */
 document.addEventListener( 'click', function ( event ) {
 	const copyNumberButton = event.target?.closest(

@@ -7,7 +7,7 @@ let createInfoNotice;
 
 beforeAll( () => {
 	// Load the side-effect module once — it registers a document click listener.
-	require( 'wcstripe/blocks/upe/copy-test-number' );
+	require( 'wcstripe/stripe-utils/copy-test-number' );
 } );
 
 beforeEach( () => {
