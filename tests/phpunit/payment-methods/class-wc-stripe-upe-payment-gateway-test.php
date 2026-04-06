@@ -4414,6 +4414,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that the cart is cleared after a successful payment in process_payment_with_confirmation_token.
+	 */
+	public function test_process_payment_with_confirmation_token_clears_cart_on_success() {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => '',
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( 'payment_methods/pm_mock' )
+			->willReturn( $mock_payment_method );
+
+		$mock_cart = $this->getMockBuilder( 'WC_Cart' )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'empty_cart' ] )
+			->getMock();
+
+		$mock_cart->expects( $this->once() )->method( 'empty_cart' );
+
+		WC()->cart = $mock_cart;
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+	}
+
+	/**
 	 * Test that the cart is cleared after a successful payment in process_payment_with_payment_method.
 	 */
 	public function test_process_payment_with_payment_method_clears_cart_on_success() {

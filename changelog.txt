@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
-* Fix - Ensure cart is cleared after successful payment in process_payment_with_payment_method
+* Fix - Ensure cart is cleared after successful payment in all deferred intent payment flows
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
