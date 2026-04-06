@@ -118,7 +118,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * Uses the same two-step upload as deliver(), but creates the ImportSet with the
 	 * 'inventory_feed' standard_data_format for incremental stock quantity updates.
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @param FeedInterface $feed The finalized inventory feed to deliver.
 	 * @return array {
 	 *     Response with file and import set details.

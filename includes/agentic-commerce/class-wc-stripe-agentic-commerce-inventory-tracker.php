@@ -6,7 +6,7 @@
  * feed updates sent to Stripe via the inventory_feed ImportSet format.
  *
  * @package WooCommerce_Stripe
- * @since 10.5.3
+ * @since 10.6.0
  */
 
 declare(strict_types=1);
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Stock changes are batched in a WordPress option and uploaded as an inventory_feed
  * one minute after the first change, reducing API load compared to full catalog syncs.
  *
- * @since 10.5.3
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 
@@ -56,7 +56,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Register WordPress hooks.
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function register_hooks(): void {
@@ -72,7 +72,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * 60 seconds later if one is not already scheduled. Multiple changes
 	 * within that window are batched into a single upload.
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @param \WC_Product $product The product whose stock changed.
 	 * @return void
 	 */
@@ -107,7 +107,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * Returns a finalized CSV feed containing only SKU ID and quantity columns,
 	 * or null if there are no pending updates.
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
 	 */
 	public function generate_inventory_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
@@ -148,7 +148,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * cleared and the regular full catalog sync will handle the backlog on its
 	 * next run.
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function sync_inventory(): void {
