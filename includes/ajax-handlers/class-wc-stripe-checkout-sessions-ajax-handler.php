@@ -50,7 +50,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 			$currency = get_woocommerce_currency();
 			// Payable cart total: subtotal, tax, shipping, fees, minus discounts (same as checkout order total).
-			$cart_total = WC_Stripe_Helper::get_stripe_amount( WC()->cart->get_total( 'edit' ), $currency );
+			$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
 
 			$line_items = [
 				[
