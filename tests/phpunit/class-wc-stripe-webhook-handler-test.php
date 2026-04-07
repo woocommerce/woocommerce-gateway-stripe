@@ -190,6 +190,60 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Deferred webhook jobs deserialize notification stdClass to nested arrays; ensure wc_stripe_webhook_received still gets an object.
+	 *
+	 * @return void
+	 */
+	public function test_process_deferred_webhook_normalizes_array_notification_for_wc_stripe_webhook_received() {
+		$captured_notification = null;
+
+		$listener = static function ( $webhook_type, $notification ) use ( &$captured_notification ) {
+			unset( $webhook_type );
+			$captured_notification = $notification;
+		};
+
+		add_action( 'wc_stripe_webhook_received', $listener, 10, 3 );
+
+		try {
+
+			$order        = WC_Helper_Order::create_order();
+			$intent_id    = 'pi_mock_1234';
+			$data         = [
+				'order_id'  => $order->get_id(),
+				'intent_id' => $intent_id,
+			];
+			$notification = (object) [
+				'type' => 'payment_intent.succeeded',
+				'data' => (object) [
+					'object' => (object) [
+						'id'                 => $intent_id,
+						'charges'            => (object) [
+							'total_count' => 1,
+							'data'        => [
+								(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+							],
+						],
+						'last_payment_error' => null,
+					],
+				],
+			];
+
+			$notification_as_arrays = json_decode( wp_json_encode( $notification ), true );
+			$this->assertIsArray( $notification_as_arrays );
+
+			$this->mock_webhook_handler->expects( $this->once() )
+				->method( 'handle_deferred_payment_intent_succeeded' );
+
+			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification_as_arrays );
+
+			$this->assertIsObject( $captured_notification );
+			$this->assertSame( 'payment_intent.succeeded', $captured_notification->type );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener, 10 );
+		}
+	}
+
+	/**
 	 * Test deferred webhook where the intent is no longer stored on the order.
 	 */
 	public function test_mismatch_intent_id_process_deferred_webhook() {
