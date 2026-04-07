@@ -109,6 +109,9 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
+				'saved_payment_method_options'  => [
+					'payment_method_save' => 'enabled',
+				],
 			];
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
