@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Update - Change Optimized Checkout payment method title from "Stripe" to "TBD" across classic checkout, Blocks checkout, and pay-for-order pages
+* Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
