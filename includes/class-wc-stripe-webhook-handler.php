@@ -1580,11 +1580,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
+
 			// Update the order with the payment method ID if it's not already set.
-			if ( ! $order_helper->get_stripe_source_id( $order ) ) {
-				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
-				if ( ! empty( $payment_method_id ) ) {
-					$order_helper->update_stripe_source_id( $order, $payment_method_id );
+			if ( ! $order_helper->get_stripe_source_id( $order ) && ! empty( $payment_method_id ) ) {
+				$order_helper->update_stripe_source_id( $order, $payment_method_id );
+			}
+
+			// Save payment method to store if the customer requested it during checkout.
+			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
+				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+				if ( ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
+					$upe_gateway->handle_saving_payment_method( $order, $payment_method_object, $payment_method_object->type );
+
+					// Clear the flag so it does not run again on webhook retries.
+					$order_helper->delete_should_save_stripe_payment_method( $order );
 				}
 			}
 
