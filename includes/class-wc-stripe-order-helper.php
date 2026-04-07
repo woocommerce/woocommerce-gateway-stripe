@@ -79,6 +79,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
 
 	/**
+	 * Meta key for whether the payment method should be saved to the store after checkout session payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD = '_stripe_should_save_payment_method_to_store';
+
+	/**
 	 * Meta key for Stripe presentment currency.
 	 *
 	 * @var string
@@ -514,6 +521,34 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
+	}
+
+	/**
+	 * Gets whether the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function get_should_save_stripe_payment_method( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD ) );
+	}
+
+	/**
+	 * Sets the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function update_should_save_stripe_payment_method( ?WC_Order $order = null, bool $value = false ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD, wc_bool_to_string( $value ) );
+	}
+
+	/**
+	 * Clears the flag indicating the payment method should be saved to the store after a checkout session payment.
+	 *
+	 * @param WC_Order|null $order
+	 */
+	public function delete_should_save_stripe_payment_method( ?WC_Order $order = null ): void {
+		$this->delete_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD );
 	}
 
 	/**
