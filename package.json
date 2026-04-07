@@ -27,7 +27,6 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "@woocommerce/currency": "^3.2.0",
     "@woocommerce/dependency-extraction-webpack-plugin": "^3.1.0",
     "@woocommerce/eslint-plugin": "^2.2.0",
     "@woocommerce/navigation": "^8.2.0",
@@ -121,8 +120,8 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install && npx playwright install",
-    "prebuild": "npm install && composer install",
+    "postinstall": "composer install --classmap-authoritative && npx playwright install",
+    "prebuild": "npm install && composer install --classmap-authoritative",
     "prepare": "is-ci || husky install",
     "build": "npm run uglify && npm run sass && rimraf build/* && npm run build:webpack && npm run build:i18n && npm run build:release",
     "build:i18n": "npm run i18n:makepot && npm run i18n:merge",

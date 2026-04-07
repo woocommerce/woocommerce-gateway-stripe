@@ -1031,4 +1031,130 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * @dataProvider provide_update_fees_scenarios
+	 */
+	public function test_update_fees( $existing_fee, $existing_net, $api_fee, $api_net, $replace, $expected_fee, $expected_net ) {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( 0 !== $existing_fee ) {
+			$order_helper->update_stripe_fee( $order, $existing_fee );
+		}
+		if ( 0 !== $existing_net ) {
+			$order_helper->update_stripe_net( $order, $existing_net );
+		}
+
+		// Mock the Stripe API balance transaction response.
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'fee'      => $api_fee,
+					'net'      => $api_net,
+					'currency' => 'usd',
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_test123', $replace );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	/**
+	 * Tests that update_fees leaves existing meta intact when the API returns an error.
+	 */
+	public function test_update_fees_with_api_error_leaves_meta_unchanged() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_fee( $order, 1.50 );
+		$order_helper->update_stripe_net( $order, 48.50 );
+
+		$mock_response = [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => 'No such balance transaction',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 404,
+				'message' => 'Not Found',
+			],
+		];
+
+		$filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $filter );
+
+		$this->gateway->update_fees( $order, 'txn_invalid', true );
+
+		remove_filter( 'pre_http_request', $filter );
+
+		$this->assertEquals( 1.50, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertEquals( 48.50, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	public function provide_update_fees_scenarios() {
+		// API fee/net values are in cents (Stripe smallest denomination).
+		// format_balance_fee() converts to dollars (divides by 100 for USD).
+		// Existing and expected values are in dollars (already formatted).
+		return [
+			'add mode - refund adjusts existing fees'       => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => -30,
+				'api_net'      => -970,
+				'replace'      => false,
+				'expected_fee' => 1.20,
+				'expected_net' => 38.80,
+			],
+			'replace mode - capture replaces existing fees' => [
+				'existing_fee' => 1.50,
+				'existing_net' => 48.50,
+				'api_fee'      => 75,
+				'api_net'      => 2425,
+				'replace'      => true,
+				'expected_fee' => 0.75,
+				'expected_net' => 24.25,
+			],
+			'replace mode - works with no existing fees'    => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 50,
+				'api_net'      => 950,
+				'replace'      => true,
+				'expected_fee' => 0.50,
+				'expected_net' => 9.50,
+			],
+			'add mode - first time fee setting'             => [
+				'existing_fee' => 0,
+				'existing_net' => 0,
+				'api_fee'      => 100,
+				'api_net'      => 4900,
+				'replace'      => false,
+				'expected_fee' => 1.00,
+				'expected_net' => 49.00,
+			],
+		];
+	}
 }
