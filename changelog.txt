@@ -1893,7 +1893,7 @@ xxxx-xx-xx - version 10.6.0
 * Tweak - Terms and conditions error styling when required
 * Tweak - Account password error styling when required
 
-201-.7-28 - version 2.5.3
+2017-07-28 - version 2.5.3
 * Added - Filter to prevent Stripe from sending its own receipts "wc_stripe_send_stripe_receipt"
 
 2015-07-19 - version 2.5.2
