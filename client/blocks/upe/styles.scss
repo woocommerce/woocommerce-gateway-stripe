@@ -39,6 +39,8 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 /* stylelint-enable selector-id-pattern */
 
+// Note: padding and icon scale differ from classic (client/classic/upe/style.scss)
+// because the blocks checkout content area has less inherent spacing.
 .wc-stripe-acss-notice {
 	display: flex;
 	align-items: center;

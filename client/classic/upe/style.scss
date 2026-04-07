@@ -57,6 +57,8 @@
 	}
 }
 
+// Note: padding and icon scale differ from blocks (client/blocks/upe/styles.scss)
+// because the classic checkout payment fields area provides its own vertical spacing.
 .wc-stripe-acss-notice {
 	display: flex;
 	align-items: center;
