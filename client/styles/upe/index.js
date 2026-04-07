@@ -1,10 +1,6 @@
 /* global wc_stripe_upe_params */
 
-import {
-	computedStylePropertyMaps,
-	fontSmoothingProps,
-	upeRestrictedProperties,
-} from './upe-styles';
+import { getSourcePropertyName, upeRestrictedProperties } from './upe-styles';
 import {
 	generateHoverRules,
 	generateOutlineStyle,
@@ -319,16 +315,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 	const filteredStyles = {};
 
 	for ( const property of validProperties ) {
-		if ( fontSmoothingProps.includes( property ) ) {
-			const mappedProperty = computedStylePropertyMaps[ property ];
-			if ( typeof styles[ mappedProperty ] !== 'undefined' ) {
-				filteredStyles[ property ] = styles[ mappedProperty ];
-			}
-			continue;
-		}
-
-		if ( typeof styles[ property ] !== 'undefined' ) {
-			filteredStyles[ property ] = styles[ property ];
+		const sourceProperty = getSourcePropertyName( property );
+		if ( typeof styles[ sourceProperty ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ sourceProperty ];
 		}
 	}
 
