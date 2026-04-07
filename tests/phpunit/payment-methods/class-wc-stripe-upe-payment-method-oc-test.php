@@ -20,22 +20,35 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `get_title` method.
 	 *
+	 * @param mixed    $payment_details Payment details or false.
+	 * @param string[] $query_params    Query string parameters merged into $_GET.
+	 * @param string   $expected        Expected title.
+	 * @param bool     $is_checkout     When true, `is_checkout()` is forced via filter (classic checkout).
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $payment_details, $query_params, $expected ) {
-		if ( is_array( $payment_details ) ) {
-			$payment_details = json_decode( wp_json_encode( $payment_details ) );
+	public function test_get_title( $payment_details, $query_params, $expected, $is_checkout = false ) {
+		if ( $is_checkout ) {
+			add_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
-		if ( ! empty( $query_params ) ) {
-			$_GET = array_merge( $_GET, $query_params );
+		try {
+			if ( is_array( $payment_details ) ) {
+				$payment_details = json_decode( wp_json_encode( $payment_details ) );
+			}
+			if ( ! empty( $query_params ) ) {
+				$_GET = array_merge( $_GET, $query_params );
+			}
+
+			$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+			$actual         = $payment_method->get_title( $payment_details );
+
+			$this->assertEquals( $expected, $actual );
+		} finally {
+			if ( $is_checkout ) {
+				remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			}
 		}
-
-		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
-		$actual         = $payment_method->get_title( $payment_details );
-
-		$this->assertEquals( $expected, $actual );
 	}
 
 	/**
@@ -51,6 +64,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 				],
 				'query params'    => [],
 				'expected'        => 'Alipay',
+				'is checkout'     => false,
 			],
 			'block checkout page / pay for order' => [
 				'payment details' => false,
@@ -58,11 +72,19 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 					'pay_for_order' => 'true',
 				],
 				'expected'        => 'Payment Methods',
+				'is checkout'     => false,
+			],
+			'classic checkout page'               => [
+				'payment details' => false,
+				'query params'    => [],
+				'expected'        => 'Payment Options',
+				'is checkout'     => true,
 			],
 			'default, hardcoded'                  => [
 				'payment details' => false,
 				'query params'    => [],
 				'expected'        => 'Stripe',
+				'is checkout'     => false,
 			],
 		];
 	}
