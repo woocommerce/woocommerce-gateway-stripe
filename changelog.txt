@@ -39,6 +39,7 @@
 * Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
+* Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
