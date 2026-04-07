@@ -27,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$this->enabled     = $is_stripe_enabled && $this->oc_enabled ? 'yes' : 'no';
 		$this->id          = WC_Stripe_UPE_Payment_Gateway::ID; // Force the ID to be the same as the main payment gateway.
 		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'TBD';
+		$this->title       = 'Payment Options';
 		$this->is_reusable = true;
 		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 
@@ -58,7 +58,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 
 		// Block checkout and pay for order (checkout) page.
 		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return 'TBD';
+			return 'Payment Methods';
 		}
 
 		return parent::get_title();
