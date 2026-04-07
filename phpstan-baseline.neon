@@ -1387,12 +1387,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Parameter \#2 \$customer_id of method WC_Stripe_Order_Helper\:\:update_stripe_customer_id\(\) expects string, int\|string\|WP_Error given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
 			message: '#^Parameter \#2 \$message of class WP_Error constructor expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -2089,12 +2083,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:recreate_customer\(\) should return string but returns int\|WP_Error\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:set_customer_data\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2102,18 +2090,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Customer\:\:set_customer_data\(\) has parameter \$data with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_id\(\) has parameter \$id with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
 			path: includes/class-wc-stripe-customer.php
@@ -2137,14 +2113,14 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^PHPDoc tag @param has invalid value \(\[type\] \$id \[description\]\)\: Unexpected token "\[", expected type at offset 47 on line 4$#'
-			identifier: phpDoc.parseError
+			message: '#^PHPDoc tag @param references unknown parameter\: \$customer_id$#'
+			identifier: parameter.notFound
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$customer_id$#'
-			identifier: parameter.notFound
+			message: '#^Parameter \#1 \$id of method WC_Stripe_Customer\:\:set_id\(\) expects array\|string, bool\|string given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -5317,18 +5293,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request_with_level3_data\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
 			count: 5
@@ -5438,24 +5402,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$order_id of static method WC_Stripe_Helper\:\:should_force_save_payment_method\(\) expects string\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array given\.$#'
-			identifier: argument.type
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<string, array\<string, mixed\>\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php

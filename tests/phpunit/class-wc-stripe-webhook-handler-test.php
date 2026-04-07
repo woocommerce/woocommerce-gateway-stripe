@@ -1312,7 +1312,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Verify the metadata contains the correct order data.
 		$this->assertNotNull( $scheduled_args );
@@ -1373,9 +1373,64 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session( $notification );
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
 
 		// Needed to avoid flagging the test as `risky`. Actual assertions happen in the mock expectations above.
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that `checkout.session.async_payment_succeeded` processes on-hold orders.
+	 *
+	 * @return void
+	 */
+	public function test_process_async_checkout_session_success_for_on_hold_order(): void {
+		$checkout_session_id = 'cs_test_async_success_on_hold';
+
+		// Create an order in on-hold status and associate it with the checkout session.
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::ON_HOLD );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.async_payment_succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_async_success',
+				],
+			],
+		];
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->isType( 'int' ),
+				'wc_stripe_process_checkout_session_metadata',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return isset( $args['checkout_session_id'] ) && $checkout_session_id === $args['checkout_session_id'];
+					}
+				)
+			);
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertInstanceOf( WC_Order::class, $updated_order );
+		$this->assertTrue( $updated_order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) );
 	}
 }
