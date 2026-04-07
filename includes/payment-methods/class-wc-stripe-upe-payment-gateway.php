@@ -1296,7 +1296,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
-			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id );
+			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
@@ -1322,10 +1322,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param int    $order_id ID of order to be processed.
 	 * @param string $checkout_session_id ID of checkout session to be processed.
+	 * @param bool   $save_payment_method Whether to save the payment method.
+	 * @param string $selected_payment_type The selected payment type.
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_checkout_session( int $order_id, string $checkout_session_id ): array {
+	private function process_payment_with_checkout_session( int $order_id, string $checkout_session_id, bool $save_payment_method = false, string $selected_payment_type = '' ): array {
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order instanceof \WC_Order ) {
@@ -1350,6 +1352,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
+		$upe_payment_method = $this->payment_methods[ $selected_payment_type ] ?? null;
+		if ( $save_payment_method && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			$order_helper->update_should_save_stripe_payment_method( $order, true );
+		}
+
 		$order->save_meta_data();
 
 		// Remove cart.
@@ -3247,8 +3256,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order                  The WC order for which we're saving the payment method.
 	 * @param stdClass $payment_method_object  The payment method object retrieved from Stripe.
 	 * @param string   $payment_method_type    The payment method type, like `card`, `sepa_debit`, etc.
+	 *
+	 * @return void
 	 */
-	protected function handle_saving_payment_method( WC_Order $order, $payment_method_object, string $payment_method_type ) {
+	public function handle_saving_payment_method( WC_Order $order, stdClass $payment_method_object, string $payment_method_type ): void {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
