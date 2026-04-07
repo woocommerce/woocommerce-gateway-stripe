@@ -1326,7 +1326,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
 		$upe_payment_method = $this->payment_methods[ $selected_payment_type ] ?? null;
 		if ( $save_payment_method && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
-			$order_helper->update_stripe_save_payment_method( $order, true );
+			$order_helper->update_should_save_stripe_payment_method( $order, true );
 		}
 
 		$order->save_meta_data();

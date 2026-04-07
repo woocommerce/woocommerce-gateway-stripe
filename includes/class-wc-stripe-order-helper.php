@@ -83,7 +83,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @var string
 	 */
-	private const META_STRIPE_SAVE_PAYMENT_METHOD = '_stripe_save_payment_method_to_store';
+	private const META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD = '_stripe_should_save_payment_method_to_store';
 
 	/**
 	 * Meta key for Stripe presentment currency.
@@ -529,8 +529,8 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order|null $order
 	 * @return bool
 	 */
-	public function get_stripe_save_payment_method( ?WC_Order $order = null ): bool {
-		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SAVE_PAYMENT_METHOD ) );
+	public function get_should_save_stripe_payment_method( ?WC_Order $order = null ): bool {
+		return wc_string_to_bool( $this->get_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD ) );
 	}
 
 	/**
@@ -538,8 +538,8 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @param WC_Order|null $order
 	 */
-	public function update_stripe_save_payment_method( ?WC_Order $order = null, bool $value = false ): void {
-		$this->update_order_meta( $order, self::META_STRIPE_SAVE_PAYMENT_METHOD, wc_bool_to_string( $value ) );
+	public function update_should_save_stripe_payment_method( ?WC_Order $order = null, bool $value = false ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD, wc_bool_to_string( $value ) );
 	}
 
 	/**
@@ -547,8 +547,8 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @param WC_Order|null $order
 	 */
-	public function delete_stripe_save_payment_method( ?WC_Order $order = null ): void {
-		$this->delete_order_meta( $order, self::META_STRIPE_SAVE_PAYMENT_METHOD );
+	public function delete_should_save_stripe_payment_method( ?WC_Order $order = null ): void {
+		$this->delete_order_meta( $order, self::META_STRIPE_SHOULD_SAVE_PAYMENT_METHOD );
 	}
 
 	/**
