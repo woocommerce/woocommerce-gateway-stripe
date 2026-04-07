@@ -61,6 +61,7 @@ export function initializeUPEComponents() {
 			upeElement: null,
 			hasLoadError: false,
 			upeElementPromise: null,
+			checkoutSessionId: null,
 		};
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
@@ -234,6 +235,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response?.data?.client_secret;
+			const checkoutSessionId = response?.data?.session_id;
 
 			if ( ! clientSecret ) {
 				throw new Error(
@@ -256,6 +258,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...getDefaultValues( true ),
 			} );
 
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
+				checkoutSessionId;
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
 			// eslint-disable-next-line no-console
@@ -740,8 +744,44 @@ export const processPayment = (
 
 				const { actions } = loadActionsResult;
 
+				// Get the session ID stored during mount.
+				const sessionId =
+					gatewayUPEComponents[ paymentMethodType ].checkoutSessionId;
+				if ( ! sessionId ) {
+					throw new Error(
+						__(
+							'Payment could not be completed. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
+				// Append session ID and submit form to create the WC order
+				// BEFORE confirming payment, so the return URL points to the
+				// order-received page (not the checkout page).
+				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+
+				const checkoutUrl = api.getAjaxUrl( 'checkout', '' );
+				const checkoutResponse = await jQuery.ajax( {
+					type: 'POST',
+					url: checkoutUrl,
+					data: jQueryForm.serialize(),
+					dataType: 'json',
+				} );
+
+				if ( checkoutResponse.result !== 'success' ) {
+					// Trigger WC's built-in checkout error handling.
+					jQuery( document.body ).trigger( 'checkout_error', [
+						checkoutResponse.messages,
+					] );
+					return;
+				}
+
+				// Confirm payment with the order-received page as return URL
+				// so redirect-based methods (iDEAL, Bancontact, etc.) return
+				// the customer to the thank-you page instead of checkout.
 				const confirmResult = await actions.confirm( {
-					returnUrl: window.location.href,
+					returnUrl: checkoutResponse.redirect,
 					redirect: 'if_required',
 				} );
 
@@ -755,58 +795,51 @@ export const processPayment = (
 					);
 				}
 
-				const sessionId = confirmResult?.session?.id;
-				if ( ! sessionId ) {
-					throw new Error(
-						__(
-							'Payment could not be completed. Please try again.',
-							'woocommerce-gateway-stripe'
-						)
-					);
-				}
+				// No redirect occurred (non-redirect payment method).
+				// Navigate to the order-received page.
+				window.location.href = checkoutResponse.redirect;
+				return;
+			}
 
-				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
 			} else {
-				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-					validateBlikCode( jQueryForm );
-				} else {
-					await validateElements( elements );
-				}
+				await validateElements( elements );
+			}
 
-				const paymentMethodObject = await createStripePaymentMethod(
-					api,
-					elements,
+			const paymentMethodObject = await createStripePaymentMethod(
+				api,
+				elements,
+				jQueryForm,
+				paymentMethodType
+			);
+
+			appendPaymentMethodIdToForm(
+				jQueryForm,
+				paymentMethodObject.paymentMethod.id
+			);
+
+			// Append the intent ID to the form if it was previously created through a non-deferred intent.
+			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+				appendPaymentIntentIdToForm(
 					jQueryForm,
-					paymentMethodType
+					gatewayUPEComponents[ paymentMethodType ].intentId
 				);
+			}
 
-				appendPaymentMethodIdToForm(
-					jQueryForm,
-					paymentMethodObject.paymentMethod.id
-				);
-
-				// Append the intent ID to the form if it was previously created through a non-deferred intent.
-				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-					appendPaymentIntentIdToForm(
-						jQueryForm,
-						gatewayUPEComponents[ paymentMethodType ].intentId
-					);
+			let stopFormSubmission = false;
+			await additionalActionsHandler(
+				paymentMethodObject.paymentMethod,
+				jQueryForm,
+				api,
+				() => {
+					// Provide a callback to flag that a redirect has occurred.
+					stopFormSubmission = true;
 				}
+			);
 
-				let stopFormSubmission = false;
-				await additionalActionsHandler(
-					paymentMethodObject.paymentMethod,
-					jQueryForm,
-					api,
-					() => {
-						// Provide a callback to flag that a redirect has occurred.
-						stopFormSubmission = true;
-					}
-				);
-
-				if ( stopFormSubmission ) {
-					return;
-				}
+			if ( stopFormSubmission ) {
+				return;
 			}
 
 			hasCheckoutCompleted = true;

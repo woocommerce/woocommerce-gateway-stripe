@@ -15,6 +15,41 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 */
 	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
+		add_action( 'wc_ajax_wc_stripe_get_checkout_session_status', [ $this, 'get_checkout_session_status' ] );
+	}
+
+	/**
+	 * Retrieve the status of a Stripe Checkout Session.
+	 *
+	 * Used after a redirect-based payment method returns the customer to the checkout page
+	 * with a session_id URL parameter.
+	 *
+	 * @return void
+	 */
+	public function get_checkout_session_status(): void {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_get_checkout_session_status_nonce', 'security', false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$session_id = isset( $_POST['session_id'] ) ? wc_clean( wp_unslash( $_POST['session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( empty( $session_id ) ) {
+				throw new Exception( __( 'Missing checkout session ID.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$checkout_session = WC_Stripe_API::request( [], "checkout/sessions/{$session_id}", 'GET' );
+
+			if ( ! empty( $checkout_session->error ) ) {
+				$message = empty( $checkout_session->error->message ) ? __( 'Failed to retrieve checkout session.', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+				throw new Exception( $message );
+			}
+
+			wp_send_json_success( [ 'status' => $checkout_session->status ] );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Get checkout session status error.', [ 'error_message' => $e->getMessage() ] );
+			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+		}
 	}
 
 	/**
@@ -122,7 +157,12 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
+			wp_send_json_success(
+				[
+					'client_secret' => $checkout_session->client_secret,
+					'session_id'    => $checkout_session->id,
+				]
+			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );

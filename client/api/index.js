@@ -687,4 +687,17 @@ export default class WCStripeAPI {
 			security: this.options?.createCheckoutSessionNonce,
 		} );
 	}
+
+	/**
+	 * Retrieves the status of a checkout session.
+	 *
+	 * @param {string} sessionId The Stripe Checkout Session ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	checkoutSessionsGetSessionStatus( sessionId ) {
+		return this.request( this.getAjaxUrl( 'get_checkout_session_status' ), {
+			security: this.options?.getCheckoutSessionStatusNonce,
+			session_id: sessionId,
+		} );
+	}
 }
