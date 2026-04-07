@@ -522,7 +522,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
-		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector"></div>';
+		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 		if ( $expect_selector ) {
 			$this->assertStringContainsString( $selector_div, $output );
 			$selector_position    = strpos( $output, $selector_div );
