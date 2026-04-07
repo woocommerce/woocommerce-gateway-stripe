@@ -48,9 +48,13 @@ describe( 'dismissNotice', () => {
 		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', jest.fn() );
 		await new Promise( process.nextTick );
 
-		expect( global.wc_stripe_settings_params.show_bnpl_promotional_banner ).toBe( false );
+		expect(
+			global.wc_stripe_settings_params.show_bnpl_promotional_banner
+		).toBe( false );
 		// Other params should remain unchanged.
-		expect( global.wc_stripe_settings_params.show_oc_promotional_banner ).toBe( '1' );
+		expect(
+			global.wc_stripe_settings_params.show_oc_promotional_banner
+		).toBe( '1' );
 	} );
 
 	it( 'should update wc_stripe_settings_params for OC promotion banner', async () => {
@@ -63,7 +67,9 @@ describe( 'dismissNotice', () => {
 		dismissNotice( 'wc_stripe_show_oc_promotion_banner', jest.fn() );
 		await new Promise( process.nextTick );
 
-		expect( global.wc_stripe_settings_params.show_oc_promotional_banner ).toBe( false );
+		expect(
+			global.wc_stripe_settings_params.show_oc_promotional_banner
+		).toBe( false );
 	} );
 
 	it( 'should update wc_stripe_settings_params for Stripe Tax banner', async () => {
@@ -76,7 +82,9 @@ describe( 'dismissNotice', () => {
 		dismissNotice( 'wc_stripe_show_stripe_tax_banner', jest.fn() );
 		await new Promise( process.nextTick );
 
-		expect( global.wc_stripe_settings_params.show_stripe_tax_banner ).toBe( false );
+		expect( global.wc_stripe_settings_params.show_stripe_tax_banner ).toBe(
+			false
+		);
 	} );
 
 	it( 'should not throw when wc_stripe_settings_params is undefined', async () => {

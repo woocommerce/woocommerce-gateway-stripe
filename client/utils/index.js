@@ -31,8 +31,7 @@ export const dismissNotice = ( noticeKey, callback ) => {
 						'show_bnpl_promotional_banner',
 					wc_stripe_show_oc_promotion_banner:
 						'show_oc_promotional_banner',
-					wc_stripe_show_stripe_tax_banner:
-						'show_stripe_tax_banner',
+					wc_stripe_show_stripe_tax_banner: 'show_stripe_tax_banner',
 					wc_stripe_show_customization_notice:
 						'show_customization_notice',
 					wc_stripe_show_optimized_checkout_notice:
