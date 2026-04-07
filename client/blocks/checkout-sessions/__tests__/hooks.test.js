@@ -191,6 +191,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -215,6 +216,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -234,11 +236,10 @@ describe( 'CheckoutSessions hook tests', () => {
 					},
 				},
 				shippingAddress: {
-					name: 'Jane Smith',
+					name: 'John Doe',
 					address: {
 						country: 'US',
 						line1: '456 Oak Ave',
-						line2: '',
 						state: 'NY',
 						city: 'New York',
 						postal_code: '10001',
@@ -265,6 +266,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -292,6 +294,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -318,6 +321,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -347,6 +351,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -378,6 +383,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -406,6 +412,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
