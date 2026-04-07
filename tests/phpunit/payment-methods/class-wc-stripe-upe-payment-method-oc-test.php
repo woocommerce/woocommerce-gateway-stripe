@@ -32,6 +32,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 		if ( $is_checkout ) {
 			add_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
+		$original_get = $_GET;
 		try {
 			if ( is_array( $payment_details ) ) {
 				$payment_details = json_decode( wp_json_encode( $payment_details ) );
@@ -48,6 +49,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 			if ( $is_checkout ) {
 				remove_filter( 'woocommerce_is_checkout', '__return_true' );
 			}
+			$_GET = $original_get;
 		}
 	}
 
