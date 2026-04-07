@@ -998,7 +998,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$show_adaptive_pricing   = $show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 			if ( $show_adaptive_pricing ) {
-				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector style="margin: 12px 0;"></div>';
+				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 			}
 			// Output the form HTML.
 			?>
