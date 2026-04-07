@@ -657,6 +657,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$this->assertInstanceOf( WC_Stripe_Agentic_Commerce_Csv_Feed::class, $feed );
 		$this->assertNotNull( $feed->get_file_path() );
 		$this->assertFileExists( $feed->get_file_path() );
+
+		wp_delete_file( $feed->get_file_path() );
 	}
 
 	/**
@@ -723,6 +725,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_archives_skips_when_feature_disabled() {
+		// Explicitly disable the feature flag to verify the skip behavior.
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_false' );
+
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_product_archive( $product->get_id() );
 

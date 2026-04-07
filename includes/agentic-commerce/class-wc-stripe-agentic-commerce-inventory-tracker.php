@@ -397,8 +397,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 				]
 			);
 
-			// Clear pending archives on success.
-			delete_option( self::PENDING_ARCHIVES_OPTION );
+			// Remove only the entries that were included in this sync, preserving any
+			// new archive events that arrived while the upload was in progress.
+			$current_pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
+			$remaining       = array_diff_key( $current_pending, $pending );
+			if ( empty( $remaining ) ) {
+				delete_option( self::PENDING_ARCHIVES_OPTION );
+			} else {
+				update_option( self::PENDING_ARCHIVES_OPTION, $remaining, false );
+			}
 
 			// Clean up the temporary file.
 			$file_path = $feed->get_file_path();
