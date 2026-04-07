@@ -9,6 +9,7 @@ import { initializeAlwaysExpandedOptimizedCheckout } from './always-expanded-opt
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import 'wcstripe/stripe-utils/copy-test-number';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,

@@ -1468,6 +1468,155 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that customer-cancelled redirects throw WC_Stripe_Payment_Cancelled_Exception so
+	 * the order is not permanently failed.
+	 *
+	 * @dataProvider provider_cancellation_error_codes
+	 */
+	public function test_intent_error_with_requires_payment_method_throws_cancellation_exception( $error_code ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Payment_Cancelled_Exception to be thrown' );
+		$this->assertInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertStringContainsString( 'Customer cancelled checkout on Klarna', $exception->getMessage() );
+	}
+
+	public function provider_cancellation_error_codes() {
+		return [
+			'customer closed popup' => [ 'payment_method_customer_decline' ],
+			'session expired'       => [ 'payment_intent_payment_attempt_expired' ],
+		];
+	}
+
+	/**
+	 * Test that a hard payment error (non-cancellation) still throws a generic WC_Stripe_Exception.
+	 *
+	 * @dataProvider provider_hard_payment_error_intent_statuses
+	 */
+	public function test_intent_hard_error_throws_generic_exception( $intent_status, $error_code ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = $intent_status;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Your card was declined.',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Exception to be thrown' );
+		$this->assertNotInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertMatchesRegularExpression( '/not able to process this payment\./', $exception->getMessage() );
+	}
+
+	public function provider_hard_payment_error_intent_statuses() {
+		return [
+			'succeeded status'                                          => [ WC_Stripe_Intent_Status::SUCCEEDED, 'card_declined' ],
+			'canceled status'                                           => [ WC_Stripe_Intent_Status::CANCELED, 'card_declined' ],
+			'processing status'                                         => [ WC_Stripe_Intent_Status::PROCESSING, 'card_declined' ],
+			'requires_payment_method + card_declined'                   => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'card_declined' ],
+			'requires_payment_method + payment_method_provider decline' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'payment_method_provider_decline' ],
+			'requires_payment_method + insufficient_funds'              => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'insufficient_funds' ],
+		];
+	}
+
+	/**
+	 * Test that a customer-cancelled redirect (e.g. Klarna popup closed) during
+	 * process_upe_redirect_payment does NOT fail the order and redirects to checkout.
+	 */
+	public function test_process_upe_redirect_payment_cancellation_does_not_fail_order() {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => 'payment_method_customer_decline',
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		// Intercept wp_safe_redirect so that exit() is never reached, allowing assertions to run.
+		$redirect_url = null;
+		add_filter(
+			'wp_redirect',
+			function ( $location ) use ( &$redirect_url ) {
+				$redirect_url = $location;
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( OrderStatus::FAILED, $final_order->get_status() );
+
+		// A 'notice' (not 'error') should be added so checkout remains retryable.
+		$notices = wc_get_notices( 'notice' );
+		$this->assertNotEmpty( $notices );
+
+		// Should redirect back to the checkout URL, not to an error page.
+		$this->assertSame( wc_get_checkout_url(), $redirect_url );
+	}
+
+	/**
 	 * Test order status corresponds with charge status.
 	 */
 	public function test_process_response_updates_order_by_charge_status() {
@@ -3958,6 +4107,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'is_add_payment_method'      => true,
 				'is_changing_payment_method' => true,
 				'expected'                   => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `expand_copy_button_markup`.
+	 *
+	 * @dataProvider provider_expand_copy_button_markup
+	 *
+	 * @param string $input    Input string with <number> tags.
+	 * @param string $expected Expected output with copy button markup.
+	 *
+	 * @return void
+	 */
+	public function test_expand_copy_button_markup( $input, $expected ) {
+		$actual = WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup( $input );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_expand_copy_button_markup`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_expand_copy_button_markup() {
+		$copy_label = 'Copy to clipboard';
+		return [
+			'string with multiple number tags' => [
+				'input'    => 'Use <number>4242 4242 4242 4242</number> and <number>AT611904300234573201</number>.',
+				'expected' => 'Use <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> and <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>AT611904300234573201</span></button>.',
+			],
+			'string with number tag'           => [
+				'input'    => '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry.',
+				'expected' => '<strong>Test mode:</strong> use card <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> with any expiry.',
+			],
+			'string without number tag'        => [
+				'input'    => '<strong>Test mode:</strong> use any 6-digit number.',
+				'expected' => '<strong>Test mode:</strong> use any 6-digit number.',
+			],
+			'empty string'                     => [
+				'input'    => '',
+				'expected' => '',
 			],
 		];
 	}
