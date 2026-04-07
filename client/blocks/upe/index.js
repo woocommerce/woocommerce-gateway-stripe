@@ -23,6 +23,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import 'wcstripe/blocks/express-checkout/styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(
@@ -59,21 +60,18 @@ Object.entries( paymentMethodsConfig )
 	} );
 
 // Register Express Checkout Elements.
-if ( ! getBlocksConfiguration()?.isAdaptivePricingEnabled ) {
-	// TODO: Remove this check when Adaptive Pricing is supported with ECE.
-	if (
-		getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-		getBlocksConfiguration()?.isAmazonPayEnabled
-	) {
-		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
-		registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
-	}
-	if ( getBlocksConfiguration()?.isLinkEnabled ) {
-		registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
-	}
+if (
+	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+	getBlocksConfiguration()?.isAmazonPayEnabled
+) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 }
 
 // Update token labels when the checkout form is loaded.

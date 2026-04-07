@@ -1482,10 +1482,35 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param object $notification The notification from Stripe
 	 * @return void
+	 *
+	 * @deprecated 10.6.0 Use process_checkout_session_success instead.
 	 */
 	public function process_checkout_session( object $notification ): void {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'process_checkout_session_success' );
+		$this->process_checkout_session_success( $notification );
+	}
+
+	/**
+	 * Processes the checkout session success events.
+	 * This includes:
+	 * - checkout.session.completed event; Fires when a Stripe Checkout session is completed.
+	 * - checkout.session.async_payment_succeeded event; Fires when an asynchronous payment method on a Stripe Checkout session succeeds.
+	 *
+	 * This webhook exists for both standard post-payment checkout
+	 * sessions, as well as agentic checkout sessions.
+	 *
+	 * @param object $notification The notification from Stripe
+	 * @return void
+	 */
+	public function process_checkout_session_success( object $notification ): void {
 		$checkout_session = $notification->data->object;
-		$session_id       = $checkout_session->id;
+
+		if ( ! isset( $checkout_session->id ) ) {
+			WC_Stripe_Logger::error( 'Checkout session ID is missing from the event data.' );
+			return;
+		}
+
+		$session_id = $checkout_session->id;
 
 		// Refresh the cached checkout session with the latest data from the webhook so that
 		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
@@ -1525,7 +1550,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 */
 		$allowed_payment_processing_statuses = apply_filters(
 			'wc_stripe_allowed_payment_processing_statuses',
-			[ OrderStatus::PENDING, OrderStatus::FAILED ],
+			[ OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::ON_HOLD ],
 			$order
 		);
 
@@ -1545,7 +1570,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 
-			$intent_id = $checkout_session->payment_intent;
+			$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
 
 			// Store the payment intent ID on the order.
 			if ( ! empty( $intent_id ) ) {
@@ -1580,11 +1605,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
+
 			// Update the order with the payment method ID if it's not already set.
-			if ( ! $order_helper->get_stripe_source_id( $order ) ) {
-				$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
-				if ( ! empty( $payment_method_id ) ) {
-					$order_helper->update_stripe_source_id( $order, $payment_method_id );
+			if ( ! $order_helper->get_stripe_source_id( $order ) && ! empty( $payment_method_id ) ) {
+				$order_helper->update_stripe_source_id( $order, $payment_method_id );
+			}
+
+			// Save payment method to store if the customer requested it during checkout.
+			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
+				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+				if ( ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
+					$upe_gateway->handle_saving_payment_method( $order, $payment_method_object, $payment_method_object->type );
+
+					// Clear the flag so it does not run again on webhook retries.
+					$order_helper->delete_should_save_stripe_payment_method( $order );
 				}
 			}
 
@@ -1764,7 +1801,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 				break;
 			case 'checkout.session.completed':
-				$this->process_checkout_session( $notification );
+			case 'checkout.session.async_payment_succeeded':
+				$this->process_checkout_session_success( $notification );
 				break;
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':
