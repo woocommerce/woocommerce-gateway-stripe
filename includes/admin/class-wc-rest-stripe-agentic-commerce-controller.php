@@ -79,9 +79,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		return rest_ensure_response(
 			[
-				'last_sync'  => empty( $last_sync ) ? null : $this->format_sync_entry( $last_sync ),
-				'history'    => $history,
-				'next_sync'  => $next_sync,
+				'last_sync' => empty( $last_sync ) ? null : $this->format_sync_entry( $last_sync ),
+				'history'   => $history,
+				'next_sync' => $next_sync,
 			]
 		);
 	}
