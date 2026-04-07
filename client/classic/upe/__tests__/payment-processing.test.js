@@ -142,7 +142,6 @@ const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
 	f.serialize = jest.fn( () => 'billing_first_name=John' );
 	f.append = jest.fn();
 	f.find = jest.fn( () => ( {
-    length: 0,
 		is: jest.fn( () => savePaymentMethodChecked ),
 	} ) );
 	return f;
@@ -478,13 +477,18 @@ describe( 'payment-processing', () => {
 			} );
 
 			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						session: { id: 'cs_session_xyz' },
-					} ),
+					confirm: jest.fn().mockResolvedValue( {} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -498,7 +502,7 @@ describe( 'payment-processing', () => {
 				await flushPromises();
 
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
-					returnUrl: window.location.href,
+					returnUrl: orderReceivedUrl,
 					redirect: 'if_required',
 					savePaymentMethod: true,
 				} );
