@@ -172,7 +172,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET history entries include expected fields but omit file_id.
+	 * GET history entries include all expected fields.
 	 */
 	public function test_get_status_history_entry_shape(): void {
 		update_option(
@@ -197,12 +197,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'timestamp', $entry );
 		$this->assertArrayHasKey( 'products', $entry );
 		$this->assertArrayHasKey( 'import_set_id', $entry );
+		$this->assertArrayHasKey( 'file_id', $entry );
 		$this->assertArrayHasKey( 'error', $entry );
 		$this->assertEquals( 'failed', $entry['status'] );
+		$this->assertEquals( 'file_err', $entry['file_id'] );
 		$this->assertEquals( 'Something went wrong', $entry['error'] );
-
-		// file_id is not included in history entries (only in last_sync).
-		$this->assertArrayNotHasKey( 'file_id', $entry );
 	}
 
 	/**
