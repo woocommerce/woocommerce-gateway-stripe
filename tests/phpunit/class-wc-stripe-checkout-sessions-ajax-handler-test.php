@@ -17,6 +17,141 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 				[ $ajax_handler, 'create_checkout_session' ]
 			)
 		);
+		$this->assertTrue(
+			(bool) has_action(
+				'wc_ajax_wc_stripe_get_checkout_session_status',
+				[ $ajax_handler, 'get_checkout_session_status' ]
+			)
+		);
+	}
+
+	/**
+	 * Tests for the `get_checkout_session_status` method.
+	 *
+	 * @param bool        $is_valid_nonce            Whether the AJAX nonce is valid.
+	 * @param string      $session_id                The checkout session ID to query.
+	 * @param object|null $checkout_session_response  The mocked response from the Stripe API.
+	 * @param object      $expected_response          The expected AJAX response.
+	 * @return void
+	 * @dataProvider provide_test_get_checkout_session_status
+	 */
+	public function test_get_checkout_session_status(
+		bool $is_valid_nonce,
+		string $session_id,
+		?object $checkout_session_response,
+		object $expected_response
+	): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$test_request = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_response, $session_id ) {
+			if ( strpos( $url, "checkout/sessions/{$session_id}" ) !== false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( $checkout_session_response ),
+				];
+			}
+
+			return $return_value;
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = $is_valid_nonce ? wp_create_nonce( 'wc_stripe_get_checkout_session_status_nonce' ) : 'invalid_nonce_value';
+		$_POST['session_id']     = $session_id;
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->get_checkout_session_status();
+			$output = ob_get_clean();
+		} catch ( \Exception $e ) {
+			ob_end_clean();
+			throw $e;
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['session_id'] );
+		}
+
+		$response = json_decode( $output );
+		$this->assertEquals( (object) $expected_response, $response );
+	}
+
+	/**
+	 * Data provider for `test_get_checkout_session_status`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_checkout_session_status(): array {
+		return [
+			'invalid nonce'           => [
+				'is valid nonce'            => false,
+				'session id'                => 'cs_test_123',
+				'checkout session response' => null,
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => "We're not able to process this request. Please refresh the page and try again.",
+					],
+				],
+			],
+			'missing session id'      => [
+				'is valid nonce'            => true,
+				'session id'                => '',
+				'checkout session response' => null,
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'Missing checkout session ID.',
+					],
+				],
+			],
+			'api error'               => [
+				'is valid nonce'            => true,
+				'session id'                => 'cs_test_error',
+				'checkout session response' => (object) [
+					'error' => (object) [
+						'message' => 'No such checkout.session',
+					],
+				],
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'No such checkout.session',
+					],
+				],
+			],
+			'session status complete' => [
+				'is valid nonce'            => true,
+				'session id'                => 'cs_test_complete',
+				'checkout session response' => (object) [
+					'id'     => 'cs_test_complete',
+					'status' => 'complete',
+				],
+				'expected response'         => (object) [
+					'success' => true,
+					'data'    => (object) [
+						'status' => 'complete',
+					],
+				],
+			],
+			'session status expired'  => [
+				'is valid nonce'            => true,
+				'session id'                => 'cs_test_expired',
+				'checkout session response' => (object) [
+					'id'     => 'cs_test_expired',
+					'status' => 'expired',
+				],
+				'expected response'         => (object) [
+					'success' => true,
+					'data'    => (object) [
+						'status' => 'expired',
+					],
+				],
+			],
+		];
 	}
 
 	/**
@@ -131,7 +266,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$checkout_session_missing_secret = (object) [];
 
+		$mocked_session_id = 'cs_test_session_001';
+
 		$checkout_session_success = (object) [
+			'id'            => $mocked_session_id,
 			'client_secret' => $mocked_secret,
 		];
 
@@ -205,6 +343,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => true,
 					'data'    => (object) [
 						'client_secret' => $mocked_secret,
+						'session_id'    => $mocked_session_id,
 					],
 				],
 			],
