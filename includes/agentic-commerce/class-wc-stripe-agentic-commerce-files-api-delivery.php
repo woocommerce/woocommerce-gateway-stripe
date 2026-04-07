@@ -138,7 +138,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 *
 	 * Shared implementation for deliver() and deliver_inventory_feed().
 	 *
-	 * @since 10.5.3
+	 * @since 10.6.0
 	 * @param FeedInterface $feed                 The feed to deliver.
 	 * @param string        $standard_data_format The ImportSet standard_data_format value.
 	 * @param string        $log_prefix           Label used in log messages (e.g. "Product catalog", "Inventory").
