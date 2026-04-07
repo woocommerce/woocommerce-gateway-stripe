@@ -437,6 +437,10 @@ describe( 'payment-processing', () => {
 			};
 
 			it( 'submits form via AJAX, then confirms with order-received URL', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -466,7 +470,10 @@ describe( 'payment-processing', () => {
 				).toHaveBeenCalledWith( form, 'cs_test_session_123' );
 				// Form is submitted via AJAX to create the order.
 				expect( mockJQueryAjax ).toHaveBeenCalledWith(
-					expect.objectContaining( { type: 'POST' } )
+					expect.objectContaining( {
+						type: 'POST',
+						url: api.getAjaxUrl(),
+					} )
 				);
 				// Confirm is called with the order-received URL.
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
@@ -474,6 +481,9 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 					savePaymentMethod: false,
 				} );
+				// After confirm resolves, navigates to the order-received page.
+				expect( window.location.href ).toBe( orderReceivedUrl );
+				window.location = originalLocation;
 			} );
 
 			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
