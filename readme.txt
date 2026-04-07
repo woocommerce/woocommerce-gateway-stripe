@@ -191,5 +191,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Fix - Handle redirect payment flow in classic checkout for Checkout Sessions
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

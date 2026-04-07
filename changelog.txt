@@ -43,6 +43,7 @@
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Fix - Handle redirect payment flow in classic checkout for Checkout Sessions
 
 = 10.5.3 - 2026-03-19 =
 * Fix - Restore default layout when Optimized Checkout is disabled
