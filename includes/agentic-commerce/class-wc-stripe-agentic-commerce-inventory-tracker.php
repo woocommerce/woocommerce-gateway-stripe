@@ -6,7 +6,7 @@
  * feed updates sent to Stripe via the inventory_feed ImportSet format.
  *
  * @package WooCommerce_Stripe
- * @since 10.5.0
+ * @since 10.6.0
  */
 
 declare(strict_types=1);
@@ -15,15 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
-
 /**
  * Tracks product stock changes and syncs incremental inventory updates to Stripe.
  *
  * Stock changes are batched in a WordPress option and uploaded as an inventory_feed
  * one minute after the first change, reducing API load compared to full catalog syncs.
  *
- * @since 10.5.0
+ * @since 10.6.0
  */
 class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 
@@ -72,7 +70,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Register WordPress hooks.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function register_hooks(): void {
@@ -91,7 +89,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * 60 seconds later if one is not already scheduled. Multiple changes
 	 * within that window are batched into a single upload.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @param \WC_Product $product The product whose stock changed.
 	 * @return void
 	 */
@@ -104,6 +102,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return;
 		}
 
+		// Use the WooCommerce product ID as sku_id. get_sku() is not used because SKUs
+		// are optional in WooCommerce and may be empty or non-unique, whereas product IDs
+		// are guaranteed to be unique and always present.
 		$pending[ $product->get_id() ] = [
 			'sku_id'    => $product->get_id(),
 			'quantity'  => $product->get_stock_quantity(),
@@ -161,7 +162,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * Returns a finalized CSV feed containing only SKU ID and quantity columns,
 	 * or null if there are no pending updates.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
 	 */
 	public function generate_inventory_feed(): ?WC_Stripe_Agentic_Commerce_Csv_Feed {
@@ -202,7 +203,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * cleared and the regular full catalog sync will handle the backlog on its
 	 * next run.
 	 *
-	 * @since 10.5.0
+	 * @since 10.6.0
 	 * @return void
 	 */
 	public function sync_inventory(): void {
@@ -228,13 +229,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return;
 		}
 
-		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $this->get_secret_key() );
+		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( WC_Stripe_API::get_secret_key() );
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Inventory sync skipped - Stripe API key not configured' );
 			return;
 		}
 
+		$feed = null;
 		try {
 			$feed = $this->generate_inventory_feed();
 
@@ -253,8 +255,15 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 				]
 			);
 
-			// Clear pending updates on success.
-			delete_option( self::PENDING_UPDATES_OPTION );
+			// Remove only the entries that were included in this sync, preserving any
+			// new stock changes that arrived while the upload was in progress.
+			$current_pending = get_option( self::PENDING_UPDATES_OPTION, [] );
+			$remaining       = array_diff_key( $current_pending, $pending );
+			if ( empty( $remaining ) ) {
+				delete_option( self::PENDING_UPDATES_OPTION );
+			} else {
+				update_option( self::PENDING_UPDATES_OPTION, $remaining, false );
+			}
 
 			// Clean up the temporary file.
 			$file_path = $feed->get_file_path();
@@ -269,7 +278,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 					'code'  => $e->getCode(),
 				]
 			);
-			// Do not clear pending updates on failure — next scheduled action will retry.
+
+			// Clean up the temporary file even on failure.
+			// $feed is non-null here: if generate_inventory_feed() returned null we
+			// would have returned early before any exception could be thrown.
+			$file_path = $feed->get_file_path();
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
+
+			// Reschedule a retry in case no new stock changes arrive to trigger a fresh sync.
+			if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
+				as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::SCHEDULED_ACTION, [], 'wc-stripe' );
+			}
 		}
 	}
 
@@ -350,13 +371,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return;
 		}
 
-		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $this->get_secret_key() );
+		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( WC_Stripe_API::get_secret_key() );
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Archive sync skipped - Stripe API key not configured' );
 			return;
 		}
 
+		$feed = null;
 		try {
 			$feed = $this->generate_archive_feed();
 
@@ -391,24 +413,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 					'code'  => $e->getCode(),
 				]
 			);
-			// Do not clear pending archives on failure — next scheduled action will retry.
+
+			// Clean up the temporary file even on failure.
+			// $feed is non-null here: if generate_archive_feed() returned null we
+			// would have returned early before any exception could be thrown.
+			$file_path = $feed->get_file_path();
+			if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
+
+			// Reschedule a retry in case no new archive events arrive to trigger a fresh sync.
+			if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ARCHIVE_SCHEDULED_ACTION ) ) {
+				as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::ARCHIVE_SCHEDULED_ACTION, [], 'wc-stripe' );
+			}
 		}
-	}
-
-	/**
-	 * Get Stripe secret key from plugin settings.
-	 *
-	 * @since 10.5.0
-	 * @return string Stripe secret key.
-	 */
-	private function get_secret_key(): string {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-
-		if ( $test_mode ) {
-			return $settings['test_secret_key'] ?? '';
-		}
-
-		return $settings['secret_key'] ?? '';
 	}
 }
