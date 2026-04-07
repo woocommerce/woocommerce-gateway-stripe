@@ -36,6 +36,7 @@
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
+* Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
 * Add - Add Ajax endpoint to update line items in a checkout session
 

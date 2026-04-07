@@ -121,7 +121,12 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
+			wp_send_json_success(
+				[
+					'client_secret' => $checkout_session->client_secret,
+					'session_id'    => $checkout_session->id,
+				]
+			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
