@@ -77,8 +77,12 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		add_action( 'woocommerce_product_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( 'woocommerce_variation_set_stock', [ $this, 'track_stock_change' ] );
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_inventory' ] );
-		add_action( 'woocommerce_before_delete_product', [ $this, 'track_product_archive' ] );
-		add_action( 'woocommerce_trash_product', [ $this, 'track_product_archive' ] );
+		// Use WordPress-level hooks rather than WooCommerce data-store hooks
+		// (woocommerce_before_delete_product / woocommerce_trash_product) because
+		// the data-store hooks only fire through the REST API or programmatic
+		// $product->delete() calls, not through the WordPress admin UI.
+		add_action( 'before_delete_post', [ $this, 'maybe_track_product_archive' ] );
+		add_action( 'wp_trash_post', [ $this, 'maybe_track_product_archive' ] );
 		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
 
@@ -116,6 +120,23 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::SCHEDULED_ACTION ) ) {
 			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::SCHEDULED_ACTION, [], 'wc-stripe' );
 		}
+	}
+
+	/**
+	 * Route a WordPress post deletion or trash event to track_product_archive() if it is a product.
+	 *
+	 * Hooked to before_delete_post and wp_trash_post so that product removals via the
+	 * WordPress admin UI are captured in addition to programmatic / REST API deletions.
+	 *
+	 * @since 10.6.0
+	 * @param int $post_id The ID of the post being deleted or trashed.
+	 * @return void
+	 */
+	public function maybe_track_product_archive( int $post_id ): void {
+		if ( 'product' !== get_post_type( $post_id ) ) {
+			return;
+		}
+		$this->track_product_archive( $post_id );
 	}
 
 	/**

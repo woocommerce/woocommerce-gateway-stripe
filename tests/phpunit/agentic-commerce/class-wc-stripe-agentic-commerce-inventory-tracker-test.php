@@ -56,8 +56,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
-			remove_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_archive' ] );
-			remove_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_archive' ] );
+			remove_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] );
+			remove_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
@@ -117,19 +117,54 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	/**
 	 * Test register_hooks attaches archive hooks.
 	 *
+	 * Uses before_delete_post and wp_trash_post (WordPress-level hooks) rather than
+	 * the WooCommerce data-store hooks, which only fire through the REST API.
+	 *
 	 * @return void
 	 */
 	public function test_register_hooks_attaches_archive_hooks() {
 		$this->sut->register_hooks();
 
-		$this->assertNotFalse( has_action( 'woocommerce_before_delete_product', [ $this->sut, 'track_product_archive' ] ) );
-		$this->assertNotFalse( has_action( 'woocommerce_trash_product', [ $this->sut, 'track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
 		$this->assertNotFalse(
 			has_action(
 				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
 				[ $this->sut, 'sync_archives' ]
 			)
 		);
+	}
+
+	// -------------------------------------------------------------------------
+	// maybe_track_product_archive
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test that maybe_track_product_archive tracks a product.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_tracks_product() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->maybe_track_product_archive( $product->get_id() );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+	}
+
+	/**
+	 * Test that maybe_track_product_archive ignores non-product post types.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_ignores_non_products() {
+		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
+
+		$this->sut->maybe_track_product_archive( $page_id );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
 	}
 
 	// -------------------------------------------------------------------------
