@@ -26,6 +26,7 @@ describe( 'CheckoutSessions hook tests', () => {
 		const checkoutSessionId = 'cs_test_123';
 
 		beforeEach( () => {
+			document.body.innerHTML = '';
 			onPaymentSetup.mockImplementation( ( fn ) => {
 				onPaymentSetupResultPromise = fn();
 			} );
@@ -119,6 +120,26 @@ describe( 'CheckoutSessions hook tests', () => {
 				},
 			} );
 		} );
+
+		it( 'returns save_payment_method yes when the Blocks save checkbox is checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result.meta.paymentMethodData.save_payment_method ).toBe(
+				'yes'
+			);
+		} );
 	} );
 
 	describe( 'useCheckoutSuccessHandler hook', () => {
@@ -151,6 +172,7 @@ describe( 'CheckoutSessions hook tests', () => {
 		};
 
 		beforeEach( () => {
+			document.body.innerHTML = '';
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -223,6 +245,8 @@ describe( 'CheckoutSessions hook tests', () => {
 					},
 				},
 				returnUrl: 'https://example.com/return-here',
+				redirect: 'if_required',
+				savePaymentMethod: false,
 			} );
 		} );
 
@@ -363,6 +387,35 @@ describe( 'CheckoutSessions hook tests', () => {
 			);
 
 			document.body.removeChild( phoneInput );
+		} );
+
+		it( 'confirm passes savePaymentMethod true when save checkbox is checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const confirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+			expect( confirm ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					returnUrl: 'https://example.com/return-here',
+					redirect: 'if_required',
+					savePaymentMethod: true,
+				} )
+			);
 		} );
 	} );
 

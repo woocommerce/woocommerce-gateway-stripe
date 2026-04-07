@@ -43,17 +43,17 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 				->method( 'create_and_confirm_payment_intent' )
 				->willReturn(
 					(object) [
-						'id'                => 'pi_123abc',
-						'object'            => 'payment_intent',
-						'payment_method'    => (object) [
+						'id'             => 'pi_123abc',
+						'object'         => 'payment_intent',
+						'payment_method' => (object) [
 							WC_Stripe_Payment_Methods::CARD => (object) [
-								'brand'    => 'visa',
+								'brand'     => 'visa',
 								'exp_month' => 12,
 								'exp_year'  => 2034,
-								'last4'    => '4242',
+								'last4'     => '4242',
 							],
 						],
-						'status'           => WC_Stripe_Intent_Status::SUCCEEDED,
+						'status'         => WC_Stripe_Intent_Status::SUCCEEDED,
 					],
 				);
 
@@ -92,15 +92,15 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 				'headers'  => [],
 				'body'     => json_encode(
 					(object) [
-						'id'              => 'pm_test_123',
-						'object'          => 'payment_method',
+						'id'                            => 'pm_test_123',
+						'object'                        => 'payment_method',
 						WC_Stripe_Payment_Methods::CARD => (object) [
-							'brand'    => 'visa',
+							'brand'     => 'visa',
 							'exp_month' => 12,
 							'exp_year'  => 2034,
-							'last4'    => '4242',
+							'last4'     => '4242',
 						],
-						'customer'        => $customer,
+						'customer'                      => $customer,
 					],
 				),
 				'response' => [

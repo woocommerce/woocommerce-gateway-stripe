@@ -100,6 +100,64 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that create_payment_intent uses the correct currency.
+	 *
+	 * @param string|null $order_currency   Currency to set on the order, or null to skip passing an order.
+	 * @param string      $global_currency  Currency returned by the woocommerce_currency filter.
+	 * @param string      $expected_currency Expected currency in the Stripe API request.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4925
+	 * @dataProvider provide_create_payment_intent_currency_data
+	 */
+	public function test_create_payment_intent_chooses_currency( $order_currency, $global_currency, $expected_currency ) {
+		$order_id = null;
+
+		if ( null !== $order_currency ) {
+			$this->order->set_currency( $order_currency );
+			$this->order->save();
+			$order_id = $this->order->get_id();
+		}
+
+		$currency_callback = function () use ( $global_currency ) {
+			return $global_currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_callback );
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_currency ) {
+			$this->assertEquals( $expected_currency, $parsed_args['body']['currency'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 1,
+						'client_secret' => '123',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_payment_intent( $order_id );
+
+		remove_filter( 'woocommerce_currency', $currency_callback );
+	}
+
+	/**
+	 * Data provider for test_create_payment_intent_chooses_currency.
+	 *
+	 * @return array[] [ order_currency, global_currency, expected_currency ]
+	 */
+	public function provide_create_payment_intent_currency_data() {
+		return [
+			'uses order currency when order exists' => [ 'USD', 'CAD', 'usd' ],
+			'uses global currency without order'    => [ null, 'EUR', 'eur' ],
+		];
+	}
+
+	/**
 	 * Test for `update_and_confirm_payment_intent` method.
 	 *
 	 * @param array $payment_information Payment information.
@@ -421,12 +479,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function test_create_and_confirm_setup_intent_error() {
 		$payment_information = [
 			'payment_method'        => 'pm_mock',
-			'customer'             => 'cus_mock',
+			'customer'              => 'cus_mock',
 			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
-			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
-			'return_url'           => 'https://example.com/return',
-			'order'               => $this->order,
-			'use_stripe_sdk'      => 'true',
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
 		];
 
 		$test_request = function ( $preempt, $parsed_args, $url ) {
@@ -526,7 +584,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		ob_start();
 		$this->mock_controller->create_and_confirm_setup_intent_ajax();
-		$output = ob_get_clean();
+		$output   = ob_get_clean();
 		$response = json_decode( $output, true );
 		$this->assertFalse( $response['success'] );
 		$this->assertArrayHasKey( 'error', $response['data'] );
@@ -566,6 +624,59 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		);
 
 		return $subscription;
+	}
+
+	/**
+	 * Test that update_order_status_ajax does not fail the order when a customer cancels the payment
+	 * (e.g. closes the Klarna popup), and returns an appropriate JSON error response.
+	 */
+	public function test_update_order_status_ajax_cancellation_does_not_fail_order() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$intent_id = 'pi_mock_cancel';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Payment_Cancelled_Exception( 'Customer cancelled checkout on Klarna' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway' ] )
+			->getMock();
+
+		$controller->expects( $this->any() )
+			->method( 'get_gateway' )
+			->willReturn( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		ob_start();
+		$controller->update_order_status_ajax();
+		$output   = ob_get_clean();
+		$response = json_decode( $output, true );
+
+		// Response must indicate failure so the frontend can show a message.
+		$this->assertFalse( $response['success'] );
+		$this->assertArrayHasKey( 'error', $response['data'] );
+		$this->assertStringContainsString( 'cancelled', strtolower( $response['data']['error']['message'] ) );
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( 'failed', $final_order->get_status() );
+
+		Ajax_Test_Helper::remove_hooks();
 	}
 
 	/**

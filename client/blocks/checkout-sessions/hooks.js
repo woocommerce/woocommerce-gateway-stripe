@@ -1,6 +1,7 @@
 import { useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
+import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -79,7 +80,10 @@ export const usePaymentSetupHandler = (
 						meta: {
 							paymentMethodData: {
 								payment_method: 'stripe',
-								save_payment_method: 'no', // TODO: Correctly handle this when supporting saved payment methods in the future.
+								save_payment_method:
+									isSavePaymentMethodCheckboxChecked()
+										? 'yes'
+										: 'no',
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
 							},
@@ -159,6 +163,8 @@ export const useCheckoutSuccessHandler = (
 							},
 						},
 						returnUrl: redirect,
+						redirect: 'if_required',
+						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
 					};
 
 					// If checkout session doesn't have email, attempt to get it from the checkout form.

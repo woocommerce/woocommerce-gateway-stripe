@@ -378,6 +378,96 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
 	}
 
+	/**
+	 * When Stripe Radar blocks a subscription renewal payment, the renewal order
+	 * should be marked as failed AND the parent subscription should be put on hold
+	 * to prevent WC Subscriptions from scheduling further retries that would also
+	 * be blocked (inflating the Radar block rate).
+	 */
+	public function test_renewal_radar_blocked_puts_subscription_on_hold() {
+		// Arrange.
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$customer                      = 'cus_123abc';
+		$source                        = 'src_123abc';
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$charges_api_base              = 'https://api.stripe.com/v1/charges/';
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Set up a mock subscription so we can assert its status changes.
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->update_status( 'active' );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		// Mock HTTP: PI confirm returns a Radar-blocked card_declined error; the
+		// subsequent charge fetch returns a charge with outcome.type === 'blocked'.
+		$pre_http_request_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
+			$payments_intents_api_endpoint,
+			$charges_api_base
+		) {
+			if ( $payments_intents_api_endpoint === $url ) {
+				return [
+					'headers'  => [],
+					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_radar_blocked.json' ),
+					'response' => [
+						'code'    => 402,
+						'message' => 'Payment Required',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			if ( strpos( $url, $charges_api_base ) === 0 ) {
+				return [
+					'headers'  => [],
+					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return false;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_callback, 10, 3 );
+
+		// Act.
+		$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+
+		// Assert: the renewal order itself is marked as failed.
+		$order = wc_get_order( $renewal_order->get_id() );
+		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+
+		// Assert: the parent subscription was put on hold to stop WC Subscriptions retries.
+		$this->assertSame( OrderStatus::ON_HOLD, $mock_subscription->get_status() );
+
+		// Clean up.
+		remove_filter( 'pre_http_request', $pre_http_request_callback );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+	}
+
 	public function test_missing_customer() {
 		$renewal_order = WC_Helper_Order::create_order();
 		$source        = 'src_123abc';

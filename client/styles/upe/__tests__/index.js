@@ -128,6 +128,21 @@ describe( 'Getting styles for automated theming', () => {
 		] );
 	} );
 
+	it( 'getFontRulesFromPage returns font rules from fonts.bunny.net by default', () => {
+		const mockStyleSheets = {
+			length: 1,
+			0: { href: 'https://fonts.bunny.net/css?family=Inter' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.bunny.net/css?family=Inter' },
+		] );
+	} );
+
 	it( 'getFontRulesFromPage includes stylesheets from extra domains in permittedFontDomains', () => {
 		global.wc_stripe_upe_params = {
 			...global.wc_stripe_upe_params,

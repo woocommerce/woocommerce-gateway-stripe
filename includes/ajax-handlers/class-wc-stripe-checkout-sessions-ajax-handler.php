@@ -5,9 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WC_Stripe_Checkout_Sessions_Controller class.
+ * WC_Stripe_Checkout_Sessions_Ajax_Handler class.
  */
-class WC_Stripe_Checkout_Sessions_Controller {
+class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Initialize hooks.
 	 *
@@ -41,6 +41,9 @@ class WC_Stripe_Checkout_Sessions_Controller {
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
+				],
+				'saved_payment_method_options'  => [
+					'payment_method_save' => 'enabled',
 				],
 			];
 
@@ -90,13 +93,13 @@ class WC_Stripe_Checkout_Sessions_Controller {
 
 			$line_items[] = [
 				'price_data' => [
-					'currency' => $currency,
+					'currency'     => $currency,
 					'product_data' => [
 						'name' => $raw_line_item['label'],
 					],
-					'unit_amount' => $raw_line_item['amount'],
+					'unit_amount'  => $raw_line_item['amount'],
 				],
-				'quantity' => 1, // @TODO: Handle quantity properly if needed (#4984).
+				'quantity'   => 1, // @TODO: Handle quantity properly if needed (#4984).
 			];
 		}
 

@@ -247,7 +247,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	private function set_postvars_for_saved_payment_method() {
 		$token = WC_Helper_Token::create_token( 'pm_mock' );
 		$_POST = [
-			'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID,
+			'payment_method'                                             => WC_Stripe_UPE_Payment_Gateway::ID,
 			'wc-' . WC_Stripe_UPE_Payment_Gateway::ID . '-payment-token' => (string) $token->get_id(),
 		];
 		return $token;
@@ -530,7 +530,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// The script should be registered with the version we derived above.
 		$script_is_registered = wp_script_is( 'wc-stripe-upe-classic', 'registered' );
-		$registered_script = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
+		$registered_script    = wp_scripts()->registered['wc-stripe-upe-classic'] ?? null;
 
 		// Clean up registered scripts/styles and the filter so subsequent tests are not affected.
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -1465,6 +1465,155 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$exception = $e;
 		}
 		$this->assertMatchesRegularExpression( '/not able to process this payment./', $exception->getMessage() );
+	}
+
+	/**
+	 * Test that customer-cancelled redirects throw WC_Stripe_Payment_Cancelled_Exception so
+	 * the order is not permanently failed.
+	 *
+	 * @dataProvider provider_cancellation_error_codes
+	 */
+	public function test_intent_error_with_requires_payment_method_throws_cancellation_exception( $error_code ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Payment_Cancelled_Exception to be thrown' );
+		$this->assertInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertStringContainsString( 'Customer cancelled checkout on Klarna', $exception->getMessage() );
+	}
+
+	public function provider_cancellation_error_codes() {
+		return [
+			'customer closed popup' => [ 'payment_method_customer_decline' ],
+			'session expired'       => [ 'payment_intent_payment_attempt_expired' ],
+		];
+	}
+
+	/**
+	 * Test that a hard payment error (non-cancellation) still throws a generic WC_Stripe_Exception.
+	 *
+	 * @dataProvider provider_hard_payment_error_intent_statuses
+	 */
+	public function test_intent_hard_error_throws_generic_exception( $intent_status, $error_code ) {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = $intent_status;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => $error_code,
+			'message' => 'Your card was declined.',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertNotNull( $exception, 'Expected WC_Stripe_Exception to be thrown' );
+		$this->assertNotInstanceOf( WC_Stripe_Payment_Cancelled_Exception::class, $exception );
+		$this->assertMatchesRegularExpression( '/not able to process this payment\./', $exception->getMessage() );
+	}
+
+	public function provider_hard_payment_error_intent_statuses() {
+		return [
+			'succeeded status'                                          => [ WC_Stripe_Intent_Status::SUCCEEDED, 'card_declined' ],
+			'canceled status'                                           => [ WC_Stripe_Intent_Status::CANCELED, 'card_declined' ],
+			'processing status'                                         => [ WC_Stripe_Intent_Status::PROCESSING, 'card_declined' ],
+			'requires_payment_method + card_declined'                   => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'card_declined' ],
+			'requires_payment_method + payment_method_provider decline' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'payment_method_provider_decline' ],
+			'requires_payment_method + insufficient_funds'              => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 'insufficient_funds' ],
+		];
+	}
+
+	/**
+	 * Test that a customer-cancelled redirect (e.g. Klarna popup closed) during
+	 * process_upe_redirect_payment does NOT fail the order and redirects to checkout.
+	 */
+	public function test_process_upe_redirect_payment_cancellation_does_not_fail_order() {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => 'payment_method_customer_decline',
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		// Intercept wp_safe_redirect so that exit() is never reached, allowing assertions to run.
+		$redirect_url = null;
+		add_filter(
+			'wp_redirect',
+			function ( $location ) use ( &$redirect_url ) {
+				$redirect_url = $location;
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		// Order must NOT be set to failed — the customer should be able to retry.
+		$final_order = wc_get_order( $order_id );
+		$this->assertNotEquals( OrderStatus::FAILED, $final_order->get_status() );
+
+		// A 'notice' (not 'error') should be added so checkout remains retryable.
+		$notices = wc_get_notices( 'notice' );
+		$this->assertNotEmpty( $notices );
+
+		// Should redirect back to the checkout URL, not to an error page.
+		$this->assertSame( wc_get_checkout_url(), $redirect_url );
 	}
 
 	/**
@@ -3074,7 +3223,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function filter_my_account_my_orders_actions_provider() {
 		return [
-			'Bacs (delayed confirmation)' => [
+			'Bacs (delayed confirmation)'                       => [
 				'payment_method_title' => WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 				'has_checkout_session' => false,
 				'expected_action_keys' => [ 'view' ],
@@ -3084,12 +3233,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'has_checkout_session' => true,
 				'expected_action_keys' => [ 'view' ],
 			],
-			'Card'                        => [
+			'Card'                                              => [
 				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 				'has_checkout_session' => false,
 				'expected_action_keys' => [ 'pay', 'view', 'cancel' ],
 			],
-			'Card with checkout session'  => [
+			'Card with checkout session'                        => [
 				'payment_method_title' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 				'has_checkout_session' => true,
 				'expected_action_keys' => [ 'view' ],
@@ -3217,14 +3366,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_get_customer_id_for_order_retrieves_billing_details_from_order( string $scenario_name, bool $is_guest, string $existing_stripe_customer_id, string $expected_customer_id, string $api_url_pattern, array $billing_data, array $expected_customer_data ) {
 		// Create user if needed.
-		$user_id = 0;
+		$user_id     = 0;
 		$customer_id = 0;
-		$user_email = '';
+		$user_email  = '';
 		if ( ! $is_guest ) {
 			// For logged-in users, the code uses user email and user meta, not order data.
 			// Set user email to match expected data, and set user meta to match order billing data.
-			$user_email = $billing_data['email'];
-			$user_id = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
+			$user_email  = $billing_data['email'];
+			$user_id     = wp_create_user( 'testuser_' . uniqid(), 'password', $user_email );
 			$customer_id = $user_id;
 			if ( ! empty( $existing_stripe_customer_id ) ) {
 				update_user_option( $user_id, '_stripe_customer_id', $existing_stripe_customer_id );
@@ -3259,14 +3408,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->delete_stripe_customer_id( $order );
 
 		// Mock the API request to verify billing details are used.
-		$api_called = false;
+		$api_called    = false;
 		$captured_args = null;
 
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
 				if ( preg_match( $api_url_pattern, $url ) ) {
-					$api_called = true;
+					$api_called    = true;
 					$captured_args = $parsed_args;
 
 					// Return a mock successful response.
@@ -3312,7 +3461,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( ! $is_guest ) {
 			$user = get_user_by( 'id', $user_id );
 		} else {
-			$user = new \WP_User();
+			$user     = new \WP_User();
 			$user->ID = 0;
 		}
 
@@ -3379,13 +3528,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_get_customer_id_for_order_billing_details_test_cases() {
 		return [
-			'creating customer for guest user' => [
-				'scenario_name'            => 'create customer',
-				'is_guest'                 => true,
+			'creating customer for guest user'     => [
+				'scenario_name'               => 'create customer',
+				'is_guest'                    => true,
 				'existing_stripe_customer_id' => '',
-				'expected_customer_id'     => 'cus_test123',
-				'api_url_pattern'          => '#/v1/customers$#',
-				'billing_data'             => [
+				'expected_customer_id'        => 'cus_test123',
+				'api_url_pattern'             => '#/v1/customers$#',
+				'billing_data'                => [
 					'email'      => 'test-billing@example.com',
 					'first_name' => 'TestFirstName',
 					'last_name'  => 'TestLastName',
@@ -3396,7 +3545,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'postcode'   => '90210',
 					'country'    => 'US',
 				],
-				'expected_customer_data'   => [
+				'expected_customer_data'      => [
 					'email'       => 'test-billing@example.com',
 					'name'        => 'TestFirstName TestLastName',
 					'description' => 'Name: TestFirstName TestLastName, Guest',
@@ -3411,12 +3560,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 			'updating customer for logged-in user' => [
-				'scenario_name'            => 'update customer',
-				'is_guest'                 => false,
+				'scenario_name'               => 'update customer',
+				'is_guest'                    => false,
 				'existing_stripe_customer_id' => 'cus_existing123',
-				'expected_customer_id'     => 'cus_existing123',
-				'api_url_pattern'          => '#/v1/customers/cus_existing123$#',
-				'billing_data'             => [
+				'expected_customer_id'        => 'cus_existing123',
+				'api_url_pattern'             => '#/v1/customers/cus_existing123$#',
+				'billing_data'                => [
 					'email'      => 'updated-billing@example.com',
 					'first_name' => 'UpdatedFirstName',
 					'last_name'  => 'UpdatedLastName',
@@ -3429,10 +3578,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 				// For logged-in users, user email and user meta are used (not order data).
 				// The expected data should match what will be in user meta (set in the test).
-				'expected_customer_data'   => [
-					'email'       => 'updated-billing@example.com', // User email matches order email (set in test)
-					'name'        => 'UpdatedFirstName UpdatedLastName',
-					'address'     => [
+				'expected_customer_data'      => [
+					'email'   => 'updated-billing@example.com', // User email matches order email (set in test)
+					'name'    => 'UpdatedFirstName UpdatedLastName',
+					'address' => [
 						'line1'       => '456 Updated Street',
 						'line2'       => '',
 						'city'        => 'UpdatedCity',
@@ -3560,13 +3709,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_get_excluded_payment_method_types(): array {
 		return [
-			'No filter, unsupported methods'  => [
+			'No filter, unsupported methods'                                     => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal' ],
 				'filter_callback'       => null,
 				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with unsupported methods' => [
+			'Filter with unsupported methods'                                    => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'abc' ],
 				'filter_callback'       => function () {
 					return [ 'abc' ];
@@ -3574,7 +3723,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [ 'abc' ],
 			],
-			'Filter with empty array'         => [
+			'Filter with empty array'                                            => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
 				'filter_callback'       => function () {
 					return [];
@@ -3582,7 +3731,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with non-string values'   => [
+			'Filter with non-string values'                                      => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay', 'paypal', 'abc' ],
 				'filter_callback'       => function () {
 					return [ 123, null, 'abc', [], 'valid_method' ];
@@ -3598,13 +3747,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_excluded'     => [ 'fpx', 'naver_pay', 'paypal', WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [ 'link', 'apple_pay', 'abc' ],
 			],
-			'No unsupported methods'          => [
+			'No unsupported methods'                                             => [
 				'unsupported_methods'   => [],
 				'filter_callback'       => null,
 				'expected_excluded'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'expected_not_excluded' => [],
 			],
-			'Filter with duplicate values'    => [
+			'Filter with duplicate values'                                       => [
 				'unsupported_methods'   => [ 'fpx', 'naver_pay' ],
 				'filter_callback'       => function () {
 					return [ 'fpx', 'fpx', 'naver_pay' ];
@@ -3625,68 +3774,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
 		 */
 		return [
-			'Product page with ECE off, no Amazon Pay' => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'no',
+			'Product page with ECE off, no Amazon Pay'            => [
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => false,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE off, no Amazon Pay'    => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'no',
+			'Cart page with ECE off, no Amazon Pay'               => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => false,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE on at cart'            => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'yes',
+			'Cart page with ECE on at cart'                       => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'cart' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Cart page with ECE off, Amazon Pay on at cart'    => [
-				'page_type'                                => 'cart',
-				'express_checkout'                         => 'no',
+			'Cart page with ECE off, Amazon Pay on at cart'       => [
+				'page_type'                                 => 'cart',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Product page with ECE on at product'      => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'yes',
+			'Product page with ECE on at product'                 => [
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'product' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
 			'Product page with ECE off, Amazon Pay on at product' => [
-				'page_type'                                => 'product',
-				'express_checkout'                         => 'no',
+				'page_type'                                 => 'product',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'product' ],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
-			'Checkout page with ECE off and Amazon Pay off'               => [
-				'page_type'                                => 'checkout',
-				'express_checkout'                         => 'no',
+			'Checkout page with ECE off and Amazon Pay off'       => [
+				'page_type'                                 => 'checkout',
+				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
-				'expected_stripe'                          => true,
-				'expected_upe_classic'                     => true,
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
 			],
 		];
 	}
@@ -3726,10 +3875,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings                                              = $original_settings;
-		$stripe_settings['enabled']                                   = 'yes';
-		$stripe_settings['express_checkout']                          = $express_checkout;
-		$stripe_settings['express_checkout_button_locations']         = $express_checkout_button_locations;
+		$stripe_settings                                      = $original_settings;
+		$stripe_settings['enabled']                           = 'yes';
+		$stripe_settings['express_checkout']                  = $express_checkout;
+		$stripe_settings['express_checkout_button_locations'] = $express_checkout_button_locations;
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = $upe_checkout_experience_accepted_payments;
 		$stripe_settings['amazon_pay_button_locations']               = $amazon_pay_button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -3864,22 +4013,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_javascript_params_permitted_font_domains(): array {
 		return [
-			'no filter hooked — key is omitted'                                         => [
+			'no filter hooked — key is omitted'                                        => [
 				'filter_return'      => null,
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns empty array — key is omitted'                               => [
+			'filter returns empty array — key is omitted'                              => [
 				'filter_return'      => [],
 				'expected_in_params' => false,
 				'expected_value'     => null,
 			],
-			'filter returns non-empty array — key is set'                               => [
+			'filter returns non-empty array — key is set'                              => [
 				'filter_return'      => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'custom-fonts.example.com', 'fonts.mysite.com' ],
 			],
-			'filter returns non-array string — key is omitted'                          => [
+			'filter returns non-array string — key is omitted'                         => [
 				'filter_return'      => 'custom-fonts.example.com',
 				'expected_in_params' => false,
 				'expected_value'     => null,
@@ -3909,7 +4058,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_in_params' => true,
 				'expected_value'     => [ 'fonts.example.com', 'type.mysite.org' ],
 			],
-			'filter returns mixed valid and invalid domains — only valid are included'  => [
+			'filter returns mixed valid and invalid domains — only valid are included' => [
 				'filter_return'      => [ 'fonts.example.com', 'localhost', '.bad.com', 'good.fonts.io', 'also.bad.' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'fonts.example.com', 'good.fonts.io' ],
@@ -3963,6 +4112,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test for `expand_copy_button_markup`.
+	 *
+	 * @dataProvider provider_expand_copy_button_markup
+	 *
+	 * @param string $input    Input string with <number> tags.
+	 * @param string $expected Expected output with copy button markup.
+	 *
+	 * @return void
+	 */
+	public function test_expand_copy_button_markup( $input, $expected ) {
+		$actual = WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup( $input );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_expand_copy_button_markup`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_expand_copy_button_markup() {
+		$copy_label = 'Copy to clipboard';
+		return [
+			'string with multiple number tags' => [
+				'input'    => 'Use <number>4242 4242 4242 4242</number> and <number>AT611904300234573201</number>.',
+				'expected' => 'Use <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> and <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>AT611904300234573201</span></button>.',
+			],
+			'string with number tag'           => [
+				'input'    => '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry.',
+				'expected' => '<strong>Test mode:</strong> use card <button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>4242 4242 4242 4242</span></button> with any expiry.',
+			],
+			'string without number tag'        => [
+				'input'    => '<strong>Test mode:</strong> use any 6-digit number.',
+				'expected' => '<strong>Test mode:</strong> use any 6-digit number.',
+			],
+			'empty string'                     => [
+				'input'    => '',
+				'expected' => '',
+			],
+		];
+	}
+
+	/**
 	 * Test that add_converted_currency_information returns unchanged total when no checkout session is associated with the order.
 	 *
 	 * @return void
@@ -3986,6 +4177,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_converted_currency_information_returns_unchanged_total_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_no_presentment_1';
@@ -4008,15 +4200,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Data provider for page-context filters used by add_converted_currency_information.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_add_converted_currency_information_page_contexts(): array {
+		return [
+			'order received page' => [ 'woocommerce_is_order_received_page' ],
+			'account page'        => [ 'woocommerce_is_account_page' ],
+		];
+	}
+
+	/**
 	 * Test that add_converted_currency_information appends the converted currency info when presentment details are present.
 	 *
+	 * @dataProvider provide_add_converted_currency_information_page_contexts
+	 *
+	 * @param string $page_context_filter The page-context filter to simulate.
 	 * @return void
 	 */
-	public function test_add_converted_currency_information_appends_converted_currency_info(): void {
-		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+	public function test_add_converted_currency_information_appends_converted_currency_info( string $page_context_filter ): void {
+		add_filter( $page_context_filter, '__return_true' );
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_with_presentment_1';
@@ -4034,13 +4242,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
 
-		$formatted_total   = '$10.00';
-		$result            = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
-		$expected_amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		try {
+			$formatted_total = '$10.00';
+			$result          = $this->mock_gateway->add_converted_currency_information( $formatted_total, $order );
+			$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
-
-		$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+			$this->assertEquals( '$10.00 (&euro; ' . $expected_amount . ' EUR)', $result );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+			remove_filter( $page_context_filter, '__return_true' );
+		}
 	}
 
 	/**
@@ -4068,6 +4279,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_add_currency_conversion_notice_outputs_nothing_when_no_presentment_details(): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
 		$order->save();
 
 		$checkout_session_id = 'cs_test_no_presentment_3';
@@ -4123,9 +4335,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		// 1500 EUR cents = 15.00 EUR; 1500 / 2000 (USD cents) = 0.75 exchange rate.
+		// 1500 EUR cents = 15.00 EUR; 15.00 / 20.00 (order total) = 0.750 exchange rate (always 3 decimal places).
 		$expected_amount = '15.00';
-		$expected_rate   = '0.75';
+		$expected_rate   = '0.750';
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
@@ -4181,13 +4393,214 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->add_currency_conversion_notice( $order );
 		$output = ob_get_clean();
 
-		$expected_amount     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
-		$stripe_order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$expected_rate       = wc_format_decimal( 1500 / $stripe_order_amount, wc_get_price_decimals() );
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+
+		// Rate is always formatted to exactly 3 decimal places; uses major-unit amounts.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / $order->get_total(), 3 );
 
 		$this->assertStringContainsString( '<p class="woocommerce-info" style="margin-top: 1em;">', $output );
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
 		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
 		$this->assertStringContainsString( '</p>', $output );
+	}
+
+	/**
+	 * Creates an order with presentment data cached for email notice tests.
+	 *
+	 * @param string $checkout_session_id The checkout session ID to use.
+	 * @return WC_Order
+	 */
+	private function create_order_with_presentment_email_data( string $checkout_session_id ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20.00 );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'                  => $checkout_session_id,
+				'amount_total'        => 2000,
+				'presentment_details' => [
+					'presentment_amount'   => 1500,
+					'presentment_currency' => 'eur',
+				],
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		return $order;
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs nothing when no checkout session is associated with the order.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_nothing_when_no_checkout_session(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs nothing when checkout session has no presentment details.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_nothing_when_no_presentment_details(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$checkout_session_id = 'cs_test_no_presentment_email_1';
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		$checkout_session = $this->array_to_object(
+			[
+				'id'           => $checkout_session_id,
+				'amount_total' => 2000,
+			]
+		);
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $checkout_session_id, $checkout_session );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs a div with the correct converted amount and exchange rate.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate(): void {
+		$checkout_session_id = 'cs_test_with_presentment_email_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
+
+		$this->assertStringContainsString( '<div', $output );
+		$this->assertStringContainsString( 'Currency Conversion', $output );
+		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
+		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
+		$this->assertStringContainsString( '</div>', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs a div with the correct converted amount and exchange rate for the merchant.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_notice_with_converted_amount_and_rate_for_merchant(): void {
+		$checkout_session_id = 'cs_test_with_presentment_email_merchant';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$expected_amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( 1500, 'eur' );
+		// Rate uses major-unit amounts and is always formatted to 3 decimal places.
+		$expected_rate = wc_format_decimal( (float) $expected_amount / 20.00, 3 );
+
+		$this->assertStringContainsString( '<div', $output );
+		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
+		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
+		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
+		$this->assertStringContainsString( '</div>', $output );
+	}
+
+	/**
+	 * Test that the wc_stripe_adaptive_pricing_email_notice_styles filter allows customising the notice colours.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_respects_styles_filter(): void {
+		$checkout_session_id = 'cs_test_with_presentment_email_styles';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+
+		add_filter(
+			'wc_stripe_adaptive_pricing_email_notice_styles',
+			function () {
+				return [
+					'border-color'     => '#FF0000',
+					'border-radius'    => '8px',
+					'background-color' => '#FFFFFF',
+				];
+			}
+		);
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		remove_all_filters( 'wc_stripe_adaptive_pricing_email_notice_styles' );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringContainsString( '#FF0000', $output );
+		$this->assertStringContainsString( '8px', $output );
+		$this->assertStringContainsString( '#FFFFFF', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs plain text (no HTML) for plain-text emails.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_customer(): void {
+		$checkout_session_id = 'cs_test_with_presentment_email_plain_customer';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( '<div', $output );
+		$this->assertStringNotContainsString( '<p', $output );
+		$this->assertStringContainsString( 'Currency Conversion', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice outputs plain text (no HTML) for plain-text admin emails.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_outputs_plain_text_for_admin(): void {
+		$checkout_session_id = 'cs_test_with_presentment_email_plain_admin';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, true, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( '<div', $output );
+		$this->assertStringNotContainsString( '<p', $output );
+		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
 	}
 }

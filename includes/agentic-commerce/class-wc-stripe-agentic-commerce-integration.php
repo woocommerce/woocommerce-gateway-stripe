@@ -77,6 +77,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] );
+
+		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
+		$inventory_tracker->register_hooks();
 	}
 
 	/**
