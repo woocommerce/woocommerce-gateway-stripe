@@ -1300,7 +1300,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
-	 * @param bool   $feature_flag       Feature flag enabled.
 	 * @param bool   $is_checkout        Whether is classic checkout page.
 	 * @param bool   $has_block          Whether is block checkout page.
 	 * @param string $adaptive_pricing   Adaptive pricing setting.
@@ -1309,7 +1308,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1317,8 +1316,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
-
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1379,7 +1376,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		foreach ( $products as $product ) {
 			$product->delete( true );
@@ -1400,16 +1396,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_is_adaptive_pricing_supported(): array {
 		return [
-			'feature flag disabled'                     => [
-				'feature_flag'       => false,
-				'is_checkout'        => true,
-				'has_block'          => false,
-				'adaptive_pricing'   => 'yes',
-				'cart_product_types' => [ 'simple' ],
-				'expected'           => false,
-			],
 			'adaptive pricing disabled'                 => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'no',
@@ -1417,7 +1404,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'not on classic checkout or block checkout' => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1425,7 +1411,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'on block checkout'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => true,
 				'adaptive_pricing'   => 'yes',
@@ -1433,7 +1418,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'empty cart'                                => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1441,7 +1425,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple product only'                       => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1449,7 +1432,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'multiple simple products'                  => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1457,7 +1439,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple and subscription products mixed'    => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1465,7 +1446,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'simple and deposits products mixed'        => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1473,7 +1453,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'subscription in cart'                      => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1481,7 +1460,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'pre-order in cart'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1489,7 +1467,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'deposits in cart'                          => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
