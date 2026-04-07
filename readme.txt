@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
@@ -185,6 +186,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Add - Process Checkout Session async payment success webhooks
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts

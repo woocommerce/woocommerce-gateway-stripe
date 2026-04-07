@@ -1482,10 +1482,35 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param object $notification The notification from Stripe
 	 * @return void
+	 *
+	 * @deprecated 10.6.0 Use process_checkout_session_success instead.
 	 */
 	public function process_checkout_session( object $notification ): void {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'process_checkout_session_success' );
+		$this->process_checkout_session_success( $notification );
+	}
+
+	/**
+	 * Processes the checkout session success events.
+	 * This includes:
+	 * - checkout.session.completed event; Fires when a Stripe Checkout session is completed.
+	 * - checkout.session.async_payment_succeeded event; Fires when an asynchronous payment method on a Stripe Checkout session succeeds.
+	 *
+	 * This webhook exists for both standard post-payment checkout
+	 * sessions, as well as agentic checkout sessions.
+	 *
+	 * @param object $notification The notification from Stripe
+	 * @return void
+	 */
+	public function process_checkout_session_success( object $notification ): void {
 		$checkout_session = $notification->data->object;
-		$session_id       = $checkout_session->id;
+
+		if ( ! isset( $checkout_session->id ) ) {
+			WC_Stripe_Logger::error( 'Checkout session ID is missing from the event data.' );
+			return;
+		}
+
+		$session_id = $checkout_session->id;
 
 		// Refresh the cached checkout session with the latest data from the webhook so that
 		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
@@ -1525,7 +1550,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 */
 		$allowed_payment_processing_statuses = apply_filters(
 			'wc_stripe_allowed_payment_processing_statuses',
-			[ OrderStatus::PENDING, OrderStatus::FAILED ],
+			[ OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::ON_HOLD ],
 			$order
 		);
 
@@ -1545,7 +1570,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 
-			$intent_id = $checkout_session->payment_intent;
+			$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
 
 			// Store the payment intent ID on the order.
 			if ( ! empty( $intent_id ) ) {
@@ -1776,7 +1801,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 				break;
 			case 'checkout.session.completed':
-				$this->process_checkout_session( $notification );
+			case 'checkout.session.async_payment_succeeded':
+				$this->process_checkout_session_success( $notification );
 				break;
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':

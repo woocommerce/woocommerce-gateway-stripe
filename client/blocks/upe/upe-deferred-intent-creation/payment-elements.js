@@ -232,6 +232,7 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
+				isLoggedIn={ stripeServerData?.isLoggedIn }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage
 				}

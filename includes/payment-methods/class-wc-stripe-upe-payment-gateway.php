@@ -2726,10 +2726,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
-	 * @param string   $path   Stripe API endpoint path to query.
-	 * @param string   $params Parameters for request body.
-	 * @param WC_Order $order  WC Order for request.
-	 * @param string   $method HTTP method for request.
+	 * @param string     $path   Stripe API endpoint path to query.
+	 * @param array|null $params Parameters for request body.
+	 * @param WC_Order   $order  WC Order for request.
+	 * @param string     $method HTTP method for request.
 	 *
 	 * @return object JSON response object.
 	 */
