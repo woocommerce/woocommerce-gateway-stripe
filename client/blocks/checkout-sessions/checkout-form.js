@@ -25,6 +25,9 @@ import {
  * @param {EmitResponseProps}      props.emitResponse                Function to emit response back to the parent component.
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
+ * @param {Object}                 props.billing                     Billing information for the checkout session.
+ * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
+ * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
  * @param {Function}               props.setShouldLoadStripeElements Callback function to set whether Stripe Elements should be loaded instead.
@@ -35,6 +38,9 @@ const CheckoutForm = ( {
 	emitResponse,
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
+	billing,
+	isLoggedIn,
+	shippingData,
 	LoadingMask,
 	onLoadError,
 	setShouldLoadStripeElements,
@@ -57,7 +63,13 @@ const CheckoutForm = ( {
 		hasLoadErrorRef,
 		isPaymentElementComplete
 	);
-	useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+	useCheckoutSuccessHandler(
+		checkoutState,
+		onCheckoutSuccess,
+		billing,
+		isLoggedIn,
+		shippingData
+	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {

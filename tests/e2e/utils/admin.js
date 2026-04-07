@@ -39,13 +39,29 @@ export const togglePaymentMethod = async (
 		if ( ( enable && ! isChecked ) || ( ! enable && isChecked ) ) {
 			await checkbox.click();
 
-			// When disabling, we need to click the remove button
+			// When disabling, some methods show a Remove confirmation button.
 			if ( ! enable ) {
-				await page.getByRole( 'button', { name: 'Remove' } ).click();
+				const removeButton = page.getByRole( 'button', {
+					name: 'Remove',
+				} );
+				try {
+					await removeButton.waitFor( {
+						state: 'visible',
+						timeout: 3000,
+					} );
+					await removeButton.click();
+				} catch ( error ) {
+					if ( error?.name !== 'TimeoutError' ) {
+						throw error;
+					}
+					// Remove button is optional for some methods.
+				}
 			}
 
 			await page.click( 'text=Save changes' );
-			await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+			await expect(
+				page.getByText( 'Settings saved.' ).first()
+			).toBeVisible();
 		}
 	} finally {
 		await context.close();
