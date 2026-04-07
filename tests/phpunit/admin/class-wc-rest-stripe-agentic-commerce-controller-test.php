@@ -284,34 +284,28 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		}
 
 		// Stub out the actual HTTP sync so the test does not hit Stripe.
-		add_filter(
-			'pre_http_request',
-			function () {
-				return [
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-					'headers'  => [],
-					'body'     => wp_json_encode( [ 'id' => 'file_stub' ] ),
-				];
-			},
-			10,
-			3
-		);
+		$http_stub = function () {
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode( [ 'id' => 'file_stub' ] ),
+			];
+		};
 
-		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
-		$response = rest_do_request( $request );
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
 
-		remove_all_filters( 'pre_http_request' );
-
-		// A 200 or 500 (if sync encountered an error) are both acceptable here;
-		// we only care that authentication passed and the method was invoked.
-		$this->assertContains( $response->get_status(), [ 200, 500 ] );
-
-		if ( 200 === $response->get_status() ) {
-			$this->assertTrue( $response->get_data()['success'] );
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
 		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['success'] );
 	}
 
 	// -------------------------------------------------------------------------

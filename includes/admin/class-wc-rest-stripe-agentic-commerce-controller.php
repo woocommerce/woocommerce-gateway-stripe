@@ -65,7 +65,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		// Return the 20 most recent history entries, newest first.
 		$history = array_map(
-			[ $this, 'format_history_entry' ],
+			[ $this, 'format_entry' ],
 			array_reverse( array_slice( $history_raw, -20 ) )
 		);
 
@@ -79,7 +79,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		return rest_ensure_response(
 			[
-				'last_sync' => empty( $last_sync ) ? null : $this->format_sync_entry( $last_sync ),
+				'last_sync' => empty( $last_sync ) ? null : $this->format_entry( $last_sync ),
 				'history'   => $history,
 				'next_sync' => $next_sync,
 			]
@@ -88,6 +88,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 	/**
 	 * Trigger a manual product feed sync.
+	 *
+	 * On success, the next scheduled recurring sync is rescheduled from the
+	 * current time so the manual sync resets the automatic sync window.
 	 *
 	 * @since 10.6.0
 	 * @return WP_REST_Response|WP_Error
@@ -101,8 +104,29 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			);
 		}
 
-		$integration = new WC_Stripe_Agentic_Commerce_Integration();
-		$integration->sync_feed();
+		try {
+			$integration = new WC_Stripe_Agentic_Commerce_Integration();
+			$integration->sync_feed();
+
+			// Reset the automatic sync window so the next scheduled run starts
+			// from now, rather than running again shortly after a manual sync.
+			if ( function_exists( 'as_unschedule_all_actions' ) && function_exists( 'as_schedule_recurring_action' ) ) {
+				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+				as_schedule_recurring_action(
+					time() + WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+					WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
+					[],
+					'wc-stripe'
+				);
+			}
+		} catch ( Exception $e ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_sync_failed',
+				$e->getMessage(),
+				[ 'status' => 500 ]
+			);
+		}
 
 		return rest_ensure_response( [ 'success' => true ] );
 	}
@@ -110,34 +134,19 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * Normalise a raw sync option array into a consistent shape for the API response.
 	 *
+	 * Used for both the last_sync snapshot and individual history entries.
+	 *
 	 * @since 10.6.0
 	 * @param array $entry Raw entry from options table.
 	 * @return array
 	 */
-	private function format_sync_entry( array $entry ): array {
+	private function format_entry( array $entry ): array {
 		return [
 			'status'        => $entry['status'] ?? 'unknown',
 			'timestamp'     => isset( $entry['timestamp'] ) ? (int) $entry['timestamp'] : null,
 			'products'      => isset( $entry['products'] ) ? (int) $entry['products'] : null,
 			'import_set_id' => $entry['import_set_id'] ?? null,
 			'file_id'       => $entry['file_id'] ?? null,
-			'error'         => $entry['error'] ?? null,
-		];
-	}
-
-	/**
-	 * Normalise a history entry (subset of fields used by the table).
-	 *
-	 * @since 10.6.0
-	 * @param array $entry Raw history entry.
-	 * @return array
-	 */
-	private function format_history_entry( array $entry ): array {
-		return [
-			'status'        => $entry['status'] ?? 'unknown',
-			'timestamp'     => isset( $entry['timestamp'] ) ? (int) $entry['timestamp'] : null,
-			'products'      => isset( $entry['products'] ) ? (int) $entry['products'] : null,
-			'import_set_id' => $entry['import_set_id'] ?? null,
 			'error'         => $entry['error'] ?? null,
 		];
 	}
