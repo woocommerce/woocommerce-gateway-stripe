@@ -39,6 +39,27 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 /* stylelint-enable selector-id-pattern */
 
+.wc-stripe-acss-notice {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	padding: 2em 1em 1em;
+
+	&__icon {
+		flex-shrink: 0;
+		width: 3em;
+		height: 3em;
+	}
+
+	&__text {
+		margin: 0;
+		padding: 0;
+		font-size: 1em;
+		line-height: 1.6;
+	}
+}
+
 /* Test Mode badge — hidden by default, shown when radio is checked */
 .wc-stripe-test-mode-badge {
 	background-color: #fff2d7;
