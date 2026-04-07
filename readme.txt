@@ -146,7 +146,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout by moving it into payment_fields() instead of the woocommerce_review_order_before_payment hook
+* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
+* Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
+* Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
+* Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
+* Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Dev - Add metadata accessor methods for subscription objects to WC_Stripe_Order_Helper, centralizing subscription-specific metadata handling
@@ -176,14 +180,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use floating labels and correct field spacing on Blocks checkout to match WooPayments
 * Fix - Improve performance of CSS style lookups
 * Fix - Wrap express checkout add-to-cart in try/catch to prevent errors
+* Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
+* Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
+* Add - Allow customers to save payment methods during checkout with adaptive pricing
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
