@@ -518,6 +518,28 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
+			it( 'shows error and skips confirm when checkout AJAX fails', async () => {
+				const mockActions = { confirm: jest.fn() };
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockRejectedValue(
+					new Error( 'Checkout failed' )
+				);
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
+				expect( mockActions.confirm ).not.toHaveBeenCalled();
+			} );
+
 			it( 'shows error and does not submit when loadActions returns an error', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
