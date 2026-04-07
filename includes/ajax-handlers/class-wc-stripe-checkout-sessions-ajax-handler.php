@@ -33,15 +33,15 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$session_id = isset( $_POST['session_id'] ) ? wc_clean( wp_unslash( $_POST['session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			if ( empty( $session_id ) ) {
 				throw new Exception( __( 'Missing checkout session ID.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$checkout_session = WC_Stripe_API::request( [], "checkout/sessions/{$session_id}", 'GET' );
 
-			if ( ! empty( $checkout_session->error ) ) {
-				$message = empty( $checkout_session->error->message ) ? __( 'Failed to retrieve checkout session.', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+			if ( ! is_object( $checkout_session ) || ! empty( $checkout_session->error ) ) {
+				$message = is_object( $checkout_session ) && ! empty( $checkout_session->error->message ) ? $checkout_session->error->message : __( 'Failed to retrieve checkout session.', 'woocommerce-gateway-stripe' );
 				throw new Exception( $message );
 			}
 
