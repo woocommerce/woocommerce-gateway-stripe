@@ -131,7 +131,7 @@ const createMockApi = ( checkoutElements ) => {
 	};
 };
 
-const createMockForm = () => {
+const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
 	const f = {};
 	f.addClass = jest.fn( () => f );
 	f.removeClass = jest.fn( () => f );
@@ -140,8 +140,11 @@ const createMockForm = () => {
 	f.trigger = jest.fn( () => f );
 	f.attr = jest.fn( () => 'checkout' );
 	f.serialize = jest.fn( () => 'billing_first_name=John' );
-	f.find = jest.fn( () => ( { length: 0 } ) );
 	f.append = jest.fn();
+	f.find = jest.fn( () => ( {
+    length: 0,
+		is: jest.fn( () => savePaymentMethodChecked ),
+	} ) );
 	return f;
 };
 
@@ -276,7 +279,15 @@ describe( 'payment-processing', () => {
 
 				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
 				expect( api._stripe.initCheckout ).toHaveBeenCalledWith(
-					expect.objectContaining( { clientSecret: 'cs_test_abc' } )
+					expect.objectContaining( {
+						clientSecret: 'cs_test_abc',
+						elementsOptions: expect.objectContaining( {
+							savedPaymentMethod: {
+								enableRedisplay: 'never',
+								enableSave: 'never',
+							},
+						} ),
+					} )
 				);
 				expect( api._stripe.elements ).not.toHaveBeenCalled();
 			} );
@@ -462,6 +473,34 @@ describe( 'payment-processing', () => {
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
 					returnUrl: orderReceivedUrl,
 					redirect: 'if_required',
+					savePaymentMethod: false,
+				} );
+			} );
+
+			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+					savePaymentMethod: true,
 				} );
 			} );
 

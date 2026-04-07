@@ -3069,7 +3069,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, string\|false\|null given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
@@ -4863,12 +4863,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_enabled_payment_method_ids\(\) has parameter \$force_refresh with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:handle_saving_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 

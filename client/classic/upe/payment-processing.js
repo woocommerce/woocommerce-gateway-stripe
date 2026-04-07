@@ -251,6 +251,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				elementsOptions: {
 					appearance: options.appearance,
 					fonts: options.fonts,
+					savedPaymentMethod: {
+						// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
+						enableRedisplay: 'never',
+						// Stripe must not show the save payment method checkbox in the Payment Element; the gateway has its own save payment method checkbox.
+						enableSave: 'never',
+					},
 				},
 				adaptivePricing: {
 					allowed: true,
@@ -777,12 +783,18 @@ export const processPayment = (
 					return;
 				}
 
+				const shouldSavePaymentMethod = jQueryForm
+					.find( '#wc-stripe-new-payment-method' )
+					.is( ':checked' );
+
 				// Confirm payment with the order-received page as return URL
 				// so redirect-based methods (iDEAL, Bancontact, etc.) return
 				// the customer to the thank-you page instead of checkout.
+
 				const confirmResult = await actions.confirm( {
 					returnUrl: checkoutResponse.redirect,
 					redirect: 'if_required',
+					savePaymentMethod: shouldSavePaymentMethod,
 				} );
 
 				if ( confirmResult.type === 'error' ) {

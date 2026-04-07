@@ -26,6 +26,7 @@ describe( 'CheckoutSessions hook tests', () => {
 		const checkoutSessionId = 'cs_test_123';
 
 		beforeEach( () => {
+			document.body.innerHTML = '';
 			onPaymentSetup.mockImplementation( ( fn ) => {
 				onPaymentSetupResultPromise = fn();
 			} );
@@ -119,6 +120,26 @@ describe( 'CheckoutSessions hook tests', () => {
 				},
 			} );
 		} );
+
+		it( 'returns save_payment_method yes when the Blocks save checkbox is checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const hasLoadErrorRef = { current: false };
+			usePaymentSetupHandler(
+				onPaymentSetup,
+				checkoutSessionId,
+				null,
+				hasLoadErrorRef,
+				true
+			);
+			const result = await onPaymentSetupResultPromise;
+			expect( result.meta.paymentMethodData.save_payment_method ).toBe(
+				'yes'
+			);
+		} );
 	} );
 
 	describe( 'useCheckoutSuccessHandler hook', () => {
@@ -126,6 +147,7 @@ describe( 'CheckoutSessions hook tests', () => {
 		const onCheckoutSuccess = jest.fn();
 
 		beforeEach( () => {
+			document.body.innerHTML = '';
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -176,6 +198,28 @@ describe( 'CheckoutSessions hook tests', () => {
 			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'success',
+			} );
+		} );
+
+		it( 'confirm passes savePaymentMethod true when save checkbox is checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const confirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { confirm },
+			};
+			useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+			await onCheckoutSuccessResultPromise;
+			expect( confirm ).toHaveBeenCalledWith( {
+				returnUrl: 'https://example.com/return-here',
+				redirect: 'if_required',
+				savePaymentMethod: true,
 			} );
 		} );
 	} );
