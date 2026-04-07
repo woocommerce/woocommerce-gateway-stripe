@@ -1206,7 +1206,7 @@ class WC_Stripe_Helper {
 	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
 	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
 	 *
-	 * `@return` bool True if the account is not in the EEA.
+	 * @return bool True if the account is not in the EEA.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
