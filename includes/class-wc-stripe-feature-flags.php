@@ -39,7 +39,7 @@ class WC_Stripe_Feature_Flags {
 	 * @var string
 	 * @since 10.4.0
 	 *
-	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is enabled as of version 10.6.0.
+	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is available as of version 10.6.0.
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
@@ -133,7 +133,7 @@ class WC_Stripe_Feature_Flags {
 		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
 		 * @since 10.4.0
-		 * @deprecated This filter will be removed in version 10.8.0. Stripe Checkout Sessions is permanently enabled as of version 10.6.0.
+		 * @deprecated This filter will be removed in version 10.8.0. Stripe Checkout Sessions is permanently available as of version 10.6.0.
 		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
 		 */
 		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', true );
