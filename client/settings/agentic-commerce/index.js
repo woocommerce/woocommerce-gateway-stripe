@@ -261,7 +261,7 @@ const AgenticCommercePanel = () => {
 		<div>
 			<p className="description">
 				{ __(
-					'Monitors the product feed sync status for the Agentic Commerce integration.',
+					'Monitor the product feed sync status for the Agentic Commerce integration.',
 					'woocommerce-gateway-stripe'
 				) }{ ' ' }
 				<a
