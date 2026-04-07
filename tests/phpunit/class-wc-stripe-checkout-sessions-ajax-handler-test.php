@@ -322,6 +322,20 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					],
 				],
 			],
+			'session id is missing'    => [
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => (object) [
+					'client_secret' => $mocked_secret,
+				],
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'Unable to create Stripe Checkout Session.',
+					],
+				],
+			],
 			'client secret is missing' => [
 				'is valid nonce'            => true,
 				'customer data'             => $customer_data,
