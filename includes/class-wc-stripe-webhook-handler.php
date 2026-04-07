@@ -1437,6 +1437,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Processes the checkout session completed event.
+	 *
+	 * This webhook exists for both standard post-payment checkout
+	 * sessions, as well as agentic checkout sessions.
+	 *
+	 * @param object $notification The notification from Stripe
+	 * @return void
+	 *
+	 * @deprecated 10.6.0 Use process_checkout_session_success instead.
+	 */
+	public function process_checkout_session( object $notification ): void {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'process_checkout_session_success' );
+		$this->process_checkout_session_success( $notification );
+	}
+
+	/**
 	 * Processes the checkout session success events.
 	 * This includes:
 	 * - checkout.session.completed event; Fires when a Stripe Checkout session is completed.
