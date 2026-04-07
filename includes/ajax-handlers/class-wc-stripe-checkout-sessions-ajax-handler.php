@@ -38,14 +38,14 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Missing checkout session ID.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$checkout_session = WC_Stripe_API::request( [], "checkout/sessions/{$session_id}", 'GET' );
+			$checkout_session = WC_Stripe_API::retrieve( "checkout/sessions/{$session_id}" );
 
-			if ( ! is_object( $checkout_session ) || ! empty( $checkout_session->error ) ) {
+			if ( is_wp_error( $checkout_session ) || ! is_object( $checkout_session ) || ! empty( $checkout_session->error ) ) {
 				$message = is_object( $checkout_session ) && ! empty( $checkout_session->error->message ) ? $checkout_session->error->message : __( 'Failed to retrieve checkout session.', 'woocommerce-gateway-stripe' );
 				throw new Exception( $message );
 			}
 
-			wp_send_json_success( [ 'status' => $checkout_session->status ] );
+			wp_send_json_success( [ 'status' => $checkout_session->status ?? '' ] );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Get checkout session status error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
