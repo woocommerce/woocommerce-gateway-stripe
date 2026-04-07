@@ -105,15 +105,17 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*} checkoutState     The checkout state.
- * @param {*} onCheckoutSuccess The onCheckoutSuccess event.
- * @param {*} billing           The billing data from WooCommerce Blocks, containing billingAddress.
- * @param {*} shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {*}       checkoutState     The checkout state.
+ * @param {*}       onCheckoutSuccess The onCheckoutSuccess event.
+ * @param {Object}  billing           The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} isLoggedIn        Whether the customer is logged-in.
+ * @param {Object}  shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
 	onCheckoutSuccess,
 	billing,
+	isLoggedIn,
 	shippingData
 ) => {
 	useEffect(
@@ -135,6 +137,7 @@ export const useCheckoutSuccessHandler = (
 
 					const { redirect } = paymentDetails;
 					const { checkout } = checkoutState;
+
 					const confirmArgs = {
 						billingAddress: {
 							name: `${ billingAddress?.first_name ?? '' } ${
@@ -149,26 +152,59 @@ export const useCheckoutSuccessHandler = (
 								postal_code: billingAddress?.postcode,
 							},
 						},
-						shippingAddress: {
-							name: `${ shippingAddress?.first_name ?? '' } ${
-								shippingAddress?.last_name ?? ''
-							}`.trim(),
-							address: {
-								country: shippingAddress?.country,
-								line1: shippingAddress?.address_1,
-								line2: shippingAddress?.address_2,
-								state: shippingAddress?.state,
-								city: shippingAddress?.city,
-								postal_code: shippingAddress?.postcode,
-							},
-						},
 						returnUrl: redirect,
 						redirect: 'if_required',
 						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
 					};
 
-					// If checkout session doesn't have email, attempt to get it from the checkout form.
+					// Only include shipping information if the min. requirement is met.
+					if (
+						shippingAddress?.address_1 &&
+						shippingAddress?.country
+					) {
+						confirmArgs.shippingAddress = {
+							address: {
+								country: shippingAddress?.country,
+								line1: shippingAddress?.address_1,
+							},
+						};
+
+						// API do not accept empty values.
+						if ( shippingAddress?.recipient ) {
+							confirmArgs.shippingAddress.name =
+								shippingAddress?.recipient.trim();
+						}
+
+						// If the shipping address name is still empty, attempt to use the billing name (it is a required parameter).
+						if ( ! confirmArgs.shippingAddress.name ) {
+							confirmArgs.shippingAddress.name = `${
+								billingAddress?.first_name ?? ''
+							} ${ billingAddress?.last_name ?? '' }`.trim();
+						}
+
+						if ( shippingAddress?.address_2 ) {
+							confirmArgs.shippingAddress.address.line2 =
+								shippingAddress?.address_2;
+						}
+
+						if ( shippingAddress?.state ) {
+							confirmArgs.shippingAddress.address.state =
+								shippingAddress?.state;
+						}
+
+						if ( shippingAddress?.city ) {
+							confirmArgs.shippingAddress.address.city =
+								shippingAddress?.city;
+						}
+
+						if ( shippingAddress?.postcode ) {
+							confirmArgs.shippingAddress.address.postal_code =
+								shippingAddress?.postcode;
+						}
+					}
+
 					if ( ! checkout.email ) {
+						// If checkout session doesn't have email, attempt to get it from the checkout form.
 						const userEmail =
 							document.getElementById( 'email' )?.value;
 						if ( userEmail ) {
@@ -176,11 +212,13 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					const userPhone =
-						document.getElementById( 'billing-phone' )?.value ||
-						document.getElementById( 'shipping-phone' )?.value;
-					if ( userPhone ) {
-						confirmArgs.phoneNumber = userPhone;
+					if ( isLoggedIn ) {
+						const userPhone =
+							document.getElementById( 'billing-phone' )?.value ||
+							document.getElementById( 'shipping-phone' )?.value;
+						if ( userPhone ) {
+							confirmArgs.phoneNumber = userPhone;
+						}
 					}
 
 					const confirmResult = await checkout.confirm( confirmArgs );
@@ -199,7 +237,7 @@ export const useCheckoutSuccessHandler = (
 					};
 				}
 			),
-		[ onCheckoutSuccess, checkoutState, billing, shippingData ]
+		[ onCheckoutSuccess, checkoutState, billing, isLoggedIn, shippingData ]
 	);
 };
 
