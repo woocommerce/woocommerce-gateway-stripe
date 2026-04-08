@@ -15,42 +15,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 */
 	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
-		add_action( 'wc_ajax_wc_stripe_get_checkout_session_status', [ $this, 'get_checkout_session_status' ] );
 		add_action( 'wc_ajax_wc_stripe_update_checkout_session', [ $this, 'update_checkout_session' ] );
-	}
-
-	/**
-	 * Retrieve the status of a Stripe Checkout Session.
-	 *
-	 * Used after a redirect-based payment method returns the customer to the checkout page
-	 * with a session_id URL parameter.
-	 *
-	 * @return void
-	 */
-	public function get_checkout_session_status(): void {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_get_checkout_session_status_nonce', 'security', false );
-			if ( ! $is_nonce_valid ) {
-				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			if ( empty( $session_id ) ) {
-				throw new Exception( __( 'Missing checkout session ID.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$checkout_session = WC_Stripe_API::retrieve( "checkout/sessions/{$session_id}" );
-
-			if ( is_wp_error( $checkout_session ) || ! is_object( $checkout_session ) || ! empty( $checkout_session->error ) ) {
-				$message = is_object( $checkout_session ) && ! empty( $checkout_session->error->message ) ? $checkout_session->error->message : __( 'Failed to retrieve checkout session.', 'woocommerce-gateway-stripe' );
-				throw new Exception( $message );
-			}
-
-			wp_send_json_success( [ 'status' => $checkout_session->status ?? '' ] );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( 'Get checkout session status error.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
-		}
 	}
 
 	/**
