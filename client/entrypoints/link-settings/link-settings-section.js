@@ -27,9 +27,12 @@ const makeButtonSizeText = ( string ) =>
 		},
 	} );
 const StyledLink = styled.a`
-	&:focus,
 	&:visited {
 		box-shadow: none;
+	}
+	&:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
 	}
 `;
 
@@ -73,7 +76,11 @@ const LinkSettingsSection = () => {
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
-			updateLinkLocations( [ ...linkLocations, location ] );
+			updateLinkLocations(
+				linkLocations.includes( location )
+					? linkLocations
+					: [ ...linkLocations, location ]
+			);
 		} else {
 			updateLinkLocations(
 				linkLocations.filter( ( name ) => name !== location )
