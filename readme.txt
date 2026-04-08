@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
 * Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
 * Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
