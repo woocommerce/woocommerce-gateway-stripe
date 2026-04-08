@@ -803,6 +803,23 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return false;
+		}
+
+		asort( $gateway_order );
+		$first_gateway_id = array_key_first( $gateway_order );
+
+		return 'stripe' === $first_gateway_id;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11

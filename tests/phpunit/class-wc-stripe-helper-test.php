@@ -719,6 +719,67 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @param array $gateway_order WooCommerce gateway order option value.
+	 * @param bool  $expected      Expected result.
+	 * @dataProvider provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order
+	 */
+	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( $gateway_order, bool $expected ) {
+		if ( null === $gateway_order ) {
+			delete_option( 'woocommerce_gateway_order' );
+		} else {
+			update_option( 'woocommerce_gateway_order', $gateway_order );
+		}
+
+		$this->assertSame(
+			$expected,
+			WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order()
+		);
+	}
+
+	/**
+	 * Data provider for `test_is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order(): array {
+		return [
+			'stripe is first'                => [
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+					'bacs'   => '2',
+				],
+				'expected'      => true,
+			],
+			'stripe exists but is not first' => [
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+					'bacs'   => '2',
+				],
+				'expected'      => false,
+			],
+			'stripe missing from order'      => [
+				'gateway_order' => [
+					'cod'  => '0',
+					'bacs' => '1',
+				],
+				'expected'      => false,
+			],
+			'gateway order option missing'   => [
+				'gateway_order' => null,
+				'expected'      => false,
+			],
+			'gateway order option empty'     => [
+				'gateway_order' => [],
+				'expected'      => false,
+			],
+		];
+	}
+
+	/**
 	 * Test for `add_mandate_data`.
 	 *
 	 * @param string $server_variable_key   The key of the server variable to set.
