@@ -85,7 +85,7 @@ const OptimizedCheckoutFeature = () => {
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
 			/>
-			<OptimizedCheckoutFirstMethodNotice />
+			<OptimizedCheckoutFirstMethodNotice isOCEnabled={ isOCEnabled } />
 			{ isOCEnabled && isCheckoutSessionsAvailable && (
 				<AdaptivePricingCheckbox
 					label={ __(

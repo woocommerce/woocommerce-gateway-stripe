@@ -20,10 +20,10 @@ const WarningIcon = () => {
 	);
 };
 
-const OptimizedCheckoutFirstMethodNotice = () => {
+const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
 	const [ showNotice, setShowNotice ] = useState(
 		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.show_stripe_first_method_notice
+		wc_stripe_settings_params.show_stripe_first_method_notice && isOCEnabled
 	);
 
 	if ( ! showNotice ) {
