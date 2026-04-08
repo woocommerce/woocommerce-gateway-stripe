@@ -10,7 +10,7 @@ import {
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useLinkLocations: jest.fn(),
-	useLinkButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useLinkButtonSize: jest.fn().mockReturnValue( [ 'default', jest.fn() ] ),
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
