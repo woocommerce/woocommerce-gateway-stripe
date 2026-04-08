@@ -208,6 +208,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/set_stripe_gateways_first',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'set_stripe_gateways_first' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -695,6 +704,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
+	}
+
+	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_stripe_gateways_first() {
+		WC_Stripe_Helper::move_stripe_gateways_to_top_in_woocommerce_gateway_order();
+
+		return new WP_REST_Response( [ 'result' => 'Stripe moved to first position' ], 200 );
 	}
 
 	/**
