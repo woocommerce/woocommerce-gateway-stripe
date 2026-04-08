@@ -356,8 +356,22 @@ jQuery( function ( $ ) {
 					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
+			const buttonStyleSettings = getExpressCheckoutButtonStyleSettings();
+
+			// Link has its own button size setting.
+			if ( expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK ) {
+				const linkHeight = parseInt(
+					getExpressCheckoutData( 'link_button_height' ) || '48',
+					10
+				);
+				buttonStyleSettings.buttonHeight = Math.min(
+					Math.max( linkHeight, 40 ),
+					55
+				);
+			}
+
 			const eceButton = wcStripeECE.createButton( elements, {
-				...getExpressCheckoutButtonStyleSettings(),
+				...buttonStyleSettings,
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===

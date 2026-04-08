@@ -121,5 +121,6 @@ module.exports = {
 			'./client/entrypoints/express-checkout-settings/index.js',
 		'amazon-pay-settings':
 			'./client/entrypoints/amazon-pay-settings/index.js',
+		'link-settings': './client/entrypoints/link-settings/index.js',
 	},
 };
