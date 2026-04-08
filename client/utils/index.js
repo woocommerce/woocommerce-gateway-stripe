@@ -19,9 +19,9 @@ export const dismissNotice = ( noticeKey, callback ) => {
 	} ).finally( callback );
 };
 
-export const moveStripeToTop = ( callback ) => {
+export const moveStripeToTop = () => {
 	apiFetch( {
 		path: '/wc/v3/wc_stripe/settings/set_stripe_gateways_first',
 		method: 'POST',
-	} ).finally( callback );
+	} );
 };

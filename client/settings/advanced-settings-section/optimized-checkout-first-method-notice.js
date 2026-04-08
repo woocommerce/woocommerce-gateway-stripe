@@ -23,18 +23,16 @@ const WarningIcon = () => {
 const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
 	const [ showNotice, setShowNotice ] = useState(
 		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.show_stripe_first_method_notice && isOCEnabled
+		wc_stripe_settings_params?.show_stripe_first_method_notice
 	);
 
-	if ( ! showNotice ) {
+	if ( ! showNotice || ! isOCEnabled ) {
 		return null;
 	}
 
 	const handleAction = () => {
-		moveStripeToTop( () => {
-			// Hide the notice after moving Stripe to the top.
-			handleRemove();
-		} );
+		moveStripeToTop();
+		setShowNotice( false );
 	};
 
 	const handleRemove = () => {
