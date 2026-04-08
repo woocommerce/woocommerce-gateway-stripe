@@ -573,6 +573,20 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
+			'link_button_size'                 => [
+				'link_button_size',
+				'link_button_size',
+				'default',
+				'large',
+				'foo',
+			],
+			'link_button_locations'            => [
+				'link_button_locations',
+				'link_button_locations',
+				[ 'cart' ],
+				[ 'cart', 'checkout', 'product' ],
+				[ 'foo' ],
+			],
 			'optimized_checkout_layout'        => [
 				'oc_layout',
 				'optimized_checkout_layout',
