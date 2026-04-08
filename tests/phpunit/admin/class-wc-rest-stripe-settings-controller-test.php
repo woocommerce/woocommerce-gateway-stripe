@@ -485,6 +485,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 					'result' => 'notice dismissed',
 				],
 			],
+			'dismiss stripe first notice'  => [
+				'request params'    => [
+					'wc_stripe_show_stripe_first_method_notice' => 'no',
+				],
+				'expected option'   => [
+					'wc_stripe_show_stripe_first_method_notice' => 'no',
+				],
+				'expected response' => [
+					'result' => 'notice dismissed',
+				],
+			],
 		];
 	}
 
