@@ -281,6 +281,9 @@ class WC_Stripe {
 			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				new WC_Stripe_Amazon_Pay_Controller();
+			} elseif ( isset( $_GET['area'] ) && 'link' === $_GET['area'] ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-link-controller.php';
+				new WC_Stripe_Link_Controller();
 			} else {
 				new WC_Stripe_Settings_Controller( $this->account );
 			}
