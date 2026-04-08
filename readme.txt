@@ -201,6 +201,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
-* Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
+* Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
