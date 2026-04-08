@@ -281,7 +281,13 @@ export const useCheckoutSessionTotalsSync = (
 		if ( ! cartStoreKey ) {
 			return '';
 		}
-		const totals = selectCart( cartStoreKey ).getCartTotals();
+
+		const cartStore = selectCart( cartStoreKey );
+		if ( typeof cartStore?.getCartTotals !== 'function' ) {
+			return '';
+		}
+		const totals = cartStore.getCartTotals();
+
 		return totals?.total_price;
 	}, [] );
 
@@ -325,16 +331,21 @@ export const useCheckoutSessionTotalsSync = (
 		const run = async () => {
 			try {
 				const { checkout } = state;
-				if ( typeof checkout?.runServerUpdate === 'function' ) {
-					const result = await checkout.runServerUpdate( async () => {
-						await api.checkoutSessionsUpdateSession(
-							checkoutSessionId
-						);
-					} );
-					if ( ! cancelled && result && result.type === 'error' ) {
-						// eslint-disable-next-line no-console
-						console.error( result.error );
-					}
+				if (
+					typeof api?.checkoutSessionsUpdateSession !== 'function' ||
+					typeof checkout?.runServerUpdate !== 'function'
+				) {
+					return;
+				}
+
+				const result = await checkout.runServerUpdate( async () => {
+					await api.checkoutSessionsUpdateSession(
+						checkoutSessionId
+					);
+				} );
+				if ( ! cancelled && result && result.type === 'error' ) {
+					// eslint-disable-next-line no-console
+					console.error( result.error );
 				}
 			} catch ( error ) {
 				if ( ! cancelled ) {
