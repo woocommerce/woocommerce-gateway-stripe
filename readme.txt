@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Cache failed Stripe account lookups to avoid repeated admin API calls when Stripe keys are invalid
 * Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
