@@ -1,7 +1,6 @@
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
-import React, { useMemo } from 'react';
+import React from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
-import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
 import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
 import {
@@ -19,19 +18,12 @@ import {
 import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import { useAccount } from 'wcstripe/data/account/hooks';
-import {
-	useAccountKeysPublishableKey,
-	useAccountKeysTestPublishableKey,
-} from 'wcstripe/data/account-keys/hooks';
 
 const makeButtonSizeText = ( string ) =>
 	interpolateComponents( {
 		mixedString: string,
 		components: {
-			helpText: (
-				<span className="amazon-pay-settings__option-muted-text" />
-			),
+			helpText: <span className="link-settings__option-muted-text" />,
 		},
 	} );
 const buttonSizeOptions = [
@@ -66,19 +58,6 @@ const buttonSizeOptions = [
 
 const LinkSettingsSection = () => {
 	const [ size, setSize ] = useLinkButtonSize();
-	const accountId = useAccount().data?.account?.id;
-	const [ publishableKey ] = useAccountKeysPublishableKey();
-	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-
-	const stripePromise = useMemo( () => {
-		return loadStripe(
-			publishableKey || testPublishableKey || 'pk_test_123',
-			{
-				stripeAccount: accountId || '0001',
-				locale: 'en',
-			}
-		);
-	}, [ testPublishableKey, publishableKey, accountId ] );
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 	const isLinkEnabled = enabledMethodIds.includes( PAYMENT_METHOD_LINK );
@@ -189,10 +168,7 @@ const LinkSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					<ExpressCheckoutPreviewComponent
-						stripe={ stripePromise }
-						size={ size }
-					/>
+					<ExpressCheckoutPreviewComponent size={ size } />
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>
