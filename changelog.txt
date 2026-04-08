@@ -7,6 +7,7 @@ xxxx-xx-xx - version 10.6.0
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
+* Fix - Re-compute Stripe PE appearance after web fonts load to prevent fallback font rendering
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
