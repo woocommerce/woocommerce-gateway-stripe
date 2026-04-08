@@ -725,7 +725,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param bool  $expected      Expected result.
 	 * @dataProvider provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order
 	 */
-	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( $gateway_order, bool $expected ) {
+	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( ?array $gateway_order, bool $expected ) {
 		if ( null === $gateway_order ) {
 			delete_option( 'woocommerce_gateway_order' );
 		} else {
@@ -795,7 +795,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param bool        $expected      Expected return value.
 	 * @dataProvider provide_test_should_show_stripe_first_method_notice
 	 */
-	public function test_should_show_stripe_first_method_notice( ?string $notice_option, $gateway_order, bool $expected ): void {
+	public function test_should_show_stripe_first_method_notice( ?string $notice_option, ?array $gateway_order, bool $expected ): void {
 		if ( null === $notice_option ) {
 			delete_option( 'wc_stripe_show_stripe_first_method_notice' );
 		} else {
