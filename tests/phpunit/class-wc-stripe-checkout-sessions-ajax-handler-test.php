@@ -466,6 +466,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => true,
 					'data'    => (object) [
 						'client_secret' => $mocked_secret,
+						'session_id'    => $mocked_session_id,
 					],
 				],
 			],
