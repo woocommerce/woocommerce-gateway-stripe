@@ -803,6 +803,18 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks whether to show the Stripe first method notice.
+	 *
+	 * @return bool
+	 */
+	public static function should_show_stripe_first_method_notice(): bool {
+		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
+			return false;
+		}
+		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+	}
+
+	/**
 	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
 	 *
 	 * @return bool
