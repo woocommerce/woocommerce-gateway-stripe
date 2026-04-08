@@ -5631,6 +5631,56 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that set_cookie_on_current_request does not set the cookie outside of checkout context.
+	 *
+	 * Reproduces: cart emptied after My Account registration when Stripe + WooPayments + Jetpack are active.
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4875
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_set_cookie_on_current_request_does_not_set_cookie_outside_checkout() {
+		// WOOCOMMERCE_CHECKOUT is not defined — simulates My Account registration context.
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+	}
+
+	/**
+	 * Test that set_cookie_on_current_request does not set the cookie during checkout
+	 * if no customer has been created yet.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_set_cookie_on_current_request_does_not_set_cookie_during_checkout_before_customer_creation() {
+		define( 'WOOCOMMERCE_CHECKOUT', true );
+		// woocommerce_created_customer has NOT fired yet.
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+	}
+
+	/**
+	 * Test that set_cookie_on_current_request sets the cookie during checkout
+	 * after a customer has been created (the nonce-consistency use case for 3DS).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_set_cookie_on_current_request_sets_cookie_during_checkout_after_customer_creation() {
+		define( 'WOOCOMMERCE_CHECKOUT', true );
+		do_action( 'woocommerce_created_customer', 1, [], false );
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	}
+
+	/**
 	 * Test that add_email_currency_conversion_notice outputs plain text (no HTML) for plain-text admin emails.
 	 *
 	 * @return void
