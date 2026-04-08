@@ -1,43 +1,56 @@
-import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from '../stripe-utils/constants';
-import {
-	normalizeShippingAddress,
-	normalizeLineItems,
-	isManualPaymentMethodCreation,
-} from './utils';
+import { isManualPaymentMethodCreation } from './utils';
 import {
 	handleConfirmationTokenFlow,
 	handleManualPaymentMethodFlow,
 } from './payment-flow';
+import ExpressCheckoutCartApi from './cart-api';
+import { transformStripeShippingAddressForStoreApi } from './transformers/stripe-to-wc';
+import {
+	transformPrice,
+	transformCartDataForDisplayItems,
+	transformCartDataForShippingRates,
+} from './transformers/wc-to-stripe';
+
+let cartApi = new ExpressCheckoutCartApi();
+export const setCartApiHandler = ( handler ) => ( cartApi = handler );
+export const getCartApiHandler = () => cartApi;
 
 /**
  * Handles changes to the shipping address in the Express Checkout flow by
  * fetching updated shipping options from the server and resolving the event.
  *
- * @param {Object} api      The WCStripeAPI instance.
  * @param {Object} event    The Stripe shipping address change event.
  * @param {Object} elements The Stripe Elements instance.
  * @return {Promise<void>} Resolves when the shipping options have been updated.
  */
-export const shippingAddressChangeHandler = async ( api, event, elements ) => {
+export const shippingAddressChangeHandler = async ( event, elements ) => {
 	try {
-		const response = await api.expressCheckoutECECalculateShippingOptions(
-			normalizeShippingAddress( event.address )
-		);
+		const cartData = await cartApi.updateCustomer( {
+			shipping_address: transformStripeShippingAddressForStoreApi(
+				event.name,
+				event.address
+			),
+		} );
 
-		if ( response.result === 'success' ) {
-			elements.update( {
-				amount: response.total.amount,
-			} );
-			event.resolve( {
-				shippingRates: response.shipping_options?.slice(
-					0,
-					SHIPPING_RATES_UPPER_LIMIT_COUNT
-				),
-				lineItems: normalizeLineItems( response.displayItems ),
-			} );
-		} else {
+		const shippingRates = transformCartDataForShippingRates( cartData );
+
+		if ( shippingRates.length === 0 ) {
 			event.reject();
+			return;
 		}
+
+		elements.update( {
+			amount: transformPrice(
+				parseInt( cartData.totals.total_price, 10 ) -
+					parseInt( cartData.totals.total_refund || 0, 10 ),
+				cartData.totals
+			),
+		} );
+
+		event.resolve( {
+			shippingRates,
+			lineItems: transformCartDataForDisplayItems( cartData ),
+		} );
 	} catch ( e ) {
 		event.reject();
 	}
@@ -47,25 +60,28 @@ export const shippingAddressChangeHandler = async ( api, event, elements ) => {
  * Handles changes to the selected shipping rate in the Express Checkout flow by
  * updating the cart with the new shipping method and resolving the event.
  *
- * @param {Object} api      The WCStripeAPI instance.
  * @param {Object} event    The Stripe shipping rate change event.
  * @param {Object} elements The Stripe Elements instance.
  * @return {Promise<void>} Resolves when the shipping rate has been updated.
  */
-export const shippingRateChangeHandler = async ( api, event, elements ) => {
+export const shippingRateChangeHandler = async ( event, elements ) => {
 	try {
-		const response = await api.expressCheckoutUpdateShippingDetails(
-			event.shippingRate
-		);
+		const cartData = await cartApi.selectShippingRate( {
+			package_id: 0,
+			rate_id: event.shippingRate.id,
+		} );
 
-		if ( response.result === 'success' ) {
-			elements.update( { amount: response.total.amount } );
-			event.resolve( {
-				lineItems: normalizeLineItems( response.displayItems ),
-			} );
-		} else {
-			event.reject();
-		}
+		elements.update( {
+			amount: transformPrice(
+				parseInt( cartData.totals.total_price, 10 ) -
+					parseInt( cartData.totals.total_refund || 0, 10 ),
+				cartData.totals
+			),
+		} );
+
+		event.resolve( {
+			lineItems: transformCartDataForDisplayItems( cartData ),
+		} );
 	} catch ( e ) {
 		event.reject();
 	}
