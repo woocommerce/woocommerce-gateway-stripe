@@ -275,13 +275,14 @@ class WC_Stripe {
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-			if ( isset( $_GET['area'] ) && in_array( $_GET['area'], [ 'express_checkout', 'payment_requests' ], true ) ) {
+			$area = isset( $_GET['area'] ) ? sanitize_key( wp_unslash( $_GET['area'] ) ) : '';
+			if ( in_array( $area, [ 'express_checkout', 'payment_requests' ], true ) ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
 				new WC_Stripe_Express_Checkout_Controller();
-			} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
+			} elseif ( 'amazon_pay' === $area && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				new WC_Stripe_Amazon_Pay_Controller();
-			} elseif ( isset( $_GET['area'] ) && 'link' === $_GET['area'] ) {
+			} elseif ( 'link' === $area ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-link-controller.php';
 				new WC_Stripe_Link_Controller();
 			} else {
