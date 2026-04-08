@@ -357,13 +357,8 @@ class WC_Stripe_Payment_Tokens {
 					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
 					$tokens[ $token->get_id() ] = $token;
 
-					// If add_token_to_user updated an existing token's payment method ID (e.g. re-issued card),
-					// remove the stale old-ID key from $stored_tokens so the orphan-cleanup loop below
-					// does not delete the token that was just saved under the new ID.
-					// Only unset when the token was actually re-keyed ($old_pm_id differs from the token's
-					// current PM ID). When the token was not re-keyed the old key must stay so that the
-					// next outer-loop iteration for that PM hits the else-branch instead of calling
-					// add_token_to_user a second time with stale metadata.
+					// Remove the stale old-ID key from $stored_tokens so the orphan-cleanup loop
+					// does not delete a token that was just re-keyed to a new PM ID.
 					foreach ( $stored_tokens as $old_pm_id => $stored_token ) {
 						if ( $stored_token->get_id() === $token->get_id() && $old_pm_id !== $token->get_token() ) {
 							unset( $stored_tokens[ $old_pm_id ] );
@@ -574,21 +569,24 @@ class WC_Stripe_Payment_Tokens {
 				$token_updated = true;
 			}
 
-			// Update CC metadata (expiry, card type) if the card was reissued with new details.
+			// Update CC metadata (expiry, card type, last4) if the card was reissued with new details.
 			if ( $found_token instanceof WC_Stripe_Payment_Token_CC && isset( $payment_method->card ) ) {
 				// Zero-pad month to match WooCommerce's stored format (e.g. 2 → '02').
 				$new_exp_month = str_pad( (string) $payment_method->card->exp_month, 2, '0', STR_PAD_LEFT );
 				$new_exp_year  = (string) $payment_method->card->exp_year;
 				$new_card_type = strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand );
+				$new_last4     = (string) $payment_method->card->last4;
 
 				if (
 					$found_token->get_expiry_month() !== $new_exp_month ||
 					$found_token->get_expiry_year() !== $new_exp_year ||
-					$found_token->get_card_type() !== $new_card_type
+					$found_token->get_card_type() !== $new_card_type ||
+					$found_token->get_last4() !== $new_last4
 				) {
 					$found_token->set_expiry_month( $new_exp_month );
 					$found_token->set_expiry_year( $new_exp_year );
 					$found_token->set_card_type( $new_card_type );
+					$found_token->set_last4( $new_last4 );
 					$token_updated = true;
 				}
 			}

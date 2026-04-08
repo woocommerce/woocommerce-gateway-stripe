@@ -277,17 +277,23 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 * @param string $id          Optional Stripe payment method ID override.
 	 * @return object
 	 */
-	private function make_cc_payment_method( string $fingerprint, string $exp_month, string $exp_year, string $brand = 'visa', string $id = '' ): object {
+	private function make_cc_payment_method( string $fingerprint, string $exp_month, string $exp_year, string $brand = 'visa', string $id = '', ?string $display_brand = null ): object {
+		$card = [
+			'brand'       => $brand,
+			'exp_month'   => $exp_month,
+			'exp_year'    => $exp_year,
+			'last4'       => '4242',
+			'fingerprint' => $fingerprint,
+		];
+
+		if ( null !== $display_brand ) {
+			$card['display_brand'] = $display_brand;
+		}
+
 		return (object) [
 			'id'                            => '' !== $id ? $id : 'pm_new_' . $fingerprint,
 			'type'                          => WC_Stripe_Payment_Methods::CARD,
-			WC_Stripe_Payment_Methods::CARD => (object) [
-				'brand'       => $brand,
-				'exp_month'   => $exp_month,
-				'exp_year'    => $exp_year,
-				'last4'       => '4242',
-				'fingerprint' => $fingerprint,
-			],
+			WC_Stripe_Payment_Methods::CARD => (object) $card,
 		];
 	}
 
@@ -350,6 +356,35 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$this->assertSame( '02', $updated_token->get_expiry_month() );
 		$this->assertSame( '2031', $updated_token->get_expiry_year() );
 		$this->assertSame( 'visa', $updated_token->get_card_type() );
+	}
+
+	/**
+	 * Tests that display_brand is used for card type when present on the Stripe payment method.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_updates_card_type_from_display_brand(): void {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2024' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_old' );
+		$token->set_user_id( 1 );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->save();
+		$token_id = $token->get_id();
+
+		// New PM with display_brand set — should take priority over brand.
+		$payment_method = $this->make_cc_payment_method( 'Fxxxxxxxxxxxxxxx', '2', '2031', 'visa', '', 'cartes_bancaires' );
+
+		$this->call_add_token_to_user( $payment_method, $this->make_mock_customer(), [ 'pm_old' ] );
+
+		$updated_token = WC_Payment_Tokens::get( $token_id );
+		$this->assertSame( 'cartes_bancaires', $updated_token->get_card_type() );
+		$this->assertSame( '02', $updated_token->get_expiry_month() );
+		$this->assertSame( '2031', $updated_token->get_expiry_year() );
 	}
 
 	/**
