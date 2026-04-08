@@ -1,6 +1,6 @@
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
+import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 
 /**
@@ -261,4 +261,93 @@ export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
 			} ),
 		[ onCheckoutFail, emitResponse ]
 	);
+};
+
+/**
+ * Keeps the Stripe Checkout Session in sync with WooCommerce cart totals (price, tax, shipping) on block checkout.
+ * Uses Custom Checkout `runServerUpdate` when available (same pattern as classic checkout).
+ *
+ * @param {Object|null} api               WCStripeAPI instance (with checkoutSessionsUpdateSession).
+ * @param {string|null} checkoutSessionId Stripe Checkout Session id once the session is ready.
+ * @param {Object}      checkoutState     Result of useCheckout() from @stripe/react-stripe-js/checkout.
+ */
+export const useCheckoutSessionTotalsSync = (
+	api,
+	checkoutSessionId,
+	checkoutState
+) => {
+	const cartTotalsSignature = useSelect( ( selectCart ) => {
+		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
+		if ( ! cartStoreKey ) {
+			return '';
+		}
+		const totals = selectCart( cartStoreKey ).getCartTotals();
+		return totals?.total_price;
+	}, [] );
+
+	const checkoutStateRef = useRef( checkoutState );
+	checkoutStateRef.current = checkoutState;
+
+	const prevSessionIdRef = useRef( null );
+	const prevTotalsSignatureRef = useRef( null );
+
+	// Update the previous session ID and totals signature when the checkout session ID changes.
+	useEffect( () => {
+		if ( prevSessionIdRef.current !== checkoutSessionId ) {
+			prevSessionIdRef.current = checkoutSessionId;
+			prevTotalsSignatureRef.current = null;
+		}
+	}, [ checkoutSessionId ] );
+
+	useEffect( () => {
+		if ( ! checkoutSessionId || cartTotalsSignature === '' ) {
+			return;
+		}
+
+		if ( prevTotalsSignatureRef.current === null ) {
+			prevTotalsSignatureRef.current = cartTotalsSignature;
+			return;
+		}
+
+		if ( prevTotalsSignatureRef.current === cartTotalsSignature ) {
+			return;
+		}
+
+		prevTotalsSignatureRef.current = cartTotalsSignature;
+
+		const state = checkoutStateRef.current;
+		if ( state?.type !== 'success' ) {
+			return;
+		}
+
+		let cancelled = false;
+
+		const run = async () => {
+			try {
+				const { checkout } = state;
+				if ( typeof checkout?.runServerUpdate === 'function' ) {
+					const result = await checkout.runServerUpdate( async () => {
+						await api.checkoutSessionsUpdateSession(
+							checkoutSessionId
+						);
+					} );
+					if ( ! cancelled && result && result.type === 'error' ) {
+						// eslint-disable-next-line no-console
+						console.error( result.error );
+					}
+				}
+			} catch ( error ) {
+				if ( ! cancelled ) {
+					// eslint-disable-next-line no-console
+					console.error( error );
+				}
+			}
+		};
+
+		run();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ api, cartTotalsSignature, checkoutSessionId ] );
 };
