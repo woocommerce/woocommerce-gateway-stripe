@@ -247,6 +247,7 @@ const AgenticCommercePanel = () => {
 						status={ settingsNotice.status }
 						onRemove={ () => setSettingsNotice( null ) }
 						isDismissible
+						style={ { marginBottom: '16px' } }
 					>
 						{ settingsNotice.message }
 					</Notice>

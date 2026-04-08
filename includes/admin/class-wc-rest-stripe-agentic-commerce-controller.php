@@ -174,10 +174,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @return WP_REST_Response
 	 */
 	public function get_agentic_settings(): WP_REST_Response {
+		$secret = (string) get_option( self::WEBHOOK_SECRET_OPTION, '' );
 		return rest_ensure_response(
 			[
 				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
-				'webhook_secret' => (string) get_option( self::WEBHOOK_SECRET_OPTION, '' ),
+				// Never expose the real secret. Return '****' when one is stored so
+				// the frontend knows a secret exists without round-tripping the value.
+				'webhook_secret' => '' !== $secret ? '****' : '',
 			]
 		);
 	}
@@ -196,7 +199,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
-			update_option( self::WEBHOOK_SECRET_OPTION, sanitize_text_field( $request->get_param( 'webhook_secret' ) ) );
+			$new_secret = $request->get_param( 'webhook_secret' );
+			// '****' is the masked placeholder returned by GET; skip the update so
+			// the stored secret is not overwritten when the user saves without
+			// changing the field.
+			if ( '****' !== $new_secret ) {
+				update_option( self::WEBHOOK_SECRET_OPTION, sanitize_text_field( $new_secret ) );
+			}
 		}
 
 		return $this->get_agentic_settings();

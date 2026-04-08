@@ -452,7 +452,7 @@ describe( 'AgenticCommercePanel', () => {
 	it( 'hides onboarding steps when feature is enabled and webhook secret is already saved', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: 'whsec_existing',
+			webhook_secret: '****', // masked placeholder returned by GET when a secret is stored
 		} );
 
 		render( <AgenticCommercePanel /> );
@@ -514,10 +514,10 @@ describe( 'AgenticCommercePanel', () => {
 		} );
 	} );
 
-	it( 'prefills webhook secret from settings response', async () => {
+	it( 'prefills webhook secret field with masked placeholder when a secret is stored', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: 'whsec_test',
+			webhook_secret: '****',
 		} );
 
 		render( <AgenticCommercePanel /> );
@@ -526,7 +526,7 @@ describe( 'AgenticCommercePanel', () => {
 			const input = screen.getByLabelText(
 				/Agentic Commerce Webhook Secret/i
 			);
-			expect( input.value ).toBe( 'whsec_test' );
+			expect( input.value ).toBe( '****' );
 		} );
 	} );
 
