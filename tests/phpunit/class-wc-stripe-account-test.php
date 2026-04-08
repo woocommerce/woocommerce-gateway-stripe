@@ -46,6 +46,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_FAILURE_KEY );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
@@ -83,6 +84,43 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$cached_data = $this->account->get_cached_account_data();
 
 		$this->assertSame( $cached_data, $expected_cached_data );
+	}
+
+	/**
+	 * Provide test cases for {@see test_get_cached_account_data_caches_failed_lookup()}.
+	 *
+	 * @return array Array of test cases.
+	 */
+	public function provide_failed_account_lookup_test_cases(): array {
+		return [
+			'wp_error'            => [ new WP_Error( 'stripe_error', 'Invalid API key.' ) ],
+			'null_response'       => [ null ],
+			'stripe_error_object' => [
+				(object) [
+					'error' => (object) [
+						'message' => 'Invalid API key.',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test that failed account lookups are cached briefly.
+	 *
+	 * @param mixed $failed_response The failed response to return from the Stripe API mock.
+	 * @dataProvider provide_failed_account_lookup_test_cases
+	 */
+	public function test_get_cached_account_data_caches_failed_lookup( $failed_response ) {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Helper_Stripe_Api::$retrieve_response = $failed_response;
+
+		$first_result  = $this->account->get_cached_account_data();
+		$second_result = $this->account->get_cached_account_data();
+
+		$this->assertSame( [], $first_result );
+		$this->assertSame( [], $second_result );
+		$this->assertSame( 1, WC_Helper_Stripe_Api::$retrieve_call_count );
 	}
 
 	public function test_clear_cache() {

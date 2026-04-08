@@ -18,11 +18,25 @@ class WC_Stripe_Account {
 	const ACCOUNT_CACHE_KEY = 'account_data';
 
 	/**
+	 * The Account Data failed lookup cache key.
+	 *
+	 * @var string
+	 */
+	const ACCOUNT_CACHE_FAILURE_KEY = 'account_data_failure';
+
+	/**
 	 * The Account Data cache expiration (TTL).
 	 *
 	 * @var int
 	 */
 	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
+
+	/**
+	 * The Account Data failed lookup cache expiration (TTL).
+	 *
+	 * @var int
+	 */
+	const ACCOUNT_CACHE_FAILURE_EXPIRATION = MINUTE_IN_SECONDS;
 
 	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
 	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
@@ -105,6 +119,10 @@ class WC_Stripe_Account {
 			if ( ! empty( $account ) ) {
 				return $account;
 			}
+
+			if ( $this->has_recent_account_cache_failure() ) {
+				return [];
+			}
 		}
 
 		return $this->cache_account( $mode );
@@ -118,7 +136,16 @@ class WC_Stripe_Account {
 	private function read_account_from_cache() {
 		$account_cache = WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_KEY );
 
-		return false === $account_cache ? [] : $account_cache;
+		return is_array( $account_cache ) ? $account_cache : [];
+	}
+
+	/**
+	 * Whether a recent account data lookup failed.
+	 *
+	 * @return bool
+	 */
+	private function has_recent_account_cache_failure(): bool {
+		return true === WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_FAILURE_KEY );
 	}
 
 	/**
@@ -138,12 +165,16 @@ class WC_Stripe_Account {
 		// Restore the secret key to the original value.
 		WC_Stripe_API::set_secret_key_for_mode();
 
-		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
+		if ( empty( $account ) || is_wp_error( $account ) || isset( $account->error->message ) ) {
+			WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_FAILURE_KEY, true, self::ACCOUNT_CACHE_FAILURE_EXPIRATION );
+
 			return [];
 		}
 
 		// Convert the account data to an array.
 		$account_cache = json_decode( wp_json_encode( $account ), true );
+
+		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_FAILURE_KEY );
 
 		// Create or update the account data cache.
 		WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION );
@@ -156,6 +187,7 @@ class WC_Stripe_Account {
 	 */
 	public function clear_cache() {
 		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_FAILURE_KEY );
 
 		// Clear the webhook status cache.
 		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
