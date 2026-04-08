@@ -814,9 +814,17 @@ class WC_Stripe_Helper {
 		}
 
 		asort( $gateway_order );
-		$first_gateway_id = array_key_first( $gateway_order );
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			// Skip internal WooCommerce Payments entries.
+			if ( 0 === strpos( $gateway_id, '_wc_pes_' ) ) {
+				continue;
+			}
 
-		return 'stripe' === $first_gateway_id;
+			// The first non-internal gateway decides position one.
+			return 'stripe' === $gateway_id;
+		}
+
+		return false;
 	}
 
 	/**
