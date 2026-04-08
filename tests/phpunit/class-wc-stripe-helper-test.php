@@ -745,7 +745,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order(): array {
 		return [
-			'stripe is first'                => [
+			'stripe is first'                                     => [
 				'gateway_order' => [
 					'stripe' => '0',
 					'cod'    => '1',
@@ -753,7 +753,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'      => true,
 			],
-			'stripe exists but is not first' => [
+			'stripe exists but is not first'                      => [
 				'gateway_order' => [
 					'cod'    => '0',
 					'stripe' => '1',
@@ -761,18 +761,26 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected'      => false,
 			],
-			'stripe missing from order'      => [
+			'stripe is first real gateway after internal entries' => [
+				'gateway_order' => [
+					'_wc_pes_wc_payments' => '0',
+					'stripe'              => '1',
+					'cod'                 => '2',
+				],
+				'expected'      => true,
+			],
+			'stripe missing from order'                           => [
 				'gateway_order' => [
 					'cod'  => '0',
 					'bacs' => '1',
 				],
 				'expected'      => false,
 			],
-			'gateway order option missing'   => [
+			'gateway order option missing'                        => [
 				'gateway_order' => null,
 				'expected'      => false,
 			],
-			'gateway order option empty'     => [
+			'gateway order option empty'                          => [
 				'gateway_order' => [],
 				'expected'      => false,
 			],
