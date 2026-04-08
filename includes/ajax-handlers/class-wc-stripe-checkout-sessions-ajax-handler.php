@@ -155,6 +155,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			if ( ! WC()->cart || WC()->cart->is_empty() ) {
+				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			// Recalculate totals.
 			WC()->cart->calculate_totals();
 
