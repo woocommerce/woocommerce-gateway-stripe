@@ -276,7 +276,7 @@ export const useCheckoutSessionTotalsSync = (
 	checkoutSessionId,
 	checkoutState
 ) => {
-	const cartTotalsSignature = useSelect( ( selectCart ) => {
+	const cartTotals = useSelect( ( selectCart ) => {
 		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
 		if ( ! cartStoreKey ) {
 			return '';
@@ -300,20 +300,20 @@ export const useCheckoutSessionTotalsSync = (
 	}, [ checkoutSessionId ] );
 
 	useEffect( () => {
-		if ( ! checkoutSessionId || cartTotalsSignature === '' ) {
+		if ( ! checkoutSessionId || cartTotals === '' ) {
 			return;
 		}
 
 		if ( prevTotalsSignatureRef.current === null ) {
-			prevTotalsSignatureRef.current = cartTotalsSignature;
+			prevTotalsSignatureRef.current = cartTotals;
 			return;
 		}
 
-		if ( prevTotalsSignatureRef.current === cartTotalsSignature ) {
+		if ( prevTotalsSignatureRef.current === cartTotals ) {
 			return;
 		}
 
-		prevTotalsSignatureRef.current = cartTotalsSignature;
+		prevTotalsSignatureRef.current = cartTotals;
 
 		const state = checkoutStateRef.current;
 		if ( state?.type !== 'success' ) {
@@ -349,5 +349,5 @@ export const useCheckoutSessionTotalsSync = (
 		return () => {
 			cancelled = true;
 		};
-	}, [ api, cartTotalsSignature, checkoutSessionId ] );
+	}, [ api, cartTotals, checkoutSessionId ] );
 };
