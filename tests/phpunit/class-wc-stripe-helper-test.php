@@ -778,10 +778,94 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			'gateway order option missing'                        => [
 				'gateway_order' => null,
-				'expected'      => false,
+				'expected'      => true,
 			],
 			'gateway order option empty'                          => [
 				'gateway_order' => [],
+				'expected'      => true,
+			],
+		];
+	}
+
+	/**
+	 * Test for `should_show_stripe_first_method_notice`.
+	 *
+	 * @param string|null $notice_option Value for `wc_stripe_show_stripe_first_method_notice`, or null to delete (default yes).
+	 * @param array|null  $gateway_order Value for `woocommerce_gateway_order`, or null to delete.
+	 * @param bool        $expected      Expected return value.
+	 * @dataProvider provide_test_should_show_stripe_first_method_notice
+	 */
+	public function test_should_show_stripe_first_method_notice( ?string $notice_option, $gateway_order, bool $expected ): void {
+		if ( null === $notice_option ) {
+			delete_option( 'wc_stripe_show_stripe_first_method_notice' );
+		} else {
+			update_option( 'wc_stripe_show_stripe_first_method_notice', $notice_option );
+		}
+
+		if ( null === $gateway_order ) {
+			delete_option( 'woocommerce_gateway_order' );
+		} else {
+			update_option( 'woocommerce_gateway_order', $gateway_order );
+		}
+
+		$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+	}
+
+	/**
+	 * Data provider for `test_should_show_stripe_first_method_notice`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_stripe_first_method_notice(): array {
+		return [
+			'notice dismissed'                               => [
+				'notice_option' => 'no',
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled and stripe is first'             => [
+				'notice_option' => 'yes',
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled default and stripe is first'     => [
+				'notice_option' => null,
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled and stripe is not first'         => [
+				'notice_option' => 'yes',
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => true,
+			],
+			'notice enabled default and stripe is not first' => [
+				'notice_option' => null,
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => true,
+			],
+			'notice enabled and gateway order empty'         => [
+				'notice_option' => 'yes',
+				'gateway_order' => [],
+				'expected'      => false,
+			],
+			'notice enabled and gateway order missing'       => [
+				'notice_option' => 'yes',
+				'gateway_order' => null,
 				'expected'      => false,
 			],
 		];

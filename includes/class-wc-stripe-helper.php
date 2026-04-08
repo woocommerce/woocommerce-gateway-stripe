@@ -821,8 +821,10 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
 		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		// If the gateway order is empty, assume Stripe is in the first position.
 		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
-			return false;
+			return true;
 		}
 
 		asort( $gateway_order );
