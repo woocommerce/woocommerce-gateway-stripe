@@ -73,13 +73,13 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 				'query params'    => [
 					'pay_for_order' => 'true',
 				],
-				'expected'        => 'Payment Methods',
+				'expected'        => 'Payment methods',
 				'is checkout'     => false,
 			],
 			'classic checkout page'               => [
 				'payment details' => false,
 				'query params'    => [],
-				'expected'        => 'Payment Options',
+				'expected'        => 'Payment options',
 				'is checkout'     => true,
 			],
 			'default, hardcoded'                  => [
