@@ -2230,4 +2230,25 @@ class WC_Stripe_Helper {
 
 		return 2;
 	}
+
+	/**
+	 * Build the localized survey params array shared across admin controllers.
+	 *
+	 * @param WC_Stripe_Account $account Stripe account instance.
+	 * @return array Associative array of survey parameters for wp_localize_script.
+	 */
+	public static function get_exit_survey_params( WC_Stripe_Account $account ) {
+		// Read account data from cache only — avoid triggering a live Stripe API call.
+		$account_cache = WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$account_data  = is_array( $account_cache ) ? $account_cache : [];
+
+		return [
+			'exitSurveyLastShown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
+			'stripeAccountId'     => $account_data['id'] ?? '',
+			'wcStoreId'           => get_option( 'woocommerce_store_id', '' ),
+			'pluginVersion'       => WC_STRIPE_VERSION,
+			'wcVersion'           => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wpVersion'           => get_bloginfo( 'version' ),
+		];
+	}
 }

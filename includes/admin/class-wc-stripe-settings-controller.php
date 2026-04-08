@@ -262,6 +262,7 @@ class WC_Stripe_Settings_Controller {
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 		];
+		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(
 			'woocommerce_stripe_admin',
 			'wc_stripe_settings_params',

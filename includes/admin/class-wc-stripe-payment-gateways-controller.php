@@ -10,12 +10,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.6.0
  */
 class WC_Stripe_Payment_Gateways_Controller {
+
+	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
 	/**
 	 * Constructor
 	 *
 	 * @since 5.6.0
+	 *
+	 * @param WC_Stripe_Account $account Stripe account.
 	 */
-	public function __construct() {
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
@@ -35,7 +46,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 	public function register_payments_scripts() {
 		$payment_gateways_script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment-gateways.asset.php';
 		$payment_gateways_script_asset      = file_exists( $payment_gateways_script_asset_path )
-			? require_once $payment_gateways_script_asset_path
+			? require $payment_gateways_script_asset_path
 			: [
 				'dependencies' => [],
 				'version'      => WC_STRIPE_VERSION,
@@ -70,13 +81,22 @@ class WC_Stripe_Payment_Gateways_Controller {
 
 		$this->register_payments_scripts();
 
+		// Check via WC globals (legacy) or $_GET (new React Payments page).
 		$is_payment_methods_page = (
 			is_admin() &&
-			$current_tab && ! $current_section
-			&& 'checkout' === $current_tab
+			(
+				( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
+				( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			)
 		);
 
 		if ( $is_payment_methods_page ) {
+			wp_localize_script(
+				'woocommerce_stripe_payment_gateways_page',
+				'wcStripeExitSurveyParams',
+				WC_Stripe_Helper::get_exit_survey_params( $this->account )
+			);
+
 			wp_enqueue_script( 'woocommerce_stripe_payment_gateways_page' );
 			wp_enqueue_style( 'woocommerce_stripe_payment_gateways_page' );
 		}
