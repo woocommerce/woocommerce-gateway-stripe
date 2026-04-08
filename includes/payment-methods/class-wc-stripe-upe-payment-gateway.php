@@ -552,6 +552,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
 		$stripe_params['isLoggedIn']                        = is_user_logged_in();
+		$stripe_params['isPayerPhoneRequired']              = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$stripe_params['isSignupOnCheckoutAllowed']         = $is_signup_on_checkout_allowed;
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                        = $this->get_stripe_return_url();

@@ -105,17 +105,19 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*}       checkoutState     The checkout state.
- * @param {*}       onCheckoutSuccess The onCheckoutSuccess event.
- * @param {Object}  billing           The billing data from WooCommerce Blocks, containing billingAddress.
- * @param {boolean} isLoggedIn        Whether the customer is logged-in.
- * @param {Object}  shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {*}       checkoutState        The checkout state.
+ * @param {*}       onCheckoutSuccess    The onCheckoutSuccess event.
+ * @param {Object}  billing              The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} isLoggedIn           Whether the customer is logged-in.
+ * @param {boolean} isPayerPhoneRequired Whether the payer phone information is required.
+ * @param {Object}  shippingData         The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
 	onCheckoutSuccess,
 	billing,
 	isLoggedIn,
+	isPayerPhoneRequired,
 	shippingData
 ) => {
 	useEffect(
@@ -212,7 +214,7 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					if ( isLoggedIn ) {
+					if ( isLoggedIn && isPayerPhoneRequired ) {
 						const userPhone =
 							document.getElementById( 'billing-phone' )?.value ||
 							document.getElementById( 'shipping-phone' )?.value;
@@ -237,7 +239,14 @@ export const useCheckoutSuccessHandler = (
 					};
 				}
 			),
-		[ onCheckoutSuccess, checkoutState, billing, isLoggedIn, shippingData ]
+		[
+			onCheckoutSuccess,
+			checkoutState,
+			billing,
+			isLoggedIn,
+			isPayerPhoneRequired,
+			shippingData,
+		]
 	);
 };
 
