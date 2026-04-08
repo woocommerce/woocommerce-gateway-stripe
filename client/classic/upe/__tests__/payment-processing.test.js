@@ -636,7 +636,38 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
-			it( 'shows error when session ID is missing from mount', async () => {
+			it( 'falls back to standard payment flow when session ID is missing from mount', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Override to not return a session_id — triggers fallback to stripe.elements().
+				api.checkoutSessionsCreateSession.mockResolvedValue( {
+					data: { client_secret: 'cs_test_abc' },
+				} );
+				// Fallback elements should NOT have loadActions (like real stripe.elements()).
+				const bareElements = createMockElements();
+				delete bareElements.loadActions;
+				api._stripe.elements.mockReturnValue( bareElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: { confirm: jest.fn() },
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				// Should take the standard path, not the checkout-sessions path.
+				expect( bareElements.submit ).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows error if checkoutSessionId is null but loadActions exists (defensive)', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				// Override to not return a session_id.
