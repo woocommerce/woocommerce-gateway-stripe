@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import GridIcon from 'gridicons';
 import { __ } from '@wordpress/i18n';
 import { Notice } from '@wordpress/components';
-import { dismissNotice } from 'wcstripe/utils';
+import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
 import './style.scss';
 
 const WarningIcon = () => {
@@ -31,8 +31,10 @@ const OptimizedCheckoutFirstMethodNotice = () => {
 	}
 
 	const handleAction = () => {
-		// eslint-disable-next-line no-console
-		console.log( 'handleAction' );
+		moveStripeToTop( () => {
+			// Hide the notice after moving Stripe to the top.
+			handleRemove();
+		} );
 	};
 
 	const handleRemove = () => {

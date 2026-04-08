@@ -18,3 +18,10 @@ export const dismissNotice = ( noticeKey, callback ) => {
 		data: { [ noticeKey ]: 'no' },
 	} ).finally( callback );
 };
+
+export const moveStripeToTop = ( callback ) => {
+	apiFetch( {
+		path: '/wc/v3/wc_stripe/settings/set_stripe_gateways_first',
+		method: 'POST',
+	} ).finally( callback );
+};
