@@ -146,6 +146,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
+* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
+* Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
+* Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
@@ -163,6 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
+* Fix - Normalize express checkout button spacing on the block cart page in Safari
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
@@ -183,13 +188,19 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
+* Fix - Fix UPE style transition keys for font smoothing properties
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Add - Process Checkout Session async payment success webhooks
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
+* Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
+* Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
+* Add - Add Ajax endpoint to update line items in a checkout session
+* Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 
