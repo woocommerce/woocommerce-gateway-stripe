@@ -84,11 +84,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test register_hooks attaches expected WooCommerce stock change hooks.
-	 *
-	 * @return void
-	 */
-	/**
 	 * Test register_hooks does not attach hooks when the merchant setting is disabled.
 	 *
 	 * @return void
