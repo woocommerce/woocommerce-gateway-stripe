@@ -188,6 +188,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
+* Fix - Fix UPE style transition keys for font smoothing properties
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
 * Add - Process Checkout Session async payment success webhooks
 * Dev - Hide Stripe's testing assistant on checkout page
