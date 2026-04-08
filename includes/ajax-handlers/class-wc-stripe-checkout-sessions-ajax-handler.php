@@ -148,25 +148,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 * @return array
 	 */
 	private function build_line_items(): array {
-		$currency   = strtolower( get_woocommerce_currency() );
-		$line_items = [];
-		foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
-			if ( 'total_discount' === ( $raw_line_item['key'] ?? '' ) ) {
-				// TODO: Stripe Checkout handles discounts/coupons differently. Skip for now.
-				continue;
-			}
+		$currency = get_woocommerce_currency();
+		// Payable cart total: subtotal, tax, shipping, fees, minus discounts (same as checkout order total).
+		$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
 
-			$line_items[] = [
+		$line_items = [
+			[
 				'price_data' => [
-					'currency'     => $currency,
+					'currency'     => strtolower( $currency ),
 					'product_data' => [
-						'name' => $raw_line_item['label'],
+						'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
 					],
-					'unit_amount'  => $raw_line_item['amount'],
+					'unit_amount'  => $cart_total,
 				],
-				'quantity'   => 1, // @TODO: Handle quantity properly if needed (#4984).
-			];
-		}
+				// As we are using one aggregate line item: the payable total lives in unit_amount, not in quantity × unit price.
+				'quantity'   => 1,
+			],
+		];
 
 		return $line_items;
 	}
