@@ -788,6 +788,44 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `move_stripe_gateways_to_top_in_woocommerce_gateway_order`.
+	 */
+	public function test_move_stripe_gateways_to_top_in_woocommerce_gateway_order() {
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'affirm'       => '0',
+				'woopayments'  => '1',
+				'amazon_pay'   => '2',
+				'stripe_sepa'  => '3',
+				'stripe_ideal' => '4',
+				'stripe'       => '5',
+				'stripe_eps'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			]
+		);
+
+		WC_Stripe_Helper::move_stripe_gateways_to_top_in_woocommerce_gateway_order();
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		$this->assertSame(
+			[
+				'stripe_sepa'  => '0',
+				'stripe_ideal' => '1',
+				'stripe'       => '2',
+				'stripe_eps'   => '3',
+				'affirm'       => '4',
+				'woopayments'  => '5',
+				'amazon_pay'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			],
+			$gateway_order
+		);
+	}
+
+	/**
 	 * Test for `add_mandate_data`.
 	 *
 	 * @param string $server_variable_key   The key of the server variable to set.

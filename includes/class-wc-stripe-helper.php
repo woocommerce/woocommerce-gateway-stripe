@@ -828,6 +828,44 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 * Preserves relative order among Stripe gateways and among non-Stripe gateways.
+	 *
+	 * @return void
+	 */
+	public static function move_stripe_gateways_to_top_in_woocommerce_gateway_order(): void {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return;
+		}
+
+		asort( $gateway_order );
+		$stripe_gateways     = [];
+		$non_stripe_gateways = [];
+
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			if ( 'stripe' === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' ) ) {
+				$stripe_gateways[] = $gateway_id;
+			} else {
+				$non_stripe_gateways[] = $gateway_id;
+			}
+		}
+
+		if ( empty( $stripe_gateways ) ) {
+			return;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+
+		foreach ( array_merge( $stripe_gateways, $non_stripe_gateways ) as $gateway_id ) {
+			$updated_gateway_order[ $gateway_id ] = (string) $index++;
+		}
+
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
