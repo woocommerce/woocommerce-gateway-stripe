@@ -7,7 +7,13 @@ import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
-import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
+import {
+	Button,
+	Card,
+	CardHeader,
+	DropdownMenu,
+	Tooltip,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import './style.scss';
@@ -147,9 +153,23 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						</Pill>
 					) }
 				</HeaderDetails>
-				{ data.account?.id && (
-					<StripeAccountId>{ data.account.id }</StripeAccountId>
-				) }
+				{ data.account?.id &&
+					( data.account?.settings?.dashboard?.display_name ||
+					data.account?.business_profile?.name ? (
+						<Tooltip
+							text={
+								data.account.settings?.dashboard
+									?.display_name ||
+								data.account.business_profile.name
+							}
+						>
+							<StripeAccountId>
+								{ data.account.id }
+							</StripeAccountId>
+						</Tooltip>
+					) : (
+						<StripeAccountId>{ data.account.id }</StripeAccountId>
+					) ) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
 					setKeepModalContent={ setKeepModalContent }
