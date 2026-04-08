@@ -28,7 +28,7 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $payment_details, $query_params, $expected, $is_checkout = false ) {
+	public function test_get_title( $payment_details, ?array $query_params, string $expected, bool $is_checkout = false ) {
 		if ( $is_checkout ) {
 			add_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
