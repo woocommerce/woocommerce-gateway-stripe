@@ -1,8 +1,9 @@
 /* global wc_stripe_settings_params */
-import React from 'react';
+import React, { useState } from 'react';
 import GridIcon from 'gridicons';
 import { __ } from '@wordpress/i18n';
 import { Notice } from '@wordpress/components';
+import { dismissNotice } from 'wcstripe/utils';
 import './style.scss';
 
 const WarningIcon = () => {
@@ -20,10 +21,12 @@ const WarningIcon = () => {
 };
 
 const OptimizedCheckoutFirstMethodNotice = () => {
-	const showStripeFirstMethodNotice =
-		wc_stripe_settings_params.show_stripe_first_method_notice; // eslint-disable-line camelcase
+	const [ showNotice, setShowNotice ] = useState(
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params.show_stripe_first_method_notice
+	);
 
-	if ( ! showStripeFirstMethodNotice ) {
+	if ( ! showNotice ) {
 		return null;
 	}
 
@@ -33,8 +36,9 @@ const OptimizedCheckoutFirstMethodNotice = () => {
 	};
 
 	const handleRemove = () => {
-		// eslint-disable-next-line no-console
-		console.log( 'handleRemove' );
+		dismissNotice( 'wc_stripe_show_stripe_first_method_notice', () => {
+			setShowNotice( false );
+		} );
 	};
 
 	const actions = [

@@ -669,7 +669,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
+			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' )
+			&& null === $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
 
@@ -687,6 +688,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		if ( null !== $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
 			update_option( 'wc_stripe_show_oc_promotion_banner', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_stripe_first_method_notice_0' ) ) {
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'no' );
 		}
 
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
