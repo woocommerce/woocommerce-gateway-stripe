@@ -340,6 +340,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'default_shipping_option' => $this->get_default_shipping_option(),
+			'display_prices_with_tax' => 'incl' === get_option( 'woocommerce_tax_display_cart' ),
 		];
 
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
@@ -1908,7 +1909,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
 			return false;
 		}
-		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+
+		$route = $GLOBALS['wp']->query_vars['rest_route'];
+		return 0 === strpos( $route, '/wc/store/v1/checkout' )
+			|| 0 === strpos( $route, '/wc/store/v1/cart' );
 	}
 
 	/**
