@@ -998,9 +998,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$show_optimized_checkout = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
 			$show_adaptive_pricing   = $show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
-			if ( $show_adaptive_pricing ) {
-				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
-			}
 			// Output the form HTML.
 			?>
 			<?php if ( ! empty( $this->get_description() ) ) : ?>
@@ -1052,6 +1049,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				</p>
 					<?php
 				endif;
+			endif;
+
+			if ( $show_adaptive_pricing ) :
+				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
 			endif;
 			?>
 
