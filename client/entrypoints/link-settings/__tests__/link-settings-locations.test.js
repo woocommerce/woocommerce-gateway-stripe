@@ -39,8 +39,15 @@ describe( 'LinkSettingsSection locations', () => {
 	it( 'should enable express checkout locations when Link is enabled', () => {
 		render( <LinkSettingsSection /> );
 
-		const [ checkoutCheckbox, productPageCheckbox, cartCheckbox ] =
-			screen.getAllByRole( 'checkbox' );
+		const checkoutCheckbox = screen.getByRole( 'checkbox', {
+			name: /checkout/i,
+		} );
+		const productPageCheckbox = screen.getByRole( 'checkbox', {
+			name: /product page/i,
+		} );
+		const cartCheckbox = screen.getByRole( 'checkbox', {
+			name: /cart/i,
+		} );
 
 		expect( checkoutCheckbox ).not.toBeDisabled();
 		expect( checkoutCheckbox ).toBeChecked();
