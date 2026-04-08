@@ -481,6 +481,110 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that the Adaptive Pricing currency selector div is rendered or omitted in payment_fields()
+	 * based on the OC enabled flag, valid OC page, checkout sessions feature flag, and adaptive pricing setting.
+	 *
+	 * @dataProvider provide_payment_fields_currency_selector_rendering
+	 *
+	 * @param bool   $oc_enabled       Whether the Optimized Checkout Suite is enabled.
+	 * @param bool   $valid_oc_page    Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool   $feature_flag     Whether the checkout sessions feature flag is enabled.
+	 * @param string $adaptive_pricing The 'adaptive_pricing' settings value.
+	 * @param bool   $expect_selector  Whether the currency selector div should appear in the output.
+	 */
+	public function test_payment_fields_renders_currency_selector_conditionally(
+		bool $oc_enabled,
+		bool $valid_oc_page,
+		bool $feature_flag,
+		string $adaptive_pricing,
+		bool $expect_selector
+	): void {
+		// The gateway exposes is_adaptive_pricing_supported() as a protected instance method,
+		// allowing us to mock it directly without depending on the full settings/API stack.
+		$show_adaptive_pricing = $oc_enabled && $valid_oc_page && $feature_flag && 'yes' === $adaptive_pricing;
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $show_adaptive_pricing );
+		$gateway->oc_enabled = $oc_enabled;
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		try {
+			ob_start();
+			$gateway->payment_fields();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
+
+		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
+		if ( $expect_selector ) {
+			$this->assertStringContainsString( $selector_div, $output );
+			$selector_position    = strpos( $output, $selector_div );
+			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
+			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
+			$this->assertLessThan(
+				$upe_element_position,
+				$selector_position,
+				'Currency selector should render before the payment element.'
+			);
+		} else {
+			$this->assertStringNotContainsString( $selector_div, $output );
+		}
+	}
+
+	/**
+	 * Data provider for test_payment_fields_renders_currency_selector_conditionally.
+	 *
+	 * @return array[]
+	 */
+	public function provide_payment_fields_currency_selector_rendering(): array {
+		return [
+			'renders when all conditions are met'                    => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => true,
+			],
+			'hidden when OC is disabled'                             => [
+				'oc_enabled'       => false,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when not a valid OC page'                        => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => false,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when checkout sessions feature flag is disabled' => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => false,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when adaptive pricing setting is disabled'       => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'no',
+				'expect_selector'  => false,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:

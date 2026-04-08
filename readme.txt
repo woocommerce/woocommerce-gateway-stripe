@@ -146,6 +146,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
+* Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
+* Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
+* Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
@@ -186,12 +190,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Fix - Fix UPE style transition keys for font smoothing properties
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Add - Process Checkout Session async payment success webhooks
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
+* Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
+* Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
+* Add - Add Ajax endpoint to update line items in a checkout session
+* Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

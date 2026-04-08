@@ -6,19 +6,27 @@ const CHANGE_TYPES = {
     'Fix': 'Fixes an existing bug',
     'Add': 'Adds functionality',
     'Update': 'Update existing functionality',
+    'Remove': 'Removes existing functionality',
     'Dev': 'Development related task',
     'Tweak': 'A minor adjustment to the codebase'
 };
 
 async function findUpcomingVersionSection(content) {
     const lines = content.split('\n');
-    const upcomingVersionPattern = /=\s*\d+\.\d+\.\d+\s*-\s*xxxx-xx-xx\s*=/;
+    // Match both formats:
+    // - changelog.txt: xxxx-xx-xx - version X.Y.Z
+    // - readme.txt:    = X.Y.Z - xxxx-xx-xx =
+    const upcomingVersionPattern = /(?:xxxx-xx-xx\s*-\s*version\s+\d+\.\d+\.\d+|=\s*\d+\.\d+\.\d+\s*-\s*xxxx-xx-xx\s*=)/;
     
     for (let i = 0; i < lines.length; i++) {
         if (upcomingVersionPattern.test(lines[i])) {
-            // Find the next version section or end of file
+            // Find the next version section or end of file.
+            // Match both formats:
+            // - changelog.txt: YYYY-MM-DD - version X.Y.Z
+            // - readme.txt:    = X.Y.Z - YYYY-MM-DD =
+            const nextVersionPattern = /^(?:=\s*\d+\.\d+|\d{4}-\d{2}-\d{2}\s*-\s*version\s+\d+\.\d+)/;
             for (let j = i + 1; j < lines.length; j++) {
-                if (lines[j].startsWith('=')) {
+                if (nextVersionPattern.test(lines[j])) {
                     return { startLine: i, endLine: j - 1 };
                 }
             }
