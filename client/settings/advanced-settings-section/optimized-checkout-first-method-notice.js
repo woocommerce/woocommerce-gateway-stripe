@@ -20,7 +20,10 @@ const WarningIcon = () => {
 	);
 };
 
-const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
+const OptimizedCheckoutFirstMethodNotice = ( {
+	isOCEnabled,
+	refreshPage = false,
+} ) => {
 	const [ showNotice, setShowNotice ] = useState(
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.show_stripe_first_method_notice
@@ -33,6 +36,10 @@ const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
 	const handleAction = () => {
 		moveStripeToTop();
 		setShowNotice( false );
+
+		if ( refreshPage ) {
+			window.location.reload();
+		}
 	};
 
 	const handleRemove = () => {

@@ -20,30 +20,35 @@ if ( paymentGatewaysContainer ) {
  * @return {boolean} True if the notice was injected, false otherwise.
  */
 function injectNotice() {
-	const StripeElement = document.querySelector( '#stripe' );
+	const stripeElement = document.querySelector( '#stripe' );
 	if (
-		! StripeElement ||
-		StripeElement.querySelector(
+		! stripeElement ||
+		stripeElement.querySelector(
 			'.wc-stripe-optimized-checkout-first-method-notice'
 		) !== null
 	) {
 		return false;
 	}
 
-	const StripeDescription = StripeElement.querySelector(
+	const stripeDescription = stripeElement.querySelector(
 		'.woocommerce-list__item-text'
 	);
 
-	if ( ! StripeDescription ) {
+	if ( ! stripeDescription ) {
 		return false;
 	}
 
 	const mountNode = document.createElement( 'div' );
 	mountNode.className = 'wc-stripe-payment-gateways-oc-notice-wrapper';
-	StripeDescription.appendChild( mountNode );
+	stripeDescription.appendChild( mountNode );
 
 	const root = createRoot( mountNode );
-	root.render( <OptimizedCheckoutFirstMethodNotice isOCEnabled={ true } /> );
+	root.render(
+		<OptimizedCheckoutFirstMethodNotice
+			isOCEnabled={ true }
+			refreshPage={ true }
+		/>
+	);
 	return true;
 }
 
