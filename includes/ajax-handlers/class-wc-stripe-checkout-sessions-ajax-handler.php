@@ -110,21 +110,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			// Recalculate totals.
 			WC()->cart->calculate_totals();
 
-			$currency   = get_woocommerce_currency();
-			$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
-			$request    = [
-				'line_items' => [
-					[
-						'price_data' => [
-							'currency'     => strtolower( $currency ),
-							'product_data' => [
-								'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
-							],
-							'unit_amount'  => $cart_total,
-						],
-						'quantity'   => 1,
-					],
-				],
+			$request = [
+				'line_items' => $this->build_line_items(),
 			];
 
 			$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
