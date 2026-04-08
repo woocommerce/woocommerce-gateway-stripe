@@ -137,12 +137,9 @@ const ExitSurveyModal = ( { trigger, onRequestClose, surveyParams } ) => {
 
 	return (
 		<Modal
-			title={ __(
-				'Stripe for WooCommerce',
-				'woocommerce-gateway-stripe'
-			) }
 			className="wc-stripe-exit-survey-modal"
 			onRequestClose={ handleClose }
+			isDismissible
 			shouldCloseOnClickOutside={ false }
 		>
 			<div className="wc-stripe-exit-survey-modal__content">
@@ -155,7 +152,7 @@ const ExitSurveyModal = ( { trigger, onRequestClose, surveyParams } ) => {
 					title={ __( 'Exit Survey', 'woocommerce-gateway-stripe' ) }
 					src={ surveyUrl }
 					className="wc-stripe-exit-survey-modal__iframe"
-					sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+					sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
 					style={ {
 						height: `${ iframeHeight }px`,
 						opacity: isLoading ? 0 : 1,

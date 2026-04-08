@@ -6,8 +6,21 @@
 		width: 90vw;
 	}
 
+	// Remove the default header bar so the close button floats over the
+	// Crowdsignal branded header inside the iframe.
+	.components-modal__header {
+		position: absolute;
+		top: 0;
+		right: 0;
+		z-index: 1;
+		padding: styles.$grid-unit-15;
+		background: none;
+		border: none;
+	}
+
 	.components-modal__content {
 		padding: 0;
+		margin-top: 0;
 	}
 
 	&__content {

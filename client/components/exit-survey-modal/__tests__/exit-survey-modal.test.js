@@ -94,9 +94,6 @@ describe( 'ExitSurveyModal', () => {
 		);
 
 		expect( screen.getByTitle( 'Exit Survey' ) ).toBeInTheDocument();
-		expect(
-			screen.getByText( 'Stripe for WooCommerce' )
-		).toBeInTheDocument();
 	} );
 
 	it( 'renders the iframe with the correct src URL', () => {
