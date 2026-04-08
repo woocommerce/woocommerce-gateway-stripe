@@ -51,7 +51,6 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Safari inline element baseline gap: Stripe Express Checkout Element iframes are inline-level replaced elements. Safari adds extra whitespace below the text baseline (the "image gap"), inflating container height beyond the visible button. Fix with `font-size: 0; line-height: 0` on the container, not by targeting margins.
 - Using block layout (`padding-bottom` on children) for vertical button spacing instead of flexbox/grid with explicit `gap`. Block layout margin/padding behavior varies across browsers; flex/grid `gap` is deterministic.
 - Using `document.fonts.status` as a gate before subscribing to `document.fonts.ready`. The `ready` promise retains its resolved state — `.then()` runs as a microtask even when fonts are already loaded. A `status` check creates a race window. Always subscribe unconditionally.
-- Calling `elements.update()` without checking the object type. The Adaptive Pricing path uses `stripe.initCheckout()` which returns a Checkout object that may lack `.update()`. Always guard with `typeof elements?.update === 'function'`.
 
 ## Test Mapping
 
