@@ -280,9 +280,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
-		$payment_method_ids_to_enable   = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled                 = $request->get_param( 'is_upe_enabled' );
-		$update_payment_methods_result  = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
+		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
+		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
 		if ( is_wp_error( $update_payment_methods_result ) ) {
 			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 500 );
 		}

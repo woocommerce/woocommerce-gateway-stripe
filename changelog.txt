@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
