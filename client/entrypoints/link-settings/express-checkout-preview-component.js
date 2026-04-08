@@ -41,6 +41,7 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.default;
 
 	const buttonOptions = {
+		// Stripe's ExpressCheckoutElement enforces a max buttonHeight of 55px.
 		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 		paymentMethods: {
 			link: 'auto',

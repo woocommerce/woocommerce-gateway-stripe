@@ -287,7 +287,7 @@ describe( 'Settings hooks tests', () => {
 			hook: useLinkButtonSize,
 			storeKey: 'link_button_size',
 			testedValue: 'large',
-			fallbackValue: '',
+			fallbackValue: 'default',
 		},
 		useLinkLocations: {
 			hook: useLinkLocations,

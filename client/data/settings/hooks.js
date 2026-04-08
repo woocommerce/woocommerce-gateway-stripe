@@ -149,7 +149,10 @@ export const useAmazonPayLocations = makeSettingsHook(
 	'amazon_pay_button_locations',
 	EMPTY_ARR
 );
-export const useLinkButtonSize = makeSettingsHook( 'link_button_size', '' );
+export const useLinkButtonSize = makeSettingsHook(
+	'link_button_size',
+	'default'
+);
 export const useLinkLocations = makeSettingsHook(
 	'link_button_locations',
 	EMPTY_ARR
