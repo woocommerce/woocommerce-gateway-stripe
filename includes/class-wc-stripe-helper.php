@@ -821,7 +821,7 @@ class WC_Stripe_Helper {
 			}
 
 			// The first non-internal gateway decides position one.
-			return 'stripe' === $gateway_id;
+			return str_contains( $gateway_id, 'stripe' );
 		}
 
 		return false;
