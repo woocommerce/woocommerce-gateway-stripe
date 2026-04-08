@@ -54,6 +54,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled
