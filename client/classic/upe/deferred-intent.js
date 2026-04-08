@@ -16,6 +16,7 @@ import {
 	createAndConfirmSetupIntent,
 	getMountedUPEComponent,
 	initializeUPEComponents,
+	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
@@ -85,7 +86,10 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		maybeMountStripePaymentElement();
+		void ( async () => {
+			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeMountStripePaymentElement();
+		} )();
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {

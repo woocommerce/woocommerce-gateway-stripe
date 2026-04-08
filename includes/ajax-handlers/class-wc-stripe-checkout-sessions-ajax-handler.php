@@ -15,6 +15,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 */
 	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
+		add_action( 'wc_ajax_wc_stripe_update_checkout_session', [ $this, 'update_checkout_session' ] );
 	}
 
 	/**
@@ -70,9 +71,60 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( [ 'client_secret' => $checkout_session->client_secret ] );
+			wp_send_json_success(
+				[
+					'client_secret' => $checkout_session->client_secret,
+					'session_id'    => $checkout_session->id,
+				]
+			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
+			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+		}
+	}
+
+	/**
+	 * Update a Stripe Checkout Session. Currently only used to update the line items.
+	 *
+	 * @since 10.6.0
+	 * @return void
+	 */
+	public function update_checkout_session(): void {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_checkout_session_nonce', 'security', false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$session_id = isset( $_POST['checkout_session_id'] )
+				? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) )
+				: '';
+			if ( ! is_string( $session_id ) || '' === $session_id ) {
+				throw new Exception( __( 'Checkout session ID is required.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! WC()->cart || WC()->cart->is_empty() ) {
+				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Recalculate totals.
+			WC()->cart->calculate_totals();
+
+			$request = [
+				'line_items' => $this->build_line_items(),
+			];
+
+			$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
+
+			if ( ! empty( $checkout_session->error ) ) {
+				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
+				throw new Exception( $message );
+			}
+
+			wp_send_json_success( [ 'result' => 'success' ] );
+
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Update checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		}
 	}
@@ -83,25 +135,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	 * @return array
 	 */
 	private function build_line_items(): array {
-		$currency   = strtolower( get_woocommerce_currency() );
-		$line_items = [];
-		foreach ( WC_Stripe_Helper::build_line_items() as $raw_line_item ) {
-			if ( 'total_discount' === ( $raw_line_item['key'] ?? '' ) ) {
-				// TODO: Stripe Checkout handles discounts/coupons differently. Skip for now.
-				continue;
-			}
+		$currency = get_woocommerce_currency();
+		// Payable cart total: subtotal, tax, shipping, fees, minus discounts (same as checkout order total).
+		$cart_total = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency );
 
-			$line_items[] = [
+		$line_items = [
+			[
 				'price_data' => [
-					'currency'     => $currency,
+					'currency'     => strtolower( $currency ),
 					'product_data' => [
-						'name' => $raw_line_item['label'],
+						'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
 					],
-					'unit_amount'  => $raw_line_item['amount'],
+					'unit_amount'  => $cart_total,
 				],
-				'quantity'   => 1, // @TODO: Handle quantity properly if needed (#4984).
-			];
-		}
+				// As we are using one aggregate line item: the payable total lives in unit_amount, not in quantity × unit price.
+				'quantity'   => 1,
+			],
+		];
 
 		return $line_items;
 	}
