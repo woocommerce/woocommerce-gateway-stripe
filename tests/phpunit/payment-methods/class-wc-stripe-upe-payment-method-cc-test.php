@@ -60,7 +60,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_testing_instructions() {
-		$expected = '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.';
+		$expected = '<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.';
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
 		$actual         = $payment_method->get_testing_instructions();

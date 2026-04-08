@@ -11,6 +11,8 @@ import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavaila
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
+	useIsAdaptivePricingEnabled,
+	useIsOCEnabled,
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
@@ -132,7 +134,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
  * @return {string[]} Sorted payment method IDs.
  */
 const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
+	const [ isOCEnabled ] = useIsOCEnabled();
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
+	const isAdaptivePricingSupported = isOCEnabled && isAdaptivePricingEnabled;
 
 	const sortedPaymentMethodIds = useMemo( () => {
 		const availablePaymentMethodIds = [];
@@ -143,6 +148,7 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 			const unavailableReason = getPaymentMethodUnavailableReason( {
 				paymentMethodId,
 				storeCurrencyCode,
+				isAdaptivePricingSupported,
 			} );
 			if ( unavailableReason === null ) {
 				availablePaymentMethodIds.push( paymentMethodId );
@@ -161,7 +167,11 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 			...pluginConflictPaymentMethodIds,
 			...unavailablePaymentMethodIds,
 		];
-	}, [ orderedPaymentMethodIds, storeCurrencyCode ] );
+	}, [
+		isAdaptivePricingSupported,
+		orderedPaymentMethodIds,
+		storeCurrencyCode,
+	] );
 
 	return sortedPaymentMethodIds;
 };

@@ -125,7 +125,23 @@ const AgenticCommercePanel = () => {
 
 	return (
 		<div>
-			{ /* Introduction card */ }
+			<p className="description">
+				{ __(
+					'Monitor the product feed sync status for the Agentic Commerce integration.',
+					'woocommerce-gateway-stripe'
+				) }{ ' ' }
+				<a
+					href="https://dashboard.stripe.com/data-management/import-sets"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{ __(
+						'View import results on the Stripe Dashboard',
+						'woocommerce-gateway-stripe'
+					) }
+				</a>
+			</p>
+
 			<Card>
 				<CardTitle>
 					{ __(

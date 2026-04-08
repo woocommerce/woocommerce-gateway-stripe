@@ -658,7 +658,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$time          = time();
 		$stale_counter = 0;
 		foreach ( $stale_entry_keys as $stale_entry_key ) {
-			$stale_counter++;
+			++$stale_counter;
 			$stale_data = [
 				'updated' => $time - 1000,
 				'ttl'     => 300,

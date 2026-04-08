@@ -5,8 +5,6 @@
  * @package WooCommerce\Stripe\Tests
  */
 
-use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
-
 /**
  * Class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test
  *
@@ -127,12 +125,26 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test that a single stock change is stored in the pending updates option.
+	 * Data provider for stock quantity scenarios.
 	 *
+	 * @return array
+	 */
+	public function stock_quantity_provider(): array {
+		return [
+			'positive quantity' => [ 10 ],
+			'zero quantity'     => [ 0 ],
+		];
+	}
+
+	/**
+	 * Test that a stock change is stored in the pending updates option.
+	 *
+	 * @dataProvider stock_quantity_provider
+	 * @param int $quantity Stock quantity to test.
 	 * @return void
 	 */
-	public function test_track_stock_change_stores_pending_update() {
-		$product = $this->create_simple_product_with_stock( 10 );
+	public function test_track_stock_change_stores_pending_update( int $quantity ) {
+		$product = $this->create_simple_product_with_stock( $quantity );
 
 		$this->sut->track_stock_change( $product );
 
@@ -140,7 +152,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->assertArrayHasKey( $product->get_id(), $pending );
 		$this->assertEquals( $product->get_id(), $pending[ $product->get_id() ]['sku_id'] );
-		$this->assertEquals( 10, $pending[ $product->get_id() ]['quantity'] );
+		$this->assertEquals( $quantity, $pending[ $product->get_id() ]['quantity'] );
 		$this->assertArrayHasKey( 'timestamp', $pending[ $product->get_id() ] );
 	}
 
@@ -182,22 +194,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->assertCount( 1, $pending );
 		$this->assertEquals( 3, $pending[ $product->get_id() ]['quantity'] );
-	}
-
-	/**
-	 * Test that stock change to zero is tracked correctly.
-	 *
-	 * @return void
-	 */
-	public function test_track_stock_change_handles_zero_quantity() {
-		$product = $this->create_simple_product_with_stock( 0 );
-
-		$this->sut->track_stock_change( $product );
-
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
-
-		$this->assertArrayHasKey( $product->get_id(), $pending );
-		$this->assertEquals( 0, $pending[ $product->get_id() ]['quantity'] );
 	}
 
 	/**
@@ -267,6 +263,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$this->assertInstanceOf( WC_Stripe_Agentic_Commerce_Csv_Feed::class, $feed );
 		$this->assertNotNull( $feed->get_file_path() );
 		$this->assertFileExists( $feed->get_file_path() );
+
+		wp_delete_file( $feed->get_file_path() );
 	}
 
 	/**
@@ -335,6 +333,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_skips_when_feature_disabled() {
+		// Explicitly disable the feature flag to verify the skip behavior.
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_false' );
+
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
 

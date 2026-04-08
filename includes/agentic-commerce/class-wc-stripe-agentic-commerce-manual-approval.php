@@ -31,9 +31,9 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval {
 	 * @throws Exception When product resolution fails.
 	 */
 	public function validate( WC_Stripe_Agentic_Customize_Checkout_Event $event ): array {
-		$line_items         = $event->get_line_items();
-		$decline            = null;
-		$invalid_line_item  = null;
+		$line_items        = $event->get_line_items();
+		$decline           = null;
+		$invalid_line_item = null;
 
 		foreach ( $line_items as $line_item ) {
 			$decline = $this->validate_line_item( $line_item );

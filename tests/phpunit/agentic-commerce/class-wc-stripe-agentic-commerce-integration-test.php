@@ -19,6 +19,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
+		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface' ) ) {
+			$this->markTestSkipped( 'WooCommerce IntegrationInterface not available (requires WooCommerce 10.5.0+)' );
+		}
+
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
