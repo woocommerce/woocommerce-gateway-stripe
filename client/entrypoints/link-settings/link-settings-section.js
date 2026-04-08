@@ -26,6 +26,13 @@ const makeButtonSizeText = ( string ) =>
 			helpText: <span className="link-settings__option-muted-text" />,
 		},
 	} );
+const StyledLink = styled.a`
+	&:focus,
+	&:visited {
+		box-shadow: none;
+	}
+`;
+
 const buttonSizeOptions = [
 	{
 		label: makeButtonSizeText(
@@ -74,12 +81,8 @@ const LinkSettingsSection = () => {
 		}
 	};
 
-	const StyledLink = styled.a`
-		&:focus,
-		&:visited {
-			box-shadow: none;
-		}
-	`;
+	const checkoutPageId = getSetting( 'storePages' )?.checkout?.id;
+
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
@@ -92,11 +95,9 @@ const LinkSettingsSection = () => {
 							'woocommerce-gateway-stripe'
 						),
 						components: {
-							checkoutPageLink: (
+							checkoutPageLink: checkoutPageId ? (
 								<StyledLink
-									href={ `${ ADMIN_URL }post.php?post=${
-										getSetting( 'storePages' )?.checkout?.id
-									}&action=edit` }
+									href={ `${ ADMIN_URL }post.php?post=${ checkoutPageId }&action=edit` }
 									target="_blank"
 									rel="noreferrer"
 									onClick={ ( ev ) => {
@@ -104,6 +105,8 @@ const LinkSettingsSection = () => {
 										ev.stopPropagation();
 									} }
 								/>
+							) : (
+								<span />
 							),
 						},
 					} ) }
