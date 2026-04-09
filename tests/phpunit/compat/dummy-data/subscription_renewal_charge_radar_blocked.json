@@ -1,0 +1,30 @@
+{
+   "id":"ch_radar_blocked_123",
+   "object":"charge",
+   "amount":2000,
+   "amount_refunded":0,
+   "captured":false,
+   "created":1565731413,
+   "currency":"usd",
+   "customer":"cus_123abc",
+   "failure_code":"card_declined",
+   "failure_message":"Your card was declined.",
+   "livemode":false,
+   "metadata":{
+      "customer_name":"Test User",
+      "customer_email":"test@example.org",
+      "order_id":"6",
+      "payment_type":"recurring"
+   },
+   "outcome":{
+      "network_status":"not_sent_to_network",
+      "reason":"highest_risk_level",
+      "risk_level":"highest",
+      "risk_score":89,
+      "seller_message":"Stripe blocked this payment as too risky.",
+      "type":"blocked"
+   },
+   "paid":false,
+   "payment_intent":"pi_radar_blocked_123",
+   "status":"failed"
+}

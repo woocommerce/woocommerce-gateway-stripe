@@ -719,6 +719,197 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @param array $gateway_order WooCommerce gateway order option value.
+	 * @param bool  $expected      Expected result.
+	 * @dataProvider provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order
+	 */
+	public function test_is_stripe_in_position_one_in_woocommerce_gateway_order( ?array $gateway_order, bool $expected ) {
+		if ( null === $gateway_order ) {
+			delete_option( 'woocommerce_gateway_order' );
+		} else {
+			update_option( 'woocommerce_gateway_order', $gateway_order );
+		}
+
+		$this->assertSame(
+			$expected,
+			WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order()
+		);
+	}
+
+	/**
+	 * Data provider for `test_is_stripe_in_position_one_in_woocommerce_gateway_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_in_position_one_in_woocommerce_gateway_order(): array {
+		return [
+			'stripe is first'                                     => [
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+					'bacs'   => '2',
+				],
+				'expected'      => true,
+			],
+			'stripe exists but is not first'                      => [
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+					'bacs'   => '2',
+				],
+				'expected'      => false,
+			],
+			'stripe is first real gateway after internal entries' => [
+				'gateway_order' => [
+					'_wc_pes_wc_payments' => '0',
+					'stripe'              => '1',
+					'cod'                 => '2',
+				],
+				'expected'      => true,
+			],
+			'stripe missing from order'                           => [
+				'gateway_order' => [
+					'cod'  => '0',
+					'bacs' => '1',
+				],
+				'expected'      => false,
+			],
+			'gateway order option missing'                        => [
+				'gateway_order' => null,
+				'expected'      => true,
+			],
+			'gateway order option empty'                          => [
+				'gateway_order' => [],
+				'expected'      => true,
+			],
+		];
+	}
+
+	/**
+	 * Test for `should_show_stripe_first_method_notice`.
+	 *
+	 * @param string|null $notice_option Value for `wc_stripe_show_stripe_first_method_notice`, or null to delete (default yes).
+	 * @param array|null  $gateway_order Value for `woocommerce_gateway_order`, or null to delete.
+	 * @param bool        $expected      Expected return value.
+	 * @dataProvider provide_test_should_show_stripe_first_method_notice
+	 */
+	public function test_should_show_stripe_first_method_notice( ?string $notice_option, ?array $gateway_order, bool $expected ): void {
+		if ( null === $notice_option ) {
+			delete_option( 'wc_stripe_show_stripe_first_method_notice' );
+		} else {
+			update_option( 'wc_stripe_show_stripe_first_method_notice', $notice_option );
+		}
+
+		if ( null === $gateway_order ) {
+			delete_option( 'woocommerce_gateway_order' );
+		} else {
+			update_option( 'woocommerce_gateway_order', $gateway_order );
+		}
+
+		$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+	}
+
+	/**
+	 * Data provider for `test_should_show_stripe_first_method_notice`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_stripe_first_method_notice(): array {
+		return [
+			'notice dismissed'                               => [
+				'notice_option' => 'no',
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled and stripe is first'             => [
+				'notice_option' => 'yes',
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled default and stripe is first'     => [
+				'notice_option' => null,
+				'gateway_order' => [
+					'stripe' => '0',
+					'cod'    => '1',
+				],
+				'expected'      => false,
+			],
+			'notice enabled and stripe is not first'         => [
+				'notice_option' => 'yes',
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => true,
+			],
+			'notice enabled default and stripe is not first' => [
+				'notice_option' => null,
+				'gateway_order' => [
+					'cod'    => '0',
+					'stripe' => '1',
+				],
+				'expected'      => true,
+			],
+			'notice enabled and gateway order empty'         => [
+				'notice_option' => 'yes',
+				'gateway_order' => [],
+				'expected'      => false,
+			],
+			'notice enabled and gateway order missing'       => [
+				'notice_option' => 'yes',
+				'gateway_order' => null,
+				'expected'      => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `move_stripe_gateways_to_top_in_woocommerce_gateway_order`.
+	 */
+	public function test_move_stripe_gateways_to_top_in_woocommerce_gateway_order() {
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'affirm'       => '0',
+				'woopayments'  => '1',
+				'amazon_pay'   => '2',
+				'stripe_sepa'  => '3',
+				'stripe_ideal' => '4',
+				'stripe'       => '5',
+				'stripe_eps'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			]
+		);
+
+		WC_Stripe_Helper::move_stripe_gateways_to_top_in_woocommerce_gateway_order();
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		$this->assertSame(
+			[
+				'stripe_sepa'  => '0',
+				'stripe_ideal' => '1',
+				'stripe'       => '2',
+				'stripe_eps'   => '3',
+				'affirm'       => '4',
+				'woopayments'  => '5',
+				'amazon_pay'   => '6',
+				'cod'          => '7',
+				'paypal'       => '8',
+			],
+			$gateway_order
+		);
+	}
+
+	/**
 	 * Test for `add_mandate_data`.
 	 *
 	 * @param string $server_variable_key   The key of the server variable to set.
@@ -1300,7 +1491,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
-	 * @param bool   $feature_flag       Feature flag enabled.
 	 * @param bool   $is_checkout        Whether is classic checkout page.
 	 * @param bool   $has_block          Whether is block checkout page.
 	 * @param string $adaptive_pricing   Adaptive pricing setting.
@@ -1309,7 +1499,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $feature_flag, bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1317,8 +1507,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$new_stripe_settings['capture']                    = 'yes';
 		$new_stripe_settings['pmc_enabled']                = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
-
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, $feature_flag ? 'yes' : 'no' );
 
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -1379,7 +1567,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		\WC_Subscriptions_Product::set_subscription_product_ids( [] );
 		\WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		\WC_Deposits_Product_Manager::set_deposits_enabled( false );
-		update_option( \WC_Stripe_Feature_Flags::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME, 'no' );
 
 		foreach ( $products as $product ) {
 			$product->delete( true );
@@ -1400,16 +1587,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_is_adaptive_pricing_supported(): array {
 		return [
-			'feature flag disabled'                     => [
-				'feature_flag'       => false,
-				'is_checkout'        => true,
-				'has_block'          => false,
-				'adaptive_pricing'   => 'yes',
-				'cart_product_types' => [ 'simple' ],
-				'expected'           => false,
-			],
 			'adaptive pricing disabled'                 => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'no',
@@ -1417,7 +1595,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'not on classic checkout or block checkout' => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1425,7 +1602,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'on block checkout'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => false,
 				'has_block'          => true,
 				'adaptive_pricing'   => 'yes',
@@ -1433,7 +1609,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'empty cart'                                => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1441,7 +1616,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple product only'                       => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1449,7 +1623,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'multiple simple products'                  => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1457,7 +1630,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => true,
 			],
 			'simple and subscription products mixed'    => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1465,7 +1637,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'simple and deposits products mixed'        => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1473,7 +1644,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'subscription in cart'                      => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1481,7 +1651,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'pre-order in cart'                         => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',
@@ -1489,7 +1658,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'           => false,
 			],
 			'deposits in cart'                          => [
-				'feature_flag'       => true,
 				'is_checkout'        => true,
 				'has_block'          => false,
 				'adaptive_pricing'   => 'yes',

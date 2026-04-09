@@ -532,6 +532,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
+		/**
+		 * Filter the metadata sent with the Stripe Checkout Session payment intent.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param array         $metadata                The metadata array to be sent with the payment intent.
+		 * @param WC_Order|null $order                   The WC_Order object if available, otherwise null.
+		 * @param object|null   $prepared_payment_method The prepared payment method object if available, otherwise null.
+		 */
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
 
 		if ( $prepared_payment_method->customer ) {
@@ -1134,27 +1143,35 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.6
-	 * @param WC_Order $order The order object
-	 * @param int    $balance_transaction_id
+	 * @param WC_Order $order                  The order object.
+	 * @param string   $balance_transaction_id The balance transaction ID.
+	 * @param bool     $replace                Whether to replace existing fee/net values instead of
+	 *                                         adding to them. Use true for captures where the fee
+	 *                                         reflects the captured amount. Default false (add mode
+	 *                                         for refunds and adjustments).
 	 */
-	public function update_fees( $order, $balance_transaction_id ) {
+	public function update_fees( $order, $balance_transaction_id, bool $replace = false ) {
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
 
 		if ( empty( $balance_transaction->error ) ) {
 			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
 				// Fees and Net needs to both come from Stripe to be accurate as the returned
 				// values are in the local currency of the Stripe account, not from WC.
-				$fee_refund = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
-				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+				$balance_fee = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
+				$balance_net = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
 
-				// Current data fee & net.
 				$order_helper = WC_Stripe_Order_Helper::get_instance();
-				$fee_current  = $order_helper->get_stripe_fee( $order );
-				$net_current  = $order_helper->get_stripe_net( $order );
 
-				// Calculation.
-				$fee = (float) $fee_current + (float) $fee_refund;
-				$net = (float) $net_current + (float) $net_refund;
+				if ( $replace ) {
+					$fee = (float) $balance_fee;
+					$net = (float) $balance_net;
+				} else {
+					$fee_current = $order_helper->get_stripe_fee( $order );
+					$net_current = $order_helper->get_stripe_net( $order );
+
+					$fee = (float) $fee_current + (float) $balance_fee;
+					$net = (float) $net_current + (float) $balance_net;
+				}
 
 				$order_helper->update_stripe_fee( $order, $fee );
 				$order_helper->update_stripe_net( $order, $net );
