@@ -25,7 +25,12 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	invalidateAppearanceCache,
+	initializeUPEAppearance,
+} from 'wcstripe/stripe-utils';
+import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
@@ -307,6 +312,40 @@ const PaymentProcessor = ( {
 			);
 		}
 	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
+
+	// After web fonts finish loading, re-compute the appearance so the PE
+	// uses the correct font families instead of fallback generics.
+	useEffect( () => {
+		if ( ! elements ) {
+			return;
+		}
+
+		let cancelled = false;
+		document.fonts?.ready?.then( () => {
+			if ( cancelled ) {
+				return;
+			}
+
+			// Compare the live font with the cached appearance — only
+			// invalidate and recompute if they actually differ.
+			const cachedFont =
+				initializeUPEAppearance( 'true' )?.variables?.fontFamily;
+			const liveFont = sampleFontFamily( true );
+			if ( ! liveFont || liveFont === cachedFont ) {
+				return;
+			}
+
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance( 'true' );
+			if ( typeof elements?.update === 'function' ) {
+				elements.update( { appearance } );
+			}
+		} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ elements ] );
 
 	usePaymentCompleteHandler(
 		api,

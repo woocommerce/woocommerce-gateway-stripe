@@ -7,6 +7,7 @@ xxxx-xx-xx - version 10.6.0
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
+* Fix - Re-compute Stripe PE appearance after web fonts load to prevent fallback font rendering
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
@@ -16,6 +17,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
+* Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
 * Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
@@ -55,6 +57,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 * Add - Add dedicated settings page for Link with button size and location customization
 
 2026-03-19 - version 10.5.3
