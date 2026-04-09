@@ -17,8 +17,8 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 .wc-block-checkout__payment-method .wc-block-components-radio-control__label > span {
 	width: 100%;
 }
-.wc-block-checkout__payment-method .wc-block-components-radio-control__label > span > span {
-	float:right;
+.wc-block-checkout__payment-method .wc-block-components-radio-control__label > span > span:not( .wc-stripe-test-mode-badge ) {
+	float: right;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -28,7 +28,7 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 /* stylelint-disable selector-id-pattern */
 #radio-control-wc-payment-method-options-stripe__content.optimized-checkout-element {
-	padding-top: 1.4em;
+	padding-top: 0;
 
 	.content:empty {
 		display: none;
@@ -38,3 +38,32 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	border: none;
 }
 /* stylelint-enable selector-id-pattern */
+
+/* Test Mode badge — hidden by default, shown when radio is checked */
+.wc-stripe-test-mode-badge {
+	background-color: #fff2d7;
+	border-radius: 4px;
+	padding: 4px 6px;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 16px;
+	color: #4d3716;
+	margin-left: 8px;
+	display: none;
+}
+
+.wc-block-checkout__payment-method
+	.wc-block-components-radio-control__option
+	input:checked
+	~ div
+	.wc-block-components-radio-control__label
+	.wc-stripe-test-mode-badge,
+.wc-block-checkout__payment-method
+	.wc-block-components-radio-control-accordion-option
+	input:checked
+	~ div
+	.wc-block-components-radio-control__label
+	.wc-stripe-test-mode-badge {
+	display: inline-block;
+}
+

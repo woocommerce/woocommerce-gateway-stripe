@@ -3,7 +3,7 @@
 /**
  * Tests for agentic commerce checkout.session.completed webhook handling.
  *
- * @covers WC_Stripe_Webhook_Handler::process_checkout_session
+ * @covers WC_Stripe_Webhook_Handler::process_checkout_session_success
  */
 class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
@@ -54,7 +54,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		$notification = $this->build_notification( 'cs_test_disabled' );
 
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$orders = wc_get_orders(
 			[
@@ -75,7 +75,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$mock_session = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
@@ -97,7 +97,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->mock_stripe_checkout_sessions_response( $session );
 
 		$notification = $this->build_notification( 'cs_test_empty_nbp' );
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
@@ -114,7 +114,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
 
 		$notification = $this->build_notification( $session_id );
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$resolved = $this->get_resolved_order( $this->handler );
 
@@ -131,7 +131,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->mock_stripe_api_error();
 
 		$notification = $this->build_notification( 'cs_test_lock_release' );
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$lock_key = 'checkout_session_lock_cs_test_lock_release';
 		$this->assertNull( WC_Stripe_Database_Cache::get( $lock_key ) );
@@ -160,7 +160,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 		// Should not throw — the handler catches the mapper's exception.
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$this->assertTrue( $failure_action_fired );
 		$this->assertInstanceOf( Exception::class, $captured_exception );
@@ -284,7 +284,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
 
 		$notification = $this->build_notification( 'cs_test_version' );
-		$this->handler->process_checkout_session( $notification );
+		$this->handler->process_checkout_session_success( $notification );
 
 		$this->assertNotNull( $captured_headers );
 		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );

@@ -538,6 +538,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * Wrap test card/account numbers in `<number>` tags (e.g. `<number>4242 4242 4242 4242</number>`)
+	 * so they are rendered as copy-to-clipboard buttons at checkout.
+	 *
+	 * @see WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup()
+	 *
 	 * @return string
 	 */
 	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {

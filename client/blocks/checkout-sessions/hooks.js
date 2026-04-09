@@ -1,6 +1,7 @@
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
+import { select, useSelect } from '@wordpress/data';
+import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -79,7 +80,10 @@ export const usePaymentSetupHandler = (
 						meta: {
 							paymentMethodData: {
 								payment_method: 'stripe',
-								save_payment_method: 'no', // TODO: Correctly handle this when supporting saved payment methods in the future.
+								save_payment_method:
+									isSavePaymentMethodCheckboxChecked()
+										? 'yes'
+										: 'no',
 								wc_stripe_checkout_session_id:
 									checkoutSessionId,
 							},
@@ -101,12 +105,18 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*} checkoutState     The checkout state.
- * @param {*} onCheckoutSuccess The onCheckoutSuccess event.
+ * @param {*}       checkoutState     The checkout state.
+ * @param {*}       onCheckoutSuccess The onCheckoutSuccess event.
+ * @param {Object}  billing           The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} isLoggedIn        Whether the customer is logged-in.
+ * @param {Object}  shippingData      The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
-	onCheckoutSuccess
+	onCheckoutSuccess,
+	billing,
+	isLoggedIn,
+	shippingData
 ) => {
 	useEffect(
 		() =>
@@ -122,11 +132,96 @@ export const useCheckoutSuccessHandler = (
 						};
 					}
 
+					const billingAddress = billing?.billingAddress;
+					const shippingAddress = shippingData?.shippingAddress;
+
 					const { redirect } = paymentDetails;
 					const { checkout } = checkoutState;
-					const confirmResult = await checkout.confirm( {
+
+					const confirmArgs = {
+						billingAddress: {
+							name: `${ billingAddress?.first_name ?? '' } ${
+								billingAddress?.last_name ?? ''
+							}`.trim(),
+							address: {
+								country: billingAddress?.country,
+								line1: billingAddress?.address_1,
+								line2: billingAddress?.address_2,
+								state: billingAddress?.state,
+								city: billingAddress?.city,
+								postal_code: billingAddress?.postcode,
+							},
+						},
 						returnUrl: redirect,
-					} );
+						redirect: 'if_required',
+						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
+					};
+
+					// Only include shipping information if the min. requirement is met.
+					if (
+						shippingAddress?.address_1 &&
+						shippingAddress?.country
+					) {
+						confirmArgs.shippingAddress = {
+							address: {
+								country: shippingAddress?.country,
+								line1: shippingAddress?.address_1,
+							},
+						};
+
+						// API do not accept empty values.
+						if ( shippingAddress?.recipient ) {
+							confirmArgs.shippingAddress.name =
+								shippingAddress?.recipient.trim();
+						}
+
+						// If the shipping address name is still empty, attempt to use the billing name (it is a required parameter).
+						if ( ! confirmArgs.shippingAddress.name ) {
+							confirmArgs.shippingAddress.name = `${
+								billingAddress?.first_name ?? ''
+							} ${ billingAddress?.last_name ?? '' }`.trim();
+						}
+
+						if ( shippingAddress?.address_2 ) {
+							confirmArgs.shippingAddress.address.line2 =
+								shippingAddress?.address_2;
+						}
+
+						if ( shippingAddress?.state ) {
+							confirmArgs.shippingAddress.address.state =
+								shippingAddress?.state;
+						}
+
+						if ( shippingAddress?.city ) {
+							confirmArgs.shippingAddress.address.city =
+								shippingAddress?.city;
+						}
+
+						if ( shippingAddress?.postcode ) {
+							confirmArgs.shippingAddress.address.postal_code =
+								shippingAddress?.postcode;
+						}
+					}
+
+					if ( ! checkout.email ) {
+						// If checkout session doesn't have email, attempt to get it from the checkout form.
+						const userEmail =
+							document.getElementById( 'email' )?.value;
+						if ( userEmail ) {
+							confirmArgs.email = userEmail;
+						}
+					}
+
+					if ( isLoggedIn ) {
+						const userPhone =
+							document.getElementById( 'billing-phone' )?.value ||
+							document.getElementById( 'shipping-phone' )?.value;
+						if ( userPhone ) {
+							confirmArgs.phoneNumber = userPhone;
+						}
+					}
+
+					const confirmResult = await checkout.confirm( confirmArgs );
 					if ( confirmResult?.type === 'error' ) {
 						return {
 							type: 'error',
@@ -142,7 +237,7 @@ export const useCheckoutSuccessHandler = (
 					};
 				}
 			),
-		[ onCheckoutSuccess, checkoutState ]
+		[ onCheckoutSuccess, checkoutState, billing, isLoggedIn, shippingData ]
 	);
 };
 
@@ -166,4 +261,104 @@ export const usePaymentFailHandler = ( onCheckoutFail, emitResponse ) => {
 			} ),
 		[ onCheckoutFail, emitResponse ]
 	);
+};
+
+/**
+ * Keeps the Stripe Checkout Session in sync with WooCommerce cart totals (price, tax, shipping) on block checkout.
+ * Uses Custom Checkout `runServerUpdate` when available (same pattern as classic checkout).
+ *
+ * @param {Object|null} api               WCStripeAPI instance (with checkoutSessionsUpdateSession).
+ * @param {string|null} checkoutSessionId Stripe Checkout Session id once the session is ready.
+ * @param {Object}      checkoutState     Result of useCheckout() from @stripe/react-stripe-js/checkout.
+ */
+export const useCheckoutSessionTotalsSync = (
+	api,
+	checkoutSessionId,
+	checkoutState
+) => {
+	const cartTotals = useSelect( ( selectCart ) => {
+		const cartStoreKey = window.wc?.wcBlocksData?.cartStore;
+		if ( ! cartStoreKey ) {
+			return '';
+		}
+
+		const cartStore = selectCart( cartStoreKey );
+		if ( typeof cartStore?.getCartTotals !== 'function' ) {
+			return '';
+		}
+		const totals = cartStore.getCartTotals();
+
+		return totals?.total_price;
+	}, [] );
+
+	const checkoutStateRef = useRef( checkoutState );
+	checkoutStateRef.current = checkoutState;
+
+	const prevSessionIdRef = useRef( null );
+	const prevCartTotalsRef = useRef( null );
+
+	// Update the previous session ID and totals signature when the checkout session ID changes.
+	useEffect( () => {
+		if ( prevSessionIdRef.current !== checkoutSessionId ) {
+			prevSessionIdRef.current = checkoutSessionId;
+			prevCartTotalsRef.current = null;
+		}
+	}, [ checkoutSessionId ] );
+
+	useEffect( () => {
+		if ( ! checkoutSessionId || cartTotals === '' ) {
+			return;
+		}
+
+		if ( prevCartTotalsRef.current === null ) {
+			prevCartTotalsRef.current = cartTotals;
+			return;
+		}
+
+		if ( prevCartTotalsRef.current === cartTotals ) {
+			return;
+		}
+
+		prevCartTotalsRef.current = cartTotals;
+
+		const state = checkoutStateRef.current;
+		if ( state?.type !== 'success' ) {
+			return;
+		}
+
+		let cancelled = false;
+
+		const run = async () => {
+			try {
+				const { checkout } = state;
+				if (
+					typeof api?.checkoutSessionsUpdateSession !== 'function' ||
+					typeof checkout?.runServerUpdate !== 'function'
+				) {
+					return;
+				}
+
+				const result = await checkout.runServerUpdate( async () => {
+					await api.checkoutSessionsUpdateSession(
+						checkoutSessionId
+					);
+				} );
+				if ( ! cancelled && result && result.type === 'error' ) {
+					// eslint-disable-next-line no-console
+					console.error( result.error );
+				}
+			} catch ( error ) {
+				if ( ! cancelled ) {
+					// eslint-disable-next-line no-console
+					console.error( error );
+				}
+			}
+		};
+
+		run();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ api, cartTotals, checkoutSessionId ] );
 };
