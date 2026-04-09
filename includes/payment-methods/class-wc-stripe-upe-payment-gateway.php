@@ -793,6 +793,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether Optimized Checkout is enabled and Stripe is the first available gateway on this request.
+	 *
+	 * Use this for payment processing paths (process_payment, save card, redirect). For frontend
+	 * rendering, use {@see should_use_optimized_checkout_payment_method_layout()} which also checks
+	 * page validity.
+	 *
+	 * @return bool
+	 */
+	private function is_oc_active(): bool {
+		return $this->oc_enabled && WC_Stripe_Helper::is_stripe_first_available_gateway( self::ID );
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -1374,7 +1387,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args                 = [];
 
-			if ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) && isset( $payment_method_details->type ) ) {
+			if ( $this->is_oc_active() && isset( $payment_method_details->type ) ) {
 				$upe_payment_method = self::get_payment_method_instance( $payment_method_details->type );
 			}
 
@@ -2394,7 +2407,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_methods = $this->payment_methods;
 
 		// Override the payment method type if the Optimized Checkout is enabled.
-		if ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) && WC_Stripe_Payment_Methods::OC === $payment_method_type ) {
+		if ( $this->is_oc_active() && WC_Stripe_Payment_Methods::OC === $payment_method_type ) {
 			$payment_methods[ WC_Stripe_Payment_Methods::OC ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
@@ -2621,7 +2634,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_id = $setup_intent->payment_method;
 
 			$payment_method = null;
-			if ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) ) {
+			if ( $this->is_oc_active() ) {
 				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
 				if ( ! empty( $payment_method_type ) ) {
 					$payment_method = self::get_payment_method_instance( $payment_method_type );
@@ -2883,7 +2896,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
 		// When Optimized Checkout is enabled, check which payment method we need to use.
-		if ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) ) {
+		if ( $this->is_oc_active() ) {
 			// Check if we are handling an express payment type, where we should not expect a payment method to have been created, and
 			// need to rely on either $selected_payment_type or $express_payment_type.
 			if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
@@ -3011,7 +3024,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_method_options = [];
 
 		// If the Optimized Checkout is enabled, we need to use the payment method details from the request.
-		if ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) && isset( $payment_method_details->type ) ) {
+		if ( $this->is_oc_active() && isset( $payment_method_details->type ) ) {
 			$selected_payment_type = $payment_method_details->type;
 		}
 
@@ -3194,7 +3207,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_type     = WC_Stripe_Payment_Methods::LINK;
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
-		} elseif ( $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) && isset( $payment_method_object->type ) ) {
+		} elseif ( $this->is_oc_active() && isset( $payment_method_object->type ) ) {
 			// When OC is enabled, use the payment method type from the payment method object
 			$payment_method_type     = $payment_method_object->type;
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
@@ -3620,7 +3633,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string The redirect URL.
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
-		$selected_payment_type = $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID ) ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
+		$selected_payment_type = $this->is_oc_active() ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
 		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
