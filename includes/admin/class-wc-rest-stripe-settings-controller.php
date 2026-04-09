@@ -326,8 +326,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
+
+		if ( ! is_array( $payment_method_ids_to_enable ) ) {
+			return null;
+		}
+
+		$is_upe_enabled              = $request->get_param( 'is_upe_enabled' );
+		$is_express_checkout_enabled = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
