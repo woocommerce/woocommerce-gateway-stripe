@@ -522,7 +522,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
-		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
+		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
 		if ( $expect_selector ) {
 			$this->assertStringContainsString( $selector_div, $output );
 			$selector_position    = strpos( $output, $selector_div );
@@ -537,6 +537,51 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} else {
 			$this->assertStringNotContainsString( $selector_div, $output );
 		}
+	}
+
+	/**
+	 * Test that in test mode with Optimized Checkout and Adaptive Pricing enabled,
+	 * the test copy renders before the currency selector.
+	 */
+	public function test_payment_fields_renders_test_copy_before_currency_selector(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( true );
+		$gateway->oc_enabled = true;
+		$gateway->testmode   = true;
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		try {
+			ob_start();
+			$gateway->payment_fields();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
+
+		$selector_div         = '<div id="wc-stripe-currency-selector"';
+		$selector_position    = strpos( $output, $selector_div );
+		$test_copy_position   = strpos( $output, 'wc-stripe-payment-method-instruction' );
+		$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+
+		$this->assertNotFalse( $test_copy_position, 'Test copy should be present in output.' );
+		$this->assertNotFalse( $selector_position, 'Currency selector should be present in output.' );
+		$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
+		$this->assertLessThan(
+			$selector_position,
+			$test_copy_position,
+			'Test copy should render before the currency selector.'
+		);
+		$this->assertLessThan(
+			$upe_element_position,
+			$selector_position,
+			'Currency selector should render before the payment element.'
+		);
 	}
 
 	/**
