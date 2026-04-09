@@ -66,7 +66,11 @@ function runWithObserver() {
 			observer.disconnect();
 		}
 	} );
-	observer.observe( document.body, { childList: true, subtree: true } );
+
+	const observerTarget = document.querySelector(
+		'.wc-settings-prevent-change-event'
+	);
+	observer.observe( observerTarget, { childList: true, subtree: true } );
 	window.setTimeout( () => observer.disconnect(), 15000 );
 }
 
