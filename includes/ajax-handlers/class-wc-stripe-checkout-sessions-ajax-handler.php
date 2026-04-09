@@ -43,9 +43,6 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
 				],
-				'saved_payment_method_options'  => [
-					'payment_method_save' => 'enabled',
-				],
 			];
 
 			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
@@ -59,8 +56,11 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				$request['customer'] = $stripe_customer->get_id();
 
 				if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
-					$request['phone_number_collection'] = [ 'enabled' => 'true' ];
+					$request['phone_number_collection'] = [ 'enabled' => true ];
 				}
+				$request['saved_payment_method_options'] = [
+					'payment_method_save' => 'enabled',
+				];
 			}
 
 			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
