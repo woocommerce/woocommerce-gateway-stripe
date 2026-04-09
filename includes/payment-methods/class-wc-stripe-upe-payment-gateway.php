@@ -2407,7 +2407,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_methods = $this->payment_methods;
 
 		// Override the payment method type if the Optimized Checkout is enabled.
-		if ( $this->is_oc_active() && WC_Stripe_Payment_Methods::OC === $payment_method_type ) {
+		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::OC === $payment_method_type ) {
 			$payment_methods[ WC_Stripe_Payment_Methods::OC ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
