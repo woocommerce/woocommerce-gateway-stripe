@@ -357,14 +357,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		$start          = time();
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
 		$mock_scheduler->expects( $this->once() )
 			->method( 'schedule_job' )
 			->with(
 				$this->callback(
-					function ( $timestamp ) {
+					function ( $timestamp ) use ( $start ) {
 						$this->assertIsInt( $timestamp );
-						$this->assertGreaterThanOrEqual( time() + 2 * MINUTE_IN_SECONDS, $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
 
 						return true;
 					}
@@ -441,6 +442,61 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		return [
 			'checkout.session.completed'               => [ 'checkout.session.completed' ],
 			'checkout.session.async_payment_succeeded' => [ 'checkout.session.async_payment_succeeded' ],
+		];
+	}
+
+	/**
+	 * Deferred checkout session failure events should run handle_checkout_session_failure when the job executes.
+	 *
+	 * @param string $event_type Stripe event type.
+	 * @return void
+	 * @dataProvider provide_deferred_checkout_session_failure_event_types
+	 */
+	public function test_process_deferred_webhook_invokes_handle_checkout_session_failure( string $event_type ): void {
+		$checkout_session_id = 'cs_test_deferred_failure_job';
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_failure_job',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_failure' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_checkout_session_failure' )
+			->with(
+				$this->callback(
+					function ( $passed ) use ( $notification ) {
+						return is_object( $passed )
+							&& isset( $passed->type )
+							&& $notification->type === $passed->type
+							&& isset( $passed->data->object->id )
+							&& $notification->data->object->id === $passed->data->object->id;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook(
+			$event_type,
+			[ 'session_id' => $checkout_session_id ],
+			$notification
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_deferred_checkout_session_failure_event_types(): array {
+		return [
+			'checkout.session.expired'              => [ 'checkout.session.expired' ],
+			'checkout.session.async_payment_failed' => [ 'checkout.session.async_payment_failed' ],
 		];
 	}
 
