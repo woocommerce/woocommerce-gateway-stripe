@@ -836,6 +836,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
+		// For OC, compute per-method showSaveOption so the frontend can
+		// dynamically show/hide the save checkbox as the selected method
+		// changes inside the Payment Element.
+		$show_save_option_by_method = [];
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+			foreach ( $original_method_ids as $method_id ) {
+				if ( isset( $this->payment_methods[ $method_id ] ) ) {
+					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
+				}
+			}
+		}
+
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
 			$payment_method = $payment_methods[ $payment_method_id ];
 
@@ -849,6 +861,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'countries'              => $payment_method->get_available_billing_countries(),
 				'enabledPaymentMethods'  => $original_method_ids,
 			];
+
+			if ( ! empty( $show_save_option_by_method ) && $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
+				$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+			}
 		}
 
 		return $settings;
@@ -1074,7 +1090,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</fieldset>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
+			// When Link is enabled (non-OC), hide the store-level save checkbox
+			// for card — Link handles save consent via the Payment Element.
+			$hide_for_link = ! $this->oc_enabled && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this );
+			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $hide_for_link ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -3633,6 +3652,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
+			// When Link is enabled, hide the store-level save checkbox for both
+			// the card method and the Link method itself — Link handles save
+			// consent via the Payment Element, so neither needs the WC checkbox.
+			// OC is excluded here because its registration-level showSaveOption
+			// must stay true so WC Blocks renders the checkbox container; the
+			// frontend uses showSaveOptionByMethod to toggle it per sub-method.
+			if (
+				! $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC &&
+				in_array( $payment_method->get_id(), [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], true ) &&
+				WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this )
+			) {
+				return false;
+			}
+
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			// If force save payment method is true, no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart() && ! WC_Stripe_Helper::should_force_save_payment_method();

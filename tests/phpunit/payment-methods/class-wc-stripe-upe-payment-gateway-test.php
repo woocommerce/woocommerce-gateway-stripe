@@ -4554,6 +4554,103 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests for `should_upe_payment_method_show_save_option`.
+	 *
+	 * Verifies that the private method correctly hides the save option
+	 * for card and link when Link is enabled, while leaving OC unaffected.
+	 *
+	 * @param string $payment_method_class The payment method class name.
+	 * @param array  $enabled_methods      Enabled UPE payment method IDs.
+	 * @param string $saved_cards          The 'saved_cards' setting value.
+	 * @param bool   $expected             Expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_should_upe_payment_method_show_save_option
+	 */
+	public function test_should_upe_payment_method_show_save_option( $payment_method_class, $enabled_methods, $saved_cards, $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'is_saved_cards_enabled', 'is_subscription_item_in_cart', 'is_pre_order_charged_upon_release_in_cart' ] )
+			->getMock();
+
+		$gateway->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( $enabled_methods );
+
+		$gateway->method( 'is_saved_cards_enabled' )
+			->willReturn( 'yes' === $saved_cards );
+
+		$gateway->method( 'is_subscription_item_in_cart' )
+			->willReturn( false );
+
+		$gateway->method( 'is_pre_order_charged_upon_release_in_cart' )
+			->willReturn( false );
+
+		$payment_method = new $payment_method_class();
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'should_upe_payment_method_show_save_option' );
+		$method->setAccessible( true );
+
+		$actual = $method->invoke( $gateway, $payment_method );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_should_upe_payment_method_show_save_option`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_upe_payment_method_show_save_option() {
+		$card_and_link = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
+		$card_only     = [ WC_Stripe_Payment_Methods::CARD ];
+
+		return [
+			'card — Link enabled, saved cards on — false'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => false,
+			],
+			'card — Link disabled, saved cards on — true'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'card — Link disabled, saved cards off — false' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'no',
+				'expected'             => false,
+			],
+			'link — Link enabled, saved cards on — false'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_Link::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => false,
+			],
+			'link — Link disabled, saved cards on — true'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_Link::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'OC — Link enabled, saved cards on — true'      => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_OC::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'OC — Link disabled, saved cards on — true'     => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_OC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+		];
+	}
+
+	/**
 	 * Creates an order with presentment data cached for email notice tests.
 	 *
 	 * @param string $checkout_session_id The checkout session ID to use.
