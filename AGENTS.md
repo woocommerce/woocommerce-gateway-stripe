@@ -51,6 +51,7 @@ Use the smallest command set needed for the task:
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
 - Release metadata drift: version-related changes often require coordinated edits to `changelog.txt`, `readme.txt`, and release references.
+- Using the wrong version header format: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`, `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =`. Mixing them breaks their respective parsers (WooCommerce.com and WordPress.org).
 
 ## Architecture
 
@@ -116,6 +117,7 @@ Traits:
 ## Release Hygiene
 
 - For version/release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
+- `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
 
 ## Version Support
