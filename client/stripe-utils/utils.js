@@ -830,6 +830,17 @@ export const initializeUPEAppearance = (
 };
 
 /**
+ * Clears the in-memory appearance cache so the next call to
+ * initializeUPEAppearance() re-computes from the current page styles.
+ * Used after web fonts finish loading to refresh stale font families.
+ */
+export const invalidateAppearanceCache = () => {
+	Object.keys( appearanceCache ).forEach(
+		( key ) => delete appearanceCache[ key ]
+	);
+};
+
+/**
  * Determines if the payment method is restricted to specific countries.
  *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
