@@ -4,6 +4,7 @@ import {
 	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	invalidateAppearanceCache,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -17,7 +18,7 @@ import {
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
 } from '../../stripe-utils';
-import { getFontRulesFromPage } from '../../styles/upe';
+import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -350,6 +351,29 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 		elements = api.getStripe().elements( options );
 	}
+
+	// After web fonts finish loading, re-compute appearance with correct
+	// font families and update the live Stripe Elements instance.
+	document.fonts?.ready?.then( () => {
+		// Compare the live font with the cached appearance — only
+		// invalidate and recompute if they actually differ.
+		const cachedFont = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		)?.variables?.fontFamily;
+		const liveFont = sampleFontFamily( false );
+		if ( ! liveFont || liveFont === cachedFont ) {
+			return;
+		}
+		invalidateAppearanceCache();
+		const appearance = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		);
+		if ( typeof elements?.update === 'function' ) {
+			elements.update( { appearance } );
+		}
+	} );
 
 	const attachDefaultValuesUpdateEvent = (
 		element,
