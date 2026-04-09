@@ -1,0 +1,29 @@
+.wc-stripe-optimized-checkout-first-method-notice {
+    border: 1px solid #DFB085;
+    border-radius: 8px;
+    padding: 12px;
+    background-color: #FFF3E0;
+
+    .notice-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .components-notice__dismiss {
+        min-width: 18px !important;
+        width: 18px;
+        height: 18px;
+        margin-top: 6px;
+    }
+
+	.components-notice__actions {
+		.components-notice__action {
+			margin-top: 0.5rem;
+            color: #1e1e1e;
+            box-shadow: none;
+            border: 1px solid #898989;
+            border-radius: 2px;
+		}
+	}
+}
