@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFirstMethodNotice from 'wcstripe/settings/advanced-settings-section/optimized-checkout-first-method-notice';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
@@ -79,6 +79,14 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 	} );
 
 	it( 'calls moveStripeToTop and hides the notice when "Move to top" is clicked', async () => {
+		let resolveMove;
+		moveStripeToTop.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveMove = resolve;
+				} )
+		);
+
 		render( <OptimizedCheckoutFirstMethodNotice isOCEnabled={ true } /> );
 
 		await userEvent.click(
@@ -86,6 +94,12 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 		);
 
 		expect( moveStripeToTop ).toHaveBeenCalled();
+
+		await act( () => {
+			resolveMove();
+			return Promise.resolve();
+		} );
+
 		expect( screen.queryByText( noticeCopy ) ).not.toBeInTheDocument();
 	} );
 
