@@ -420,6 +420,7 @@ class WC_Stripe {
 	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
 	 *
 	 * @param array $ordering The current ordering of the gateways.
+	 * @return void
 	 */
 	public function set_stripe_gateways_in_list( $ordering ) {
 		wc_get_logger()->debug( 'set_stripe_gateways_in_list was called' );
