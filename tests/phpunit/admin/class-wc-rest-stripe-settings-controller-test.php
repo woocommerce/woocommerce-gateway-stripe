@@ -485,7 +485,56 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 					'result' => 'notice dismissed',
 				],
 			],
+			'dismiss stripe first notice'  => [
+				'request params'    => [
+					'wc_stripe_show_stripe_first_method_notice' => 'no',
+				],
+				'expected option'   => [
+					'wc_stripe_show_stripe_first_method_notice' => 'no',
+				],
+				'expected response' => [
+					'result' => 'notice dismissed',
+				],
+			],
 		];
+	}
+
+	/**
+	 * Tests for moving Stripe gateways to the top via REST endpoint.
+	 */
+	public function test_set_stripe_gateways_first() {
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'affirm'      => '0',
+				'woopayments' => '1',
+				'amazon_pay'  => '2',
+				'stripe_sepa' => '3',
+				'stripe'      => '4',
+				'stripe_eps'  => '5',
+				'cod'         => '6',
+				'paypal'      => '7',
+			]
+		);
+
+		$request  = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/set_stripe_gateways_first' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( [ 'result' => 'Stripe moved to first position' ], $response->get_data() );
+		$this->assertSame(
+			[
+				'stripe_sepa' => '0',
+				'stripe'      => '1',
+				'stripe_eps'  => '2',
+				'affirm'      => '3',
+				'woopayments' => '4',
+				'amazon_pay'  => '5',
+				'cod'         => '6',
+				'paypal'      => '7',
+			],
+			get_option( 'woocommerce_gateway_order', [] )
+		);
 	}
 
 	/**
