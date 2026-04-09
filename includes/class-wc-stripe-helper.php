@@ -759,19 +759,18 @@ class WC_Stripe_Helper {
 	/**
 	 * Memoizes the first gateway ID from the available gateways list (woocommerce_available_payment_gateways).
 	 *
-	 * @param array<string, WC_Payment_Gateway> $gateways Available payment gateways keyed by gateway ID.
-	 * @return array<string, WC_Payment_Gateway>
+	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
 	 */
-	public static function record_first_gateway_id_from_available_list( array $gateways ): array {
+	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
 		if ( null !== self::$first_gateway_id_from_available_list ) {
-			return $gateways;
+			return;
 		}
+
+		$gateways = $gateways->payment_gateways();
 
 		if ( is_array( $gateways ) && [] !== $gateways ) {
 			self::$first_gateway_id_from_available_list = array_key_first( $gateways );
 		}
-
-		return $gateways;
 	}
 
 	/**
