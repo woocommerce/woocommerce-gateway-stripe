@@ -290,7 +290,7 @@ class WC_Stripe_Payment_Tokens {
 				foreach ( $this->get_reusable_sub_gateway_ids() as $sub_gateway_id ) {
 					$method_type = $sub_gateway_to_method_type[ $sub_gateway_id ] ?? null;
 					$method_obj  = null !== $method_type ? ( $gateway->payment_methods[ $method_type ] ?? null ) : null;
-					if ( null === $method_obj || ! $method_obj->is_enabled() ) {
+					if ( null === $method_obj || ! $method_obj->is_enabled() || ! $method_obj->is_enabled_at_checkout() ) {
 						continue;
 					}
 					$tokens = array_merge( $tokens, WC_Payment_Tokens::get_customer_tokens( $customer_id, $sub_gateway_id ) );

@@ -4235,6 +4235,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				continue;
 			}
 
+			// Skip if not available at checkout (e.g. currency not supported for this method).
+			if ( ! $this->is_enabled_at_checkout( $stripe_id ) ) {
+				continue;
+			}
+
 			$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
 
 			// Already fetched (covers the main gateway and any sub-gateway fetched in a prior iteration).

@@ -723,6 +723,46 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$this->assertNotContains( $cashapp_pm_id, $result_token_ids, 'Disabled sub-gateway tokens must not appear when OCS is enabled.' );
 	}
 
+	/**
+	 * When OCS is enabled and a sub-gateway method is toggled on but not available
+	 * at checkout (e.g. currency incompatibility), its stored tokens must NOT appear
+	 * in the merged results.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_excludes_unavailable_sub_gateway_tokens_when_ocs_enabled(): void {
+		// Create and log-in a user.
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Store a CashApp token in WooCommerce under the 'stripe_cashapp' sub-gateway.
+		$cashapp_pm_id = 'pm_cashapp_unavailable_ocs';
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_token( $cashapp_pm_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$cashapp_token->set_cashtag( '$testcashtag' );
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->save();
+
+		// Mock the CashApp payment method as enabled (toggle on) but not available at checkout
+		// (e.g. currency not supported), simulating the classic-checkout regression reported
+		// in https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5146.
+		$mock_cashapp_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled_at_checkout', 'is_enabled' ] )
+			->getMock();
+		$mock_cashapp_pm->method( 'is_enabled' )->willReturn( true );
+		$mock_cashapp_pm->method( 'is_enabled_at_checkout' )->willReturn( false );
+
+		$mock_gateway = $this->get_mock_gateway( true );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] = $mock_cashapp_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		// No Stripe customer ID so the API is not called and no sync occurs.
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( $cashapp_pm_id, $result_token_ids, 'Sub-gateway tokens for a method not available at checkout must not appear when OCS is enabled.' );
+	}
+
 	// =========================================================================
 	// Tests for get_account_saved_payment_methods_list_item OCS gateway remapping
 	// =========================================================================
