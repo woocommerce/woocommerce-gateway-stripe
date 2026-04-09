@@ -161,6 +161,19 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->assertEquals( 500, $response->get_status() );
 	}
 
+	public function test_update_settings_skips_pmc_update_when_payment_method_ids_absent() {
+		// No enabled_payment_method_ids param — PMC update must be skipped entirely.
+		$this->stripe_api->expects( $this->never() )
+			->method( 'update_payment_method_configurations' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		// Intentionally omit enabled_payment_method_ids.
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
 	/**
 	 * Tests for boolean fields.
 	 *
