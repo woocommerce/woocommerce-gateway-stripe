@@ -44,12 +44,13 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 	}
 
 	const handleAction = () => {
-		moveStripeToTop();
-		setShowNotice( false );
+		moveStripeToTop().then( () => {
+			setShowNotice( false );
 
-		if ( refreshPage ) {
-			window.location.reload();
-		}
+			if ( refreshPage ) {
+				window.location.reload();
+			}
+		} );
 	};
 
 	const handleRemove = () => {

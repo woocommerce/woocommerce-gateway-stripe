@@ -73,9 +73,9 @@ function runWithObserver() {
 // If the Optimized Checkout is enabled and the notice should be shown, run the notice injection.
 if (
 	// eslint-disable-next-line camelcase
-	wc_stripe_settings_params?.is_oc_enabled === '1' &&
+	!! wc_stripe_settings_params?.is_oc_enabled &&
 	// eslint-disable-next-line camelcase
-	wc_stripe_settings_params?.show_stripe_first_method_notice === '1'
+	!! wc_stripe_settings_params?.show_stripe_first_method_notice
 ) {
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', runWithObserver );
