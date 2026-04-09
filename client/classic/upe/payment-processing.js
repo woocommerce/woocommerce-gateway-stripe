@@ -632,6 +632,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	const stripeServerData = getStripeServerData();
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 		upeElement.on( 'change', ( { value } ) => {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
@@ -640,7 +641,10 @@ export async function mountStripePaymentElement( api, domElement ) {
 			const createAccountCheckbox =
 				document.getElementById( 'createaccount' );
 			const updateCheckboxListener = () => {
-				handleDisplayOfSavingCheckbox( value.type );
+				handleDisplayOfSavingCheckbox(
+					value.type,
+					paymentMethodsConfig
+				);
 			};
 			if ( createAccountCheckbox ) {
 				createAccountCheckbox.removeEventListener(
@@ -652,7 +656,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 					updateCheckboxListener
 				);
 			}
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		} );
 	}
 
