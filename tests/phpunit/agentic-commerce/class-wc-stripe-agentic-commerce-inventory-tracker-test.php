@@ -59,6 +59,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
 			remove_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] );
 			remove_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] );
+			remove_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
@@ -128,6 +129,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
 		$this->assertNotFalse( has_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] ) );
 		$this->assertNotFalse(
 			has_action(
 				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
@@ -163,6 +165,88 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
 
 		$this->sut->maybe_track_product_archive( $page_id );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
+	/**
+	 * Test that maybe_track_product_archive tracks a product variation.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_tracks_variation() {
+		$parent = new \WC_Product_Variable();
+		$parent->set_name( 'Variable Product' );
+		$parent->set_status( 'publish' );
+		$parent->set_regular_price( '29.99' );
+		$parent->save();
+
+		$variation = new \WC_Product_Variation();
+		$variation->set_parent_id( $parent->get_id() );
+		$variation->set_regular_price( '29.99' );
+		$variation->set_manage_stock( true );
+		$variation->set_stock_quantity( 5 );
+		$variation->save();
+
+		$this->sut->maybe_track_product_archive( $variation->get_id() );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $variation->get_id(), $pending );
+		$this->assertEquals( 'out_of_stock', $pending[ $variation->get_id() ]['availability'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// maybe_cancel_pending_archive
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test that restoring a trashed product removes it from the pending archives queue.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_removes_product() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+
+		$this->sut->maybe_cancel_pending_archive( $product->get_id() );
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayNotHasKey( $product->get_id(), $after );
+	}
+
+	/**
+	 * Test that restoring a product preserves other pending archives.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_preserves_other_entries() {
+		$product_a = $this->create_simple_product_with_stock( 5 );
+		$product_b = $this->create_simple_product_with_stock( 10 );
+
+		$this->sut->track_product_archive( $product_a );
+		$this->sut->track_product_archive( $product_b );
+
+		$this->sut->maybe_cancel_pending_archive( $product_a->get_id() );
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayNotHasKey( $product_a->get_id(), $after );
+		$this->assertArrayHasKey( $product_b->get_id(), $after );
+	}
+
+	/**
+	 * Test that maybe_cancel_pending_archive ignores non-product post types.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_ignores_non_products() {
+		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
+
+		// No error should occur even with no pending archives.
+		$this->sut->maybe_cancel_pending_archive( $page_id );
 
 		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 		$this->assertEmpty( $pending );

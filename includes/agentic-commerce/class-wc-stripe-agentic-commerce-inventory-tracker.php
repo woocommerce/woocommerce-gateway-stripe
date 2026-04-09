@@ -83,6 +83,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		// $product->delete() calls, not through the WordPress admin UI.
 		add_action( 'before_delete_post', [ $this, 'maybe_track_product_archive' ] );
 		add_action( 'wp_trash_post', [ $this, 'maybe_track_product_archive' ] );
+		add_action( 'untrash_post', [ $this, 'maybe_cancel_pending_archive' ] );
 		add_action( self::ARCHIVE_SCHEDULED_ACTION, [ $this, 'sync_archives' ] );
 	}
 
@@ -135,7 +136,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * @return void
 	 */
 	public function maybe_track_product_archive( int $post_id ): void {
-		if ( 'product' !== get_post_type( $post_id ) ) {
+		if ( ! in_array( get_post_type( $post_id ), [ 'product', 'product_variation' ], true ) ) {
 			return;
 		}
 
@@ -145,6 +146,33 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		$this->track_product_archive( $product );
+	}
+
+	/**
+	 * Remove a product from the pending archives queue when it is restored from trash.
+	 *
+	 * If a merchant trashes a product and then restores it before the 60-second
+	 * batch window elapses, this prevents the product from being synced to Stripe
+	 * as out_of_stock.
+	 *
+	 * @since 10.6.0
+	 * @param int $post_id The ID of the post being restored.
+	 * @return void
+	 */
+	public function maybe_cancel_pending_archive( int $post_id ): void {
+		if ( ! in_array( get_post_type( $post_id ), [ 'product', 'product_variation' ], true ) ) {
+			return;
+		}
+
+		$pending = get_option( self::PENDING_ARCHIVES_OPTION, [] );
+		if ( isset( $pending[ $post_id ] ) ) {
+			unset( $pending[ $post_id ] );
+			if ( empty( $pending ) ) {
+				delete_option( self::PENDING_ARCHIVES_OPTION );
+			} else {
+				update_option( self::PENDING_ARCHIVES_OPTION, $pending, false );
+			}
+		}
 	}
 
 	/**
