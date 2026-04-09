@@ -192,6 +192,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -217,6 +218,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -267,6 +269,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
@@ -295,6 +298,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				false,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -322,6 +326,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -351,6 +356,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				checkoutState,
 				onCheckoutSuccess,
 				billing,
+				true,
 				true,
 				shippingData
 			);
@@ -384,6 +390,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				true,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
@@ -413,6 +420,7 @@ describe( 'CheckoutSessions hook tests', () => {
 				onCheckoutSuccess,
 				billing,
 				true,
+				false,
 				shippingData
 			);
 			await onCheckoutSuccessResultPromise;
