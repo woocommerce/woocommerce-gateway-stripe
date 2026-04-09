@@ -1810,8 +1810,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 		}
 
-		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
-		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
+		// These events are always processed async (deferred). Skip the action trigger for them here. The trigger will be called inside process_deferred_webhook.
+		$deferred_event_types = [
+			'payment_intent.succeeded',
+			'payment_intent.amount_capturable_updated',
+			'checkout.session.completed',
+			'checkout.session.async_payment_succeeded',
+			'checkout.session.expired',
+			'checkout.session.async_payment_failed',
+		];
+		if ( in_array( $notification->type, $deferred_event_types, true ) ) {
 			return;
 		}
 
