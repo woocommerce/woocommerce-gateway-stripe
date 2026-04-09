@@ -153,6 +153,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
+* Fix - Re-compute Stripe PE appearance after web fonts load to prevent fallback font rendering
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Prevent brief display of wrong title on classic checkout when Optimized Checkout is enabled
@@ -204,5 +205,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
