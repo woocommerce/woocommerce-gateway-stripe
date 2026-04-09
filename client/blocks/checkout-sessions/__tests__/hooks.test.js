@@ -469,10 +469,8 @@ describe( 'CheckoutSessions hook tests', () => {
 
 	describe( 'useCheckoutSessionTotalsSync hook', () => {
 		let cartPrice;
-		// const actualElement = jest.requireActual( '@wordpress/element' );
 
 		beforeEach( () => {
-			// useEffect.mockImplementation( actualElement.useEffect );
 			cartPrice = '1000';
 			window.wc = {
 				wcBlocksData: { cartStore: 'wc/store/cart' },
