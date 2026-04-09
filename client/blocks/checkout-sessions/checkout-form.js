@@ -29,6 +29,7 @@ import {
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
  * @param {Object}                 props.billing                     Billing information for the checkout session.
  * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
+ * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
  * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
@@ -43,6 +44,7 @@ const CheckoutForm = ( {
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	billing,
 	isLoggedIn,
+	isPayerPhoneRequired,
 	shippingData,
 	LoadingMask,
 	onLoadError,
@@ -71,6 +73,7 @@ const CheckoutForm = ( {
 		onCheckoutSuccess,
 		billing,
 		isLoggedIn,
+		isPayerPhoneRequired,
 		shippingData
 	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
