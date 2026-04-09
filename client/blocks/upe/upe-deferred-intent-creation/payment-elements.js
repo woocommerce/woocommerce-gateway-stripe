@@ -233,6 +233,7 @@ const PaymentElements = ( {
 			<CheckoutContainer
 				api={ api }
 				isLoggedIn={ stripeServerData?.isLoggedIn }
+				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage
 				}

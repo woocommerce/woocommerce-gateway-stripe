@@ -2,8 +2,10 @@
 
 xxxx-xx-xx - version 10.6.0
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
+* Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
 * Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
+* Fix - Move test mode instructions above the Adaptive Pricing currency selector in classic checkout
 * Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
@@ -18,6 +20,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
+* Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
 * Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
@@ -42,6 +45,7 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Fix - Fix UPE style transition keys for font smoothing properties
+* Fix - Only collect and send payer phone in Checkout Sessions when the WooCommerce phone field is required
 * Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
 * Add - Process Checkout Session async payment success webhooks
@@ -53,10 +57,12 @@ xxxx-xx-xx - version 10.6.0
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
+* Fix - Keep adaptive pricing amount in sync on block checkout after order total changes
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 
 2026-03-19 - version 10.5.3
