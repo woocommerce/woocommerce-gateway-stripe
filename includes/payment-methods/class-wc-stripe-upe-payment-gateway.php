@@ -305,9 +305,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 
-		// Attach the currency selector div to the classic checkout page.
-		add_action( 'woocommerce_review_order_before_payment', [ $this, 'attach_currency_selector_element' ] );
-
 		// Include the converted currency information in the order total on the order received page and in the My Account orders list.
 		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
 
@@ -555,6 +552,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
 		$stripe_params['isLoggedIn']                        = is_user_logged_in();
+		$stripe_params['isPayerPhoneRequired']              = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$stripe_params['isSignupOnCheckoutAllowed']         = $is_signup_on_checkout_allowed;
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                        = $this->get_stripe_return_url();
@@ -568,6 +566,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['createAndConfirmSetupIntentNonce']  = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
 		$stripe_params['updateFailedOrderNonce']            = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
 		$stripe_params['createCheckoutSessionNonce']        = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+		$stripe_params['updateCheckoutSessionNonce']        = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
 		$stripe_params['paymentMethodsConfig']              = $this->get_enabled_payment_method_config();
 		$stripe_params['genericErrorMessage']               = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                 = $this->statement_descriptor;
@@ -635,7 +634,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
 
 		// Adaptive Pricing support for checkout.
-		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && WC_Stripe_Helper::is_adaptive_pricing_supported();
+		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
@@ -996,7 +995,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$display_tokenization    = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$show_optimized_checkout = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+			$show_adaptive_pricing   = $show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 			// Output the form HTML.
 			?>
@@ -1022,7 +1023,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					'span'   => [],
 				];
 
-				if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) :
+				if ( $show_optimized_checkout ) :
 					echo wp_kses(
 						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
 						array_merge(
@@ -1049,6 +1050,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				</p>
 					<?php
 				endif;
+			endif;
+
+			if ( $show_adaptive_pricing ) :
+				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
 			endif;
 			?>
 
@@ -1093,19 +1098,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * This is used to render the currency selector element in the checkout page.
 	 *
 	 * @return void
+	 * @deprecated 10.6.0 This method is no longer used.
 	 */
 	public function attach_currency_selector_element() {
-		// Bail if checkout sessionsfeature flag is not enabled.
-		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
-			return;
-		}
-
-		// Bail if not on the checkout page.
-		if ( ! is_checkout() ) {
-			return;
-		}
-
-		echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin: 12px 0;"></div>';
+		wc_deprecated_function( __METHOD__, '10.6.0' );
 	}
 
 	/**
@@ -2452,6 +2448,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if Adaptive Pricing is currently supported and active.
+	 *
+	 * Delegates to WC_Stripe_Helper::is_adaptive_pricing_supported(). Extracted as a
+	 * non-static instance method to allow mocking in unit tests.
+	 *
+	 * @return bool Whether Adaptive Pricing is supported.
+	 */
+	protected function is_adaptive_pricing_supported(): bool {
+		return WC_Stripe_Helper::is_adaptive_pricing_supported();
+	}
+
+	/**
 	 * Set formatted readable payment method title for order,
 	 * using payment method details from accompanying charge.
 	 *
@@ -2726,10 +2734,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
-	 * @param string   $path   Stripe API endpoint path to query.
-	 * @param string   $params Parameters for request body.
-	 * @param WC_Order $order  WC Order for request.
-	 * @param string   $method HTTP method for request.
+	 * @param string     $path   Stripe API endpoint path to query.
+	 * @param array|null $params Parameters for request body.
+	 * @param WC_Order   $order  WC Order for request.
+	 * @param string     $method HTTP method for request.
 	 *
 	 * @return object JSON response object.
 	 */

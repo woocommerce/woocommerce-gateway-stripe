@@ -178,5 +178,43 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'stripe-agentic-commerce', \WC_Stripe_Agentic_Commerce_Integration::ID );
 		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_feed', \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION );
 		$this->assertEquals( 900, \WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL ); // 15 * 60
+		$this->assertEquals( 'wc_stripe_agentic_commerce_enabled', \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+	}
+
+	/**
+	 * Test is_merchant_enabled returns false when option is not set.
+	 *
+	 * @return void
+	 */
+	public function test_is_merchant_enabled_default_false() {
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() );
+	}
+
+	/**
+	 * Test is_merchant_enabled returns true when option is set to yes.
+	 *
+	 * @return void
+	 */
+	public function test_is_merchant_enabled_returns_true_when_set() {
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+	}
+
+	/**
+	 * Test is_merchant_enabled returns false when option is set to no.
+	 *
+	 * @return void
+	 */
+	public function test_is_merchant_enabled_returns_false_when_disabled() {
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 	}
 }
