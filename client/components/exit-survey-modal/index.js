@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StripeLogo from './stripe-logo';
 import { Modal, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
@@ -137,9 +138,17 @@ const ExitSurveyModal = ( { trigger, onRequestClose, surveyParams } ) => {
 
 	return (
 		<Modal
+			title={
+				<span className="wc-stripe-exit-survey-modal__title">
+					<StripeLogo />
+					{ __(
+						'Stripe for WooCommerce',
+						'woocommerce-gateway-stripe'
+					) }
+				</span>
+			}
 			className="wc-stripe-exit-survey-modal"
 			onRequestClose={ handleClose }
-			isDismissible
 			shouldCloseOnClickOutside={ false }
 		>
 			<div className="wc-stripe-exit-survey-modal__content">
