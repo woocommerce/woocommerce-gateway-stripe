@@ -67,9 +67,15 @@ function runWithObserver() {
 		}
 	} );
 
-	const observerTarget = document.querySelector(
+	let observerTarget = document.querySelector(
 		'.wc-settings-prevent-change-event'
 	);
+
+	if ( ! observerTarget ) {
+		// fallback to the body if the observer target is not found if the settings page html changes in the future.
+		observerTarget = document.body;
+	}
+
 	observer.observe( observerTarget, { childList: true, subtree: true } );
 	window.setTimeout( () => observer.disconnect(), 15000 );
 }
