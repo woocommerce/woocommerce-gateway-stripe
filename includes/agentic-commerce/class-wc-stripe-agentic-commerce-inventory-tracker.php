@@ -127,6 +127,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 *
 	 * Hooked to before_delete_post and wp_trash_post so that product removals via the
 	 * WordPress admin UI are captured in addition to programmatic / REST API deletions.
+	 * Loads the full WC_Product so that all required feed fields can be captured before
+	 * the product is permanently deleted.
 	 *
 	 * @since 10.6.0
 	 * @param int $post_id The ID of the post being deleted or trashed.
@@ -136,22 +138,35 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		if ( 'product' !== get_post_type( $post_id ) ) {
 			return;
 		}
-		$this->track_product_archive( $post_id );
+
+		$product = wc_get_product( $post_id );
+		if ( ! $product ) {
+			return;
+		}
+
+		$this->track_product_archive( $product );
 	}
 
 	/**
 	 * Track a product deletion (permanent delete or trash) for archiving on Stripe.
 	 *
-	 * Stores the product ID in the pending archives option and schedules a sync
-	 * 60 seconds later if one is not already scheduled. The product is also
-	 * removed from any pending inventory updates since the stock quantity is
+	 * Uses the product mapper to capture all required feed fields (title, description,
+	 * link, price, image, etc.) before the product is permanently deleted, then stores
+	 * the full mapped row in the pending archives option. This is necessary because
+	 * Stripe's product_catalog_feed ImportSet requires all mandatory fields even when
+	 * the purpose is to mark a product as out_of_stock.
+	 *
+	 * Schedules a sync 60 seconds later if one is not already scheduled. The product
+	 * is also removed from any pending inventory updates since the stock quantity is
 	 * no longer relevant once the product is removed.
 	 *
 	 * @since 10.6.0
-	 * @param int $product_id The ID of the product being deleted or trashed.
+	 * @param \WC_Product $product The product being deleted or trashed.
 	 * @return void
 	 */
-	public function track_product_archive( int $product_id ): void {
+	public function track_product_archive( \WC_Product $product ): void {
+		$product_id = $product->get_id();
+
 		// Remove from pending inventory updates — stock quantity is irrelevant for archived products.
 		$pending_inventory = get_option( self::PENDING_UPDATES_OPTION, [] );
 		if ( isset( $pending_inventory[ $product_id ] ) ) {
@@ -165,10 +180,24 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return;
 		}
 
-		$pending[ $product_id ] = [
-			'id'        => $product_id,
-			'timestamp' => time(),
-		];
+		// Capture full product data now, before the product is deleted. The mapper
+		// populates all required fields (title, description, link, price, image_link,
+		// mpn/gtin, product_category, inventory) that Stripe requires.
+		$mapper = new WC_Stripe_Agentic_Commerce_Product_Mapper();
+		try {
+			$row = $mapper->map_product( $product );
+		} catch ( \RuntimeException $e ) {
+			// If mapping fails (e.g. missing parent for variation), store minimal data.
+			// The sync will still attempt delivery with the fields we have.
+			$row = [ 'id' => (string) $product_id ];
+		}
+
+		// Force availability to out_of_stock regardless of current stock status.
+		$row['availability'] = 'out_of_stock';
+
+		$row['timestamp'] = time();
+
+		$pending[ $product_id ] = $row;
 
 		update_option( self::PENDING_ARCHIVES_OPTION, $pending, false );
 
@@ -318,10 +347,11 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Generate an archive feed CSV from pending product archives.
 	 *
-	 * Returns a finalized CSV feed containing the product ID and availability set
-	 * to out_of_stock, or null if there are no pending archives. Sending
-	 * availability: out_of_stock marks the product as unavailable on Stripe without
-	 * permanently removing it from the catalog.
+	 * Returns a finalized CSV feed containing all product catalog fields with
+	 * availability set to out_of_stock. The full field set is required because
+	 * Stripe's product_catalog_feed ImportSet validates all mandatory columns
+	 * (title, description, link, price, image_link, mpn/gtin, product_category,
+	 * inventory_quantity/inventory_not_tracked).
 	 *
 	 * @since 10.6.0
 	 * @return WC_Stripe_Agentic_Commerce_Csv_Feed|null Finalized feed, or null if nothing to sync.
@@ -333,17 +363,19 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 			return null;
 		}
 
-		$feed = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'stripe-archive-feed' );
-		$feed->set_columns( [ 'id', 'availability' ] );
+		$columns = WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers();
+		$feed    = new WC_Stripe_Agentic_Commerce_Csv_Feed( 'stripe-archive-feed' );
+		$feed->set_columns( $columns );
 		$feed->start();
 
 		foreach ( $pending as $archive ) {
-			$feed->add_entry(
-				[
-					'id'           => $archive['id'],
-					'availability' => 'out_of_stock',
-				]
-			);
+			$entry = [];
+			foreach ( $columns as $column ) {
+				$entry[ $column ] = $archive[ $column ] ?? null;
+			}
+			// Ensure availability is always out_of_stock.
+			$entry['availability'] = 'out_of_stock';
+			$feed->add_entry( $entry );
 		}
 
 		$feed->end();
