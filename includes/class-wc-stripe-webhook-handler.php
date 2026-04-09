@@ -1389,6 +1389,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'checkout.session.async_payment_succeeded':
 					$this->handle_checkout_session_success( $notification );
 					break;
+				case 'checkout.session.expired':
+				case 'checkout.session.async_payment_failed':
+					$this->handle_checkout_session_failure( $notification );
+					break;
 				default:
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
 					break;
