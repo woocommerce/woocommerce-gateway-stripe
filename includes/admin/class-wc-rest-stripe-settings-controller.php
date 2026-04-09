@@ -284,10 +284,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_settings( WP_REST_Request $request ) {
-		/* Settings > General */
-		$this->update_is_stripe_enabled( $request );
-		$this->update_is_test_mode_enabled( $request );
-
 		/* Settings > Payments accepted on checkout + Express checkouts */
 		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
 		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
@@ -295,6 +291,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		if ( is_wp_error( $update_payment_methods_result ) ) {
 			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 500 );
 		}
+
+		/* Settings > General */
+		$this->update_is_stripe_enabled( $request );
+		$this->update_is_test_mode_enabled( $request );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
