@@ -84,13 +84,33 @@ const createMockPaymentElement = () => ( {
 	update: jest.fn(),
 } );
 
-const createMockElements = () => ( {
-	create: jest.fn( () => createMockPaymentElement() ),
-	submit: jest.fn( () => Promise.resolve( {} ) ),
-	loadActions: jest.fn( () => Promise.resolve( { type: 'success' } ) ),
-	createPaymentElement: jest.fn( () => createMockPaymentElement() ),
-	createCurrencySelectorElement: jest.fn( () => ( { mount: jest.fn() } ) ),
-} );
+const MOCK_AP_CHECKOUT_CLIENT_SECRET = 'cs_test_ap_client_secret';
+const MOCK_AP_CHECKOUT_SESSION_ID = 'cs_test_abc';
+
+const createMockElements = () => {
+	const checkoutActions = {
+		runServerUpdate: jest.fn( async ( userFunction ) => {
+			await userFunction();
+			return {
+				type: 'success',
+				session: { id: MOCK_AP_CHECKOUT_SESSION_ID },
+			};
+		} ),
+		confirm: jest.fn( () => Promise.resolve( {} ) ),
+	};
+	return {
+		create: jest.fn( () => createMockPaymentElement() ),
+		submit: jest.fn( () => Promise.resolve( {} ) ),
+		loadActions: jest.fn( () =>
+			Promise.resolve( { type: 'success', actions: checkoutActions } )
+		),
+		checkoutActions,
+		createPaymentElement: jest.fn( () => createMockPaymentElement() ),
+		createCurrencySelectorElement: jest.fn( () => ( {
+			mount: jest.fn(),
+		} ) ),
+	};
+};
 
 const createMockApi = ( checkoutElements ) => {
 	const standardElements = createMockElements();
@@ -104,7 +124,15 @@ const createMockApi = ( checkoutElements ) => {
 	return {
 		getStripe: jest.fn( () => stripe ),
 		checkoutSessionsCreateSession: jest.fn( () =>
-			Promise.resolve( { data: { client_secret: 'cs_test_abc' } } )
+			Promise.resolve( {
+				data: {
+					client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
+					session_id: MOCK_AP_CHECKOUT_SESSION_ID,
+				},
+			} )
+		),
+		checkoutSessionsUpdateSession: jest.fn( () =>
+			Promise.resolve( { success: true } )
 		),
 		createIntent: jest.fn(),
 		initSetupIntent: jest.fn(),
@@ -259,7 +287,7 @@ describe( 'payment-processing', () => {
 				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
 				expect( api._stripe.initCheckout ).toHaveBeenCalledWith(
 					expect.objectContaining( {
-						clientSecret: 'cs_test_abc',
+						clientSecret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
 						elementsOptions: expect.objectContaining( {
 							savedPaymentMethod: {
 								enableRedisplay: 'never',
@@ -303,7 +331,7 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
 			} );
 
-			it( 'falls back to standard elements when client_secret is absent', async () => {
+			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				api.checkoutSessionsCreateSession.mockResolvedValue( {
@@ -316,6 +344,57 @@ describe( 'payment-processing', () => {
 
 				expect( api._stripe.elements ).toHaveBeenCalled();
 				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'falls back to standard elements when session_id is absent', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				api.checkoutSessionsCreateSession.mockResolvedValue( {
+					data: { client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET },
+				} );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect( api._stripe.elements ).toHaveBeenCalled();
+				expect( api._stripe.initCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'uses runServerUpdate to call checkoutSessionsUpdateSession after maybeUpdateAdaptivePricingCheckoutSession', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).toHaveBeenCalled();
+				expect(
+					api.checkoutSessionsUpdateSession
+				).toHaveBeenCalledWith( MOCK_AP_CHECKOUT_SESSION_ID );
+			} );
+
+			it( 'does not call checkoutSessionsUpdateSession when adaptive pricing is disabled', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: false,
+				} );
+				paymentProcessing.initializeUPEComponents();
+				const api = createMockApi( createMockElements() );
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
+					api
+				);
+
+				expect(
+					api.checkoutSessionsUpdateSession
+				).not.toHaveBeenCalled();
 			} );
 		} );
 
