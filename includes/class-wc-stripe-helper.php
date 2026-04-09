@@ -760,6 +760,7 @@ class WC_Stripe_Helper {
 	 * Memoizes the first gateway ID from the available gateways list (woocommerce_available_payment_gateways).
 	 *
 	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
+	 * @return void
 	 */
 	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
 		if ( null !== self::$first_gateway_id_from_available_list ) {

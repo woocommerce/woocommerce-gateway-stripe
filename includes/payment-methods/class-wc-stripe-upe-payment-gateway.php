@@ -802,7 +802,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	private function is_oc_active(): bool {
-		return $this->oc_enabled && WC_Stripe_Helper::is_stripe_first_available_gateway( self::ID );
+		return $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( self::ID );
 	}
 
 	/**
