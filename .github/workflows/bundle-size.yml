@@ -78,11 +78,19 @@ jobs:
             artifacts/head/sizes.json \
             report.md
 
+      - name: Check for report
+        id: check-report
+        run: |
+          if [ -f report.md ]; then
+            echo "has_report=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Write to job summary
+        if: steps.check-report.outputs.has_report == 'true'
         run: cat report.md >> $GITHUB_STEP_SUMMARY
 
       - name: Find existing bundle size comment (pull_request)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.check-report.outputs.has_report == 'true'
         id: find-comment-pr
         uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
         with:
@@ -91,7 +99,7 @@ jobs:
           body-includes: '<!-- bundle-size-report -->'
 
       - name: Post or update PR comment (pull_request)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.check-report.outputs.has_report == 'true'
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
           comment-id: ${{ steps.find-comment-pr.outputs.comment-id }}
@@ -100,7 +108,7 @@ jobs:
           edit-mode: replace
 
       - name: Find PR for branch (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && steps.check-report.outputs.has_report == 'true'
         id: find-pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,7 +117,7 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Find existing bundle size comment (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
+        if: github.event_name == 'workflow_dispatch' && steps.check-report.outputs.has_report == 'true' && steps.find-pr.outputs.pr_number != ''
         id: find-comment-dispatch
         continue-on-error: true
         uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
@@ -119,7 +127,7 @@ jobs:
           body-includes: '<!-- bundle-size-report -->'
 
       - name: Post or update PR comment (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch' && steps.find-pr.outputs.pr_number != ''
+        if: github.event_name == 'workflow_dispatch' && steps.check-report.outputs.has_report == 'true' && steps.find-pr.outputs.pr_number != ''
         continue-on-error: true
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
