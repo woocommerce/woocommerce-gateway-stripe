@@ -295,13 +295,13 @@ export const useCheckoutSessionTotalsSync = (
 	checkoutStateRef.current = checkoutState;
 
 	const prevSessionIdRef = useRef( null );
-	const prevTotalsSignatureRef = useRef( null );
+	const prevCartTotalsRef = useRef( null );
 
 	// Update the previous session ID and totals signature when the checkout session ID changes.
 	useEffect( () => {
 		if ( prevSessionIdRef.current !== checkoutSessionId ) {
 			prevSessionIdRef.current = checkoutSessionId;
-			prevTotalsSignatureRef.current = null;
+			prevCartTotalsRef.current = null;
 		}
 	}, [ checkoutSessionId ] );
 
@@ -310,16 +310,16 @@ export const useCheckoutSessionTotalsSync = (
 			return;
 		}
 
-		if ( prevTotalsSignatureRef.current === null ) {
-			prevTotalsSignatureRef.current = cartTotals;
+		if ( prevCartTotalsRef.current === null ) {
+			prevCartTotalsRef.current = cartTotals;
 			return;
 		}
 
-		if ( prevTotalsSignatureRef.current === cartTotals ) {
+		if ( prevCartTotalsRef.current === cartTotals ) {
 			return;
 		}
 
-		prevTotalsSignatureRef.current = cartTotals;
+		prevCartTotalsRef.current = cartTotals;
 
 		const state = checkoutStateRef.current;
 		if ( state?.type !== 'success' ) {
