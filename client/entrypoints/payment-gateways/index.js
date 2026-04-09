@@ -24,7 +24,7 @@ function injectNotice() {
 	if (
 		! stripeElement ||
 		stripeElement.querySelector(
-			'.wc-stripe-optimized-checkout-first-method-notice'
+			'.wc-stripe-payment-gateways-oc-notice-wrapper'
 		) !== null
 	) {
 		return false;
