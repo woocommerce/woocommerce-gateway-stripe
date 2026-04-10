@@ -757,7 +757,9 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Memoizes the first gateway ID from the available gateways list (woocommerce_available_payment_gateways).
+	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
+	 *
+	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
 	 *
 	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
 	 * @return void
@@ -769,8 +771,15 @@ class WC_Stripe_Helper {
 
 		$gateways = $gateways->payment_gateways();
 
-		if ( is_array( $gateways ) && [] !== $gateways ) {
-			self::$first_gateway_id_from_available_list = array_key_first( $gateways );
+		if ( ! is_array( $gateways ) || [] === $gateways ) {
+			return;
+		}
+
+		foreach ( $gateways as $gateway_id => $gateway ) {
+			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
+				self::$first_gateway_id_from_available_list = $gateway_id;
+				return;
+			}
 		}
 	}
 
