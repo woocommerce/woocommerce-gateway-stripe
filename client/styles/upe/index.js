@@ -1,10 +1,11 @@
 /* global wc_stripe_upe_params */
 
-import { upeRestrictedProperties } from './upe-styles';
+import { getSourcePropertyName, upeRestrictedProperties } from './upe-styles';
 import {
 	generateHoverRules,
 	generateOutlineStyle,
 	getBackgroundColor,
+	handleAppearanceForFloatingLabel,
 	isColorLight,
 } from './utils.js';
 import { getExpandedOptimizedCheckoutRules } from './expanded-optimized-checkout';
@@ -16,6 +17,7 @@ const appearanceSelectors = {
 		hiddenContainer: '#wc-stripe-hidden-div',
 		hiddenInput: '#wc-stripe-hidden-input',
 		hiddenInvalidInput: '#wc-stripe-hidden-invalid-input',
+		hiddenValidActiveLabel: '#wc-stripe-hidden-valid-active-label',
 	},
 	classicCheckout: {
 		appendTarget: '.woocommerce-billing-fields__field-wrapper',
@@ -60,28 +62,39 @@ const appearanceSelectors = {
 		],
 	},
 	blocksCheckout: {
-		appendTarget: '#billing.wc-block-components-address-form',
-		upeThemeInputSelector: '#billing-first_name',
-		upeThemeLabelSelector:
-			'.wc-block-components-checkout-step__description',
+		appendTarget: '.wc-block-checkout__contact-fields',
+		upeThemeInputSelector: '.wc-block-components-text-input #email',
+		upeThemeLabelSelector: '.wc-block-components-text-input label',
 		upeThemeTextSelectors: [
 			'.wc-block-components-checkout-step__description',
 			'.wc-block-components-text-input',
+			'.wc-block-components-radio-control__label',
+			'.wc-block-checkout__terms',
 		],
 		rowElement: 'div',
-		validClasses: [ 'wc-block-components-text-input' ],
+		validClasses: [ 'wc-block-components-text-input', 'is-active' ],
 		invalidClasses: [ 'wc-block-components-text-input', 'has-error' ],
 		alternateSelectors: {
-			appendTarget: '#shipping.wc-block-components-address-form',
-			upeThemeInputSelector: '#shipping-first_name',
+			appendTarget: '#billing.wc-block-components-address-form',
+			upeThemeInputSelector: '#billing-first_name',
 			upeThemeLabelSelector:
 				'.wc-block-components-checkout-step__description',
 		},
+		// The PE iframe is transparent — colorBackground is a reference color
+		// Stripe uses for theme selection, text contrast, and secondary UI
+		// (tabs, OTP popups), not the container fill. These selectors must
+		// cover block themes (main, .wp-block-group) and classic themes
+		// (.entry-content, .site-content) so getBackgroundColor doesn't fall
+		// through to body, which often has a different color.
 		backgroundSelectors: [
 			'#payment-method .wc-block-components-radio-control-accordion-option',
 			'#payment-method',
 			'form.wc-block-checkout__form',
 			'.wc-block-checkout',
+			'main',
+			'.wp-block-group',
+			'.entry-content',
+			'.site-content',
 			'body',
 		],
 	},
@@ -264,6 +277,13 @@ const hiddenElementsForUPE = {
 			selectors.hiddenInput
 		);
 
+		// Clone & append target label to hidden valid row.
+		this.appendClone(
+			hiddenValidRow,
+			selectors.upeThemeLabelSelector,
+			selectors.hiddenValidActiveLabel
+		);
+
 		// Clone & append target element to hidden invalid row.
 		this.appendClone(
 			hiddenInvalidRow,
@@ -305,8 +325,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 	const filteredStyles = {};
 
 	for ( const property of validProperties ) {
-		if ( typeof styles[ property ] !== 'undefined' ) {
-			filteredStyles[ property ] = styles[ property ];
+		const sourceProperty = getSourcePropertyName( property );
+		if ( typeof styles[ sourceProperty ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ sourceProperty ];
 		}
 	}
 
@@ -345,9 +366,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 const DEFAULT_FONT_DOMAINS = [
 	'fonts.googleapis.com',
 	'fonts.gstatic.com',
-	'fast.fonts.com',
 	'use.typekit.net',
 	'fonts-api.wp.com',
+	'fonts.bunny.net',
 ];
 
 /**
@@ -385,6 +406,24 @@ export const getFontRulesFromPage = () => {
 	return fontRules;
 };
 
+/**
+ * Reads the current fontFamily from the first available text selector via a
+ * single getComputedStyle() call. Used to detect whether web fonts have changed
+ * since the appearance was last computed, without running the full getAppearance
+ * pipeline.
+ *
+ * @param {boolean} isBlocksCheckout Whether the checkout is a blocks checkout.
+ * @return {string|undefined} The current fontFamily, or undefined if no selector matches.
+ */
+export const sampleFontFamily = ( isBlocksCheckout = false ) => {
+	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
+	// Pass the array directly to querySelector — JS coerces it to a
+	// comma-separated CSS selector list, matching the same element
+	// resolution that getFieldStyles uses for paragraphRules.fontFamily.
+	const el = document.querySelector( selectors.upeThemeTextSelectors );
+	return el ? window.getComputedStyle( el ).fontFamily : undefined;
+};
+
 export const getAppearance = (
 	isBlocksCheckout = false,
 	shouldExpandOptimizedCheckout = false
@@ -410,6 +449,10 @@ export const getAppearance = (
 		selectors.upeThemeLabelSelector,
 		'.Label'
 	);
+
+	const labelRestingRules = {
+		fontSize: labelRules.fontSize,
+	};
 
 	const tabRules = getFieldStyles( selectors.upeThemeInputSelector, '.Tab' );
 	const selectedTabRules = getFieldStyles(
@@ -441,14 +484,16 @@ export const getAppearance = (
 		fontSizeBase: getFontSizeBase( paragraphRules.fontSize ),
 	};
 
-	const appearance = {
+	let appearance = {
 		variables: globalRules,
 		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
+		labels: isBlocksCheckout ? 'floating' : 'above',
 		rules: {
 			'.Input': inputRules,
 			'.Input--invalid': inputInvalidRules,
 			'.Block': blockRules,
 			'.Label': labelRules,
+			'.Label--resting': labelRestingRules,
 			'.Tab': tabRules,
 			'.Tab:hover': tabHoverRules,
 			'.Tab--selected': selectedTabRules,
@@ -468,11 +513,21 @@ export const getAppearance = (
 				border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 			},
 			'.CheckboxInput--checked': {
-				backgroundColor: 'var(--colorPrimary)	',
+				backgroundColor: 'var(--colorPrimary)',
 				borderColor: 'var(--colorPrimary)',
 			},
 		},
 	};
+
+	if ( isBlocksCheckout ) {
+		appearance = handleAppearanceForFloatingLabel(
+			appearance,
+			getFieldStyles(
+				selectors.hiddenValidActiveLabel,
+				'.Label--floating'
+			)
+		);
+	}
 
 	if ( shouldExpandOptimizedCheckout ) {
 		appearance.rules = getExpandedOptimizedCheckoutRules(

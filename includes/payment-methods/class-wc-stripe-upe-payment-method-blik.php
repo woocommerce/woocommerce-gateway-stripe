@@ -97,7 +97,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
-			esc_html__( '%1$sTest mode:%2$s use any 6-digit number to authorize payment.', 'woocommerce-gateway-stripe' ),
+			esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
 		);
@@ -120,9 +120,9 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 							'wc-stripe-blik-code',
 							[
 								'maxlength' => 6,
-								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-								'required' => true,
-								'type' => 'text',
+								'label'     => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required'  => true,
+								'type'      => 'text',
 							]
 						);
 					?>

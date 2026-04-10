@@ -11,6 +11,7 @@ import {
 	useCheckoutSuccessHandler,
 	usePaymentFailHandler,
 	usePaymentSetupHandler,
+	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 
 /**
@@ -22,9 +23,14 @@ import {
  * Checkout Form component.
  *
  * @param {Object}                 props                             Component props.
+ * @param {Object}                 props.api                         WCStripeAPI instance (checkout session AJAX).
  * @param {EmitResponseProps}      props.emitResponse                Function to emit response back to the parent component.
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
+ * @param {Object}                 props.billing                     Billing information for the checkout session.
+ * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
+ * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
+ * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
  * @param {Function}               props.setShouldLoadStripeElements Callback function to set whether Stripe Elements should be loaded instead.
@@ -32,9 +38,14 @@ import {
  * @return {JSX.Element} The Checkout Form component.
  */
 const CheckoutForm = ( {
+	api,
 	emitResponse,
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
+	billing,
+	isLoggedIn,
+	isPayerPhoneRequired,
+	shippingData,
 	LoadingMask,
 	onLoadError,
 	setShouldLoadStripeElements,
@@ -57,8 +68,16 @@ const CheckoutForm = ( {
 		hasLoadErrorRef,
 		isPaymentElementComplete
 	);
-	useCheckoutSuccessHandler( checkoutState, onCheckoutSuccess );
+	useCheckoutSuccessHandler(
+		checkoutState,
+		onCheckoutSuccess,
+		billing,
+		isLoggedIn,
+		isPayerPhoneRequired,
+		shippingData
+	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
+	useCheckoutSessionTotalsSync( api, checkoutSessionId, checkoutState );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		handleDisplayOfPaymentInstructions( value.type, 'blocks' );

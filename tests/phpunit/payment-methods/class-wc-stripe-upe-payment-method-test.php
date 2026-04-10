@@ -136,8 +136,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Base template for Stripe's Klarna
 	 */
 	const MOCK_KLARNA_PAYMENT_METHOD_TEMPLATE = [
-		'id'                                  => 'pm_mock_payment_method_id',
-		'type'                                => WC_Stripe_Payment_Methods::KLARNA,
+		'id'                              => 'pm_mock_payment_method_id',
+		'type'                            => WC_Stripe_Payment_Methods::KLARNA,
 		WC_Stripe_Payment_Methods::KLARNA => [
 			'dob' => [
 				'day'   => 1,
@@ -355,7 +355,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertFalse( $blik_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use any 6-digit number to authorize payment.',
+			'<strong>Test mode:</strong> use any 6-digit number.',
 			$blik_method->get_testing_instructions()
 		);
 
@@ -365,7 +365,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $card_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use card <number>4242 4242 4242 4242</number> with any expiry and CVC. <a href="https://docs.stripe.com/testing" target="_blank">More test cards</a>.',
 			$card_method->get_testing_instructions()
 		);
 
@@ -399,7 +399,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertTrue( $sepa_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $sepa_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.',
+			'<strong>Test mode:</strong> use account <number>AT611904300234573201</number>. <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">More test methods</a>.',
 			$sepa_method->get_testing_instructions()
 		);
 
@@ -1025,7 +1025,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		bool $expected
 	) {
 		// Configure saved_cards setting.
-		$settings               = WC_Stripe_Helper::get_stripe_settings();
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
 		$settings['saved_cards'] = $saved_cards_enabled ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
@@ -1105,11 +1105,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'not add method page - non-reusable, saved cards disabled' => [ false, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, false, true ],
 			'not add method page - non-reusable, saved cards enabled'  => [ false, WC_Stripe_UPE_Payment_Method_Wechat_Pay::class, true, true ],
 		];
-		$reusable_cases = [
-			'add method page - reusable, saved cards disabled'         => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
-			'add method page - reusable, saved cards enabled'          => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
-			'not add method page - reusable, saved cards disabled'     => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
-			'not add method page - reusable, saved cards enabled'      => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+		$reusable_cases     = [
+			'add method page - reusable, saved cards disabled'     => [ true, WC_Stripe_UPE_Payment_Method_CC::class, false, false ],
+			'add method page - reusable, saved cards enabled'      => [ true, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
+			'not add method page - reusable, saved cards disabled' => [ false, WC_Stripe_UPE_Payment_Method_CC::class, false, true ],
+			'not add method page - reusable, saved cards enabled'  => [ false, WC_Stripe_UPE_Payment_Method_CC::class, true, true ],
 		];
 
 		$test_cases = [];

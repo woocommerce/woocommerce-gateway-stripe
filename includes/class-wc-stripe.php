@@ -127,6 +127,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-exception.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-cancelled-exception.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-logger.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
@@ -206,7 +207,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-sessions-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		new WC_Stripe_Inbox_Notes();
 
@@ -215,41 +215,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-resolver.php';
-
-		// Load Agentic Commerce classes.
-		// Requires WooCommerce 10.5.0+ with FeedInterface.
-		if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-csv-feed.php';
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-schema.php';
-
-			// Load delivery method and integration.
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-files-api-delivery.php';
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-product-mapper.php';
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-feed-validator.php';
-
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
-
-			if ( defined( 'WP_CLI' ) && WP_CLI ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-cli.php';
-			}
-		}
-
-		// Load Agentic Commerce classes that do not depend on FeedInterface/core.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-api-address.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-line-item.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-checkout-session.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-order-mapper.php';
-
-		// Customize checkout (tax calculation) hook — used by the webhook handler.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-line-item.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-customize-checkout-event.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-tax-calculator.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-shipping-calculator.php';
-
-		// Finalize checkout (manual approval) hook — used by the webhook handler.
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-manual-approval.php';
 
 		new Allowed_Payment_Request_Button_Types_Update();
 		new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
@@ -265,8 +230,8 @@ class WC_Stripe {
 		$intent_controller = new WC_Stripe_Intent_Controller();
 		$intent_controller->init_hooks();
 
-		$checkout_sessions_controller = new WC_Stripe_Checkout_Sessions_Controller();
-		$checkout_sessions_controller->init_hooks();
+		$checkout_sessions_ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+		$checkout_sessions_ajax_handler->init_hooks();
 
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -297,6 +262,7 @@ class WC_Stripe {
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 		add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
 		// Update the email field position.
 		if ( ! is_admin() ) {
@@ -446,6 +412,24 @@ class WC_Stripe {
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
+	}
+
+	/**
+	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
+	 * This function is called when the 'woocommerce_gateway_order' option is updated.
+	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
+	 *
+	 * @param array $ordering The current ordering of the gateways.
+	 * @return void
+	 */
+	public function set_stripe_gateways_in_list( $ordering ) {
+		wc_get_logger()->debug( 'set_stripe_gateways_in_list was called' );
+		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
+		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
@@ -951,6 +935,12 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function initialize_agentic_commerce() {
+		// Check if required WooCommerce interfaces exist before loading our integration class
+		// (which implements IntegrationInterface at the class level and will fatal if it's missing).
+		if ( ! interface_exists( \Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface::class ) ) {
+			return;
+		}
+
 		// Check if required classes exist.
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			return;

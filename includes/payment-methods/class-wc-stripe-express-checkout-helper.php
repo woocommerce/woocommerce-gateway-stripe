@@ -323,7 +323,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return int
 	 */
 	public static function get_stripe_currency_decimals() {
-		return WC_Stripe_Helper::get_currency_decimal_places( get_woocommerce_currency() );
+		return WC_Stripe_Helper::get_currency_decimals( get_woocommerce_currency() );
 	}
 
 	/**

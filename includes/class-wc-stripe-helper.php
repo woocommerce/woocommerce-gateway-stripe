@@ -803,6 +803,83 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks whether to show the Stripe first method notice.
+	 *
+	 * @return bool
+	 */
+	public static function should_show_stripe_first_method_notice(): bool {
+		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
+			return false;
+		}
+		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+	}
+
+	/**
+	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		// If the gateway order is empty, assume Stripe is in the first position.
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return true;
+		}
+
+		asort( $gateway_order );
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			// Skip internal WooCommerce Payments entries.
+			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
+				continue;
+			}
+
+			// The first non-internal gateway decides position one.
+			return WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 * Preserves relative order among Stripe gateways and among non-Stripe gateways.
+	 *
+	 * @return void
+	 */
+	public static function move_stripe_gateways_to_top_in_woocommerce_gateway_order(): void {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return;
+		}
+
+		asort( $gateway_order );
+		$stripe_gateways     = [];
+		$non_stripe_gateways = [];
+
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			if ( 'stripe' === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' ) ) {
+				$stripe_gateways[] = $gateway_id;
+			} else {
+				$non_stripe_gateways[] = $gateway_id;
+			}
+		}
+
+		if ( empty( $stripe_gateways ) ) {
+			return;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+
+		foreach ( array_merge( $stripe_gateways, $non_stripe_gateways ) as $gateway_id ) {
+			$updated_gateway_order[ $gateway_id ] = (string) $index++;
+		}
+
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
@@ -1203,6 +1280,20 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
+	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
+	 * Adaptive Pricing is also not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 *
+	 * @return bool True if the account is not in the EEA.
+	 */
+	public static function is_adaptive_pricing_available_for_account(): bool {
+		$account_country       = WC_Stripe::get_instance()->account->get_account_country();
+		$eea_countries         = self::get_european_economic_area_countries();
+		$unsupported_countries = array_merge( $eea_countries, [ WC_Stripe_Country_Code::INDIA ] );
+		return ! in_array( $account_country, $unsupported_countries, true );
+	}
+
+	/**
 	 * Returns whether adaptive pricing is supported for the current checkout.
 	 *
 	 * When on the checkout page, adaptive pricing is not supported if the cart contains
@@ -1218,6 +1309,11 @@ class WC_Stripe_Helper {
 
 		// False if checkout session feature flag is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
+		if ( ! self::is_adaptive_pricing_available_for_account() ) {
 			return false;
 		}
 
@@ -1995,7 +2091,7 @@ class WC_Stripe_Helper {
 
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
@@ -2129,11 +2225,11 @@ class WC_Stripe_Helper {
 	 * @return array The display items.
 	 */
 	public static function build_line_items( bool $itemized_display_items = false ): array {
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
-		$has_deposits  = false;
+		$items        = [];
+		$lines        = [];
+		$subtotal     = 0;
+		$discounts    = 0;
+		$has_deposits = false;
 
 		if ( $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item ) {
@@ -2171,9 +2267,9 @@ class WC_Stripe_Helper {
 			$discounts += (float) $amount;
 		}
 
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+		$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax       = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping  = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [
@@ -2209,5 +2305,25 @@ class WC_Stripe_Helper {
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Returns the number of decimals to use for a given currency.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param string $currency_code The currency code (e.g., 'usd', 'jpy').
+	 *
+	 * @return int The number of decimals to use for the currency.
+	 */
+	public static function get_currency_decimals( string $currency_code ): int {
+		$currency_code = strtolower( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			return 0;
+		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			return 3;
+		}
+
+		return 2;
 	}
 }

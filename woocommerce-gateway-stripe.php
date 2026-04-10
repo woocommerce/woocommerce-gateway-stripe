@@ -81,6 +81,12 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
+		// Attempts to include the default composer autoloader.
+		$autoload_filepath = WC_STRIPE_PLUGIN_PATH . '/vendor/autoload.php';
+		if ( file_exists( $autoload_filepath ) ) {
+			require $autoload_filepath;
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
@@ -150,8 +156,6 @@ function wcstripe_deactivated(): void {
 
 	// Cancel scheduled Agentic Commerce feed syncs.
 	if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
-
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
 		$integration->deactivate();
 	}

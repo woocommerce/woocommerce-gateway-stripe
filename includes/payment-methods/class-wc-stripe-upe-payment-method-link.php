@@ -15,7 +15,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id   = self::STRIPE_ID;
+		$this->stripe_id = self::STRIPE_ID;
 		// Note that the title and label are not translated, as "Link" should not be translated.
 		$this->title       = 'Link';
 		$this->is_reusable = true;
@@ -30,6 +30,16 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		);
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
+	}
+
+	/**
+	 * Link handles its own save consent via the Payment Element, so the
+	 * store-level save checkbox is never needed for Link.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		return false;
 	}
 
 	/**
