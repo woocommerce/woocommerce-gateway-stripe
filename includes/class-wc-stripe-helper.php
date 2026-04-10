@@ -796,7 +796,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		return $stripe_gateway_id === self::$first_gateway_id_from_available_list;
+		return $stripe_gateway_id === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
 	}
 
 	/**
@@ -935,6 +935,7 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
+		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
