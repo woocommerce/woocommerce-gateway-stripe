@@ -98,4 +98,15 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 
 		return $currency;
 	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * @deprecated 10.7.0 Use the base class implementation instead.
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
+		return parent::is_available_for_account_country();
+	}
 }

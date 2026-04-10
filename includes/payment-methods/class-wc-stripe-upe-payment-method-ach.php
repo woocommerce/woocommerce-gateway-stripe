@@ -42,6 +42,29 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @deprecated 10.7.0 Use the base class implementation instead.
+	 * @return string
+	 */
+	public function get_retrievable_type() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_UPE_Payment_Method::get_retrievable_type' );
+		return parent::get_retrievable_type();
+	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * @deprecated 10.7.0 Use the base class implementation instead.
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
+		return parent::is_available_for_account_country();
+	}
+
+	/**
 	 * Creates an ACH payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
