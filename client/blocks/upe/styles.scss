@@ -39,6 +39,14 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 }
 /* stylelint-enable selector-id-pattern */
 
+/*
+ * Hide the WC Blocks save-card checkbox when Stripe Link handles save consent.
+ * Toggled via document.body class from handleDisplayOfSavingCheckbox().
+ */
+body.wc-stripe-hide-save-checkbox .wc-block-components-payment-methods__save-card-info {
+	display: none !important;
+}
+
 /* Test Mode badge — hidden by default, shown when radio is checked */
 .wc-stripe-test-mode-badge {
 	background-color: #fff2d7;
@@ -66,4 +74,3 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	.wc-stripe-test-mode-badge {
 	display: inline-block;
 }
-

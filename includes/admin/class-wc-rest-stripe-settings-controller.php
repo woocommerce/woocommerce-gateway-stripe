@@ -208,6 +208,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/set_stripe_gateways_first',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'set_stripe_gateways_first' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -669,7 +678,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_optimized_checkout_notice' )
 			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' )
-			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' ) ) {
+			&& null === $request->get_param( 'wc_stripe_show_oc_promotion_banner' )
+			&& null === $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
 
@@ -689,7 +699,22 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			update_option( 'wc_stripe_show_oc_promotion_banner', 'no' );
 		}
 
+		if ( null !== $request->get_param( 'wc_stripe_show_stripe_first_method_notice' ) ) {
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'no' );
+		}
+
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
+	}
+
+	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function set_stripe_gateways_first() {
+		WC_Stripe_Helper::move_stripe_gateways_to_top_in_woocommerce_gateway_order();
+
+		return new WP_REST_Response( [ 'result' => 'Stripe moved to first position' ], 200 );
 	}
 
 	/**

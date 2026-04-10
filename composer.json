@@ -25,7 +25,8 @@
     },
     "autoload": {
       "classmap": [
-        "includes/ajax-handlers/"
+        "includes/ajax-handlers/",
+        "includes/agentic-commerce/"
       ]
     },
     "autoload-dev": {

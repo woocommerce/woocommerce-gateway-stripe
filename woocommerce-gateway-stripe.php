@@ -156,8 +156,6 @@ function wcstripe_deactivated(): void {
 
 	// Cancel scheduled Agentic Commerce feed syncs.
 	if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/agentic-commerce/class-wc-stripe-agentic-commerce-integration.php';
-
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
 		$integration->deactivate();
 	}

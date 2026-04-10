@@ -43,8 +43,6 @@ class WC_Stripe_Settings_Controller {
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
-		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
-
 		// Add AJAX handler for OAuth URL generation
 		add_action( 'wp_ajax_wc_stripe_get_oauth_url', [ $this, 'ajax_get_oauth_url' ] );
 	}
@@ -58,22 +56,6 @@ class WC_Stripe_Settings_Controller {
 		}
 
 		return $this->gateway;
-	}
-
-	/**
-	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
-	 * This function is called when the 'woocommerce_gateway_order' option is updated.
-	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
-	 *
-	 * @param array $ordering The current ordering of the gateways.
-	 */
-	public function set_stripe_gateways_in_list( $ordering ) {
-		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
-		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
-
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
-
-		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
@@ -262,6 +244,7 @@ class WC_Stripe_Settings_Controller {
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'is_agentic_commerce_enabled'           => WC_Stripe_Feature_Flags::is_agentic_commerce_enabled(),
+			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

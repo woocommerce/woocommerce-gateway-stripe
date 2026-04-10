@@ -481,6 +481,155 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that the Adaptive Pricing currency selector div is rendered or omitted in payment_fields()
+	 * based on the OC enabled flag, valid OC page, checkout sessions feature flag, and adaptive pricing setting.
+	 *
+	 * @dataProvider provide_payment_fields_currency_selector_rendering
+	 *
+	 * @param bool   $oc_enabled       Whether the Optimized Checkout Suite is enabled.
+	 * @param bool   $valid_oc_page    Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool   $feature_flag     Whether the checkout sessions feature flag is enabled.
+	 * @param string $adaptive_pricing The 'adaptive_pricing' settings value.
+	 * @param bool   $expect_selector  Whether the currency selector div should appear in the output.
+	 */
+	public function test_payment_fields_renders_currency_selector_conditionally(
+		bool $oc_enabled,
+		bool $valid_oc_page,
+		bool $feature_flag,
+		string $adaptive_pricing,
+		bool $expect_selector
+	): void {
+		// The gateway exposes is_adaptive_pricing_supported() as a protected instance method,
+		// allowing us to mock it directly without depending on the full settings/API stack.
+		$show_adaptive_pricing = $oc_enabled && $valid_oc_page && $feature_flag && 'yes' === $adaptive_pricing;
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $show_adaptive_pricing );
+		$gateway->oc_enabled = $oc_enabled;
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		try {
+			ob_start();
+			$gateway->payment_fields();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
+
+		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
+		if ( $expect_selector ) {
+			$this->assertStringContainsString( $selector_div, $output );
+			$selector_position    = strpos( $output, $selector_div );
+			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
+			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
+			$this->assertLessThan(
+				$upe_element_position,
+				$selector_position,
+				'Currency selector should render before the payment element.'
+			);
+		} else {
+			$this->assertStringNotContainsString( $selector_div, $output );
+		}
+	}
+
+	/**
+	 * Test that in test mode with Optimized Checkout and Adaptive Pricing enabled,
+	 * the test copy renders before the currency selector.
+	 */
+	public function test_payment_fields_renders_test_copy_before_currency_selector(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( true );
+		$gateway->oc_enabled = true;
+		$gateway->testmode   = true;
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		try {
+			ob_start();
+			$gateway->payment_fields();
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		}
+
+		$selector_div         = '<div id="wc-stripe-currency-selector"';
+		$selector_position    = strpos( $output, $selector_div );
+		$test_copy_position   = strpos( $output, 'wc-stripe-payment-method-instruction' );
+		$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+
+		$this->assertNotFalse( $test_copy_position, 'Test copy should be present in output.' );
+		$this->assertNotFalse( $selector_position, 'Currency selector should be present in output.' );
+		$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
+		$this->assertLessThan(
+			$selector_position,
+			$test_copy_position,
+			'Test copy should render before the currency selector.'
+		);
+		$this->assertLessThan(
+			$upe_element_position,
+			$selector_position,
+			'Currency selector should render before the payment element.'
+		);
+	}
+
+	/**
+	 * Data provider for test_payment_fields_renders_currency_selector_conditionally.
+	 *
+	 * @return array[]
+	 */
+	public function provide_payment_fields_currency_selector_rendering(): array {
+		return [
+			'renders when all conditions are met'                    => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => true,
+			],
+			'hidden when OC is disabled'                             => [
+				'oc_enabled'       => false,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when not a valid OC page'                        => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => false,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when checkout sessions feature flag is disabled' => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => false,
+				'adaptive_pricing' => 'yes',
+				'expect_selector'  => false,
+			],
+			'hidden when adaptive pricing setting is disabled'       => [
+				'oc_enabled'       => true,
+				'valid_oc_page'    => true,
+				'feature_flag'     => true,
+				'adaptive_pricing' => 'no',
+				'expect_selector'  => false,
+			],
+		];
+	}
+
+	/**
 	 * Test that payment_scripts registers the wc-stripe-upe-classic script with the correct version and dependencies.
 	 *
 	 * Because build/upe-classic.asset.php may not be present in test environments, we have conditional logic as follows:
@@ -4402,6 +4551,103 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringContainsString( $expected_amount . ' EUR', $output );
 		$this->assertStringContainsString( $expected_rate . ' EUR', $output );
 		$this->assertStringContainsString( '</p>', $output );
+	}
+
+	/**
+	 * Tests for `should_upe_payment_method_show_save_option`.
+	 *
+	 * Verifies that the private method correctly hides the save option
+	 * for card and link when Link is enabled, while leaving OC unaffected.
+	 *
+	 * @param string $payment_method_class The payment method class name.
+	 * @param array  $enabled_methods      Enabled UPE payment method IDs.
+	 * @param string $saved_cards          The 'saved_cards' setting value.
+	 * @param bool   $expected             Expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_should_upe_payment_method_show_save_option
+	 */
+	public function test_should_upe_payment_method_show_save_option( $payment_method_class, $enabled_methods, $saved_cards, $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'is_saved_cards_enabled', 'is_subscription_item_in_cart', 'is_pre_order_charged_upon_release_in_cart' ] )
+			->getMock();
+
+		$gateway->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( $enabled_methods );
+
+		$gateway->method( 'is_saved_cards_enabled' )
+			->willReturn( 'yes' === $saved_cards );
+
+		$gateway->method( 'is_subscription_item_in_cart' )
+			->willReturn( false );
+
+		$gateway->method( 'is_pre_order_charged_upon_release_in_cart' )
+			->willReturn( false );
+
+		$payment_method = new $payment_method_class();
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'should_upe_payment_method_show_save_option' );
+		$method->setAccessible( true );
+
+		$actual = $method->invoke( $gateway, $payment_method );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Data provider for `test_should_upe_payment_method_show_save_option`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_upe_payment_method_show_save_option() {
+		$card_and_link = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
+		$card_only     = [ WC_Stripe_Payment_Methods::CARD ];
+
+		return [
+			'card — Link enabled, saved cards on — false'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => false,
+			],
+			'card — Link disabled, saved cards on — true'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'card — Link disabled, saved cards off — false' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_CC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'no',
+				'expected'             => false,
+			],
+			'link — Link enabled, saved cards on — false'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_Link::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => false,
+			],
+			'link — Link disabled, saved cards on — true'   => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_Link::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'OC — Link enabled, saved cards on — true'      => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_OC::class,
+				'enabled_methods'      => $card_and_link,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+			'OC — Link disabled, saved cards on — true'     => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_OC::class,
+				'enabled_methods'      => $card_only,
+				'saved_cards'          => 'yes',
+				'expected'             => true,
+			],
+		];
 	}
 
 	/**

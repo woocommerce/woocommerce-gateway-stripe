@@ -1,3 +1,13 @@
+// Stack children vertically when mounting the optimized-checkout notice beside the row content.
+.woocommerce_page_wc-settings #stripe {
+	display: flex;
+	flex-direction: column;
+
+	.wc-stripe-payment-gateways-oc-notice-wrapper {
+		margin-top: 12px;
+	}
+}
+
 .disable-confirmation-modal {
 	&__payment-methods-list {
 		margin-bottom: 32px;
