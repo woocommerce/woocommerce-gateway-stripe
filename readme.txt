@@ -201,6 +201,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
+* Update - Hide Adaptive Pricing option for Stripe accounts based in India and European Economic Area countries
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
 * Fix - Keep adaptive pricing amount in sync on block checkout after order total changes

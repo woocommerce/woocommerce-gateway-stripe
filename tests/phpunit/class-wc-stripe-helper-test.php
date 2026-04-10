@@ -1496,10 +1496,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string $adaptive_pricing   Adaptive pricing setting.
 	 * @param array  $cart_product_types Cart product types (e.g. ['simple'], ['simple','simple'], ['simple','simple','subscription']). Empty or null = empty cart.
 	 * @param bool   $expected           Expected result.
+	 * @param string $account_country    Two-letter ISO country code for the Stripe account. Defaults to 'US'.
 	 * @return void
 	 * @dataProvider provide_is_adaptive_pricing_supported
 	 */
-	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected ): void {
+	public function test_is_adaptive_pricing_supported( bool $is_checkout, bool $has_block, string $adaptive_pricing, ?array $cart_product_types, bool $expected, string $account_country = 'US' ): void {
 		$original_stripe_settings                          = WC_Stripe_Helper::get_stripe_settings();
 		$new_stripe_settings                               = $original_stripe_settings;
 		$new_stripe_settings['adaptive_pricing']           = $adaptive_pricing;
@@ -1554,6 +1555,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				\WC_Subscriptions_Product::set_subscription_product_ids( $subscription_product_ids );
 			}
 		}
+
+		$this->set_stripe_account_data( [ 'country' => $account_country ] );
 
 		$actual = WC_Stripe_Helper::is_adaptive_pricing_supported();
 
@@ -1663,6 +1666,30 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'adaptive_pricing'   => 'yes',
 				'cart_product_types' => [ 'deposits' ],
 				'expected'           => false,
+			],
+			'EEA account country'                       => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'DE',
+			],
+			'India account country'                     => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => false,
+				'account_country'    => 'IN',
+			],
+			'supported account country'                 => [
+				'is_checkout'        => true,
+				'has_block'          => false,
+				'adaptive_pricing'   => 'yes',
+				'cart_product_types' => [ 'simple' ],
+				'expected'           => true,
+				'account_country'    => 'US',
 			],
 		];
 	}
