@@ -64,7 +64,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
-* Dev - Remove deprecated backend code that used wc_deprecated_function: order meta shims, intent helpers, feature flags, and logger method
+* Dev - Remove deprecated backend methods that called wc_deprecated_function
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled
