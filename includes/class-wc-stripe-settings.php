@@ -41,16 +41,17 @@ class WC_Stripe_Settings {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	private function __construct() {
 		$settings = get_option( self::SETTINGS_OPTION, [] );
 		if ( ! is_array( $settings ) ) {
 			$settings = [];
 		}
 		$this->settings = $settings;
 
-		// Invalidate the singleton when the option is updated externally (e.g. by WP update_option).
+		// Invalidate the singleton when the option is updated or deleted externally.
 		if ( ! self::$hook_registered ) {
 			add_action( 'update_option_' . self::SETTINGS_OPTION, [ __CLASS__, 'reset' ] );
+			add_action( 'delete_option_' . self::SETTINGS_OPTION, [ __CLASS__, 'reset' ] );
 			self::$hook_registered = true;
 		}
 	}
@@ -327,9 +328,13 @@ class WC_Stripe_Settings {
 	 * @return array<int, string>
 	 */
 	public function get_upe_checkout_experience_accepted_payments(): array {
-		return ! empty( $this->settings['upe_checkout_experience_accepted_payments'] )
-			? $this->settings['upe_checkout_experience_accepted_payments']
-			: [ WC_Stripe_Payment_Methods::CARD ];
+		$value = $this->settings['upe_checkout_experience_accepted_payments'] ?? null;
+
+		if ( ! is_array( $value ) || [] === $value ) {
+			return [ WC_Stripe_Payment_Methods::CARD ];
+		}
+
+		return $value;
 	}
 
 	/**

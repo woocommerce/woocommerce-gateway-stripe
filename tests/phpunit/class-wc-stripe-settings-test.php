@@ -157,11 +157,16 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function test_constructor_handles_non_array_option() {
 		// Remove the filter that expects an array value before setting a non-array option.
-		remove_filter( 'pre_update_option_' . WC_Stripe_Settings::SETTINGS_OPTION, [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
-		update_option( WC_Stripe_Settings::SETTINGS_OPTION, 'invalid' );
-		WC_Stripe_Settings::reset();
-		$settings = WC_Stripe_Settings::get_instance();
-		$this->assertFalse( $settings->is_enabled() );
+		$callback = [ WC_Stripe::get_instance(), 'gateway_settings_update' ];
+		remove_filter( 'pre_update_option_' . WC_Stripe_Settings::SETTINGS_OPTION, $callback );
+		try {
+			update_option( WC_Stripe_Settings::SETTINGS_OPTION, 'invalid' );
+			WC_Stripe_Settings::reset();
+			$settings = WC_Stripe_Settings::get_instance();
+			$this->assertFalse( $settings->is_enabled() );
+		} finally {
+			add_filter( 'pre_update_option_' . WC_Stripe_Settings::SETTINGS_OPTION, $callback, 10, 2 );
+		}
 	}
 
 	/**

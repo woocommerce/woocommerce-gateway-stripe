@@ -263,13 +263,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$publishable_key = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test         = 'live' !== $mode;
-			$prefix          = $is_test ? 'test_' : '';
-			$default_options = $this->get_default_stripe_config();
+			$publishable_key      = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key           = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test              = 'live' !== $mode;
+			$prefix               = $is_test ? 'test_' : '';
+			$default_options      = $this->get_default_stripe_config();
+			$settings             = WC_Stripe_Settings::get_instance();
+			$previous_pmc_enabled = $settings->get_pmc_enabled();
+
 			// Ensure defaults are applied to the settings singleton.
-			$settings = WC_Stripe_Settings::get_instance();
 			foreach ( $default_options as $key => $value ) {
 				if ( ! $settings->has( $key ) ) {
 					$settings->set( $key, $value );
@@ -343,8 +345,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// so we need to instantiate the UPE gateway just for the PMC migration.
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
 
-			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
-			if ( 'yes' !== $settings->get_pmc_enabled() ) {
+			// If pmc_enabled was not set (aka new install) or was not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
+			if ( 'yes' !== $previous_pmc_enabled ) {
 				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
 			}
 

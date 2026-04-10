@@ -196,9 +196,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			return true;
 
 		} catch ( Exception $e ) {
-			$settings    = WC_Stripe_Settings::get_instance();
-			$domain_name = (string) $this->domain_name;
-			$settings->set_apple_pay_verified_domain( $domain_name );
+			$settings = WC_Stripe_Settings::get_instance();
 			$settings->set_apple_pay_domain_set( 'no' );
 			$settings->save();
 
