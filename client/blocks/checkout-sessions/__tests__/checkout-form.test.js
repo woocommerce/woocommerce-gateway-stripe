@@ -21,6 +21,7 @@ jest.mock( 'wcstripe/blocks/checkout-sessions/hooks', () => ( {
 	usePaymentSetupHandler: jest.fn(),
 	useCheckoutSuccessHandler: jest.fn(),
 	usePaymentFailHandler: jest.fn(),
+	useCheckoutSessionTotalsSync: jest.fn(),
 } ) );
 
 jest.mock(
@@ -31,6 +32,8 @@ jest.mock(
 );
 
 describe( 'CheckoutForm', () => {
+	const api = { checkoutSessionsUpdateSession: jest.fn() };
+
 	const LoadingMask = ( { isLoading, showSpinner, screenReaderLabel } ) => (
 		<div>
 			{ isLoading && showSpinner && <span>{ screenReaderLabel }</span> }
@@ -79,6 +82,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -103,6 +107,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -126,6 +131,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
