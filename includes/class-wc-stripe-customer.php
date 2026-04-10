@@ -736,7 +736,11 @@ class WC_Stripe_Customer {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
 			} elseif ( $this->is_source_already_attached_error_message( $error_message ) ) {
-				return WC_Stripe_API::get_payment_method( $source_id );
+				try {
+					return WC_Stripe_API::get_payment_method( $source_id );
+				} catch ( WC_Stripe_Exception $e ) {
+					return new WP_Error( 'stripe_error', $e->getMessage() );
+				}
 			} else {
 				return new WP_Error( 'stripe_error', $error_message );
 			}
