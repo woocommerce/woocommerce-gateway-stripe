@@ -553,14 +553,17 @@ describe( 'payment-processing', () => {
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
 					returnUrl: orderReceivedUrl,
 					redirect: 'if_required',
-					savePaymentMethod: false,
 				} );
 				// After confirm resolves, navigates to the order-received page.
 				expect( window.location.href ).toBe( orderReceivedUrl );
 				window.location = originalLocation;
 			} );
 
-			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
+			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -579,6 +582,12 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: true,
+				} );
+
 				const form = createMockForm( {
 					savePaymentMethodChecked: true,
 				} );
@@ -590,6 +599,51 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 					savePaymentMethod: true,
 				} );
+
+				window.location = originalLocation;
+			} );
+
+			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: false,
+				} );
+
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: orderReceivedUrl,
+					redirect: 'if_required',
+				} );
+
+				window.location = originalLocation;
 			} );
 
 			it( 'shows error and skips confirm when checkout AJAX fails', async () => {

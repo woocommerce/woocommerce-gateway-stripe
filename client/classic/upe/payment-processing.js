@@ -889,12 +889,16 @@ export const processPayment = (
 				// Confirm payment with the order-received page as return URL
 				// so redirect-based methods (iDEAL, Bancontact, etc.) return
 				// the customer to the thank-you page instead of checkout.
-
-				const confirmResult = await actions.confirm( {
+				const confirmArgs = {
 					returnUrl: checkoutResponse.redirect,
 					redirect: 'if_required',
-					savePaymentMethod: shouldSavePaymentMethod,
-				} );
+				};
+
+				if ( getStripeServerData()?.isLoggedIn ) {
+					confirmArgs.savePaymentMethod = shouldSavePaymentMethod;
+				}
+
+				const confirmResult = await actions.confirm( confirmArgs );
 
 				if ( confirmResult.type === 'error' ) {
 					throw new Error(
