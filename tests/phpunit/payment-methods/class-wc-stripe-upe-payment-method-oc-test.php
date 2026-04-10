@@ -23,15 +23,11 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 	 * @param mixed    $payment_details Payment details or false.
 	 * @param string[] $query_params    Query string parameters merged into $_GET.
 	 * @param string   $expected        Expected title.
-	 * @param bool     $is_checkout     When true, `is_checkout()` is forced via filter (classic checkout).
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $payment_details, ?array $query_params, string $expected, bool $is_checkout = false ) {
-		if ( $is_checkout ) {
-			add_filter( 'woocommerce_is_checkout', '__return_true' );
-		}
+	public function test_get_title( $payment_details, ?array $query_params, string $expected ) {
 		$original_get = $_GET;
 		try {
 			if ( is_array( $payment_details ) ) {
@@ -46,9 +42,6 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 
 			$this->assertEquals( $expected, $actual );
 		} finally {
-			if ( $is_checkout ) {
-				remove_filter( 'woocommerce_is_checkout', '__return_true' );
-			}
 			$_GET = $original_get;
 		}
 	}
@@ -66,7 +59,6 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 				],
 				'query params'    => [],
 				'expected'        => 'Alipay',
-				'is checkout'     => false,
 			],
 			'block checkout page / pay for order' => [
 				'payment details' => false,
@@ -74,19 +66,11 @@ class WC_Stripe_UPE_Payment_Method_OC_Test extends WP_UnitTestCase {
 					'pay_for_order' => 'true',
 				],
 				'expected'        => 'Payment methods',
-				'is checkout'     => false,
-			],
-			'classic checkout page'               => [
-				'payment details' => false,
-				'query params'    => [],
-				'expected'        => 'Payment options',
-				'is checkout'     => true,
 			],
 			'default, hardcoded'                  => [
 				'payment details' => false,
 				'query params'    => [],
 				'expected'        => 'Stripe',
-				'is checkout'     => false,
 			],
 		];
 	}
