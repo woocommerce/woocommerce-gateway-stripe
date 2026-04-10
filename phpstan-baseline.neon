@@ -1423,32 +1423,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:register_routes\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_amazon_pay_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_amazon_pay_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_enabled_payment_methods\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_express_checkout_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1459,20 +1435,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_debug_log_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_debug_log_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_express_checkout_enabled_for_legacy_checkout\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1483,20 +1447,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_saved_cards_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1507,20 +1459,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_bancontact_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_bancontact_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_sepa_tokens_for_ideal_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1531,20 +1471,8 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_separate_card_form_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_separate_card_form_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_short_account_statement_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1555,32 +1483,14 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_stripe_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_stripe_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_test_mode_enabled\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_test_mode_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_oc_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
@@ -1593,12 +1503,6 @@ parameters:
 		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_payment_methods_order\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_settings\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
