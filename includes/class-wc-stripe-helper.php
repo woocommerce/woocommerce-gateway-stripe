@@ -658,12 +658,12 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function get_upe_ordered_payment_method_ids( $gateway ) {
-		$stripe_settings            = self::get_stripe_settings();
+		$settings                   = WC_Stripe_Settings::get_instance();
 		$testmode                   = WC_Stripe_Mode::is_test();
-		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
+		$ordered_payment_method_ids = $settings->get_stripe_upe_payment_method_order();
 
 		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
-		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
+		if ( empty( $ordered_payment_method_ids ) && ! empty( $settings->get_stripe_legacy_method_order() ) ) {
 			$ordered_payment_method_ids = array_map(
 				function ( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
@@ -673,7 +673,7 @@ class WC_Stripe_Helper {
 					}
 					return str_replace( 'stripe_', '', $payment_method_id );
 				},
-				$stripe_settings['stripe_legacy_method_order']
+				$settings->get_stripe_legacy_method_order()
 			);
 
 		}
@@ -698,8 +698,7 @@ class WC_Stripe_Helper {
 		$additional_methods = array_diff( $available_methods_with_capability, $ordered_payment_method_ids_with_capability );
 		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
 
-		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
-		self::update_main_stripe_settings( $stripe_settings );
+		$settings->set_stripe_upe_payment_method_order( $updated_order );
 
 		return $updated_order;
 	}
@@ -812,9 +811,7 @@ class WC_Stripe_Helper {
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
-			$stripe_settings = self::get_stripe_settings();
-
-			$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
+			$ordered_payment_method_ids = WC_Stripe_Settings::get_instance()->get_stripe_upe_payment_method_order();
 
 			if ( empty( $ordered_payment_method_ids ) ) {
 				return;
@@ -2242,12 +2239,7 @@ class WC_Stripe_Helper {
 			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
 
-		$options = self::get_stripe_settings();
-		if ( 'test' === $mode ) {
-			return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
-		} else {
-			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
-		}
+		return WC_Stripe_Settings::get_instance()->are_keys_set( 'test' === $mode );
 	}
 
 	/**

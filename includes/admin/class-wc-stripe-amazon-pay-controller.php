@@ -39,9 +39,9 @@ class WC_Stripe_Amazon_Pay_Controller {
 		);
 		wp_enqueue_script( 'wc-stripe-amazon-pay-settings' );
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance();
 		$params          = [
-			'key'                    => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+			'key'                    => WC_Stripe_Mode::is_test() ? $stripe_settings->get_test_publishable_key() : $stripe_settings->get_publishable_key(),
 			'locale'                 => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 			'taxes_based_on_billing' => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 		];

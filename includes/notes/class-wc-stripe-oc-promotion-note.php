@@ -73,9 +73,7 @@ final class WC_Stripe_OC_Promotion_Note {
 			return;
 		}
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		if ( ! $stripe_enabled ) {
+		if ( ! WC_Stripe_Settings::get_instance()->is_enabled() ) {
 			return;
 		}
 

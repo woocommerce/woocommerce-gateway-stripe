@@ -197,7 +197,7 @@ class WC_Stripe_Settings {
 	 */
 	public function set_payment_request_button_locations( array $value ): void {
 		$this->settings['payment_request_button_locations'] = $value;
-		update_option( self::SETTINGS_OPTION, $this->settings );
+		$this->save();
 	}
 
 	/**
@@ -272,7 +272,7 @@ class WC_Stripe_Settings {
 	 */
 	public function set_pmc_enabled( string $value ): void {
 		$this->settings['pmc_enabled'] = $value;
-		update_option( self::SETTINGS_OPTION, $this->settings );
+		$this->save();
 	}
 
 	/**
@@ -318,7 +318,201 @@ class WC_Stripe_Settings {
 	 */
 	public function set_stripe_upe_payment_method_order( array $value ): void {
 		$this->settings['stripe_upe_payment_method_order'] = $value;
-		update_option( self::SETTINGS_OPTION, $this->settings );
+		$this->save();
+	}
+
+	/**
+	 * Whether test mode is active (legacy `testmode` key).
+	 *
+	 * @return bool
+	 */
+	public function is_testmode(): bool {
+		return 'yes' === ( $this->settings['testmode'] ?? '' );
+	}
+
+	/**
+	 * Whether the optimized checkout element is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_optimized_checkout_enabled(): bool {
+		return 'yes' === ( $this->settings['optimized_checkout_element'] ?? 'no' );
+	}
+
+	/**
+	 * Whether automatic capture is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_capture_enabled(): bool {
+		return 'yes' === ( $this->settings['capture'] ?? 'yes' );
+	}
+
+	/**
+	 * Whether the short statement descriptor is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_short_statement_descriptor_enabled(): bool {
+		return 'yes' === ( $this->settings['is_short_statement_descriptor_enabled'] ?? 'no' );
+	}
+
+	/**
+	 * Whether saved cards are enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_saved_cards_enabled(): bool {
+		return 'yes' === ( $this->settings['saved_cards'] ?? 'no' );
+	}
+
+	/**
+	 * Whether 3D Secure is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_three_d_secure_enabled(): bool {
+		return 'yes' === ( $this->settings['three_d_secure'] ?? '' );
+	}
+
+	/**
+	 * Whether express checkout is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_express_checkout_enabled(): bool {
+		return 'yes' === ( $this->settings['express_checkout'] ?? '' );
+	}
+
+	/**
+	 * Whether the Apple Pay domain has been set.
+	 *
+	 * @return bool
+	 */
+	public function is_apple_pay_domain_set(): bool {
+		return 'yes' === ( $this->settings['apple_pay_domain_set'] ?? '' );
+	}
+
+	/**
+	 * Set the `apple_pay_domain_set` setting.
+	 *
+	 * @param string $value 'yes' or 'no'.
+	 */
+	public function set_apple_pay_domain_set( string $value ): void {
+		$this->settings['apple_pay_domain_set'] = $value;
+		$this->save();
+	}
+
+	/**
+	 * Get the Apple Pay verified domain.
+	 *
+	 * @return string
+	 */
+	public function get_apple_pay_verified_domain(): string {
+		return $this->settings['apple_pay_verified_domain'] ?? '';
+	}
+
+	/**
+	 * Set the Apple Pay verified domain.
+	 *
+	 * @param string $value The domain name.
+	 */
+	public function set_apple_pay_verified_domain( string $value ): void {
+		$this->settings['apple_pay_verified_domain'] = $value;
+		$this->save();
+	}
+
+	/**
+	 * Get the gateway title.
+	 *
+	 * @return string
+	 */
+	public function get_title(): string {
+		return $this->settings['title'] ?? '';
+	}
+
+	/**
+	 * Get the UPE checkout experience enabled flag.
+	 *
+	 * @return string
+	 */
+	public function get_upe_checkout_experience_enabled(): string {
+		return $this->settings['upe_checkout_experience_enabled'] ?? '';
+	}
+
+	/**
+	 * Get the webhook data.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_webhook_data(): array {
+		return is_array( $this->settings['webhook_data'] ?? null ) ? $this->settings['webhook_data'] : [];
+	}
+
+	/**
+	 * Get the test webhook data.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_test_webhook_data(): array {
+		return is_array( $this->settings['test_webhook_data'] ?? null ) ? $this->settings['test_webhook_data'] : [];
+	}
+
+	/**
+	 * Get the refresh token.
+	 *
+	 * @return string
+	 */
+	public function get_refresh_token(): string {
+		return $this->settings['refresh_token'] ?? '';
+	}
+
+	/**
+	 * Get the test refresh token.
+	 *
+	 * @return string
+	 */
+	public function get_test_refresh_token(): string {
+		return $this->settings['test_refresh_token'] ?? '';
+	}
+
+	/**
+	 * Get the legacy method order.
+	 *
+	 * @return array<int, string>
+	 */
+	public function get_stripe_legacy_method_order(): array {
+		return $this->settings['stripe_legacy_method_order'] ?? [];
+	}
+
+	/**
+	 * Get the express checkout button locations (new key).
+	 *
+	 * @return array<int, string>
+	 */
+	public function get_new_express_checkout_button_locations(): array {
+		if ( ! isset( $this->settings['express_checkout_button_locations'] ) ) {
+			return [];
+		}
+
+		if ( ! is_array( $this->settings['express_checkout_button_locations'] ) ) {
+			return [];
+		}
+
+		return $this->settings['express_checkout_button_locations'];
+	}
+
+	/**
+	 * Whether keys are configured for the given mode.
+	 *
+	 * @param bool $test_mode Whether to check test keys.
+	 * @return bool
+	 */
+	public function are_keys_set( bool $test_mode = false ): bool {
+		if ( $test_mode ) {
+			return '' !== $this->get_test_publishable_key() && '' !== $this->get_test_secret_key();
+		}
+		return '' !== $this->get_publishable_key() && '' !== $this->get_secret_key();
 	}
 
 	/**
@@ -333,6 +527,25 @@ class WC_Stripe_Settings {
 	}
 
 	/**
+	 * Set a setting value by key (in memory only — call save() to persist).
+	 *
+	 * @param string $key   The setting key.
+	 * @param mixed  $value The value to set.
+	 */
+	public function set( string $key, $value ): void {
+		$this->settings[ $key ] = $value;
+	}
+
+	/**
+	 * Remove a setting key (in memory only — call save() to persist).
+	 *
+	 * @param string $key The setting key.
+	 */
+	public function delete( string $key ): void {
+		unset( $this->settings[ $key ] );
+	}
+
+	/**
 	 * Check if a setting key exists.
 	 *
 	 * @param string $key The setting key.
@@ -340,5 +553,12 @@ class WC_Stripe_Settings {
 	 */
 	public function has( string $key ): bool {
 		return isset( $this->settings[ $key ] );
+	}
+
+	/**
+	 * Persist the current in-memory settings to the database.
+	 */
+	public function save(): void {
+		update_option( self::SETTINGS_OPTION, $this->settings );
 	}
 }

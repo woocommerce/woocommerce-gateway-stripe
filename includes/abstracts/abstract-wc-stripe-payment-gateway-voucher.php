@@ -69,7 +69,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	/**
 	 * Alternate credit card statement name
 	 *
-	 * @var bool
+	 * @var string
 	 */
 	public $statement_descriptor;
 
@@ -123,18 +123,18 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 		// Load the settings.
 		$this->init_settings();
 
-		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
+		$main_settings              = WC_Stripe_Settings::get_instance();
 		$this->title                = $this->get_option( 'title' );
 		$this->description          = $this->get_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );
 		$this->testmode             = WC_Stripe_Mode::is_test();
-		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$this->publishable_key      = $main_settings->get_publishable_key();
+		$this->secret_key           = $main_settings->get_secret_key();
+		$this->statement_descriptor = $main_settings->get_statement_descriptor();
 
 		if ( $this->testmode ) {
-			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
-			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
+			$this->publishable_key = $main_settings->get_test_publishable_key();
+			$this->secret_key      = $main_settings->get_test_secret_key();
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );

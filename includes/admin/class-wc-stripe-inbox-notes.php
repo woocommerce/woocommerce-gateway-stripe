@@ -145,11 +145,8 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		// Make sure Apple Pay is enabled and setup is successful.
-		$stripe_settings       = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		$button_enabled        = isset( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'];
-		$registration_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
-		if ( ! $stripe_enabled || ! $button_enabled || ! $registration_complete ) {
+		$stripe_settings = WC_Stripe_Settings::get_instance();
+		if ( ! $stripe_settings->is_enabled() || ! $stripe_settings->is_express_checkout_enabled() || ! $stripe_settings->is_apple_pay_domain_set() ) {
 			return false;
 		}
 

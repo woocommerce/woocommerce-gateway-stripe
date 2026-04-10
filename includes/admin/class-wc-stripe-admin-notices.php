@@ -179,15 +179,15 @@ class WC_Stripe_Admin_Notices {
 		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
 		$oauth_required_notice     = get_option( 'wc_stripe_oauth_required' );
-		$options                   = WC_Stripe_Helper::get_stripe_settings();
+		$options                   = WC_Stripe_Settings::get_instance();
 		$testmode                  = WC_Stripe_Mode::is_test();
-		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
-		$test_secret_key           = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
-		$live_pub_key              = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
-		$live_secret_key           = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
-		$three_d_secure            = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
+		$test_pub_key              = $options->get_test_publishable_key();
+		$test_secret_key           = $options->get_test_secret_key();
+		$live_pub_key              = $options->get_publishable_key();
+		$live_secret_key           = $options->get_secret_key();
+		$three_d_secure            = $options->is_three_d_secure_enabled();
 
-		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+		if ( $options->is_enabled() ) {
 			// Check if Stripe is in test mode.
 			if ( $testmode ) {
 				// phpcs:ignore
@@ -411,9 +411,9 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$options   = WC_Stripe_Helper::get_stripe_settings();
-		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
-		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+		$options   = WC_Stripe_Settings::get_instance();
+		$enabled   = $options->is_express_checkout_enabled();
+		$locations = $options->get_new_express_checkout_button_locations();
 
 		if ( ! $enabled ) {
 			return;
@@ -561,8 +561,7 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function subscriptions_check_environment() {
 		_deprecated_function( __METHOD__, '9.6.0' );
-		$options = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
+		if ( WC_Stripe_Settings::get_instance()->is_enabled() && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
 			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
 			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 			if ( ! empty( $detached_messages ) ) {

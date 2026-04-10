@@ -160,10 +160,15 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return WP_REST_Response
 	 */
 	public function get_account_keys() {
-		$allowed_params  = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		// Filter only the fields we want to return
-		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
+		$settings     = WC_Stripe_Settings::get_instance();
+		$account_keys = [
+			'publishable_key'      => $settings->get_publishable_key(),
+			'secret_key'           => $settings->get_secret_key(),
+			'webhook_secret'       => $settings->get_webhook_secret(),
+			'test_publishable_key' => $settings->get_test_publishable_key(),
+			'test_secret_key'      => $settings->get_test_secret_key(),
+			'test_webhook_secret'  => $settings->get_test_webhook_secret(),
+		];
 
 		// Mask the keys
 		foreach ( $account_keys as $key => $value ) {
@@ -287,45 +292,49 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return WP_REST_Response
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$settings       = WC_Stripe_Settings::get_instance();
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
-		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
+		$current_account_keys = [];
+		foreach ( $allowed_params as $key ) {
+			$current_account_keys[ $key ] = (string) $settings->get( $key, '' );
+		}
+
 		foreach ( $current_account_keys as $key => $value ) {
 			$new_value = wc_clean( wp_unslash( $request->get_param( $key ) ) );
 			if ( ! is_null( $new_value ) && $new_value !== $this->mask_key_value( $value ) ) {
-				$settings[ $key ] = $new_value;
+				$settings->set( $key, $new_value );
 			}
 		}
 
 		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
-		$is_deleting_account = ! $settings['publishable_key']
-							&& ! $settings['secret_key']
-							&& ! $settings['test_publishable_key']
-							&& ! $settings['test_secret_key'];
+		$is_deleting_account = ! $settings->get_publishable_key()
+							&& ! $settings->get_secret_key()
+							&& ! $settings->get_test_publishable_key()
+							&& ! $settings->get_test_secret_key();
 
 		if ( $is_deleting_account ) {
-			$settings['enabled']              = 'no';
-			$settings['connection_type']      = '';
-			$settings['pmc_enabled']          = '';
-			$settings['test_connection_type'] = '';
-			$settings['refresh_token']        = '';
-			$settings['test_refresh_token']   = '';
+			$settings->set( 'enabled', 'no' );
+			$settings->set( 'connection_type', '' );
+			$settings->set( 'pmc_enabled', '' );
+			$settings->set( 'test_connection_type', '' );
+			$settings->set( 'refresh_token', '' );
+			$settings->set( 'test_refresh_token', '' );
 			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
 		} else {
 			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
-		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
+		$this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$settings->save();
 
 		// Disable all payment methods if all keys are different from the current ones
-		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
-			|| $current_account_keys['secret_key'] !== $settings['secret_key']
-			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
-			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
+		if ( $current_account_keys['publishable_key'] !== $settings->get_publishable_key()
+			|| $current_account_keys['secret_key'] !== $settings->get_secret_key()
+			|| $current_account_keys['test_publishable_key'] !== $settings->get_test_publishable_key()
+			|| $current_account_keys['test_secret_key'] !== $settings->get_test_secret_key() ) {
 
 			$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 			$upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
@@ -352,17 +361,17 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return WP_REST_Response
 	 */
 	public function test_account_keys( WP_REST_Request $request ) {
-		$live_mode   = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
-		$publishable = wc_clean( wp_unslash( $request->get_param( 'publishable' ) ) );
-		$secret      = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
+		$live_mode   = (bool) $request->get_param( 'live_mode' );
+		$publishable = sanitize_text_field( wp_unslash( $request->get_param( 'publishable' ) ?? '' ) );
+		$secret      = sanitize_text_field( wp_unslash( $request->get_param( 'secret' ) ?? '' ) );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance();
 
 		if ( $publishable === $this->mask_key_value( $publishable ) ) {
-			$publishable = $settings[ $live_mode ? 'publishable_key' : 'test_publishable_key' ];
+			$publishable = $live_mode ? $settings->get_publishable_key() : $settings->get_test_publishable_key();
 		}
 		if ( $secret === $this->mask_key_value( $secret ) ) {
-			$secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
+			$secret = $live_mode ? $settings->get_secret_key() : $settings->get_test_secret_key();
 		}
 
 		$response = wp_safe_remote_post(
@@ -439,21 +448,19 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Decommissions the configured Webhook if the user is removing their secret key.
 	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
 	 *
-	 * @param array $settings             The current settings.
-	 * @param array $current_account_keys The current account keys.
-	 *
-	 * @return array The updated settings. The webhook data will be removed if the webhook was decommissioned.
+	 * @param WC_Stripe_Settings $settings             The settings instance.
+	 * @param array              $current_account_keys The current account keys before update.
 	 */
-	private function decommission_configured_webhook_after_key_update( $settings, $current_account_keys ) {
+	private function decommission_configured_webhook_after_key_update( WC_Stripe_Settings $settings, array $current_account_keys ): void {
 		$key_data = [
 			'live' => [
-				'secret_key'     => $settings['secret_key'] ?? '',
-				'webhook_data'   => $settings['webhook_data'] ?? '',
+				'secret_key'     => $settings->get_secret_key(),
+				'webhook_data'   => $settings->get_webhook_data(),
 				'current_secret' => $current_account_keys['secret_key'] ?? '',
 			],
 			'test' => [
-				'secret_key'     => $settings['test_secret_key'] ?? '',
-				'webhook_data'   => $settings['test_webhook_data'] ?? '',
+				'secret_key'     => $settings->get_test_secret_key(),
+				'webhook_data'   => $settings->get_test_webhook_data(),
 				'current_secret' => $current_account_keys['test_secret_key'] ?? '',
 			],
 		];
@@ -471,12 +478,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
 
 				// Update the webhook settings now that the webhook has been decommissioned.
-				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
-				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+				$settings->set( 'live' === $mode ? 'webhook_data' : 'test_webhook_data', [] );
+				$settings->set( 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret', '' );
 			}
 		}
-
-		return $settings;
 	}
 
 	/**

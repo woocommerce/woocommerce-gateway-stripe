@@ -96,9 +96,9 @@ class WC_Stripe_Settings_Controller {
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance();
 
-		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
+		$account_data_exists = $settings->are_keys_set() || $settings->are_keys_set( true );
 		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 

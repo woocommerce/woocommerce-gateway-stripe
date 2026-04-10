@@ -115,17 +115,14 @@ class WC_Stripe_Feature_Flags {
 	 * @since 10.4.0
 	 */
 	public static function is_checkout_sessions_available() {
-		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
-		$is_pmc_enabled               = $stripe_settings['pmc_enabled'] ?? 'no';
-		$is_oc_enabled                = $stripe_settings['optimized_checkout_element'] ?? 'no';
-		$is_automatic_capture_enabled = $stripe_settings['capture'] ?? 'yes';
+		$stripe_settings = WC_Stripe_Settings::get_instance();
 
 		// Stripe checkout sessions feature can only be available if:
 		// - PMC is enabled
 		// - OC Suite is enabled
 		// - Automatic capture is enabled (i.e. manual capture or later capture is disabled)
 		// If any of the above conditions are not met, the feature is not available.
-		if ( 'yes' !== $is_pmc_enabled || 'yes' !== $is_oc_enabled || 'yes' !== $is_automatic_capture_enabled ) {
+		if ( 'yes' !== $stripe_settings->get_pmc_enabled() || ! $stripe_settings->is_optimized_checkout_enabled() || ! $stripe_settings->is_capture_enabled() ) {
 			return false;
 		}
 
@@ -186,8 +183,7 @@ class WC_Stripe_Feature_Flags {
 		}
 
 		// Check if Optimized Checkout Suite is enabled.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'yes' !== ( $stripe_settings['optimized_checkout_element'] ?? 'no' ) ) {
+		if ( ! WC_Stripe_Settings::get_instance()->is_optimized_checkout_enabled() ) {
 			return false;
 		}
 
@@ -212,8 +208,7 @@ class WC_Stripe_Feature_Flags {
 	public static function did_merchant_disable_upe() {
 		wc_deprecated_function( __METHOD__, '10.5.0' );
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'disabled' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+		return 'disabled' === WC_Stripe_Settings::get_instance()->get_upe_checkout_experience_enabled();
 	}
 
 	/**
@@ -235,8 +230,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		$pmc_enabled = WC_Stripe_Settings::get_instance()->get_pmc_enabled();
 		if ( 'yes' !== $pmc_enabled ) {
 			return false;
 		}

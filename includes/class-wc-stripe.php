@@ -409,11 +409,11 @@ class WC_Stripe {
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
-			unset( $stripe_settings['pmc_enabled'] );
-			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$settings = WC_Stripe_Settings::get_instance();
+		if ( 'no' === $settings->get_pmc_enabled() ) {
+			$settings->delete( 'pmc_enabled' );
+			$settings->set( 'skip_pmc_express_checkout_defaults', 'yes' );
+			$settings->save();
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
 	}
@@ -459,11 +459,11 @@ class WC_Stripe {
 	 * @version 9.6.0
 	 */
 	public function migrate_to_new_checkout_experience() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
-		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
-			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		if ( 'yes' !== $settings->get_upe_checkout_experience_enabled() ) {
+			$settings->set( 'upe_checkout_experience_enabled', 'yes' );
+			$settings->save();
 
 			if ( class_exists( 'WC_Tracks' ) ) {
 				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
@@ -482,16 +482,15 @@ class WC_Stripe {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
-			? $stripe_settings['express_checkout_button_locations']
-			: [];
-		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+		$settings      = WC_Stripe_Settings::get_instance();
+		$prb_locations = $settings->get_new_express_checkout_button_locations();
+
+		if ( empty( $prb_locations ) ) {
 			// Use existing payment_request_button_locations if it exists.
-			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
-				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
-				unset( $stripe_settings['payment_request_button_locations'] );
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			if ( $settings->has( 'payment_request_button_locations' ) ) {
+				$settings->set( 'express_checkout_button_locations', $settings->get_express_checkout_button_locations() );
+				$settings->delete( 'payment_request_button_locations' );
+				$settings->save();
 				return;
 			}
 
@@ -516,8 +515,8 @@ class WC_Stripe {
 				$new_prb_locations[] = 'checkout';
 			}
 
-			$stripe_settings['express_checkout_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$settings->set( 'express_checkout_button_locations', $new_prb_locations );
+			$settings->save();
 		}
 	}
 

@@ -17,6 +17,13 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
+	 * Stripe settings instance.
+	 *
+	 * @var WC_Stripe_Settings
+	 */
+	private $stripe_settings;
+
+	/**
 	 * The Express Checkout configuration class used for Shortcode PRBs. We use it here to retrieve
 	 * the same configurations.
 	 *
@@ -57,7 +64,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function initialize() {
-		$this->settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->stripe_settings = WC_Stripe_Settings::get_instance();
 	}
 
 	/**
@@ -67,7 +74,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function is_active() {
 		// If Stripe isn't enabled, then we don't need to check anything else - it isn't active.
-		if ( empty( $this->settings['enabled'] ) || 'yes' !== $this->settings['enabled'] ) {
+		if ( ! $this->stripe_settings->is_enabled() ) {
 			return false;
 		}
 
@@ -268,7 +275,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return bool True if merchant allows shopper to save card (payment method) during checkout.
 	 */
 	private function get_show_saved_cards() {
-		return isset( $this->settings['saved_cards'] ) ? 'yes' === $this->settings['saved_cards'] : false;
+		return $this->stripe_settings->is_saved_cards_enabled();
 	}
 
 	/**
@@ -291,7 +298,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return string Title / label string
 	 */
 	private function get_title() {
-		return isset( $this->settings['title'] ) ? $this->settings['title'] : __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
+		$title = $this->stripe_settings->get_title();
+		return '' !== $title ? $title : __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
