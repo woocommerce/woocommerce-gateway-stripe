@@ -875,10 +875,23 @@ export const processPayment = (
 				} );
 
 				if ( checkoutResponse.result !== 'success' ) {
-					// Trigger WC's built-in checkout error handling.
-					jQuery( document.body ).trigger( 'checkout_error', [
-						checkoutResponse.messages,
-					] );
+					// WC core unblocks in its checkout AJAX complete handler; this path
+					// uses a direct jQuery.ajax call, so we must unblock explicitly.
+					jQueryForm.removeClass( 'processing' ).unblock();
+					const messages = checkoutResponse.messages;
+					if (
+						typeof messages === 'string' &&
+						messages.trim().length > 0
+					) {
+						showErrorCheckout( messages );
+					} else {
+						showErrorCheckout(
+							__(
+								'An error occurred while processing your checkout. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+						);
+					}
 					return;
 				}
 

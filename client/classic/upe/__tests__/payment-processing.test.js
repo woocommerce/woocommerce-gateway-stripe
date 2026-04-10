@@ -668,6 +668,35 @@ describe( 'payment-processing', () => {
 				expect( mockActions.confirm ).not.toHaveBeenCalled();
 			} );
 
+			it( 'unblocks form and shows messages when checkout AJAX returns a failure result', async () => {
+				const mockActions = { confirm: jest.fn() };
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				const errorHtml =
+					'<ul class="woocommerce-error" role="alert"><li>Invalid coupon</li></ul>';
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'failure',
+					messages: errorHtml,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( form.removeClass ).toHaveBeenCalledWith( 'processing' );
+				expect( form.unblock ).toHaveBeenCalled();
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					errorHtml
+				);
+				expect( mockActions.confirm ).not.toHaveBeenCalled();
+			} );
+
 			it( 'shows error and does not submit when loadActions returns an error', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
