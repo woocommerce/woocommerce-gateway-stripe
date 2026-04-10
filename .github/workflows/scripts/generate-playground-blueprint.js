@@ -1,6 +1,6 @@
 const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 	return {
-		landingPage: '/wp-admin/admin.php?page=wc-settings&tab=checkout',
+		landingPage: '/wp-admin/admin.php?page=wc-stripe-dev',
 
 		preferredVersions: {
 			php: '8.4',
@@ -29,6 +29,16 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 					/* The plugin proxy helper fetches the artifact produced by the specified workflow in the target GitHub repo.
 					In this case, it fetches the `plugins-<runId>` artifact from the "Build plugin and Playground artifacts" workflow in the woocommerce/woocommerce-gateway-stripe repo. */
 					url: `https://playground.wordpress.net/plugin-proxy.php?org=woocommerce&repo=woocommerce-gateway-stripe&workflow=Build%20plugin%20and%20Playground%20artifacts&artifact=plugins-${ runId }&pr=${ prNumber }`,
+				},
+				options: {
+					activate: true,
+				},
+			},
+			{
+				step: 'installPlugin',
+				pluginData: {
+					resource: 'url',
+					url: 'https://github.com/woocommerce/woocommerce-gateway-stripe-dev-tools/archive/refs/heads/trunk.zip',
 				},
 				options: {
 					activate: true,
