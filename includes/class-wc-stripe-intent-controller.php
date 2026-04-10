@@ -270,13 +270,6 @@ class WC_Stripe_Intent_Controller {
 			// 3. Fetch the source object.
 			$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
-			if ( ! empty( $source_object->error ) ) {
-				throw new Exception( $source_object->error->message );
-			}
-			if ( is_wp_error( $source_object ) ) {
-				throw new Exception( $source_object->get_error_message() );
-			}
-
 			// SEPA Direct Debit payments do not require any customer action after the source has been created.
 			// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
 			if ( WC_Stripe_Payment_Methods::SEPA_DEBIT === $source_object->type ) {

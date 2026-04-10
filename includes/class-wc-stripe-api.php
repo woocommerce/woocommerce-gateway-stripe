@@ -61,6 +61,14 @@ class WC_Stripe_API {
 	private static ?Stripe\StripeClient $sdk = null;
 
 	/**
+	 * The secret key used to construct the current SDK client.
+	 * Used to detect when the key changes (e.g. mode switch) and rebuild the client.
+	 *
+	 * @var string
+	 */
+	private static string $sdk_secret = '';
+
+	/**
 	 * Get instance of WC_Stripe_API.
 	 *
 	 * @return WC_Stripe_API
@@ -499,16 +507,22 @@ class WC_Stripe_API {
 	 *
 	 * @param string $payment_method_id The ID of the payment method to retrieve.
 	 *
-	 * @return stdClass  The payment method object.
+	 * @return \Stripe\StripeObject The payment method object (supports property access, e.g. ->id, ->type).
+	 *
+	 * @throws WC_Stripe_Exception If the API request fails.
 	 */
 	public static function get_payment_method( string $payment_method_id ) {
-		// Sources have a separate API.
-		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::get_sdk()->sources->retrieve( $payment_method_id )->jsonSerialize();
-		}
+		try {
+			// Sources have a separate API.
+			if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+				return self::get_sdk()->sources->retrieve( $payment_method_id );
+			}
 
-		// If it's not a source it's a PaymentMethod.
-		return self::get_sdk()->paymentMethods->retrieve( $payment_method_id )->jsonSerialize();
+			// If it's not a source it's a PaymentMethod.
+			return self::get_sdk()->paymentMethods->retrieve( $payment_method_id );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
@@ -517,12 +531,16 @@ class WC_Stripe_API {
 	 * @param string $payment_method_id   Payment method ID.
 	 * @param array  $payment_method_data Payment method updated data.
 	 *
-	 * @return array Payment method details.
+	 * @return \Stripe\StripeObject Payment method object.
 	 *
 	 * @throws WC_Stripe_Exception If payment method update fails.
 	 */
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
-		return self::get_sdk()->paymentMethods->update( $payment_method_id, $payment_method_data )->jsonSerialize();
+		try {
+			return self::get_sdk()->paymentMethods->update( $payment_method_id, $payment_method_data );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
@@ -531,16 +549,20 @@ class WC_Stripe_API {
 	 * @param string $customer_id        The ID of the customer the payment method should be attached to.
 	 * @param string $payment_method_id  The payment method that should be attached to the customer.
 	 *
-	 * @return stdClass|array  The response from the API request.
+	 * @return \Stripe\StripeObject The response from the API request.
 	 * @throws WC_Stripe_Exception
 	 */
 	public static function attach_payment_method_to_customer( string $customer_id, string $payment_method_id ) {
-		// Sources and Payment Methods need different API calls.
-		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::get_sdk()->customers->updateSource( $customer_id, $payment_method_id )->jsonSerialize();
-		}
+		try {
+			// Sources and Payment Methods need different API calls.
+			if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+				return self::get_sdk()->customers->createSource( $customer_id, [ 'source' => $payment_method_id ] );
+			}
 
-		return self::get_sdk()->paymentMethods->attach( $payment_method_id, [ 'customer' => $customer_id ] )->jsonSerialize();
+			return self::get_sdk()->paymentMethods->attach( $payment_method_id, [ 'customer' => $customer_id ] );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
@@ -549,7 +571,7 @@ class WC_Stripe_API {
 	 * @param string $customer_id        The ID of the customer that contains the payment method that should be detached.
 	 * @param string $payment_method_id  The ID of the payment method that should be detached.
 	 *
-	 * @return  stdClass|array  The response from the API request
+	 * @return \Stripe\StripeObject|array The response from the API request.
 	 * @throws WC_Stripe_Exception
 	 */
 	public static function detach_payment_method_from_customer( string $customer_id, string $payment_method_id ) {
@@ -559,12 +581,16 @@ class WC_Stripe_API {
 
 		$payment_method_id = sanitize_text_field( $payment_method_id );
 
-		// Sources and Payment Methods need different API calls.
-		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			return self::get_sdk()->sources->detach( $customer_id, $payment_method_id )->jsonSerialize();
-		}
+		try {
+			// Sources and Payment Methods need different API calls.
+			if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+				return self::get_sdk()->sources->detach( $customer_id, $payment_method_id );
+			}
 
-		return self::get_sdk()->paymentMethods->detach( $payment_method_id )->jsonSerialize();
+			return self::get_sdk()->paymentMethods->detach( $payment_method_id );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
@@ -634,22 +660,36 @@ class WC_Stripe_API {
 	/**
 	 * Get the payment method configuration.
 	 *
-	 * @return array The response from the API request.
+	 * @return \Stripe\StripeObject The response from the API request (supports property access, e.g. ->data).
+	 *
+	 * @throws WC_Stripe_Exception If the API request fails.
 	 */
 	public function get_payment_method_configurations() {
-		// The default limit is 10, so we set it to 100 to get all configurations in a single request.
-		// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
-		return self::get_sdk()->paymentMethodConfigurations->all( [ 'limit' => 100 ] )->jsonSerialize();
+		try {
+			// The default limit is 10, so we set it to 100 to get all configurations in a single request.
+			// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
+			return self::get_sdk()->paymentMethodConfigurations->all( [ 'limit' => 100 ] );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
 	 * Update the payment method configuration.
 	 *
-	 * @param array $payment_method_configurations The payment method configurations to update.
+	 * @param string $id                             The payment method configuration ID.
+	 * @param array  $payment_method_configurations  The payment method configurations to update.
+	 *
+	 * @return \Stripe\StripeObject The updated payment method configuration.
+	 *
+	 * @throws WC_Stripe_Exception If the API request fails.
 	 */
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
-		$response = self::get_sdk()->paymentMethodConfigurations->update( $id, $payment_method_configurations )->jsonSerialize();
-		return $response;
+		try {
+			return self::get_sdk()->paymentMethodConfigurations->update( $id, $payment_method_configurations );
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 
 	/**
@@ -729,12 +769,23 @@ class WC_Stripe_API {
 	/**
 	 * Get the Stripe SDK instance.
 	 *
+	 * Rebuilds the client when the secret key changes (e.g. live/test mode switch).
+	 *
 	 * @return \Stripe\StripeClient
 	 */
 	private static function get_sdk(): \Stripe\StripeClient {
-		if ( ! self::$sdk ) {
-			self::$sdk = new \Stripe\StripeClient( self::get_secret_key() );
+		$secret = self::get_secret_key();
+
+		if ( ! self::$sdk || self::$sdk_secret !== $secret ) {
+			self::$sdk        = new \Stripe\StripeClient(
+				[
+					'api_key'        => $secret,
+					'stripe_version' => self::STRIPE_API_VERSION,
+				]
+			);
+			self::$sdk_secret = $secret;
 		}
+
 		return self::$sdk;
 	}
 }

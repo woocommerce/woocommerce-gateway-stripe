@@ -656,10 +656,10 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		$response = WC_Stripe_API::get_payment_method( $source_id );
-
-		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
-			return $response;
+		try {
+			$response = WC_Stripe_API::get_payment_method( $source_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			return new WP_Error( 'stripe_error', $e->getMessage() );
 		}
 
 		// Add token to WooCommerce.
@@ -724,25 +724,49 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::attach_payment_method_to_customer( $this->get_id(), $source_id );
+		try {
+			$response = WC_Stripe_API::attach_payment_method_to_customer( $this->get_id(), $source_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			$error_message = $e->getMessage();
 
-		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
-			if ( $this->is_no_such_customer_error( $response->error ) ) {
+			if ( $this->is_no_such_customer_error_message( $error_message ) ) {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
-			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
+			} elseif ( $this->is_source_already_attached_error_message( $error_message ) ) {
 				return WC_Stripe_API::get_payment_method( $source_id );
 			} else {
-				return $response;
+				return new WP_Error( 'stripe_error', $error_message );
 			}
-		} elseif ( empty( $response->id ) ) {
-			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
-		} else {
-			return $response;
 		}
+
+		if ( empty( $response->id ) ) {
+			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Checks if an error message indicates a "no such customer" error.
+	 *
+	 * @param string $message The error message.
+	 * @return bool
+	 */
+	private function is_no_such_customer_error_message( string $message ): bool {
+		return (bool) preg_match( '/No such customer/i', $message );
+	}
+
+	/**
+	 * Checks if an error message indicates a "source already attached" error.
+	 *
+	 * @param string $message The error message.
+	 * @return bool
+	 */
+	private function is_source_already_attached_error_message( string $message ): bool {
+		return (bool) preg_match( '/already been attached to a customer/i', $message );
 	}
 
 	/**
@@ -927,16 +951,16 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
-
-		if ( empty( $response->error ) ) {
-			$this->clear_cache( $source_id );
-			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
-
-			return true;
+		try {
+			$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
 		}
 
-		return false;
+		$this->clear_cache( $source_id );
+		do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
+
+		return true;
 	}
 
 	/**
@@ -949,16 +973,16 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
-
-		if ( empty( $response->error ) ) {
-			$this->clear_cache( $payment_method_id );
-			do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
-
-			return true;
+		try {
+			$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
 		}
 
-		return false;
+		$this->clear_cache( $payment_method_id );
+		do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
+
+		return true;
 	}
 
 	/**

@@ -156,7 +156,15 @@ class WC_Stripe_Payment_Method_Configurations {
 			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
 		}
 
-		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		try {
+			$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Error retrieving Payment Method Configurations',
+				[ 'error' => $e->getMessage() ]
+			);
+			return null;
+		}
 		$configurations = $result->data ?? [];
 
 		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
@@ -472,17 +480,18 @@ class WC_Stripe_Payment_Method_Configurations {
 			];
 		}
 
-		$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
-			$payment_method_configuration->id,
-			$updated_payment_method_configuration
-		);
-		if ( ! empty( $response->error ) ) {
+		try {
+			WC_Stripe_API::get_instance()->update_payment_method_configurations(
+				$payment_method_configuration->id,
+				$updated_payment_method_configuration
+			);
+		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Unable to update Payment Method Configuration',
 				[
 					'pmc_id'        => $payment_method_configuration->id,
 					'configuration' => $updated_payment_method_configuration,
-					'response'      => $response,
+					'error'         => $e->getMessage(),
 				]
 			);
 		}

@@ -1819,18 +1819,6 @@ parameters:
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Method WC_Stripe_API\:\:update_payment_method_configurations\(\) has parameter \$id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-api.php
-
-		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$key$#'
 			identifier: parameter.notFound
 			count: 1
@@ -1975,6 +1963,48 @@ parameters:
 			path: includes/class-wc-stripe-co-branded-cc-compatibility.php
 
 		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$brand\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$card\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$exp_month\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$exp_year\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$fingerprint\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$last4\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/class-wc-stripe-customer.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$ID\.$#'
 			identifier: property.notFound
 			count: 1
@@ -2029,7 +2059,19 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:add_source\(\) should return int\|WP_Error but returns stdClass\.$#'
+			message: '#^Parameter \#1 \$payment_method of static method WC_Stripe_Helper\:\:is_card_payment_method\(\) expects stdClass, Stripe\\StripeObject given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Parameter \#1 \$token of method WC_Payment_Token\:\:set_token\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/class-wc-stripe-customer.php
+
+		-
+			message: '#^Method WC_Stripe_Customer\:\:add_source\(\) should return int\|WP_Error but returns string\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-customer.php
@@ -2431,6 +2473,12 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -2699,6 +2747,12 @@ parameters:
 			identifier: empty.property
 			count: 9
 			path: includes/class-wc-stripe-logger.php
+
+		-
+			message: '#^Access to an undefined property Stripe\\StripeObject\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
@@ -3070,12 +3124,6 @@ parameters:
 			message: '#^Argument of an invalid type object supplied for foreach, only iterables are supported\.$#'
 			identifier: foreach.nonIterable
 			count: 3
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
-			message: '#^Cannot access property \$data on array\.$#'
-			identifier: property.nonObject
-			count: 1
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-

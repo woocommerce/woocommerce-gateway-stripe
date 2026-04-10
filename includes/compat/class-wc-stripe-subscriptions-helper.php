@@ -163,16 +163,16 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$payment_method = WC_Stripe_Database_Cache::get( 'payment_method_for_source_' . $source_id );
 		if ( ! $payment_method ) {
-			$payment_method = WC_Stripe_API::get_payment_method( $source_id );
-			if ( is_wp_error( $payment_method ) || isset( $payment_method->error ) ) {
-				$error_message = is_wp_error( $payment_method ) ? $payment_method->get_error_message() : ( $payment_method->error->message ?? 'Unknown error.' );
+			try {
+				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
+			} catch ( WC_Stripe_Exception $e ) {
 				// If we can't retrieve the payment method, assume it's detached.
 				WC_Stripe_Logger::error(
 					sprintf(
 					/* translators: %1$s is the subscription ID, %2$s is the error message */
 						__( 'Error retrieving payment method for subscription %1$s: %2$s', 'woocommerce-gateway-stripe' ),
 						$subscription->get_id(),
-						$error_message
+						$e->getMessage()
 					)
 				);
 				return true;
@@ -316,12 +316,13 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
 		}
 
-		$saved_payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
-		if ( is_wp_error( $saved_payment_method ) ) {
+		try {
+			$saved_payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
+		} catch ( WC_Stripe_Exception $e ) {
 			return null;
 		}
 
-		if ( isset( $saved_payment_method->error ) || empty( $saved_payment_method->id ) || empty( $saved_payment_method->customer ) || $saved_payment_method->customer !== $stripe_customer_id ) {
+		if ( empty( $saved_payment_method->id ) || empty( $saved_payment_method->customer ) || $saved_payment_method->customer !== $stripe_customer_id ) {
 			$saved_payment_method = null;
 		}
 

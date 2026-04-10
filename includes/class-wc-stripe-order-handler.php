@@ -131,10 +131,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 */
 			$source_info = WC_Stripe_API::get_payment_method( $source );
 
-			if ( ! empty( $source_info->error ) ) {
-				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );
-			}
-
 			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
 				throw new WC_Stripe_Exception( print_r( $source_info, true ), __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -196,7 +192,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 						return $this->process_redirect_payment( $order_id, true, $response->error );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );

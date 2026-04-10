@@ -816,10 +816,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
-		if ( ! empty( $source_object->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
-		}
-
 		return $source_object;
 	}
 
