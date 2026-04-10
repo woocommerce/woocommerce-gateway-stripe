@@ -1521,7 +1521,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$session_id = $checkout_session->id;
 
 		// Look for an order. If order exists, process the webhook immediately.
-		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
 
 		// If order does not exist, defer the webhook processing.
 		// This is either an agentic hook or a webhook arrived before the order metadata was stored.
@@ -1739,7 +1739,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$session_id = $checkout_session->id;
 
 		// Look for an order. If order exists, process the webhook immediately.
-		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
 
 		// If order does not exist, defer the webhook processing.
 		// This might happen if a webhook arrived before the order metadata was stored.
