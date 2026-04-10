@@ -830,7 +830,7 @@ class WC_Stripe_Helper {
 		asort( $gateway_order );
 		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
 			// Skip internal WooCommerce Payments entries.
-			if ( 0 === strpos( $gateway_id, '_wc_pes_' ) ) {
+			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
 				continue;
 			}
 
