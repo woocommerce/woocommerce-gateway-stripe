@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { update as apiUpdate } from './api';
 
 /**
  * Get a new admin page with admin context.
@@ -100,6 +101,9 @@ export const updateStoreCurrency = async ( browser, currency ) => {
 /**
  * Enable or disable the Optimized Checkout feature in Stripe settings.
  *
+ * When enabling, also moves Stripe to the first position among payment gateways,
+ * since OCS requires Stripe to be the first available gateway.
+ *
  * @param {Browser} browser      Playwright browser fixture.
  * @param {boolean} shouldEnable Whether to enable or disable the Optimized Checkout element.
  */
@@ -141,6 +145,12 @@ export const initializeOptimizedCheckout = async (
 				page.getByTestId( 'optimized-checkout-element-checkbox' )
 			).not.toBeChecked();
 		}
+	}
+
+	// OCS requires Stripe to be the first available payment gateway.
+	// Ensure this is the case whenever enabling OCS.
+	if ( shouldEnable ) {
+		await apiUpdate.paymentGatewayOrder( 'stripe', 0 );
 	}
 
 	await adminContext.close();
