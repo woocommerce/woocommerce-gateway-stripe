@@ -786,17 +786,14 @@ class WC_Stripe_Helper {
 	/**
 	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
 	 *
-	 * @param string|null $stripe_gateway_id Main Stripe gateway id. Defaults to `stripe` (see WC_Stripe_UPE_Payment_Gateway::ID).
 	 * @return bool
 	 */
-	public static function is_stripe_gateway_first_in_available_list( ?string $stripe_gateway_id = null ): bool {
-		$stripe_gateway_id = $stripe_gateway_id ?? WC_Stripe_UPE_Payment_Gateway::ID;
-
+	public static function is_stripe_gateway_first_in_available_list(): bool {
 		if ( null === self::$first_gateway_id_from_available_list ) {
 			return false;
 		}
 
-		return $stripe_gateway_id === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
+		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
 	}
 
 	/**
