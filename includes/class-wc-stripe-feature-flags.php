@@ -24,6 +24,14 @@ class WC_Stripe_Feature_Flags {
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
+	/**
+	 * Feature flag for OC (Optimized Checkout).
+	 *
+	 * @var string
+	 *
+	 * @deprecated This feature flag will be removed in version 9.9.0.
+	 */
+	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
 
 	/**
 	 * Feature flag for Agentic Commerce.
