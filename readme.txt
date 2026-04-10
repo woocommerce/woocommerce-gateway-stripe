@@ -166,7 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
 * Add - Process payment with adaptive pricing in the classic checkout
-* Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
+* Dev - Update WC_Stripe_Currency_Code constants class with zero-decimal and three-decimal currency lists and replace legacy no_decimal_currencies() usage
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
