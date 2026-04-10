@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.6.0
+* Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
 * Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag

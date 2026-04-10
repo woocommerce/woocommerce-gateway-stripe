@@ -853,11 +853,16 @@ export const processPayment = (
 					.find( '#wc-stripe-new-payment-method' )
 					.is( ':checked' );
 
-				const confirmResult = await actions.confirm( {
+				const confirmArgs = {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
-					savePaymentMethod: shouldSavePaymentMethod,
-				} );
+				};
+
+				if ( getStripeServerData()?.isLoggedIn ) {
+					confirmArgs.savePaymentMethod = shouldSavePaymentMethod;
+				}
+
+				const confirmResult = await actions.confirm( confirmArgs );
 
 				if ( confirmResult.type === 'error' ) {
 					throw new Error(
