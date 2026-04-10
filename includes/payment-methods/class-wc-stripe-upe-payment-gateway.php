@@ -3542,6 +3542,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$formatted_fee = wc_price( $fee, [ 'currency' => $currency ] );
+		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
+			$formatted_fee .= ' ' . esc_html( strtoupper( $currency ) );
+		}
+
 		?>
 
 		<tr>
@@ -3551,7 +3556,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				-<?php echo $formatted_fee; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -3581,6 +3586,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$formatted_net = wc_price( $net, [ 'currency' => $currency ] );
+		if ( strtoupper( $order->get_currency() ) !== strtoupper( $currency ) ) {
+			$formatted_net .= ' ' . esc_html( strtoupper( $currency ) );
+		}
+
 		?>
 
 		<tr>
@@ -3590,7 +3600,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php echo $formatted_net; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
