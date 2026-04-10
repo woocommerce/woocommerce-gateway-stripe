@@ -865,7 +865,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// dynamically show/hide the save checkbox as the selected method
 		// changes inside the Payment Element.
 		$show_save_option_by_method = [];
-		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
 					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
