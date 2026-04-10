@@ -357,6 +357,124 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that phone_number_collection is included in the Checkout Session request only when
+	 * WooCommerce's checkout phone field is set to required.
+	 *
+	 * @param string $phone_field_setting   The value of the woocommerce_checkout_phone_field option.
+	 * @param bool   $expect_phone_collection Whether phone_number_collection should be present in the request.
+	 * @dataProvider provide_test_phone_number_collection
+	 */
+	public function test_phone_number_collection_based_on_wc_setting(
+		string $phone_field_setting,
+		bool $expect_phone_collection
+	): void {
+		Ajax_Test_Helper::init_hooks();
+
+		wp_set_current_user( 1 );
+		WC()->customer = new \WC_Customer( 1 );
+
+		$customer_data = [
+			'billing_first_name' => 'John',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '123 Main St',
+			'billing_city'       => 'New York',
+			'billing_state'      => 'NY',
+			'billing_postcode'   => '10001',
+			'billing_country'    => 'US',
+			'billing_email'      => 'john@example.com',
+		];
+		foreach ( $customer_data as $key => $value ) {
+			update_user_meta( 1, $key, $value );
+		}
+
+		update_option( 'woocommerce_checkout_phone_field', $phone_field_setting );
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
+		$captured_request = null;
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+
+		$test_request = static function ( $return_value, $parsed_args, $url ) {
+			if ( strpos( $url, '/v1/customers' ) !== false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
+				];
+			}
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'client_secret' => 'cs_test_secret',
+							'id'            => 'cs_test_123',
+						]
+					),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+
+		$ajax_handler = new WC_Stripe_Checkout_Sessions_Ajax_Handler();
+
+		try {
+			ob_start();
+			$ajax_handler->create_checkout_session();
+			ob_end_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			delete_option( 'woocommerce_checkout_phone_field' );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$this->assertIsArray( $captured_request );
+
+		if ( $expect_phone_collection ) {
+			$this->assertArrayHasKey( 'phone_number_collection', $captured_request );
+		} else {
+			$this->assertArrayNotHasKey( 'phone_number_collection', $captured_request );
+		}
+	}
+
+	/**
+	 * Data provider for `test_phone_number_collection_based_on_wc_setting`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_phone_number_collection(): array {
+		return [
+			'phone field required' => [
+				'phone_field_setting'     => 'required',
+				'expect_phone_collection' => true,
+			],
+			'phone field optional' => [
+				'phone_field_setting'     => 'optional',
+				'expect_phone_collection' => false,
+			],
+			'phone field hidden'   => [
+				'phone_field_setting'     => 'hidden',
+				'expect_phone_collection' => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_create_checkout_session`.
 	 *
 	 * @return array

@@ -340,6 +340,167 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When no order is linked yet, checkout session success defers processing via Action Scheduler.
+	 *
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_defers_when_order_not_found(): void {
+		$checkout_session_id = 'cs_test_deferred_no_order';
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_deferred',
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $notification, $checkout_session_id ) {
+						return isset( $args['type'], $args['data'], $args['notification'] )
+							&& 'checkout.session.completed' === $args['type']
+							&& isset( $args['data']['session_id'] )
+							&& $checkout_session_id === $args['data']['session_id']
+							&& $args['notification'] === $notification;
+					}
+				)
+			);
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+	}
+
+	/**
+	 * Deferred checkout session success events should run handle_checkout_session_success when the job executes.
+	 *
+	 * @param string $event_type Stripe event type.
+	 * @return void
+	 * @dataProvider provide_deferred_checkout_session_success_event_types
+	 */
+	public function test_process_deferred_webhook_invokes_handle_checkout_session_success( string $event_type ): void {
+		$checkout_session_id = 'cs_test_deferred_job';
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_job',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_success' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_checkout_session_success' )
+			->with(
+				$this->callback(
+					function ( $passed ) use ( $notification ) {
+						return is_object( $passed )
+							&& isset( $passed->type )
+							&& $notification->type === $passed->type
+							&& isset( $passed->data->object->id )
+							&& $notification->data->object->id === $passed->data->object->id;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook(
+			$event_type,
+			[ 'session_id' => $checkout_session_id ],
+			$notification
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_deferred_checkout_session_success_event_types(): array {
+		return [
+			'checkout.session.completed'               => [ 'checkout.session.completed' ],
+			'checkout.session.async_payment_succeeded' => [ 'checkout.session.async_payment_succeeded' ],
+		];
+	}
+
+	/**
+	 * Deferred checkout session failure events should run handle_checkout_session_failure when the job executes.
+	 *
+	 * @param string $event_type Stripe event type.
+	 * @return void
+	 * @dataProvider provide_deferred_checkout_session_failure_event_types
+	 */
+	public function test_process_deferred_webhook_invokes_handle_checkout_session_failure( string $event_type ): void {
+		$checkout_session_id = 'cs_test_deferred_failure_job';
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_failure_job',
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_failure' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'handle_checkout_session_failure' )
+			->with(
+				$this->callback(
+					function ( $passed ) use ( $notification ) {
+						return is_object( $passed )
+							&& isset( $passed->type )
+							&& $notification->type === $passed->type
+							&& isset( $passed->data->object->id )
+							&& $notification->data->object->id === $passed->data->object->id;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook(
+			$event_type,
+			[ 'session_id' => $checkout_session_id ],
+			$notification
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_deferred_checkout_session_failure_event_types(): array {
+		return [
+			'checkout.session.expired'              => [ 'checkout.session.expired' ],
+			'checkout.session.async_payment_failed' => [ 'checkout.session.async_payment_failed' ],
+		];
+	}
+
+	/**
 	 * Test for `process_webhook_charge_failed`.
 	 *
 	 * @param string $order_status       The order status.

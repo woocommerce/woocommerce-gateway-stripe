@@ -266,6 +266,7 @@ class WC_Stripe {
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 		add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
 		// Update the email field position.
 		if ( ! is_admin() ) {
@@ -297,6 +298,9 @@ class WC_Stripe {
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
+
+		// Record the first registered gateway ID once gateways are initialized.
+		add_action( 'wc_payment_gateways_initialized', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ] );
 
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
@@ -415,6 +419,23 @@ class WC_Stripe {
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
+	}
+
+	/**
+	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
+	 * This function is called when the 'woocommerce_gateway_order' option is updated.
+	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
+	 *
+	 * @param array $ordering The current ordering of the gateways.
+	 * @return void
+	 */
+	public function set_stripe_gateways_in_list( $ordering ) {
+		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
+		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
