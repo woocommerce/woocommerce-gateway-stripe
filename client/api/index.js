@@ -11,6 +11,7 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
+	STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 } from 'wcstripe/stripe-utils/constants';
 
 /**
@@ -42,6 +43,12 @@ export default class WCStripeAPI {
 			?.replace( '%%endpoint%%', prefix + endpoint );
 	}
 
+	/**
+	 * Returns a user-friendly error message for a jQuery XHR error object.
+	 *
+	 * @param {Object} error A jQuery XHR error object with a statusText property.
+	 * @return {string} A user-friendly error message.
+	 */
 	getFriendlyErrorMessage( error ) {
 		// error is a jqXHR and statusText is one of "timeout", "error", "abort", and "parsererror".
 		switch ( error.statusText ) {
@@ -77,9 +84,18 @@ export default class WCStripeAPI {
 		return this.stripe;
 	}
 
+	/**
+	 * Creates a new Stripe instance with the given key and locale.
+	 *
+	 * @param {string}   key    The Stripe publishable API key.
+	 * @param {string}   locale The locale to use for Stripe UI elements.
+	 * @param {string[]} betas  Optional list of Stripe beta features to enable.
+	 * @return {Object} The Stripe instance.
+	 */
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
+			...STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 		};
 
 		if ( betas.length ) {
@@ -428,36 +444,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Saves the Stripe Payment Elements appearance settings in a transient on server.
-	 *
-	 * @param {Object} appearance      The appearance settings.
-	 * @param {string} isBlockCheckout Whether the request is from the block checkout.
-	 *
-	 * @return {Promise} The final promise for the request to the server.
-	 */
-	saveAppearance( appearance, isBlockCheckout = 'false' ) {
-		return this.request( this.getAjaxUrl( 'save_appearance' ), {
-			appearance: JSON.stringify( appearance ),
-			is_block_checkout: isBlockCheckout,
-			theme_name: this.options?.theme_name,
-			_ajax_nonce: this.options?.saveAppearanceNonce,
-		} )
-			.then( ( response ) => {
-				return response.success;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
-	}
-
-	/**
 	 * Submits shipping address to get available shipping options
 	 * from Express Checkout ECE payment method.
 	 *
@@ -691,9 +677,27 @@ export default class WCStripeAPI {
 		);
 	}
 
+	/**
+	 * Creates a new checkout session.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
 	checkoutSessionsCreateSession() {
 		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
 			security: this.options?.createCheckoutSessionNonce,
+		} );
+	}
+
+	/**
+	 * Update a Stripe Checkout Session.
+	 *
+	 * @param {string} sessionId The ID of the checkout session to update.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	checkoutSessionsUpdateSession( sessionId ) {
+		return this.request( this.getAjaxUrl( 'update_checkout_session' ), {
+			security: this.options?.updateCheckoutSessionNonce,
+			checkout_session_id: sessionId,
 		} );
 	}
 }

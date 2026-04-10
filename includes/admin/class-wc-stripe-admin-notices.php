@@ -487,7 +487,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$customer_stripe_page = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
@@ -532,7 +532,7 @@ class WC_Stripe_Admin_Notices {
 				}
 				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 				if ( ! empty( $detached_messages ) ) {
-					$notice_content = '<p>';
+					$notice_content  = '<p>';
 					$notice_content .= wp_kses(
 						$detached_messages,
 						[
@@ -549,6 +549,25 @@ class WC_Stripe_Admin_Notices {
 				}
 			}
 			$this->add_admin_notice( 'subscription_detached_bulk_action', 'notice notice-' . $notice_class, $notice_content, true );
+		}
+	}
+
+	/**
+	 * Environment check for subscriptions.
+	 *
+	 * @return void
+	 *
+	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
+	 */
+	public function subscriptions_check_environment() {
+		_deprecated_function( __METHOD__, '9.6.0' );
+		$options = WC_Stripe_Helper::get_stripe_settings();
+		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
+			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
+			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+			if ( ! empty( $detached_messages ) ) {
+				$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
+			}
 		}
 	}
 

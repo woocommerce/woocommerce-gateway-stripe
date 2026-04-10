@@ -391,36 +391,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$client_secret on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -607,12 +577,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:admin_options\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -717,6 +681,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_upe_enabled_payment_method_ids\(\) has parameter \$force_refresh with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Method WC_Stripe_Payment_Gateway\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1111,6 +1081,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$user_id of class WC_Stripe_Customer constructor expects int, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1153,14 +1129,20 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#3 \$deps of function wp_register_script expects array\<string\>, string given\.$#'
+			message: '#^Parameter \#2 \$value of method WC_Data\:\:update_meta_data\(\) expects array\|string, int\<301, max\> given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Variable \$name in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1405,12 +1387,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Parameter \#2 \$customer_id of method WC_Stripe_Order_Helper\:\:update_stripe_customer_id\(\) expects string, int\|string\|WP_Error given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
 			message: '#^Parameter \#2 \$message of class WP_Error constructor expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1421,6 +1397,12 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
+
+		-
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_customization_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:dismiss_notice\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
@@ -1540,12 +1522,6 @@ parameters:
 			message: '#^Constant WC_Stripe_Admin_Notices\:\:STRIPE_CUSTOMER_PAGE_BASE_URL is unused\.$#'
 			identifier: classConstant.unused
 			count: 1
-			path: includes/admin/class-wc-stripe-admin-notices.php
-
-		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 2
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
@@ -1675,6 +1651,12 @@ parameters:
 			path: includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php
 
 		-
+			message: '#^Method WC_Stripe_REST_UPE_Flag_Toggle_Controller\:\:set_flag\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php
+
+		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1729,22 +1711,10 @@ parameters:
 			path: includes/admin/class-wc-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_Stripe_Settings_Controller\:\:set_stripe_gateways_in_list\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 2
 			path: includes/admin/class-wc-stripe-settings-controller.php
-
-		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/admin/class-wc-stripe-subscription-detached-bulk-action.php
 
 		-
 			message: '#^Variable \$this might not be defined\.$#'
@@ -1789,14 +1759,14 @@ parameters:
 			path: includes/class-wc-stripe-account.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''WCS_Staging'' and ''is_duplicate_site'' will always evaluate to false\.$#'
-			identifier: function.impossibleType
+			message: '#^Call to function method_exists\(\) with ''WCS_Staging'' and ''is_duplicate_site'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions'' and ''is_duplicate_site'' will always evaluate to false\.$#'
-			identifier: function.impossibleType
+			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions'' and ''is_duplicate_site'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/class-wc-stripe-api.php
 
@@ -1877,12 +1847,6 @@ parameters:
 			identifier: isset.property
 			count: 1
 			path: includes/class-wc-stripe-api.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_payment_request_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/class-wc-stripe-apple-pay-registration.php
 
 		-
 			message: '#^Method WC_Stripe_Apple_Pay_Registration\:\:admin_notices\(\) has no return type specified\.$#'
@@ -2113,12 +2077,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Method WC_Stripe_Customer\:\:recreate_customer\(\) should return string but returns int\|WP_Error\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Method WC_Stripe_Customer\:\:set_customer_data\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2126,30 +2084,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Customer\:\:set_customer_data\(\) has parameter \$data with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_default_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_default_source\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_id\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:set_id\(\) has parameter \$id with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
 			path: includes/class-wc-stripe-customer.php
@@ -2173,14 +2107,14 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^PHPDoc tag @param has invalid value \(\[type\] \$id \[description\]\)\: Unexpected token "\[", expected type at offset 47 on line 4$#'
-			identifier: phpDoc.parseError
+			message: '#^PHPDoc tag @param references unknown parameter\: \$customer_id$#'
+			identifier: parameter.notFound
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$customer_id$#'
-			identifier: parameter.notFound
+			message: '#^Parameter \#1 \$id of method WC_Stripe_Customer\:\:set_id\(\) expects array\|string, bool\|string given\.$#'
+			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -2284,6 +2218,24 @@ parameters:
 			message: '#^Call to an undefined method object\:\:update_meta_data\(\)\.$#'
 			identifier: method.notFound
 			count: 3
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''WC_Deposits_Product…'' and ''deposits_enabled'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''WC_Pre_Orders…'' and ''product_is_charged…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-wc-stripe-helper.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions…'' and ''is_subscription'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
 			path: includes/class-wc-stripe-helper.php
 
 		-
@@ -2563,12 +2515,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Method WC_Stripe_Intent_Controller\:\:create_and_confirm_payment_intent\(\) should return stdClass but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -2713,6 +2659,12 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
+			message: '#^Parameter \#2 \$user of method WC_Stripe_UPE_Payment_Gateway\:\:create_token_from_setup_intent\(\) expects WP_User, WP_User\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
 			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, array\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -2809,12 +2761,6 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_automatic_capture_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Cannot access offset ''body'' on array\|stdClass\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
@@ -2824,12 +2770,6 @@ parameters:
 			message: '#^Cannot access offset ''headers'' on array\|stdClass\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method add_order_note\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 3
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -2846,36 +2786,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_payment_method\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method get_total_refunded\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method get_transaction_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method set_transaction_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Cannot call method update_status\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
 			path: includes/class-wc-stripe-order-handler.php
@@ -2971,12 +2881,6 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:get_stripe_charge_captured\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:is_stripe_charge_captured\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 2
@@ -2984,12 +2888,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:lock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:set_stripe_charge_captured\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
@@ -3015,18 +2913,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_intent_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 2
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:get_level3_data_from_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:update_fees\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 
@@ -3043,21 +2929,9 @@ parameters:
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
-			message: '#^Parameter \#2 \$balance_transaction_id of method WC_Stripe_Payment_Gateway\:\:update_fees\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
 			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
-			path: includes/class-wc-stripe-order-handler.php
-
-		-
-			message: '#^Parameter \#4 \$order of static method WC_Stripe_API\:\:request_with_level3_data\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
 			path: includes/class-wc-stripe-order-handler.php
 
 		-
@@ -3115,19 +2989,31 @@ parameters:
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_currency\(\) should return string but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_fee\(\) should return string but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) should return string but returns false\.$#'
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_net\(\) should return string but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_upe_redirect_processed\(\) should return bool\|null but returns string\|false\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Helper\:\:get_stripe_upe_waiting_for_redirect\(\) should return bool\|null but returns string\|false\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-helper.php
@@ -3153,7 +3039,19 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, string\|false\|null given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_fee\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-helper.php
+
+		-
+			message: '#^Parameter \#2 \$amount of method WC_Stripe_Order_Helper\:\:update_stripe_net\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
@@ -3255,13 +3153,19 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 39
+			count: 43
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 7
+			count: 8
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
+			identifier: property.notFound
+			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3273,7 +3177,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3315,7 +3219,7 @@ parameters:
 		-
 			message: '#^Cannot access property \$is_webhook_response on object\|string\.$#'
 			identifier: property.nonObject
-			count: 2
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3597,13 +3501,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
-			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#2 \$notification of method WC_Stripe_Webhook_Handler\:\:run_webhook_received_action\(\) expects object, stdClass\|null given\.$#'
-			identifier: argument.type
-			count: 1
+			count: 3
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3703,12 +3601,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-state.php
 
 		-
-			message: '#^Access to an undefined property WC_Stripe_Payment_Gateway\:\:\$payment_methods\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens\:\:init\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -3759,6 +3651,12 @@ parameters:
 		-
 			message: '#^Method WC_Stripe\:\:filter_gateway_order_admin\(\) has parameter \$sections with no type specified\.$#'
 			identifier: missingType.parameter
+			count: 1
+			path: includes/class-wc-stripe.php
+
+		-
+			message: '#^Method WC_Stripe\:\:get_main_stripe_gateway\(\) should return WC_Stripe_UPE_Payment_Gateway but returns WC_Stripe_Payment_Gateway\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -3831,48 +3729,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe\:\:update_prb_location_settings\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Account_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Connection_Tokens_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Orders_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Settings_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_Stripe_REST_OC_Setting_Toggle_Controller constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of class WC_Stripe_Status constructor expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
-			message: '#^Parameter \#1 \$gateway of static method WC_Stripe_UPE_Payment_Method_Link\:\:is_link_enabled\(\) expects WC_Stripe_UPE_Payment_Gateway, WC_Stripe_Payment_Gateway given\.$#'
-			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe.php
 
@@ -4015,21 +3871,9 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-helper.php
 
 		-
-			message: '#^Function wcs_get_subscriptions not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/compat/class-wc-stripe-subscriptions-helper.php
-
-		-
 			message: '#^Call to sprintf contains 0 placeholders, 1 value given\.$#'
 			identifier: argument.sprintf
 			count: 2
-			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
-
-		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 1
 			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
 
 		-
@@ -4237,12 +4081,6 @@ parameters:
 			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php
-
-		-
 			message: '#^Instantiated class WCS_Admin_Notice not found\.$#'
 			identifier: class.notFound
 			count: 1
@@ -4263,7 +4101,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_oc_enabled\(\)\.$#'
 			identifier: method.notFound
-			count: 2
+			count: 1
 			path: includes/notes/class-wc-stripe-oc-promotion-note.php
 
 		-
@@ -4333,6 +4171,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
 		-
+			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
+
+		-
 			message: '#^Parameter \#1 \$product of method WC_Stripe_Express_Checkout_Helper\:\:get_product_price\(\) expects object, WC_Product\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4371,6 +4215,12 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$variation of method WC_Cart\:\:add_to_cart\(\) expects array, array\|string given\.$#'
 			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
 
@@ -4537,8 +4387,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions…'' and ''get_recurring…'' will always evaluate to false\.$#'
-			identifier: function.impossibleType
+			message: '#^Call to function method_exists\(\) with ''WC_Subscriptions…'' and ''get_recurring…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
@@ -4687,15 +4537,15 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Parameter \#2 \$country of method WC_Stripe_Express_Checkout_Helper\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
+			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, ''WC_Subscriptions…'' given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Property WC_Stripe_Express_Checkout_Helper\:\:\$gateway \(WC_Stripe_UPE_Payment_Gateway\) does not accept WC_Stripe_Payment_Gateway\.$#'
-			identifier: assign.propertyType
-			count: 1
+			message: '#^Parameter \#2 \$country of method WC_Stripe_Express_Checkout_Helper\:\:get_normalized_state\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
@@ -4785,7 +4635,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Order\|WC_Order_Refund\:\:get_checkout_payment_url\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -4927,48 +4777,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has parameter \$post with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:clear_appearance_transients_block_theme\(\) has parameter \$post_id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_my_account_my_orders_actions\(\) has parameter \$actions with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:filter_my_account_my_orders_actions\(\) has parameter \$order with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) never returns array so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) never returns null so it can be removed from the return type\.$#'
-			identifier: return.unusedType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_appearance_transient_key\(\) should return array\|null but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_payment_method_data_from_intent\(\) has parameter \$intent with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -5025,12 +4833,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_enabled_payment_method_ids\(\) has parameter \$force_refresh with no type specified\.$#'
 			identifier: missingType.parameter
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Method WC_Stripe_UPE_Payment_Gateway\:\:handle_saving_payment_method\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
@@ -5215,12 +5017,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$json of function json_decode expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$nonce of function wp_verify_nonce expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 2
@@ -5301,7 +5097,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:unlock_order_payment\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -5491,18 +5287,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$request of static method WC_Stripe_API\:\:request_with_level3_data\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
 			count: 5
@@ -5521,33 +5305,9 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$string of function wc_string_to_bool expects bool\|string, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function delete_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function get_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$transient of function set_transient expects string, array\|null given\.$#'
-			identifier: argument.type
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -5636,24 +5396,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$order_id of static method WC_Stripe_Helper\:\:should_force_save_payment_method\(\) expects string\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#2 \$params of method WC_Stripe_UPE_Payment_Gateway\:\:stripe_request\(\) expects string\|null, array\<string, array\<string, mixed\>\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -5959,44 +5701,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_ACH\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -6044,6 +5756,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -6307,44 +6025,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_ACSS\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -6386,6 +6074,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -6655,44 +6349,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -6734,6 +6398,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -7003,36 +6673,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -7045,8 +6685,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -7088,6 +6728,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -7345,44 +6991,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Bancontact\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -7424,6 +7040,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -7681,44 +7303,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -7766,6 +7358,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -8047,44 +7645,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -8126,6 +7694,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -8389,44 +7963,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_CC\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -8468,6 +8012,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -8743,44 +8293,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Ideal\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -8822,6 +8342,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -9079,44 +8605,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Klarna\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -9158,6 +8654,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -9469,36 +8971,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Cannot access property \$type on array\|stdClass\|true\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -9517,8 +8989,8 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_OC\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -9560,6 +9032,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -9829,44 +9307,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Sepa\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -9914,6 +9362,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -10171,44 +9625,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to static method cart_contains_switches\(\) on an unknown class WC_Subscriptions_Switcher\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to static method get_interval\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to static method get_period\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to static method get_price\(\) on an unknown class WC_Subscriptions_Product\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to static method update_payment_method\(\) on an unknown class WC_Subscriptions_Change_Payment_Gateway\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Cannot call method save\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Function wcs_get_subscription not found\.$#'
-			identifier: function.notFound
+			message: '#^Method WC_Stripe_UPE_Payment_Method_Sofort\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
@@ -10255,6 +9679,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sofort\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -10294,12 +9724,6 @@ parameters:
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
 			identifier: property.notFound
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:get_upe_enabled_at_checkout_payment_method_ids\(\)\.$#'
-			identifier: method.notFound
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
@@ -10363,13 +9787,25 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
+			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:is_changing_payment_method_for_subscription\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
+
+		-
+			message: '#^Method WC_Stripe_UPE_Payment_Method\:\:process_payment\(\) should return array but returns array\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
+
+		-
 			message: '#^PHPDoc type bool of property WC_Stripe_UPE_Payment_Method\:\:\$enabled is not covariant with PHPDoc type string of overridden property WC_Payment_Gateway\:\:\$enabled\.$#'
 			identifier: property.phpDocType
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Parameter \#1 \$function of function call_user_func_array expects callable\(\)\: mixed, array\{WC_Stripe_Payment_Gateway, non\-falsy\-string\} given\.$#'
+			message: '#^Parameter \#1 \$function of function call_user_func_array expects callable\(\)\: mixed, array\{WC_Stripe_UPE_Payment_Gateway, non\-falsy\-string\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
@@ -10471,12 +9907,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-link-payment-token.php
 
 		-
-			message: '#^Access to an undefined property WC_Stripe_Payment_Gateway\:\:\$payment_methods\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$bacs_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -10549,24 +9979,6 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_oc_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_sepa_tokens_for_bancontact_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_Payment_Gateway\:\:is_sepa_tokens_for_ideal_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
 			count: 2
@@ -10631,4 +10043,3 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: woocommerce-gateway-stripe.php
-

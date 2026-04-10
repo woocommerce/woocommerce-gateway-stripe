@@ -1,4 +1,14 @@
-import { getFontSizeBase, getDefaultValues } from '../utils';
+import {
+	getFontSizeBase,
+	getDefaultValues,
+	initializeUPEAppearance,
+} from '../utils';
+import { getAppearance } from '../../styles/upe';
+
+jest.mock( '../../styles/upe', () => ( {
+	getAppearance: jest.fn(),
+	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
+} ) );
 
 describe( 'utils', () => {
 	describe( 'getFontSizeBase', () => {
@@ -6,7 +16,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 		} );
 
@@ -15,7 +25,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16px';
 			const expectedFontSize = '18px';
@@ -24,7 +34,7 @@ describe( 'utils', () => {
 		} );
 
 		it( 'Optimized Checkout - should increase the provided font size by 2 (decimal value)', () => {
-			global.wc_stripe_upe_params = { isOCEnabled: true };
+			global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: true };
 
 			const fontSize = '16.5px';
 			const expectedFontSize = '18.5px';
@@ -46,7 +56,7 @@ describe( 'utils', () => {
 
 		beforeEach( () => {
 			global.wc_stripe_upe_params = {
-				isOCEnabled: false,
+				shouldShowOptimizedCheckout: false,
 			};
 
 			// Mock document.getElementById for fallback behavior
@@ -239,6 +249,267 @@ describe( 'utils', () => {
 							phone: '+1987654321',
 						},
 					},
+				} );
+			} );
+		} );
+	} );
+
+	describe( 'initializeUPEAppearance', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {};
+			getAppearance.mockReturnValue( { theme: 'computed' } );
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		describe( 'returns server-provided appearance', () => {
+			it( 'returns classic appearance from server when isBlockCheckout is false', () => {
+				const serverAppearance = { theme: 'server-classic' };
+				global.wc_stripe_upe_params = { appearance: serverAppearance };
+
+				const result = initializeUPEAppearance( 'false' );
+
+				expect( result ).toBe( serverAppearance );
+				expect( getAppearance ).not.toHaveBeenCalled();
+			} );
+
+			it( 'returns blocks appearance from server when isBlockCheckout is true', () => {
+				const serverAppearance = { theme: 'server-blocks' };
+				global.wc_stripe_upe_params = {
+					blocksAppearance: serverAppearance,
+				};
+
+				const result = initializeUPEAppearance( 'true' );
+
+				expect( result ).toBe( serverAppearance );
+				expect( getAppearance ).not.toHaveBeenCalled();
+			} );
+
+			it( 'does not use classic server appearance when isBlockCheckout is true', () => {
+				// Only `appearance` is set, not `blocksAppearance`.
+				global.wc_stripe_upe_params = {
+					appearance: { theme: 'server-classic' },
+				};
+
+				initializeUPEAppearance( 'true' );
+
+				expect( getAppearance ).toHaveBeenCalledWith( true, false );
+			} );
+
+			it( 'falls through to computed appearance when server appearance is falsy', () => {
+				// The guard is `if (customAppearance)`, so null is ignored.
+				global.wc_stripe_upe_params = { appearance: null };
+
+				initializeUPEAppearance( 'false' );
+
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+			} );
+
+			it( 'does not use server blocks appearance when isBlockCheckout is false', () => {
+				// Only `blocksAppearance` is set, not `appearance`.
+				global.wc_stripe_upe_params = {
+					blocksAppearance: { theme: 'server-blocks' },
+				};
+
+				initializeUPEAppearance( 'false' );
+
+				expect( getAppearance ).toHaveBeenCalledWith( false, false );
+			} );
+		} );
+
+		// Cache tests require a fresh module instance so the module-level
+		// `appearanceCache` starts empty. jest.isolateModules() and require() allow us
+		// to get both a fresh `initializeUPEAppearance` and the fresh mock instance
+		// that the isolated `utils.js` will actually use.
+		describe( 'computes and caches appearance', () => {
+			it( 'calls getAppearance with isBlocks=false for classic checkout', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'classic' } );
+
+					const result = init( 'false' );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
+					expect( result ).toEqual( { theme: 'classic' } );
+				} );
+			} );
+
+			it( 'calls getAppearance with isBlocks=true for blocks checkout', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'blocks' } );
+
+					const result = init( 'true' );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						true,
+						false
+					);
+					expect( result ).toEqual( { theme: 'blocks' } );
+				} );
+			} );
+
+			it( 'defaults to classic checkout when isBlockCheckout argument is omitted', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'classic' } );
+
+					init();
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
+				} );
+			} );
+
+			it( 'caches computed appearance for classic checkout', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'cached' } );
+					// Clear accumulated calls from earlier tests; keep the
+					// return-value implementation set above.
+					mockGetAppearance.mockClear();
+
+					init( 'false' );
+					init( 'false' );
+
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 1 );
+				} );
+			} );
+
+			it( 'caches computed appearance for blocks checkout', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'cached' } );
+					mockGetAppearance.mockClear();
+
+					init( 'true' );
+					init( 'true' );
+
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 1 );
+				} );
+			} );
+
+			it( 'returns the same cached object reference on subsequent calls', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'cached' } );
+					mockGetAppearance.mockClear();
+
+					const firstResult = init( 'false' );
+					const secondResult = init( 'false' );
+
+					expect( secondResult ).toBe( firstResult );
+				} );
+			} );
+
+			it( 'treats boolean true as classic checkout, not blocks', () => {
+				// isBlockCheckout uses string comparison (=== 'true'), so a
+				// boolean true is not equivalent and falls back to classic.
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'classic' } );
+
+					init( true );
+
+					expect( mockGetAppearance ).toHaveBeenCalledWith(
+						false,
+						false
+					);
+				} );
+			} );
+
+			it( 'maintains separate caches for classic and blocks', () => {
+				jest.isolateModules( () => {
+					const classicAppearance = { theme: 'classic' };
+					const blocksAppearance = { theme: 'blocks' };
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockClear();
+					mockGetAppearance
+						.mockReturnValueOnce( classicAppearance )
+						.mockReturnValueOnce( blocksAppearance );
+
+					const classicResult = init( 'false' );
+					const blocksResult = init( 'true' );
+
+					expect( classicResult ).toBe( classicAppearance );
+					expect( blocksResult ).toBe( blocksAppearance );
+					expect( mockGetAppearance ).toHaveBeenCalledTimes( 2 );
+				} );
+			} );
+		} );
+
+		describe( 'server appearance takes priority over cache', () => {
+			it( 'returns server appearance even after cache is populated', () => {
+				jest.isolateModules( () => {
+					const {
+						initializeUPEAppearance: init,
+					} = require( '../utils' );
+					const {
+						getAppearance: mockGetAppearance,
+					} = require( '../../styles/upe' );
+					mockGetAppearance.mockReturnValue( { theme: 'computed' } );
+
+					// Populate the cache first.
+					init( 'false' );
+
+					// Then configure a server appearance.
+					const serverAppearance = { theme: 'server-override' };
+					global.wc_stripe_upe_params = {
+						appearance: serverAppearance,
+					};
+
+					const result = init( 'false' );
+
+					expect( result ).toBe( serverAppearance );
 				} );
 			} );
 		} );

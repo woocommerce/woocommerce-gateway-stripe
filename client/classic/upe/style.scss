@@ -17,10 +17,58 @@
 	}
 }
 
+#payment .payment_methods li.wc-stripe-optimized-checkout {
+	label[for='payment_method_stripe'] {
+		display: none;
+	}
+	/* Some themes show the radio, while others don't. Make sure it's hidden. */
+	input#payment_method_stripe { // stylelint-disable-line selector-id-pattern
+		display: none;
+	}
+	.payment_box.payment_method_stripe {
+		padding: 0;
+		padding-bottom: inherit;
+
+		> :not( #wc-stripe-upe-form ) {
+			/* Use WooCommerce default padding for other elements in the payment method box.
+			Mainly applies to saved payment method controls and test instructions. */
+			padding-left: 1em;
+			padding-right: 1em;
+		}
+
+		.wc-stripe-payment-method-instruction {
+			padding-top: 0.5em;
+			padding-bottom: 0.5em;
+		}
+
+		ul.wc-saved-payment-methods[data-count='0'] {
+			display: none;
+		}
+
+		> fieldset {
+			border-width: 0;
+			margin: 0;
+			padding: 0;
+		}
+
+		#wc-stripe-upe-form .wc-stripe-upe-element iframe {
+			max-width: none;
+		}
+	}
+}
+
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon {
 	max-height: 30px;
 }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-alipay-icon {
 	max-width: 50px;
+}
+
+/*
+ * Hide the classic save-card checkbox when Stripe Link handles save consent.
+ * Toggled via document.body class from handleDisplayOfSavingCheckbox().
+ */
+body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
+	display: none !important;
 }

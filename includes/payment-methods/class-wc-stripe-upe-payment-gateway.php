@@ -50,8 +50,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	];
 
 	/**
+	 * Stripe intents that are treated as successfully created.
+	 *
+	 * @type array
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
+
+	/**
 	 * Transient name for appearance settings.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
@@ -59,6 +69,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Transient name for appearance settings on the block checkout.
 	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 * @type string
 	 */
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
@@ -99,6 +110,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 10.0.0 Use `sepa_tokens_for_ideal` and `sepa_tokens_for_bancontact` instead.
+	 */
+	public $sepa_tokens_for_other_methods;
+
+	/**
 	 * Should SEPA tokens be used for iDEAL
 	 *
 	 * @var bool
@@ -111,6 +131,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $sepa_tokens_for_bancontact;
+
+	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `oc_enabled`.
+	 */
+	public $spe_enabled;
 
 	/**
 	 * Is Optimized Checkout enabled?
@@ -235,16 +264,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$this->title                         = $this->payment_methods['card']->get_title();
-		$this->description                   = $this->payment_methods['card']->get_description();
-		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->sepa_tokens_for_ideal         = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
-		$this->sepa_tokens_for_bancontact    = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
-		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
-		$this->testmode                      = WC_Stripe_Mode::is_test();
-		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$this->title                      = $this->payment_methods['card']->get_title();
+		$this->description                = $this->payment_methods['card']->get_description();
+		$this->enabled                    = $this->get_option( 'enabled' );
+		$this->sepa_tokens_for_ideal      = 'yes' === $this->get_option( 'sepa_tokens_for_ideal' );
+		$this->sepa_tokens_for_bancontact = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
+		$this->saved_cards                = 'yes' === $this->get_option( 'saved_cards' );
+		$this->testmode                   = WC_Stripe_Mode::is_test();
+		$this->publishable_key            = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key                 = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor       = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
@@ -274,13 +303,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
-		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 
-		// Add hooks for clearing appearance transients when theme is updated
-		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
-		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
+		// Include the converted currency information in the order total on the order received page and in the My Account orders list.
+		add_filter( 'woocommerce_get_formatted_order_total', [ $this, 'add_converted_currency_information' ], 10, 2 );
+
+		// Add a notice about currency conversion when the order currency is different from the store currency on the order details page.
+		add_action( 'woocommerce_order_details_after_order_table', [ $this, 'add_currency_conversion_notice' ], 10 );
+
+		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
+		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -310,6 +342,39 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 		return new $payment_method_class();
+	}
+
+	/**
+	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
+	 *
+	 * @return string
+	 *
+	 * @deprecated 10.0.0 Use `WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()` instead.
+	 */
+	public static function get_testing_instructions_for_optimized_checkout() {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Method_OC::get_testing_instructions()' );
+
+		$payment_method = new WC_Stripe_UPE_Payment_Method_OC();
+		return $payment_method->get_testing_instructions();
+	}
+
+	/**
+	 * Expands <number> placeholder tags in testing instructions into copy-to-clipboard button markup.
+	 *
+	 * Converts `<number>4242...</number>` into a `<button>` wrapping the number text,
+	 * with a copy icon and accessible labels.
+	 *
+	 * @param string $instructions The testing instructions containing <number> tags.
+	 * @return string Instructions with <number> tags replaced by copy button HTML.
+	 */
+	public static function expand_copy_button_markup( $instructions ) {
+		$copy_label = esc_attr__( 'Copy to clipboard', 'woocommerce-gateway-stripe' );
+
+		return preg_replace(
+			'/<number>(.*?)<\/number>/',
+			'<button type="button" class="wc-stripe-copy-test-number" aria-label="' . $copy_label . '" title="' . $copy_label . '"><i></i><span>$1</span></button>',
+			$instructions
+		) ?? $instructions;
 	}
 
 	/**
@@ -346,6 +411,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$upe_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 
 		if ( ! $upe_payment_type ) {
+			return true;
+		}
+
+		if ( ! isset( $this->payment_methods[ $upe_payment_type ] ) ) {
 			return true;
 		}
 
@@ -400,7 +469,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
+		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
+		wp_enqueue_script( 'stripe' );
+
+		if ( $this->should_skip_full_payment_scripts() ) {
+			return;
+		}
+
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
 		if ( file_exists( $asset_path ) ) {
@@ -412,14 +488,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				? $asset['dependencies']
 				: $dependencies;
 		}
-
-		wp_register_script(
-			'stripe',
-			'https://js.stripe.com/clover/stripe.js',
-			[],
-			null,
-			true
-		);
 
 		wp_register_script(
 			'wc-stripe-upe-classic',
@@ -484,6 +552,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
 		$stripe_params['isLoggedIn']                        = is_user_logged_in();
+		$stripe_params['isPayerPhoneRequired']              = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$stripe_params['isSignupOnCheckoutAllowed']         = $is_signup_on_checkout_allowed;
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                        = $this->get_stripe_return_url();
@@ -497,6 +566,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['createAndConfirmSetupIntentNonce']  = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
 		$stripe_params['updateFailedOrderNonce']            = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
 		$stripe_params['createCheckoutSessionNonce']        = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
+		$stripe_params['updateCheckoutSessionNonce']        = wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' );
 		$stripe_params['paymentMethodsConfig']              = $this->get_enabled_payment_method_config();
 		$stripe_params['genericErrorMessage']               = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                 = $this->statement_descriptor;
@@ -512,18 +582,61 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
-		// Add appearance settings.
-		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
-		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
-		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
-
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
-		// Optimized Checkout feature flag + setting.
-		$stripe_params['isOCEnabled'] = $this->oc_enabled;
+		/**
+		 * Filters the list of permitted font domains for the Stripe Payment Element.
+		 * These host names will be used in the client Javascript to identify additional domains
+		 * that return text/css resources which include @font-face declarations. Those stylesheets
+		 * can then be passed into the Stripe payment element.
+		 *
+		 * @param string[] $permitted_font_domains List of permitted font domains.
+		 * @since 10.6.0
+		 */
+		$permitted_font_domains = apply_filters( 'wc_stripe_upe_permitted_font_domains', [] );
+		if ( is_array( $permitted_font_domains ) ) {
+			// Validate that we have unique, non-empty strings, that are also valid domain names.
+			$permitted_font_domains = array_map(
+				static function ( $domain ) {
+					// @phpstan-ignore-next-line function.alreadyNarrowedType (We need to validate that a filter is returning the expected types.)
+					if ( ! is_string( $domain ) ) {
+						return false;
+					}
+					$domain = strtolower( trim( $domain ) );
+					// FILTER_VALIDATE_DOMAIN allows host names without a domain, so add basic validation checks for . in the domain name.
+					$period_position = strpos( $domain, '.' );
+					// No . or . in the first position are both invalid.
+					if ( false === $period_position || 0 === $period_position ) {
+						return false;
+					}
+					// Make sure we don't have a . in the last two positions -- all TLDs are 2 or more letters.
+					if ( str_contains( substr( $domain, -2 ), '.' ) ) {
+						return false;
+					}
 
-		if ( $this->oc_enabled ) {
+					return filter_var( $domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
+				},
+				$permitted_font_domains
+			);
+			// Filter out false values and ensure we have unique values.
+			$permitted_font_domains = array_values( array_unique( array_filter( $permitted_font_domains ) ) );
+
+			if ( [] !== $permitted_font_domains ) {
+				$stripe_params['permittedFontDomains'] = $permitted_font_domains;
+			}
+		}
+
+		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
+		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
+		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
+		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
+
+		// Adaptive Pricing support for checkout.
+		$stripe_params['isAdaptivePricingEnabled'] = $should_show_optimized_checkout && $this->is_adaptive_pricing_supported();
+
+		if ( $should_show_optimized_checkout ) {
 			$stripe_params['OCLayout']                     = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 			$stripe_params['paymentMethodConfigurationId'] = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 			$stripe_params['excludedPaymentMethodTypes']   = $this->get_excluded_payment_method_types();
@@ -607,8 +720,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['isAddPaymentMethod'] = true;
-			$stripe_params['cartTotal']    = 0;
-			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
+			$stripe_params['cartTotal']          = 0;
+			$stripe_params['customerData']       = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
 
 		// Pre-orders and free trial subscriptions don't require payments.
@@ -629,7 +742,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] List of payment method types to exclude.
 	 */
-	private function get_excluded_payment_method_types(): array {
+	public function get_excluded_payment_method_types(): array {
 		$unsupported_methods = WC_Stripe_Payment_Method_Configurations::get_unsupported_enabled_payment_method_ids_in_pmc();
 
 		$non_excludable_methods = WC_Stripe_Payment_Methods::NON_EXCLUDABLE_PAYMENT_METHOD_TYPES;
@@ -666,6 +779,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if we are currently on the "Add payment method" page.
+	 *
+	 * Extracted as a protected method to allow overriding in tests.
+	 *
+	 * @return bool
+	 */
+	protected function is_on_add_payment_method_page(): bool {
+		return is_add_payment_method_page();
+	}
+
+	/**
+	 * Checks if we are on a page where the optimized checkout can be shown.
+	 *
+	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
+	 */
+	public function is_valid_optimized_checkout_page(): bool {
+		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
+	 * Returns the payment method title.
+	 *
+	 * When Optimized Checkout is enabled, returns the title from the OC payment method class.
+	 *
+	 * @return string
+	 */
+	public function get_title() {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+		}
+		return parent::get_title();
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array
@@ -677,16 +824,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
+		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
 		// All payment methods are rendered inside the card container.
-		if ( $this->oc_enabled ) {
-			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
-			$enabled_express_methods = array_intersect(
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
+			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
 			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods );
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
+		}
+
+		// For OC, compute per-method showSaveOption so the frontend can
+		// dynamically show/hide the save checkbox as the selected method
+		// changes inside the Payment Element.
+		$show_save_option_by_method = [];
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
+			foreach ( $original_method_ids as $method_id ) {
+				if ( isset( $this->payment_methods[ $method_id ] ) ) {
+					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
+				}
+			}
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
@@ -696,12 +855,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'isReusable'             => $payment_method->is_reusable(),
 				'title'                  => $payment_method->get_title(),
 				'description'            => $payment_method->get_description(),
-				'testingInstructions'    => $payment_method->get_testing_instructions(),
+				'testingInstructions'    => self::expand_copy_button_markup( $payment_method->get_testing_instructions() ),
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
 				'enabledPaymentMethods'  => $original_method_ids,
 			];
+
+			if ( ! empty( $show_save_option_by_method ) && $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC ) {
+				$settings[ $payment_method_id ]['showSaveOptionByMethod'] = $show_save_option_by_method;
+			}
 		}
 
 		return $settings;
@@ -848,7 +1011,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$display_tokenization    = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$show_optimized_checkout = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
+			$show_adaptive_pricing   = $show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 			// Output the form HTML.
 			?>
@@ -858,38 +1023,53 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->oc_enabled ) :
+				$allowed_tags = [
+					'strong' => [],
+					'a'      => [
+						'href'   => [],
+						'target' => [],
+					],
+					'button' => [
+						'type'       => [],
+						'class'      => [],
+						'aria-label' => [],
+						'title'      => [],
+					],
+					'i'      => [],
+					'span'   => [],
+				];
+
+				if ( $show_optimized_checkout ) :
 					echo wp_kses(
-						( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions(),
-						[
-							'div' => [
-								'id'    => [],
-								'class' => [],
-								'style' => [],
+						self::expand_copy_button_markup( ( new WC_Stripe_UPE_Payment_Method_OC() )->get_testing_instructions() ),
+						array_merge(
+							[
+								'div' => [
+									'id'    => [],
+									'class' => [],
+									'style' => [],
+								],
 							],
-							'strong' => [],
-							'a'    => [
-								'href'   => [],
-								'target' => [],
-							],
-						]
+							$allowed_tags
+						)
 					);
 				else :
+					$cc_method = new WC_Stripe_UPE_Payment_Method_CC();
 					?>
 				<p class="testmode-info">
 					<?php
-					printf(
-					/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-						esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
-						'<strong>',
-						'</strong>',
-						'<a href="https://docs.stripe.com/testing" target="_blank">',
-						'</a>'
+					echo wp_kses(
+						self::expand_copy_button_markup( $cc_method->get_testing_instructions() ),
+						$allowed_tags
 					);
 					?>
 				</p>
 					<?php
 				endif;
+			endif;
+
+			if ( $show_adaptive_pricing ) :
+				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
 			endif;
 			?>
 
@@ -905,10 +1085,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
+				<?php // Hidden input for appearance style extraction on non-checkout pages (Add Payment Method, Order Pay). ?>
+				<input type="text" id="wc-stripe-hidden-style-input" class="input-text" aria-hidden="true" tabindex="-1" autocomplete="off" style="position:absolute!important;opacity:0!important;pointer-events:none!important;" />
 			</fieldset>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
+			// When Link is enabled (non-OC), hide the store-level save checkbox
+			// for card — Link handles save consent via the Payment Element.
+			$hide_for_link = ! $this->oc_enabled && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this );
+			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) && ! $hide_for_link ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				$this->save_payment_method_checkbox( $force_save_payment );
 			}
@@ -928,6 +1113,177 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Attaches the currency selector div to the classic checkout page.
+	 * This is used to render the currency selector element in the checkout page.
+	 *
+	 * @return void
+	 * @deprecated 10.6.0 This method is no longer used.
+	 */
+	public function attach_currency_selector_element() {
+		wc_deprecated_function( __METHOD__, '10.6.0' );
+	}
+
+	/**
+	 * Adds the converted currency information to the order total on the order received page and My Account orders when the order is paid with a different currency than the store currency.
+	 *
+	 * @param string            $formatted_total  Total to display.
+	 * @param WC_Abstract_Order $order            Order data.
+	 */
+	public function add_converted_currency_information( string $formatted_total, $order ): string {
+		$presentment_data = $this->get_presentment_data_from_order( $order );
+		if ( null === $presentment_data ) {
+			return $formatted_total;
+		}
+
+		$presentment_currency_upper = strtoupper( $presentment_data['currency'] );
+		$currency_symbol            = get_woocommerce_currency_symbol( $presentment_currency_upper );
+		$amount                     = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_data['amount'],
+			$presentment_data['currency']
+		);
+
+		return $formatted_total . ' (' . $currency_symbol . ' ' . $amount . ' ' . $presentment_currency_upper . ')';
+	}
+
+	/**
+	 * Shows a notice to the order received page to inform the customer about the currency conversion
+	 * when the order is paid with a different currency than the store currency.
+	 *
+	 * @param WC_Abstract_Order $order The order object.
+	 *
+	 * @return void
+	 */
+	public function add_currency_conversion_notice( WC_Abstract_Order $order ): void {
+		$notice_data = $this->get_currency_conversion_notice_data( $order );
+		if ( null === $notice_data ) {
+			return;
+		}
+
+		echo '<p class="woocommerce-info" style="margin-top: 1em;">';
+			printf(
+				/* translators: %1$s Converted amount and currency. %2$s Store currency. %3$s Exchange rate and currency. */
+				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $notice_data['woocommerce_amount'] . ' ' . $notice_data['presentment_currency'] ),
+				esc_html( strtoupper( $order->get_currency() ) ),
+				esc_html( $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'] )
+			);
+		echo '</p>';
+	}
+
+	/**
+	 * Shows a notice in order confirmation emails to inform the customer (or merchant) about the
+	 * currency conversion when the order is paid with a different currency than the store currency.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param WC_Abstract_Order $order         Order data.
+	 * @param bool              $sent_to_admin Whether the email is being sent to admin or customer.
+	 * @param bool              $plain_text    Whether the email is plain text (no HTML).
+	 * @return void
+	 */
+	public function add_email_currency_conversion_notice( $order, bool $sent_to_admin = false, bool $plain_text = false ): void {
+		$notice_data = $this->get_currency_conversion_notice_data( $order );
+		if ( null === $notice_data ) {
+			return;
+		}
+
+		$converted_amount = $notice_data['woocommerce_amount'] . ' ' . $notice_data['presentment_currency'];
+		$exchange_rate    = $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'];
+		$order_currency   = strtoupper( $order->get_currency() );
+
+		if ( $plain_text ) {
+			if ( $sent_to_admin ) {
+				printf(
+					"\n%s\n",
+					sprintf(
+						/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. %4$s Original store amount. */
+						esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (1 %2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
+						esc_html( $converted_amount ),
+						esc_html( $order_currency ),
+						esc_html( $exchange_rate ),
+						esc_html( $order->get_total() . ' ' . $order_currency )
+					)
+				);
+			} else {
+				printf(
+					"\n%s\n",
+					sprintf(
+						/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
+						esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+						esc_html( $converted_amount ),
+						esc_html( $order_currency ),
+						esc_html( $exchange_rate )
+					)
+				);
+			}
+			return;
+		}
+
+		/**
+		 * Filters the inline styles applied to the adaptive pricing currency conversion notice in order emails.
+		 *
+		 * @since 10.6.0
+		 *
+		 * @param array $styles {
+		 *     Associative array of CSS property => value pairs.
+		 *
+		 *     @type string $border-color     Border colour (hex or CSS colour value). Default '#007CBA'.
+		 *     @type string $border-radius    Border radius. Default '4px'.
+		 *     @type string $background-color Background colour (hex or CSS colour value). Default '#F6F5F8'.
+		 * }
+		 * @param WC_Abstract_Order $order The order the email is being sent for.
+		 * @param bool     $sent_to_admin  Whether the email is sent to admin.
+		 */
+		$styles = apply_filters(
+			'wc_stripe_adaptive_pricing_email_notice_styles',
+			[
+				'border-color'     => '#007CBA',
+				'border-radius'    => '4px',
+				'background-color' => '#F6F5F8',
+			],
+			$order,
+			$sent_to_admin
+		);
+
+		$inline_style = sprintf(
+			'margin-top: 1em; margin-bottom: 1em; border: solid 1px %s; border-radius: %s; background-color: %s; padding: 1em 2em;',
+			$styles['border-color'] ?? '#007CBA',
+			$styles['border-radius'] ?? '4px',
+			$styles['background-color'] ?? '#F6F5F8'
+		);
+
+		echo '<div style="' . esc_attr( $inline_style ) . '">';
+
+		if ( $sent_to_admin ) {
+			$original_price = wc_price(
+				$order->get_total(),
+				[
+					'currency' => $order_currency,
+					'in_span'  => false,
+				]
+			) . ' ' . strtoupper( $order_currency );
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. %4$s Original store amount. */
+				esc_html__( 'Adaptive Pricing Applied: The customer opted to pay %1$s (1 %2$s = %3$s). Your settlement remains unchanged at the original store price of %4$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $converted_amount ),
+				esc_html( $order_currency ),
+				esc_html( $exchange_rate ),
+				esc_html( $original_price )
+			);
+		} else {
+			printf(
+			/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
+				esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+				esc_html( $converted_amount ),
+				esc_html( $order_currency ),
+				esc_html( $exchange_rate )
+			);
+		}
+
+		echo '</div>';
+	}
+
+	/**
 	 * Process the payment for a given order.
 	 *
 	 * @param int   $order_id Reference.
@@ -940,6 +1296,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 		$save_payment_method   = $this->should_save_payment_method_from_request( $order_id, $selected_payment_type );
 
@@ -951,6 +1308,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			} catch ( Exception $update_intent_exception ) {
 				throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
+		}
+
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
+			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
@@ -969,6 +1330,64 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->process_payment_with_payment_method( $order_id );
+	}
+
+	/**
+	 * Process the payment for an order that has a checkout session attached.
+	 *
+	 * @param int    $order_id ID of order to be processed.
+	 * @param string $checkout_session_id ID of checkout session to be processed.
+	 * @param bool   $save_payment_method Whether to save the payment method.
+	 * @param string $selected_payment_type The selected payment type.
+	 *
+	 * @return array An array with the result of the payment processing, and a redirect URL on success.
+	 */
+	private function process_payment_with_checkout_session( int $order_id, string $checkout_session_id, bool $save_payment_method = false, string $selected_payment_type = '' ): array {
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof \WC_Order ) {
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+		}
+
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED ] ) ) {
+			// Remove cart.
+			if ( WC()->cart ) {
+				WC()->cart->empty_cart();
+			}
+
+			// If the order is already completed, redirect user to the order received page.
+			return [
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			];
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+
+		// Persist the 'save-payment-method' flag so the webhook handler can create the token once payment is completed.
+		$upe_payment_method = $this->payment_methods[ $selected_payment_type ] ?? null;
+		if ( $save_payment_method && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			$order_helper->update_should_save_stripe_payment_method( $order, true );
+		}
+
+		$order->save_meta_data();
+
+		// Remove cart.
+		if ( WC()->cart ) {
+			WC()->cart->empty_cart();
+		}
+
+		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
+		// the order is updated to paid when the checkout.session.completed webhook fires.
+		// Here we only link the session to the order, clear the cart, and redirect the customer to the thank-you page.
+		return [
+			'result'   => 'success',
+			'redirect' => $this->get_return_url( $order ),
+		];
 	}
 
 	/**
@@ -1612,6 +2031,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::info( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			if ( $order instanceof WC_Order ) {
+				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+				$order_helper->remove_payment_awaiting_action( $order, false );
+			}
+			$order_helper->unlock_order_payment( $order );
+
+			WC_Stripe_Logger::info( 'UPE redirect payment cancelled for order: ' . $order_id . '. Reason: ' . $e->getMessage() );
+			wc_add_notice( __( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ), 'notice' );
+
+			$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
+			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
+			exit;
 		} catch ( Exception $e ) {
 			$order_helper->unlock_order_payment( $order );
 
@@ -1655,7 +2087,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! empty( $error ) ) {
-			WC_Stripe_Logger::error( 'Error when processing payment for order: ' . $order->get_id(), [ 'error_message' => $error->message ] );
+			$error_message = isset( $error->message ) ? $error->message : '';
+			$error_code    = isset( $error->code ) ? $error->code : '';
+			WC_Stripe_Logger::error( 'Error when processing payment for order: ' . $order->get_id(), [ 'error_message' => $error_message ] );
+			// Treat customer-initiated cancellations (e.g. closing the Klarna popup or letting the
+			// redirect session expire) as recoverable: leave the order retryable rather than failing
+			// it permanently. These are identified by specific Stripe error codes that mean no payment
+			// attempt was made, as opposed to a genuine decline (provider decline, card decline, etc.)
+			// which warrants the order being marked as failed.
+			$cancellation_codes = [
+				'payment_method_customer_decline',        // customer closed the redirect popup.
+				'payment_intent_payment_attempt_expired', // session expired without customer action.
+			];
+			if (
+				isset( $intent->status ) &&
+				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status &&
+				in_array( $error_code, $cancellation_codes, true )
+			) {
+				throw new WC_Stripe_Payment_Cancelled_Exception( $error_message );
+			}
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -1977,6 +2427,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 *
+	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal_enabled() and is_sepa_tokens_for_bancontact_enabled() instead.
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Gateway::is_sepa_tokens_for_ideal_enabled()' );
+
+		return $this->sepa_tokens_for_other_methods;
+	}
+
+	/**
 	 * Checks if the setting to allow the saving of SEPA tokens for iDEAL is enabled.
 	 *
 	 * @return bool Whether the setting to allow SEPA tokens for iDEAL is enabled.
@@ -2001,6 +2464,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_oc_enabled() {
 		return $this->oc_enabled;
+	}
+
+	/**
+	 * Checks if Adaptive Pricing is currently supported and active.
+	 *
+	 * Delegates to WC_Stripe_Helper::is_adaptive_pricing_supported(). Extracted as a
+	 * non-static instance method to allow mocking in unit tests.
+	 *
+	 * @return bool Whether Adaptive Pricing is supported.
+	 */
+	protected function is_adaptive_pricing_supported(): bool {
+		return WC_Stripe_Helper::is_adaptive_pricing_supported();
 	}
 
 	/**
@@ -2278,10 +2753,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
-	 * @param string   $path   Stripe API endpoint path to query.
-	 * @param string   $params Parameters for request body.
-	 * @param WC_Order $order  WC Order for request.
-	 * @param string   $method HTTP method for request.
+	 * @param string     $path   Stripe API endpoint path to query.
+	 * @param array|null $params Parameters for request body.
+	 * @param WC_Order   $order  WC Order for request.
+	 * @param string     $method HTTP method for request.
 	 *
 	 * @return object JSON response object.
 	 */
@@ -2340,7 +2815,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 			// If the intent is already successful, return it to prevent duplicate charges
-			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
+			if ( isset( $intent->status ) && in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				return $intent;
 			}
 		}
@@ -2519,7 +2994,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// Otherwise use the payment method type from the API.
 				$selected_payment_type = $payment_method_details->type;
 			}
-			$payment_method_types  = [ $selected_payment_type ];
+			$payment_method_types = [ $selected_payment_type ];
 		} else {
 			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 				$selected_payment_type,
@@ -2808,8 +3283,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order                  The WC order for which we're saving the payment method.
 	 * @param stdClass $payment_method_object  The payment method object retrieved from Stripe.
 	 * @param string   $payment_method_type    The payment method type, like `card`, `sepa_debit`, etc.
+	 *
+	 * @return void
 	 */
-	protected function handle_saving_payment_method( WC_Order $order, $payment_method_object, string $payment_method_type ) {
+	public function handle_saving_payment_method( WC_Order $order, stdClass $payment_method_object, string $payment_method_type ): void {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
@@ -2870,7 +3347,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_subscription( $subscription, string $payment_method_id ) {
-		$subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $subscription, $payment_method_id );
 		$subscription->save_meta_data();
 	}
 
@@ -2896,7 +3373,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $customer_id );
 		$subscription->save_meta_data();
 	}
 
@@ -3023,6 +3500,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( ! is_a( $token, 'WC_Payment_Token' ) ) {
 				throw new WC_Stripe_Exception( sprintf( 'New payment token is not an instance of WC_Payment_Token. Token: %s.', print_r( $token, true ) ) );
 			}
+
+			// Clear the cache after saving the token so the payment-methods listing page always
+			// fetches a fresh list from Stripe. Without this, a stale cache populated after
+			// WC_Payment_Token::save() may cause the stale-token cleanup in woocommerce_get_customer_upe_payment_tokens()
+			// to delete the newly created token from the payment methods list before the user sees it.
+			$customer->clear_cache();
 
 			do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
 
@@ -3169,6 +3652,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
+			// When Link is enabled, hide the store-level save checkbox for both
+			// the card method and the Link method itself — Link handles save
+			// consent via the Payment Element, so neither needs the WC checkbox.
+			// OC is excluded here because its registration-level showSaveOption
+			// must stay true so WC Blocks renders the checkbox container; the
+			// frontend uses showSaveOptionByMethod to toggle it per sub-method.
+			if (
+				! $payment_method instanceof WC_Stripe_UPE_Payment_Method_OC &&
+				in_array( $payment_method->get_id(), [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], true ) &&
+				WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this )
+			) {
+				return false;
+			}
+
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			// If force save payment method is true, no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart() && ! WC_Stripe_Helper::should_force_save_payment_method();
@@ -3195,20 +3692,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->payment_methods[ $token_gateway_type ]->id;
-	}
-
-	/**
-	 * Fetches the appearance settings for Stripe Elements from the transient cache.
-	 *
-	 * Include the theme name in the transient key because getAppearance (found in client/styles/upe/index.js) will generate different
-	 * appearance rules based on the active theme, so we need to cache the appearance settings per theme.
-	 *
-	 * @param bool $is_block_checkout Whether the appearance settings are for the block checkout.
-	 *
-	 * @return array|null The appearance settings.
-	 */
-	private function get_appearance_transient_key( $is_block_checkout = false ) {
-		return ( $is_block_checkout ? self::BLOCKS_APPEARANCE_TRANSIENT : self::APPEARANCE_TRANSIENT ) . '_' . get_option( 'stylesheet' );
 	}
 
 	/**
@@ -3290,71 +3773,69 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Saves the default appearance settings to a transient cache.
 	 *
 	 * Individual appearance settings are saved for both block and shortcode checkout and also against each theme so that changing the theme will use different transient setting.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function save_appearance_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_appearance_nonce', false, false );
-
-			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( 'Invalid nonce saving appearance.', __( 'Unable to update Stripe Elements appearance values at this time.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$is_block_checkout = isset( $_POST['is_block_checkout'] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST['is_block_checkout'] ) ) ) : false;
-			$appearance        = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
-
-			if ( null !== $appearance ) {
-				set_transient( $this->get_appearance_transient_key( $is_block_checkout ), $appearance, DAY_IN_SECONDS );
-			}
-
-			wp_send_json_success( $appearance, 200 );
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error( 'Error saving appearance.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getLocalizedMessage(),
-					],
-				]
-			);
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a Block theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
+	 *
+	 * @param int     $post_id The post ID.
+	 * @param WP_Post $post    The post object.
 	 */
 	public function clear_appearance_transients_block_theme( $post_id, $post ) {
-		if ( in_array( $post->post_type, [ 'wp_global_styles' ], true ) ) {
-			delete_transient( $this->get_appearance_transient_key( true ) );
-		}
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Clears the appearance transients when a classic theme is updated or customized.
 	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 *
+	 * @deprecated 10.5.0 Appearance is fully managed by the client.
 	 */
 	public function clear_appearance_transients() {
-		delete_transient( $this->get_appearance_transient_key() );
+		wc_deprecated_function( __METHOD__, '10.5.0' );
 	}
 
 	/**
 	 * Hide "Pay" and "Cancel" action buttons for pending orders if they take a while to be confirmed.
 	 *
-	 * @param $actions array An array with the default actions.
-	 * @param $order WC_Order The order.
+	 * @param array     $actions An array with the default actions.
+	 * @param \WC_Order $order The order.
 	 * @return array
 	 */
-	public function filter_my_account_my_orders_actions( $actions, $order ) {
+	public function filter_my_account_my_orders_actions( $actions, $order ): array {
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return $actions;
+		}
+
+		if ( ! is_order_received_page() ) {
+			return $actions;
+		}
+
+		if ( ! $order->has_status( OrderStatus::PENDING ) ) {
 			return $actions;
 		}
 
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
+		if ( in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
+
+		// If the order has a checkout session ID and is pending, hide the action buttons. The orders with checkout sessions take a while to be processed via webhooks.
+		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		if ( $checkout_session_id ) {
+			unset( $actions['pay'], $actions['cancel'] );
+		}
+
 		return $actions;
 	}
 
@@ -3477,8 +3958,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$net      = $order_helper->get_stripe_net( $order );
-		$currency = $order_helper->get_stripe_currency( $order );
+		$net          = $order_helper->get_stripe_net( $order );
+		$currency     = $order_helper->get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;
@@ -3868,5 +4349,164 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->validate_text_field( $field_key, $field_value );
+	}
+
+	/**
+	 * Fetches the checkout session object from the order meta and retrieves the session details from Stripe.
+	 *
+	 * @return object|null The checkout session object, or null if it could not be retrieved.
+	 */
+	private function get_checkout_session_from_order( WC_Order $order ): ?object {
+		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
+			return null;
+		}
+
+		$cache_key        = 'checkout_session_' . $checkout_session_id;
+		$checkout_session = WC_Stripe_Database_Cache::get( $cache_key );
+		if ( ! $checkout_session ) {
+			try {
+				$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id, [], null, 'GET' );
+			} catch ( WC_Stripe_Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Exception fetching checkout session for order.',
+					[
+						'order_id'            => $order->get_id(),
+						'checkout_session_id' => $checkout_session_id,
+						'error_message'       => $e->getMessage(),
+					]
+				);
+
+				return null;
+			}
+
+			if ( ! empty( $checkout_session->error ) ) {
+				WC_Stripe_Logger::error(
+					'Error fetching checkout session for order.',
+					[
+						'order_id'            => $order->get_id(),
+						'checkout_session_id' => $checkout_session_id,
+						'error_message'       => $checkout_session->error->message,
+					]
+				);
+
+				return null;
+			}
+
+			WC_Stripe_Database_Cache::set( $cache_key, $checkout_session, HOUR_IN_SECONDS );
+		}
+
+		return $checkout_session;
+	}
+
+	/**
+	 * Adds presentment amount and currency metadata to the order if they are not already set.
+	 *
+	 * @param WC_Order $order The order to which the presentment metadata should be added.
+	 *
+	 * @return void
+	 */
+	private function maybe_add_presentment_metadata_to_order( WC_Order $order ): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( ! $order_helper->get_stripe_checkout_session_id( $order )
+			|| ( $order_helper->get_stripe_presentment_currency( $order ) && $order_helper->get_stripe_presentment_amount( $order ) ) ) {
+			return;
+		}
+
+		$checkout_session = $this->get_checkout_session_from_order( $order );
+		if (
+			empty( $checkout_session->presentment_details )
+			|| ! isset(
+				$checkout_session->presentment_details->presentment_amount,
+				$checkout_session->presentment_details->presentment_currency
+			)
+		) {
+			return;
+		}
+
+		if ( ! $order_helper->get_stripe_presentment_amount( $order ) ) {
+			$order_helper->update_stripe_presentment_amount( $order, $checkout_session->presentment_details->presentment_amount );
+		}
+
+		if ( ! $order_helper->get_stripe_presentment_currency( $order ) ) {
+			$order_helper->update_stripe_presentment_currency( $order, $checkout_session->presentment_details->presentment_currency );
+		}
+
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Prepares the data for the currency conversion notice based on the presentment amount and currency stored in the order meta.
+	 *
+	 * @param WC_Abstract_Order $order The order for which the currency conversion notice data should be prepared.
+	 *
+	 * @return array|null
+	 */
+	private function get_currency_conversion_notice_data( $order ): ?array {
+		$presentment_data = $this->get_presentment_data_from_order( $order );
+		if ( null === $presentment_data ) {
+			return null;
+		}
+
+		$order_total = (float) $order->get_total();
+		if ( $order_total <= 0 ) {
+			return null;
+		}
+
+		$presentment_data['currency'] = strtolower( $presentment_data['currency'] ); // Make sure the original currency code is in lowercase.
+		$presentment_currency_upper   = strtoupper( $presentment_data['currency'] );
+		$woocommerce_amount           = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_data['amount'],
+			$presentment_data['currency']
+		);
+
+		// Use at least 3 decimal places for the rate regardless of the presentment currency's own decimal
+		// exponent — a conversion rate is not a currency amount, and rounding e.g. 149.567 JPY/USD to 150
+		// gives a misleading representation.
+		$rate_decimals = 3;
+
+		// Divide major-unit amounts so the rate is correct for currencies with different decimal exponents (e.g. JPY↔USD).
+		$rate_amount = wc_format_decimal( (float) $woocommerce_amount / $order_total, $rate_decimals );
+
+		return [
+			'presentment_currency' => $presentment_currency_upper,
+			'woocommerce_amount'   => $woocommerce_amount,
+			'rate_amount'          => $rate_amount,
+		];
+	}
+
+	/**
+	 * Prepares the presentment amount and currency data based on the order meta to be used in the order details and emails.
+	 *
+	 * @param WC_Abstract_Order $order The order for which the presentment data should be prepared.
+	 *
+	 * @return array|null
+	 */
+	private function get_presentment_data_from_order( $order ): ?array {
+		if ( ! $order instanceof WC_Order ) {
+			return null;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! $checkout_session_id ) {
+			return null;
+		}
+
+		$this->maybe_add_presentment_metadata_to_order( $order );
+
+		$amount   = (int) $order_helper->get_stripe_presentment_amount( $order );
+		$currency = $order_helper->get_stripe_presentment_currency( $order );
+
+		if ( $amount <= 0 || empty( $currency ) ) {
+			return null;
+		}
+
+		return [
+			'amount'   => $amount,
+			'currency' => $currency,
+		];
 	}
 }
