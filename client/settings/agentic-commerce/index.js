@@ -49,17 +49,9 @@ const AgenticCommerceDescription = () => (
 		<h2>{ __( 'Agentic commerce', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Let AI-powered agents discover and purchase products on behalf of customers.',
+				'Enable and configure agentic commerce for your store.',
 				'woocommerce-gateway-stripe'
 			) }
-		</p>
-		<p>
-			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
-				{ __(
-					'Learn more about agentic commerce',
-					'woocommerce-gateway-stripe'
-				) }
-			</ExternalLink>
 		</p>
 	</>
 );
