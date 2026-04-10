@@ -1684,6 +1684,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 
 		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( false );
 		$product->save();
 
 		$coupon = new \WC_Coupon();
@@ -1692,21 +1693,27 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$coupon->set_discount_type( 'fixed_cart' );
 		$coupon->save();
 
-		WC()->session->init();
-		WC()->cart->empty_cart();
+		// Other suites can disable shipping or remove methods; register a zero-cost flat rate so
+		// `wc_get_shipping_method_count()` is non-zero and `needs_shipping()` returns true.
+		WC_Helper_Shipping::create_simple_flat_rate( 0 );
 
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->add_discount( 'TESTDISCOUNT' );
+		try {
+			WC()->session->init();
+			WC()->cart->empty_cart();
 
-		$actual = WC_Stripe_Helper::build_line_items( $itemized );
+			WC()->cart->add_to_cart( $product->get_id(), 1 );
+			WC()->cart->add_discount( 'TESTDISCOUNT' );
 
-		// Clean up.
-		WC()->cart->empty_cart();
-		$product->delete( true );
-		$coupon->delete();
-		delete_option( 'woocommerce_calc_taxes' );
+			$actual = WC_Stripe_Helper::build_line_items( $itemized );
 
-		$this->assertSame( $expected_items, $actual );
+			$this->assertSame( $expected_items, $actual );
+		} finally {
+			WC_Helper_Shipping::delete_simple_flat_rate();
+			WC()->cart->empty_cart();
+			$product->delete( true );
+			$coupon->delete();
+			delete_option( 'woocommerce_calc_taxes' );
+		}
 	}
 
 	/**
@@ -1749,6 +1756,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 						[
 							'label'  => 'Tax',
+							'amount' => 0,
+						],
+						[
+							'key'    => 'total_shipping',
+							'label'  => 'Shipping',
 							'amount' => 0,
 						],
 						[
