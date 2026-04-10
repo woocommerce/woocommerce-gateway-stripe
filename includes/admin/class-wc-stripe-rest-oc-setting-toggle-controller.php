@@ -92,12 +92,11 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
-		$current_value                          = $this->gateway->is_oc_enabled();
-		$settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$value                                  = $is_oc_enabled ? 'yes' : 'no';
-		$settings['optimized_checkout_element'] = $value;
-
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$current_value = $this->gateway->is_oc_enabled();
+		$settings      = WC_Stripe_Settings::get_instance();
+		$value         = $is_oc_enabled ? 'yes' : 'no';
+		$settings->set_optimized_checkout_element( $value );
+		$settings->save();
 
 		if ( $is_oc_enabled !== $current_value ) {
 			wc_admin_record_tracks_event(

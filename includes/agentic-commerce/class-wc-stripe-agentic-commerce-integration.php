@@ -337,13 +337,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return string Stripe secret key.
 	 */
 	private function get_secret_key(): string {
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
+		$settings = WC_Stripe_Settings::get_instance();
 
-		if ( $test_mode ) {
-			return $settings['test_secret_key'] ?? '';
+		if ( $settings->is_testmode() ) {
+			return $settings->get_test_secret_key();
 		}
 
-		return $settings['secret_key'] ?? '';
+		return $settings->get_secret_key();
 	}
 }

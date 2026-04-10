@@ -263,37 +263,55 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test                                    = 'live' !== $mode;
-			$prefix                                     = $is_test ? 'test_' : '';
-			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
-			$options['enabled']                         = 'yes';
-			$options['testmode']                        = $is_test ? 'yes' : 'no';
-			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
-			$options[ $prefix . 'secret_key' ]          = $secret_key;
-			$options[ $prefix . 'connection_type' ]     = $type;
-			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
-			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			$publishable_key      = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key           = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test              = 'live' !== $mode;
+			$prefix               = $is_test ? 'test_' : '';
+			$default_options      = $this->get_default_stripe_config();
+			$settings             = WC_Stripe_Settings::get_instance();
+			$previous_pmc_enabled = $settings->get_pmc_enabled();
+
+			// Ensure defaults are applied to the settings singleton.
+			foreach ( $default_options as $key => $value ) {
+				if ( ! $settings->has( $key ) ) {
+					$settings->set( $key, $value );
+				}
+			}
+
+			$settings->set_enabled( 'yes' );
+			$settings->set_testmode( $is_test ? 'yes' : 'no' );
+			$settings->set_upe_checkout_experience_enabled( $this->get_upe_checkout_experience_enabled() );
+			if ( $is_test ) {
+				$settings->set_test_publishable_key( $publishable_key );
+				$settings->set_test_secret_key( $secret_key );
+				$settings->set_test_connection_type( $type );
+			} else {
+				$settings->set_publishable_key( $publishable_key );
+				$settings->set_secret_key( $secret_key );
+				$settings->set_connection_type( $type );
+			}
+			$settings->set_pmc_enabled( 'connect' === $type ? 'yes' : 'no' ); // When not connected via Connect OAuth, the PMC is disabled.
+			$should_default_optimized_checkout_on = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$options['optimized_checkout_element'] = 'yes';
+				$settings->set_optimized_checkout_element( 'yes' );
 			}
 			if ( 'app' === $type ) {
-				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				if ( $is_test ) {
+					$settings->set_test_refresh_token( $result->refreshToken ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				} else {
+					$settings->set_refresh_token( $result->refreshToken ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				}
 			}
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
-			unset( $options['account_id'] );
-			unset( $options['test_account_id'] );
+			$settings->delete( 'account_id' );
+			$settings->delete( 'test_account_id' );
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
-			WC_Stripe_Helper::update_main_stripe_settings( $options );
+			$settings->save();
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
@@ -309,7 +327,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 						'current_stripe_api_key' => WC_Stripe_API::get_masked_secret_key(),
 						'connect_mode'           => $mode,
 						'connect_type'           => $type,
-						'options'                => self::redact_sensitive_data( $options ),
+						'connection_pmc'         => $settings->get_pmc_enabled(),
 					]
 				);
 			}
@@ -327,8 +345,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// so we need to instantiate the UPE gateway just for the PMC migration.
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
 
-			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
-			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
+			// If pmc_enabled was not set (aka new install) or was not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
+			if ( 'yes' !== $previous_pmc_enabled ) {
 				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
 			}
 
@@ -351,13 +369,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
 		 */
 		private function get_upe_checkout_experience_enabled() {
-			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			$value = WC_Stripe_Settings::get_instance()->get_upe_checkout_experience_enabled();
 
-			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
-				return $existing_stripe_settings['upe_checkout_experience_enabled'];
-			}
-
-			return 'yes';
+			return '' !== $value ? $value : 'yes';
 		}
 
 		/**
@@ -426,10 +440,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return string The connection type. 'connect', 'app', or ''.
 		 */
 		public function get_connection_type( $mode ) {
-			$options = WC_Stripe_Helper::get_stripe_settings();
-			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
-
-			return isset( $options[ $key ] ) ? $options[ $key ] : '';
+			$settings = WC_Stripe_Settings::get_instance();
+			return 'test' === $mode ? $settings->get_test_connection_type() : $settings->get_connection_type();
 		}
 
 		/**
@@ -496,10 +508,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$options       = WC_Stripe_Helper::get_stripe_settings();
+			$settings      = WC_Stripe_Settings::get_instance();
 			$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			$prefix        = 'test' === $mode ? 'test_' : '';
-			$refresh_token = $options[ $prefix . 'refresh_token' ];
+			$refresh_token = 'test' === $mode ? $settings->get_test_refresh_token() : $settings->get_refresh_token();
 
 			$retries = get_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 ) + 1;
 

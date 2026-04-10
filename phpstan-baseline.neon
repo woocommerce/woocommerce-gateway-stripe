@@ -3897,7 +3897,7 @@ parameters:
 		-
 			message: '#^Access to property \$refreshToken on an unknown class stdObject\.$#'
 			identifier: class.notFound
-			count: 2
+			count: 3
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
