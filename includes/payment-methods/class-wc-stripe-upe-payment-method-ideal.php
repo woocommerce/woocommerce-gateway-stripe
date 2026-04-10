@@ -19,13 +19,13 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$is_sepa_tokens_for_ideal_enabled         = $this->is_sepa_tokens_for_ideal_enabled();
-		$this->stripe_id                          = self::STRIPE_ID;
-		$this->title                              = 'iDEAL | Wero';
-		$this->is_reusable                        = $is_sepa_tokens_for_ideal_enabled;
-		$this->supported_currencies               = [ WC_Stripe_Currency_Code::EURO ];
-		$this->label                              = 'iDEAL | Wero';
-		$this->description                        = __(
+		$is_sepa_tokens_for_ideal_enabled = $this->is_sepa_tokens_for_ideal_enabled();
+		$this->stripe_id                  = self::STRIPE_ID;
+		$this->title                      = 'iDEAL | Wero';
+		$this->is_reusable                = $is_sepa_tokens_for_ideal_enabled;
+		$this->supported_currencies       = [ WC_Stripe_Currency_Code::EURO ];
+		$this->label                      = 'iDEAL | Wero';
+		$this->description                = __(
 			'iDEAL | Wero is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		);

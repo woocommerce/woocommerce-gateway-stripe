@@ -19,7 +19,38 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE' ];
+		$this->supported_countries      = [
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CROATIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::HUNGARY,
+			WC_Stripe_Country_Code::ICELAND,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LIECHTENSTEIN,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::POLAND,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
+		];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -66,7 +97,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
-			esc_html__( '%1$sTest mode:%2$s use any 6-digit number to authorize payment.', 'woocommerce-gateway-stripe' ),
+			esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
 		);
@@ -89,9 +120,9 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 							'wc-stripe-blik-code',
 							[
 								'maxlength' => 6,
-								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-								'required' => true,
-								'type' => 'text',
+								'label'     => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required'  => true,
+								'type'      => 'text',
 							]
 						);
 					?>
@@ -120,7 +151,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		return [ 'PL' ];
+		return [ WC_Stripe_Country_Code::POLAND ];
 	}
 
 	/**

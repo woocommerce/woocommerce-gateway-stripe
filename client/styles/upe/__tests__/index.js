@@ -7,6 +7,8 @@ describe( 'Getting styles for automated theming', () => {
 			'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 		color: 'rgb(109, 109, 109)',
 		backgroundColor: 'rgba(0, 0, 0, 0)',
+		'-webkit-font-smoothing': 'antialiased',
+		'-moz-osx-font-smoothing': 'grayscale',
 		unsuportedProperty: 'some value',
 		outlineColor: 'rgb(150, 88, 138)',
 		outlineWidth: '1px',
@@ -20,6 +22,9 @@ describe( 'Getting styles for automated theming', () => {
 		4: 'outlineColor',
 		5: 'outlineWidth',
 		...mockCssProperties,
+		// CSSOM aliases used by getComputedStyle for vendor font-smoothing.
+		WebkitFontSmoothing: mockCssProperties[ '-webkit-font-smoothing' ],
+		MozOsxFontSmoothing: mockCssProperties[ '-moz-osx-font-smoothing' ],
 		getPropertyValue: ( propertyName ) => {
 			return mockCssProperties[ propertyName ];
 		},
@@ -50,6 +55,8 @@ describe( 'Getting styles for automated theming', () => {
 			'.Input'
 		);
 		expect( fieldStyles ).toEqual( {
+			'-moz-osx-font-smoothing': 'grayscale',
+			'-webkit-font-smoothing': 'antialiased',
 			backgroundColor: 'rgba(0, 0, 0, 0)',
 			color: 'rgb(109, 109, 109)',
 			fontFamily:
@@ -125,6 +132,21 @@ describe( 'Getting styles for automated theming', () => {
 		const fontRules = upeStyles.getFontRulesFromPage();
 		expect( fontRules ).toEqual( [
 			{ cssSrc: 'https://fonts-api.wp.com/css?family=Lato' },
+		] );
+	} );
+
+	it( 'getFontRulesFromPage returns font rules from fonts.bunny.net by default', () => {
+		const mockStyleSheets = {
+			length: 1,
+			0: { href: 'https://fonts.bunny.net/css?family=Inter' },
+		};
+		jest.spyOn( document, 'styleSheets', 'get' ).mockReturnValue(
+			mockStyleSheets
+		);
+
+		const fontRules = upeStyles.getFontRulesFromPage();
+		expect( fontRules ).toEqual( [
+			{ cssSrc: 'https://fonts.bunny.net/css?family=Inter' },
 		] );
 	} );
 
@@ -209,6 +231,22 @@ describe( 'Getting styles for automated theming', () => {
 		] );
 	} );
 
+	it( 'getAppearance returns floating labels for Blocks checkout', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
+			return mockElement;
+		} );
+		jest.spyOn( window, 'getComputedStyle' ).mockImplementation( () => {
+			return mockCSStyleDeclaration;
+		} );
+
+		const appearance = upeStyles.getAppearance( true );
+		expect( appearance.labels ).toBe( 'floating' );
+		expect( appearance.rules[ '.Label--floating' ] ).toBeDefined();
+		expect( appearance.rules[ '.Label--resting' ] ).toBeDefined();
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 
@@ -221,6 +259,7 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			labels: 'above',
 			theme: 'stripe',
 			variables: {
 				colorBackground: '#ffffff',
@@ -231,6 +270,8 @@ describe( 'Getting styles for automated theming', () => {
 			},
 			rules: {
 				'.Input': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
@@ -238,6 +279,8 @@ describe( 'Getting styles for automated theming', () => {
 					outline: '1px solid rgb(150, 88, 138)',
 				},
 				'.Input--invalid': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
@@ -245,9 +288,14 @@ describe( 'Getting styles for automated theming', () => {
 					outline: '1px solid rgb(150, 88, 138)',
 				},
 				'.Label': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				},
+				'.Label--resting': {
+					fontSize: undefined,
 				},
 				'.Tab': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -273,11 +321,15 @@ describe( 'Getting styles for automated theming', () => {
 					color: 'rgb(109, 109, 109)',
 				},
 				'.Text': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
 				'.Text--redirect': {
+					'-moz-osx-font-smoothing': 'grayscale',
+					'-webkit-font-smoothing': 'antialiased',
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
@@ -293,7 +345,7 @@ describe( 'Getting styles for automated theming', () => {
 					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
 				},
 				'.CheckboxInput--checked': {
-					backgroundColor: 'var(--colorPrimary)	',
+					backgroundColor: 'var(--colorPrimary)',
 					borderColor: 'var(--colorPrimary)',
 				},
 			},
