@@ -323,14 +323,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return int
 	 */
 	public static function get_stripe_currency_decimals() {
-		$currency = strtolower( get_woocommerce_currency() );
-		if ( in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			return 0;
-		} elseif ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
-			return 3;
-		}
-
-		return 2;
+		return WC_Stripe_Helper::get_currency_decimals( get_woocommerce_currency() );
 	}
 
 	/**
@@ -388,7 +381,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
 		 * the postal code and not calculate shipping zones correctly.
 		 */
-		if ( 'GB' === $country ) {
+		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
 			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
 			// depending on whether the customer put a space in their postcode between the outcode and incode part.
 			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
@@ -412,7 +405,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
 		}
 
-		if ( 'CA' === $country ) {
+		if ( WC_Stripe_Country_Code::CANADA === $country ) {
 			// Replaces a redacted string with something like L4Y***.
 			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
 		}
@@ -515,7 +508,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			$needs_shipping     = $product->needs_shipping();
 			$is_synced          = WC_Subscriptions_Synchroniser::is_product_synced( $product );
 			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
-			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
 			if ( $is_product_page_request && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
 				/**
@@ -530,8 +522,6 @@ class WC_Stripe_Express_Checkout_Helper {
 				 */
 				continue;
 			} elseif ( $is_synced && ! $is_payment_upfront && $needs_shipping ) {
-				continue;
-			} elseif ( $has_trial_period && $needs_shipping ) {
 				continue;
 			} else {
 				// If we made it this far, the product is valid. Break out of the foreach and return early as we only care about invalid cases.
@@ -590,7 +580,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				return true;
 			}
 		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
-			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() ) {
+			if ( $this->cart_contains_free_trial() ) {
 				return true;
 			}
 		}
@@ -750,14 +740,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( $is_product && ! $this->is_product_supported( $product ) ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 				WC_Stripe_Logger::debug( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
-			}
-			return false;
-		}
-
-		// Don't show in the product page if the product price is 0 and the product requires shipping.
-		if ( $is_product && $product && 0.0 === (float) $product->get_price() && $this->product_or_cart_needs_shipping() ) {
-			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
-				WC_Stripe_Logger::debug( 'Stripe Express Checkout does not support free products that requires shipping.' );
 			}
 			return false;
 		}
@@ -1150,7 +1132,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		//
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
-		if ( 'HK' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
@@ -1160,7 +1142,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				}
 			}
 		}
-		if ( 'HK' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
@@ -1343,7 +1325,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
 		// but WooCommerce expects it in the "city" field.
-		if ( 'AE' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
 			$billing_city  = ! empty( $data['billing_address']['city'] ) ? wc_clean( wp_unslash( $data['billing_address']['city'] ) ) : '';
 
@@ -1354,7 +1336,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		if ( 'AE' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $shipping_country ) {
 			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
 			$shipping_city  = ! empty( $data['shipping_address']['city'] ) ? wc_clean( wp_unslash( $data['shipping_address']['city'] ) ) : '';
 
@@ -1377,18 +1359,18 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Puerto Rico: Apple Pay send PR as a US state (country=US, state=PR),
 		// but WooCommerce expects it as a separate country. Convert to country code.
-		if ( 'US' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
-			if ( 'PR' === $billing_state ) {
-				$data['billing_address']['country'] = 'PR';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $billing_state ) {
+				$data['billing_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
 				$data['billing_address']['state']   = '';
 			}
 		}
 
-		if ( 'US' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $shipping_country ) {
 			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
-			if ( 'PR' === $shipping_state ) {
-				$data['shipping_address']['country'] = 'PR';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $shipping_state ) {
+				$data['shipping_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
 				$data['shipping_address']['state']   = '';
 			}
 		}
@@ -1455,7 +1437,22 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		// Remove subscription shipping package filter if there is free trial in the cart to allow the calculation of shipping costs.
+		// TODO: revisit this when WC Subscriptions adds support for free trials with shipping.
+		$has_free_trial = $this->cart_contains_free_trial();
+
+		if ( $has_free_trial ) {
+			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+		}
+
+		try {
+			$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		} finally {
+			// Add the subscription shipping package filter back after calculating shipping packages to avoid affecting other parts of the checkout process.
+			if ( $has_free_trial ) {
+				add_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+			}
+		}
 
 		WC()->shipping->calculate_shipping( $packages );
 	}
@@ -1758,13 +1755,25 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return void
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
-		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
+		// If there are no recurring carts, or the `WC_Subscriptions_Cart::get_recurring_shipping_package_key` method doesn't exist, we skip this step.
+		// That's because this logic overrides the selected shipping method with the previously chosen shipping method.
+		if (
+			empty( WC()->cart->recurring_carts )
+			|| ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' )
+		) {
 			return;
 		}
 
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
+			// Skip restoration for free-trial recurring carts — their shipping was intentionally
+			// calculated without the Subscriptions shipping package filter, so restoring a
+			// previously chosen method here would conflict with that.
+			if ( $this->recurring_cart_contains_free_trial( $recurring_cart ) ) {
+				continue;
+			}
+
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
 				if ( class_exists( 'WC_Subscriptions_Cart' ) ) {
 					$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
@@ -1888,5 +1897,44 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+	}
+
+	/**
+	 * Check if the cart contains a free trial subscription.
+	 *
+	 * @return bool
+	 */
+	private function cart_contains_free_trial(): bool {
+		return class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial();
+	}
+
+	/**
+	 * Check if a specific recurring cart contains a free trial subscription.
+	 *
+	 * Unlike cart_contains_free_trial(), this operates on a single recurring cart object
+	 * so it can be used to make per-cart decisions inside loops over recurring_carts.
+	 *
+	 * @param WC_Cart $recurring_cart A recurring cart instance from WC()->cart->recurring_carts.
+	 *
+	 * @return bool
+	 */
+	private function recurring_cart_contains_free_trial( $recurring_cart ): bool {
+		if ( ! class_exists( 'WC_Subscriptions_Product' ) ) {
+			return false;
+		}
+
+		foreach ( $recurring_cart->get_cart() as $cart_item ) {
+			$product = isset( $cart_item['data'] ) ? $cart_item['data'] : null;
+
+			if (
+				$product
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0
+			) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
