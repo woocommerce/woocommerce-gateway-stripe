@@ -222,6 +222,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
+		 * Helper function to clear some important PMC caches after a key update.
+		 */
+		public function clear_caches_after_key_update(): void {
+			// Note that we also need to update the fallback PMC details, but we can't simply wipe that data.
+
+			// Clear PMC cache after key updates.
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
+
+		/**
 		 * Saves Stripe keys after OAuth response
 		 *
 		 * @param stdObject $result OAuth's response result.
@@ -267,7 +277,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
 			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
-			$should_default_optimized_checkout_on = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
@@ -290,6 +300,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
+			$this->clear_caches_after_key_update();
+
 			if ( $is_verbose_debug_mode_enabled ) {
 				WC_Stripe_Logger::debug(
 					'OAuth: Plugin settings updated',
@@ -311,6 +323,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$this->unschedule_connection_refresh();
 			}
 
+			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
+			// so we need to instantiate the UPE gateway just for the PMC migration.
+			WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
+			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
+				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
+			}
+
+			// Configure webhooks last so errors stemming from unreachable test/local sites don't prevent other actions.
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
@@ -319,15 +341,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			} finally {
 				// Ensure we reset the key before we do anything else.
 				WC_Stripe_API::set_secret_key( '' );
-			}
-
-			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
-			// so we need to instantiate the UPE gateway just for the PMC migration.
-			WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
-			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
-				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
 			}
 
 			return $result;
@@ -499,7 +512,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
 				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
 
-				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				WC_Stripe_Logger::error( 'OAuth connection refresh failed.', [ 'response' => $response ] );
 
 				// If after 10 attempts we are unable to refresh the connection keys, we don't re-schedule anymore,
 				// in this case an error message is show in the account status indicating that the API keys are not

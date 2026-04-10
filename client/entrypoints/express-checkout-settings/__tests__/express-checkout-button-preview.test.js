@@ -25,9 +25,9 @@ jest.mock( '@stripe/react-stripe-js', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/data', () => ( {
-	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
-	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
-	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
+	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
 } ) );
 
 describe( 'ExpressCheckoutButtonPreview', () => {

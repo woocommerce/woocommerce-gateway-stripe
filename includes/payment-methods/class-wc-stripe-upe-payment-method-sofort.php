@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -12,13 +15,6 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::SOFORT;
 
 	/**
-	 * Legacy payment method class reference.
-	 *
-	 * @deprecated 10.2.0 This constant is deprecated and will be removed in future versions.
-	 */
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Sofort::class;
-
-	/**
 	 * Constructor for Sofort payment method
 	 */
 	public function __construct() {
@@ -28,7 +24,7 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'Sofort', 'woocommerce-gateway-stripe' );
-		$this->supports[]           = 'tokenization';
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 		$this->description          = __(
 			'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
 			'woocommerce-gateway-stripe'

@@ -9,6 +9,7 @@
 	<exclude-pattern>./node_modules/*</exclude-pattern>
 	<exclude-pattern>./vendor/*</exclude-pattern>
 	<exclude-pattern>./release/*</exclude-pattern>
+	<exclude-pattern>./phpstan-stubs/*</exclude-pattern>
 	<exclude-pattern>*\.(?!php$)</exclude-pattern>
 
 	<!-- Configs -->
@@ -74,6 +75,18 @@
 	<!-- We don't need to do nonce checks in unit test code -->
 	<rule ref="WordPress.Security.NonceVerification.Recommended">
 		<exclude-pattern>tests/</exclude-pattern>
+	</rule>
+
+	<!-- Treat misaligned statements as errors -->
+	<rule ref="Generic.Formatting.MultipleStatementAlignment">
+		<type>error</type>
+	</rule>
+
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment">
+		<type>error</type>
+		<properties>
+			<property name="maxColumn" value="99"/>
+		</properties>
 	</rule>
 
 </ruleset>

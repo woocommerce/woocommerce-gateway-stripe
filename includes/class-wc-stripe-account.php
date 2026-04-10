@@ -56,6 +56,10 @@ class WC_Stripe_Account {
 		'payment_intent.requires_action',
 		'setup_intent.succeeded',
 		'setup_intent.setup_failed',
+		'checkout.session.completed',
+		'checkout.session.expired',
+		'checkout.session.async_payment_succeeded',
+		'checkout.session.async_payment_failed',
 	];
 
 	/**
@@ -290,7 +294,7 @@ class WC_Stripe_Account {
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
-			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'api_version'    => self::get_webhooks_api_version(),
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
@@ -342,7 +346,7 @@ class WC_Stripe_Account {
 
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
-		WC_Stripe_Logger::log(
+		WC_Stripe_Logger::info(
 			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
 		);
 
@@ -363,7 +367,7 @@ class WC_Stripe_Account {
 					"webhook_endpoints/{$webhook->id}",
 					'DELETE'
 				);
-				WC_Stripe_Logger::log( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
 			}
 		}
 	}
@@ -403,7 +407,7 @@ class WC_Stripe_Account {
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Unable to determine webhook status', [ 'error_message' => $e->getMessage() ] );
 			return false;
 		}
 	}
@@ -421,6 +425,37 @@ class WC_Stripe_Account {
 		sort( $existing_events );
 
 		return $desired_events !== $existing_events;
+	}
+
+	/**
+	 * Checks if the API version of an existing webhook differs from our desired API version.
+	 *
+	 * @param object $existing_webhook The existing webhook object from Stripe.
+	 * @return bool True if API version differs, false if they match.
+	 */
+	private function does_webhooks_api_version_differ( $existing_webhook ): bool {
+		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
+	}
+
+	/**
+	 * Returns the API version for the webhooks.
+	 *
+	 * @return string The API version.
+	 */
+	private static function get_webhooks_api_version(): string {
+		$version = WC_Stripe_API::STRIPE_API_VERSION;
+
+		/**
+		 * Agentic Commerce uses a different API version for webhooks.
+		 *
+		 * This method should be removed once we switch to
+		 * AGENTIC_COMMERCE_API_VERSION or higher.
+		 */
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$version = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
+		}
+
+		return $version;
 	}
 
 	/**
@@ -447,13 +482,17 @@ class WC_Stripe_Account {
 	}
 
 	/**
-	 * Reconfigures webhooks during plugin update.
+	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
+	 * @param string $update_type The type of update that is happening. Default is 'plugin'.
+	 * Possible values are:
+	 *  - 'plugin': Reconfigures webhooks during plugin update.
+	 *  - 'settings': Reconfigures webhooks when Adaptive Pricing is enabled in the settings.
 	 * @return void
 	 */
-	public function maybe_reconfigure_webhooks_on_update() {
+	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$modes    = [ 'live', 'test' ];
 
@@ -478,17 +517,20 @@ class WC_Stripe_Account {
 				}
 
 				// Check if events differ
-				if ( ! $this->do_webhook_events_differ( $existing_webhook ) ) {
+				if (
+					! $this->do_webhook_events_differ( $existing_webhook )
+					&& ! $this->does_webhooks_api_version_differ( $existing_webhook )
+				) {
 					continue;
 				}
 
 				// Events differ, reconfigure webhook
-				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
+				WC_Stripe_Logger::info( "Webhook events need updating for {$mode} mode - reconfiguring." );
 				$this->configure_webhooks( $mode );
-				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after {$update_type} update." );
 
 			} catch ( Exception $e ) {
-				WC_Stripe_Logger::log( "Failed to check/reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
 			} finally {
 				// Restore the previous secret key if we changed it
 				if ( isset( $previous_secret ) ) {

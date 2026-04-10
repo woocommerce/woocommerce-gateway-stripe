@@ -14,15 +14,19 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getMountedUPEComponent,
 	initializeUPEComponents,
+	maybeUpdateAdaptivePricingCheckoutSession,
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
+	const stripeServerData = getStripeServerData();
+
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		getStripeServerData(),
+		stripeServerData,
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -82,7 +86,10 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		maybeMountStripePaymentElement();
+		void ( async () => {
+			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeMountStripePaymentElement();
+		} )();
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
@@ -137,29 +144,19 @@ jQuery( function ( $ ) {
 	} );
 
 	/**
-	 * Unmounts the Stripe Payment Elements from the page.
-	 */
-	function unmountStripePaymentElements() {
-		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
-			$( upeElement ).children().remove();
-		}
-		initializeUPEComponents();
-	}
-
-	/**
 	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
 	 * should display the relevant confirmation modal.
 	 */
 	function maybeConfirmVoucherOrWalletPayment() {
 		if (
-			getStripeServerData()?.isOrderPay ||
-			getStripeServerData()?.isCheckout ||
-			getStripeServerData()?.isChangingPayment
+			stripeServerData?.isOrderPay ||
+			stripeServerData?.isCheckout ||
+			stripeServerData?.isChangingPayment
 		) {
 			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
 				confirmVoucherPayment(
 					api,
-					getStripeServerData()?.isOrderPay
+					stripeServerData?.isOrderPay
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -168,8 +165,8 @@ jQuery( function ( $ ) {
 			) {
 				confirmWalletPayment(
 					api,
-					getStripeServerData()?.isOrderPay ||
-						getStripeServerData()?.isChangingPayment
+					stripeServerData?.isOrderPay ||
+						stripeServerData?.isChangingPayment
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
@@ -185,15 +182,66 @@ jQuery( function ( $ ) {
 	} );
 
 	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
-	if ( getStripeServerData()?.isOCEnabled ) {
-		$( document ).on(
-			'change',
-			'#wc-stripe-new-payment-method',
-			async () => {
-				// Remove all children from the UPE elements to force a re-mount.
-				unmountStripePaymentElements();
-				await maybeMountStripePaymentElement();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+			const selectedMethod = getSelectedUPEGatewayPaymentMethod();
+			const component = getMountedUPEComponent( selectedMethod );
+
+			if ( component && component.elements ) {
+				const isChecked = $( '#wc-stripe-new-payment-method' ).is(
+					':checked'
+				);
+				const cartContainsSubscription =
+					stripeServerData?.cartContainsSubscription;
+
+				// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+				// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
+				// not a client-side Elements update.
+				// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
+				// because we might be using the payment element as a fallback though the flag is set to true.
+				if ( typeof component.elements.update === 'function' ) {
+					component.elements.update( {
+						setupFutureUsage:
+							cartContainsSubscription || isChecked
+								? 'off_session'
+								: null,
+					} );
+				}
 			}
+		} );
+
+		// TODO: Remove this once we support saved payment methods with adaptive pricing.
+		// Hide the Adaptive Pricing currency selector when a saved payment method is selected,
+		// since no new Checkout Session is created in that flow.
+		const maybeShowCurrencySelector = () => {
+			const currencySelector = document.getElementById(
+				'wc-stripe-currency-selector'
+			);
+			if ( ! currencySelector ) {
+				return;
+			}
+			if (
+				isUsingSavedPaymentMethod(
+					getSelectedUPEGatewayPaymentMethod()
+				)
+			) {
+				$( currencySelector ).hide();
+			} else {
+				$( currencySelector ).show();
+			}
+		};
+
+		// Set initial visibility state on page load.
+		maybeShowCurrencySelector();
+
+		// Re-evaluate after WooCommerce re-renders the checkout.
+		$( document.body ).on( 'updated_checkout', maybeShowCurrencySelector );
+
+		// Re-evaluate when user switches between saved tokens and "Use a new payment method".
+		$( 'form.checkout' ).on(
+			'change',
+			'input[name="wc-stripe-payment-token"]',
+			maybeShowCurrencySelector
 		);
 	}
 } );

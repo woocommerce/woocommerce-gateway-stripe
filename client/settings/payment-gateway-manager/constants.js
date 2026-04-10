@@ -23,7 +23,7 @@ export const gatewaysInfo = {
 	},
 	stripe_ideal: {
 		id: 'ideal',
-		title: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		title: 'iDEAL | Wero',
 		geography: __(
 			'Customer Geography: The Netherlands.',
 			'woocommerce-gateway-stripe'

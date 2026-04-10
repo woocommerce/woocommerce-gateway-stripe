@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -20,14 +23,14 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable              = true;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR ]; // The US dollar is also supported, but has a high risk of failure since only a few Canadian bank accounts support it.
-		$this->supported_countries      = [ 'CA' ];
+		$this->supported_countries      = [ WC_Stripe_Country_Code::CANADA ];
 		$this->label                    = __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' );
 		$this->description              = __(
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
 			'woocommerce-gateway-stripe'
 		);
 		$this->supports_deferred_intent = false;
-		$this->supports[]               = 'tokenization';
+		$this->supports[]               = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

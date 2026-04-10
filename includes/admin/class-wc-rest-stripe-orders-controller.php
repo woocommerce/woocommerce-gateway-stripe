@@ -55,21 +55,23 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Stripe payment gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe payment gateway.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway ) {
+	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
 	}
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -102,6 +104,8 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 	 * Create a Stripe customer for an order if needed, or return existing customer.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_customer( $request ) {
 		$order_id = $request['order_id'];
@@ -151,6 +155,13 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		return rest_ensure_response( [ 'id' => $customer_id ] );
 	}
 
+	/**
+	 * Capture terminal payment for an order.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
 	public function capture_terminal_payment( $request ) {
 		try {
 			$intent_id = $request['payment_intent_id'];

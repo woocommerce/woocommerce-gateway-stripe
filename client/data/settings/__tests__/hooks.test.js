@@ -4,11 +4,11 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useSettings,
 	useGetOrderedPaymentMethodIds,
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestButtonTheme,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonType,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutButtonTheme,
+	useExpressCheckoutLocations,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonType,
 	useIsStripeEnabled,
 	useTestMode,
 	useSavedCards,
@@ -22,6 +22,7 @@ import {
 	useSepaTokensForIdeal,
 	useSepaTokensForBancontact,
 	useIsOCEnabled,
+	useIsAdaptivePricingEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -184,26 +185,26 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'foo', 'bar' ],
 			fallbackValue: [],
 		},
-		usePaymentRequestEnabledSettings: {
-			hook: usePaymentRequestEnabledSettings,
+		useExpressCheckoutEnabledSettings: {
+			hook: useExpressCheckoutEnabledSettings,
 			storeKey: 'is_payment_request_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
-		usePaymentRequestButtonSize: {
-			hook: usePaymentRequestButtonSize,
+		useExpressCheckoutButtonSize: {
+			hook: useExpressCheckoutButtonSize,
 			storeKey: 'payment_request_button_size',
 			testedValue: 'large',
 			fallbackValue: '',
 		},
-		usePaymentRequestButtonType: {
-			hook: usePaymentRequestButtonType,
+		useExpressCheckoutButtonType: {
+			hook: useExpressCheckoutButtonType,
 			storeKey: 'payment_request_button_type',
 			testedValue: '',
 			fallbackValue: '',
 		},
-		usePaymentRequestButtonTheme: {
-			hook: usePaymentRequestButtonTheme,
+		useExpressCheckoutButtonTheme: {
+			hook: useExpressCheckoutButtonTheme,
 			storeKey: 'payment_request_button_theme',
 			testedValue: 'dark',
 			fallbackValue: '',
@@ -262,8 +263,8 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		usePaymentRequestLocations: {
-			hook: usePaymentRequestLocations,
+		useExpressCheckoutLocations: {
+			hook: useExpressCheckoutLocations,
 			storeKey: 'payment_request_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
@@ -283,6 +284,12 @@ describe( 'Settings hooks tests', () => {
 		useIsOCEnabledSettings: {
 			hook: useIsOCEnabled,
 			storeKey: 'is_oc_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useIsAdaptivePricingEnabledSettings: {
+			hook: useIsAdaptivePricingEnabled,
+			storeKey: 'is_ap_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},

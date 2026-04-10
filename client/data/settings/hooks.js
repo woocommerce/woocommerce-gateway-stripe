@@ -98,22 +98,22 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
 );
-export const usePaymentRequestEnabledSettings = makeSettingsHook(
+export const useExpressCheckoutEnabledSettings = makeSettingsHook(
 	'is_payment_request_enabled'
 );
-export const usePaymentRequestButtonSize = makeSettingsHook(
+export const useExpressCheckoutButtonSize = makeSettingsHook(
 	'payment_request_button_size',
 	''
 );
-export const usePaymentRequestButtonType = makeSettingsHook(
+export const useExpressCheckoutButtonType = makeSettingsHook(
 	'payment_request_button_type',
 	''
 );
-export const usePaymentRequestButtonTheme = makeSettingsHook(
+export const useExpressCheckoutButtonTheme = makeSettingsHook(
 	'payment_request_button_theme',
 	''
 );
-export const usePaymentRequestLocations = makeSettingsHook(
+export const useExpressCheckoutLocations = makeSettingsHook(
 	'payment_request_button_locations',
 	EMPTY_ARR
 );
@@ -167,6 +167,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
+export const useIsAdaptivePricingEnabled = makeSettingsHook( 'is_ap_enabled' );
 export const useOCLayout = makeSettingsHook( 'oc_layout' );
 export const useIsPMCEnabled = makeReadOnlySettingsHook(
 	'is_pmc_enabled',

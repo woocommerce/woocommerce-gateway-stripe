@@ -1,18 +1,18 @@
 import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, CheckboxControl } from '@wordpress/components';
-import { usePaymentRequestEnabledSettings } from 'wcstripe/data';
+import { useExpressCheckoutEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 const ExpressCheckoutEnableSection = () => {
-	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
-		usePaymentRequestEnabledSettings();
+	const [ isExpressCheckoutEnabled, updateIsExpressCheckoutEnabled ] =
+		useExpressCheckoutEnabledSettings();
 
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
 				<CheckboxControl
-					checked={ isPaymentRequestEnabled }
-					onChange={ updateIsPaymentRequestEnabled }
+					checked={ isExpressCheckoutEnabled }
+					onChange={ updateIsExpressCheckoutEnabled }
 					label={ __(
 						'Enable Apple Pay / Google Pay',
 						'woocommerce-gateway-stripe'

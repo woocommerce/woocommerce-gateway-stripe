@@ -43,8 +43,6 @@ class WC_Stripe_Settings_Controller {
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
-		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
-
 		// Add AJAX handler for OAuth URL generation
 		add_action( 'wp_ajax_wc_stripe_get_oauth_url', [ $this, 'ajax_get_oauth_url' ] );
 	}
@@ -58,22 +56,6 @@ class WC_Stripe_Settings_Controller {
 		}
 
 		return $this->gateway;
-	}
-
-	/**
-	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
-	 * This function is called when the 'woocommerce_gateway_order' option is updated.
-	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
-	 *
-	 * @param array $ordering The current ordering of the gateways.
-	 */
-	public function set_stripe_gateways_in_list( $ordering ) {
-		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
-		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
-
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
-
-		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
@@ -94,7 +76,7 @@ class WC_Stripe_Settings_Controller {
 				echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wp_kses_post( wc_help_tip( $no_refunds_tooltip ) ) . '</span>';
 			}
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order->get_id(), [ 'error_message' => $e->getMessage() ] );
 		}
 	}
 
@@ -109,8 +91,8 @@ class WC_Stripe_Settings_Controller {
 
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
-		$header          = $gateway->get_method_title();
-		$return_text     = __( 'Return to payments', 'woocommerce-gateway-stripe' );
+		$header           = $gateway->get_method_title();
+		$return_text      = __( 'Return to payments', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
@@ -230,6 +212,12 @@ class WC_Stripe_Settings_Controller {
 			// Show the OC promotional banner only if OC is disabled
 			&& ! $is_oc_enabled;
 
+		$show_stripe_tax_banner = get_option( 'wc_stripe_show_stripe_tax_banner', 'yes' ) === 'yes'
+			// Show the Stripe Tax banner only if OC is enabled
+			&& $is_oc_enabled;
+
+		$is_ap_available_for_account = WC_Stripe_Helper::is_adaptive_pricing_available_for_account();
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
@@ -238,13 +226,15 @@ class WC_Stripe_Settings_Controller {
 			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
 			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
+			'show_stripe_tax_banner'                => $show_stripe_tax_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
-			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'are_apms_deprecated'                   => false,
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
+			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available() && $is_ap_available_for_account,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
@@ -255,6 +245,7 @@ class WC_Stripe_Settings_Controller {
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
+			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
@@ -285,18 +276,6 @@ class WC_Stripe_Settings_Controller {
 		$gateways_to_hide = [
 			// Hide all UPE payment methods.
 			WC_Stripe_UPE_Payment_Method::class,
-			// Hide all legacy payment methods.
-			WC_Gateway_Stripe_Alipay::class,
-			WC_Gateway_Stripe_Sepa::class,
-			WC_Gateway_Stripe_Giropay::class,
-			WC_Gateway_Stripe_Ideal::class,
-			WC_Gateway_Stripe_Bancontact::class,
-			WC_Gateway_Stripe_Eps::class,
-			WC_Gateway_Stripe_P24::class,
-			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_Oxxo::class,
-			WC_Gateway_Stripe_Sofort::class,
-			WC_Gateway_Stripe_Multibanco::class,
 		];
 
 		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {

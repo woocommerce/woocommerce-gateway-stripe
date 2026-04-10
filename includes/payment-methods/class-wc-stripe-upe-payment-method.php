@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -130,7 +132,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;
 		$this->testmode                 = WC_Stripe_Mode::is_test();
-		$this->supports                 = [ 'products', 'refunds' ];
+		$this->supports                 = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 	}
@@ -148,6 +150,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @param string $method    The method name.
 	 * @param array  $arguments The method arguments.
+	 * @return mixed
 	 */
 	public function __call( $method, $arguments ) {
 		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
@@ -196,9 +199,21 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		// When OC is enabled, we use the OC payment container to render all the methods.
-		if ( $this->oc_enabled ) {
-			$enabled_methods     = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_upe_enabled_at_checkout_payment_method_ids();
+		$main_stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( is_add_payment_method_page() ) {
+			if ( ! $this->is_reusable() ) {
+				return false;
+			}
+
+			if ( $main_stripe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! $main_stripe_gateway->is_saved_cards_enabled() ) {
+				return false;
+			}
+		}
+
+		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
+		if ( $this->oc_enabled && $main_stripe_gateway->is_valid_optimized_checkout_page() ) {
+			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
 				function ( $method_id ) {
@@ -206,10 +221,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				}
 			);
 			return WC_Stripe_Payment_Methods::OC === $this->stripe_id && ( has_block( 'woocommerce/checkout' ) || count( $non_express_methods ) > 0 );
-		}
-
-		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
-			return false;
 		}
 
 		return $this->is_enabled_at_checkout() && parent::is_available();
@@ -402,6 +413,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns string representing payment method type
 	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @return string
 	 */
 	public function get_retrievable_type() {
 		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
@@ -464,6 +477,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Wrapper function for get_woocommerce_currency global function
+	 *
+	 * @return string
 	 */
 	public function get_woocommerce_currency() {
 		return get_woocommerce_currency();
@@ -522,6 +537,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
+	 *
+	 * Wrap test card/account numbers in `<number>` tags (e.g. `<number>4242 4242 4242 4242</number>`)
+	 * so they are rendered as copy-to-clipboard buttons at checkout.
+	 *
+	 * @see WC_Stripe_UPE_Payment_Gateway::expand_copy_button_markup()
 	 *
 	 * @return string
 	 */
@@ -620,6 +640,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Renders the UPE payment fields.
+	 *
+	 * @return void
 	 */
 	public function payment_fields() {
 		try {
@@ -641,7 +663,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
-				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
@@ -654,7 +675,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error in UPE payment fields', [ 'error_message' => $e->getMessage() ] );
 			?>
 			<div>
 				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
@@ -680,7 +701,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @deprecated 10.0.0 Use is_sepa_tokens_for_ideal and is_sepa_tokens_for_bancontact instead.
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
-		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_ideal_enabled() and WC_Stripe_UPE_Payment_Method::is_sepa_tokens_for_bancontact_enabled()' );
+
+		return $this->is_sepa_tokens_for_ideal_enabled() || $this->is_sepa_tokens_for_bancontact_enabled();
 	}
 
 	/**
@@ -775,6 +798,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Displays the save to account checkbox.
 	 *
 	 * @param bool $force_checked Whether the checkbox should be checked by default.
+	 *
+	 * @return void
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -825,7 +850,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns the title for the card wallet type.
 	 * This is used to display the title for Apple Pay and Google Pay.
 	 *
-	 * @param $express_payment_type string The type of express payment method.
+	 * @param string $express_payment_type The type of express payment method.
 	 *
 	 * @return string The title for the card wallet type.
 	 */

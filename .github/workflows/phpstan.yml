@@ -1,0 +1,77 @@
+name: 'PHPStan Analysis'
+
+on:
+    pull_request:
+        paths:
+            - '**/*.php'
+            - 'composer.json'
+            - 'composer.lock'
+            - 'phpstan.neon'
+            - 'phpstan-baseline.neon'
+            - 'woocommerce-gateway-stripe.php'
+    push:
+        paths:
+            - '**/*.php'
+            - 'composer.json'
+            - 'composer.lock'
+            - 'phpstan.neon'
+            - 'phpstan-baseline.neon'
+            - 'woocommerce-gateway-stripe.php'
+        branches:
+            - 'develop'
+            - 'release/*'
+
+concurrency:
+    group: phpstan-${{ github.event_name == 'push' && github.run_id || github.event_name }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_COLOR: 1
+
+jobs:
+    phpstan:
+        name: 'PHPStan Analysis'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: 'actions/checkout@v4'
+              name: 'Checkout'
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
+              with:
+                php-version: 7.4
+                tools: composer
+                coverage: none
+
+            - name: Cache Composer deps
+              id: composer-cache
+              uses: actions/cache@v4
+              with:
+                path: ./vendor
+                key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
+
+            - name: Install composer dependencies
+              if: ${{ steps.composer-cache.outputs.cache-hit == false }}
+              shell: bash
+              run: composer install --no-progress
+
+            - name: 'Create phpstan-tmp directory'
+              run: mkdir -p phpstan-tmp
+
+            - name: 'Restore PHPStan result cache'
+              uses: actions/cache/restore@v4
+              with:
+                  path: phpstan-tmp
+                  key: phpstan-result-cache-${{ github.run_id }}
+                  restore-keys: |
+                      phpstan-result-cache-
+
+            - name: 'Run PHPStan'
+              run: npm run phpstan
+
+            - name: 'Save PHPStan result cache'
+              uses: actions/cache/save@v4
+              if: ${{ !cancelled() }}
+              with:
+                  path: phpstan-tmp
+                  key: phpstan-result-cache-${{ github.run_id }}

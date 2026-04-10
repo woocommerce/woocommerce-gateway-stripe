@@ -17,7 +17,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	/**
 	 * I created this as a separate method, so it can be mocked in unit tests.
 	 *
-	 * @retun string
+	 * @return string
 	 */
 	public function get_wc_version() {
 		return WC_VERSION;
@@ -25,6 +25,8 @@ class WC_Stripe_UPE_Compatibility_Controller {
 
 	/**
 	 * Adds a compatibility notice in the `wp-admin` area in case the version of WooCommerce or WordPress are (or will be) not supported.
+	 *
+	 * @return void
 	 */
 	public function add_compatibility_notice() {
 		/*
@@ -69,6 +71,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		$this->show_current_compatibility_notice( $unsatisfied_requirements );
 	}
 
+	/**
+	 * Get the installed versions message for unsatisfied requirements.
+	 *
+	 * @param array $unsatisfied_requirements The unsatisfied requirements.
+	 *
+	 * @return string The installed versions message.
+	 */
 	private function get_installed_versions_message( $unsatisfied_requirements ) {
 		return implode(
 			__( ' and ', 'woocommerce-gateway-stripe' ),
@@ -81,6 +90,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		);
 	}
 
+	/**
+	 * Get the unsatisfied requirements message.
+	 *
+	 * @param array $unsatisfied_requirements The unsatisfied requirements.
+	 *
+	 * @return string The unsatisfied requirements message.
+	 */
 	private function get_unsatisfied_requirements_message( $unsatisfied_requirements ) {
 		return implode(
 			__( ' and ', 'woocommerce-gateway-stripe' ),
@@ -93,6 +109,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		);
 	}
 
+	/**
+	 * Show the current compatibility notice.
+	 *
+	 * @param array $unsatisfied_requirements The unsatisfied requirements.
+	 *
+	 * @return void
+	 */
 	private function show_current_compatibility_notice( array $unsatisfied_requirements ) {
 		/*
 		 * The following might be hard to read, but here's what I'm trying to do:

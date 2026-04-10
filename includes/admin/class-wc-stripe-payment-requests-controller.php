@@ -18,6 +18,8 @@ class WC_Stripe_Payment_Requests_Controller {
 
 	/**
 	 * Load admin scripts.
+	 *
+	 * @return void
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
@@ -49,7 +51,7 @@ class WC_Stripe_Payment_Requests_Controller {
 		];
 		wp_localize_script(
 			'wc-stripe-payment-request-settings',
-			'wc_stripe_payment_request_settings_params',
+			'wc_stripe_express_checkout_settings_params',
 			$params
 		);
 
@@ -65,16 +67,18 @@ class WC_Stripe_Payment_Requests_Controller {
 	/**
 	 * Prints the admin options for the gateway.
 	 * Remove this action once we're fully migrated to UPE and move the wrapper in the `admin_options` method of the UPE gateway.
+	 *
+	 * @return void
 	 */
 	public function admin_options() {
 		global $hide_save_button;
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
-		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		$return_text     = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
+		$header           = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+		$return_text      = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
-		echo '<div class="wrap"><div id="wc-stripe-payment-request-settings-container"></div></div>';
+		echo '<div class="wrap"><div id="wc-stripe-express-checkout-settings-container"></div></div>';
 	}
 }
