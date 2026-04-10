@@ -478,9 +478,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings                              = WC_Stripe_Helper::get_stripe_settings();
-		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
-		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
+		$settings                              = WC_Stripe_Settings::get_instance();
+		$is_short_statement_descriptor_enabled = $settings->is_short_statement_descriptor_enabled();
+		$capture                               = $settings->is_capture_enabled();
 		$post_data                             = [];
 		$post_data['currency']                 = strtolower( $order->get_currency() );
 		$post_data['amount']                   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );

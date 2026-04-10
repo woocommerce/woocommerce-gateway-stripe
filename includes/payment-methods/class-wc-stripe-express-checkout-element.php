@@ -20,7 +20,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var array
+	 * @var WC_Stripe_Settings
 	 */
 	public $stripe_settings;
 
@@ -50,7 +50,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function __construct( WC_Stripe_Express_Checkout_Ajax_Handler $express_checkout_ajax_handler, WC_Stripe_Express_Checkout_Helper $express_checkout_helper ) {
 		self::$_this           = $this;
-		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->stripe_settings = WC_Stripe_Settings::get_instance();
 
 		$this->express_checkout_helper       = $express_checkout_helper;
 		$this->express_checkout_ajax_handler = $express_checkout_ajax_handler;
@@ -64,7 +64,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function init() {
 		// Checks if Stripe Gateway is enabled.
-		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
+		if ( ! $this->stripe_settings->is_enabled() ) {
 			return;
 		}
 
@@ -188,8 +188,8 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function javascript_params() {
 		$publishable_key = WC_Stripe_Mode::is_test()
-			? ( $this->stripe_settings['test_publishable_key'] ?? '' )
-			: ( $this->stripe_settings['publishable_key'] ?? '' );
+			? $this->stripe_settings->get_test_publishable_key()
+			: $this->stripe_settings->get_publishable_key();
 
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),

@@ -24,7 +24,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * The secret to use when verifying webhooks.
 	 *
-	 * @var string
+	 * @var string|false
 	 */
 	protected $secret;
 
@@ -78,10 +78,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
-		$stripe_settings      = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings      = WC_Stripe_Settings::get_instance();
 		$this->testmode       = WC_Stripe_Mode::is_test();
-		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
-		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
+		$secret               = $this->testmode ? $stripe_settings->get_test_webhook_secret() : $stripe_settings->get_webhook_secret();
+		$this->secret         = ! empty( $secret ) ? $secret : false;
 
 		$this->action_scheduler_service = new WC_Stripe_Action_Scheduler_Service();
 
@@ -126,7 +126,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$secret = $is_agentic_hook
 			? ( defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ? AGENTIC_COMMERCE_WEBHOOK_SECRET : '' )
-			: $this->secret;
+			: ( false !== $this->secret ? $this->secret : '' );
 
 		// Validate it to make sure it is legit.
 		$request_headers   = array_change_key_case( $this->get_request_headers(), CASE_UPPER );

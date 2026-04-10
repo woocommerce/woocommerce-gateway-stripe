@@ -125,9 +125,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Create instance of payment method
 	 */
 	public function __construct() {
-		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
-		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
-
+		$is_stripe_enabled              = WC_Stripe_Settings::get_instance()->is_enabled();
 		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;
@@ -625,17 +623,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string The value specified for the option or a default value for the option.
 	 */
 	public function get_option( $key, $empty_value = null ) {
-		$main_settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance();
+		$value    = $settings->get( $key );
 
-		if ( empty( $main_settings ) ) {
+		if ( is_null( $value ) ) {
 			return $empty_value;
 		}
 
-		if ( isset( $main_settings[ $key ] ) && ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
+		if ( ! is_null( $empty_value ) && '' === $value ) {
 			return $empty_value;
 		}
 
-		return $main_settings[ $key ] ?? $empty_value;
+		return $value;
 	}
 
 	/**
