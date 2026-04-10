@@ -235,6 +235,9 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 														) }
 														autoComplete="off"
 														disabled={ true }
+														style={ {
+															paddingTop: '8px',
+														} }
 													/>
 													<Button
 														variant="secondary"
