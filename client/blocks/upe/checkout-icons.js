@@ -32,7 +32,7 @@ export const initializeCheckoutIcons = ( isAdmin ) => {
 			diners: createIconComponent( 'diners' ),
 			alipay: createIconComponent( 'alipay' ),
 			bancontact: createIconComponent( 'bancontact' ),
-			ideal: createIconComponent( 'ideal' ),
+			ideal: createIconComponent( 'ideal-wero' ),
 			p24: createIconComponent( 'p24' ),
 			giropay: createIconComponent( 'giropay' ),
 			eps: createIconComponent( 'eps' ),

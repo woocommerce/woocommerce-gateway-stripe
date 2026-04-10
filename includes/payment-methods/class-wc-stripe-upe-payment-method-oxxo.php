@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,8 +26,8 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
-		$this->supported_countries  = [ 'MX' ];
-		$this->supports             = [ 'products' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::MEXICO ];
+		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',

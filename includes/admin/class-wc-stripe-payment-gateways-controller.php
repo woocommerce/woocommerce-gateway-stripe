@@ -77,6 +77,15 @@ class WC_Stripe_Payment_Gateways_Controller {
 		);
 
 		if ( $is_payment_methods_page ) {
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			wp_localize_script(
+				'woocommerce_stripe_payment_gateways_page',
+				'wc_stripe_settings_params',
+				[
+					'show_stripe_first_method_notice' => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
+					'is_oc_enabled'                   => $gateway->is_oc_enabled(),
+				]
+			);
 			wp_enqueue_script( 'woocommerce_stripe_payment_gateways_page' );
 			wp_enqueue_style( 'woocommerce_stripe_payment_gateways_page' );
 		}

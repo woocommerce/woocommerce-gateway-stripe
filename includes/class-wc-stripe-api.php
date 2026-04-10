@@ -13,8 +13,9 @@ class WC_Stripe_API {
 	/**
 	 * Stripe API Endpoint
 	 */
-	const ENDPOINT           = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION = '2025-09-30.clover';
+	const ENDPOINT                     = 'https://api.stripe.com/v1/';
+	const STRIPE_API_VERSION           = '2025-09-30.clover';
+	const AGENTIC_COMMERCE_API_VERSION = '2025-12-15.preview';
 
 	/**
 	 * The invalid API key error count cache key.
@@ -146,7 +147,7 @@ class WC_Stripe_API {
 		$app_info   = $user_agent['application'];
 
 		$headers = [
-			'Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
@@ -260,9 +261,9 @@ class WC_Stripe_API {
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			$error_data = [
-				'stripe_api_key'    => $masked_secret_key,
-				'request'           => $request,
-				'idempotency_key'   => $idempotency_key,
+				'stripe_api_key'  => $masked_secret_key,
+				'request'         => $request,
+				'idempotency_key' => $idempotency_key,
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
@@ -674,7 +675,7 @@ class WC_Stripe_API {
 	 */
 	private static function log_error_response( $response, string $api, string $method, array $data = [] ): void {
 		$error_message = "Stripe API error: {$method} {$api}";
-		$error_data = array_merge(
+		$error_data    = array_merge(
 			$data,
 			[
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
@@ -697,7 +698,7 @@ class WC_Stripe_API {
 			if ( $resolved_ip_address === $stripe_api_host ) {
 				$error_data['validation_details'] = "$stripe_api_host could not be resolved to an IP address";
 			} else {
-				$error_message .= "; Possible DNS resolution problem for $stripe_api_host";
+				$error_message                   .= "; Possible DNS resolution problem for $stripe_api_host";
 				$error_data['validation_details'] = "$stripe_api_host resolved to $resolved_ip_address";
 			}
 		}

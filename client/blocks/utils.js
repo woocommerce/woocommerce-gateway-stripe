@@ -1,5 +1,8 @@
 /* global wc */
 
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
+
 /**
  * Retrieves the Stripe blocks configuration from the WooCommerce settings.
  *
@@ -66,6 +69,18 @@ export const shouldSetupOffSessionPayment = (
 		( isPaymentMethodReusable &&
 			getBlocksConfiguration()?.forceSavePaymentMethod )
 	);
+};
+
+/**
+ * Checks if the save payment method checkbox is checked.
+ *
+ * @return {boolean} True if the save payment method checkbox is checked, false otherwise.
+ */
+export const isSavePaymentMethodCheckboxChecked = () => {
+	const checkbox = document.querySelector(
+		'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
+	);
+	return Boolean( checkbox?.checked );
 };
 
 /**
@@ -147,4 +162,80 @@ export const addOrderAttributionInputsIfNotExists = () => {
 export const getStripeImageUrl = ( imageName ) => {
 	const config = getBlocksConfiguration();
 	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
+};
+
+/**
+ * Gets the Stripe element options.
+ *
+ * @param {boolean} forCheckoutSession Whether the options are for a checkout session. If true, it will remove options not supported by checkout sessions.
+ * @return {Object} The Stripe element options.
+ */
+export const getStripeElementOptions = ( forCheckoutSession = false ) => {
+	let options = {
+		fields: {
+			billingDetails: {
+				name: 'never',
+				email: 'never',
+				// The phone field is optional, so it needs to be "auto" to not throw errors
+				// when passing the phone parameter to create a payment method.
+				phone: 'auto',
+				address: {
+					country: 'never',
+					line1: 'never',
+					line2: 'never',
+					city: 'never',
+					state: 'never',
+					postalCode: 'never',
+				},
+			},
+		},
+		wallets: {
+			applePay: 'never',
+			googlePay: 'never',
+		},
+	};
+
+	// Prefill Link customer data if available.
+	if ( isLinkEnabled() && ! forCheckoutSession ) {
+		const userEmail = document.getElementById( 'email' )?.value;
+		if ( userEmail ) {
+			const userPhone =
+				document.getElementById( 'billing-phone' )?.value ||
+				document.getElementById( 'shipping-phone' )?.value;
+
+			options = {
+				...options,
+				defaultValues: {
+					billingDetails: {
+						email: userEmail,
+						phone: userPhone,
+					},
+				},
+			};
+		}
+	}
+
+	const stripeServerData = getBlocksConfiguration();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const layout = {
+			type:
+				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+		};
+		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.radios = false;
+			layout.spacedAccordionItems = false;
+		}
+		options = {
+			...options,
+			layout,
+		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		options.layout = {
+			type: 'tabs',
+		};
+	}
+
+	return options;
 };

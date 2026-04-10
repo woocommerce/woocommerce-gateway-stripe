@@ -23,6 +23,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import 'wcstripe/blocks/express-checkout/styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(

@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,8 +26,8 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'Boleto';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
-		$this->supported_countries  = [ 'BR' ];
-		$this->supports             = [ 'products' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::BRAZIL ];
+		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
 		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
@@ -44,6 +45,10 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	 * @return array
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return $allowed_statuses;
+		}
+
 		if ( WC_Stripe_Payment_Methods::BOLETO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
