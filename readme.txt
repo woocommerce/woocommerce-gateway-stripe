@@ -175,6 +175,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Allow additional font domains to be included in Stripe fonts
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
 * Dev - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Update - Move Agentic Commerce settings from a separate tab to an inline section in the Settings tab, use sentence case, and integrate save into the global Save changes button
 * Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
 * Fix - Add order and payment method validation to prevent errors
 * Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)

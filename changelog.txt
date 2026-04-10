@@ -36,6 +36,7 @@
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
 * Dev - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Update - Move Agentic Commerce settings from a separate tab to an inline section in the Settings tab, use sentence case, and integrate save into the global Save changes button
 * Dev - Collapse PHPUnit tests using data providers to reduce duplication and improve test isolation
 * Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
 * Add - Handle Checkout Session failure webhook events for expired and async failed payments
