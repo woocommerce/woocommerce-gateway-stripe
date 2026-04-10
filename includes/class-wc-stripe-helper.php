@@ -418,9 +418,13 @@ class WC_Stripe_Helper {
 	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
 	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function no_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bif', // Burundian Franc
 			'clp', // Chilean Peso
@@ -444,9 +448,13 @@ class WC_Stripe_Helper {
 	 * List of currencies supported by Stripe that has three decimals
 	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function three_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar
