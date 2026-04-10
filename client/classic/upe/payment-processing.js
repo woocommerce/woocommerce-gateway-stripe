@@ -334,7 +334,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				adaptivePricing: {
 					allowed: true,
 				},
-				...getDefaultValues( true ),
 			} );
 
 			shouldLoadStripeElements = false;
@@ -439,6 +438,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 	} else {
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...getUpeSettings(),
+		};
 		createdStripePaymentElement = elements.createPaymentElement(
 			paymentElementOptions
 		);
