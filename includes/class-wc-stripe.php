@@ -426,7 +426,6 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function set_stripe_gateways_in_list( $ordering ) {
-		wc_get_logger()->debug( 'set_stripe_gateways_in_list was called' );
 		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
 		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
