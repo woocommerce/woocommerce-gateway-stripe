@@ -503,8 +503,6 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 
 		$checkout_session_missing_secret = (object) [];
 
-		$mocked_session_id = 'cs_test_session_001';
-
 		$checkout_session_success = (object) [
 			'id'            => $mocked_session_id,
 			'client_secret' => $mocked_secret,
