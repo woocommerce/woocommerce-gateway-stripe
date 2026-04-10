@@ -2203,24 +2203,6 @@ parameters:
 			path: includes/class-wc-stripe-helper.php
 
 		-
-			message: '#^Call to an undefined method object\:\:delete_meta_data\(\)\.$#'
-			identifier: method.notFound
-			count: 4
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_meta\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/class-wc-stripe-helper.php
-
-		-
-			message: '#^Call to an undefined method object\:\:update_meta_data\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/class-wc-stripe-helper.php
-
-		-
 			message: '#^Call to function method_exists\(\) with ''WC_Deposits_Product…'' and ''deposits_enabled'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
