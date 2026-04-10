@@ -3829,12 +3829,6 @@ parameters:
 			path: includes/class-wc-stripe.php
 
 		-
-			message: '#^Parameter \#1 \$gateway of class WC_REST_Stripe_Settings_Controller constructor expects WC_Gateway_Stripe, WC_Stripe_UPE_Payment_Gateway given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe.php
-
-		-
 			message: '#^Parameter \#2 \$old_settings of method WC_Stripe\:\:maybe_reset_stripe_in_memory_key\(\) expects array, array\|true given\.$#'
 			identifier: argument.type
 			count: 1
