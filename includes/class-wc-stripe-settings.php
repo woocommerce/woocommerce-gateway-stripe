@@ -18,16 +18,16 @@ class WC_Stripe_Settings {
 	/**
 	 * The *Singleton* instance of this class
 	 *
-	 * @var WC_Stripe_Settings
+	 * @var WC_Stripe_Settings|null
 	 */
-	private static $instance;
+	private static ?self $instance = null;
 
 	/**
 	 * Settings array.
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
-	private $settings;
+	private array $settings;
 
 	/**
 	 * Constructor.
@@ -45,7 +45,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return WC_Stripe_Settings The *Singleton* instance.
 	 */
-	public static function get_instance() {
+	public static function get_instance(): self {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
 		}
@@ -57,7 +57,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return bool
 	 */
-	public function is_enabled() {
+	public function is_enabled(): bool {
 		return 'yes' === ( $this->settings['enabled'] ?? '' );
 	}
 
@@ -66,7 +66,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_logging() {
+	public function get_logging(): string {
 		return $this->settings['logging'] ?? '';
 	}
 
@@ -75,7 +75,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_publishable_key() {
+	public function get_publishable_key(): string {
 		return $this->settings['publishable_key'] ?? '';
 	}
 
@@ -84,7 +84,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_secret_key() {
+	public function get_secret_key(): string {
 		return $this->settings['secret_key'] ?? '';
 	}
 
@@ -93,7 +93,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_statement_descriptor() {
+	public function get_statement_descriptor(): string {
 		return $this->settings['statement_descriptor'] ?? '';
 	}
 
@@ -102,7 +102,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_test_publishable_key() {
+	public function get_test_publishable_key(): string {
 		return $this->settings['test_publishable_key'] ?? '';
 	}
 
@@ -111,7 +111,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_test_secret_key() {
+	public function get_test_secret_key(): string {
 		return $this->settings['test_secret_key'] ?? '';
 	}
 
@@ -120,7 +120,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_express_checkout_button_type() {
+	public function get_express_checkout_button_type(): string {
 		return $this->settings['payment_request_button_type'] ?? 'default';
 	}
 
@@ -129,16 +129,16 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_express_checkout_button_theme() {
+	public function get_express_checkout_button_theme(): string {
 		return $this->settings['payment_request_button_theme'] ?? 'dark';
 	}
 
 	/**
 	 * Gets the button height.
 	 *
-	 * @return  string
+	 * @return string
 	 */
-	public function get_express_checkout_button_height() {
+	public function get_express_checkout_button_height(): string {
 		$height = $this->settings['payment_request_button_size'] ?? 'default';
 		if ( 'small' === $height ) {
 			return '40';
@@ -156,7 +156,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_express_checkout_button_radius() {
+	public function get_express_checkout_button_radius(): string {
 		$height = $this->settings['payment_request_button_size'] ?? 'default';
 		if ( 'small' === $height ) {
 			return '2';
@@ -172,9 +172,9 @@ class WC_Stripe_Settings {
 	/**
 	 * Pages where the express checkout buttons should be displayed.
 	 *
-	 * @return array
+	 * @return array<int, string>
 	 */
-	public function get_express_checkout_button_locations() {
+	public function get_express_checkout_button_locations(): array {
 		// If the locations have not been set return the default setting.
 		if ( ! isset( $this->settings['payment_request_button_locations'] ) ) {
 			return [ 'product', 'cart' ];
@@ -193,10 +193,9 @@ class WC_Stripe_Settings {
 	/**
 	 * Set the payment request button locations.
 	 *
-	 * @param array $value The value to set.
-	 * @return void
+	 * @param array<int, string> $value The value to set.
 	 */
-	public function set_payment_request_button_locations( $value ) {
+	public function set_payment_request_button_locations( array $value ): void {
 		$this->settings['payment_request_button_locations'] = $value;
 		update_option( self::SETTINGS_OPTION, $this->settings );
 	}
@@ -206,16 +205,16 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_test_mode() {
+	public function get_test_mode(): string {
 		return $this->settings['test_mode'] ?? '';
 	}
 
 	/**
 	 * Get the value of the `upe_checkout_experience_accepted_payments` setting.
 	 *
-	 * @return array
+	 * @return array<int, string>
 	 */
-	public function get_upe_checkout_experience_accepted_payments() {
+	public function get_upe_checkout_experience_accepted_payments(): array {
 		return ! empty( $this->settings['upe_checkout_experience_accepted_payments'] )
 			? $this->settings['upe_checkout_experience_accepted_payments']
 			: [ WC_Stripe_Payment_Methods::CARD ];
@@ -226,7 +225,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_webhook_secret() {
+	public function get_webhook_secret(): string {
 		return $this->settings['webhook_secret'] ?? '';
 	}
 
@@ -235,7 +234,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_test_webhook_secret() {
+	public function get_test_webhook_secret(): string {
 		return $this->settings['test_webhook_secret'] ?? '';
 	}
 
@@ -244,7 +243,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_connection_type() {
+	public function get_connection_type(): string {
 		return $this->settings['connection_type'] ?? '';
 	}
 
@@ -253,7 +252,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_test_connection_type() {
+	public function get_test_connection_type(): string {
 		return $this->settings['test_connection_type'] ?? '';
 	}
 
@@ -262,17 +261,16 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_pmc_enabled() {
+	public function get_pmc_enabled(): string {
 		return $this->settings['pmc_enabled'] ?? '';
 	}
 
 	/**
-	 * Set the `pmc_enabled` setting to true.
+	 * Set the `pmc_enabled` setting.
 	 *
 	 * @param string $value The value to set.
-	 * @return void
 	 */
-	public function set_pmc_enabled( $value ) {
+	public function set_pmc_enabled( string $value ): void {
 		$this->settings['pmc_enabled'] = $value;
 		update_option( self::SETTINGS_OPTION, $this->settings );
 	}
@@ -282,7 +280,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_payment_request() {
+	public function get_payment_request(): string {
 		return $this->settings['payment_request'] ?? '';
 	}
 
@@ -291,7 +289,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_express_checkout() {
+	public function get_express_checkout(): string {
 		return $this->settings['express_checkout'] ?? '';
 	}
 
@@ -300,26 +298,25 @@ class WC_Stripe_Settings {
 	 *
 	 * @return string
 	 */
-	public function get_skip_pmc_express_checkout_defaults() {
+	public function get_skip_pmc_express_checkout_defaults(): string {
 		return $this->settings['skip_pmc_express_checkout_defaults'] ?? 'no';
 	}
 
 	/**
 	 * Get the value of the `stripe_upe_payment_method_order` setting.
 	 *
-	 * @return array
+	 * @return array<int, string>
 	 */
-	public function get_stripe_upe_payment_method_order() {
+	public function get_stripe_upe_payment_method_order(): array {
 		return $this->settings['stripe_upe_payment_method_order'] ?? [];
 	}
 
 	/**
 	 * Set the `stripe_upe_payment_method_order` setting.
 	 *
-	 * @param array $value The value to set.
-	 * @return void
+	 * @param array<int, string> $value The value to set.
 	 */
-	public function set_stripe_upe_payment_method_order( $value ) {
+	public function set_stripe_upe_payment_method_order( array $value ): void {
 		$this->settings['stripe_upe_payment_method_order'] = $value;
 		update_option( self::SETTINGS_OPTION, $this->settings );
 	}
@@ -331,7 +328,7 @@ class WC_Stripe_Settings {
 	 * @param mixed  $default The default value if the key is not set.
 	 * @return mixed
 	 */
-	public function get( $key, $default = null ) {
+	public function get( string $key, $default = null ) {
 		return $this->settings[ $key ] ?? $default;
 	}
 
@@ -341,7 +338,7 @@ class WC_Stripe_Settings {
 	 * @param string $key The setting key.
 	 * @return bool
 	 */
-	public function has( $key ) {
+	public function has( string $key ): bool {
 		return isset( $this->settings[ $key ] );
 	}
 }
