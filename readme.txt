@@ -37,6 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 10.6.0
    - Removed deprecated backend methods that called wc_deprecated_function
+
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
@@ -214,5 +215,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only collect and send payer phone in Checkout Sessions when the WooCommerce phone field is required
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
+* Dev - Remove deprecated backend methods that called wc_deprecated_function
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
