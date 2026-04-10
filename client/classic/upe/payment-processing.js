@@ -17,6 +17,7 @@ import {
 	getAdditionalSetupIntentData,
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
+	getUserDataForCheckoutSession,
 } from '../../stripe-utils';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
@@ -848,12 +849,14 @@ export const processPayment = (
 				}
 
 				const { actions } = loadActionsResult;
+				const session = await actions.getSession();
 
 				const shouldSavePaymentMethod = jQueryForm
 					.find( '#wc-stripe-new-payment-method' )
 					.is( ':checked' );
 
 				const confirmArgs = {
+					...getUserDataForCheckoutSession( session ),
 					returnUrl: window.location.href,
 					redirect: 'if_required',
 				};
