@@ -2179,18 +2179,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Webhook-already-fired short-circuit: order is in a terminal-success state.
-		// Let the order-received page render normally.
-		// TODO: strip wc_stripe_cs/_wpnonce/order_id query args from the address bar on
-		// the success path (cosmetic).
+		// Strip the disambiguation query args from the address bar by redirecting
+		// to the clean order-received URL.
 		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] ) ) {
-			return;
+			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+			exit;
 		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Replay protection: the handler has already run for this order.
+		// Replay protection: the handler has already run for this order. Strip the
+		// disambiguation query args by redirecting to the clean order-received URL.
 		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
-			return;
+			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+			exit;
 		}
 
 		$locked = $order_helper->lock_order_payment( $order );
@@ -2204,8 +2206,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( null === $checkout_session ) {
 				// Either the order has no session id (defensive) or the Stripe API call failed.
 				// Logged downstream by get_checkout_session_from_order(). Leave the order
-				// untouched and let the webhook take over.
-				return;
+				// untouched and let the webhook take over, but still strip the disambiguation
+				// query args from the address bar so a refresh doesn't loop on the API.
+				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+				exit;
 			}
 
 			$status         = isset( $checkout_session->status ) ? $checkout_session->status : '';
@@ -2216,10 +2220,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// Success: session is complete (paid OR async-pending unpaid like Boleto).
 			// Mark the handler as having run so a refresh of the order-received page
-			// doesn't fall through into the cancel path while the webhook is still in flight.
+			// doesn't fall through into the cancel path while the webhook is still in flight,
+			// then strip the disambiguation query args from the address bar.
 			if ( 'complete' === $status ) {
 				$order_helper->update_stripe_upe_redirect_processed( $order, true );
-				return;
+				$order->save();
+				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+				exit;
 			}
 
 			// Anything else (open / expired) on a non-terminal order means the customer
@@ -2265,6 +2272,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					'notice'
 				);
 			}
+
+			// Persist the replay flag (and any status change from update_status above).
+			$order->save();
 
 			$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
 			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );

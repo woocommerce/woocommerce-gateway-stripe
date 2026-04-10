@@ -35,6 +35,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	const MOCK_RETURN_URL = 'test_url';
 
 	/**
+	 * The form `MOCK_RETURN_URL` takes after being passed through `wp_safe_redirect()` /
+	 * `wp_sanitize_redirect()` — a leading `/` is prepended to scheme-less URLs.
+	 *
+	 * @var string
+	 */
+	const MOCK_RETURN_URL_AFTER_REDIRECT = '/test_url';
+
+	/**
 	 * Base template for Stripe card payment method.
 	 */
 	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
@@ -208,6 +216,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->method( 'unlock_order_payment' );
 
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		// Clear any notices left over from previous tests so per-test assertions
+		// against wc_get_notices() are reliable.
+		if ( function_exists( 'wc_clear_notices' ) ) {
+			wc_clear_notices();
+		}
 	}
 
 	public function tear_down() {
@@ -1787,7 +1801,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
+		// update_stripe_checkout_session_id() only writes to in-memory meta;
+		// persist it so the handler's wc_get_order() sees it.
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
+		$order->save();
 
 		// Make sure no stale cache leaks across tests in this class.
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $session_id );
@@ -1882,7 +1899,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test the success short-circuit: an order already in `processing` status must
-	 * not trigger any Stripe API call and must leave the order untouched.
+	 * not trigger any Stripe API call and must redirect to the clean order-received
+	 * URL (stripping the disambiguation query args from the address bar).
 	 */
 	public function test_process_checkout_session_redirect_short_circuits_for_already_processed_order() {
 		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_short_circuit' );
@@ -1892,42 +1910,66 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// stripe_request must NOT be called.
 		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
 
-		$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
 
-		$final = wc_get_order( $order->get_id() );
-		$this->assertEquals( OrderStatus::PROCESSING, $final->get_status() );
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
+		$this->assertEquals( OrderStatus::PROCESSING, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
 	 * Test the replay-protection short-circuit: a second invocation must be a no-op
-	 * even when the order is still pending.
+	 * (no API call, no notice, no status change) and must redirect to the clean
+	 * order-received URL.
 	 */
 	public function test_process_checkout_session_redirect_short_circuits_when_already_processed() {
 		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_replay' );
 
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_redirect_processed( $order, true );
+		$order->save();
 
 		// stripe_request must NOT be called.
 		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
 
-		$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
 
 		// No notices, no status change.
 		$this->assertEmpty( wc_get_notices( 'error' ) );
 		$this->assertEmpty( wc_get_notices( 'notice' ) );
 		$this->assertEquals( OrderStatus::PENDING, wc_get_order( $order->get_id() )->get_status() );
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
 	}
 
 	/**
 	 * Test the success path: a `complete` Stripe Checkout Session must mark the
 	 * replay flag, leave the order pending (the webhook will finalise it), and
-	 * NOT redirect — the order-received page should render normally.
+	 * redirect to the clean order-received URL — stripping the disambiguation
+	 * query args from the address bar.
 	 *
 	 * @dataProvider provider_checkout_session_complete_states
 	 *
 	 * @param string $payment_status `paid` (sync) or `unpaid` (async — Boleto/voucher).
 	 */
-	public function test_process_checkout_session_redirect_success_does_not_redirect( string $payment_status ) {
+	public function test_process_checkout_session_redirect_success_redirects_to_clean_url( string $payment_status ) {
 		[ $order, $request_url ] = $this->create_order_with_checkout_session( 'cs_test_success_' . $payment_status );
 
 		$session_mock = $this->array_to_object(
@@ -1947,17 +1989,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( $request_url )
 			->willReturn( $session_mock );
 
-		// If the handler tries to redirect we will hear about it.
 		$captured = null;
 		$this->intercept_wp_redirect( $captured );
 
 		try {
 			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
 		}
 
-		$this->assertNull( $captured, 'Success path must not call wp_safe_redirect.' );
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
 
 		$final = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::PENDING, $final->get_status() );
@@ -2199,9 +2243,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that a Stripe API failure (get_checkout_session_from_order returns null)
-	 * leaves the order untouched and does NOT redirect — the webhook will take over.
+	 * leaves the order untouched and redirects to the clean order-received URL —
+	 * the webhook will take over, and the redirect prevents an API-call loop on refresh.
 	 */
-	public function test_process_checkout_session_redirect_api_failure_leaves_order_untouched() {
+	public function test_process_checkout_session_redirect_api_failure_redirects_to_clean_url() {
 		[ $order, $request_url ] = $this->create_order_with_checkout_session( 'cs_test_api_fail' );
 
 		// stripe_request throws — get_checkout_session_from_order should catch and return null.
@@ -2215,11 +2260,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		try {
 			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
 		}
 
-		$this->assertNull( $captured );
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
+
 		$final = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::PENDING, $final->get_status() );
 		// Replay flag must NOT be set so a later request (e.g. with cache primed) can still process.
