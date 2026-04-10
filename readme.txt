@@ -146,9 +146,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
 * Dev - Separate Agentic Commerce merchant-controlled is_enabled setting from the developer feature flag
+* Fix - Move test mode instructions above the Adaptive Pricing currency selector in classic checkout
 * Fix - Render the Adaptive Pricing currency selector immediately above the payment element in classic checkout
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
 * Fix - Fix checkout session creation for guest users
@@ -202,10 +204,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
+* Fix - Keep adaptive pricing amount in sync on block checkout after order total changes
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
 * Add - Add Ajax endpoint to update line items in a checkout session
 * Tweak - Hide the Adaptive Pricing currency selector from classic checkout when a saved payment method is selected
 * Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Fix - Only collect and send payer phone in Checkout Sessions when the WooCommerce phone field is required
+* Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
