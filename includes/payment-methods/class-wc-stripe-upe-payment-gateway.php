@@ -832,6 +832,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_title() {
 		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
+			// On the order received page and order details page, calling WC_Stripe_UPE_Payment_Method_OC::get_title()
+			// without payment details falls through to the generic "Stripe" title. Use the
+			// payment method title stored on the order instead, which is set correctly by the
+			// webhook handler after the checkout session completes.
+			if ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) {
+				global $theorder;
+				if ( $theorder instanceof WC_Order ) {
+					$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $theorder );
+					if ( ! empty( $checkout_session_id ) ) {
+						$title = $theorder->get_payment_method_title();
+						if ( ! empty( $title ) ) {
+							return $title;
+						}
+					}
+				}
+			}
 			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
 		}
 		return parent::get_title();
