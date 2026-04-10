@@ -8,17 +8,17 @@ import React, {
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
+import CardBody from '../card-body';
 import AgenticCommerceSyncStatus from './sync-status';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
 	Button,
 	Notice,
-	ToggleControl,
+	CheckboxControl,
 	TextControl,
 	ExternalLink,
 	Card,
-	CardBody,
 } from '@wordpress/components';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
@@ -192,7 +192,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 							</p>
 						) : (
 							<>
-								<ToggleControl
+								<CheckboxControl
 									label={ __(
 										'Enable agentic commerce',
 										'woocommerce-gateway-stripe'
