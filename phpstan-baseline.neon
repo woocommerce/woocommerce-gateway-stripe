@@ -4651,12 +4651,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Callback expects 1\-2 parameters, \$accepted_args is set to 4\.$#'
-			identifier: arguments.count
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
 			identifier: property.nonObject
 			count: 1
