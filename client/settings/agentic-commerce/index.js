@@ -39,7 +39,7 @@ const CopyRow = styled.div`
 	gap: 8px;
 	margin-top: 4px;
 
-	.components-text-control__input {
+	.components-base-control {
 		margin-bottom: 0;
 	}
 `;
