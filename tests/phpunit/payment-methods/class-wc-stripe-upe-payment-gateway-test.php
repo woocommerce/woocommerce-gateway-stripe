@@ -208,6 +208,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->method( 'unlock_order_payment' );
 
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		// Inject a default SDK mock for payment method retrieval (SDK bypasses WP HTTP).
+		WC_Stripe_SDK_Test_Helper::inject_sdk_payment_method_response(
+			[
+				'id'     => 'pm_mock',
+				'object' => 'payment_method',
+				'type'   => 'card',
+				'card'   => [
+					'brand'     => 'visa',
+					'last4'     => '4242',
+					'exp_month' => 12,
+					'exp_year'  => 2030,
+				],
+			]
+		);
 	}
 
 	public function tear_down() {
@@ -220,6 +235,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		//
 		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
+		WC_Stripe_SDK_Test_Helper::reset();
 
 		parent::tear_down();
 	}
@@ -336,6 +353,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 		];
+	}
+
+	/**
+	 * Helper to configure the stripe_request mock to return a default card payment method.
+	 *
+	 * Used by tests that call process_payment() with a payment method ID that
+	 * triggers a `stripe_request('payment_methods/...')` call.
+	 */
+	private function mock_stripe_request_with_default_payment_method() {
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
+		$this->mock_gateway
+			->method( 'stripe_request' )
+			->willReturnCallback(
+				function ( $endpoint ) use ( $mock_payment_method ) {
+					if ( 0 === strpos( $endpoint, 'payment_methods/' ) ) {
+						return $mock_payment_method;
+					}
+					return (object) [];
+				}
+			);
 	}
 
 	/**

@@ -223,13 +223,32 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 			return $mocked_response;
 		};
 
-		// Mock response from Stripe API.
+		// Mock response from Stripe API (for non-SDK calls).
 		add_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+
+		// Inject SDK mock for payment method retrieval (SDK bypasses WP HTTP).
+		$is_error_scenario = is_wp_error( $mocked_response )
+			|| ( is_array( $mocked_response ) && isset( $mocked_response['response'] ) && 200 !== $mocked_response['response'] );
+
+		if ( ! is_null( $source_meta ) && ! is_null( $mocked_response ) && ! $is_error_scenario ) {
+			// Success response: inject SDK mock with the response body data.
+			$body_data = json_decode( $mocked_response['body'], true );
+			WC_Stripe_SDK_Test_Helper::inject_sdk_payment_method_response(
+				array_merge(
+					[
+						'id'     => $source_meta,
+						'object' => 'source',
+					],
+					$body_data
+				)
+			);
+		}
 
 		$actual = WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription );
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+		WC_Stripe_SDK_Test_Helper::reset();
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
 
 		$this->assertSame( $expected, $actual );

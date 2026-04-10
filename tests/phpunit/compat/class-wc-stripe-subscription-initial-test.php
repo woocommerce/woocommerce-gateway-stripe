@@ -112,6 +112,21 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
+		// Inject SDK mock for payment method retrieval (SDK bypasses WP HTTP).
+		WC_Stripe_SDK_Test_Helper::inject_sdk_payment_method_response(
+			[
+				'id'                            => 'pm_test_123',
+				'object'                        => 'payment_method',
+				WC_Stripe_Payment_Methods::CARD => [
+					'brand'     => 'visa',
+					'exp_month' => 12,
+					'exp_year'  => 2034,
+					'last4'     => '4242',
+				],
+				'customer'                      => $customer,
+			]
+		);
+
 		// Act: call process_subscription_payment().
 		// We need to use `wc_gateway_stripe` here because we mocked this class earlier.
 		$result = $wc_gateway_stripe->process_payment( $order_id );
@@ -126,6 +141,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		WC_Stripe_SDK_Test_Helper::reset();
 		$_POST = $old_post;
 		WC_Stripe_Helper::delete_main_stripe_settings();
 

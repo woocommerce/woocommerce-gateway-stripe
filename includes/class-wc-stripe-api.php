@@ -69,6 +69,20 @@ class WC_Stripe_API {
 	private static string $sdk_secret = '';
 
 	/**
+	 * Set a mock SDK client for testing purposes.
+	 *
+	 * @param \Stripe\StripeClient|null $sdk The mock SDK client, or null to reset.
+	 */
+	public static function set_sdk_for_testing( $sdk ): void {
+		self::$sdk = $sdk;
+		if ( $sdk ) {
+			self::$sdk_secret = self::get_secret_key();
+		} else {
+			self::$sdk_secret = '';
+		}
+	}
+
+	/**
 	 * Get instance of WC_Stripe_API.
 	 *
 	 * @return WC_Stripe_API
@@ -520,7 +534,7 @@ class WC_Stripe_API {
 
 			// If it's not a source it's a PaymentMethod.
 			return self::get_sdk()->paymentMethods->retrieve( $payment_method_id );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
@@ -538,7 +552,7 @@ class WC_Stripe_API {
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
 		try {
 			return self::get_sdk()->paymentMethods->update( $payment_method_id, $payment_method_data );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
@@ -560,7 +574,7 @@ class WC_Stripe_API {
 			}
 
 			return self::get_sdk()->paymentMethods->attach( $payment_method_id, [ 'customer' => $customer_id ] );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
@@ -588,7 +602,7 @@ class WC_Stripe_API {
 			}
 
 			return self::get_sdk()->paymentMethods->detach( $payment_method_id );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
@@ -669,7 +683,7 @@ class WC_Stripe_API {
 			// The default limit is 10, so we set it to 100 to get all configurations in a single request.
 			// @see https://stripe.com/docs/api/payment_method_configurations/list#list_payment_method_configurations-limit
 			return self::get_sdk()->paymentMethodConfigurations->all( [ 'limit' => 100 ] );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
@@ -687,7 +701,7 @@ class WC_Stripe_API {
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
 		try {
 			return self::get_sdk()->paymentMethodConfigurations->update( $id, $payment_method_configurations );
-		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+		} catch ( \Stripe\Exception\ApiErrorException | \InvalidArgumentException $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}

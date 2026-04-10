@@ -515,9 +515,13 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
 
+		// Inject SDK mock for payment method retrieval (SDK bypasses WP HTTP).
+		WC_Stripe_SDK_Test_Helper::inject_sdk_payment_method_response( $mock_payment_method_data );
+
 		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
 
 		remove_filter( 'pre_http_request', $mock_payment_method_api );
+		WC_Stripe_SDK_Test_Helper::reset();
 
 		$this->assertEquals( $expected_result, $result );
 	}

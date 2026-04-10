@@ -10,20 +10,6 @@
 class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 
 	/**
-	 * Reflection property for the static SDK instance.
-	 *
-	 * @var ReflectionProperty
-	 */
-	private $sdk_prop;
-
-	/**
-	 * Reflection property for the static SDK secret key tracker.
-	 *
-	 * @var ReflectionProperty
-	 */
-	private $sdk_secret_prop;
-
-	/**
 	 * Set up test environment.
 	 */
 	public function set_up() {
@@ -34,12 +20,6 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']        = 'yes';
 		$stripe_settings['test_secret_key'] = 'sk_test_key_sdk_123';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$reflection     = new ReflectionClass( WC_Stripe_API::class );
-		$this->sdk_prop = $reflection->getProperty( 'sdk' );
-		$this->sdk_prop->setAccessible( true );
-		$this->sdk_secret_prop = $reflection->getProperty( 'sdk_secret' );
-		$this->sdk_secret_prop->setAccessible( true );
 	}
 
 	/**
@@ -47,8 +27,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		// Reset the static SDK instance so it does not bleed into other tests.
-		$this->sdk_prop->setValue( null, null );
-		$this->sdk_secret_prop->setValue( null, '' );
+		WC_Stripe_API::set_sdk_for_testing( null );
 		WC_Stripe_API::set_secret_key( null );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		parent::tear_down();
@@ -60,9 +39,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 	 * @param \Stripe\StripeClient $mock_client
 	 */
 	private function inject_sdk( $mock_client ) {
-		$this->sdk_prop->setValue( null, $mock_client );
-		// Set a matching secret so the SDK is not rebuilt.
-		$this->sdk_secret_prop->setValue( null, WC_Stripe_API::get_secret_key() );
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
 	}
 
 	/**
@@ -494,8 +471,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 		$get_sdk->setAccessible( true );
 
 		// Reset SDK state.
-		$this->sdk_prop->setValue( null, null );
-		$this->sdk_secret_prop->setValue( null, '' );
+		WC_Stripe_API::set_sdk_for_testing( null );
 
 		$sdk1 = $get_sdk->invoke( null );
 		$this->assertInstanceOf( \Stripe\StripeClient::class, $sdk1 );
@@ -520,8 +496,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 		$get_sdk->setAccessible( true );
 
 		// Reset SDK state.
-		$this->sdk_prop->setValue( null, null );
-		$this->sdk_secret_prop->setValue( null, '' );
+		WC_Stripe_API::set_sdk_for_testing( null );
 
 		$sdk1 = $get_sdk->invoke( null );
 		$sdk2 = $get_sdk->invoke( null );
