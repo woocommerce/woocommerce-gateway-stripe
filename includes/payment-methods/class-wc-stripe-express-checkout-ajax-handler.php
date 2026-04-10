@@ -89,52 +89,58 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product    = wc_get_product( $product_id );
+		try {
 
-		if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
-			/* translators: 1) The product Id */
-			throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
-		}
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+			$product    = wc_get_product( $product_id );
 
-		$product_type = $product->get_type();
-
-		$booking_ids = [];
-		if ( 'booking' === $product_type ) {
-			$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
-		}
-
-		// First empty the cart to prevent wrong calculation.
-		WC()->cart->empty_cart();
-
-		// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
-		// This status is used to prevent the booking from being booked by another customer
-		// and should be removed when the cart is emptied for ECE purposes.
-		if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
-			foreach ( $booking_ids as $booking_id ) {
-				do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
+				/* translators: 1) The product Id */
+				throw new Exception( sprintf( __( 'Product with the ID (%1$s) not found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
+
+			$product_type = $product->get_type();
+
+			$booking_ids = [];
+			if ( 'booking' === $product_type ) {
+				$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
+			}
+
+			// First empty the cart to prevent wrong calculation.
+			WC()->cart->empty_cart();
+
+			// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
+			// This status is used to prevent the booking from being booked by another customer
+			// and should be removed when the cart is emptied for ECE purposes.
+			if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+				foreach ( $booking_ids as $booking_id ) {
+					do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+				}
+			}
+
+			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+			} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
+				WC()->cart->add_to_cart( $product->get_id(), $qty );
+			}
+
+			WC()->cart->calculate_totals();
+
+			$data           = [];
+			$data          += $this->express_checkout_helper->build_display_items();
+			$data['result'] = 'success';
+
+			wp_send_json( $data );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Add to cart error in express checkout.', [ 'error_message' => $e->getMessage() ] );
+			wp_send_json_error( [ 'message' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
-
-		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
-
-			$data_store   = WC_Data_Store::load( 'product' );
-			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		} elseif ( in_array( $product_type, $this->express_checkout_helper->supported_product_types(), true ) ) {
-			WC()->cart->add_to_cart( $product->get_id(), $qty );
-		}
-
-		WC()->cart->calculate_totals();
-
-		$data           = [];
-		$data          += $this->express_checkout_helper->build_display_items();
-		$data['result'] = 'success';
-
-		wp_send_json( $data );
 	}
 
 	/**

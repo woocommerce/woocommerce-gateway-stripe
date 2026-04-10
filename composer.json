@@ -24,8 +24,20 @@
         "yoast/phpunit-polyfills": "^2.0",
         "brianium/paratest": "^6.0"
     },
+    "autoload": {
+      "classmap": [
+        "includes/ajax-handlers/",
+        "includes/agentic-commerce/"
+      ]
+    },
     "autoload-dev": {
-      "classmap": ["tests/phpunit/"]
+      "classmap": [
+				"tests/phpunit/"
+			],
+      "exclude-from-classmap": [
+        "/tests/phpunit/helpers/",
+        "/tests/phpunit/stubs/"
+      ]
     },
     "scripts": {
       "phpstan": [

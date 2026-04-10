@@ -10,10 +10,32 @@ use Automattic\WooCommerce\Enums\ProductTaxStatus;
  * WC_Stripe_Express_Checkout_Helper_Test class.
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
+	/**
+	 * Instance of shipping zone.
+	 *
+	 * @var WC_Shipping_Zone
+	 */
 	private $shipping_zone;
+
+	/**
+	 * Instance of shipping method.
+	 *
+	 * @var WC_Shipping_Method
+	 */
 	private $shipping_method;
+
+	/**
+	 * List of products.
+	 *
+	 * @var array Products used in tests.
+	 */
 	private $products;
 
+	/**
+	 * Set up.
+	 *
+	 * @return void
+	 */
 	public function set_up() {
 		parent::set_up();
 
@@ -25,6 +47,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
+	/**
+	 * Tear down.
+	 *
+	 * @return void
+	 */
 	public function tear_down() {
 		if ( $this->shipping_zone ) {
 			delete_option( $this->shipping_method->get_instance_option_key() );
@@ -37,6 +64,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Set up shipping methods.
+	 *
+	 * @return void
+	 */
 	public function set_up_shipping_methods() {
 		// Add a shipping zone.
 		$this->shipping_zone = new WC_Shipping_Zone();
@@ -71,7 +103,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$tax_based_on,
 		$filter_value,
 		$expected
-	) {
+	): void {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
@@ -100,7 +132,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->testmode = true;
-		$is_checkout_filter = function () {
+		$is_checkout_filter                  = function () {
 			return true;
 		};
 		add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
@@ -140,8 +172,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Create products for test_hides_ece_if_cannot_compute_taxes.
+	 *
+	 * @return void
 	 */
-	private function create_products_for_test_hides_ece_if_cannot_compute_taxes() {
+	private function create_products_for_test_hides_ece_if_cannot_compute_taxes(): void {
 		if (
 			isset( $this->products['virtual_nontaxable'] ) &&
 			isset( $this->products['virtual_taxable'] ) &&
@@ -176,11 +210,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_hides_ece_if_cannot_compute_taxes() {
+	public function provide_test_hides_ece_if_cannot_compute_taxes(): array {
 		$hide = false;
 		$show = true;
 		return [
-			'Hide if cart has virtual product and tax is based on billing address.' => [
+			'Hide if cart has virtual product and tax is based on billing address.'         => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
 				'taxes enabled'    => true,
@@ -204,7 +238,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'filter value'     => false,
 				'expected'         => $show,
 			],
-			'Do not hide if Pay for Order page.'     => [
+			'Do not hide if Pay for Order page.'                                            => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => true,
 				'taxes enabled'    => true,
@@ -212,7 +246,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'filter value'     => null,
 				'expected'         => $show,
 			],
-			'Do not hide if taxes are not enabled.'  => [
+			'Do not hide if taxes are not enabled.'                                         => [
 				'cart contents'    => [ 'virtual_nontaxable' ],
 				'is pay for order' => false,
 				'taxes enabled'    => false,
@@ -228,7 +262,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'filter value'     => null,
 				'expected'         => $show,
 			],
-			'Do not hide if taxes are not based on customer billing or shipping address.' => [
+			'Do not hide if taxes are not based on customer billing or shipping address.'   => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => false,
 				'taxes enabled'    => true,
@@ -236,7 +270,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'filter value'     => null,
 				'expected'         => $show,
 			],
-			'Do not hide if cart requires shipping.' => [
+			'Do not hide if cart requires shipping.'                                        => [
 				'cart contents'    => [ 'shippable_taxable' ],
 				'is pay for order' => false,
 				'taxes enabled'    => true,
@@ -249,8 +283,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test should_show_express_checkout_button, gateway logic.
+	 *
+	 * @return void
 	 */
-	public function test_hides_ece_if_stripe_gateway_unavailable() {
+	public function test_hides_ece_if_stripe_gateway_unavailable(): void {
 		$this->set_up_shipping_methods();
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -307,7 +343,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_hides_ece_if_free_trial_requires_shipping() {
+	public function test_shows_ece_if_free_trial_requires_shipping(): void {
 		$this->set_up_shipping_methods();
 
 		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -338,7 +374,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		update_option( 'woocommerce_calc_taxes', 'no' );
 
-		// Should show, as free virtual products does not require shipping.
+		// Should show for free virtual products.
 		$virtual_product = WC_Helper_Product::create_simple_product();
 		$virtual_product->set_virtual( true );
 		$virtual_product->set_tax_status( 'none' );
@@ -355,7 +391,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Should hide if the free product requires shipping.
+		// Should show for free product requiring shipping.
 		$shippable_product = WC_Helper_Product::create_simple_product();
 		$shippable_product->set_virtual( false );
 		$shippable_product->set_tax_status( 'none' );
@@ -369,7 +405,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->method( 'get_product' )
 			->willReturn( $shippable_product );
 
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
 		// Restore original settings.
 		WC()->cart->empty_cart();
@@ -382,8 +418,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for get_checkout_data().
+	 *
+	 * @return void
 	 */
-	public function test_get_checkout_data() {
+	public function test_get_checkout_data(): void {
 		// Local setup
 		update_option( 'woocommerce_checkout_phone_field', 'optional' );
 		update_option( 'woocommerce_default_country', 'US' );
@@ -409,8 +447,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for get_checkout_data(), no shipping zones.
 	 *
 	 * This is in a separate test, to avoid problems with cached data.
+	 *
+	 * @return void
 	 */
-	public function test_get_checkout_data_no_shipping_zones() {
+	public function test_get_checkout_data_no_shipping_zones(): void {
 		// When no shipping zones are set up, the default shipping option should be empty.
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
@@ -423,8 +463,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for is_authentication_required().
+	 *
+	 * @return void
 	 */
-	public function test_is_authentication_required() {
+	public function test_is_authentication_required(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -454,8 +496,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test for is_account_creation_possible().
+	 *
+	 * @return void
 	 */
-	public function test_is_account_creation_possible() {
+	public function test_is_account_creation_possible(): void {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
@@ -513,7 +557,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_get_normalized_postal_code
 	 */
-	public function test_get_normalized_postal_code( $postal_code, $country, $expected ) {
+	public function test_get_normalized_postal_code( $postal_code, $country, $expected ): void {
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_postal_code( $postal_code, $country ) );
 	}
@@ -523,7 +567,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_normalized_postal_code() {
+	public function provide_test_get_normalized_postal_code(): array {
 		return [
 			'GB country'           => [
 				'postal code' => 'SW1A 1AA',
@@ -553,7 +597,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_get_payment_method_title_suffix() {
+	public function test_get_payment_method_title_suffix(): void {
 		$actual = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 
 		$this->assertEquals( ' (Stripe)', $actual );
@@ -562,9 +606,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test is_express_checkout_context method.
 	 *
+	 * @return void
+	 *
 	 * @dataProvider provide_test_is_express_checkout_context
 	 */
-	public function test_is_express_checkout_context( $is_store_api, $has_express_header, $has_nonce_header, $nonce_valid, $expected ) {
+	public function test_is_express_checkout_context( $is_store_api, $has_express_header, $has_nonce_header, $nonce_valid, $expected ): void {
 		$helper = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[ 'is_request_to_store_api' ]
@@ -604,23 +650,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_express_checkout_context() {
+	public function provide_test_is_express_checkout_context(): array {
 		return [
-			'Not Store API request'                 => [
+			'Not Store API request'                                  => [
 				'is_store_api'       => false,
 				'has_express_header' => true,
 				'has_nonce_header'   => true,
 				'nonce_valid'        => true,
 				'expected'           => false,
 			],
-			'Store API request but no express checkout header' => [
+			'Store API request but no express checkout header'       => [
 				'is_store_api'       => true,
 				'has_express_header' => false,
 				'has_nonce_header'   => true,
 				'nonce_valid'        => true,
 				'expected'           => false,
 			],
-			'Store API request but no nonce header' => [
+			'Store API request but no nonce header'                  => [
 				'is_store_api'       => true,
 				'has_express_header' => true,
 				'has_nonce_header'   => false,
@@ -634,7 +680,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'nonce_valid'        => false,
 				'expected'           => false,
 			],
-			'All conditions met - valid express checkout context' => [
+			'All conditions met - valid express checkout context'    => [
 				'is_store_api'       => true,
 				'has_express_header' => true,
 				'has_nonce_header'   => true,
@@ -647,9 +693,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test is_request_to_store_api method.
 	 *
+	 * @return void
+	 *
 	 * @dataProvider provide_test_is_request_to_store_api
 	 */
-	public function test_is_request_to_store_api( $rest_route, $expected ) {
+	public function test_is_request_to_store_api( $rest_route, $expected ): void {
 		$helper = new WC_Stripe_Express_Checkout_Helper();
 
 		// Set up global WP query vars
@@ -679,7 +727,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_request_to_store_api() {
+	public function provide_test_is_request_to_store_api(): array {
 		return [
 			'No rest_route set'         => [
 				'rest_route' => '',
@@ -705,10 +753,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @param string $currency Currency code.
 	 * @param int    $expected Expected number of decimals.
+	 * @return void
 	 *
 	 * @dataProvider provide_test_get_stripe_currency_decimals
 	 */
-	public function test_get_stripe_currency_decimals( $currency, $expected ) {
+	public function test_get_stripe_currency_decimals( $currency, $expected ): void {
 		update_option( 'woocommerce_currency', $currency );
 
 		$actual = WC_Stripe_Express_Checkout_Helper::get_stripe_currency_decimals();
@@ -720,7 +769,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_stripe_currency_decimals() {
+	public function provide_test_get_stripe_currency_decimals(): array {
 		return [
 			// No decimal currencies - should return 0
 			'Japanese Yen (no decimals)'      => [
@@ -753,7 +802,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_test_get_booking_ids_from_cart
 	 */
-	public function test_get_booking_ids_from_cart( $cart_contents, $expected ) {
+	public function test_get_booking_ids_from_cart( $cart_contents, $expected ): void {
 		WC()->session->init();
 		WC()->cart->empty_cart();
 
@@ -774,7 +823,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_booking_ids_from_cart() {
+	public function provide_test_get_booking_ids_from_cart(): array {
 		$product_1 = WC_Helper_Product::create_simple_product();
 		$product_1->save();
 
@@ -785,11 +834,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$product_3->save();
 
 		return [
-			'no products'                => [
+			'no products'                                      => [
 				'cart contents' => [],
 				'expected'      => [],
 			],
-			'single product'             => [
+			'single product'                                   => [
 				'cart contents' => [
 					[
 						'product_id' => $product_1->get_id(),
@@ -802,7 +851,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					$product_1->get_id(),
 				],
 			],
-			'multiple products'          => [
+			'multiple products'                                => [
 				'cart contents' => [
 					[
 						'product_id' => $product_1->get_id(),
@@ -822,7 +871,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					$product_2->get_id(),
 				],
 			],
-			'multiple products, same ID' => [
+			'multiple products, same ID'                       => [
 				'cart contents' => [
 					[
 						'product_id' => $product_1->get_id(),
@@ -916,7 +965,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_has_free_trial() {
+	public function provide_test_has_free_trial(): array {
 		$subscription = new WC_Subscription();
 
 		$subscription_with_trial = new WC_Subscription();
@@ -924,7 +973,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$subscription_with_trial->save_meta_data();
 
 		return [
-			'product page, missing product' => [
+			'product page, missing product'       => [
 				'is_product'               => true,
 				'product'                  => null,
 				'trial length'             => 0,
@@ -932,7 +981,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'cart contains free trial' => false,
 				'expected'                 => false,
 			],
-			'product page, no free trial' => [
+			'product page, no free trial'         => [
 				'is_product'               => true,
 				'product'                  => $subscription,
 				'trial length'             => 0,
@@ -940,7 +989,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'cart contains free trial' => false,
 				'expected'                 => false,
 			],
-			'product page, with free trial' => [
+			'product page, with free trial'       => [
 				'is_product'               => true,
 				'product'                  => $subscription_with_trial,
 				'trial length'             => 14,
@@ -948,7 +997,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'cart contains free trial' => false,
 				'expected'                 => true,
 			],
-			'cart/checkout page, no free trial' => [
+			'cart/checkout page, no free trial'   => [
 				'is_product'               => false,
 				'product'                  => $subscription,
 				'trial length'             => 0,
@@ -1000,7 +1049,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_button_locations
 	 */
 	public function test_get_button_locations( string $express_checkout_type, array $settings = [], $expected = [] ): void {
-		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
 		$helper->stripe_settings = $settings;
 
 		$actual = $helper->get_button_locations( $express_checkout_type );
@@ -1008,9 +1057,14 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertSame( $expected, $actual );
 	}
 
+	/**
+	 * Provider for `test_get_button_locations`.
+	 *
+	 * @return array
+	 */
 	public function provide_test_get_button_locations(): array {
 		return [
-			'payment request, settings exists' => [
+			'payment request, settings exists'                        => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
@@ -1020,52 +1074,52 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'payment request, settings do not exist' => [
+			'payment request, settings do not exist'                  => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'link, settings exists' => [
+			'link, settings exists'                                   => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'link, settings exists, but not a valid array' => [
+			'link, settings exists, but not a valid array'            => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'link, settings do not exist' => [
+			'link, settings do not exist'                             => [
 				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'amazon pay, settings exists' => [
+			'amazon pay, settings exists'                             => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'amazon pay, settings exists, but not a valid array' => [
+			'amazon pay, settings exists, but not a valid array'      => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'amazon pay, settings do not exist' => [
+			'amazon pay, settings do not exist'                       => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'default, settings exists' => [
+			'default, settings exists'                                => [
 				'express checkout type' => 'default',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'default, settings exists, but not a valid array' => [
+			'default, settings exists, but not a valid array'         => [
 				'express checkout type' => 'default',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'default, settings do not exist' => [
+			'default, settings do not exist'                          => [
 				'express checkout type' => 'default',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
@@ -1084,7 +1138,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ) {
+	public function test_opc_detection_logic( $is_opc, $button_locations, $expected ): void {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
@@ -1100,7 +1154,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->getMock();
 
 		// Create a mock product.
-		$product = WC_Helper_Product::create_simple_product();
+		$product         = WC_Helper_Product::create_simple_product();
 		$is_product_page = $is_opc || in_array( 'product', $button_locations, true );
 
 		// Mock the methods.
@@ -1134,7 +1188,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_opc_detection_scenarios() {
+	public function provide_opc_detection_scenarios(): array {
 		return [
 			'OPC with checkout enabled'     => [ true, [ 'checkout' ], true ],
 			'Non-OPC with checkout enabled' => [ false, [ 'checkout' ], true ],
@@ -1165,7 +1219,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$helper->method( 'is_link_enabled' )->willReturn( false );
 		$helper->testmode = true;
 
-		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
 		];
@@ -1185,9 +1239,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_should_show_express_checkout_button_with_amazon_pay_only(): array {
 		return [
-			'taxes enabled, billing address' => [ true, 'billing', false ],
-			'taxes disabled, billing address' => [ false, 'billing', true ],
-			'taxes enabled, shipping address' => [ true, 'shipping', true ],
+			'taxes enabled, billing address'   => [ true, 'billing', false ],
+			'taxes disabled, billing address'  => [ false, 'billing', true ],
+			'taxes enabled, shipping address'  => [ true, 'shipping', true ],
 			'taxes disabled, shipping address' => [ false, 'shipping', true ],
 		];
 	}
@@ -1267,8 +1321,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$mock_account->method( 'get_account_country' )
 			->willReturn( $account_country );
 
-		$stripe_instance = \WC_Stripe::get_instance();
-		$initial_account = $stripe_instance->account;
+		$stripe_instance          = \WC_Stripe::get_instance();
+		$initial_account          = $stripe_instance->account;
 		$stripe_instance->account = $mock_account;
 
 		$currency_filter = function () use ( $currency ) {
@@ -1311,27 +1365,27 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_normalized_state(): array {
 		return [
-			'US state code CA is normalized'            => [
+			'US state code CA is normalized'                           => [
 				'state'    => 'CA',
 				'country'  => 'US',
 				'expected' => true,
 			],
-			'US state full name California is not normalized' => [
+			'US state full name California is not normalized'          => [
 				'state'    => 'California',
 				'country'  => 'US',
 				'expected' => false,
 			],
-			'AU state code NSW is normalized'           => [
+			'AU state code NSW is normalized'                          => [
 				'state'    => 'NSW',
 				'country'  => 'AU',
 				'expected' => true,
 			],
-			'AU state full name New South Wales is not normalized' => [
+			'AU state full name New South Wales is not normalized'     => [
 				'state'    => 'New South Wales',
 				'country'  => 'AU',
 				'expected' => false,
 			],
-			'CA province code BC is normalized'         => [
+			'CA province code BC is normalized'                        => [
 				'state'    => 'BC',
 				'country'  => 'CA',
 				'expected' => true,
@@ -1341,12 +1395,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'CA',
 				'expected' => false,
 			],
-			'Empty state returns false'                 => [
+			'Empty state returns false'                                => [
 				'state'    => '',
 				'country'  => 'US',
 				'expected' => false,
 			],
-			'Country without states returns false'      => [
+			'Country without states returns false'                     => [
 				'state'    => 'SomeState',
 				'country'  => 'DE',
 				'expected' => false,
@@ -1378,32 +1432,32 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_normalized_state_from_pr_states(): array {
 		return [
-			'US state California normalizes to CA'      => [
+			'US state California normalizes to CA'                          => [
 				'state'    => 'California',
 				'country'  => 'US',
 				'expected' => 'CA',
 			],
-			'US state New York normalizes to NY'        => [
+			'US state New York normalizes to NY'                            => [
 				'state'    => 'New York',
 				'country'  => 'US',
 				'expected' => 'NY',
 			],
-			'US state code CA stays CA'                 => [
+			'US state code CA stays CA'                                     => [
 				'state'    => 'CA',
 				'country'  => 'US',
 				'expected' => 'CA',
 			],
-			'AU state New South Wales normalizes to NSW' => [
+			'AU state New South Wales normalizes to NSW'                    => [
 				'state'    => 'New South Wales',
 				'country'  => 'AU',
 				'expected' => 'NSW',
 			],
-			'AU state Queensland normalizes to QLD'     => [
+			'AU state Queensland normalizes to QLD'                         => [
 				'state'    => 'Queensland',
 				'country'  => 'AU',
 				'expected' => 'QLD',
 			],
-			'CA province British Columbia normalizes to BC' => [
+			'CA province British Columbia normalizes to BC'                 => [
 				'state'    => 'British Columbia',
 				'country'  => 'CA',
 				'expected' => 'BC',
@@ -1413,27 +1467,27 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'CA',
 				'expected' => 'BC',
 			],
-			'BR state São Paulo normalizes to SP'       => [
+			'BR state São Paulo normalizes to SP'                           => [
 				'state'    => 'São Paulo',
 				'country'  => 'BR',
 				'expected' => 'SP',
 			],
-			'Unknown state returns original value'      => [
+			'Unknown state returns original value'                          => [
 				'state'    => 'UnknownState',
 				'country'  => 'US',
 				'expected' => 'UnknownState',
 			],
-			'Country without PR states returns original value' => [
+			'Country without PR states returns original value'              => [
 				'state'    => 'SomeState',
 				'country'  => 'DE',
 				'expected' => 'SomeState',
 			],
-			'Case insensitive matching for US state'    => [
+			'Case insensitive matching for US state'                        => [
 				'state'    => 'california',
 				'country'  => 'US',
 				'expected' => 'CA',
 			],
-			'Case insensitive matching for AU state'    => [
+			'Case insensitive matching for AU state'                        => [
 				'state'    => 'new south wales',
 				'country'  => 'AU',
 				'expected' => 'NSW',
@@ -1469,27 +1523,27 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'US',
 				'expected' => 'CA',
 			],
-			'US state full name normalizes to code'     => [
+			'US state full name normalizes to code'            => [
 				'state'    => 'California',
 				'country'  => 'US',
 				'expected' => 'CA',
 			],
-			'Empty state returns empty'                 => [
+			'Empty state returns empty'                        => [
 				'state'    => '',
 				'country'  => 'US',
 				'expected' => '',
 			],
-			'AU state full name normalizes to code'     => [
+			'AU state full name normalizes to code'            => [
 				'state'    => 'New South Wales',
 				'country'  => 'AU',
 				'expected' => 'NSW',
 			],
-			'CA province full name normalizes to code'  => [
+			'CA province full name normalizes to code'         => [
 				'state'    => 'British Columbia',
 				'country'  => 'CA',
 				'expected' => 'BC',
 			],
-			'Unknown state returns original value'      => [
+			'Unknown state returns original value'             => [
 				'state'    => 'UnknownState',
 				'country'  => 'US',
 				'expected' => 'UnknownState',
@@ -1522,6 +1576,101 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'CA', $result['billing_address']['state'] );
 		$this->assertEquals( 'NSW', $result['shipping_address']['state'] );
+	}
+
+	/**
+	 * Test that maybe_restore_recurring_chosen_shipping_methods() skips free-trial recurring
+	 * carts and only restores shipping methods for non-free-trial recurring carts in a mixed cart.
+	 *
+	 * Covers the early-return branch at the top of the recurring-cart loop:
+	 * when recurring_cart_contains_free_trial() returns true, shipping restoration is skipped
+	 * via `continue` for that cart, but still runs for carts without a free trial.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_restore_recurring_chosen_shipping_methods_skips_free_trial_cart(): void {
+		// Create a free-trial subscription product and a regular (non-subscription) product.
+		$free_trial_product = WC_Helper_Product::create_simple_product();
+		$free_trial_product->save();
+
+		$regular_product = WC_Helper_Product::create_simple_product();
+		$regular_product->save();
+
+		// Make only the free-trial product a subscription and give it a trial period.
+		// The regular product is not in the list, so is_subscription() returns false for it,
+		// which causes recurring_cart_contains_free_trial() to return false for that cart.
+		WC_Subscriptions_Product::set_subscription_product_ids( [ $free_trial_product->get_id() ] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 7 );
+
+		// Build a recurring cart whose single item is a subscription with a free trial.
+		// get_shipping_packages() must never be called — the loop continues past this cart.
+		$free_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$free_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $free_trial_product ],
+			]
+		);
+		$free_trial_recurring_cart->expects( $this->never() )->method( 'get_shipping_packages' );
+
+		// Build a recurring cart whose single item is a regular product (no trial).
+		// get_shipping_packages() is called once, returning one package at index 0.
+		$no_trial_recurring_cart = $this->getMockBuilder( WC_Cart::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cart', 'get_shipping_packages' ] )
+			->getMock();
+		$no_trial_recurring_cart->method( 'get_cart' )->willReturn(
+			[
+				[ 'data' => $regular_product ],
+			]
+		);
+		$no_trial_recurring_cart->method( 'get_shipping_packages' )->willReturn( [ [] ] );
+
+		// Inject both recurring carts and initialise the session.
+		WC()->session->init();
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC()->cart->recurring_carts = [
+			'sub_freetrial' => $free_trial_recurring_cart,
+			'sub_no_trial'  => $no_trial_recurring_cart,
+		];
+
+		// Tell WC_Subscriptions_Cart that the overall cart contains a free trial.
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( true );
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		// cart_contains_free_trial() must return true for the mixed cart.
+		$cart_contains_free_trial = new ReflectionMethod( WC_Stripe_Express_Checkout_Helper::class, 'cart_contains_free_trial' );
+		$cart_contains_free_trial->setAccessible( true );
+		$this->assertTrue( $cart_contains_free_trial->invoke( $helper ) );
+
+		// Previous shipping methods were recorded for both recurring cart keys.
+		$previous_chosen_methods = [
+			'sub_freetrial' => 'flat_rate:1',
+			'sub_no_trial'  => 'flat_rate:1',
+		];
+
+		$helper->maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods );
+
+		$chosen = WC()->session->get( 'chosen_shipping_methods', [] );
+
+		// The non-free-trial cart's shipping method must be restored.
+		$this->assertArrayHasKey( 'sub_no_trial', $chosen, 'Shipping method must be restored for the non-free-trial recurring cart.' );
+		$this->assertSame( 'flat_rate:1', $chosen['sub_no_trial'] );
+
+		// The free-trial cart's shipping method must NOT be restored.
+		$this->assertArrayNotHasKey( 'sub_freetrial', $chosen, 'Shipping method must not be restored for the free-trial recurring cart.' );
+
+		// Clean up.
+		WC()->cart->recurring_carts = [];
+		WC()->session->set( 'chosen_shipping_methods', [] );
+		WC_Subscriptions_Cart::set_cart_contains_free_trial( false );
+		WC_Subscriptions_Product::set_subscription_product_ids( [] );
+		WC_Subscriptions_Product::set_is_subscription( false );
+		WC_Subscriptions_Product::set_trial_length( 0 );
 	}
 
 	/**

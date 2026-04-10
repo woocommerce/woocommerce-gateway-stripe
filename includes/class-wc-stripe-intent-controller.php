@@ -388,18 +388,19 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	public function create_payment_intent( $order_id = null, $payment_method_type = null ) {
-		$amount = WC()->cart->get_total( false );
-		$order  = wc_get_order( $order_id );
+		$amount   = WC()->cart->get_total( false );
+		$currency = get_woocommerce_currency();
+		$order    = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
+			$amount   = $order->get_total();
+			$currency = $order->get_currency();
 		}
 
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency = get_woocommerce_currency();
-		$capture  = $gateway->is_automatic_capture_enabled();
-		$request  = [
+		$capture = $gateway->is_automatic_capture_enabled();
+		$request = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
@@ -548,7 +549,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
 			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
-			$result = WC_Stripe_API::request_with_level3_data(
+			$result   = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
 				$level3_data,
@@ -560,9 +561,9 @@ class WC_Stripe_Intent_Controller {
 					WC_Stripe_Logger::critical(
 						'Error: Failed to update intent due to invalid operation',
 						[
-							'intent_id'   => $intent_id,
-							'order_id'    => $order_id,
-							'error'       => $result->error,
+							'intent_id' => $intent_id,
+							'order_id'  => $order_id,
+							'error'     => $result->error,
 						]
 					);
 
@@ -696,7 +697,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order    = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -721,6 +722,24 @@ class WC_Stripe_Intent_Controller {
 					'return_url' => $gateway->get_return_url( $order ),
 				],
 				200
+			);
+		} catch ( WC_Stripe_Payment_Cancelled_Exception $e ) {
+			if ( $order instanceof WC_Order ) {
+				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+				$order_helper->remove_payment_awaiting_action( $order );
+			}
+
+			// Customer-initiated cancellation (e.g. closed Klarna popup). Do not fail the
+			// order — leave it retryable and return an error so the frontend can notify the customer.
+			WC_Stripe_Logger::info(
+				'Payment cancelled by customer via AJAX for order: ' . $order_id . '. Reason: ' . $e->getMessage()
+			);
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => __( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
+					],
+				]
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -769,7 +788,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order     = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 
 			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {

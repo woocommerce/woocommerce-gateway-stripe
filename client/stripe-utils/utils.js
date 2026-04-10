@@ -1,7 +1,10 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
+import {
+	getAppearance,
+	getExpandedOptimizedCheckoutRules,
+} from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -505,6 +508,21 @@ export const getUpeSettings = () => {
 	return upeSettings;
 };
 
+export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
+	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	if ( existingElement.length ) {
+		existingElement.val( checkoutSessionId );
+		return;
+	}
+
+	const hiddenInput = document.createElement( 'input' );
+	hiddenInput.type = 'hidden';
+	hiddenInput.id = 'wc_stripe_checkout_session_id';
+	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.value = checkoutSessionId;
+	form.append( hiddenInput );
+};
+
 /**
  * Craft the defaultValues parameter, used to pre-fill
  * user email and phone number for Link in the Payment Element.
@@ -772,28 +790,54 @@ const appearanceCache = {};
  * when available, otherwise computes from the current page styles and caches
  * the result for the lifetime of the page.
  *
- * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
+ * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
+ * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
  *
  * @return {Object} The appearance object for the UPE.
  */
-export const initializeUPEAppearance = ( isBlockCheckout = 'false' ) => {
+export const initializeUPEAppearance = (
+	isBlockCheckout = 'false',
+	shouldExpandOptimizedCheckout = false
+) => {
 	const isBlocks = isBlockCheckout === 'true';
-	const location = isBlocks ? 'blocks' : 'classic';
+	const location = isBlocks
+		? 'blocks'
+		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
 
 	// Check for custom appearance configuration from the server.
 	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
 	const customAppearance = getStripeServerData()?.[ customServerField ];
 	if ( customAppearance ) {
-		return customAppearance;
+		if ( ! shouldExpandOptimizedCheckout ) {
+			return customAppearance;
+		}
+
+		return {
+			...customAppearance,
+			rules: getExpandedOptimizedCheckoutRules(
+				customAppearance.rules || {}
+			),
+		};
 	}
 
 	if ( appearanceCache[ location ] ) {
 		return appearanceCache[ location ];
 	}
 
-	const appearance = getAppearance( isBlocks );
+	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
 	appearanceCache[ location ] = appearance;
 	return appearance;
+};
+
+/**
+ * Clears the in-memory appearance cache so the next call to
+ * initializeUPEAppearance() re-computes from the current page styles.
+ * Used after web fonts finish loading to refresh stale font families.
+ */
+export const invalidateAppearanceCache = () => {
+	Object.keys( appearanceCache ).forEach(
+		( key ) => delete appearanceCache[ key ]
+	);
 };
 
 /**

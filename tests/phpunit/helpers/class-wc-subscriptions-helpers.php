@@ -6,15 +6,30 @@
 /**
  * A function to mock wcs_get_subscriptions_for_order.
  *
- * @param WC_Order $order
+ * @param WC_Order|int $order  The order or order ID.
+ * @param array        $args   Optional arguments.
  * @return array
  */
-function wcs_get_subscriptions_for_order( $order ) {
+function wcs_get_subscriptions_for_order( $order, $args = [] ) {
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order ) {
 		return [];
 	}
 
 	return (array) WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order;
+}
+
+/**
+ * A function to mock wcs_get_subscriptions_for_renewal_order.
+ *
+ * @param WC_Order|int $order The renewal order or order ID.
+ * @return array
+ */
+function wcs_get_subscriptions_for_renewal_order( $order ) {
+	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order ) {
+		return [];
+	}
+
+	return (array) WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order;
 }
 
 /**
@@ -55,6 +70,13 @@ class WC_Subscriptions_Helpers {
 	 * @var array
 	 */
 	public static $wcs_get_subscriptions_for_order = null;
+
+	/**
+	 * Mock for wcs_get_subscriptions_for_renewal_order.
+	 *
+	 * @var array
+	 */
+	public static $wcs_get_subscriptions_for_renewal_order = null;
 
 	/**
 	 * Mock for wcs_get_subscriptions.

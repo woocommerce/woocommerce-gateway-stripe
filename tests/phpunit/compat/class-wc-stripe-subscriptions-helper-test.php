@@ -243,7 +243,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	public function provide_test_is_subscription_payment_method_detached() {
 		return [
 			'not a Stripe subscription'               => [
-				'payment method' => 'not_stripe',
+				'payment method'  => 'not_stripe',
 				'source meta'     => null,
 				'mocked response' => null,
 				'expected'        => false,
