@@ -263,11 +263,11 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return absint( $total );
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
@@ -288,13 +288,13 @@ class WC_Stripe_Helper {
 	 * @return float The decimal amount for WooCommerce.
 	 */
 	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return (float) absint( $amount );
 		}
 
-		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return round( $amount / 1000, 3 );
 		}
 
@@ -313,14 +313,14 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
 		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
 		$decimals = 2;
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			$decimals = 0;
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$decimals = 3;
 		}
 
@@ -470,7 +470,7 @@ class WC_Stripe_Helper {
 			return;
 		}
 
-		if ( in_array( strtolower( $balance_transaction->currency ), self::no_decimal_currencies() ) ) {
+		if ( in_array( strtoupper( $balance_transaction->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			if ( 'fee' === $type ) {
 				return $balance_transaction->fee;
 			}
@@ -2317,10 +2317,10 @@ class WC_Stripe_Helper {
 	 * @return int The number of decimals to use for the currency.
 	 */
 	public static function get_currency_decimals( string $currency_code ): int {
-		$currency_code = strtolower( $currency_code );
-		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+		$currency_code = strtoupper( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 0;
-		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency_code, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 3;
 		}
 
