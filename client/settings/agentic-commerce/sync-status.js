@@ -239,7 +239,7 @@ const AgenticCommerceSyncStatus = () => {
 		<>
 			<p className="description">
 				{ __(
-					'Monitors the product feed sync status for the Agentic Commerce integration.',
+					'Monitors the product feed sync status for the agentic commerce integration.',
 					'woocommerce-gateway-stripe'
 				) }{ ' ' }
 				<a

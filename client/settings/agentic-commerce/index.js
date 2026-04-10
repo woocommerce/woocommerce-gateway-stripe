@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+	useState,
+	useEffect,
+	useCallback,
+	useImperativeHandle,
+	forwardRef,
+} from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
+import SettingsSection from '../settings-section';
 import AgenticCommerceSyncStatus from './sync-status';
-import { Card, CardTitle, Actions } from './styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import {
@@ -11,7 +17,10 @@ import {
 	ToggleControl,
 	TextControl,
 	ExternalLink,
+	Card,
+	CardBody,
 } from '@wordpress/components';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
 import { useTestMode } from 'wcstripe/data';
 
@@ -24,12 +33,41 @@ const OnboardingSteps = styled.ol`
 	}
 `;
 
-const AgenticCommercePanel = () => {
-	// Settings state.
+const CopyRow = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 4px;
+
+	.components-text-control__input {
+		margin-bottom: 0;
+	}
+`;
+
+const AgenticCommerceDescription = () => (
+	<>
+		<h2>{ __( 'Agentic commerce', 'woocommerce-gateway-stripe' ) }</h2>
+		<p>
+			{ __(
+				'Let AI-powered agents discover and purchase products on behalf of customers.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<p>
+			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
+				{ __(
+					'Learn more about agentic commerce',
+					'woocommerce-gateway-stripe'
+				) }
+			</ExternalLink>
+		</p>
+	</>
+);
+
+const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
-	const [ isSavingSettings, setIsSavingSettings ] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 	const [ webhookURLCopied, setWebhookURLCopied ] = useState( false );
 
@@ -57,8 +95,7 @@ const AgenticCommercePanel = () => {
 		fetchSettings();
 	}, [ fetchSettings ] );
 
-	const handleSaveSettings = async () => {
-		setIsSavingSettings( true );
+	const handleSaveSettings = useCallback( async () => {
 		setSettingsNotice( null );
 		try {
 			const result = await apiFetch( {
@@ -85,17 +122,24 @@ const AgenticCommercePanel = () => {
 						'woocommerce-gateway-stripe'
 					),
 			} );
-		} finally {
-			setIsSavingSettings( false );
 		}
-	};
+	}, [ isFeatureEnabled, webhookSecret ] );
+
+	// Expose save function to parent via ref so the global Save changes
+	// button can trigger it alongside the main settings save.
+	useImperativeHandle(
+		ref,
+		() => ( {
+			save: handleSaveSettings,
+		} ),
+		[ handleSaveSettings ]
+	);
 
 	const handleCopy = () => {
 		const doCopy = ( text ) => {
 			if ( navigator.clipboard?.writeText ) {
 				return navigator.clipboard.writeText( text );
 			}
-			// Fallback for browsers without clipboard API.
 			const el = document.createElement( 'textarea' );
 			el.value = text;
 			el.style.position = 'fixed';
@@ -124,196 +168,133 @@ const AgenticCommercePanel = () => {
 	};
 
 	return (
-		<div>
-			<p className="description">
-				{ __(
-					'Monitor the product feed sync status for the Agentic Commerce integration.',
-					'woocommerce-gateway-stripe'
-				) }{ ' ' }
-				<a
-					href="https://dashboard.stripe.com/data-management/import-sets"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					{ __(
-						'View import results on the Stripe Dashboard',
-						'woocommerce-gateway-stripe'
-					) }
-				</a>
-			</p>
-
-			<Card>
-				<CardTitle>
-					{ __(
-						'About Agentic Commerce',
-						'woocommerce-gateway-stripe'
-					) }
-				</CardTitle>
-				<p>
-					{ __(
-						"Agentic Commerce lets AI-powered agents browse and purchase products from your store on behalf of your customers. Your product catalog is synced to Stripe so that AI agents can discover your products and complete purchases through Stripe's delegated checkout flow.",
-						'woocommerce-gateway-stripe'
-					) }
-				</p>
-				<p>
-					<ExternalLink
-						href="https://docs.stripe.com/agentic-commerce"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						{ __(
-							'Learn more about Agentic Checkout',
-							'woocommerce-gateway-stripe'
-						) }
-					</ExternalLink>
-				</p>
-
-				{ ! isLoadingSettings &&
-					isFeatureEnabled &&
-					! webhookSecret && (
-						<>
-							<p>
-								<strong>
-									{ __(
-										'Getting started on the Stripe side:',
-										'woocommerce-gateway-stripe'
-									) }
-								</strong>
-							</p>
-
-							<OnboardingSteps>
-								<li>
-									{ interpolateComponents( {
-										mixedString: __(
-											'Go to {{agenticLink}}Payments > Agentic Commerce{{/agenticLink}} in your Stripe Dashboard.',
-											'woocommerce-gateway-stripe'
-										),
-										components: {
-											agenticLink: (
-												<ExternalLink href="https://dashboard.stripe.com/agentic-commerce" />
-											),
-										},
-									} ) }
-								</li>
-								<li>
-									{ __(
-										'Follow the setup instructions to enable the feature and add a webhook endpoint for delegated checkout events:',
-										'woocommerce-gateway-stripe'
-									) }
-									<TextControl
-										type="text"
-										value={ decodeURIComponent(
-											webhookURLForDisplay
-										) }
-										autoComplete="off"
-										disabled={ true }
-									/>
-									<Button
-										variant="secondary"
-										onClick={ handleCopy }
-									>
-										{ webhookURLCopied
-											? __(
-													'Copied!',
-													'woocommerce-gateway-stripe'
-											  )
-											: __(
-													'Copy',
-													'woocommerce-gateway-stripe'
-											  ) }
-									</Button>
-								</li>
-								<li>
-									{ __(
-										'Copy the webhook signing secret from Developers > Webhooks and paste it in the settings below.',
-										'woocommerce-gateway-stripe'
-									) }
-								</li>
-							</OnboardingSteps>
-						</>
-					) }
-			</Card>
-			{ /* Settings card */ }
-			<Card>
-				<CardTitle>
-					{ __(
-						'Agentic Commerce Settings',
-						'woocommerce-gateway-stripe'
-					) }
-				</CardTitle>
-
-				{ settingsNotice && (
-					<Notice
-						status={ settingsNotice.status }
-						onRemove={ () => setSettingsNotice( null ) }
-						isDismissible
-						style={ { marginBottom: '16px' } }
-					>
-						{ settingsNotice.message }
-					</Notice>
-				) }
-
-				{ isLoadingSettings ? (
-					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
-				) : (
-					<>
-						<ToggleControl
-							label={ __(
-								'Enable Agentic Commerce',
-								'woocommerce-gateway-stripe'
-							) }
-							help={ __(
-								'When enabled, your product catalog will be synced to Stripe and AI agents can purchase on behalf of your customers.',
-								'woocommerce-gateway-stripe'
-							) }
-							checked={ isFeatureEnabled }
-							onChange={ setIsFeatureEnabled }
-						/>
-
-						{ isFeatureEnabled && (
-							<TextControl
-								label={ __(
-									'Agentic Commerce Webhook Secret',
-									'woocommerce-gateway-stripe'
-								) }
-								help={ __(
-									'The webhook signing secret for delegated checkout events. Obtain this from Payments > Agentic Commerce in your Stripe Dashboard.',
-									'woocommerce-gateway-stripe'
-								) }
-								type="password"
-								value={ webhookSecret }
-								onChange={ setWebhookSecret }
-								autoComplete="off"
-							/>
-						) }
-
-						<Actions>
-							<Button
-								variant="primary"
-								isBusy={ isSavingSettings }
-								disabled={
-									isSavingSettings || isLoadingSettings
-								}
-								onClick={ handleSaveSettings }
+		<SettingsSection Description={ AgenticCommerceDescription }>
+			<LoadableSettingsSection numLines={ 10 }>
+				<Card>
+					<CardBody>
+						{ settingsNotice && (
+							<Notice
+								status={ settingsNotice.status }
+								onRemove={ () => setSettingsNotice( null ) }
+								isDismissible
+								style={ { marginBottom: '16px' } }
 							>
-								{ isSavingSettings
-									? __(
-											'Saving…',
-											'woocommerce-gateway-stripe'
-									  )
-									: __(
-											'Save Settings',
-											'woocommerce-gateway-stripe'
-									  ) }
-							</Button>
-						</Actions>
-					</>
-				) }
-			</Card>
+								{ settingsNotice.message }
+							</Notice>
+						) }
+
+						{ isLoadingSettings ? (
+							<p>
+								{ __(
+									'Loading\u2026',
+									'woocommerce-gateway-stripe'
+								) }
+							</p>
+						) : (
+							<>
+								<ToggleControl
+									label={ __(
+										'Enable agentic commerce',
+										'woocommerce-gateway-stripe'
+									) }
+									help={ __(
+										'When enabled, your product catalog will be synced to Stripe and AI agents can purchase on behalf of your customers.',
+										'woocommerce-gateway-stripe'
+									) }
+									checked={ isFeatureEnabled }
+									onChange={ setIsFeatureEnabled }
+								/>
+
+								{ isFeatureEnabled && (
+									<>
+										<p>
+											<strong>
+												{ __(
+													'Setup instructions:',
+													'woocommerce-gateway-stripe'
+												) }
+											</strong>
+										</p>
+
+										<OnboardingSteps>
+											<li>
+												{ interpolateComponents( {
+													mixedString: __(
+														'Go to {{agenticLink}}Payments > Agentic Commerce{{/agenticLink}} in your Stripe Dashboard and follow the setup instructions.',
+														'woocommerce-gateway-stripe'
+													),
+													components: {
+														agenticLink: (
+															<ExternalLink href="https://dashboard.stripe.com/agentic-commerce" />
+														),
+													},
+												} ) }
+											</li>
+											<li>
+												{ __(
+													'Add a webhook endpoint for delegated checkout events using this URL:',
+													'woocommerce-gateway-stripe'
+												) }
+												<CopyRow>
+													<TextControl
+														type="text"
+														value={ decodeURIComponent(
+															webhookURLForDisplay
+														) }
+														autoComplete="off"
+														disabled={ true }
+													/>
+													<Button
+														variant="secondary"
+														onClick={ handleCopy }
+													>
+														{ webhookURLCopied
+															? __(
+																	'Copied!',
+																	'woocommerce-gateway-stripe'
+															  )
+															: __(
+																	'Copy',
+																	'woocommerce-gateway-stripe'
+															  ) }
+													</Button>
+												</CopyRow>
+											</li>
+											<li>
+												{ __(
+													'Copy the webhook signing secret from Developers > Webhooks and paste it below.',
+													'woocommerce-gateway-stripe'
+												) }
+											</li>
+										</OnboardingSteps>
+
+										<TextControl
+											label={ __(
+												'Webhook secret',
+												'woocommerce-gateway-stripe'
+											) }
+											help={ __(
+												'The webhook signing secret for delegated checkout events.',
+												'woocommerce-gateway-stripe'
+											) }
+											type="password"
+											value={ webhookSecret }
+											onChange={ setWebhookSecret }
+											autoComplete="off"
+										/>
+									</>
+								) }
+							</>
+						) }
+					</CardBody>
+				</Card>
+			</LoadableSettingsSection>
 
 			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
-		</div>
+		</SettingsSection>
 	);
-};
+} );
 
-export default AgenticCommercePanel;
+AgenticCommerceSection.displayName = 'AgenticCommerceSection';
+
+export default AgenticCommerceSection;
