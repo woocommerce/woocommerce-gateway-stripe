@@ -316,13 +316,7 @@ class WC_Stripe_Helper {
 		$currency = strtoupper( $currency );
 
 		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
-		$decimals = 2;
-
-		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-			$decimals = 0;
-		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
-			$decimals = 3;
-		}
+		$decimals = self::get_currency_decimals( $currency );
 
 		return wc_format_decimal( $amount, $decimals );
 	}
