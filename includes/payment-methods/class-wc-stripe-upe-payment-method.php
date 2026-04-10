@@ -125,7 +125,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Create instance of payment method
 	 */
 	public function __construct() {
-		$is_stripe_enabled              = 'yes' === WC_Stripe_Settings::get_instance()->get_enabled();
+		$is_stripe_enabled              = WC_Stripe_Settings::get_instance()->is_enabled();
 		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->id                       = WC_Stripe_UPE_Payment_Gateway::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields               = true;

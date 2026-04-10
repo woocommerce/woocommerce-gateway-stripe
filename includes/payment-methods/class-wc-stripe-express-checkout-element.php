@@ -64,7 +64,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function init() {
 		// Checks if Stripe Gateway is enabled.
-		if ( 'yes' !== $this->stripe_settings->get_enabled() ) {
+		if ( ! $this->stripe_settings->is_enabled() ) {
 			return;
 		}
 

@@ -58,7 +58,6 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function provide_string_getters(): array {
 		return [
-			'enabled'                            => [ 'enabled', 'get_enabled', '', 'yes' ],
 			'logging'                            => [ 'logging', 'get_logging', '', 'yes' ],
 			'publishable_key'                    => [ 'publishable_key', 'get_publishable_key', '', 'pk_test_123' ],
 			'secret_key'                         => [ 'secret_key', 'get_secret_key', '', 'sk_test_123' ],
@@ -159,7 +158,35 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, 'invalid' );
 		$this->reset_singleton();
 		$settings = WC_Stripe_Settings::get_instance();
-		$this->assertSame( '', $settings->get_enabled() );
+		$this->assertFalse( $settings->is_enabled() );
+	}
+
+	/**
+	 * Test is_enabled returns correct boolean values.
+	 *
+	 * @dataProvider provide_is_enabled
+	 *
+	 * @param mixed $value    The stored setting value.
+	 * @param bool  $expected The expected result.
+	 */
+	public function test_is_enabled( $value, bool $expected ) {
+		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'enabled' => $value ] );
+		$this->reset_singleton();
+		$this->assertSame( $expected, WC_Stripe_Settings::get_instance()->is_enabled() );
+	}
+
+	/**
+	 * Data provider for is_enabled.
+	 *
+	 * @return array
+	 */
+	public function provide_is_enabled(): array {
+		return [
+			'yes'   => [ 'yes', true ],
+			'no'    => [ 'no', false ],
+			'empty' => [ '', false ],
+			'null'  => [ null, false ],
+		];
 	}
 
 	/**

@@ -53,12 +53,12 @@ class WC_Stripe_Settings {
 	}
 
 	/**
-	 * Get the value of the `enabled` setting.
+	 * Whether the Stripe gateway is enabled.
 	 *
-	 * @return string
+	 * @return bool
 	 */
-	public function get_enabled() {
-		return $this->settings['enabled'] ?? '';
+	public function is_enabled() {
+		return 'yes' === ( $this->settings['enabled'] ?? '' );
 	}
 
 	/**
