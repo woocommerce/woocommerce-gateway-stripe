@@ -89,7 +89,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   repository: woocommerce/woocommerce-gateway-stripe-dev-tools
-                  token: ${{ secrets.E2E_GH_TOKEN }}
+                  token: ${{ secrets.STRIPE_DEV_TOOLS_TOKEN }}
                   path: playground-artifact-dev-tools/woocommerce-gateway-stripe-dev-tools
 
             - name: Upload dev tools Playground artifact
