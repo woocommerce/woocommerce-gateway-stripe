@@ -54,13 +54,16 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 // The per-worker databases (e.g. wc_stripe_tests_1) are created by install-wp-tests.sh
 // before paratest starts. We attempt creation here as a safety net, but silently
 // skip on failure to avoid writing to STDERR (which paratest interprets as a test error).
+// The base DB name defaults to 'wc_stripe_tests' (matching install-wp-tests.sh) but can
+// be overridden via the WP_TESTS_DB_NAME environment variable.
 $_test_token = getenv( 'TEST_TOKEN' );
 if ( $_test_token ) {
 	$_wp_db_host    = getenv( 'WORDPRESS_DB_HOST' );
 	$_db_host_parts = explode( ':', $_wp_db_host ? $_wp_db_host : 'db' );
 	$_db_host       = $_db_host_parts[0];
 	$_db_port       = isset( $_db_host_parts[1] ) ? (int) $_db_host_parts[1] : 3306;
-	$_worker_db     = 'wc_stripe_tests_' . $_test_token;
+	$_base_db_name  = getenv( 'WP_TESTS_DB_NAME' ) ? getenv( 'WP_TESTS_DB_NAME' ) : 'wc_stripe_tests';
+	$_worker_db     = $_base_db_name . '_' . $_test_token;
 	mysqli_report( MYSQLI_REPORT_OFF ); // phpcs:ignore WordPress.DB -- prevent exceptions so we can fail silently.
 	$_mysql_pass = getenv( 'MYSQL_ROOT_PASSWORD' );
 	$_mysqli     = @new mysqli( $_db_host, 'root', $_mysql_pass ? $_mysql_pass : '', '', $_db_port ); // phpcs:ignore WordPress.DB
@@ -68,7 +71,7 @@ if ( $_test_token ) {
 		$_mysqli->query( "CREATE DATABASE IF NOT EXISTS `{$_worker_db}`" ); // phpcs:ignore WordPress.DB
 		$_mysqli->close();
 	}
-	unset( $_wp_db_host, $_db_host_parts, $_db_host, $_db_port, $_worker_db, $_mysql_pass, $_mysqli );
+	unset( $_wp_db_host, $_db_host_parts, $_db_host, $_db_port, $_base_db_name, $_worker_db, $_mysql_pass, $_mysqli );
 }
 unset( $_test_token );
 

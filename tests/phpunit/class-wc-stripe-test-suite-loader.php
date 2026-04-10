@@ -22,6 +22,10 @@ use PHPUnit\Util\FileLoader;
 
 /**
  * Custom test suite loader that handles WordPress-style file naming.
+ *
+ * Note: TestSuiteLoader is deprecated in PHPUnit 9 and removed in PHPUnit 10.
+ * When upgrading to PHPUnit 10+, this loader will need to be replaced with a
+ * different approach (e.g. a custom TestRunner extension or filename resolver).
  */
 class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 
