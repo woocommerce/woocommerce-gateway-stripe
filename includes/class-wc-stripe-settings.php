@@ -323,4 +323,25 @@ class WC_Stripe_Settings {
 		$this->settings['stripe_upe_payment_method_order'] = $value;
 		update_option( self::SETTINGS_OPTION, $this->settings );
 	}
+
+	/**
+	 * Get a setting value by key.
+	 *
+	 * @param string $key     The setting key.
+	 * @param mixed  $default The default value if the key is not set.
+	 * @return mixed
+	 */
+	public function get( $key, $default = null ) {
+		return $this->settings[ $key ] ?? $default;
+	}
+
+	/**
+	 * Check if a setting key exists.
+	 *
+	 * @param string $key The setting key.
+	 * @return bool
+	 */
+	public function has( $key ) {
+		return isset( $this->settings[ $key ] );
+	}
 }

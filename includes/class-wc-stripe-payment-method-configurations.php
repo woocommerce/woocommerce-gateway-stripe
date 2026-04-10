@@ -543,11 +543,9 @@ class WC_Stripe_Payment_Method_Configurations {
 			return false;
 		}
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
 		// If we have the pmc_enabled flag, and it is set to no, we should not use the payment method configurations API.
 		// We only disable the PMC if the flag is set to no explicitly, an empty value means the migration has not been attempted yet.
-		if ( 'no' === $stripe_settings->get_pmc_enabled() ) {
+		if ( 'no' === WC_Stripe_Settings::get_instance()->get_pmc_enabled() ) {
 			return false;
 		}
 

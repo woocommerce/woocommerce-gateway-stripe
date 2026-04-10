@@ -24,7 +24,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * The secret to use when verifying webhooks.
 	 *
-	 * @var string
+	 * @var string|false
 	 */
 	protected $secret;
 
@@ -126,7 +126,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$secret = $is_agentic_hook
 			? ( defined( 'AGENTIC_COMMERCE_WEBHOOK_SECRET' ) ? AGENTIC_COMMERCE_WEBHOOK_SECRET : '' )
-			: $this->secret;
+			: ( false !== $this->secret ? $this->secret : '' );
 
 		// Validate it to make sure it is legit.
 		$request_headers   = array_change_key_case( $this->get_request_headers(), CASE_UPPER );

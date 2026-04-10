@@ -163,6 +163,36 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test get() returns value for existing key.
+	 */
+	public function test_get_returns_value() {
+		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'some_key' => 'some_value' ] );
+		$this->reset_singleton();
+		$settings = WC_Stripe_Settings::get_instance();
+		$this->assertSame( 'some_value', $settings->get( 'some_key' ) );
+	}
+
+	/**
+	 * Test get() returns default for missing key.
+	 */
+	public function test_get_returns_default_for_missing_key() {
+		$settings = WC_Stripe_Settings::get_instance();
+		$this->assertNull( $settings->get( 'nonexistent_key' ) );
+		$this->assertSame( 'fallback', $settings->get( 'nonexistent_key', 'fallback' ) );
+	}
+
+	/**
+	 * Test has() returns true for existing key and false for missing.
+	 */
+	public function test_has() {
+		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'exists' => 'yes' ] );
+		$this->reset_singleton();
+		$settings = WC_Stripe_Settings::get_instance();
+		$this->assertTrue( $settings->has( 'exists' ) );
+		$this->assertFalse( $settings->has( 'does_not_exist' ) );
+	}
+
+	/**
 	 * Reset the singleton instance to force re-reading from DB.
 	 */
 	private function reset_singleton() {

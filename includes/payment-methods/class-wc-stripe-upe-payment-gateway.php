@@ -98,7 +98,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Alternate credit card statement name
 	 *
-	 * @var bool
+	 * @var string
 	 */
 	public $statement_descriptor;
 
@@ -271,9 +271,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->sepa_tokens_for_bancontact = 'yes' === $this->get_option( 'sepa_tokens_for_bancontact' );
 		$this->saved_cards                = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode                   = WC_Stripe_Mode::is_test();
-		$this->publishable_key            = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key                 = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor       = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$this->publishable_key            = $stripe_settings->get_publishable_key();
+		$this->secret_key                 = $stripe_settings->get_secret_key();
+		$this->statement_descriptor       = $stripe_settings->get_statement_descriptor();
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {

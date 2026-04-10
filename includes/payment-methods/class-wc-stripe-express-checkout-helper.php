@@ -17,7 +17,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var array
+	 * @var WC_Stripe_Settings
 	 */
 	public $stripe_settings;
 
@@ -110,7 +110,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_type() instead.
 	 */
 	public function get_button_type() {
-		return isset( $this->stripe_settings['express_checkout_button_type'] ) ? $this->stripe_settings['express_checkout_button_type'] : 'default';
+		return $this->stripe_settings->get( 'express_checkout_button_type', 'default' );
 	}
 
 	/**
@@ -121,7 +121,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_theme() instead.
 	 */
 	public function get_button_theme() {
-		return isset( $this->stripe_settings['express_checkout_button_theme'] ) ? $this->stripe_settings['express_checkout_button_theme'] : 'dark';
+		return $this->stripe_settings->get( 'express_checkout_button_theme', 'dark' );
 	}
 
 	/**
@@ -130,7 +130,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
+		$height = $this->stripe_settings->get( 'express_checkout_button_size', 'default' );
 		if ( 'small' === $height ) {
 			return '40';
 		}
@@ -150,7 +150,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_radius() instead.
 	 */
 	public function get_button_radius() {
-		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
+		$height = $this->stripe_settings->get( 'express_checkout_button_size', 'default' );
 		if ( 'small' === $height ) {
 			return '2';
 		}
@@ -1635,19 +1635,21 @@ class WC_Stripe_Express_Checkout_Helper {
 				break;
 		}
 
-		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
+		if ( ! $this->stripe_settings->has( $key ) ) {
 			// If the locations have not been set/modified, return the default setting.
 			return [ 'product', 'cart' ];
 		}
 
-		if ( ! is_array( $this->stripe_settings[ $key ] ) ) {
+		$locations = $this->stripe_settings->get( $key );
+
+		if ( ! is_array( $locations ) ) {
 			// If all locations are removed through the settings UI the location config will be set to
 			// an empty string "". If that's the case (and if the settings are not an array for any
 			// other reason) we should return an empty array.
 			return [];
 		}
 
-		return $this->stripe_settings[ $key ];
+		return $locations;
 	}
 
 	/**
@@ -1754,7 +1756,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function use_blocks_api() {
 		_deprecated_function( __METHOD__, '9.2.0' );
-		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
+		return 'yes' === $this->stripe_settings->get( 'express_checkout_use_blocks_api' );
 	}
 
 	/**

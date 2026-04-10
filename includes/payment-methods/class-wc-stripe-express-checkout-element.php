@@ -20,7 +20,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var array
+	 * @var WC_Stripe_Settings
 	 */
 	public $stripe_settings;
 
@@ -64,7 +64,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function init() {
 		// Checks if Stripe Gateway is enabled.
-		if ( empty( $this->stripe_settings ) || ( 'yes' !== $this->stripe_settings->get_enabled() ) ) {
+		if ( 'yes' !== $this->stripe_settings->get_enabled() ) {
 			return;
 		}
 
@@ -188,8 +188,8 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function javascript_params() {
 		$publishable_key = WC_Stripe_Mode::is_test()
-			? ( $this->stripe_settings['test_publishable_key'] ?? '' )
-			: ( $this->stripe_settings['publishable_key'] ?? '' );
+			? $this->stripe_settings->get_test_publishable_key()
+			: $this->stripe_settings->get_publishable_key();
 
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
