@@ -731,14 +731,13 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 
 			result.shippingAddress = shippingAddress;
 		}
-		result.shippingAddress = currentSession.shippingAddress;
 	}
 
 	if ( ! currentSession?.email ) {
 		const email =
 			getFieldValue( 'billing_email' ) || getFieldValue( 'email' );
 		if ( email ) {
-			result.email = currentSession.email;
+			result.email = email;
 		}
 	}
 
