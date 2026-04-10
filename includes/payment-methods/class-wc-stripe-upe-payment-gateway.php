@@ -1415,6 +1415,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
 		}
 
+		// Eagerly set the payment method title from the customer's selection so the order
+		// reflects the right method as soon as it lands on the order-received page, even if
+		// the checkout.session.completed webhook is delayed. Prefer the type the customer
+		// actually picked inside the Stripe Element (sent via the hidden
+		// `wc_stripe_selected_upe_payment_type` input by the Optimized Checkout JS) over
+		// the gateway-derived `$selected_payment_type`, which for Optimized Checkout is
+		// always 'card' and would otherwise resolve to the OC pseudo-method's "Stripe"
+		// title. The webhook handler will reaffirm/refine this once the actual payment
+		// method type is known from the intent.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
+			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
+			: '';
+
+		$title_payment_type = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
+			? $selected_upe_payment_type
+			: $selected_payment_type;
+
+		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
+			$this->set_payment_method_title_for_order( $order, $title_payment_type );
+		}
+
 		$order->save_meta_data();
 
 		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;

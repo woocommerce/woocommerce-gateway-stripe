@@ -1613,6 +1613,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		return [
 			'card payment'   => [ WC_Stripe_Payment_Methods::CARD, 'Credit / Debit Card' ],
 			'klarna payment' => [ WC_Stripe_Payment_Methods::KLARNA, 'Klarna' ],
+			'ideal payment'  => [ WC_Stripe_Payment_Methods::IDEAL, 'iDEAL | Wero' ],
 		];
 	}
 
