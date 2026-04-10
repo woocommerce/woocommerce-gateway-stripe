@@ -85,7 +85,7 @@ jobs:
 
             - name: Download dev tools plugin from private repo
               env:
-                  GH_TOKEN: ${{ github.token }}
+                  GH_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
               run: |
                   mkdir -p playground-artifact-dev-tools
                   gh api repos/woocommerce/woocommerce-gateway-stripe-dev-tools/zipball/trunk > dev-tools.zip
