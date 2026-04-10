@@ -21,6 +21,13 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * First gateway ID from the woocommerce_available_payment_gateways.
+	 *
+	 * @var string|null
+	 */
+	private static $first_gateway_id_from_available_list = null;
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -84,6 +91,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -101,6 +110,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_currency()` instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -118,6 +129,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_fee()` instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -147,6 +160,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_fee()` instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -163,6 +178,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_fee()` instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -181,6 +198,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::get_stripe_net()` instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -210,6 +229,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::update_stripe_net()` instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::update_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -226,6 +247,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use `WC_Stripe_Order_Helper::delete_stripe_net()` instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::delete_stripe_net()' );
+
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -725,6 +748,55 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Resets the memoized first gateway ID from the available gateways list.
+	 *
+	 * @return void
+	 */
+	public static function clear_first_available_payment_gateway_record() {
+		self::$first_gateway_id_from_available_list = null;
+	}
+
+	/**
+	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
+	 *
+	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
+	 *
+	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
+	 * @return void
+	 */
+	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
+		if ( null !== self::$first_gateway_id_from_available_list ) {
+			return;
+		}
+
+		$gateways = $gateways->payment_gateways();
+
+		if ( ! is_array( $gateways ) || [] === $gateways ) {
+			return;
+		}
+
+		foreach ( $gateways as $gateway_id => $gateway ) {
+			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
+				self::$first_gateway_id_from_available_list = $gateway_id;
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_first_in_available_list(): bool {
+		if ( null === self::$first_gateway_id_from_available_list ) {
+			return false;
+		}
+
+		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
+	}
+
+	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -783,6 +855,84 @@ class WC_Stripe_Helper {
 			}
 		}
 
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+	}
+
+	/**
+	 * Checks whether to show the Stripe first method notice.
+	 *
+	 * @return bool
+	 */
+	public static function should_show_stripe_first_method_notice(): bool {
+		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
+			return false;
+		}
+		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+	}
+
+	/**
+	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		// If the gateway order is empty, assume Stripe is in the first position.
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return true;
+		}
+
+		asort( $gateway_order );
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			// Skip internal WooCommerce Payments entries.
+			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
+				continue;
+			}
+
+			// The first non-internal gateway decides position one.
+			return WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 * Preserves relative order among Stripe gateways and among non-Stripe gateways.
+	 *
+	 * @return void
+	 */
+	public static function move_stripe_gateways_to_top_in_woocommerce_gateway_order(): void {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return;
+		}
+
+		asort( $gateway_order );
+		$stripe_gateways     = [];
+		$non_stripe_gateways = [];
+
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			if ( 'stripe' === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' ) ) {
+				$stripe_gateways[] = $gateway_id;
+			} else {
+				$non_stripe_gateways[] = $gateway_id;
+			}
+		}
+
+		if ( empty( $stripe_gateways ) ) {
+			return;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+
+		foreach ( array_merge( $stripe_gateways, $non_stripe_gateways ) as $gateway_id ) {
+			$updated_gateway_order[ $gateway_id ] = (string) $index++;
+		}
+
+		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
@@ -1187,6 +1337,20 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
+	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
+	 * Adaptive Pricing is also not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 *
+	 * @return bool True if the account is not in the EEA.
+	 */
+	public static function is_adaptive_pricing_available_for_account(): bool {
+		$account_country       = WC_Stripe::get_instance()->account->get_account_country();
+		$eea_countries         = self::get_european_economic_area_countries();
+		$unsupported_countries = array_merge( $eea_countries, [ WC_Stripe_Country_Code::INDIA ] );
+		return ! in_array( $account_country, $unsupported_countries, true );
+	}
+
+	/**
 	 * Returns whether adaptive pricing is supported for the current checkout.
 	 *
 	 * When on the checkout page, adaptive pricing is not supported if the cart contains
@@ -1205,6 +1369,11 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
+		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
+		if ( ! self::is_adaptive_pricing_available_for_account() ) {
+			return false;
+		}
+
 		// False if adaptive pricing option is disabled.
 		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
 			return false;
@@ -1219,9 +1388,9 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
-		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' ); // @phpstan-ignore function.impossibleType
-		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' ); // @phpstan-ignore function.impossibleType
-		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' ); // @phpstan-ignore function.impossibleType
+		$subscriptions_available = class_exists( 'WC_Subscriptions_Product' ) && method_exists( 'WC_Subscriptions_Product', 'is_subscription' );
+		$pre_orders_available    = class_exists( 'WC_Pre_Orders_Product' ) && method_exists( 'WC_Pre_Orders_Product', 'product_is_charged_upon_release' );
+		$deposits_available      = class_exists( 'WC_Deposits_Product_Manager' ) && method_exists( 'WC_Deposits_Product_Manager', 'deposits_enabled' );
 
 		// Use a single loop over cart items to check all cases where adaptive pricing is unsupported:
 		// subscriptions, pre-orders charged upon release, and deposits.
@@ -1233,17 +1402,17 @@ class WC_Stripe_Helper {
 			}
 
 			// Subscriptions are not supported with adaptive pricing.
-			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+			if ( $subscriptions_available && WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return false;
 			}
 
 			// Pre-order (charge upon release) is not supported with adaptive pricing.
-			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+			if ( $pre_orders_available && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
 				return false;
 			}
 
 			// Deposits are not supported with adaptive pricing.
-			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) { // @phpstan-ignore class.notFound (guarded by class_exists() and method_exists() checks above)
+			if ( $deposits_available && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) && ! empty( $cart_item['is_deposit'] ) ) {
 				return false;
 			}
 		}
@@ -1335,6 +1504,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
+
 		$order_helper  = WC_Stripe_Order_Helper::get_instance();
 		$old_intent_id = $order_helper->get_stripe_intent_id( $order );
 		if ( $old_intent_id === $payment_intent_id ) {
@@ -1451,6 +1622,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_intent_id_from_order()' );
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$intent_id    = $order_helper->get_stripe_intent_id( $order );
 		if ( ! $intent_id ) {
@@ -1491,6 +1664,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
+
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1509,6 +1684,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
+
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
@@ -1525,36 +1702,36 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_european_economic_area_countries() {
 		return [
-			'AT', // Austria.
-			'BE', // Belgium.
-			'BG', // Bulgaria.
-			'HR', // Croatia.
-			'CY', // Cyprus.
-			'CZ', // Czech Republic.
-			'DK', // Denmark.
-			'EE', // Estonia.
-			'FI', // Finland.
-			'FR', // France.
-			'DE', // Germany.
-			'GR', // Greece.
-			'HU', // Hungary.
-			'IE', // Ireland.
-			'IS', // Iceland
-			'IT', // Italy.
-			'LV', // Latvia.
-			'LI', // Liechtenstein.
-			'LT', // Lithuania.
-			'LU', // Luxembourg.
-			'MT', // Malta.
-			'NO', // Norway.
-			'NL', // Netherlands.
-			'PL', // Poland.
-			'PT', // Portugal.
-			'RO', // Romania.
-			'SK', // Slovakia.
-			'SI', // Slovenia.
-			'ES', // Spain.
-			'SE', // Sweden.
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::BULGARIA,
+			WC_Stripe_Country_Code::CROATIA,
+			WC_Stripe_Country_Code::CYPRUS,
+			WC_Stripe_Country_Code::CZECH_REPUBLIC,
+			WC_Stripe_Country_Code::DENMARK,
+			WC_Stripe_Country_Code::ESTONIA,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::HUNGARY,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ICELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::LATVIA,
+			WC_Stripe_Country_Code::LIECHTENSTEIN,
+			WC_Stripe_Country_Code::LITHUANIA,
+			WC_Stripe_Country_Code::LUXEMBOURG,
+			WC_Stripe_Country_Code::MALTA,
+			WC_Stripe_Country_Code::NORWAY,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::POLAND,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::ROMANIA,
+			WC_Stripe_Country_Code::SLOVAKIA,
+			WC_Stripe_Country_Code::SLOVENIA,
+			WC_Stripe_Country_Code::SPAIN,
+			WC_Stripe_Country_Code::SWEDEN,
 		];
 	}
 
@@ -1699,29 +1876,29 @@ class WC_Stripe_Helper {
 	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
 		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
 		$supported_locales = [
-			'AU' => [ 'en-AU' ],
-			'AT' => [ 'de-AT', 'en-AT' ],
-			'BE' => [ 'nl-BE', 'fr-BE', 'en-BE' ],
-			'CA' => [ 'en-CA', 'fr-CA' ],
-			'CZ' => [ 'en-CZ', 'cs-CZ' ],
-			'DK' => [ 'da-DK', 'en-DK' ],
-			'FI' => [ 'fi-FI', 'sv-FI', 'en-FI' ],
-			'FR' => [ 'fr-FR', 'en-FR' ],
-			'DE' => [ 'de-DE', 'en-DE' ],
-			'GR' => [ 'en-GR', 'el-GR' ],
-			'IE' => [ 'en-IE' ],
-			'IT' => [ 'it-IT', 'en-IT' ],
-			'NL' => [ 'nl-NL', 'en-NL' ],
-			'NZ' => [ 'en-NZ' ],
-			'NO' => [ 'nb-NO', 'en-NO' ],
-			'PL' => [ 'pl-PL', 'en-PL' ],
-			'PT' => [ 'pt-PT', 'en-PT' ],
-			'RO' => [ 'ro-RO', 'en-RO' ],
-			'ES' => [ 'es-ES', 'en-ES' ],
-			'SE' => [ 'sv-SE', 'en-SE' ],
-			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
-			'GB' => [ 'en-GB' ],
-			'US' => [ 'en-US', 'es-US' ],
+			WC_Stripe_Country_Code::AUSTRALIA      => [ 'en-AU' ],
+			WC_Stripe_Country_Code::AUSTRIA        => [ 'de-AT', 'en-AT' ],
+			WC_Stripe_Country_Code::BELGIUM        => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			WC_Stripe_Country_Code::CANADA         => [ 'en-CA', 'fr-CA' ],
+			WC_Stripe_Country_Code::CZECH_REPUBLIC => [ 'en-CZ', 'cs-CZ' ],
+			WC_Stripe_Country_Code::DENMARK        => [ 'da-DK', 'en-DK' ],
+			WC_Stripe_Country_Code::FINLAND        => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			WC_Stripe_Country_Code::FRANCE         => [ 'fr-FR', 'en-FR' ],
+			WC_Stripe_Country_Code::GERMANY        => [ 'de-DE', 'en-DE' ],
+			WC_Stripe_Country_Code::GREECE         => [ 'en-GR', 'el-GR' ],
+			WC_Stripe_Country_Code::IRELAND        => [ 'en-IE' ],
+			WC_Stripe_Country_Code::ITALY          => [ 'it-IT', 'en-IT' ],
+			WC_Stripe_Country_Code::NETHERLANDS    => [ 'nl-NL', 'en-NL' ],
+			WC_Stripe_Country_Code::NEW_ZEALAND    => [ 'en-NZ' ],
+			WC_Stripe_Country_Code::NORWAY         => [ 'nb-NO', 'en-NO' ],
+			WC_Stripe_Country_Code::POLAND         => [ 'pl-PL', 'en-PL' ],
+			WC_Stripe_Country_Code::PORTUGAL       => [ 'pt-PT', 'en-PT' ],
+			WC_Stripe_Country_Code::ROMANIA        => [ 'ro-RO', 'en-RO' ],
+			WC_Stripe_Country_Code::SPAIN          => [ 'es-ES', 'en-ES' ],
+			WC_Stripe_Country_Code::SWEDEN         => [ 'sv-SE', 'en-SE' ],
+			WC_Stripe_Country_Code::SWITZERLAND    => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			WC_Stripe_Country_Code::UNITED_KINGDOM => [ 'en-GB' ],
+			WC_Stripe_Country_Code::UNITED_STATES  => [ 'en-US', 'es-US' ],
 		];
 
 		$region = strtoupper( $billing_country );
@@ -1967,9 +2144,11 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::validate_intent_for_order()' );
+
 		$intent_id = null;
 		if ( is_string( $intent ) ) {
-			$intent_id = $intent;
+			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
@@ -2073,6 +2252,8 @@ class WC_Stripe_Helper {
 	 * @deprecated 10.0.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
+		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_stripe_gateway_order()' );
+
 		return WC_Stripe_UPE_Payment_Gateway::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 
@@ -2101,11 +2282,11 @@ class WC_Stripe_Helper {
 	 * @return array The display items.
 	 */
 	public static function build_line_items( bool $itemized_display_items = false ): array {
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
-		$has_deposits  = false;
+		$items        = [];
+		$lines        = [];
+		$subtotal     = 0;
+		$discounts    = 0;
+		$has_deposits = false;
 
 		if ( $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item ) {
@@ -2143,9 +2324,9 @@ class WC_Stripe_Helper {
 			$discounts += (float) $amount;
 		}
 
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
+		$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+		$tax       = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
+		$shipping  = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [
@@ -2181,5 +2362,25 @@ class WC_Stripe_Helper {
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Returns the number of decimals to use for a given currency.
+	 *
+	 * @since 10.6.0
+	 *
+	 * @param string $currency_code The currency code (e.g., 'usd', 'jpy').
+	 *
+	 * @return int The number of decimals to use for the currency.
+	 */
+	public static function get_currency_decimals( string $currency_code ): int {
+		$currency_code = strtolower( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			return 0;
+		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			return 3;
+		}
+
+		return 2;
 	}
 }

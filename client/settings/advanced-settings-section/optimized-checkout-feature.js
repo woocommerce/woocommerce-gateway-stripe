@@ -7,6 +7,7 @@ import {
 	useIsOCEnabled,
 	useOCLayout,
 } from '../../data';
+import OptimizedCheckoutFirstMethodNotice from './optimized-checkout-first-method-notice';
 import {
 	CheckboxControl,
 	ExternalLink,
@@ -84,6 +85,7 @@ const OptimizedCheckoutFeature = () => {
 				checked={ isOCEnabled }
 				onChange={ setIsOCEnabled }
 			/>
+			<OptimizedCheckoutFirstMethodNotice isOCEnabled={ isOCEnabled } />
 			{ isOCEnabled && isCheckoutSessionsAvailable && (
 				<AdaptivePricingCheckbox
 					label={ __(

@@ -59,7 +59,14 @@ describe( 'CheckoutSessionsContainer', () => {
 		expect( CheckoutProvider ).toHaveBeenCalledWith(
 			expect.objectContaining( {
 				stripe: expect.any( Promise ),
-				options: expect.any( Object ),
+				options: expect.objectContaining( {
+					elementsOptions: expect.objectContaining( {
+						savedPaymentMethod: {
+							enableRedisplay: 'never',
+							enableSave: 'never',
+						},
+					} ),
+				} ),
 			} ),
 			{}
 		);

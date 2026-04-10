@@ -26,7 +26,13 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
 		];
-		$this->supported_countries          = [ 'AU', 'CA', 'GB', 'NZ', 'US' ];
+		$this->supported_countries          = [
+			WC_Stripe_Country_Code::AUSTRALIA,
+			WC_Stripe_Country_Code::CANADA,
+			WC_Stripe_Country_Code::UNITED_KINGDOM,
+			WC_Stripe_Country_Code::NEW_ZEALAND,
+			WC_Stripe_Country_Code::UNITED_STATES,
+		];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
@@ -35,31 +41,31 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		);
 		$this->limits_per_currency          = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR    => [
-				'AU' => [
+				WC_Stripe_Country_Code::AUSTRALIA => [
 					'min' => 100,
 					'max' => 400000,
 				], // Represents AUD 1 - 4,000 AUD.
 			],
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR      => [
-				'CA' => [
+				WC_Stripe_Country_Code::CANADA => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents CAD 1 - 2,000 CAD.
 			],
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR   => [
-				'NZ' => [
+				WC_Stripe_Country_Code::NEW_ZEALAND => [
 					'min' => 100,
 					'max' => 400000,
 				], // Represents NZD 1 - 4,000 NZD.
 			],
 			WC_Stripe_Currency_Code::POUND_STERLING       => [
-				'GB' => [
+				WC_Stripe_Country_Code::UNITED_KINGDOM => [
 					'min' => 100,
 					'max' => 120000,
 				], // Represents GBP 1 - 1,200 GBP.
 			],
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
-				'US' => [
+				WC_Stripe_Country_Code::UNITED_STATES => [
 					'min' => 100,
 					'max' => 400000,
 				], // Represents USD 1 - 4,000 USD.
@@ -119,7 +125,7 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	private function is_gb_country() {
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
-		return 'GB' === $account_country;
+		return WC_Stripe_Country_Code::UNITED_KINGDOM === $account_country;
 	}
 
 	/**

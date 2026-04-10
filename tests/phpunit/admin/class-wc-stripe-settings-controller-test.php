@@ -110,4 +110,99 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
 	}
+
+	/**
+	 * @dataProvider provide_test_admin_scripts_checkout_sessions_country_restrictions
+	 */
+	public function test_admin_scripts_sets_checkout_sessions_availability_with_country_restrictions(
+		string $account_country,
+		bool $is_checkout_sessions_feature_available,
+		bool $expected_checkout_sessions_availability
+	): void {
+		global $current_tab, $current_section;
+
+		$wp_scripts_backup = $GLOBALS['wp_scripts'];
+		$feature_filter    = static function () use ( $is_checkout_sessions_feature_available ) {
+			return $is_checkout_sessions_feature_available;
+		};
+
+		try {
+			// Avoid stacked `wp_localize_script` output from prior data-provider runs breaking JSON extraction.
+			$GLOBALS['wp_scripts'] = new WP_Scripts();
+
+			$current_tab     = 'checkout';
+			$current_section = 'stripe';
+
+			// is_checkout_sessions_available() bails out before apply_filters unless these are enabled.
+			$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['pmc_enabled']                = 'yes';
+			$stripe_settings['optimized_checkout_element'] = 'yes';
+			$stripe_settings['capture']                    = 'yes';
+			$stripe_settings['testmode']                   = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+			$account = $this->getMockBuilder( WC_Stripe_Account::class )
+				->disableOriginalConstructor()
+				->getMock();
+			$account->method( 'get_account_country' )->willReturn( $account_country );
+
+			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
+			WC_Stripe::get_instance()->account = $account;
+
+			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+				->disableOriginalConstructor()
+				->setMethods(
+					[
+						'get_upe_enabled_payment_method_ids',
+						'is_oc_enabled',
+						'is_in_test_mode',
+						'get_validated_option',
+						'get_option',
+					]
+				)
+				->getMock();
+			$gateway->method( 'get_upe_enabled_payment_method_ids' )->willReturn( [] );
+			$gateway->method( 'is_oc_enabled' )->willReturn( false );
+			$gateway->method( 'is_in_test_mode' )->willReturn( false );
+			$gateway->method( 'get_validated_option' )->with( 'optimized_checkout_layout' )->willReturn( 'accordion' );
+			$gateway->method( 'get_option' )->willReturn( 'no' );
+
+			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
+
+			add_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
+
+			$controller->admin_scripts( 'woocommerce_page_wc-settings' );
+
+			$localized_data = wp_scripts()->get_data( 'woocommerce_stripe_admin', 'data' );
+			$this->assertIsString( $localized_data );
+			$this->assertMatchesRegularExpression(
+				'/wc_stripe_settings_params\s*=\s*(\{.*\});/s',
+				$localized_data
+			);
+			preg_match( '/wc_stripe_settings_params\s*=\s*(\{.*\});/s', $localized_data, $matches );
+			$params = json_decode( $matches[1], true );
+
+			$this->assertIsArray( $params );
+			$expected_cs_param = $expected_checkout_sessions_availability ? '1' : '';
+			$this->assertSame( $expected_cs_param, $params['is_cs_available'] );
+			$this->assertSame( 'accordion', $params['oc_layout'] );
+		} finally {
+			if ( isset( $stripe_singleton_account_backup ) ) {
+				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
+			}
+			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
+			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
+			unset( $current_tab, $current_section );
+		}
+	}
+
+	public function provide_test_admin_scripts_checkout_sessions_country_restrictions(): array {
+		return [
+			'US account + feature available'              => [ 'US', true, true ],
+			'DE account (EEA) + feature available'        => [ 'DE', true, false ],
+			'DE account (EEA) + feature unavailable'      => [ 'DE', false, false ],
+			'US account + feature unavailable'            => [ 'US', false, false ],
+			'CA account + feature available (not in EEA)' => [ 'CA', true, true ],
+		];
+	}
 }

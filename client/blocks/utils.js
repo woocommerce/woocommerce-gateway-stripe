@@ -72,6 +72,18 @@ export const shouldSetupOffSessionPayment = (
 };
 
 /**
+ * Checks if the save payment method checkbox is checked.
+ *
+ * @return {boolean} True if the save payment method checkbox is checked, false otherwise.
+ */
+export const isSavePaymentMethodCheckboxChecked = () => {
+	const checkbox = document.querySelector(
+		'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
+	);
+	return Boolean( checkbox?.checked );
+};
+
+/**
  * Returns the public api key for the stripe payment method
  *
  * @throws Error
@@ -216,6 +228,12 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 		options = {
 			...options,
 			layout,
+		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		options.layout = {
+			type: 'tabs',
 		};
 	}
 

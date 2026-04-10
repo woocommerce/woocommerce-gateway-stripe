@@ -25,9 +25,15 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	invalidateAppearanceCache,
+	initializeUPEAppearance,
+} from 'wcstripe/stripe-utils';
+import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
 	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
@@ -281,6 +287,12 @@ const PaymentProcessor = ( {
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
+			// Hide the store-level save checkbox on initial load if needed
+			// (e.g., when Link is enabled and card is the default method).
+			handleDisplayOfSavingCheckbox(
+				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD,
+				paymentMethodsConfig
+			);
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
 			const savingPaymentMethodCheckbox = document.querySelector(
@@ -289,17 +301,63 @@ const PaymentProcessor = ( {
 			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
-					elements.update( {
-						setupFutureUsage:
-							stripeServerData?.cartContainsSubscription ||
-							savingPaymentMethodCheckbox?.checked
-								? 'off_session'
-								: null,
-					} );
+					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+					// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
+					// not a client-side Elements update.
+					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
+					// because we might be using the payment element as a fallback though the flag is set to true.
+					if ( typeof elements.update === 'function' ) {
+						elements.update( {
+							setupFutureUsage:
+								stripeServerData?.cartContainsSubscription ||
+								savingPaymentMethodCheckbox?.checked
+									? 'off_session'
+									: null,
+						} );
+					}
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
+	}, [
+		selectedPaymentMethodType,
+		elements,
+		stripeServerData,
+		paymentMethodsConfig,
+	] );
+
+	// After web fonts finish loading, re-compute the appearance so the PE
+	// uses the correct font families instead of fallback generics.
+	useEffect( () => {
+		if ( ! elements ) {
+			return;
+		}
+
+		let cancelled = false;
+		document.fonts?.ready?.then( () => {
+			if ( cancelled ) {
+				return;
+			}
+
+			// Compare the live font with the cached appearance — only
+			// invalidate and recompute if they actually differ.
+			const cachedFont =
+				initializeUPEAppearance( 'true' )?.variables?.fontFamily;
+			const liveFont = sampleFontFamily( true );
+			if ( ! liveFont || liveFont === cachedFont ) {
+				return;
+			}
+
+			invalidateAppearanceCache();
+			const appearance = initializeUPEAppearance( 'true' );
+			if ( typeof elements?.update === 'function' ) {
+				elements.update( { appearance } );
+			}
+		} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ elements ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -322,8 +380,8 @@ const PaymentProcessor = ( {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
-			handleDisplayOfPaymentInstructions( value.type );
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		}
 	};
 
