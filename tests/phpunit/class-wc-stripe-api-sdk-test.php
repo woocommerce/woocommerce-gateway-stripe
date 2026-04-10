@@ -311,7 +311,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Test that detach_payment_method_from_customer() uses sources->detach() for source IDs.
+	 * Test that detach_payment_method_from_customer() uses customers->deleteSource() for source IDs.
 	 */
 	public function test_detach_payment_method_from_customer_detaches_source() {
 		$customer_id = 'cus_testXYZ';
@@ -324,13 +324,13 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$mock_sources = $this->createMock( \Stripe\Service\SourceService::class );
-		$mock_sources->expects( $this->once() )
-			->method( 'detach' )
+		$mock_customers = $this->createMock( \Stripe\Service\CustomerService::class );
+		$mock_customers->expects( $this->once() )
+			->method( 'deleteSource' )
 			->with( $customer_id, $source_id )
 			->willReturn( $response );
 
-		$this->inject_sdk( $this->make_sdk_with_service( 'sources', $mock_sources ) );
+		$this->inject_sdk( $this->make_sdk_with_service( 'customers', $mock_customers ) );
 
 		$result = WC_Stripe_API::detach_payment_method_from_customer( $customer_id, $source_id );
 

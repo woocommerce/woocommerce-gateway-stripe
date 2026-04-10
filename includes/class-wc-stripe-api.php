@@ -584,7 +584,7 @@ class WC_Stripe_API {
 		try {
 			// Sources and Payment Methods need different API calls.
 			if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-				return self::get_sdk()->sources->detach( $customer_id, $payment_method_id );
+				return self::get_sdk()->customers->deleteSource( $customer_id, $payment_method_id );
 			}
 
 			return self::get_sdk()->paymentMethods->detach( $payment_method_id );
