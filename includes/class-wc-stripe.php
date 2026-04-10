@@ -412,7 +412,7 @@ class WC_Stripe {
 		$settings = WC_Stripe_Settings::get_instance();
 		if ( 'no' === $settings->get_pmc_enabled() ) {
 			$settings->delete( 'pmc_enabled' );
-			$settings->set( 'skip_pmc_express_checkout_defaults', 'yes' );
+			$settings->set_skip_pmc_express_checkout_defaults( 'yes' );
 			$settings->save();
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
@@ -462,7 +462,7 @@ class WC_Stripe {
 		$settings = WC_Stripe_Settings::get_instance();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
 		if ( 'yes' !== $settings->get_upe_checkout_experience_enabled() ) {
-			$settings->set( 'upe_checkout_experience_enabled', 'yes' );
+			$settings->set_upe_checkout_experience_enabled( 'yes' );
 			$settings->save();
 
 			if ( class_exists( 'WC_Tracks' ) ) {
@@ -488,7 +488,7 @@ class WC_Stripe {
 		if ( empty( $prb_locations ) ) {
 			// Use existing payment_request_button_locations if it exists.
 			if ( $settings->has( 'payment_request_button_locations' ) ) {
-				$settings->set( 'express_checkout_button_locations', $settings->get_express_checkout_button_locations() );
+				$settings->set_new_express_checkout_button_locations( $settings->get_express_checkout_button_locations() );
 				$settings->delete( 'payment_request_button_locations' );
 				$settings->save();
 				return;
@@ -515,7 +515,7 @@ class WC_Stripe {
 				$new_prb_locations[] = 'checkout';
 			}
 
-			$settings->set( 'express_checkout_button_locations', $new_prb_locations );
+			$settings->set_new_express_checkout_button_locations( $new_prb_locations );
 			$settings->save();
 		}
 	}

@@ -314,12 +314,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings->get_test_secret_key();
 
 		if ( $is_deleting_account ) {
-			$settings->set( 'enabled', 'no' );
-			$settings->set( 'connection_type', '' );
-			$settings->set( 'pmc_enabled', '' );
-			$settings->set( 'test_connection_type', '' );
-			$settings->set( 'refresh_token', '' );
-			$settings->set( 'test_refresh_token', '' );
+			$settings->set_enabled( 'no' );
+			$settings->set_connection_type( '' );
+			$settings->set_pmc_enabled( '' );
+			$settings->set_test_connection_type( '' );
+			$settings->set_refresh_token( '' );
+			$settings->set_test_refresh_token( '' );
 			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
 		} else {
 			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
@@ -478,8 +478,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
 
 				// Update the webhook settings now that the webhook has been decommissioned.
-				$settings->set( 'live' === $mode ? 'webhook_data' : 'test_webhook_data', [] );
-				$settings->set( 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret', '' );
+				if ( 'live' === $mode ) {
+					$settings->set_webhook_data( [] );
+					$settings->set_webhook_secret( '' );
+				} else {
+					$settings->set_test_webhook_data( [] );
+					$settings->set_test_webhook_secret( '' );
+				}
 			}
 		}
 	}

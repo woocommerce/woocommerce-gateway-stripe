@@ -313,19 +313,21 @@ class WC_Stripe_Account {
 
 		$settings = WC_Stripe_Settings::get_instance();
 
-		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
-		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
+		$webhook_data = [
+			'id'     => wc_clean( $response->id ),
+			'url'    => wc_clean( $response->url ),
+			'secret' => WC_Stripe_API::get_secret_key(),
+		];
 
 		// Save the Webhook secret and ID.
-		$settings->set( $webhook_secret_setting, wc_clean( $response->secret ) );
-		$settings->set(
-			$webhook_data_setting,
-			[
-				'id'     => wc_clean( $response->id ),
-				'url'    => wc_clean( $response->url ),
-				'secret' => WC_Stripe_API::get_secret_key(),
-			]
-		);
+		$clean_secret = sanitize_text_field( $response->secret );
+		if ( 'live' === $mode ) {
+			$settings->set_webhook_secret( $clean_secret );
+			$settings->set_webhook_data( $webhook_data );
+		} else {
+			$settings->set_test_webhook_secret( $clean_secret );
+			$settings->set_test_webhook_data( $webhook_data );
+		}
 		$settings->save();
 
 		// After reconfiguring webhooks, clear the webhook state.

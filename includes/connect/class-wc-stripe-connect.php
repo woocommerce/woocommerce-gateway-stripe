@@ -276,21 +276,31 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$settings->set( 'enabled', 'yes' );
-			$settings->set( 'testmode', $is_test ? 'yes' : 'no' );
-			$settings->set( 'upe_checkout_experience_enabled', $this->get_upe_checkout_experience_enabled() );
-			$settings->set( $prefix . 'publishable_key', $publishable_key );
-			$settings->set( $prefix . 'secret_key', $secret_key );
-			$settings->set( $prefix . 'connection_type', $type );
-			$settings->set( 'pmc_enabled', 'connect' === $type ? 'yes' : 'no' ); // When not connected via Connect OAuth, the PMC is disabled.
+			$settings->set_enabled( 'yes' );
+			$settings->set_testmode( $is_test ? 'yes' : 'no' );
+			$settings->set_upe_checkout_experience_enabled( $this->get_upe_checkout_experience_enabled() );
+			if ( $is_test ) {
+				$settings->set_test_publishable_key( $publishable_key );
+				$settings->set_test_secret_key( $secret_key );
+				$settings->set_test_connection_type( $type );
+			} else {
+				$settings->set_publishable_key( $publishable_key );
+				$settings->set_secret_key( $secret_key );
+				$settings->set_connection_type( $type );
+			}
+			$settings->set_pmc_enabled( 'connect' === $type ? 'yes' : 'no' ); // When not connected via Connect OAuth, the PMC is disabled.
 			$should_default_optimized_checkout_on = get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				$settings->set( 'optimized_checkout_element', 'yes' );
+				$settings->set_optimized_checkout_element( 'yes' );
 			}
 			if ( 'app' === $type ) {
-				$settings->set( $prefix . 'refresh_token', $result->refreshToken ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				if ( $is_test ) {
+					$settings->set_test_refresh_token( $result->refreshToken ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				} else {
+					$settings->set_refresh_token( $result->refreshToken ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				}
 			}
 
 			// While we are at it, let's also clear the account_id and

@@ -700,6 +700,7 @@ class WC_Stripe_Helper {
 		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
 
 		$settings->set_stripe_upe_payment_method_order( $updated_order );
+		$settings->save();
 
 		return $updated_order;
 	}

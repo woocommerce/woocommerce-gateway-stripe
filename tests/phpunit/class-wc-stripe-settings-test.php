@@ -77,11 +77,16 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	public function test_set_pmc_enabled() {
 		$settings = WC_Stripe_Settings::get_instance();
 		$settings->set_pmc_enabled( 'yes' );
+		$settings->save();
 
 		$stored = get_option( WC_Stripe_Settings::SETTINGS_OPTION );
 		$this->assertSame( 'yes', $stored['pmc_enabled'] );
 
+		WC_Stripe_Settings::reset();
+		$settings = WC_Stripe_Settings::get_instance();
 		$settings->set_pmc_enabled( 'no' );
+		$settings->save();
+
 		$stored = get_option( WC_Stripe_Settings::SETTINGS_OPTION );
 		$this->assertSame( 'no', $stored['pmc_enabled'] );
 	}
@@ -93,6 +98,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 		$settings = WC_Stripe_Settings::get_instance();
 		$order    = [ 'card', 'klarna', 'sepa_debit' ];
 		$settings->set_stripe_upe_payment_method_order( $order );
+		$settings->save();
 
 		$stored = get_option( WC_Stripe_Settings::SETTINGS_OPTION );
 		$this->assertSame( $order, $stored['stripe_upe_payment_method_order'] );

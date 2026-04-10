@@ -186,6 +186,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			$domain_name = (string) $this->domain_name;
 			$settings->set_apple_pay_verified_domain( $domain_name );
 			$settings->set_apple_pay_domain_set( 'yes' );
+			$settings->save();
 
 			// Update cached settings.
 			$this->stripe_settings = $settings;
@@ -199,6 +200,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			$domain_name = (string) $this->domain_name;
 			$settings->set_apple_pay_verified_domain( $domain_name );
 			$settings->set_apple_pay_domain_set( 'no' );
+			$settings->save();
 
 			// Update cached settings.
 			$this->stripe_settings = $settings;

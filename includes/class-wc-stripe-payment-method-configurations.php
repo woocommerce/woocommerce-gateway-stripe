@@ -635,6 +635,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		// Mark migration as complete in stripe settings
 		$stripe_settings->set_pmc_enabled( 'yes' );
+		$stripe_settings->save();
 	}
 
 	/**
@@ -642,6 +643,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
 	 */
 	private static function disable_payment_method_configuration_sync() {
-		WC_Stripe_Settings::get_instance()->set_pmc_enabled( 'no' );
+		$settings = WC_Stripe_Settings::get_instance();
+		$settings->set_pmc_enabled( 'no' );
+		$settings->save();
 	}
 }
