@@ -1402,7 +1402,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// If the order is already completed, redirect user to the order received page.
 			return [
 				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'redirect' => $this->get_return_url_for_checkout_session( $order ),
 			];
 		}
 
@@ -1419,10 +1419,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
 		// the order is updated to paid when the checkout.session.completed webhook fires.
-		// Here we only link the session to the order, clear the cart, and redirect the customer to the thank-you page.
+		// Here we only link the session to the order and return the return URL. The URL carries
+		// disambiguation params + a nonce so process_checkout_session_redirect() can run on return
+		// from a redirect-based payment method and decide whether to land the customer on the
+		// order-received page (success) or bounce them back to /checkout (cancel/failure).
 		return [
 			'result'   => 'success',
-			'redirect' => $this->get_return_url( $order ),
+			'redirect' => $this->get_return_url_for_checkout_session( $order ),
 		];
 	}
 
@@ -2097,6 +2100,174 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
 
+			exit;
+		} finally {
+			$order_helper->unlock_order_payment( $order );
+		}
+	}
+
+	/**
+	 * Dispatcher for the Checkout Sessions (Adaptive Pricing) return URL. Runs on
+	 * the order-received page when `wc_stripe_cs=1` is present in the URL, validates
+	 * the CS-specific nonce + endpoint, and forwards to {@see process_checkout_session_redirect()}.
+	 *
+	 * Kept separate from {@see maybe_process_upe_redirect()} so the working PaymentIntent
+	 * dispatcher is not touched and the CS path has its own nonce + validation lifecycle.
+	 *
+	 * @since 10.6.0
+	 */
+	public function maybe_process_checkout_session_redirect(): void {
+		if ( empty( $_GET['wc_stripe_cs'] ) ) {
+			return;
+		}
+
+		$payment_method = isset( $_GET['wc_payment_method'] ) ? wc_clean( wp_unslash( $_GET['wc_payment_method'] ) ) : '';
+		if ( self::ID !== $payment_method ) {
+			return;
+		}
+
+		$raw_nonce      = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		$nonce          = is_string( $raw_nonce ) ? $raw_nonce : '';
+		$is_nonce_valid = '' !== $nonce && wp_verify_nonce( $nonce, 'wc_stripe_process_checkout_session_redirect_nonce' );
+		if ( ! $is_nonce_valid ) {
+			return;
+		}
+
+		if ( ! is_order_received_page() || ! isset( $_GET['key'] ) ) {
+			return;
+		}
+
+		$raw_order_key           = wc_clean( wp_unslash( $_GET['key'] ) );
+		$order_key               = is_string( $raw_order_key ) ? $raw_order_key : '';
+		$order_id_from_order_key = '' === $order_key ? 0 : absint( wc_get_order_id_by_order_key( $order_key ) );
+		$order_id_from_query_var = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : 0;
+		if ( ! $order_id_from_order_key || $order_id_from_query_var !== $order_id_from_order_key ) {
+			return;
+		}
+
+		$this->process_checkout_session_redirect(
+			$order_id_from_order_key,
+			isset( $_GET['pay_for_order'] ) && 'yes' === $_GET['pay_for_order']
+		);
+	}
+
+	/**
+	 * Handles a customer return from the Checkout Sessions (Adaptive Pricing) flow.
+	 *
+	 * Symmetric to {@see process_upe_redirect_payment()} for the PaymentIntent flow:
+	 * fetches the Stripe Checkout Session for the order and decides whether the customer
+	 * should land on the order-received page (success) or be bounced back to /checkout
+	 * with a notice (cancel/failure). The order is never marked paid here — the
+	 * `checkout.session.completed` / `checkout.session.async_payment_*` webhooks are the
+	 * durable source of truth for payment completion.
+	 *
+	 * Cancel/failure branches mirror the PaymentIntent path: customer-initiated
+	 * cancellations leave the order pending and add a 'notice'-type notice so the
+	 * customer can retry; hard failures move the order to FAILED and add an 'error'
+	 * notice. Both redirect to the checkout URL (or pay-for-order URL when applicable).
+	 *
+	 * @param int  $order_id         The order ID being processed.
+	 * @param bool $is_pay_for_order True when the customer is on the pay-for-order endpoint.
+	 *
+	 * @since 10.6.0
+	 */
+	public function process_checkout_session_redirect( int $order_id, bool $is_pay_for_order = false ): void {
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		// Webhook-already-fired short-circuit: order is in a terminal-success state.
+		// Let the order-received page render normally.
+		// TODO: strip wc_stripe_cs/_wpnonce/order_id query args from the address bar on
+		// the success path (cosmetic).
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] ) ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// Replay protection: the handler has already run for this order.
+		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
+			return;
+		}
+
+		$locked = $order_helper->lock_order_payment( $order );
+		if ( $locked ) {
+			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
+			return;
+		}
+
+		try {
+			$checkout_session = $this->get_checkout_session_from_order( $order, true );
+			if ( null === $checkout_session ) {
+				// Either the order has no session id (defensive) or the Stripe API call failed.
+				// Logged downstream by get_checkout_session_from_order(). Leave the order
+				// untouched and let the webhook take over.
+				return;
+			}
+
+			$status         = isset( $checkout_session->status ) ? $checkout_session->status : '';
+			$payment_intent = isset( $checkout_session->payment_intent ) && is_object( $checkout_session->payment_intent )
+				? $checkout_session->payment_intent
+				: null;
+			$payment_error  = $payment_intent && isset( $payment_intent->last_payment_error ) ? $payment_intent->last_payment_error : null;
+
+			// Success: session is complete (paid OR async-pending unpaid like Boleto).
+			// Mark the handler as having run so a refresh of the order-received page
+			// doesn't fall through into the cancel path while the webhook is still in flight.
+			if ( 'complete' === $status ) {
+				$order_helper->update_stripe_upe_redirect_processed( $order, true );
+				return;
+			}
+
+			// Anything else (open / expired) on a non-terminal order means the customer
+			// either cancelled on the redirect provider, the session expired, or there
+			// was a hard failure. Disambiguate via last_payment_error if present.
+			$cancellation_codes = [
+				'payment_method_customer_decline',
+				'payment_intent_payment_attempt_expired',
+			];
+			$error_code         = $payment_error && isset( $payment_error->code ) ? $payment_error->code : '';
+			$error_message      = $payment_error && isset( $payment_error->message ) ? $payment_error->message : '';
+
+			// Hard failure: a real decline/error reported by the upstream payment provider.
+			$is_hard_failure = ! empty( $error_code ) && ! in_array( $error_code, $cancellation_codes, true );
+
+			$order_helper->update_stripe_upe_redirect_processed( $order, true );
+
+			if ( $is_hard_failure ) {
+				WC_Stripe_Logger::error(
+					'Checkout session redirect failed for order: ' . $order_id,
+					[
+						'session_status' => $status,
+						'error_code'     => $error_code,
+						'error_message'  => $error_message,
+					]
+				);
+
+				/* translators: localized Stripe error message */
+				$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+
+				wc_add_notice( $error_message, 'error' );
+			} else {
+				WC_Stripe_Logger::info(
+					'Checkout session redirect cancelled for order: ' . $order_id,
+					[
+						'session_status' => $status,
+						'error_code'     => $error_code,
+					]
+				);
+
+				wc_add_notice(
+					__( 'Your payment was cancelled. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ),
+					'notice'
+				);
+			}
+
+			$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
+			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
 			exit;
 		} finally {
 			$order_helper->unlock_order_payment( $order );
@@ -3581,6 +3752,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the URL passed to actions.confirm() / checkout.confirm() in the Checkout Sessions
+	 * (Adaptive Pricing) flow. Symmetric to {@see get_return_url_for_redirect()} for the
+	 * PaymentIntent flow: lands on the order-received page but carries disambiguation params
+	 * + a nonce so {@see process_checkout_session_redirect()} can run on return from a
+	 * redirect-based payment method (Klarna, iDEAL, Bancontact, etc.) and bounce the
+	 * customer back to the checkout page on cancel/failure.
+	 *
+	 * @param WC_Order $order The WC Order being paid for.
+	 *
+	 * @return string
+	 */
+	private function get_return_url_for_checkout_session( WC_Order $order ): string {
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg(
+					[
+						'order_id'          => $order->get_id(),
+						'wc_payment_method' => self::ID,
+						'_wpnonce'          => wp_create_nonce( 'wc_stripe_process_checkout_session_redirect_nonce' ),
+						'wc_stripe_cs'      => '1',
+						'pay_for_order'     => parent::is_valid_pay_for_order_endpoint() ? 'yes' : 'no',
+					],
+					$this->get_return_url( $order )
+				)
+			)
+		);
+	}
+
+	/**
 	 * Retrieves the (possible) existing payment intent for an order and payment method types.
 	 *
 	 * @param WC_Order $order The order.
@@ -4390,19 +4590,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Fetches the checkout session object from the order meta and retrieves the session details from Stripe.
 	 *
+	 * @param WC_Order $order         The order whose checkout session should be fetched.
+	 * @param bool     $force_refresh When true, bypasses the database cache and always
+	 *                                fetches a fresh session from Stripe. Use this when
+	 *                                the freshness of `status` / `payment_status` /
+	 *                                `last_payment_error` matters (e.g. handling a
+	 *                                customer return from a redirect-based payment method).
+	 *
 	 * @return object|null The checkout session object, or null if it could not be retrieved.
 	 */
-	private function get_checkout_session_from_order( WC_Order $order ): ?object {
+	private function get_checkout_session_from_order( WC_Order $order, bool $force_refresh = false ): ?object {
 		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
 		if ( ! $checkout_session_id ) {
 			return null;
 		}
 
 		$cache_key        = 'checkout_session_' . $checkout_session_id;
-		$checkout_session = WC_Stripe_Database_Cache::get( $cache_key );
+		$checkout_session = $force_refresh ? null : WC_Stripe_Database_Cache::get( $cache_key );
 		if ( ! $checkout_session ) {
 			try {
-				$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id, [], null, 'GET' );
+				$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent', [], null, 'GET' );
 			} catch ( WC_Stripe_Exception $e ) {
 				WC_Stripe_Logger::error(
 					'Exception fetching checkout session for order.',
