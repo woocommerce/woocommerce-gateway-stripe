@@ -30,6 +30,13 @@ class WC_Stripe_Settings {
 	private array $settings;
 
 	/**
+	 * Whether the option update hook has been registered.
+	 *
+	 * @var bool
+	 */
+	private static bool $hook_registered = false;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -38,6 +45,12 @@ class WC_Stripe_Settings {
 			$settings = [];
 		}
 		$this->settings = $settings;
+
+		// Invalidate the singleton when the option is updated externally (e.g. by WP update_option).
+		if ( ! self::$hook_registered ) {
+			add_action( 'update_option_' . self::SETTINGS_OPTION, [ __CLASS__, 'reset' ] );
+			self::$hook_registered = true;
+		}
 	}
 
 	/**
@@ -50,6 +63,14 @@ class WC_Stripe_Settings {
 			self::$instance = new self();
 		}
 		return self::$instance;
+	}
+
+	/**
+	 * Reset the singleton instance so the next call to get_instance() re-reads from the DB.
+	 * Use when the settings option is updated outside this class.
+	 */
+	public static function reset(): void {
+		self::$instance = null;
 	}
 
 	/**
@@ -201,15 +222,6 @@ class WC_Stripe_Settings {
 	}
 
 	/**
-	 * Get the test mode setting.
-	 *
-	 * @return string
-	 */
-	public function get_test_mode(): string {
-		return $this->settings['test_mode'] ?? '';
-	}
-
-	/**
 	 * Get the value of the `upe_checkout_experience_accepted_payments` setting.
 	 *
 	 * @return array<int, string>
@@ -308,7 +320,8 @@ class WC_Stripe_Settings {
 	 * @return array<int, string>
 	 */
 	public function get_stripe_upe_payment_method_order(): array {
-		return $this->settings['stripe_upe_payment_method_order'] ?? [];
+		$value = $this->settings['stripe_upe_payment_method_order'] ?? [];
+		return is_array( $value ) ? $value : [];
 	}
 
 	/**

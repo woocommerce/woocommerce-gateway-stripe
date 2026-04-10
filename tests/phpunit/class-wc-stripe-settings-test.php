@@ -13,11 +13,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		delete_option( WC_Stripe_Settings::SETTINGS_OPTION );
-		// Reset the singleton so it re-reads from the DB.
-		$reflection = new ReflectionClass( WC_Stripe_Settings::class );
-		$instance   = $reflection->getProperty( 'instance' );
-		$instance->setAccessible( true );
-		$instance->setValue( null, null );
+		WC_Stripe_Settings::reset();
 	}
 
 	/**
@@ -46,7 +42,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 
 		// Set a value and verify.
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ $setting_key => $test_value ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertSame( $test_value, $settings->$getter_method() );
 	}
@@ -64,7 +60,6 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 			'statement_descriptor'               => [ 'statement_descriptor', 'get_statement_descriptor', '', 'MY STORE' ],
 			'test_publishable_key'               => [ 'test_publishable_key', 'get_test_publishable_key', '', 'pk_test_abc' ],
 			'test_secret_key'                    => [ 'test_secret_key', 'get_test_secret_key', '', 'sk_test_abc' ],
-			'test_mode'                          => [ 'test_mode', 'get_test_mode', '', 'yes' ],
 			'webhook_secret'                     => [ 'webhook_secret', 'get_webhook_secret', '', 'whsec_123' ],
 			'test_webhook_secret'                => [ 'test_webhook_secret', 'get_test_webhook_secret', '', 'whsec_test_123' ],
 			'connection_type'                    => [ 'connection_type', 'get_connection_type', '', 'connect' ],
@@ -117,7 +112,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	public function test_get_upe_checkout_experience_accepted_payments_with_value() {
 		$methods = [ 'card', 'klarna', 'sepa_debit' ];
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'upe_checkout_experience_accepted_payments' => $methods ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertSame( $methods, $settings->get_upe_checkout_experience_accepted_payments() );
 	}
@@ -135,7 +130,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_express_checkout_button_locations_non_array() {
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'payment_request_button_locations' => '' ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertSame( [], $settings->get_express_checkout_button_locations() );
 	}
@@ -146,7 +141,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	public function test_get_express_checkout_button_locations_stored() {
 		$locations = [ 'product', 'cart', 'checkout' ];
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'payment_request_button_locations' => $locations ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertSame( $locations, $settings->get_express_checkout_button_locations() );
 	}
@@ -155,8 +150,10 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 * Test constructor handles non-array option gracefully.
 	 */
 	public function test_constructor_handles_non_array_option() {
+		// Remove the filter that expects an array value before setting a non-array option.
+		remove_filter( 'pre_update_option_' . WC_Stripe_Settings::SETTINGS_OPTION, [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, 'invalid' );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertFalse( $settings->is_enabled() );
 	}
@@ -171,7 +168,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_enabled( $value, bool $expected ) {
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'enabled' => $value ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$this->assertSame( $expected, WC_Stripe_Settings::get_instance()->is_enabled() );
 	}
 
@@ -194,7 +191,7 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_returns_value() {
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'some_key' => 'some_value' ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertSame( 'some_value', $settings->get( 'some_key' ) );
 	}
@@ -213,19 +210,9 @@ class WC_Stripe_Settings_Test extends WP_UnitTestCase {
 	 */
 	public function test_has() {
 		update_option( WC_Stripe_Settings::SETTINGS_OPTION, [ 'exists' => 'yes' ] );
-		$this->reset_singleton();
+		WC_Stripe_Settings::reset();
 		$settings = WC_Stripe_Settings::get_instance();
 		$this->assertTrue( $settings->has( 'exists' ) );
 		$this->assertFalse( $settings->has( 'does_not_exist' ) );
-	}
-
-	/**
-	 * Reset the singleton instance to force re-reading from DB.
-	 */
-	private function reset_singleton() {
-		$reflection = new ReflectionClass( WC_Stripe_Settings::class );
-		$instance   = $reflection->getProperty( 'instance' );
-		$instance->setAccessible( true );
-		$instance->setValue( null, null );
 	}
 }

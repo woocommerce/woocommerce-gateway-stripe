@@ -13,7 +13,7 @@ class WC_Stripe_Mode {
 	 * @return bool Whether the plugin is in live mode.
 	 */
 	public static function is_live() {
-		return 'yes' !== WC_Stripe_Settings::get_instance()->get_test_mode();
+		return ! WC_Stripe_Settings::get_instance()->is_testmode();
 	}
 
 	/**
@@ -22,6 +22,6 @@ class WC_Stripe_Mode {
 	 * @return bool Whether the plugin is in test mode.
 	 */
 	public static function is_test() {
-		return 'yes' === WC_Stripe_Settings::get_instance()->get_test_mode();
+		return WC_Stripe_Settings::get_instance()->is_testmode();
 	}
 }

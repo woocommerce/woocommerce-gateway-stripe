@@ -335,6 +335,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'payment_request_button_locations' => [ 'checkout' ],
 		];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Settings::reset();
 
 		WC_Stripe::get_instance()->update_prb_location_settings();
 
@@ -355,6 +356,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'enabled' => 'yes',
 		];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Settings::reset();
 
 		WC_Stripe::get_instance()->update_prb_location_settings();
 
@@ -416,6 +418,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private function remove_gateway_settings_update_filter(): void {
 		remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 	}
+
 
 	/**
 	 * Tests the {@see WC_Stripe::add_gateways()} method.

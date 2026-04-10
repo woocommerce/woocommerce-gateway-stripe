@@ -77,6 +77,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function update_main_stripe_settings( $options ) {
 		update_option( self::SETTINGS_OPTION, $options );
+		WC_Stripe_Settings::reset();
 	}
 
 	/**
