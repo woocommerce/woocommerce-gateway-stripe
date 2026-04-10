@@ -149,7 +149,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_sepa_tokens_for_ideal' => [
+					'is_sepa_tokens_for_ideal'              => [
 						'description'       => __( 'If "SEPA tokens for iDEAL | Wero" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -159,7 +159,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_separate_card_form_enabled'    => [
+					'is_separate_card_form_enabled'         => [
 						'description'       => __( 'If credit card number field, expiry date field, and CVC field should be separate.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -169,7 +169,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_debug_log_enabled'             => [
+					'is_debug_log_enabled'                  => [
 						'description'       => __( 'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -225,41 +225,41 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
-				'is_stripe_enabled'                        => $this->gateway->is_enabled(),
-				'is_test_mode_enabled'                     => $this->gateway->is_in_test_mode(),
+				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
+				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'               => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
-				'available_payment_method_ids'             => $available_payment_method_ids,
-				'ordered_payment_method_ids'               => array_values(
+				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
+				'available_payment_method_ids'          => $available_payment_method_ids,
+				'ordered_payment_method_ids'            => array_values(
 					array_diff(
 						$ordered_payment_method_ids,
 						[ WC_Stripe_Payment_Methods::AMAZON_PAY, WC_Stripe_Payment_Methods::LINK ]
 					)
 				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				/* Settings > Express checkouts */
-				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
-				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'is_express_checkout_enabled'               => $this->gateway->is_express_checkout_enabled(),
-				'express_checkout_button_type'              => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
-				'express_checkout_button_theme'             => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
-				'express_checkout_button_size'              => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'express_checkout_button_locations'         => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
+				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
+				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
+				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
+				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
+				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
+				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'express_checkout_button_locations'     => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
 
 				/* Settings > Payments & transactions */
-				'is_manual_capture_enabled'                => ! $this->gateway->is_automatic_capture_enabled(),
-				'is_saved_cards_enabled'                   => 'yes' === $this->gateway->get_option( 'saved_cards' ),
-				'is_sepa_tokens_for_ideal_enabled'         => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal' ),
-				'is_sepa_tokens_for_bancontact_enabled'    => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact' ),
-				'is_separate_card_form_enabled'            => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
-				'is_short_statement_descriptor_enabled'    => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
+				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
+				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
+				'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal' ),
+				'is_sepa_tokens_for_bancontact_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_bancontact' ),
+				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
+				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
 
 				/* Settings > Advanced settings */
-				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_upe_enabled'                           => true,
-				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
-				'oc_layout'                                => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
-				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
+				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
+				'is_upe_enabled'                        => true,
+				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
+				'oc_layout'                             => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
+				'is_pmc_enabled'                        => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
 			]
 		);
 	}
@@ -310,12 +310,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_express_checkout_enabled   = $request->get_param( 'is_express_checkout_enabled' );
+		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
-			 $is_express_checkout_enabled &&
-			 in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
+			$is_express_checkout_enabled &&
+			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
 				$payment_method_ids_to_enable,
