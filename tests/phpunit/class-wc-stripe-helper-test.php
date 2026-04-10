@@ -1842,29 +1842,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 
 		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( $gateways ) );
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'bacs' ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_record_first_gateway_id_from_available_list_does_not_overwrite_after_first_non_empty_pass(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-		$first = [ 'stripe' => $stripe ];
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( $first ) );
-
-		$paypal = $this->createMock( WC_Payment_Gateway::class );
-		$paypal->method( 'is_available' )->willReturn( true );
-		$second = [ 'paypal' => $paypal ];
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( $second ) );
-
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'paypal' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 
 	/**
@@ -1875,7 +1853,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->reset_first_available_payment_gateway_record();
 
 		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( [] ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 
 	/**
@@ -1886,7 +1864,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->reset_first_available_payment_gateway_record();
 
 		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( [] ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 
 		$stripe = $this->createMock( WC_Payment_Gateway::class );
 		$stripe->method( 'is_available' )->willReturn( true );
@@ -1894,7 +1872,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->mock_payment_gateways_registry( [ 'stripe' => $stripe ] )
 		);
 
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 
 	/**
@@ -1918,8 +1896,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			)
 		);
 
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'bacs' ) );
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 
 	/**
@@ -1934,11 +1911,11 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
 			$this->mock_payment_gateways_registry( [ 'stripe' => $stripe ] )
 		);
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 
 		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
 
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 
 	/**

@@ -70,8 +70,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			];
 			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
 
-			$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'bacs' ) );
-			$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
+			$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 
 			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
 
@@ -81,8 +80,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			];
 			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
 
-			$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'stripe' ) );
-			$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list( 'bacs' ) );
+			$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 		} finally {
 			WC()->payment_gateways->payment_gateways = $original_gateways;
 			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
