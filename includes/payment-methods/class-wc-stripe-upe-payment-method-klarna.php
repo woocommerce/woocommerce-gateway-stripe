@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -7,17 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The Klarna Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
-	 * Constructor for giropay payment method
+	 * Constructor for Klarna payment method
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false;
+		$this->is_reusable          = true;
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 		$this->supported_currencies = [
 			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
 			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
@@ -29,10 +34,11 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
-		$this->supported_countries  = [ 'AU', 'AT', 'BE', 'CA', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'NZ', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRALIA, WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NEW_ZEALAND, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
 		$this->label                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Allow customers to pay over time with Klarna.',
@@ -41,6 +47,12 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// Klarna has complex rules around currencies and technically allows cross border transactions (like France to Norway). Currency and location rules will be enforced via checkout billing country validation.
 		$this->accept_only_domestic_payment = false;
+
+		// Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 
 	/**
@@ -64,7 +76,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$account_country = strtoupper( $account['country'] );
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
-		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM ] );
 
 		// Countries outside the EEA can only transact with customers in their own country.
 		if ( ! in_array( $account_country, $eea_countries, true ) ) {
@@ -74,22 +86,24 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		// EEA currencies can only transact with countries where that currency is the standard currency.
 		switch ( get_woocommerce_currency() ) {
 			case WC_Stripe_Currency_Code::SWISS_FRANC:
-				return [ 'CH' ];
+				return [ WC_Stripe_Country_Code::SWITZERLAND ];
 			case WC_Stripe_Currency_Code::CZECH_KORUNA:
-				return [ 'CZ' ];
+				return [ WC_Stripe_Country_Code::CZECH_REPUBLIC ];
 			case WC_Stripe_Currency_Code::DANISH_KRONE:
-				return [ 'DK' ];
+				return [ WC_Stripe_Country_Code::DENMARK ];
 			case WC_Stripe_Currency_Code::NORWEGIAN_KRONE:
-				return [ 'NO' ];
+				return [ WC_Stripe_Country_Code::NORWAY ];
 			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
-				return [ 'PL' ];
+				return [ WC_Stripe_Country_Code::POLAND ];
+			case WC_Stripe_Currency_Code::ROMANIAN_LEU:
+				return [ WC_Stripe_Country_Code::ROMANIA ];
 			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
-				return [ 'SE' ];
+				return [ WC_Stripe_Country_Code::SWEDEN ];
 			case WC_Stripe_Currency_Code::POUND_STERLING:
-				return [ 'GB' ];
+				return [ WC_Stripe_Country_Code::UNITED_KINGDOM ];
 			case WC_Stripe_Currency_Code::EURO:
 				// EEA countries that use Euro.
-				return [ 'AT', 'BE', 'FI', 'FR', 'GR', 'DE', 'IE', 'IT', 'NL', 'PT', 'ES' ];
+				return [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::SPAIN ];
 		}
 
 		return parent::get_available_billing_countries();
@@ -116,7 +130,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$account_country = strtoupper( $account['country'] ?? '' );
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
-		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM ] );
 
 		// Countries outside the EEA can only transact with customers in their own currency.
 		if ( ! in_array( $account_country, $eea_countries, true ) ) {
@@ -133,6 +147,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			WC_Stripe_Currency_Code::POUND_STERLING,
 			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
 			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::ROMANIAN_LEU,
 			WC_Stripe_Currency_Code::SWEDISH_KRONA,
 		];
 	}
@@ -140,7 +155,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
-	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, SE, CH, GB, US.
+	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, RO, SE, CH, GB, US.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
@@ -155,5 +170,52 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function requires_automatic_capture() {
 		return false;
+	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_available() {
+		// Klarna is only available if the official Klarna plugin is not active.
+		if ( WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ) ) {
+			return false;
+		}
+
+		return parent::is_available();
+	}
+
+	/**
+	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
+	 *
+	 * @return string The payment method type.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Creates a Klarna payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 *
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Stripe_Klarna_Payment_Token();
+
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+
+		if ( isset( $payment_method->klarna->dob ) ) {
+			$token->set_dob_from_object( $payment_method->klarna->dob );
+		}
+
+		$token->save();
+
+		return $token;
 	}
 }

@@ -1,5 +1,4 @@
-import { useSelect, useDispatch } from '@wordpress/data';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import {
 	usePaymentGateway,
 	useEnabledPaymentGateway,
@@ -7,6 +6,7 @@ import {
 	usePaymentGatewayDescription,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 jest.mock( '@wordpress/data' );
 

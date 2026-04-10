@@ -1,9 +1,10 @@
-import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
+	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	invalidateAppearanceCache,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -15,9 +16,13 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
+	getExcludedPaymentMethodTypes,
 } from '../../stripe-utils';
-import { getFontRulesFromPage } from '../../styles/upe';
+import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
+import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
+import { __, sprintf } from '@wordpress/i18n';
 import {
+	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
@@ -29,20 +34,106 @@ import {
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
+/**
+ * @typedef {Object} UPEComponent
+ * @property {string|null}          intentId          The ID of the intent.
+ * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckout as clientSecret.
+ * @property {Object|null}          elements          The Stripe elements object.
+ * @property {Object|null}          upeElement        The Stripe payment element.
+ * @property {boolean}              hasLoadError      Whether the payment element has a load error.
+ * @property {Promise<Object|null>} upeElementPromise Promise that resolves to the Stripe payment element.
+ */
+
+/**
+ * @type {Object<string, UPEComponent>}
+ */
 const gatewayUPEComponents = {};
-const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+let hasCheckoutCompleted = false;
 
 /**
  * Initialize the UPE components for each payment method type.
  */
 export function initializeUPEComponents() {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig ?? {};
 	for ( const paymentMethodType in paymentMethodsConfig ) {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
+			checkoutSessionId: null,
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
+			upeElementPromise: null,
 		};
+	}
+	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
+	hasCheckoutCompleted = false;
+}
+
+/**
+ * After classic checkout AJAX refresh (e.g. shipping or coupon), sync line items on the Stripe Checkout Session
+ * so the Payment Element amount matches the cart. Uses checkoutSessionId from the create-session response.
+ *
+ * Wraps the server request in Stripe Custom Checkout {@link https://docs.stripe.com/js/custom_checkout/run_server_update runServerUpdate}
+ * when available so the embedded session state stays consistent after the update.
+ *
+ * @param {Object} api WCStripeAPI instance.
+ * @return {Promise<void>}
+ */
+export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
+	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
+		return;
+	}
+
+	const seen = new Set();
+	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
+		const component = gatewayUPEComponents[ paymentMethodType ];
+		const sessionId = component?.checkoutSessionId;
+		if ( ! sessionId || seen.has( sessionId ) ) {
+			continue;
+		}
+		seen.add( sessionId );
+
+		const checkout = component?.elements;
+
+		if ( checkout && typeof checkout.loadActions === 'function' ) {
+			try {
+				const loadResult = await checkout.loadActions();
+				if (
+					loadResult.type === 'success' &&
+					typeof loadResult.actions?.runServerUpdate === 'function'
+				) {
+					try {
+						const updateResult =
+							await loadResult.actions.runServerUpdate(
+								async () => {
+									await api.checkoutSessionsUpdateSession(
+										sessionId
+									);
+								}
+							);
+						if ( updateResult.type === 'error' ) {
+							// eslint-disable-next-line no-console
+							console.error( updateResult.error );
+						}
+					} catch ( error ) {
+						// eslint-disable-next-line no-console
+						console.error( error );
+					}
+					continue;
+				}
+			} catch ( error ) {
+				// eslint-disable-next-line no-console
+				console.error( error );
+			}
+		}
+
+		try {
+			await api.checkoutSessionsUpdateSession( sessionId );
+		} catch ( error ) {
+			// eslint-disable-next-line no-console
+			console.error( error );
+		}
 	}
 }
 
@@ -78,24 +169,53 @@ export function validateElements( elements ) {
 }
 
 /**
+ * Updates the payment element's default values.
+ *
+ * @param {boolean} forCheckoutSession Whether the default values are for a Checkout Session.
+ */
+function updatePaymentElementDefaultValues( forCheckoutSession = false ) {
+	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+		return;
+	}
+
+	const paymentElement = gatewayUPEComponents.card.upeElement;
+	paymentElement.update( getDefaultValues( forCheckoutSession ) );
+}
+
+/**
  * Creates a Stripe payment element with the specified payment method type and options.
  *
  * If the payment method doesn't support deferred intent, the intent must be created first.
- * Then, the payment element is created with the intent's client secret.
+ *
+ * When Adaptive Pricing is enabled, a Checkout Session is created first and
+ * the element is loaded via initCheckout.
+ * Otherwise, the payment element is created with the intent's client secret.
  *
  * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
- * @param {Object} api The API object used to create the Stripe payment element.
+ * @param {Object} api               The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
 async function createStripePaymentElement( api, paymentMethodType ) {
+	const stripeServerData = getStripeServerData();
+	const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig ?? {};
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
 
+	const shouldExpandOptimizedCheckout =
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		stripeServerData?.shouldExpandOptimizedCheckout &&
+		document.querySelector(
+			'.woocommerce-checkout-payment .payment_methods'
+		);
+
 	options = {
-		appearance: initializeUPEAppearance( api ),
+		appearance: initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -105,8 +225,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		try {
 			const isSetupIntent =
 				document.getElementById( 'add_payment_method' ) ||
-				! getStripeServerData()?.isPaymentNeeded ||
-				getStripeServerData()?.isChangingPayment;
+				! stripeServerData?.isPaymentNeeded ||
+				stripeServerData?.isChangingPayment;
 
 			if ( isSetupIntent ) {
 				intent = await api.initSetupIntent( paymentMethodType );
@@ -138,27 +258,28 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			clientSecret: intent.client_secret,
 		};
 	} else {
-		const amount = Number( getStripeServerData()?.cartTotal );
+		const amount = Number( stripeServerData?.cartTotal );
 		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 
 		options = {
 			...options,
 			mode: amount < 1 ? 'setup' : 'payment',
-			currency: getStripeServerData()?.currency.toLowerCase(),
+			currency: stripeServerData?.currency.toLowerCase(),
 			amount,
 		};
 
-		if ( getStripeServerData()?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			options = {
 				...options,
-				paymentMethodConfiguration: getStripeServerData()
-					?.paymentMethodConfigurationParentId,
+				paymentMethodConfiguration:
+					stripeServerData?.paymentMethodConfigurationId,
+				// Exclude unsupported payment methods - calculated dynamically on server side
+				excludedPaymentMethodTypes: getExcludedPaymentMethodTypes(),
 			};
 
 			const setupFutureUsage =
 				document.getElementById( 'wc-stripe-new-payment-method' )
-					?.checked ||
-				getStripeServerData()?.cartContainsSubscription;
+					?.checked || stripeServerData?.cartContainsSubscription;
 			if ( setupFutureUsage ) {
 				options = {
 					...options,
@@ -173,19 +294,99 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
-	const elements = api.getStripe().elements( options );
+	let elements;
+	let shouldLoadStripeElements = true;
+	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
+	if (
+		stripeServerData?.isAdaptivePricingEnabled &&
+		supportsDeferredIntent
+	) {
+		try {
+			const response = await api.checkoutSessionsCreateSession();
+			const clientSecret = response?.data?.client_secret;
+			const sessionId = response?.data?.session_id;
 
-	const attachDefaultValuesUpdateEvent = ( element ) => {
+			if ( ! clientSecret || ! sessionId ) {
+				throw new Error(
+					__(
+						'Failed to load payment method due to missing client secret or session id.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
+				sessionId;
+
+			elements = await api.getStripe().initCheckout( {
+				clientSecret,
+				elementsOptions: {
+					appearance: options.appearance,
+					fonts: options.fonts,
+					savedPaymentMethod: {
+						// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
+						enableRedisplay: 'never',
+						// Stripe must not show the save payment method checkbox in the Payment Element; the gateway has its own save payment method checkbox.
+						enableSave: 'never',
+					},
+				},
+				adaptivePricing: {
+					allowed: true,
+				},
+				...getDefaultValues( true ),
+			} );
+
+			shouldLoadStripeElements = false;
+		} catch ( error ) {
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
+			// eslint-disable-next-line no-console
+			console.error( error );
+			shouldLoadStripeElements = true;
+		}
+	}
+
+	// If Adaptive Pricing is not enabled, or if there was an error loading the AP elements,
+	// load the Stripe elements as fallback.
+	if ( shouldLoadStripeElements ) {
+		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
+		elements = api.getStripe().elements( options );
+	}
+
+	// After web fonts finish loading, re-compute appearance with correct
+	// font families and update the live Stripe Elements instance.
+	document.fonts?.ready?.then( () => {
+		// Compare the live font with the cached appearance — only
+		// invalidate and recompute if they actually differ.
+		const cachedFont = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		)?.variables?.fontFamily;
+		const liveFont = sampleFontFamily( false );
+		if ( ! liveFont || liveFont === cachedFont ) {
+			return;
+		}
+		invalidateAppearanceCache();
+		const appearance = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		);
+		if ( typeof elements?.update === 'function' ) {
+			elements.update( { appearance } );
+		}
+	} );
+
+	const attachDefaultValuesUpdateEvent = (
+		element,
+		forCheckoutSession = false
+	) => {
 		if ( document.getElementById( element ) ) {
 			document.getElementById( element ).onblur = function () {
-				updatePaymentElementDefaultValues();
+				updatePaymentElementDefaultValues( forCheckoutSession );
 			};
 		}
 	};
 
 	let paymentElementOptions = {
-		...getUpeSettings(),
-		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -193,50 +394,94 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	};
 
 	// Set the layout to accordion if OC is enabled.
-	if ( getStripeServerData()?.isOCEnabled ) {
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const ocsLayout = shouldExpandOptimizedCheckout
+			? 'accordion'
+			: stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT;
+		const layout = {
+			type: ocsLayout,
+		};
+		if ( ocsLayout === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
+			layout.spacedAccordionItems = false;
+
+			if ( shouldExpandOptimizedCheckout ) {
+				layout.paymentMethodLogoPosition = 'end';
+				// Ensure all available payment methods are shown.
+				layout.visibleAccordionItemsCount = 0;
+				layout.radios = getPaymentMethodRadioStyles() !== null;
+			} else {
+				layout.radios = false;
+			}
+		}
 		paymentElementOptions = {
 			...paymentElementOptions,
-			layout: {
-				type: 'accordion',
-				radios: false,
-			},
+			layout,
+		};
+	} else {
+		// When Optimized Checkout is disabled, default to 'tabs' layout, as that has
+		// the best default UX for individual payment methods.
+		paymentElementOptions.layout = {
+			type: 'tabs',
 		};
 	}
 
-	const createdStripePaymentElement = elements.create(
-		'payment',
-		paymentElementOptions
-	);
+	let createdStripePaymentElement = null;
+
+	if ( shouldLoadStripeElements ) {
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...getDefaultValues(),
+			...getUpeSettings(),
+		};
+		createdStripePaymentElement = elements.create(
+			'payment',
+			paymentElementOptions
+		);
+	} else {
+		createdStripePaymentElement = elements.createPaymentElement(
+			paymentElementOptions
+		);
+		mountCurrencySelectorElement( elements );
+	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
-	gatewayUPEComponents[
-		paymentMethodType
-	].upeElement = createdStripePaymentElement;
+	gatewayUPEComponents[ paymentMethodType ].upeElement =
+		createdStripePaymentElement;
 
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
 	if (
-		getStripeServerData()?.isCheckout &&
+		stripeServerData?.isCheckout &&
 		isLinkEnabled() &&
 		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
-		attachDefaultValuesUpdateEvent( 'billing_email' );
-		attachDefaultValuesUpdateEvent( 'billing_phone' );
+		attachDefaultValuesUpdateEvent(
+			'billing_email',
+			! shouldLoadStripeElements
+		);
+		attachDefaultValuesUpdateEvent(
+			'billing_phone',
+			! shouldLoadStripeElements
+		);
 	}
 
 	return createdStripePaymentElement;
 }
 
 /**
- * Updates the payment element's default values.
+ * Mounts the currency selector element to the DOM element.
+ *
+ * @param {Object} elements The Stripe elements object.
  */
-function updatePaymentElementDefaultValues() {
-	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+function mountCurrencySelectorElement( elements ) {
+	const currencySelectorContainer = document.getElementById(
+		'wc-stripe-currency-selector'
+	);
+	if ( ! currencySelectorContainer ) {
 		return;
 	}
-
-	const paymentElement = gatewayUPEComponents.card.upeElement;
-	paymentElement.update( getDefaultValues() );
+	const currencySelector = elements.createCurrencySelectorElement();
+	currencySelector.mount( currencySelectorContainer );
 }
 
 /**
@@ -252,9 +497,9 @@ function submitForm( jQueryForm ) {
  * Creates a Stripe payment method by calling the Stripe API's createPaymentMethod with the provided elements
  * and billing details. The billing details are obtained from various form elements on the page.
  *
- * @param {Object} api The API object used to call the Stripe API's createPaymentMethod method.
- * @param {Object} elements The Stripe elements object used to create a Stripe payment method.
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {Object} api               The API object used to call the Stripe API's createPaymentMethod method.
+ * @param {Object} elements          The Stripe elements object used to create a Stripe payment method.
+ * @param {Object} jQueryForm        The jQuery object for the form being submitted.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Promise<Object>} A promise that resolves with the created Stripe payment method.
  */
@@ -283,14 +528,14 @@ function createStripePaymentMethod(
 					document.querySelector( '#billing_phone' )?.value || null,
 				address: {
 					city: document.querySelector( '#billing_city' )?.value,
-					country: document.querySelector( '#billing_country' )
-						?.value,
+					country:
+						document.querySelector( '#billing_country' )?.value,
 					line1: document.querySelector( '#billing_address_1' )
 						?.value,
 					line2: document.querySelector( '#billing_address_2' )
 						?.value,
-					postal_code: document.querySelector( '#billing_postcode' )
-						?.value,
+					postal_code:
+						document.querySelector( '#billing_postcode' )?.value,
 					state: document.querySelector( '#billing_state' )?.value,
 				},
 			},
@@ -322,10 +567,10 @@ function createStripePaymentMethod(
  * Mounts the existing Stripe Payment Element to the DOM element.
  * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
- * @param {Object} api The API object.
+ * @param {Object} api        The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
- **/
+ */
 export async function mountStripePaymentElement( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
@@ -349,9 +594,34 @@ export async function mountStripePaymentElement( api, domElement ) {
 		return;
 	}
 
-	const upeElement =
-		gatewayUPEComponents[ paymentMethodType ].upeElement ||
-		( await createStripePaymentElement( api, paymentMethodType ) );
+	let upeElementPromise =
+		gatewayUPEComponents[ paymentMethodType ]?.upeElementPromise ?? null;
+	if ( ! upeElementPromise ) {
+		if ( gatewayUPEComponents[ paymentMethodType ].upeElement ) {
+			upeElementPromise = Promise.resolve(
+				gatewayUPEComponents[ paymentMethodType ].upeElement
+			);
+		} else {
+			upeElementPromise = createStripePaymentElement(
+				api,
+				paymentMethodType
+			).catch( ( error ) => {
+				gatewayUPEComponents[ paymentMethodType ].upeElementPromise =
+					null;
+				throw error;
+			} );
+		}
+		gatewayUPEComponents[ paymentMethodType ].upeElementPromise =
+			upeElementPromise;
+	}
+
+	const upeElement = await upeElementPromise;
+
+	if ( ! upeElement ) {
+		// Clear cached promise so later attempts can retry creation.
+		gatewayUPEComponents[ paymentMethodType ].upeElementPromise = null;
+		return gatewayUPEComponents[ paymentMethodType ];
+	}
 
 	upeElement.mount( domElement );
 	upeElement.on( 'loaderror', ( e ) => {
@@ -359,17 +629,22 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
-	if ( getStripeServerData()?.isOCEnabled ) {
+
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 		upeElement.on( 'change', ( { value } ) => {
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
-			handleDisplayOfPaymentInstructions( value.type );
+			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
 			// Bind the create account checkbox to the save card info container display function.
-			const createAccountCheckbox = document.getElementById(
-				'createaccount'
-			);
+			const createAccountCheckbox =
+				document.getElementById( 'createaccount' );
 			const updateCheckboxListener = () => {
-				handleDisplayOfSavingCheckbox( value.type );
+				handleDisplayOfSavingCheckbox(
+					value.type,
+					paymentMethodsConfig
+				);
 			};
 			if ( createAccountCheckbox ) {
 				createAccountCheckbox.removeEventListener(
@@ -381,11 +656,93 @@ export async function mountStripePaymentElement( api, domElement ) {
 					updateCheckboxListener
 				);
 			}
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		} );
 	}
 
-	return gatewayUPEComponents[ paymentMethodType ];
+	const component = gatewayUPEComponents[ paymentMethodType ];
+	const elements = component.elements;
+	const isAdaptivePricingEnabled =
+		getStripeServerData()?.isAdaptivePricingEnabled;
+
+	if (
+		! isAdaptivePricingEnabled ||
+		! elements ||
+		typeof elements.loadActions !== 'function'
+	) {
+		return component;
+	}
+
+	// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
+	let loadActionsError = null;
+	const genericLoadActionsErrorMessage = __(
+		'Failed to load payment method. Please refresh the page and try again.',
+		'woocommerce-gateway-stripe'
+	);
+	try {
+		const actions = await elements.loadActions();
+
+		if ( actions.type === 'error' ) {
+			loadActionsError =
+				actions?.error?.message ?? genericLoadActionsErrorMessage;
+			// Setting the flag to true to prevent the form from being submitted.
+			component.hasLoadError = true;
+		}
+	} catch ( error ) {
+		loadActionsError = error?.message ?? genericLoadActionsErrorMessage;
+		component.hasLoadError = true;
+	}
+
+	if ( loadActionsError ) {
+		showErrorPaymentMethod( loadActionsError, domElement );
+	}
+
+	return component;
+}
+
+/**
+ * Gets the mounted UPE element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Object|null} The UPE element component object or null if not found.
+ */
+export function getMountedUPEComponent( paymentMethodType ) {
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return null;
+	}
+
+	const component = gatewayUPEComponents[ paymentMethodType ];
+
+	if ( ! component.elements ) {
+		return null;
+	}
+
+	const domElement = document.querySelector(
+		`.wc-stripe-upe-element[data-payment-method-type="${ paymentMethodType }"]`
+	);
+
+	// Only return if the Elements object exists and is mounted.
+	if ( domElement && domElement.children.length > 0 ) {
+		return component;
+	}
+
+	return null;
+}
+
+/**
+ * Gets the Stripe payment element for a payment method type.
+ *
+ * @param {string} paymentMethodType The payment method type.
+ * @return {Promise<Object|null>} The Stripe payment element or null if not found.
+ */
+export async function getStripePaymentElement( paymentMethodType ) {
+	const upeElementPromise =
+		gatewayUPEComponents?.[ paymentMethodType ]?.upeElementPromise ?? null;
+	if ( ! upeElementPromise ) {
+		return Promise.resolve( null );
+	}
+
+	return await upeElementPromise;
 }
 
 /**
@@ -394,13 +751,13 @@ export async function mountStripePaymentElement( api, domElement ) {
  * object and appends the necessary data to the form for checkout completion. Finally, it submits the form and prevents
  * the default form submission from WC Core.
  *
- * @param {Object} api The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
- * @param {string} paymentMethodType The type of Stripe payment method being used.
- * @return {boolean} return false to prevent the default form submission from WC Core.
+ * @param {Object}   api                        The API object used to create the Stripe payment method.
+ * @param {Object}   jQueryForm                 The jQuery object for the form being submitted.
+ * @param {string}   paymentMethodType          The type of Stripe payment method being used.
+ * @param {Function} [additionalActionsHandler] Optional handler run after payment method creation.
+ * @return {void|boolean} Returns false to prevent the default form submission from WC Core, or nothing when exiting early.
  * @throws {Error} If there is an error creating the Stripe payment method.
  */
-let hasCheckoutCompleted;
 export const processPayment = (
 	api,
 	jQueryForm,
@@ -461,9 +818,8 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			const { elements, hasLoadError } = gatewayUPEComponents[
-				paymentMethodType
-			];
+			const { elements, hasLoadError } =
+				gatewayUPEComponents[ paymentMethodType ];
 
 			if ( hasLoadError ) {
 				throw new Error(
@@ -474,45 +830,102 @@ export const processPayment = (
 				);
 			}
 
-			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-				validateBlikCode( jQueryForm );
-			} else {
-				await validateElements( elements );
-			}
+			if (
+				getStripeServerData()?.isAdaptivePricingEnabled &&
+				elements &&
+				typeof elements.loadActions === 'function'
+			) {
+				const loadActionsResult = await elements.loadActions();
 
-			const paymentMethodObject = await createStripePaymentMethod(
-				api,
-				elements,
-				jQueryForm,
-				paymentMethodType
-			);
-
-			appendPaymentMethodIdToForm(
-				jQueryForm,
-				paymentMethodObject.paymentMethod.id
-			);
-
-			// Append the intent ID to the form if it was previously created through a non-deferred intent.
-			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-				appendPaymentIntentIdToForm(
-					jQueryForm,
-					gatewayUPEComponents[ paymentMethodType ].intentId
-				);
-			}
-
-			let stopFormSubmission = false;
-			await additionalActionsHandler(
-				paymentMethodObject.paymentMethod,
-				jQueryForm,
-				api,
-				() => {
-					// Provide a callback to flag that a redirect has occurred.
-					stopFormSubmission = true;
+				if ( loadActionsResult.type === 'error' ) {
+					throw new Error(
+						loadActionsResult.error?.message ??
+							__(
+								'Payment could not be completed. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+					);
 				}
-			);
 
-			if ( stopFormSubmission ) {
-				return;
+				const { actions } = loadActionsResult;
+
+				const shouldSavePaymentMethod = jQueryForm
+					.find( '#wc-stripe-new-payment-method' )
+					.is( ':checked' );
+
+				const confirmArgs = {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+				};
+
+				if ( getStripeServerData()?.isLoggedIn ) {
+					confirmArgs.savePaymentMethod = shouldSavePaymentMethod;
+				}
+
+				const confirmResult = await actions.confirm( confirmArgs );
+
+				if ( confirmResult.type === 'error' ) {
+					throw new Error(
+						confirmResult.error?.message ??
+							__(
+								'Payment could not be completed. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+					);
+				}
+
+				const sessionId = confirmResult?.session?.id;
+				if ( ! sessionId ) {
+					throw new Error(
+						__(
+							'Payment could not be completed. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
+				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+			} else {
+				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+					validateBlikCode( jQueryForm );
+				} else {
+					await validateElements( elements );
+				}
+
+				const paymentMethodObject = await createStripePaymentMethod(
+					api,
+					elements,
+					jQueryForm,
+					paymentMethodType
+				);
+
+				appendPaymentMethodIdToForm(
+					jQueryForm,
+					paymentMethodObject.paymentMethod.id
+				);
+
+				// Append the intent ID to the form if it was previously created through a non-deferred intent.
+				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+					appendPaymentIntentIdToForm(
+						jQueryForm,
+						gatewayUPEComponents[ paymentMethodType ].intentId
+					);
+				}
+
+				let stopFormSubmission = false;
+				await additionalActionsHandler(
+					paymentMethodObject.paymentMethod,
+					jQueryForm,
+					api,
+					() => {
+						// Provide a callback to flag that a redirect has occurred.
+						stopFormSubmission = true;
+					}
+				);
+
+				if ( stopFormSubmission ) {
+					return;
+				}
 			}
 
 			hasCheckoutCompleted = true;
@@ -533,9 +946,9 @@ export const processPayment = (
  *
  * With the confirmed setup intent, this function will add the new setup intent ID to the form before submitting.
  *
- * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
- * @param {Object} api The API object used to create the Stripe payment method.
+ * @param {string}   paymentMethod         The payment method ID (i.e. pm_1234567890).
+ * @param {Object}   jQueryForm            The jQuery object for the form being submitted.
+ * @param {Object}   api                   The API object used to create the Stripe payment method.
  * @param {Function} setStopFormSubmission The callback function to execute when a redirect occurred or the setup wasn't completed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
@@ -575,11 +988,12 @@ export const createAndConfirmSetupIntent = (
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the voucher payment.
  *
- * @param {Object} api           The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ * @param {Object} api        The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
  */
 export const confirmVoucherPayment = async ( api, jQueryForm ) => {
-	const isOrderPay = getStripeServerData()?.isOrderPay;
+	const stripeServerData = getStripeServerData();
+	const isOrderPay = stripeServerData?.isOrderPay;
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
@@ -608,7 +1022,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	// Verify the request using the data added to the URL.
 	if (
 		! clientSecret ||
-		( isOrderPay && orderId !== getStripeServerData()?.orderId )
+		( isOrderPay && orderId !== stripeServerData?.orderId )
 	) {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		return;
@@ -636,13 +1050,63 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		if ( confirmPayment.error ) {
 			throw confirmPayment.error;
 		}
-
-		// Once the customer closes the voucher and there are no errors, redirect them to the order received page.
-		window.location.href = decodeURIComponent( partials[ 4 ] );
 	} catch ( error ) {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		showErrorCheckout( error.message );
+		return;
 	}
+
+	let postPaymentUrl = null;
+	try {
+		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
+	} catch ( error ) {}
+
+	let validatedRedirectUrl = null;
+	if ( postPaymentUrl ) {
+		try {
+			const redirectUrl = new URL(
+				postPaymentUrl,
+				window.location.origin
+			);
+
+			if ( redirectUrl.origin === window.location.origin ) {
+				validatedRedirectUrl = redirectUrl;
+			}
+		} catch ( error ) {}
+	}
+
+	if ( validatedRedirectUrl ) {
+		window.location.href = validatedRedirectUrl.toString();
+		return;
+	}
+
+	if ( ! stripeServerData?.orderReceivedURL ) {
+		showErrorCheckout(
+			__(
+				'There was a problem processing the payment. Please refresh the page to try again.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+		return;
+	}
+
+	// We didn't get a valid redirect URL, so redirect to the order received page.
+	// If we have a numeric order ID, navigate to the order received page for that order.
+	if (
+		orderId &&
+		orderId !== 'NaN' &&
+		orderId === String( parseInt( orderId, 10 ) )
+	) {
+		window.location.href =
+			stripeServerData.orderReceivedURL +
+			'/' +
+			encodeURIComponent( orderId ) +
+			'/';
+		return;
+	}
+
+	// Otherwise go to the generic page.
+	window.location.href = stripeServerData.orderReceivedURL;
 };
 
 /**
@@ -655,8 +1119,8 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
- * @param {Object} api           The API object used to create the Stripe payment method.
- * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ * @param {Object} api        The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
  */
 export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	const isOrderPay = getStripeServerData()?.isOrderPay;

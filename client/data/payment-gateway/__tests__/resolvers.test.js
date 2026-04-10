@@ -1,7 +1,7 @@
-import { dispatch } from '@wordpress/data';
-import { apiFetch } from '@wordpress/data-controls';
 import { getPaymentGateway } from '../resolvers';
 import { updatePaymentGateway } from '../actions';
+import { dispatch } from '@wordpress/data';
+import { apiFetch } from '@wordpress/data-controls';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );
@@ -20,8 +20,8 @@ describe( 'Payment gateway resolvers tests', () => {
 		 * This is meant to simulate middleware that transform
 		 * yielded values into other values sent to the generator.
 		 *
-		 * @param {Function} generator Generator to iterate through.
-		 * @param {Object} valuesToSend Mapping of yielded value to value sent to generator.next() on next call.
+		 * @param {Function} generator    Generator to iterate through.
+		 * @param {Object}   valuesToSend Mapping of yielded value to value sent to generator.next() on next call.
 		 * @return {*[]} Array of all yielded values.
 		 */
 		const iterateAndSendToNext = ( generator, valuesToSend ) => {

@@ -1,7 +1,7 @@
+import styled from '@emotion/styled';
+import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
-import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
 
 const WebhookButtonText = styled.strong`
 	padding: 0 2px;

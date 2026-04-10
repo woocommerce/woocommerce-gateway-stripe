@@ -38,14 +38,20 @@ runs:
       id: get-versions-json
       shell: bash
       # jq does the following:
-      # - filters the versions to only include x.y.z versions, i.e. ignoring beta, rc, and dev versions etc
-      # - groups the versions by the first two parts of the version number, i.e. major.minor
-      # - reverses the order of the versions, so the highest major.minor versions are first
-      # - limits the number of major.versions to the number specified in the version-count input
+      # - filters the versions to only include semantic releases (x.y.z), ignoring beta, rc, trunk, etc.
+      # - maps each version into a structure with:
+      #     - major_minor: the major.minor part (e.g. "9.6")
+      #     - full: the full version string (e.g. "9.6.2")
+      #     - parts: a numeric array of the version (e.g. [9, 6, 2])
+      # - groups the versions by major.minor
+      # - selects the highest patch version (i.e. max patch) within each group
+      # - sorts all selected versions by semantic version order, descending
+      # - limits the result to the latest N major.minor groups, where N is from version-count input
       # - returns the last version for each major.minor version
       run: |
         echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
-        cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
+        cat ${{ inputs.plugin-slug }}.json | jq --argjson count "${{ inputs.version-count }}" '.versions | keys | map(select(test("^\\d+\\.\\d+\\.\\d+$"))) | map({ major_minor: (split(".")[0:2] | join(".")), full: ., parts: (split(".") | map(tonumber)) })
+            | group_by(.major_minor) | map(max_by(.parts[2])) | sort_by(.parts[0], .parts[1], .parts[2]) | reverse | .[0:$count] | map(.full) ' >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get versions in text format

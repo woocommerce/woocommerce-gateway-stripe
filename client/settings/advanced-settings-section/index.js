@@ -1,13 +1,12 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Card } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
-import ExperimentalFeatures from './experimental-features';
+import { Card } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
-import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
+import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -21,7 +20,7 @@ const AdvancedSettingsDescription = () => (
 	</>
 );
 
-const AdvancedSettings = () => {
+const AdvancedSettings = ( { isOCEnabled, setIsOCEnabled } ) => {
 	const isOcAvailable = wc_stripe_settings_params.is_oc_available; // eslint-disable-line camelcase
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
@@ -29,8 +28,12 @@ const AdvancedSettings = () => {
 				<Card>
 					<CardBody>
 						<DebugMode />
-						<ExperimentalFeatures />
-						{ isOcAvailable && <SinglePaymentElementFeature /> }
+						{ isOcAvailable && (
+							<OptimizedCheckoutFeature
+								isOCEnabled={ isOCEnabled }
+								setIsOCEnabled={ setIsOCEnabled }
+							/>
+						) }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>

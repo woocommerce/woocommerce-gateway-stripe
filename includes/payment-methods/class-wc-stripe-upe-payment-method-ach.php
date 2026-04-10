@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -28,9 +31,8 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->label                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description          = __( 'Pay directly from your US bank account via ACH.', 'woocommerce-gateway-stripe' );
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries  = [ 'US' ];
-		$this->supports[]           = 'tokenization';
-		$this->supports[]           = 'subscriptions';
+		$this->supported_countries  = [ WC_Stripe_Country_Code::UNITED_STATES ];
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();

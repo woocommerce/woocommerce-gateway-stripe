@@ -1,7 +1,7 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import icon from './icon.svg';
+import { __ } from '@wordpress/i18n';
 import Tooltip from 'wcstripe/components/tooltip';
 
 const Icon = styled.img`

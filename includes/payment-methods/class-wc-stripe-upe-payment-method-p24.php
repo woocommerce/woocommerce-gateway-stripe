@@ -10,8 +10,6 @@ class WC_Stripe_UPE_Payment_Method_P24 extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::P24;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_P24::class;
-
 	/**
 	 * Constructor for Przelewy24 payment method
 	 */

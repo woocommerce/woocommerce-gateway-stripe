@@ -190,7 +190,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			// Update cached settings.
 			$this->stripe_settings = $settings;
 
-			WC_Stripe_Logger::log( 'Your domain has been registered with Apple Pay!' );
+			WC_Stripe_Logger::info( 'Your domain has been registered with Apple Pay!' );
 
 			return true;
 
@@ -203,7 +203,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			// Update cached settings.
 			$this->stripe_settings = $settings;
 
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Error in Apple Pay domain registration for domain: ' . $this->domain_name, [ 'error_message' => $e->getMessage() ] );
 
 			return false;
 		}
@@ -320,6 +320,6 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		// Stripe Elements doesn’t support Apple Pay for Stripe accounts in India.
 		// https://docs.stripe.com/stripe-js/elements/payment-request-button?client=html#prerequisites
-		return 'IN' !== $account_country;
+		return WC_Stripe_Country_Code::INDIA !== $account_country;
 	}
 }

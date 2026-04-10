@@ -5,6 +5,8 @@
  * @package WooCommerce_Stripe\Payment_Methods
  */
 
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -28,9 +30,9 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries          = [ 'US' ];
+		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_STATES ];
 		$this->accept_only_domestic_payment = true;
-		$this->supports[]                   = 'tokenization';
+		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
@@ -74,9 +76,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_CashApp();
 
-		$gateway_id = $this->is_oc_enabled() ? 'stripe' : $this->id;
-
-		$token->set_gateway_id( $gateway_id );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
 

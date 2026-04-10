@@ -287,6 +287,24 @@ class WC_Stripe_Settings {
 	}
 
 	/**
+	 * Get the value of the `express_checkout` setting.
+	 *
+	 * @return string
+	 */
+	public function get_express_checkout() {
+		return $this->settings['express_checkout'] ?? '';
+	}
+
+	/**
+	 * Get the value of the `skip_pmc_express_checkout_defaults` setting.
+	 *
+	 * @return string
+	 */
+	public function get_skip_pmc_express_checkout_defaults() {
+		return $this->settings['skip_pmc_express_checkout_defaults'] ?? 'no';
+	}
+
+	/**
 	 * Get the value of the `stripe_upe_payment_method_order` setting.
 	 *
 	 * @return array

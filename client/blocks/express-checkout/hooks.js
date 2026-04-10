@@ -1,6 +1,6 @@
+import { useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { useStripe, useElements } from '@stripe/react-stripe-js';
 import {
 	onAbortPaymentHandler,
 	onCancelHandler,
@@ -14,6 +14,7 @@ import {
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
@@ -29,6 +30,15 @@ export const useExpressCheckout = ( {
 	const elements = useElements();
 
 	const buttonOptions = getExpressCheckoutButtonStyleSettings();
+	const transformAmountForStripe = useCallback(
+		( amount ) =>
+			transformPriceWithMinorUnits( amount, billing.currency.minorUnit ),
+		[ billing.currency.minorUnit ]
+	);
+	const parseAndTransformAmount = useCallback(
+		( amount ) => transformAmountForStripe( parseInt( amount, 10 ) ),
+		[ transformAmountForStripe ]
+	);
 
 	const onCancel = () => {
 		onCancelHandler();
@@ -44,7 +54,11 @@ export const useExpressCheckout = ( {
 		if ( ! isOrderError ) {
 			onConfirmEvent.paymentFailed( { reason: 'fail' } );
 		}
-		setExpressPaymentError( message );
+
+		// If we have a multiline message using newlines, replace them with <br>.
+		const formattedMessage = message.replace( /\n/g, '<br>' );
+		setExpressPaymentError( formattedMessage );
+
 		onAbortPaymentHandler( onConfirmEvent, message );
 	};
 
@@ -61,7 +75,7 @@ export const useExpressCheckout = ( {
 						( r ) => {
 							return {
 								id: r.rate_id,
-								amount: parseInt( r.price, 10 ),
+								amount: parseAndTransformAmount( r.price ),
 								displayName: r.name,
 							};
 						}
@@ -70,13 +84,22 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				const defaultShippingOption = getExpressCheckoutData(
-					'checkout'
-				)?.default_shipping_option;
+				const defaultShippingOption =
+					getExpressCheckoutData(
+						'checkout'
+					)?.default_shipping_option;
 				return defaultShippingOption ? [ defaultShippingOption ] : [];
 			};
 
-			const lineItems = normalizeLineItems( billing.cartTotalItems );
+			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(
+				( lineItem ) => ( {
+					...lineItem,
+					amount: parseAndTransformAmount( lineItem.amount ),
+				} )
+			);
+			const transformedTotalAmount = transformAmountForStripe(
+				billing.cartTotal.value
+			);
 			const totalAmountOfLineItems = lineItems.reduce(
 				( acc, lineItem ) => {
 					return acc + lineItem.amount;
@@ -91,7 +114,7 @@ export const useExpressCheckout = ( {
 				// if that happens, let's just not return any of the line items.
 				// This way, just the total amount will be displayed to the customer.
 				lineItems:
-					billing.cartTotal.value < totalAmountOfLineItems
+					transformedTotalAmount < totalAmountOfLineItems
 						? []
 						: lineItems,
 				emailRequired: true,
@@ -126,6 +149,8 @@ export const useExpressCheckout = ( {
 			onClick,
 			billing.cartTotalItems,
 			billing.cartTotal.value,
+			parseAndTransformAmount,
+			transformAmountForStripe,
 			shippingData.needsShipping,
 			shippingData.shippingRates,
 		]

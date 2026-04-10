@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Button } from '@wordpress/components';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
 import { usePaymentGateway } from '../../data';
+import { Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 const SaveSectionWrapper = styled( SettingsSection )`
 	text-align: right;

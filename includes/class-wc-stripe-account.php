@@ -10,8 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Account {
 
-	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
-	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
+	/**
+	 * The Account Data cache key.
+	 *
+	 * @var string
+	 */
+	const ACCOUNT_CACHE_KEY = 'account_data';
+
+	/**
+	 * The Account Data cache expiration (TTL).
+	 *
+	 * @var int
+	 */
+	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
 	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
 	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
@@ -45,6 +56,10 @@ class WC_Stripe_Account {
 		'payment_intent.requires_action',
 		'setup_intent.succeeded',
 		'setup_intent.setup_failed',
+		'checkout.session.completed',
+		'checkout.session.expired',
+		'checkout.session.async_payment_succeeded',
+		'checkout.session.async_payment_failed',
 	];
 
 	/**
@@ -75,18 +90,21 @@ class WC_Stripe_Account {
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param string|null $mode          Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
+	 * @param bool        $force_refresh Optional. Whether to fetch the account data from Stripe instead of using the cache. Default is false.
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public function get_cached_account_data( $mode = null ) {
+	public function get_cached_account_data( $mode = null, bool $force_refresh = false ) {
 		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache( $mode );
+		if ( ! $force_refresh ) {
+			$account = $this->read_account_from_cache();
 
-		if ( ! empty( $account ) ) {
-			return $account;
+			if ( ! empty( $account ) ) {
+				return $account;
+			}
 		}
 
 		return $this->cache_account( $mode );
@@ -95,11 +113,10 @@ class WC_Stripe_Account {
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
-	 * @return array empty when no data found in transient, otherwise returns cached data
+	 * @return array empty when no data found, otherwise returns the cached data
 	 */
-	private function read_account_from_cache( $mode = null ) {
-		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key( $mode ) ) ), true );
+	private function read_account_from_cache() {
+		$account_cache = WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_KEY );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
@@ -125,37 +142,20 @@ class WC_Stripe_Account {
 			return [];
 		}
 
-		// Add the account data and mode to the array we're caching.
-		$account_cache = $account;
+		// Convert the account data to an array.
+		$account_cache = json_decode( wp_json_encode( $account ), true );
 
-		// Create or update the account option cache.
-		set_transient( $this->get_transient_key( $mode ), $account_cache, 2 * HOUR_IN_SECONDS );
+		// Create or update the account data cache.
+		WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION );
 
-		return json_decode( wp_json_encode( $account ), true );
-	}
-
-	/**
-	 * Fetches the transient key for the account data for a given mode.
-	 * If no mode is provided, it will use the current mode.
-	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
-	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
-	 */
-	private function get_transient_key( $mode = null ) {
-		// If the mode is not provided or is invalid, we'll check the current mode.
-		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		}
-
-		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
+		return $account_cache;
 	}
 
 	/**
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
-		delete_transient( self::LIVE_ACCOUNT_OPTION );
-		delete_transient( self::TEST_ACCOUNT_OPTION );
+		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
 
 		// Clear the webhook status cache.
 		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
@@ -289,18 +289,13 @@ class WC_Stripe_Account {
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+	public function configure_webhooks( $mode = 'live' ) {
+
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
-			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'api_version'    => self::get_webhooks_api_version(),
 		];
-
-		// If a secret key is provided, use it to configure the webhooks.
-		if ( $secret_key ) {
-			$previous_secret = WC_Stripe_API::get_secret_key();
-			WC_Stripe_API::set_secret_key( $secret_key );
-		}
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
@@ -315,11 +310,6 @@ class WC_Stripe_Account {
 
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
 		$this->delete_previously_configured_webhooks( $response->id );
-
-		// Restore the previous secret key if we changed it.
-		if ( $secret_key && isset( $previous_secret ) ) {
-			WC_Stripe_API::set_secret_key( $previous_secret );
-		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -356,7 +346,7 @@ class WC_Stripe_Account {
 
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
-		WC_Stripe_Logger::log(
+		WC_Stripe_Logger::info(
 			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
 		);
 
@@ -377,7 +367,7 @@ class WC_Stripe_Account {
 					"webhook_endpoints/{$webhook->id}",
 					'DELETE'
 				);
-				WC_Stripe_Logger::log( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+				WC_Stripe_Logger::info( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
 			}
 		}
 	}
@@ -417,7 +407,7 @@ class WC_Stripe_Account {
 
 			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
+			WC_Stripe_Logger::error( 'Unable to determine webhook status', [ 'error_message' => $e->getMessage() ] );
 			return false;
 		}
 	}
@@ -435,6 +425,37 @@ class WC_Stripe_Account {
 		sort( $existing_events );
 
 		return $desired_events !== $existing_events;
+	}
+
+	/**
+	 * Checks if the API version of an existing webhook differs from our desired API version.
+	 *
+	 * @param object $existing_webhook The existing webhook object from Stripe.
+	 * @return bool True if API version differs, false if they match.
+	 */
+	private function does_webhooks_api_version_differ( $existing_webhook ): bool {
+		return self::get_webhooks_api_version() !== $existing_webhook->api_version; // @phpstan-ignore property.notFound
+	}
+
+	/**
+	 * Returns the API version for the webhooks.
+	 *
+	 * @return string The API version.
+	 */
+	private static function get_webhooks_api_version(): string {
+		$version = WC_Stripe_API::STRIPE_API_VERSION;
+
+		/**
+		 * Agentic Commerce uses a different API version for webhooks.
+		 *
+		 * This method should be removed once we switch to
+		 * AGENTIC_COMMERCE_API_VERSION or higher.
+		 */
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$version = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
+		}
+
+		return $version;
 	}
 
 	/**
@@ -461,13 +482,17 @@ class WC_Stripe_Account {
 	}
 
 	/**
-	 * Reconfigures webhooks during plugin update.
+	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
 	 *
+	 * @param string $update_type The type of update that is happening. Default is 'plugin'.
+	 * Possible values are:
+	 *  - 'plugin': Reconfigures webhooks during plugin update.
+	 *  - 'settings': Reconfigures webhooks when Adaptive Pricing is enabled in the settings.
 	 * @return void
 	 */
-	public function maybe_reconfigure_webhooks_on_update() {
+	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$modes    = [ 'live', 'test' ];
 
@@ -492,17 +517,20 @@ class WC_Stripe_Account {
 				}
 
 				// Check if events differ
-				if ( ! $this->do_webhook_events_differ( $existing_webhook ) ) {
+				if (
+					! $this->do_webhook_events_differ( $existing_webhook )
+					&& ! $this->does_webhooks_api_version_differ( $existing_webhook )
+				) {
 					continue;
 				}
 
 				// Events differ, reconfigure webhook
-				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
-				$this->configure_webhooks( $mode, $secret_key );
-				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+				WC_Stripe_Logger::info( "Webhook events need updating for {$mode} mode - reconfiguring." );
+				$this->configure_webhooks( $mode );
+				WC_Stripe_Logger::info( "Successfully reconfigured webhooks for {$mode} mode after {$update_type} update." );
 
 			} catch ( Exception $e ) {
-				WC_Stripe_Logger::log( "Failed to check/reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
 			} finally {
 				// Restore the previous secret key if we changed it
 				if ( isset( $previous_secret ) ) {

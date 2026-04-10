@@ -1,13 +1,13 @@
-import { __ } from '@wordpress/i18n';
 import classNames from 'classnames';
 import logo from './logo.svg';
+import { __ } from '@wordpress/i18n';
 
 /**
  * WooLogo component.
  *
  * @param {Object} props             The component props.
  * @param {string} [props.className] Additional classes to add to the WooLogo component.
- * @param {any} props.restProps      Additional props to add to the WooLogo component.
+ * @param {any}    props.restProps   Additional props to add to the WooLogo component.
  *
  * @return {JSX.Element} The rendered WooLogo component.
  */

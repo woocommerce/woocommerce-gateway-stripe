@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -26,11 +29,11 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->title                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::POUND_STERLING ];
-		$this->supported_countries          = [ 'GB' ];
+		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_KINGDOM ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
-		$this->supports[]                   = 'tokenization';
+		$this->supports[]                   = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
@@ -56,10 +59,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
-		if ( ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-			return false;
-		}
-
 		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
 	}
 
@@ -94,6 +93,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 	/**
 	 * Conditionally hides the Bacs payment gateway for specific scenarios.
+	 *
+	 * @return void
 	 */
 	public function maybe_hide_bacs_payment_gateway() {
 		add_filter(

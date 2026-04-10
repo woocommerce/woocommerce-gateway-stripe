@@ -12,30 +12,14 @@ jest.mock( 'utils/use-payment-method-currencies', () => ( {
 	usePaymentMethodCurrencies: jest.fn(),
 } ) );
 
+jest.mock( 'utils/use-payment-method-unavailable-reason' );
+
 describe( 'PaymentMethodMissingCurrencyPill', () => {
 	beforeEach( () => {
-		global.wcSettings = { currency: { code: 'USD' } };
 		usePaymentMethodCurrencies.mockReturnValue( [ 'EUR' ] );
 	} );
 
-	it( 'should render the "Requires currency" text', () => {
-		render(
-			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
-		);
-
-		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();
-	} );
-
-	it( 'should not render when currency matches', () => {
-		global.wcSettings = { currency: { code: 'EUR' } };
-		const { container } = render(
-			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
-		);
-
-		expect( container.firstChild ).toBeNull();
-	} );
-
-	it( 'should render when currency differs', () => {
+	it( 'should render the "Requires currency" text when currency is not supported', () => {
 		render(
 			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
 		);

@@ -1,8 +1,8 @@
+import React from 'react';
+import PaymentMethodsMap from '../../payment-methods-map';
 import { __, sprintf } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
-import React from 'react';
 import { Button } from '@wordpress/components';
-import PaymentMethodsMap from '../../payment-methods-map';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 

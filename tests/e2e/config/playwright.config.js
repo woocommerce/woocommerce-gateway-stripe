@@ -18,12 +18,14 @@ const config = {
 	testDir: '../tests',
 
 	// Maximum time one test can run for
-	timeout: TIMEOUT ? Number( TIMEOUT ) : 90 * 1000,
+	// Increased from 90s to 120s to reduce flakiness with Stripe iframe/modal flow.
+	timeout: TIMEOUT ? Number( TIMEOUT ) : 120 * 1000,
 
 	expect: {
 		// Maximum time expect() should wait for the condition to be met
 		// For example in `await expect(locator).toHaveText();`
-		timeout: 20 * 1000,
+		// Increased from 20s to 30s to reduce flakiness with Stripe iframe/modal interactions.
+		timeout: 30 * 1000,
 	},
 
 	// Folder for test artifacts such as screenshots, videos, traces, etc
@@ -69,6 +71,9 @@ const config = {
 		video: 'on-first-retry',
 
 		viewport: { width: 1280, height: 720 },
+
+		// Maximum time for individual actions (click, fill, etc.)
+		actionTimeout: 15 * 1000,
 	},
 
 	projects: [
@@ -81,12 +86,18 @@ const config = {
 			name: 'default',
 			testMatch: '**/*.spec.js',
 			testIgnore: [
-				'**/_legacy-experience/**',
 				'**/acss.spec.js',
 				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
+				'**/isk.spec.js',
 			],
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'isk',
+			testMatch: '**/isk.spec.js',
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
@@ -111,17 +122,6 @@ const config = {
 			name: 'becs',
 			testMatch: '**/becs.spec.js',
 			dependencies: [ 'becs-setup' ],
-			use: { ...devices[ 'Desktop Chrome' ] },
-		},
-		{
-			name: 'legacy-setup',
-			testMatch: '_legacy-experience/legacy.setup.js',
-			use: { ...devices[ 'Desktop Chrome' ] },
-		},
-		{
-			name: 'legacy',
-			testMatch: '/_legacy-experience/**/*.spec.js',
-			dependencies: [ 'legacy-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

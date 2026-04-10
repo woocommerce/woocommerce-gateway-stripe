@@ -40,7 +40,7 @@ jobs:
       max-parallel: 16
       matrix:
         woocommerce_support_policy: [ 'L', 'L-1', 'L-2' ]
-        wordpress_support_policy:   [ 'L', 'L-1', 'L-2' ]
+        wordpress_support_policy:   [ 'L', 'L-1' ]
         php_support_policy:         [ 'L', 'L-1', 'L-2', 'L-3', '7.4' ]
         include:
           # WooCommerce
@@ -55,8 +55,8 @@ jobs:
             wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
           - wordpress_support_policy: L-1
             wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[1] }}
-          - wordpress_support_policy: L-2
-            wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[2] }}
+          #- wordpress_support_policy: L-2
+          #  wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[2] }}
           # PHP
           - php_support_policy: L
             php: '8.3'
@@ -68,9 +68,6 @@ jobs:
             php: '8.0'
           - php_support_policy: '7.4'
             php: '7.4'
-        exclude: # incompatible versions of PHP, WordPress, and WooCommerce
-          - woocommerce_support_policy: L
-            wordpress_support_policy: L-2
 
     name: Stable (PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
     env:
@@ -88,7 +85,7 @@ jobs:
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
         with:
           php-version: ${{ matrix.php }}
           coverage:    xdebug

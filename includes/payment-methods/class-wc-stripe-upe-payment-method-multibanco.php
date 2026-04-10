@@ -13,8 +13,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
 
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Multibanco::class;
-
 	/**
 	 * Constructor for Multibanco payment method
 	 */
@@ -24,7 +22,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 		$this->title                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
-		$this->supported_countries  = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::AUSTRIA, WC_Stripe_Country_Code::BELGIUM, WC_Stripe_Country_Code::BULGARIA, WC_Stripe_Country_Code::CROATIA, WC_Stripe_Country_Code::CYPRUS, WC_Stripe_Country_Code::CZECH_REPUBLIC, WC_Stripe_Country_Code::DENMARK, WC_Stripe_Country_Code::ESTONIA, WC_Stripe_Country_Code::FINLAND, WC_Stripe_Country_Code::FRANCE, WC_Stripe_Country_Code::GERMANY, WC_Stripe_Country_Code::GIBRALTAR, WC_Stripe_Country_Code::GREECE, WC_Stripe_Country_Code::HUNGARY, WC_Stripe_Country_Code::IRELAND, WC_Stripe_Country_Code::ITALY, WC_Stripe_Country_Code::LATVIA, WC_Stripe_Country_Code::LIECHTENSTEIN, WC_Stripe_Country_Code::LITHUANIA, WC_Stripe_Country_Code::LUXEMBOURG, WC_Stripe_Country_Code::MALTA, WC_Stripe_Country_Code::NETHERLANDS, WC_Stripe_Country_Code::NORWAY, WC_Stripe_Country_Code::POLAND, WC_Stripe_Country_Code::PORTUGAL, WC_Stripe_Country_Code::ROMANIA, WC_Stripe_Country_Code::SLOVAKIA, WC_Stripe_Country_Code::SLOVENIA, WC_Stripe_Country_Code::SPAIN, WC_Stripe_Country_Code::SWEDEN, WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM, WC_Stripe_Country_Code::UNITED_STATES ];
 		$this->label                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
@@ -41,7 +39,8 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Output for the order received page.
 	 *
-	 * @param int $order_id
+	 * @param int $order_id The order ID.
+	 * @return void
 	 */
 	public function thankyou_page( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -58,8 +57,12 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param WC_Order $order
 	 * @param bool     $sent_to_admin
 	 * @param bool     $plain_text
+	 * @return void
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			return;
+		}
 		$payment_method = $order->get_payment_method();
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( OrderStatus::ON_HOLD ) ) {
 			$this->get_instructions( $order, $plain_text );
@@ -69,11 +72,12 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Gets Multibanco payment instructions for the customer.
 	 *
-	 * @param WC_Order $order
-	 * @param bool     $plain_text
+	 * @param WC_Order $order      The order object.
+	 * @param bool     $plain_text Whether to output as plain text.
+	 * @return void
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = WC_Stripe_Order_Helper::get_instance()->get_stripe_multibanco_data( $order );
 		if ( ! $data ) {
 			return;
 		}
@@ -114,8 +118,9 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Saves Multibanco information to the order meta for later use.
 	 *
-	 * @param object $order
-	 * @param object $payment_intent. The PaymentIntent object.
+	 * @param WC_Order $order          The order object.
+	 * @param object   $payment_intent The PaymentIntent object.
+	 * @return void
 	 */
 	public function save_instructions( $order, $payment_intent ) {
 		if ( empty( $payment_intent->next_action->multibanco_display_details ) ) {
@@ -128,19 +133,18 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'reference' => $payment_intent->next_action->multibanco_display_details->reference,
 		];
 
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_multibanco_data( $order, $data );
 	}
 
 	/**
-	 * Adds on-hold as accepted status during webhook handling on orders paid with Mukltibanco
+	 * Adds on-hold as accepted status during webhook handling on orders paid with Multibanco
 	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
+	 * @param array    $allowed_statuses The allowed statuses.
+	 * @param WC_Order $order            The order object.
+	 * @return array
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 
@@ -149,8 +153,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 
 	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Multibanco is available for the following countries: 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US'.
 	 *
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */

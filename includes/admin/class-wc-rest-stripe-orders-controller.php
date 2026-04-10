@@ -55,21 +55,23 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Stripe payment gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 * @param WC_Stripe_UPE_Payment_Gateway $gateway Stripe payment gateway.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway ) {
+	public function __construct( WC_Stripe_UPE_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
 	}
 
 	/**
 	 * Configure REST API routes.
+	 *
+	 * @return void
 	 */
 	public function register_routes() {
 		register_rest_route(
@@ -102,6 +104,8 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 	 * Create a Stripe customer for an order if needed, or return existing customer.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_customer( $request ) {
 		$order_id = $request['order_id'];
@@ -125,8 +129,10 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		}
 		$customer = new WC_Stripe_Customer( $order_user->ID );
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Set the customer ID if known but not already set.
-		$customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$customer_id = $order_helper->get_stripe_customer_id( $order );
 		if ( ! $customer->get_id() && $customer_id ) {
 			$customer->set_id( $customer_id );
 		}
@@ -143,12 +149,19 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			return new WP_Error( 'stripe_error', $e->getMessage() );
 		}
 
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order_helper->update_stripe_customer_id( $order, $customer_id );
 		$order->save();
 
 		return rest_ensure_response( [ 'id' => $customer_id ] );
 	}
 
+	/**
+	 * Capture terminal payment for an order.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
 	public function capture_terminal_payment( $request ) {
 		try {
 			$intent_id = $request['payment_intent_id'];
@@ -179,7 +192,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			}
 
 			// Update order with payment method and intent details.
-			$order->set_payment_method( WC_Gateway_Stripe::ID );
+			$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 			$order->set_payment_method_title( __( 'WooCommerce Stripe In-Person Payments', 'woocommerce-gateway-stripe' ) );
 			$this->gateway->save_intent_to_order( $order, $intent );
 

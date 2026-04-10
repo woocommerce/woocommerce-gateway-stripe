@@ -1,10 +1,19 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Amazon Pay Payment Method class extending UPE base class
+ * Amazon Pay Payment Method class extending UPE base class.
+ * Note that Amazon Pay only supports USD for US accounts.
+ * Furthermore, Amazon Pay supports multiple currencies without supporting accounts from those
+ * countries, including AUD, HKD, JPY, NOK, NZD, and ZAR.
+ * In addition, Amazon Pay supports EUR transactions, but does not support accounts from all EU countries.
+ *
+ * @see https://docs.stripe.com/payments/amazon-pay
  */
 class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
@@ -12,20 +21,65 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	const STRIPE_ID = WC_Stripe_Payment_Methods::AMAZON_PAY;
 
 	/**
+	 * Supported countries for Amazon Pay.
+	 *
+	 * @var string[]
+	 */
+	private const SUPPORTED_COUNTRIES = [
+		WC_Stripe_Country_Code::AUSTRIA,
+		WC_Stripe_Country_Code::BELGIUM,
+		WC_Stripe_Country_Code::CYPRUS,
+		WC_Stripe_Country_Code::DENMARK,
+		WC_Stripe_Country_Code::FRANCE,
+		WC_Stripe_Country_Code::GERMANY,
+		WC_Stripe_Country_Code::HUNGARY,
+		WC_Stripe_Country_Code::IRELAND,
+		WC_Stripe_Country_Code::ITALY,
+		WC_Stripe_Country_Code::LUXEMBOURG,
+		WC_Stripe_Country_Code::NETHERLANDS,
+		WC_Stripe_Country_Code::PORTUGAL,
+		WC_Stripe_Country_Code::SPAIN,
+		WC_Stripe_Country_Code::SWEDEN,
+		WC_Stripe_Country_Code::SWITZERLAND,
+		WC_Stripe_Country_Code::UNITED_KINGDOM,
+		WC_Stripe_Country_Code::UNITED_STATES,
+	];
+
+	/**
+	 * Supported currencies for Amazon Pay.
+	 *
+	 * @var string[]
+	 */
+	private const SUPPORTED_CURRENCIES = [
+		WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+		WC_Stripe_Currency_Code::SWISS_FRANC,
+		WC_Stripe_Currency_Code::DANISH_KRONE,
+		WC_Stripe_Currency_Code::EURO,
+		WC_Stripe_Currency_Code::POUND_STERLING,
+		WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
+		WC_Stripe_Currency_Code::JAPANESE_YEN,
+		WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+		WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+		WC_Stripe_Currency_Code::SWEDISH_KRONA,
+		WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+		WC_Stripe_Currency_Code::SOUTH_AFRICAN_RAND,
+	];
+	/**
 	 * Constructor for Amazon Pay payment method
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
-		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
+		$this->supported_currencies = self::SUPPORTED_CURRENCIES;
+		$this->supported_countries  = self::SUPPORTED_COUNTRIES;
 		$this->is_reusable          = true;
 		$this->label                = __( 'Amazon Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Amazon Pay is a payment method that allows customers to pay with their Amazon account.',
 			'woocommerce-gateway-stripe'
 		);
-		$this->supports[]           = 'tokenization';
+		$this->supports[]           = PaymentGatewayFeature::TOKENIZATION;
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
@@ -37,6 +91,57 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function get_retrievable_type() {
 		return $this->get_id();
+	}
+
+	/**
+	 * Returns the currencies this UPE method supports for the Stripe account.
+	 *
+	 * Amazon Pay has restrictions for US accounts, as they can only transact in USD.
+	 * All other accounts can transact in any currency.
+	 *
+	 * @return array Supported currencies.
+	 */
+	public function get_supported_currencies() {
+		return self::get_amazon_pay_supported_currencies();
+	}
+
+	/**
+	 * Returns the supported currencies for the current Stripe account.
+	 *
+	 * @return string[] Supported currencies.
+	 */
+	public static function get_amazon_pay_supported_currencies(): array {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $account_country ) {
+			return [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
+		}
+
+		return self::SUPPORTED_CURRENCIES;
+	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * Amazon Pay is available for the following countries: AT, BE, CY, DK, FR, DE, HU, IE, IT, LU, NL, PT, ES, SE, CH, GB, US.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return self::is_amazon_pay_available_for_account_country();
+	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * Amazon Pay is available for the following countries: AT, BE, CY, DK, FR, DE, HU, IE, IT, LU, NL, PT, ES, SE, CH, GB, US.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public static function is_amazon_pay_available_for_account_country() {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+
+		return in_array( $account_country, self::SUPPORTED_COUNTRIES, true );
 	}
 
 	/**
@@ -60,18 +165,13 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Return if Amazon Pay is enabled.
 	 *
-	 * @param WC_Gateway_Stripe $gateway The gateway instance.
+	 * @param WC_Stripe_Payment_Gateway $gateway The gateway instance.
 	 *
 	 * @return bool
 	 */
-	public static function is_amazon_pay_enabled( WC_Gateway_Stripe $gateway ) {
+	public static function is_amazon_pay_enabled( WC_Stripe_Payment_Gateway $gateway ) {
 		// Amazon Pay is disabled if feature flag is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-			return false;
-		}
-
-		// Amazon Pay is disabled if UPE is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
 		}
 

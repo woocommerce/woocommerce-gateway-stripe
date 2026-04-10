@@ -1,5 +1,5 @@
-import { useDispatch, useSelect } from '@wordpress/data';
 import { STORE_NAME } from '../constants';
+import { useDispatch, useSelect } from '@wordpress/data';
 
 export const useAccount = () => {
 	const { refreshAccount } = useDispatch( STORE_NAME );

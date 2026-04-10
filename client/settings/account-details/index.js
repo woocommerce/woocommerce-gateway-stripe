@@ -1,10 +1,10 @@
-import { __ } from '@wordpress/i18n';
-import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import { ExternalLink, Icon } from '@wordpress/components';
 import { help } from '@wordpress/icons';
 import styled from '@emotion/styled';
 import SectionStatus from '../section-status';
+import { ExternalLink, Icon } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+import { createInterpolateElement } from '@wordpress/element';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import { WebhookDescription } from 'wcstripe/components/webhook-description';

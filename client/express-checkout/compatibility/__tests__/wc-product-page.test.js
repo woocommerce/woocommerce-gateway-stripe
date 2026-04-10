@@ -1,5 +1,5 @@
-import { applyFilters } from '@wordpress/hooks';
 import { render } from '@testing-library/react';
+import { applyFilters } from '@wordpress/hooks';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
 describe( 'ECE product page compatibility', () => {

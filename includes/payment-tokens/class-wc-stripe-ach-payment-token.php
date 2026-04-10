@@ -111,7 +111,8 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the bank name.
 	 *
-	 * @param string $bank_name
+	 * @param string $bank_name The bank name.
+	 * @return void
 	 */
 	public function set_bank_name( $bank_name ) {
 		$this->set_prop( 'bank_name', $bank_name );
@@ -130,7 +131,8 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the account type.
 	 *
-	 * @param string $account_type
+	 * @param string $account_type The account type.
+	 * @return void
 	 */
 	public function set_account_type( $account_type ) {
 		$this->set_prop( 'account_type', $account_type );
@@ -149,7 +151,8 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the last four digits.
 	 *
-	 * @param string $last4
+	 * @param string $last4 The last 4 digits.
+	 * @return void
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
@@ -161,12 +164,11 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if (
-			WC_Stripe_Payment_Methods::ACH === $payment_method->type
-			&& ( $payment_method->{WC_Stripe_Payment_Methods::ACH}->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::ACH !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		// ACH uses the `us_bank_account` property
+		return ( $payment_method->us_bank_account->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }

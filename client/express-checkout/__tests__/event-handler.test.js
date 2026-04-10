@@ -14,6 +14,12 @@ import {
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn( () => ( {
+		isCheckout: true,
+	} ) ),
+} ) );
+
 describe( 'Express checkout event handlers', () => {
 	describe( 'shippingAddressChangeHandler', () => {
 		let api;
@@ -118,6 +124,37 @@ describe( 'Express checkout event handlers', () => {
 			expect( event.resolve ).not.toHaveBeenCalled();
 			expect( event.reject ).toHaveBeenCalled();
 		} );
+
+		test( 'should truncate shipping options to 9 items when more than 9 are returned', async () => {
+			const shippingOptions = Array.from( { length: 15 }, ( _, i ) => ( {
+				id: `option_${ i + 1 }`,
+				label: `Shipping Option ${ i + 1 }`,
+			} ) );
+
+			const response = {
+				result: 'success',
+				total: { amount: 1000 },
+				shipping_options: shippingOptions,
+				displayItems: [ { label: 'Sample Item', amount: 500 } ],
+			};
+
+			api.expressCheckoutECECalculateShippingOptions.mockResolvedValue(
+				response
+			);
+
+			await shippingAddressChangeHandler( api, event, elements );
+
+			expect( event.resolve ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					shippingRates: expect.arrayContaining( [
+						expect.objectContaining( { id: 'option_1' } ),
+					] ),
+				} )
+			);
+
+			const resolveCall = event.resolve.mock.calls[ 0 ][ 0 ];
+			expect( resolveCall.shippingRates ).toHaveLength( 9 );
+		} );
 	} );
 
 	describe( 'shippingRateChangeHandler', () => {
@@ -218,6 +255,10 @@ describe( 'Express checkout event handlers', () => {
 		let order;
 
 		beforeEach( () => {
+			global.jQuery = {
+				blockUI: jest.fn(),
+				unblockUI: jest.fn(),
+			};
 			api = {
 				expressCheckoutNormalizeAddress: jest.fn(),
 				expressCheckoutECECreateOrder: jest.fn(),
@@ -267,6 +308,25 @@ describe( 'Express checkout event handlers', () => {
 
 		afterEach( () => {
 			jest.clearAllMocks();
+			delete global.jQuery;
+		} );
+
+		test( 'should block UI immediately when payment confirmation starts, before any processing', async () => {
+			// Fail fast on submit so we can confirm blockUI was called before any async work.
+			elements.submit.mockResolvedValue( {
+				error: { message: 'Submit error' },
+			} );
+
+			await onConfirmHandler( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event,
+			} );
+
+			expect( global.jQuery.blockUI ).toHaveBeenCalled();
 		} );
 
 		test( 'should abort payment if elements.submit fails', async () => {
@@ -609,6 +669,56 @@ describe( 'Express checkout event handlers', () => {
 				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
+		} );
+
+		test( 'should extract redirect URL from payment_details when redirect_url is empty for 3DS authentication', async () => {
+			const threeDSRedirectUrl =
+				'#confirm-pi-pi_1234567890abcdef_secret_test1234567890abcdef:fake_nonce';
+
+			elements.submit.mockResolvedValue( {} );
+			stripe.createPaymentMethod.mockResolvedValue( {
+				paymentMethod: { id: 'pm_123' },
+			} );
+			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+				payment_result: {
+					payment_status: 'success',
+					payment_details: [
+						{
+							key: 'result',
+							value: 'success',
+						},
+						{
+							key: 'redirect',
+							value: threeDSRedirectUrl,
+						},
+						{
+							key: 'payment_method',
+							value: 'pm_test1234567890abcdef',
+						},
+					],
+					redirect_url: '',
+				},
+			} );
+
+			api.confirmIntent.mockReturnValue( true );
+
+			await onConfirmHandler( {
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event,
+			} );
+
+			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalled();
+			expect( api.confirmIntent ).toHaveBeenCalledWith(
+				threeDSRedirectUrl
+			);
+			expect( completePayment ).toHaveBeenCalledWith(
+				threeDSRedirectUrl
+			);
+			expect( abortPayment ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

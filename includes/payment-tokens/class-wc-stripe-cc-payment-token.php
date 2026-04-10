@@ -35,11 +35,10 @@ class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC implements WC_Strip
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::CARD === $payment_method->type
-			&& ( $payment_method->card->fingerprint ?? null ) === $this->get_fingerprint() ) {
-			return true;
+		if ( WC_Stripe_Payment_Methods::CARD !== $payment_method->type ) {
+			return false;
 		}
 
-		return false;
+		return ( $payment_method->card->fingerprint ?? null ) === $this->get_fingerprint();
 	}
 }

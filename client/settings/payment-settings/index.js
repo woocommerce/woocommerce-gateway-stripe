@@ -1,22 +1,16 @@
-/* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
-import { React, useContext, useState } from 'react';
-import { ExternalLink } from '@wordpress/components';
+import { React, useState } from 'react';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import AccountDetailsSection from './account-details-section';
 import GeneralSettingsSection from './general-settings-section';
 import { AccountKeysModal } from './account-keys-modal';
+import { ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
-import { BNPL_PROMOTION_BANNER } from 'wcstripe/settings/payment-settings/constants';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -71,24 +65,16 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
-const PaymentSettingsPanel = () => {
+const PaymentSettingsPanel = ( {
+	showPromotionalBanner,
+	setShowPromotionalBanner,
+	promotionalBannerType,
+	isOCEnabled,
+	setIsOCEnabled,
+} ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
-	const { data } = useAccount();
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const promotionalBannerType = getPromotionalBannerType(
-		data,
-		isUpeEnabled,
-		enabledPaymentMethodIds
-	);
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		promotionalBannerType === BNPL_PROMOTION_BANNER
-			? // eslint-disable-next-line camelcase
-			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-			: true
-	);
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -114,16 +100,8 @@ const PaymentSettingsPanel = () => {
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
-								setIsUpeEnabled={ setIsUpeEnabled }
+								setIsOCEnabled={ setIsOCEnabled }
 								promotionalBannerType={ promotionalBannerType }
-								oauthUrl={
-									// eslint-disable-next-line camelcase
-									wc_stripe_settings_params.stripe_oauth_url
-								}
-								testOauthUrl={
-									// eslint-disable-next-line camelcase
-									wc_stripe_settings_params.stripe_test_oauth_url
-								}
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
@@ -157,7 +135,10 @@ const PaymentSettingsPanel = () => {
 					<PaymentsAndTransactionsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
-			<AdvancedSettingsSection />
+			<AdvancedSettingsSection
+				isOCEnabled={ isOCEnabled }
+				setIsOCEnabled={ setIsOCEnabled }
+			/>
 		</>
 	);
 };

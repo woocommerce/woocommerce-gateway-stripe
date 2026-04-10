@@ -1,7 +1,5 @@
-import { useEffect } from '@wordpress/element';
-import { useSelect, useDispatch } from '@wordpress/data';
 import confirmCardPayment from './confirm-card-payment.js';
-import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
+import { useEffect } from '@wordpress/element';
 
 /**
  * Handles the Block Checkout onCheckoutSuccess event.
@@ -76,41 +74,4 @@ export const usePaymentFailHandler = (
 			emitResponse.noticeContexts.PAYMENTS,
 		]
 	);
-};
-
-/**
- * Returns the customer data and setters for the customer data.
- *
- * @return {Object} An object containing the customer data.
- */
-export const useCustomerData = () => {
-	const { customerData, isInitialized } = useSelect( ( select ) => {
-		const store = select( WC_STORE_CART );
-		return {
-			customerData: store.getCustomerData(),
-			isInitialized: store.hasFinishedResolution( 'getCartData' ),
-		};
-	} );
-	const {
-		setShippingAddress,
-		setBillingAddress,
-		setBillingData,
-	} = useDispatch( WC_STORE_CART );
-
-	let customerBillingAddress = customerData.billingData;
-	let setCustomerBillingAddress = setBillingData;
-
-	//added for backwards compatibility -> billingData was renamed to billingAddress
-	if ( customerData.billingData === undefined ) {
-		customerBillingAddress = customerData.billingAddress;
-		setCustomerBillingAddress = setBillingAddress;
-	}
-
-	return {
-		isInitialized,
-		billingAddress: customerBillingAddress,
-		shippingAddress: customerData.shippingAddress,
-		setBillingAddress: setCustomerBillingAddress,
-		setShippingAddress,
-	};
 };

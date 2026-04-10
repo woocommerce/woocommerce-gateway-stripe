@@ -7,6 +7,7 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
+	clickPlaceOrder,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
@@ -22,7 +23,7 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetails( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await clickPlaceOrder( page );
 
 	/**
 	 * The invalid card error message is shown in the input field validation.

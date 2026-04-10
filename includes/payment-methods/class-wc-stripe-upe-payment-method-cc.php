@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -11,10 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Credit card Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::CARD;
-
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe::class;
 
 	/**
 	 * Constructor for card payment method
@@ -25,12 +27,30 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-		$this->supports[]  = 'subscriptions';
-		$this->supports[]  = 'tokenization';
+		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 		$this->description = __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
+	}
+
+	/**
+	 * Whether the save-to-account checkbox should be shown on classic checkout.
+	 *
+	 * When Link is enabled, Link handles save consent via the Payment Element,
+	 * so the store-level checkbox is hidden for card.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( woocommerce_gateway_stripe()->get_main_stripe_gateway() ) ) {
+			return false;
+		}
+
+		return parent::should_show_save_option();
 	}
 
 	/**
@@ -45,11 +65,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$wallet_type = $payment_details->card->wallet->type ?? null;
 		if ( $wallet_type ) {
 			return $this->get_card_wallet_type_title( $wallet_type );
-		}
-
-		// Optimized checkout
-		if ( $this->oc_enabled ) {
-			return $this->get_optimized_checkout_title( $payment_details );
 		}
 
 		// Default
@@ -113,62 +128,26 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
+	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
 	 * @return string
 	 */
 	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
-		if ( $this->oc_enabled && ! $show_optimized_checkout_instruction ) {
-			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_optimized_checkout();
+		if ( false !== $show_optimized_checkout_instruction ) {
+			_deprecated_argument(
+				__FUNCTION__,
+				'9.9.0'
+			);
 		}
 
 		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) number open tag 4) number closing tag 5) HTML anchor open tag 6) HTML anchor closing tag */
+			esc_html__( '%1$sTest mode:%2$s use card %3$s4242 4242 4242 4242%4$s with any expiry and CVC. %5$sMore test cards%6$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
+			'<number>',
+			'</number>',
 			'<a href="https://docs.stripe.com/testing" target="_blank">',
 			'</a>'
 		);
-	}
-
-	/**
-	 * Returns the title for the card wallet type.
-	 * This is used to display the title for Apple Pay and Google Pay.
-	 *
-	 * @param $express_payment_type string The type of express payment method.
-	 *
-	 * @return string The title for the card wallet type.
-	 */
-	private function get_card_wallet_type_title( $express_payment_type ) {
-		$express_payment_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
-		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
-
-		if ( ! $payment_method_title ) {
-			return parent::get_title();
-		}
-
-		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-	}
-
-	/**
-	 * Returns the title for the optimized checkout.
-	 *
-	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
-	 * @return string
-	 */
-	private function get_optimized_checkout_title( $payment_details = false ) {
-		if ( $payment_details ) { // Setting title for the order details page / thank you page.
-			$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
-
-			// Avoid potential recursion by checking instance type. This fixes the title on pay for order confirmation page.
-			return $payment_method instanceof self ? parent::get_title() : $payment_method->get_title();
-		}
-
-		// Block checkout and pay for order (checkout) page.
-		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return $this->oc_title;
-		}
-
-		return parent::get_title();
 	}
 }

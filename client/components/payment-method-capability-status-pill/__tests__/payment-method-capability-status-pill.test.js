@@ -2,7 +2,6 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import PaymentMethodCapabilityStatusPill from '..';
 import { useGetCapabilities } from 'wcstripe/data/account';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useGetCapabilities: jest.fn(),
@@ -19,9 +18,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 			card_payments: 'active',
 		} );
 		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
-			</UpeToggleContext.Provider>
+			<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 		);
 
 		expect( screen.queryByText( 'Pending approval' ) ).toBeInTheDocument();
@@ -33,9 +30,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 			card_payments: 'active',
 		} );
 		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
-			</UpeToggleContext.Provider>
+			<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 		);
 
 		expect(
@@ -49,9 +44,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 			card_payments: 'pending',
 		} );
 		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
-			</UpeToggleContext.Provider>
+			<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 		);
 
 		expect( container.firstChild ).toBeNull();
@@ -60,9 +53,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 	it( 'should not render when the capability not present', () => {
 		useGetCapabilities.mockReturnValue( { card_payments: 'active' } );
 		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
-			</UpeToggleContext.Provider>
+			<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 		);
 
 		expect( container.firstChild ).toBeNull();

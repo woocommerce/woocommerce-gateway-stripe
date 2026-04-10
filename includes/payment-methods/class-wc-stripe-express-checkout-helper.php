@@ -1,5 +1,8 @@
 <?php
 
+use Automattic\WooCommerce\Enums\ProductType;
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -14,14 +17,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Stripe settings.
 	 *
-	 * @var
+	 * @var array
 	 */
 	public $stripe_settings;
 
 	/**
 	 * Total label
 	 *
-	 * @var
+	 * @var string
 	 */
 	public $total_label;
 
@@ -35,7 +38,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gateway.
 	 *
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Stripe_UPE_Payment_Gateway
 	 */
 	private $gateway;
 
@@ -107,7 +110,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_type() instead.
 	 */
 	public function get_button_type() {
-		return $this->stripe_settings->get_express_checkout_button_type();
+		return isset( $this->stripe_settings['express_checkout_button_type'] ) ? $this->stripe_settings['express_checkout_button_type'] : 'default';
 	}
 
 	/**
@@ -118,7 +121,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_theme() instead.
 	 */
 	public function get_button_theme() {
-		return $this->stripe_settings->get_express_checkout_button_theme();
+		return isset( $this->stripe_settings['express_checkout_button_theme'] ) ? $this->stripe_settings['express_checkout_button_theme'] : 'dark';
 	}
 
 	/**
@@ -127,7 +130,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		return $this->stripe_settings->get_express_checkout_button_height();
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
+		if ( 'small' === $height ) {
+			return '40';
+		}
+
+		if ( 'large' === $height ) {
+			return '56';
+		}
+
+		return '48';
 	}
 
 	/**
@@ -138,7 +150,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_radius() instead.
 	 */
 	public function get_button_radius() {
-		return $this->stripe_settings->get_express_checkout_button_radius();
+		$height = isset( $this->stripe_settings['express_checkout_button_size'] ) ? $this->stripe_settings['express_checkout_button_size'] : 'default';
+		if ( 'small' === $height ) {
+			return '2';
+		}
+
+		if ( 'large' === $height ) {
+			return '6';
+		}
+
+		return '4';
 	}
 
 	/**
@@ -213,7 +234,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
@@ -303,14 +324,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Get the number of decimals supported by Stripe for the currency.
+	 *
+	 * @return int
+	 */
+	public static function get_stripe_currency_decimals() {
+		return WC_Stripe_Helper::get_currency_decimals( get_woocommerce_currency() );
+	}
+
+	/**
 	 * JS params data used by cart and checkout pages.
 	 *
-	 * @param array $data
+	 * @return array The checkout data.
 	 */
 	public function get_checkout_data() {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'currency_decimals'       => $this->get_stripe_currency_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
@@ -345,7 +376,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Normalizes postal code in case of redacted data from Apple Pay.
 	 *
 	 * @param string $postcode Postal code.
-	 * @param string $country Country.
+	 * @param string $country  Country.
+	 *
+	 * @return string The normalized postal code.
 	 */
 	public function get_normalized_postal_code( $postcode, $country ) {
 		/**
@@ -354,7 +387,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
 		 * the postal code and not calculate shipping zones correctly.
 		 */
-		if ( 'GB' === $country ) {
+		if ( WC_Stripe_Country_Code::UNITED_KINGDOM === $country ) {
 			// UK Postcodes returned from Apple Pay can be alpha numeric 2 chars, 3 chars, or 4 chars long will optionally have a trailing space,
 			// depending on whether the customer put a space in their postcode between the outcode and incode part.
 			// See https://assets.publishing.service.gov.uk/media/5a7b997d40f0b62826a049e0/ILRSpecification2013_14Appendix_C_Dec2012_v1.pdf for more details.
@@ -378,7 +411,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $postcode; // 5 or more chars means it probably wasn't redacted and will likely validate unchanged.
 		}
 
-		if ( 'CA' === $country ) {
+		if ( WC_Stripe_Country_Code::CANADA === $country ) {
 			// Replaces a redacted string with something like L4Y***.
 			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
 		}
@@ -395,9 +428,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
-				'simple',
-				'variable',
-				'variation',
+				ProductType::SIMPLE,
+				ProductType::VARIABLE,
+				ProductType::VARIATION,
 				'subscription',
 				'variable-subscription',
 				'subscription_variation',
@@ -481,7 +514,6 @@ class WC_Stripe_Express_Checkout_Helper {
 			$needs_shipping     = $product->needs_shipping();
 			$is_synced          = WC_Subscriptions_Synchroniser::is_product_synced( $product );
 			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
-			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
 			if ( $is_product_page_request && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
 				/**
@@ -496,8 +528,6 @@ class WC_Stripe_Express_Checkout_Helper {
 				 */
 				continue;
 			} elseif ( $is_synced && ! $is_payment_upfront && $needs_shipping ) {
-				continue;
-			} elseif ( $has_trial_period && $needs_shipping ) {
 				continue;
 			} else {
 				// If we made it this far, the product is valid. Break out of the foreach and return early as we only care about invalid cases.
@@ -533,6 +563,31 @@ class WC_Stripe_Express_Checkout_Helper {
 				if ( WC_Subscriptions_Product::is_subscription( $_product ) ) {
 					return true;
 				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Checks whether the subscription product has a free trial.
+	 *
+	 * @return bool
+	 */
+	public function has_free_trial() {
+		if ( $this->is_product() ) {
+			$product = $this->get_product();
+			if ( ! $product ) {
+				return false;
+			}
+			if ( class_exists( 'WC_Subscriptions_Product' )
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+				return true;
+			}
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
+			if ( $this->cart_contains_free_trial() ) {
+				return true;
 			}
 		}
 
@@ -579,8 +634,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_page_supported() {
 		return $this->is_product()
-			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			|| is_wc_endpoint_url( 'order-pay' );
+				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+				|| is_wc_endpoint_url( 'order-pay' );
 	}
 
 	/**
@@ -592,20 +647,38 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_express_checkout_button() {
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
-			WC_Stripe_Logger::log( 'Account is not connected.' );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Account is not connected.' );
+			}
 			return false;
 		}
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions
-			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				$server_details = [
+					'url'   => get_permalink(),
+					'https' => isset( $_SERVER['HTTPS'] ) ? wp_unslash( $_SERVER['HTTPS'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+					'port'  => isset( $_SERVER['SERVER_PORT'] ) ? wp_unslash( $_SERVER['SERVER_PORT'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				];
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout live mode requires SSL', [ 'server_details' => $server_details ] );
+			}
 			return false;
 		}
 
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		if ( ! isset( $available_gateways['stripe'] ) ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout requires the Stripe gateway to be enabled.' );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout requires the Stripe gateway to be enabled.' );
+			}
+			return false;
+		}
+
+		// Note that is_express_checkout_enabled() checks locations as well as the necessary express checkout methods being available.
+		if ( ! $this->is_express_checkout_enabled() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'No Stripe Express Checkout options are enabled in the current context.' );
+			}
 			return false;
 		}
 
@@ -615,68 +688,100 @@ class WC_Stripe_Express_Checkout_Helper {
 			WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			&& ! $this->allowed_items_in_cart()
 		) {
-			WC_Stripe_Logger::log( 'Some items in cart are not compatible with Stripe Express Checkout. ' );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Some items in cart are not compatible with Stripe Express Checkout.' );
+			}
 			return false;
 		}
 
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! $this->should_show_ece_on_cart_page() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on cart is disabled. ' );
+		if ( $this->is_cart() && ! $this->should_show_ece_on_cart_page() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on cart is disabled.' );
+			}
 			return false;
 		}
 
-		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it.
+		$is_one_page_checkout = $this->is_one_page_checkout();
+
+		if ( ( $this->is_checkout() || $is_one_page_checkout ) && ! $this->should_show_ece_on_checkout_page() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on checkout is disabled.' );
+			}
 			return false;
 		}
 
 		$is_product = $this->is_product();
 
 		// Don't show if product page ECE is disabled.
-		if ( $is_product && ! $this->should_show_ece_on_product_pages() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
+		// Skip this check for One Page Checkout pages since they should be treated as checkout pages, not product pages.
+		if ( $is_product && ! $is_one_page_checkout && ! $this->should_show_ece_on_product_pages() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons display on product pages is disabled.' );
+			}
+			return false;
+		}
+
+		// On One Page Checkout pages, if we're in the product section and checkout buttons are enabled,
+		// skip rendering here because the button will render in the checkout section instead.
+		if ( $is_one_page_checkout && $is_product && doing_action( 'woocommerce_after_add_to_cart_form' ) && $this->should_show_ece_on_checkout_page() ) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout buttons on One Page Checkout will be displayed in checkout section, not product section.' );
+			}
 			return false;
 		}
 
 		$product = $this->get_product();
 
 		if ( $is_product && ! $product ) {
-			$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
-			WC_Stripe_Logger::log( 'Failed to identify product; not showing Stripe Express Checkout. Current URI: ' . $request_uri );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
+				WC_Stripe_Logger::debug( 'Failed to identify product; not showing Stripe Express Checkout. Current URI: ' . $request_uri );
+			}
 			return false;
 		}
 
 		// Don't show if product on current page is not supported.
 		if ( $is_product && ! $this->is_product_supported( $product ) ) {
-			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
+			}
 			return false;
 		}
 
-		// Don't show in the product page if the product price is 0.
-		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( $is_product && $product && 0.0 === (float) $product->get_price() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
-			return false;
-		}
-
-		if ( $is_product && $product && in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
+				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
+				}
 				return false;
 			}
+		}
+
+		// Check if Amazon Pay is the only enabled method, but not available due to the tax configuration.
+		if ( $this->is_amazon_pay_enabled() &&
+			! ( $this->is_payment_request_enabled() || $this->is_link_enabled() ) &&
+			( wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ) )
+		) {
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to Amazon Pay being the only enabled method, but not available due to taxes being based on billing address.' );
+			}
+			return false;
 		}
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		$hide_based_on_tax          = $this->should_hide_ece_based_on_tax_setup();
 		$hide_based_on_tax_filtered = apply_filters( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', $hide_based_on_tax );
 		if ( $hide_based_on_tax_filtered ) {
-			if ( $hide_based_on_tax !== $hide_based_on_tax_filtered ) {
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the tax setup being overridden by the filter.' );
-			} else {
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
+			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
+				if ( $hide_based_on_tax !== $hide_based_on_tax_filtered ) {
+					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to the tax setup being overridden by the filter.' );
+				} else {
+					WC_Stripe_Logger::debug( "Stripe Express Checkout is hidden due to product/cart not requiring shipping and tax being based on customer's billing or shipping address." );
+				}
 			}
 			return false;
 		}
@@ -706,11 +811,16 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_taxable              = $this->is_product_or_cart_taxable();
-		$needs_shipping          = $this->product_or_cart_needs_shipping();
-		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
-
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+		// Hide express checkout when we have the following situation:
+		//  - Taxes are enabled
+		//  - The current product or cart is taxable
+		//  - The product or cart does not need shipping (e.g. a virtual product)
+		//  - Taxes are based on the user's billing address
+		if (
+			wc_tax_enabled()
+			&& $this->is_product_or_cart_taxable()
+			&& 'billing' === get_option( 'woocommerce_tax_based_on' )
+			&& ! $this->product_or_cart_needs_shipping() ) {
 			return true;
 		}
 
@@ -729,7 +839,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			if ( ! $product ) {
 				return false;
 			}
-			return $product->get_tax_status() !== 'none';
+			return $product->get_tax_status() !== ProductTaxStatus::NONE;
 		}
 
 		// Cart or checkout page: the cart is taxable if any item in the cart
@@ -746,7 +856,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				$cart_item_key
 			);
 
-			if ( 'none' !== $product->get_tax_status() ) {
+			if ( ProductTaxStatus::NONE !== $product->get_tax_status() ) {
 				return true;
 			}
 		}
@@ -768,8 +878,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				return false;
 			}
 			return wc_shipping_enabled() &&
-				0 !== wc_get_shipping_method_count( true ) &&
-				$product->needs_shipping();
+					0 !== wc_get_shipping_method_count( true ) &&
+					$product->needs_shipping();
 		}
 
 		// Cart or checkout page.
@@ -781,13 +891,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on the cart page, false
+	 * Returns true if any express checkout buttons are enabled on the cart page, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on the cart page, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on the cart page, false otherwise
 	 */
 	public function should_show_ece_on_cart_page() {
-		$should_show_on_cart_page = in_array( 'cart', $this->get_button_locations(), true );
+		$should_show_on_cart_page = $this->should_show_ece_on_location( 'cart' );
 
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
@@ -796,15 +906,15 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on the checkout page, false
+	 * Returns true if any express checkout buttons are enabled on the checkout page, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on the checkout page, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on the checkout page, false otherwise
 	 */
 	public function should_show_ece_on_checkout_page() {
 		global $post;
 
-		$should_show_on_checkout_page = in_array( 'checkout', $this->get_button_locations(), true );
+		$should_show_on_checkout_page = $this->should_show_ece_on_location( 'checkout' );
 
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
@@ -814,15 +924,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on product pages, false
+	 * Detects if the current page is a One Page Checkout page.
+	 *
+	 * @return boolean True if on a One Page Checkout page, false otherwise.
+	 */
+	public function is_one_page_checkout(): bool {
+		return function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout();
+	}
+
+	/**
+	 * Returns true if any express checkout buttons are enabled on product pages, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on product pages, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on product pages, false otherwise
 	 */
 	public function should_show_ece_on_product_pages() {
 		global $post;
 
-		$should_show_on_product_page = in_array( 'product', $this->get_button_locations(), true );
+		$should_show_on_product_page = $this->should_show_ece_on_location( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
 		return ! apply_filters(
@@ -833,11 +952,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Returns true if any express checkout buttons are enabled on the given location, false
+	 * otherwise.
+	 *
+	 * @param string $location The location to check.
+	 *
+	 * @return boolean True if any express checkout buttons are enabled on the given page, false otherwise.
+	 */
+	private function should_show_ece_on_location( string $location ): bool {
+		return $this->is_enabled_for_location( 'payment_request', $location ) ||
+				$this->is_enabled_for_location( 'amazon_pay', $location );
+	}
+
+	/**
 	 * Returns true if the provided product is supported, false otherwise.
 	 *
-	 * @param WC_Product $param  The product that's being checked for support.
+	 * @param WC_Product|null|bool $product The product to check if it is supported.
 	 *
-	 * @return boolean  True if the provided product is supported, false otherwise.
+	 * @return bool True if the provided product is supported, false otherwise.
 	 */
 	public function is_product_supported( $product ) {
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
@@ -957,9 +1089,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Updates shipping method in WC session
+	 * Updates shipping method in WC session.
 	 *
 	 * @param array $shipping_methods Array of selected shipping methods ids.
+	 *
+	 * @return void
 	 */
 	public function update_shipping_method( $shipping_methods ) {
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
@@ -1004,7 +1138,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		//
 		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
 		// the address bug. More info on that in pc4etw-bY-p2.
-		if ( 'HK' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $billing_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
@@ -1014,7 +1148,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				}
 			}
 		}
-		if ( 'HK' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::HONG_KONG === $shipping_country ) {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
@@ -1152,6 +1286,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * The express checkout API provides its own validation for the address form.
 	 * For some countries, it might not provide a state field, so we need to return a more descriptive
 	 * error message, indicating that the express checkout button is not supported for that country.
+	 *
+	 * @return void
 	 */
 	public function validate_state() {
 		$wc_checkout     = WC_Checkout::instance();
@@ -1173,7 +1309,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( ! $is_supported ) {
 			wc_add_notice(
 				sprintf(
-					/* translators: 1) country. */
+				/* translators: 1) country. */
 					__( 'The Express Checkout button is not supported in %1$s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
 					isset( $countries[ $posted_data['billing_country'] ] ) ? $countries[ $posted_data['billing_country'] ] : $posted_data['billing_country']
 				),
@@ -1195,7 +1331,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
 		// but WooCommerce expects it in the "city" field.
-		if ( 'AE' === $billing_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $billing_country ) {
 			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
 			$billing_city  = ! empty( $data['billing_address']['city'] ) ? wc_clean( wp_unslash( $data['billing_address']['city'] ) ) : '';
 
@@ -1206,7 +1342,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		if ( 'AE' === $shipping_country ) {
+		if ( WC_Stripe_Country_Code::UNITED_ARAB_EMIRATES === $shipping_country ) {
 			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
 			$shipping_city  = ! empty( $data['shipping_address']['city'] ) ? wc_clean( wp_unslash( $data['shipping_address']['city'] ) ) : '';
 
@@ -1217,6 +1353,34 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
+		// Amazon Pay may allow address data in address_2 instead of address_1.
+		if ( empty( $data['billing_address']['address_1'] ) && ! empty( $data['billing_address']['address_2'] ) ) {
+			$data['billing_address']['address_1'] = wc_clean( wp_unslash( $data['billing_address']['address_2'] ) );
+			$data['billing_address']['address_2'] = '';
+		}
+		if ( empty( $data['shipping_address']['address_1'] ) && ! empty( $data['shipping_address']['address_2'] ) ) {
+			$data['shipping_address']['address_1'] = wc_clean( wp_unslash( $data['shipping_address']['address_2'] ) );
+			$data['shipping_address']['address_2'] = '';
+		}
+
+		// Puerto Rico: Apple Pay send PR as a US state (country=US, state=PR),
+		// but WooCommerce expects it as a separate country. Convert to country code.
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $billing_country ) {
+			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $billing_state ) {
+				$data['billing_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
+				$data['billing_address']['state']   = '';
+			}
+		}
+
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $shipping_country ) {
+			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
+			if ( WC_Stripe_Country_Code::PUERTO_RICO === $shipping_state ) {
+				$data['shipping_address']['country'] = WC_Stripe_Country_Code::PUERTO_RICO;
+				$data['shipping_address']['state']   = '';
+			}
+		}
+
 		return $data;
 	}
 
@@ -1224,6 +1388,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Calculate and set shipping method.
 	 *
 	 * @param array $address Shipping address.
+	 *
+	 * @return void
 	 */
 	protected function calculate_shipping( $address = [] ) {
 		$country   = $address['country'];
@@ -1277,7 +1443,22 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		// Remove subscription shipping package filter if there is free trial in the cart to allow the calculation of shipping costs.
+		// TODO: revisit this when WC Subscriptions adds support for free trials with shipping.
+		$has_free_trial = $this->cart_contains_free_trial();
+
+		if ( $has_free_trial ) {
+			remove_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+		}
+
+		try {
+			$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		} finally {
+			// Add the subscription shipping package filter back after calculating shipping packages to avoid affecting other parts of the checkout process.
+			if ( $has_free_trial ) {
+				add_filter( 'woocommerce_cart_shipping_packages', 'WC_Subscriptions_Cart::set_cart_shipping_packages', -10 );
+			}
+		}
 
 		WC()->shipping->calculate_shipping( $packages );
 	}
@@ -1318,7 +1499,20 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Builds the shippings methods to pass to express checkout elements.
+	 * Checks if this is the cart page or content contains a cart block.
+	 *
+	 * @return boolean
+	 */
+	public function is_cart() {
+		return is_cart() || has_block( 'woocommerce/cart' );
+	}
+
+	/**
+	 * Builds the shipping methods to pass to express checkout elements.
+	 *
+	 * @param array $shipping_methods The shipping methods data.
+	 *
+	 * @return array The formatted shipping methods for express checkout.
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
 		if ( empty( $shipping_methods ) ) {
@@ -1341,98 +1535,55 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Builds the line items to pass to express checkout elements.
+	 *
+	 * @param bool $itemized_display_items Whether to include itemized display items.
+	 *
+	 * @return array {
+	 *     The display items and total for express checkout.
+	 *
+	 *     @type array $displayItems The display items.
+	 *     @type array $total {
+	 *         The total for express checkout.
+	 *
+	 *         @type string    $label   The label for the total.
+	 *         @type float|int $amount  The amount for the total.
+	 *         @type bool      $pending Whether the total is pending.
+	 *     }
+	 * }
 	 */
 	public function build_display_items( $itemized_display_items = false ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items         = [];
-		$lines         = [];
-		$subtotal      = 0;
-		$discounts     = 0;
 		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
-		$has_deposits  = false;
+		$order_total   = WC()->cart->get_total( false );
 
-		if ( $display_items ) {
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
-				if ( ! empty( $cart_item['is_deposit'] ) ) {
-					$has_deposits = true;
-					continue;
-				}
+		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+		$calculated_total = apply_filters_deprecated(
+			'woocommerce_stripe_calculated_total',
+			[ $calculated_total, $order_total, WC()->cart ],
+			'9.6.0',
+			'wc_stripe_calculated_total',
+			'The woocommerce_stripe_calculated_total filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_calculated_total instead.'
+		);
 
-				$subtotal      += $cart_item['line_subtotal'];
-				$amount         = $cart_item['line_subtotal'];
-				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
-				$product_name   = $cart_item['data']->get_name();
-
-				$lines[] = [
-					'label'  => $product_name . $quantity_label,
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
-				];
-			}
-		}
-
-		if ( $display_items && ! $has_deposits ) {
-			$items = array_merge( $items, $lines );
-		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
-			$items[] = [
-				'label'  => 'Subtotal',
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
-			];
-		}
-
-		$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
-
-		foreach ( $applied_coupons as $amount ) {
-			$discounts += (float) $amount;
-		}
-
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
-		$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
-		$order_total = WC()->cart->get_total( false );
-
-		if ( wc_tax_enabled() ) {
-			$items[] = [
-				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
-			];
-		}
-
-		if ( WC()->cart->needs_shipping() ) {
-			$items[] = [
-				'key'    => 'total_shipping',
-				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
-			];
-		}
-
-		if ( WC()->cart->has_discount() ) {
-			$items[] = [
-				'key'    => 'total_discount',
-				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
-			];
-		}
-
-		$cart_fees = WC()->cart->get_fees();
-
-		// Include fees and taxes as display items.
-		foreach ( $cart_fees as $key => $fee ) {
-			$items[] = [
-				'label'  => $fee->name,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
-			];
-		}
+		/**
+		 * Filters the calculated total for the order.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param float $calculated_total The calculated total.
+		 * @param float $order_total The order total.
+		 * @param WC_Cart $cart The cart object.
+		 */
+		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 
 		return [
-			'displayItems' => $items,
+			'displayItems' => WC_Stripe_Helper::build_line_items( $display_items ),
 			'total'        => [
 				'label'   => $this->total_label,
-				'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
+				'amount'  => max( 0, $calculated_total ),
 				'pending' => false,
 			],
 		];
@@ -1467,12 +1618,50 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Pages where the express checkout buttons should be displayed.
 	 *
+	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
 	 *
 	 * @deprecated 9.6.0 Use `WC_Stripe_Settings::get_express_checkout_button_locations()` instead.
 	 */
-	public function get_button_locations() {
-		return $this->stripe_settings->get_express_checkout_button_locations();
+	public function get_button_locations( ?string $express_checkout_type = null ): array {
+		switch ( $express_checkout_type ) {
+			case 'amazon_pay':
+				$key = 'amazon_pay_button_locations';
+				break;
+			case 'payment_request':
+			case 'link': // Link does not yet have its own Customize page. It shares the same location settings as Apple Pay and Google Pay.
+			default:
+				$key = 'express_checkout_button_locations';
+				break;
+		}
+
+		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
+			// If the locations have not been set/modified, return the default setting.
+			return [ 'product', 'cart' ];
+		}
+
+		if ( ! is_array( $this->stripe_settings[ $key ] ) ) {
+			// If all locations are removed through the settings UI the location config will be set to
+			// an empty string "". If that's the case (and if the settings are not an array for any
+			// other reason) we should return an empty array.
+			return [];
+		}
+
+		return $this->stripe_settings[ $key ];
+	}
+
+	/**
+	 * Check if the express checkout type is enabled for the given location.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 * @param string $location The location to check.
+	 *
+	 * @return boolean
+	 */
+	public function is_enabled_for_location( string $express_checkout_type = 'payment_request', string $location = '' ): bool {
+		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+
+		return in_array( $location, $enabled_locations, true );
 	}
 
 	/**
@@ -1482,8 +1671,34 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_express_checkout_enabled() {
 		return $this->is_payment_request_enabled() ||
-			$this->is_amazon_pay_enabled() ||
-			$this->is_link_enabled();
+				$this->is_amazon_pay_enabled() ||
+				$this->is_link_enabled();
+	}
+
+	/**
+	 * Checks if the given express checkout type is enabled for the current page context.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 *
+	 * @return boolean
+	 */
+	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
+		$is_one_page_checkout = $this->is_one_page_checkout();
+
+		if ( $this->is_checkout() || $is_one_page_checkout ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'checkout' );
+		}
+
+		if ( $this->is_product() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'product' );
+		}
+
+		if ( $this->is_cart() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'cart' );
+		}
+
+		return true;
 	}
 
 	/**
@@ -1492,7 +1707,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_payment_request_enabled() {
-		return $this->gateway->is_payment_request_enabled();
+		$is_enabled = $this->gateway->is_payment_request_enabled();
+
+		return $is_enabled && $this->is_enabled_for_current_context( 'payment_request' );
 	}
 
 	/**
@@ -1501,7 +1718,20 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_amazon_pay_enabled() {
-		return WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
+		$is_enabled = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
+
+		if ( ! $is_enabled || ! $this->is_enabled_for_current_context( 'amazon_pay' ) ) {
+			return false;
+		}
+		$amazon_pay_instance = new WC_Stripe_UPE_Payment_Method_Amazon_Pay();
+
+		if ( ! $amazon_pay_instance->is_available_for_account_country() ) {
+			return false;
+		}
+
+		$store_currency = get_woocommerce_currency();
+
+		return in_array( $store_currency, $amazon_pay_instance->get_supported_currencies(), true );
 	}
 
 	/**
@@ -1510,7 +1740,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_link_enabled() {
-		return WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
+		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
+
+		return $is_enabled && $this->is_enabled_for_current_context( 'link' );
 	}
 
 	/**
@@ -1539,15 +1771,29 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * This function needs to be called after `WC()->cart->calculate_totals()` is run, otherwise `WC()->cart->recurring_carts` won't exist yet.
 	 *
 	 * @param array $previous_chosen_methods The previously chosen shipping methods.
+	 *
+	 * @return void
 	 */
 	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
-		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
+		// If there are no recurring carts, or the `WC_Subscriptions_Cart::get_recurring_shipping_package_key` method doesn't exist, we skip this step.
+		// That's because this logic overrides the selected shipping method with the previously chosen shipping method.
+		if (
+			empty( WC()->cart->recurring_carts )
+			|| ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' )
+		) {
 			return;
 		}
 
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
+			// Skip restoration for free-trial recurring carts — their shipping was intentionally
+			// calculated without the Subscriptions shipping package filter, so restoring a
+			// previously chosen method here would conflict with that.
+			if ( $this->recurring_cart_contains_free_trial( $recurring_cart ) ) {
+				continue;
+			}
+
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
 				if ( class_exists( 'WC_Subscriptions_Cart' ) ) {
 					$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
@@ -1586,11 +1832,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	* Whether tax should be displayed on separate line in cart.
-	* returns true if tax is disabled or display of tax in checkout is set to inclusive.
-	*
-	* @return boolean
-	*/
+	 * Whether tax should be displayed on separate line in cart.
+	 * returns true if tax is disabled or display of tax in checkout is set to inclusive.
+	 *
+	 * @return boolean
+	 */
 	public function cart_prices_include_tax() {
 		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
 	}
@@ -1602,13 +1848,111 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Used to remove the booking from WC Bookings in-cart status.
 	 *
 	 * @return int|false
+	 *
+	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
 	 */
 	public function get_booking_id_from_cart() {
-		$cart      = WC()->cart->get_cart();
-		$cart_item = reset( $cart );
+		wc_deprecated_function( __METHOD__, '9.8.0', 'WC_Stripe_Express_Checkout_Helper::get_booking_ids_from_cart()' );
 
-		if ( $cart_item && isset( $cart_item['booking']['_booking_id'] ) ) {
-			return $cart_item['booking']['_booking_id'];
+		$booking_ids = $this->get_booking_ids_from_cart();
+		if ( ! empty( $booking_ids ) ) {
+			return $booking_ids[0];
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets a list of booking ids from the cart.
+	 *
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return array
+	 */
+	public function get_booking_ids_from_cart() {
+		$cart        = WC()->cart->get_cart();
+		$booking_ids = [];
+
+		foreach ( $cart as $item ) {
+			if ( ! empty( $item['booking']['_booking_id'] ) ) {
+				$booking_ids[] = $item['booking']['_booking_id'];
+			}
+		}
+
+		return array_unique( $booking_ids );
+	}
+
+	/**
+	 * Check if the current request is an express checkout context.
+	 *
+	 * @return bool True if express checkout context, false otherwise.
+	 */
+	public function is_express_checkout_context() {
+		// Only proceed if this is a Store API request.
+		if ( ! $this->is_request_to_store_api() ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT' header using superglobals.
+		if ( 'true' !== sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] ?? '' ) ) ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE' header using superglobals.
+		$nonce = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'wc_store_api_express_checkout' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Check if is request to the Store API.
+	 *
+	 * @return bool
+	 */
+	public function is_request_to_store_api() {
+		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+			return false;
+		}
+		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+	}
+
+	/**
+	 * Check if the cart contains a free trial subscription.
+	 *
+	 * @return bool
+	 */
+	private function cart_contains_free_trial(): bool {
+		return class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial();
+	}
+
+	/**
+	 * Check if a specific recurring cart contains a free trial subscription.
+	 *
+	 * Unlike cart_contains_free_trial(), this operates on a single recurring cart object
+	 * so it can be used to make per-cart decisions inside loops over recurring_carts.
+	 *
+	 * @param WC_Cart $recurring_cart A recurring cart instance from WC()->cart->recurring_carts.
+	 *
+	 * @return bool
+	 */
+	private function recurring_cart_contains_free_trial( $recurring_cart ): bool {
+		if ( ! class_exists( 'WC_Subscriptions_Product' ) ) {
+			return false;
+		}
+
+		foreach ( $recurring_cart->get_cart() as $cart_item ) {
+			$product = isset( $cart_item['data'] ) ? $cart_item['data'] : null;
+
+			if (
+				$product
+				&& WC_Subscriptions_Product::is_subscription( $product )
+				&& WC_Subscriptions_Product::get_trial_length( $product ) > 0
+			) {
+				return true;
+			}
 		}
 
 		return false;

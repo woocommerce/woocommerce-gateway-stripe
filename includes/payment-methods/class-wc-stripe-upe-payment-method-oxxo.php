@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use Automattic\WooCommerce\Enums\PaymentGatewayFeature;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,8 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
-
-	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Oxxo::class;
 
 	/**
 	 * Constructor for OXXO payment method
@@ -27,8 +26,8 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
-		$this->supported_countries  = [ 'MX' ];
-		$this->supports             = [ 'products' ];
+		$this->supported_countries  = [ WC_Stripe_Country_Code::MEXICO ];
+		$this->supports             = [ PaymentGatewayFeature::PRODUCTS ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
@@ -41,13 +40,12 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Adds on-hold as accepted status during webhook handling on orders paid with OXXO
 	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
+	 * @param array    $allowed_statuses The allowed statuses.
+	 * @param WC_Order $order            The order object.
+	 * @return array
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::OXXO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::OXXO === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 

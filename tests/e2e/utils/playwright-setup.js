@@ -79,9 +79,8 @@ export const createApiTokens = ( page ) =>
 					await page.fill( '#key_description', 'Key for API access' );
 					await page.selectOption( '#key_permissions', 'read_write' );
 					await page.click( 'text=Generate API key' );
-					process.env.CONSUMER_KEY = await page.inputValue(
-						'#key_consumer_key'
-					);
+					process.env.CONSUMER_KEY =
+						await page.inputValue( '#key_consumer_key' );
 					process.env.CONSUMER_SECRET = await page.inputValue(
 						'#key_consumer_secret'
 					);
@@ -301,13 +300,12 @@ export const setupStripe = ( page, baseUrl ) =>
 					} );
 
 				// Create a new webhook.
-				const webhookEndpoint = await stripeClient.webhookEndpoints.create(
-					{
+				const webhookEndpoint =
+					await stripeClient.webhookEndpoints.create( {
 						url: webhookURL,
 						enabled_events: [ '*' ],
 						description: 'Webhook created for E2E tests.',
-					}
-				);
+					} );
 
 				const settings = {
 					enabled: 'yes',

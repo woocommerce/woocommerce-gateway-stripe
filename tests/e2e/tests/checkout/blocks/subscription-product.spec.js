@@ -3,7 +3,8 @@ import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
 
-const { setupBlocksCheckout, fillCreditCardDetails } = payments;
+const { setupBlocksCheckout, fillCreditCardDetails, clickAddToCartButton } =
+	payments;
 
 let productId;
 
@@ -19,7 +20,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	page,
 } ) => {
 	await page.goto( `?p=${ productId }` );
-	await page.locator( 'button[name="add-to-cart"]' ).click();
+	await clickAddToCartButton( page );
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
@@ -34,7 +35,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	await setupBlocksCheckout( page, customerData );
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
-	await page.locator( 'text=Sign up now' ).click();
+	await page.locator( 'text=Place order' ).click();
 	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

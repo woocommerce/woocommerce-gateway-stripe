@@ -33,6 +33,9 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
+	const OC                = 'card'; // This is a special case for the Optimized Checkout
+
+	public const LEGACY_SEPA = 'stripe_sepa'; // Sepa method identifier for the legacy checkout (now removed)
 
 	// Express method constants
 	const AMAZON_PAY = 'amazon_pay';
@@ -46,6 +49,18 @@ class WC_Stripe_Payment_Methods {
 	const APPLE_PAY_LABEL       = 'Apple Pay';
 	const LINK_LABEL            = 'Link';
 	const PAYMENT_REQUEST_LABEL = 'Payment Request';
+
+	/**
+	 * Payment methods that are considered as express payment methods.
+	 *
+	 * @var array
+	 */
+	const EXPRESS_PAYMENT_METHODS = [
+		self::AMAZON_PAY,
+		self::GOOGLE_PAY,
+		self::APPLE_PAY,
+		self::LINK,
+	];
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.
@@ -86,5 +101,23 @@ class WC_Stripe_Payment_Methods {
 	const EXPRESS_METHODS_LABELS = [
 		'google_pay' => self::GOOGLE_PAY_LABEL,
 		'apple_pay'  => self::APPLE_PAY_LABEL,
+	];
+
+	/**
+	 * Payment method types that can not be excluded via Stripe's 'excludedPaymentMethodTypes' parameter.
+	 * These values are not supported in the 'excludedPaymentMethodTypes' parameter and causes an error when trying to render the Payment Element excluding them.
+	 *
+	 * The list is inferred by comparing the currently unsupported types of the accepted arguments to excluded_payment_method_types (https://docs.stripe.com/api/payment_intents/update#update_payment_intent-excluded_payment_method_types)
+	 * against the possible elements that are present in the Payment Method Configuration object (https://docs.stripe.com/api/payment_method_configurations/object).
+	 * see https://github.com/woocommerce/woocommerce-gateway-stripe/pull/4922#discussion_r2770707821
+	 *
+	 * @var array
+	 */
+	const NON_EXCLUDABLE_PAYMENT_METHOD_TYPES = [
+		self::APPLE_PAY,
+		self::GOOGLE_PAY,
+		self::LINK,
+		'cartes_bancaires',
+		'jcb',
 	];
 }

@@ -1,28 +1,28 @@
-/* global wc_stripe_settings_params */
-import { sprintf } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import { getSetting } from '@woocommerce/settings';
+import React, { useMemo } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
-import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
+import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
+	useIsAdaptivePricingEnabled,
+	useIsOCEnabled,
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import {
-	PAYMENT_METHOD_AFFIRM,
-	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
+import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
 const List = styled.ul`
 	margin: 0;
@@ -127,53 +127,60 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 /**
- * Formats the payment method description with the account default currency.
+ * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
+ * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
  *
- * @param {*} method Payment method ID.
- * @param {*} accountDefaultCurrency Account default currency.
+ * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
+ * @return {string[]} Sorted payment method IDs.
  */
-const getFormattedPaymentMethodDescription = (
-	method,
-	accountDefaultCurrency
-) => {
-	const { description } = PaymentMethodsMap[ method ];
+const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
+	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
+	const [ isOCEnabled ] = useIsOCEnabled();
+	const storeCurrencyCode = getSetting( 'currency' )?.code;
+	const isAdaptivePricingSupported = isOCEnabled && isAdaptivePricingEnabled;
 
-	if ( method === PAYMENT_METHOD_AFFIRM ) {
-		const currency = accountDefaultCurrency?.toUpperCase();
-		return sprintf( description, currency, currency, currency );
-	}
+	const sortedPaymentMethodIds = useMemo( () => {
+		const availablePaymentMethodIds = [];
+		const pluginConflictPaymentMethodIds = [];
+		const unavailablePaymentMethodIds = [];
 
-	if ( method === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		/* eslint-disable jsx-a11y/anchor-has-content */
-		return interpolateComponents( {
-			mixedString: description,
-			components: {
-				limitsLink: (
-					<a
-						target="_blank"
-						rel="noreferrer"
-						href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
-					/>
-				),
-			},
+		orderedPaymentMethodIds.forEach( ( paymentMethodId ) => {
+			const unavailableReason = getPaymentMethodUnavailableReason( {
+				paymentMethodId,
+				storeCurrencyCode,
+				isAdaptivePricingSupported,
+			} );
+			if ( unavailableReason === null ) {
+				availablePaymentMethodIds.push( paymentMethodId );
+			} else if (
+				unavailableReason ===
+				PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT
+			) {
+				pluginConflictPaymentMethodIds.push( paymentMethodId );
+			} else {
+				unavailablePaymentMethodIds.push( paymentMethodId );
+			}
 		} );
-		/* eslint-enable jsx-a11y/anchor-has-content */
-	}
 
-	return description;
+		return [
+			...availablePaymentMethodIds,
+			...pluginConflictPaymentMethodIds,
+			...unavailablePaymentMethodIds,
+		];
+	}, [
+		isAdaptivePricingSupported,
+		orderedPaymentMethodIds,
+		storeCurrencyCode,
+	] );
+
+	return sortedPaymentMethodIds;
 };
 
-const GeneralSettingsSection = ( {
-	isChangingDisplayOrder,
-	onSaveChanges,
-} ) => {
-	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
+const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const {
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 
 	const availablePaymentMethods = orderedPaymentMethodIds;
@@ -194,24 +201,19 @@ const GeneralSettingsSection = ( {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
+	const sortedPaymentMethodIds = usePaymentMethodsSortedByAvailability(
+		availablePaymentMethods
+	);
+
 	return isChangingDisplayOrder ? (
 		<DraggableList
 			axis="y"
-			values={ availablePaymentMethods }
+			values={ sortedPaymentMethodIds }
 			onReorder={ onReorder }
 		>
-			{ availablePaymentMethods.map( ( method ) => {
+			{ sortedPaymentMethodIds.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
 				if ( method === PAYMENT_METHOD_GIROPAY ) {
-					return null;
-				}
-
-				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-				if (
-					// eslint-disable-next-line camelcase
-					wc_stripe_settings_params.are_apms_deprecated &&
-					method !== PAYMENT_METHOD_CARD
-				) {
 					return null;
 				}
 
@@ -235,7 +237,6 @@ const GeneralSettingsSection = ( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
-							expanded: customizationStatus[ method ],
 						} ) }
 					>
 						<IconComponent
@@ -263,7 +264,7 @@ const GeneralSettingsSection = ( {
 		</DraggableList>
 	) : (
 		<List>
-			{ availablePaymentMethods.map( ( method ) => {
+			{ sortedPaymentMethodIds.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
 				if ( method === PAYMENT_METHOD_GIROPAY ) {
 					return null;
@@ -273,9 +274,6 @@ const GeneralSettingsSection = ( {
 					<PaymentMethod
 						key={ method }
 						method={ method }
-						onSaveChanges={ onSaveChanges }
-						customizationStatus={ customizationStatus }
-						setCustomizationStatus={ setCustomizationStatus }
 						data={ data }
 					/>
 				);

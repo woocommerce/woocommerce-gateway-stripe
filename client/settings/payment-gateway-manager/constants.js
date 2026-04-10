@@ -1,6 +1,6 @@
+import { usePaymentGatewayExpiration } from '../../data/payment-gateway/hooks';
 import { __ } from '@wordpress/i18n';
 import { TextControl } from '@wordpress/components';
-import { usePaymentGatewayExpiration } from '../../data/payment-gateway/hooks';
 
 export const gatewaysInfo = {
 	stripe_sepa: {
@@ -10,8 +10,7 @@ export const gatewaysInfo = {
 			'Customer Geography: France, Germany, Spain, Belgium, Netherlands, Luxembourg, Italy, Portugal, Austria, Ireland.',
 			'woocommerce-gateway-stripe'
 		),
-		guide:
-			'https://stripe.com/payments/payment-methods-guide#sepa-direct-debit',
+		guide: 'https://stripe.com/payments/payment-methods-guide#sepa-direct-debit',
 	},
 	stripe_giropay: {
 		id: 'giropay',
@@ -24,7 +23,7 @@ export const gatewaysInfo = {
 	},
 	stripe_ideal: {
 		id: 'ideal',
-		title: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		title: 'iDEAL | Wero',
 		geography: __(
 			'Customer Geography: The Netherlands.',
 			'woocommerce-gateway-stripe'
@@ -91,13 +90,10 @@ export const gatewaysInfo = {
 			'Customer Geography: Brazil.',
 			'woocommerce-gateway-stripe'
 		),
-		guide:
-			'https://docs.stripe.com/payments/payment-methods/overview#vouchers',
+		guide: 'https://docs.stripe.com/payments/payment-methods/overview#vouchers',
 		Fields: () => {
-			const [
-				gatewayExpiration,
-				setGatewayExpiration,
-			] = usePaymentGatewayExpiration();
+			const [ gatewayExpiration, setGatewayExpiration ] =
+				usePaymentGatewayExpiration();
 
 			return (
 				<>

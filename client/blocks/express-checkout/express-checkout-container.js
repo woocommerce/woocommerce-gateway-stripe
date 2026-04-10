@@ -7,19 +7,26 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
+import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
+	const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 	const options = {
-		mode: 'payment',
-		...( isManualPaymentMethodCreation( expressPaymentMethod ) && {
+		mode: hasFreeTrial ? 'subscription' : 'payment',
+		...( isManualPaymentMethodCreation(
+			expressPaymentMethod,
+			hasFreeTrial
+		) && {
 			paymentMethodCreation: 'manual',
 		} ),
-		amount: billing.cartTotal.value,
-		currency: billing.currency.code.toLowerCase(),
-		paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
-			expressPaymentMethod
+		amount: transformPriceWithMinorUnits(
+			billing.cartTotal.value,
+			billing.currency.minorUnit
 		),
+		currency: billing.currency.code.toLowerCase(),
+		paymentMethodTypes:
+			getPaymentMethodTypesForExpressMethod( expressPaymentMethod ),
 		appearance: getExpressCheckoutButtonAppearance(),
 		locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 	};

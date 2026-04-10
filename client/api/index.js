@@ -6,12 +6,12 @@ import {
 	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
+	STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 } from 'wcstripe/stripe-utils/constants';
 
 /**
@@ -34,7 +34,7 @@ export default class WCStripeAPI {
 	 * Construct WC AJAX endpoint URL.
 	 *
 	 * @param {string} endpoint Request endpoint URL.
-	 * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+	 * @param {string} prefix   Endpoint URI prefix (default: 'wc_stripe_').
 	 * @return {string} URL with interpolated endpoint.
 	 */
 	getAjaxUrl( endpoint, prefix = 'wc_stripe_' ) {
@@ -43,6 +43,12 @@ export default class WCStripeAPI {
 			?.replace( '%%endpoint%%', prefix + endpoint );
 	}
 
+	/**
+	 * Returns a user-friendly error message for a jQuery XHR error object.
+	 *
+	 * @param {Object} error A jQuery XHR error object with a statusText property.
+	 * @return {string} A user-friendly error message.
+	 */
 	getFriendlyErrorMessage( error ) {
 		// error is a jqXHR and statusText is one of "timeout", "error", "abort", and "parsererror".
 		switch ( error.statusText ) {
@@ -78,10 +84,18 @@ export default class WCStripeAPI {
 		return this.stripe;
 	}
 
+	/**
+	 * Creates a new Stripe instance with the given key and locale.
+	 *
+	 * @param {string}   key    The Stripe publishable API key.
+	 * @param {string}   locale The locale to use for Stripe UI elements.
+	 * @param {string[]} betas  Optional list of Stripe beta features to enable.
+	 * @return {Object} The Stripe instance.
+	 */
 	createStripe( key, locale, betas = [] ) {
 		const options = {
 			locale,
-			apiVersion: this.options.apiVersion,
+			...STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 		};
 
 		if ( betas.length ) {
@@ -141,7 +155,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates an intent based on a payment method.
 	 *
-	 * @param {number|null} orderId The id of the order if creating the intent on Order Pay page.
+	 * @param {number|null} orderId           The id of the order if creating the intent on Order Pay page.
 	 * @param {string|null} paymentMethodType The type of payment method.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
@@ -173,22 +187,19 @@ export default class WCStripeAPI {
 	/**
 	 * Creates and confirms a setup intent.
 	 *
-	 * @param {Object} paymentMethod Payment method data.
+	 * @param {Object} paymentMethod  Payment method data.
 	 * @param {Object} additionalData Additional data to send with the request.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
 	setupIntent( paymentMethod, additionalData = {} ) {
-		return this.request(
-			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
-			{
-				...additionalData,
-				action: 'create_and_confirm_setup_intent',
-				'wc-stripe-payment-method': paymentMethod.id,
-				'wc-stripe-payment-type': paymentMethod.type,
-				_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
-			}
-		).then( ( response ) => {
+		return this.request( this.options?.wp_ajax_url, {
+			...additionalData,
+			action: 'wc_stripe_create_and_confirm_setup_intent',
+			'wc-stripe-payment-method': paymentMethod.id,
+			'wc-stripe-payment-type': paymentMethod.type,
+			_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
+		} ).then( ( response ) => {
 			if ( ! response.success ) {
 				throw response.data.error;
 			}
@@ -255,12 +266,12 @@ export default class WCStripeAPI {
 	/**
 	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
 	 *
-	 * @param {string} intentId The id of the payment intent.
-	 * @param {number} orderId The id of the order.
-	 * @param {string} savePaymentMethod 'yes' if saving.
+	 * @param {string} intentId               The id of the payment intent.
+	 * @param {number} orderId                The id of the order.
+	 * @param {string} savePaymentMethod      'yes' if saving.
 	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
 	 *
-	 * @return {Promise} The final promise for the request to the server.
+	 * @return {Object|undefined} The response from the server or undefined if the intent is a setup intent.
 	 */
 	updateIntent(
 		intentId,
@@ -302,7 +313,7 @@ export default class WCStripeAPI {
 	 * Extracts the details about a payment intent from the redirect URL,
 	 * and displays the intent confirmation modal (if needed).
 	 *
-	 * @param {string} redirectUrl The redirect URL, returned from the server.
+	 * @param {string} redirectUrl         The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
 	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
 	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
@@ -389,7 +400,7 @@ export default class WCStripeAPI {
 	 * Process checkout and update payment intent via AJAX.
 	 *
 	 * @param {string} paymentIntentId ID of payment intent to be updated.
-	 * @param {Object} fields Checkout fields.
+	 * @param {Object} fields          Checkout fields.
 	 * @return {Promise} Promise containing redirect URL for UPE element.
 	 */
 	processCheckout( paymentIntentId, fields ) {
@@ -419,7 +430,7 @@ export default class WCStripeAPI {
 	 * Updates order status, if there is an error while confirming intent.
 	 *
 	 * @param {string} intentId The id of the Payment/Setup Intent.
-	 * @param {number} orderId The id of the WC_Order.
+	 * @param {number} orderId  The id of the WC_Order.
 	 */
 	updateFailedOrder( intentId, orderId ) {
 		this.request( this.getAjaxUrl( 'update_failed_order' ), {
@@ -430,36 +441,6 @@ export default class WCStripeAPI {
 			// If something goes wrong here,
 			// we would still rather throw the Stripe error rather than this one.
 		} );
-	}
-
-	/**
-	 * Saves the Stripe Payment Elements appearance settings in a transient on server.
-	 *
-	 * @param {Object} appearance      The appearance settings.
-	 * @param {string} isBlockCheckout Whether the request is from the block checkout.
-	 *
-	 * @return {Promise} The final promise for the request to the server.
-	 */
-	saveAppearance( appearance, isBlockCheckout = 'false' ) {
-		return this.request( this.getAjaxUrl( 'save_appearance' ), {
-			appearance: JSON.stringify( appearance ),
-			is_block_checkout: isBlockCheckout,
-			theme_name: this.options?.theme_name,
-			_ajax_nonce: this.options?.saveAppearanceNonce,
-		} )
-			.then( ( response ) => {
-				return response.success;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
 	}
 
 	/**
@@ -500,7 +481,7 @@ export default class WCStripeAPI {
 	/**
 	 * Normalizes address fields in WooCommerce supported format.
 	 *
-	 * @param {Object} billingAddress Billing address.
+	 * @param {Object} billingAddress  Billing address.
 	 * @param {Object} shippingAddress Shipping address.
 	 * @return {Promise} Promise for the request to the server.
 	 */
@@ -608,7 +589,7 @@ export default class WCStripeAPI {
 	/**
 	 * Empty the cart (legacy version, non-StoreAPI).
 	 *
-	 * @param {Object} params Parameters.
+	 * @param {Object} params           Parameters.
 	 * @param {number} params.bookingId Booking ID.
 	 * @return {Promise} Promise for the request to the server.
 	 */
@@ -622,22 +603,31 @@ export default class WCStripeAPI {
 	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
-	 * @param {Object} paymentData Order data.
+	 * @param {Object} orderData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrder( paymentData ) {
-		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
-			customer_note: getCustomerNote(),
-		} );
+	expressCheckoutECECreateOrder( orderData ) {
+		return this.postToBlocksAPI(
+			'/wc/store/v1/checkout',
+			{
+				...orderData,
+				customer_note: getCustomerNote(),
+			},
+			{
+				'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
+				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
+					getExpressCheckoutData( 'nonce' )
+						?.wc_store_api_express_checkout,
+			}
+		);
 	}
 
 	/**
 	 * Pays for an order based on the Express Checkout payment method.
 	 *
-	 * @param {number} order The order ID.
+	 * @param {number} order        The order ID.
 	 * @param {Object} orderDetails Order details, including order key and billing email.
-	 * @param {Object} paymentData Order data.
+	 * @param {Object} paymentData  Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
@@ -652,16 +642,18 @@ export default class WCStripeAPI {
 	/**
 	 * Posts data to the Blocks API.
 	 *
-	 * @param {string} path The path to post to.
-	 * @param {Object} data The data to post.
+	 * @param {string} path    The path to post to.
+	 * @param {Object} data    The data to post.
+	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToBlocksAPI( path, data ) {
+	postToBlocksAPI( path, data, headers = {} ) {
 		return apiFetch( {
 			method: 'POST',
 			path,
 			headers: {
 				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+				...headers,
 			},
 			data,
 		} );
@@ -677,10 +669,35 @@ export default class WCStripeAPI {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )
-					?.get_selected_product_data,
+				security:
+					getExpressCheckoutData( 'nonce' )
+						?.get_selected_product_data,
 				...productData,
 			}
 		);
+	}
+
+	/**
+	 * Creates a new checkout session.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	checkoutSessionsCreateSession() {
+		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
+			security: this.options?.createCheckoutSessionNonce,
+		} );
+	}
+
+	/**
+	 * Update a Stripe Checkout Session.
+	 *
+	 * @param {string} sessionId The ID of the checkout session to update.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	checkoutSessionsUpdateSession( sessionId ) {
+		return this.request( this.getAjaxUrl( 'update_checkout_session' ), {
+			security: this.options?.updateCheckoutSessionNonce,
+			checkout_session_id: sessionId,
+		} );
 	}
 }

@@ -1,9 +1,9 @@
-import { dispatch, select } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
-import { apiFetch } from '@wordpress/data-controls';
 import { getQuery } from '@woocommerce/navigation';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import ACTION_TYPES from './action-types';
+import { dispatch, select } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
+import { apiFetch } from '@wordpress/data-controls';
 
 export function updatePaymentGatewayValues( payload ) {
 	return {

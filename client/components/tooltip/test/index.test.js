@@ -1,4 +1,5 @@
-import { render, screen, act } from '@testing-library/react';
+import { act } from 'react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Tooltip from '..';
 
@@ -45,7 +46,7 @@ describe( 'Tooltip', () => {
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'renders its content when clicked', () => {
+	it( 'renders its content when clicked', async () => {
 		const handleHideMock = jest.fn();
 		render(
 			<Tooltip content="Tooltip content" onHide={ handleHideMock }>
@@ -59,20 +60,20 @@ describe( 'Tooltip', () => {
 			screen.queryByText( 'Tooltip content' )
 		).not.toBeInTheDocument();
 
-		userEvent.click( screen.getByText( 'Trigger element' ) );
+		await userEvent.click( screen.getByText( 'Trigger element' ) );
 
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByText( 'Trigger element' ) );
+		await userEvent.click( screen.getByText( 'Trigger element' ) );
 		jest.runAllTimers();
 
 		expect( handleHideMock ).toHaveBeenCalled();
 	} );
 
-	it( 'asks other Tooltips to hide, when multiple are opened', () => {
+	it( 'asks other Tooltips to hide, when multiple are opened', async () => {
 		const handleHide1Mock = jest.fn();
 		const handleHide2Mock = jest.fn();
 		render(
@@ -98,7 +99,9 @@ describe( 'Tooltip', () => {
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
 		// opening the first tooltip, no need to call any hide handlers
-		act( () => userEvent.click( screen.getByText( 'Open tooltip 1' ) ) );
+		await act( async () => {
+			await userEvent.click( screen.getByText( 'Open tooltip 1' ) );
+		} );
 
 		expect( screen.queryByText( 'Tooltip 1 content' ) ).toBeInTheDocument();
 		expect(
@@ -110,8 +113,8 @@ describe( 'Tooltip', () => {
 		jest.runAllTimers();
 
 		// opening the second tooltip, only the first tooltip should not be visible anymore
-		act( () => {
-			userEvent.click( screen.getByText( 'Open tooltip 2' ) );
+		await act( async () => {
+			await userEvent.click( screen.getByText( 'Open tooltip 2' ) );
 			jest.runAllTimers();
 		} );
 

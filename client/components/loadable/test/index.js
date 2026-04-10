@@ -5,6 +5,10 @@ describe( 'Loadable', () => {
 	const ChildComponent = () => <div>Loaded content</div>;
 	let loadableProps;
 
+	function renderLoadable( props = {}, content = <ChildComponent /> ) {
+		return render( <Loadable { ...props }>{ content }</Loadable> );
+	}
+
 	describe( 'when active', () => {
 		beforeEach( () => {
 			loadableProps = {
@@ -61,8 +65,4 @@ describe( 'Loadable', () => {
 			expect( container.innerHTML ).toBe( '' );
 		} );
 	} );
-
-	function renderLoadable( props = {}, content = <ChildComponent /> ) {
-		return render( <Loadable { ...props }>{ content }</Loadable> );
-	}
 } );

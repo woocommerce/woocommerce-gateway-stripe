@@ -1,22 +1,13 @@
-/* global wc_stripe_settings_params */
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
-import { Button } from '@wordpress/components';
-import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
-import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useManualCapture } from 'wcstripe/data';
-import {
-	PAYMENT_METHOD_AFFIRM,
-	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_CARD,
-} from 'wcstripe/stripe-utils/constants';
+import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import usePaymentMethodUnavailableReason from 'utils/use-payment-method-unavailable-reason';
+import { getFormattedPaymentMethodDescription } from 'wcstripe/settings/general-settings-section/get-formatted-payment-method-description';
 
 const ListElement = styled.li`
 	display: flex;
@@ -64,60 +55,15 @@ const PaymentMethodWrapper = styled.div`
 	}
 `;
 
-/**
- * Formats the payment method description with the account default currency.
- *
- * @param {*} method Payment method ID.
- * @param {*} accountDefaultCurrency Account default currency.
- */
-const getFormattedPaymentMethodDescription = (
-	method,
-	accountDefaultCurrency
-) => {
-	const { description } = PaymentMethodsMap[ method ];
-
-	if ( method === PAYMENT_METHOD_AFFIRM ) {
-		const currency = accountDefaultCurrency?.toUpperCase();
-		return sprintf( description, currency, currency, currency );
-	}
-
-	if ( method === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		/* eslint-disable jsx-a11y/anchor-has-content */
-		return interpolateComponents( {
-			mixedString: description,
-			components: {
-				limitsLink: (
-					<a
-						target="_blank"
-						rel="noreferrer"
-						href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
-					/>
-				),
-			},
-		} );
-		/* eslint-enable jsx-a11y/anchor-has-content */
-	}
-
-	return description;
-};
-
 const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const CustomizeButton = styled( Button )`
-	margin-left: auto;
-`;
-
-const PaymentMethod = ( {
-	method,
-	onSaveChanges,
-	customizationStatus,
-	setCustomizationStatus,
-	data,
-} ) => {
+const PaymentMethod = ( { method, data } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
+	const paymentMethodUnavailableReason =
+		usePaymentMethodUnavailableReason( method );
+	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 
 	const {
 		Icon,
@@ -131,30 +77,10 @@ const PaymentMethod = ( {
 		return null;
 	}
 
-	// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-	const deprecated =
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.are_apms_deprecated &&
-		method !== PAYMENT_METHOD_CARD;
-
-	const storeCurrency = window?.wcSettings?.currency?.code;
+	// If the payment method is unavailable and enabled, we should not disable so it can be unchecked.
 	const isDisabled =
-		paymentMethodCurrencies.length &&
-		! paymentMethodCurrencies.includes( storeCurrency );
-
-	const onSaveCustomization = ( methodName, customizationData = null ) => {
-		setCustomizationStatus( {
-			...customizationStatus,
-			[ methodName ]: false,
-		} );
-
-		if ( data ) {
-			onSaveChanges(
-				'individual_payment_method_settings',
-				customizationData
-			);
-		}
-	};
+		paymentMethodUnavailableReason !== null &&
+		! enabledPaymentMethods.includes( method );
 
 	return (
 		<div key={ method }>
@@ -163,14 +89,13 @@ const PaymentMethod = ( {
 				className={ classnames( {
 					'has-overlay':
 						! isAllowingManualCapture && isManualCaptureEnabled,
-					expanded: customizationStatus[ method ],
 				} ) }
 			>
 				<PaymentMethodCheckbox
 					id={ method }
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
-					disabled={ deprecated || isDisabled }
+					disabled={ isDisabled }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription
@@ -181,34 +106,11 @@ const PaymentMethod = ( {
 							data.account?.default_currency
 						) }
 						label={ label }
-						deprecated={ deprecated }
 						supportsRecurring={ supportsRecurring }
 					/>
 					<StyledFees id={ method } />
 				</PaymentMethodWrapper>
-				{ ! customizationStatus[ method ] && (
-					<CustomizeButton
-						variant="secondary"
-						onClick={ () =>
-							setCustomizationStatus( {
-								...customizationStatus,
-								[ method ]: true,
-							} )
-						}
-						disabled={ deprecated }
-					>
-						{ __( 'Customize', 'woocommerce-gateway-stripe' ) }
-					</CustomizeButton>
-				) }
 			</ListElement>
-			{ customizationStatus[ method ] && (
-				<CustomizePaymentMethod
-					method={ method }
-					onClose={ ( customizationData ) =>
-						onSaveCustomization( method, customizationData )
-					}
-				/>
-			) }
 		</div>
 	);
 };
