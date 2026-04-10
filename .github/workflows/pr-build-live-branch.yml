@@ -83,6 +83,23 @@ jobs:
                   path: playground-artifact/woocommerce-gateway-stripe
                   retention-days: 30
 
+            - name: Download dev tools plugin from private repo
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  mkdir -p playground-artifact-dev-tools
+                  gh api repos/woocommerce/woocommerce-gateway-stripe-dev-tools/zipball/trunk > dev-tools.zip
+                  # Extract and rename to the expected plugin directory name.
+                  unzip -qq dev-tools.zip -d dev-tools-tmp
+                  mv dev-tools-tmp/woocommerce-woocommerce-gateway-stripe-dev-tools-* playground-artifact-dev-tools/woocommerce-gateway-stripe-dev-tools
+
+            - name: Upload dev tools Playground artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dev-tools-${{ github.run_id }}
+                  path: playground-artifact-dev-tools/woocommerce-gateway-stripe-dev-tools
+                  retention-days: 30
+
             - name: Comment on PR with WordPress Playground link
               if: "! github.event.pull_request.head.repo.fork"
               uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1

@@ -38,7 +38,7 @@ const generatePlaygroundBlueprint = ( runId, prNumber ) => {
 				step: 'installPlugin',
 				pluginData: {
 					resource: 'url',
-					url: 'https://github.com/woocommerce/woocommerce-gateway-stripe-dev-tools/archive/refs/heads/trunk.zip',
+					url: `https://playground.wordpress.net/plugin-proxy.php?org=woocommerce&repo=woocommerce-gateway-stripe&workflow=Build%20plugin%20and%20Playground%20artifacts&artifact=dev-tools-${ runId }&pr=${ prNumber }`,
 				},
 				options: {
 					activate: true,
