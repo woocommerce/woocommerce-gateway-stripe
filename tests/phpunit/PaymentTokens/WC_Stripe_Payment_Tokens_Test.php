@@ -461,4 +461,25 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			$this->assertEquals( $expected_value, $result['method'][ $expected_key ] );
 		}
 	}
+
+	/**
+	 * Test that Link tokens have an empty expires value to avoid showing "N/A"
+	 * in the My Account > Payment Methods table.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4007
+	 */
+	public function test_link_token_clears_expires(): void {
+		$link_token = new \WC_Payment_Token_Link();
+		$link_token->set_email( 'test@example.com' );
+
+		$initial_item = [
+			'method'  => [],
+			'expires' => 'N/A',
+		];
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( $initial_item, $link_token );
+
+		$this->assertArrayHasKey( 'expires', $result );
+		$this->assertSame( '', $result['expires'] );
+	}
 }

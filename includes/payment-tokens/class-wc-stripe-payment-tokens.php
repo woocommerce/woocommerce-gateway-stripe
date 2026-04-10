@@ -452,6 +452,7 @@ class WC_Stripe_Payment_Tokens {
 						$payment_token->get_email()
 					)
 				);
+				$item['expires'] = '';
 				break;
 			case WC_Stripe_Payment_Methods::AMAZON_PAY:
 				$item['method']['brand'] = sprintf(
