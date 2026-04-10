@@ -156,8 +156,12 @@ export const useCheckoutSuccessHandler = (
 						},
 						returnUrl: redirect,
 						redirect: 'if_required',
-						savePaymentMethod: isSavePaymentMethodCheckboxChecked(),
 					};
+
+					if ( isLoggedIn ) {
+						confirmArgs.savePaymentMethod =
+							isSavePaymentMethodCheckboxChecked();
+					}
 
 					// Only include shipping information if the min. requirement is met.
 					if (

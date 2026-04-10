@@ -1366,7 +1366,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order     = isset( $additional_data['order_id'] ) ? wc_get_order( $additional_data['order_id'] ) : null;
 					$intent_id = $additional_data['intent_id'] ?? '';
 
-					if ( empty( $order ) ) {
+					if ( ! $order instanceof \WC_Order ) {
 						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
 
@@ -1384,6 +1384,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					break;
+				case 'checkout.session.completed':
+				case 'checkout.session.async_payment_succeeded':
+					$this->handle_checkout_session_success( $notification );
+					break;
+				case 'checkout.session.expired':
+				case 'checkout.session.async_payment_failed':
+					$this->handle_checkout_session_failure( $notification );
 					break;
 				default:
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
@@ -1500,15 +1508,48 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * sessions, as well as agentic checkout sessions.
 	 *
 	 * @param object $notification The notification from Stripe
-	 * @return void
+	 * @return bool True if the event was deferred for async processing, false if handled inline.
 	 */
-	public function process_checkout_session_success( object $notification ): void {
+	public function process_checkout_session_success( object $notification ): bool {
 		$checkout_session = $notification->data->object;
 
 		if ( ! isset( $checkout_session->id ) ) {
 			WC_Stripe_Logger::error( 'Checkout session ID is missing from the event data.' );
-			return;
+			return false;
 		}
+
+		$session_id = $checkout_session->id;
+
+		// Look for an order. If order exists, process the webhook immediately.
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
+
+		// If order does not exist, defer the webhook processing.
+		// This is either an agentic hook or a webhook arrived before the order metadata was stored.
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::debug( "Deferring processing of {$notification->type} ($session_id) asynchronously." );
+
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'session_id' => $session_id,
+				]
+			);
+			return true;
+		}
+
+		// If order exists, process the webhook immediately.
+		$this->handle_checkout_session_success( $notification );
+		return false;
+	}
+
+	/**
+	 * Handles a deferred checkout session success event.
+	 *
+	 * @param object        $notification The Stripe notification containing the checkout session data.
+	 * @return void
+	 */
+	protected function handle_checkout_session_success( object $notification ): void {
+		$checkout_session = $notification->data->object;
 
 		$session_id = $checkout_session->id;
 
@@ -1687,13 +1728,46 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param object $notification The Stripe notification containing the checkout session data.
 	 */
-	public function process_checkout_session_failure( object $notification ): void {
+	public function process_checkout_session_failure( object $notification ): bool {
 		$checkout_session = $notification->data->object;
 
 		if ( ! isset( $checkout_session->id ) ) {
 			WC_Stripe_Logger::debug( 'Checkout session ID is missing from the event data.' );
-			return;
+			return false;
 		}
+
+		$session_id = $checkout_session->id;
+
+		// Look for an order. If order exists, process the webhook immediately.
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
+
+		// If order does not exist, defer the webhook processing.
+		// This might happen if a webhook arrived before the order metadata was stored.
+		if ( ! $order instanceof \WC_Order ) {
+			WC_Stripe_Logger::debug( "Deferring processing of {$notification->type} ($session_id) asynchronously." );
+
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'session_id' => $session_id,
+				]
+			);
+			return true;
+		}
+
+		// If order exists, process the webhook immediately.
+		$this->handle_checkout_session_failure( $notification );
+		return false;
+	}
+
+	/**
+	 * Handles a deferred checkout session failure event.
+	 *
+	 * @param object $notification The Stripe notification containing the checkout session data.
+	 * @return void
+	 */
+	protected function handle_checkout_session_failure( object $notification ): void {
+		$checkout_session = $notification->data->object;
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
 
@@ -1706,24 +1780,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		if ( $order_helper->is_stripe_status_final( $order ) ) {
+		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
 		}
 
-		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
-			return;
+		try {
+			if ( $order_helper->is_stripe_status_final( $order ) ) {
+				return;
+			}
+
+			if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::FAILED ] ) ) {
+				return;
+			}
+
+			$message = 'checkout.session.expired' === $notification->type ? __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) : __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' );
+
+			$status_update         = [];
+			$status_update['from'] = $order->get_status();
+			$status_update['to']   = OrderStatus::FAILED;
+			$order->update_status( OrderStatus::FAILED, $message );
+
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+			$this->send_failed_order_email( $order->get_id(), $status_update );
+		} finally {
+			$order_helper->unlock_order_payment( $order );
 		}
-
-		$message = 'checkout.session.expired' === $notification->type ? __( 'The checkout session has expired.', 'woocommerce-gateway-stripe' ) : __( 'The async payment for this checkout session has failed.', 'woocommerce-gateway-stripe' );
-
-		$status_update         = [];
-		$status_update['from'] = $order->get_status();
-		$status_update['to']   = OrderStatus::FAILED;
-		$order->update_status( OrderStatus::FAILED, $message );
-
-		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
-
-		$this->send_failed_order_email( $order->get_id(), $status_update );
 	}
 
 	/**
@@ -1802,16 +1884,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'checkout.session.completed':
 			case 'checkout.session.async_payment_succeeded':
-				$this->process_checkout_session_success( $notification );
+				$checkout_session_deferred = $this->process_checkout_session_success( $notification );
 				break;
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':
-				$this->process_checkout_session_failure( $notification );
+				$checkout_session_deferred = $this->process_checkout_session_failure( $notification );
 				break;
 		}
 
-		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
-		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
+		// payment_intent.succeeded and payment_intent.amount_capturable_updated are always deferred via
+		// process_payment_intent(). checkout.session.* events may be handled inline or deferred depending
+		// on whether the order exists at webhook arrival time. Only skip the action when actually deferred.
+		$always_deferred_types = [
+			'payment_intent.succeeded',
+			'payment_intent.amount_capturable_updated',
+		];
+		if ( ( $checkout_session_deferred ?? false ) || in_array( $notification->type, $always_deferred_types, true ) ) {
 			return;
 		}
 
