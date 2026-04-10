@@ -106,7 +106,6 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
 	public function is_available_for_account_country() {
-		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_UPE_Payment_Method::is_available_for_account_country' );
-		return parent::is_available_for_account_country();
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }

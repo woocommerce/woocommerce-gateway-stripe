@@ -417,7 +417,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_retrievable_type() {
-		return $this->get_id();
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 	}
 
 	/**
@@ -605,10 +605,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available_for_account_country() {
-		if ( ! empty( $this->supported_countries ) ) {
-			return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-		}
-
 		return true;
 	}
 

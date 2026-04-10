@@ -27,7 +27,6 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_retrievable_type() {
-		$this->setExpectedDeprecated( 'WC_Stripe_UPE_Payment_Method_Klarna::get_retrievable_type' );
 		$this->assertSame( WC_Stripe_Payment_Methods::KLARNA, $this->instance->get_retrievable_type() );
 	}
 
