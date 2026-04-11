@@ -2126,14 +2126,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$raw_nonce      = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
-		$nonce          = is_string( $raw_nonce ) ? $raw_nonce : '';
-		$is_nonce_valid = '' !== $nonce && wp_verify_nonce( $nonce, 'wc_stripe_process_checkout_session_redirect_nonce' );
-		if ( ! $is_nonce_valid ) {
+		// `wc_clean( wp_unslash( ... ) )` returns array|string, so narrow to string
+		// before passing into wp_verify_nonce() / wc_get_order_id_by_order_key() to
+		// keep PHPStan (level 8) happy without growing the baseline.
+		$raw_nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		$nonce     = is_string( $raw_nonce ) ? $raw_nonce : '';
+		if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'wc_stripe_process_checkout_session_redirect_nonce' ) ) {
 			return;
 		}
 
-		if ( ! is_order_received_page() || ! isset( $_GET['key'] ) ) {
+		if ( ! is_order_received_page() || empty( $_GET['key'] ) ) {
 			return;
 		}
 
@@ -2145,10 +2147,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$this->process_checkout_session_redirect(
-			$order_id_from_order_key,
-			isset( $_GET['pay_for_order'] ) && 'yes' === $_GET['pay_for_order']
-		);
+		$is_pay_for_order = isset( $_GET['pay_for_order'] ) && 'yes' === wc_clean( wp_unslash( $_GET['pay_for_order'] ) );
+
+		$this->process_checkout_session_redirect( $order_id_from_order_key, $is_pay_for_order );
 	}
 
 	/**
@@ -2178,6 +2179,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		// Webhook-already-fired short-circuit: order is in a terminal-success state.
 		// Strip the disambiguation query args from the address bar by redirecting
 		// to the clean order-received URL.
@@ -2186,10 +2189,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			exit;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-		// Replay protection: the handler has already run for this order. Strip the
-		// disambiguation query args by redirecting to the clean order-received URL.
+		// Replay protection: the success handler has already run for this order.
+		// Only the success path sets this flag, so cancel/failure returns from a
+		// previous attempt don't block a subsequent retry on the same order.
+		// Strip the disambiguation query args by redirecting to the clean order-received URL.
 		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
 			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 			exit;
@@ -2202,12 +2205,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		try {
-			$checkout_session = $this->get_checkout_session_from_order( $order, true );
+			$checkout_session = $this->get_checkout_session_from_order( $order, true, true );
 			if ( null === $checkout_session ) {
 				// Either the order has no session id (defensive) or the Stripe API call failed.
 				// Logged downstream by get_checkout_session_from_order(). Leave the order
 				// untouched and let the webhook take over, but still strip the disambiguation
 				// query args from the address bar so a refresh doesn't loop on the API.
+				$order_helper->unlock_order_payment( $order );
 				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 				exit;
 			}
@@ -2225,6 +2229,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( 'complete' === $status ) {
 				$order_helper->update_stripe_upe_redirect_processed( $order, true );
 				$order->save();
+				$order_helper->unlock_order_payment( $order );
 				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 				exit;
 			}
@@ -2232,6 +2237,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Anything else (open / expired) on a non-terminal order means the customer
 			// either cancelled on the redirect provider, the session expired, or there
 			// was a hard failure. Disambiguate via last_payment_error if present.
+			//
+			// NOTE: we intentionally do NOT set `_stripe_upe_redirect_processed` on these
+			// branches. The flag is order-scoped and never cleared, so setting it here
+			// would block a subsequent retry on the same order (the next return would
+			// short-circuit above and skip the bounce/notice logic). Replay protection
+			// for cancel/failure is unnecessary because these paths leave the order in
+			// a non-terminal state that is safe to re-enter.
 			$cancellation_codes = [
 				'payment_method_customer_decline',
 				'payment_intent_payment_attempt_expired',
@@ -2241,8 +2253,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// Hard failure: a real decline/error reported by the upstream payment provider.
 			$is_hard_failure = ! empty( $error_code ) && ! in_array( $error_code, $cancellation_codes, true );
-
-			$order_helper->update_stripe_upe_redirect_processed( $order, true );
 
 			if ( $is_hard_failure ) {
 				WC_Stripe_Logger::error(
@@ -2273,10 +2283,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				);
 			}
 
-			// Persist the replay flag (and any status change from update_status above).
-			$order->save();
-
+			// No explicit $order->save() needed here: the hard-failure branch calls
+			// update_status() which persists internally; the cancel branch has no
+			// order mutation.
 			$redirect_url = $is_pay_for_order ? $order->get_checkout_payment_url() : wc_get_checkout_url();
+			$order_helper->unlock_order_payment( $order );
 			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
 			exit;
 		} finally {
@@ -4600,16 +4611,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Fetches the checkout session object from the order meta and retrieves the session details from Stripe.
 	 *
-	 * @param WC_Order $order         The order whose checkout session should be fetched.
-	 * @param bool     $force_refresh When true, bypasses the database cache and always
-	 *                                fetches a fresh session from Stripe. Use this when
-	 *                                the freshness of `status` / `payment_status` /
-	 *                                `last_payment_error` matters (e.g. handling a
-	 *                                customer return from a redirect-based payment method).
+	 * @param WC_Order $order                 The order whose checkout session should be fetched.
+	 * @param bool     $force_refresh         When true, bypasses the database cache and always
+	 *                                        fetches a fresh session from Stripe. Use this when
+	 *                                        the freshness of `status` / `payment_status` /
+	 *                                        `last_payment_error` matters (e.g. handling a
+	 *                                        customer return from a redirect-based payment method).
+	 * @param bool     $expand_payment_intent When true, requests the session with `expand[]=payment_intent`
+	 *                                        so `last_payment_error` is available on the returned object.
+	 *                                        Only used by the redirect-return handler; other call sites
+	 *                                        (e.g. presentment metadata population) don't need the
+	 *                                        extra payload.
 	 *
 	 * @return object|null The checkout session object, or null if it could not be retrieved.
 	 */
-	private function get_checkout_session_from_order( WC_Order $order, bool $force_refresh = false ): ?object {
+	private function get_checkout_session_from_order( WC_Order $order, bool $force_refresh = false, bool $expand_payment_intent = false ): ?object {
 		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
 		if ( ! $checkout_session_id ) {
 			return null;
@@ -4618,8 +4634,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$cache_key        = 'checkout_session_' . $checkout_session_id;
 		$checkout_session = $force_refresh ? null : WC_Stripe_Database_Cache::get( $cache_key );
 		if ( ! $checkout_session ) {
+			$request_url = 'checkout/sessions/' . $checkout_session_id;
+			if ( $expand_payment_intent ) {
+				$request_url .= '?expand[]=payment_intent';
+			}
+
 			try {
-				$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id . '?expand[]=payment_intent', [], null, 'GET' );
+				$checkout_session = $this->stripe_request( $request_url, [], null, 'GET' );
 			} catch ( WC_Stripe_Exception $e ) {
 				WC_Stripe_Logger::error(
 					'Exception fetching checkout session for order.',

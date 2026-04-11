@@ -2062,7 +2062,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$final = wc_get_order( $order->get_id() );
 		$this->assertNotEquals( OrderStatus::FAILED, $final->get_status(), 'Cancel must NOT fail the order — customer should be able to retry.' );
-		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
+		// Replay flag must NOT be set on cancel: the customer may retry on the same
+		// order with a new Checkout Session and that return must still be processed.
+		$this->assertFalse( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
 
 		$notices = wc_get_notices( 'notice' );
 		$this->assertNotEmpty( $notices );
@@ -2118,7 +2120,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$final = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::FAILED, $final->get_status() );
-		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
+		// Replay flag must NOT be set on hard failure: the customer may retry on the
+		// same order with a new Checkout Session and that return must still be processed.
+		$this->assertFalse( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
 
 		$errors = wc_get_notices( 'error' );
 		$this->assertNotEmpty( $errors );
@@ -2239,6 +2243,102 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		}
 
 		$this->assertSame( $order->get_checkout_payment_url(), $captured );
+	}
+
+	/**
+	 * Test the cancel-then-retry flow on the same order: after a cancelled return,
+	 * the customer retries with a new Checkout Session on the same order. The second
+	 * return (a success) must still be processed — i.e. the cancel path must NOT
+	 * have armed the order-scoped replay flag, otherwise the retry's success return
+	 * would be silently short-circuited.
+	 */
+	public function test_process_checkout_session_redirect_cancel_then_retry_success_is_processed() {
+		[ $order, $cancel_request_url ] = $this->create_order_with_checkout_session( 'cs_test_retry_cancel' );
+
+		// First return: the customer cancelled on the redirect provider.
+		$cancel_session_mock = $this->array_to_object(
+			[
+				'id'             => 'cs_test_retry_cancel',
+				'status'         => 'open',
+				'payment_intent' => [
+					'id'                 => 'pi_mock_retry_cancel',
+					'last_payment_error' => [
+						'code'    => 'payment_method_customer_decline',
+						'message' => 'Customer cancelled on the redirect provider',
+					],
+				],
+			]
+		);
+
+		// Second return: customer retried with a new Checkout Session on the same
+		// order and paid successfully.
+		$success_session_id   = 'cs_test_retry_success';
+		$success_request_url  = 'checkout/sessions/' . $success_session_id . '?expand[]=payment_intent';
+		$success_session_mock = $this->array_to_object(
+			[
+				'id'             => $success_session_id,
+				'status'         => 'complete',
+				'payment_status' => 'paid',
+				'payment_intent' => [
+					'id'                 => 'pi_mock_retry_success',
+					'last_payment_error' => null,
+				],
+			]
+		);
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->withConsecutive(
+				[ $cancel_request_url ],
+				[ $success_request_url ]
+			)
+			->willReturnOnConsecutiveCalls( $cancel_session_mock, $success_session_mock );
+
+		// ----- First return: cancel -----
+		$captured_cancel = null;
+		$this->intercept_wp_redirect( $captured_cancel );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered on cancel' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		// Cancel must bounce to /checkout and leave the order retryable.
+		$this->assertSame( wc_get_checkout_url(), $captured_cancel );
+		$after_cancel = wc_get_order( $order->get_id() );
+		$this->assertNotEquals( OrderStatus::FAILED, $after_cancel->get_status() );
+		$this->assertFalse( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $after_cancel ) );
+
+		// Clear the cancel notice so we can assert cleanly on the retry.
+		wc_clear_notices();
+
+		// Simulate the customer retrying on the same order with a new Checkout Session.
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $after_cancel, $success_session_id );
+		$after_cancel->save();
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $success_session_id );
+
+		// ----- Second return: success -----
+		$captured_success = null;
+		$this->intercept_wp_redirect( $captured_success );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered on retry success' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		// The retry's success return must have been processed — not short-circuited.
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured_success );
+		$final = wc_get_order( $order->get_id() );
+		// Success path arms the replay flag so a refresh is a no-op.
+		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
 	}
 
 	/**
