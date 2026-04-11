@@ -634,6 +634,19 @@ export async function mountStripePaymentElement( api, domElement ) {
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 		const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 		upeElement.on( 'change', ( { value } ) => {
+			// Mirror the actual selected payment method type into the hidden
+			// input so it's submitted with the form. This lets the server set
+			// the order's payment method title to the actual method (e.g.
+			// iDEAL) instead of the OC pseudo-method's default ("Stripe") when
+			// paying via Adaptive Pricing / Checkout Sessions, where the
+			// outer form's `payment_method` is just `stripe`.
+			const selectedTypeInput = document.getElementById(
+				'wc_stripe_selected_upe_payment_type'
+			);
+			if ( selectedTypeInput ) {
+				selectedTypeInput.value = value?.type ?? '';
+			}
+
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
