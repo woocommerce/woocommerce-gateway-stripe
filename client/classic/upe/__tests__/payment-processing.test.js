@@ -48,6 +48,18 @@ jest.mock(
 		handleDisplayOfSavingCheckbox: jest.fn(),
 	} )
 );
+// Mock jQuery.ajax for checkout sessions form submission.
+const mockJQueryAjax = jest.fn();
+const mockJQueryTrigger = jest.fn();
+
+// Set up global jQuery used by payment-processing.js.
+global.jQuery = Object.assign(
+	jest.fn( () => ( { trigger: mockJQueryTrigger } ) ),
+	{
+		ajax: mockJQueryAjax,
+	}
+);
+
 // Silence console.error for tests that intentionally trigger error paths.
 beforeEach( () => {
 	jest.spyOn( console, 'error' ).mockImplementation( () => {} );
@@ -134,6 +146,7 @@ const createMockApi = ( checkoutElements ) => {
 		checkoutSessionsUpdateSession: jest.fn( () =>
 			Promise.resolve( { success: true } )
 		),
+		getAjaxUrl: jest.fn( () => '/?wc-ajax=checkout' ),
 		createIntent: jest.fn(),
 		initSetupIntent: jest.fn(),
 		_stripe: stripe,
@@ -149,6 +162,8 @@ const createMockForm = ( { savePaymentMethodChecked = false } = {} ) => {
 	f.unblock = jest.fn( () => f );
 	f.trigger = jest.fn( () => f );
 	f.attr = jest.fn( () => 'checkout' );
+	f.serialize = jest.fn( () => 'billing_first_name=John' );
+	f.append = jest.fn();
 	f.find = jest.fn( () => ( {
 		is: jest.fn( () => savePaymentMethodChecked ),
 	} ) );
@@ -495,14 +510,24 @@ describe( 'payment-processing', () => {
 				);
 			};
 
-			it( 'calls loadActions → confirm → appends session ID → submits form', async () => {
+			it( 'submits form via AJAX, then confirms with order-received URL', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						session: { id: 'cs_session_xyz' },
-					} ),
+					confirm: jest.fn().mockResolvedValue( {} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				// Mock the WC checkout AJAX response.
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -513,96 +538,163 @@ describe( 'payment-processing', () => {
 				paymentProcessing.processPayment( api, form, 'card' );
 				await flushPromises();
 
-				expect( mockActions.confirm ).toHaveBeenCalledWith( {
-					returnUrl: window.location.href,
-					redirect: 'if_required',
-				} );
+				// Session ID from mount phase is appended to form.
 				expect(
 					stripeUtils.appendCheckoutSessionIdToForm
-				).toHaveBeenCalledWith( form, 'cs_session_xyz' );
-				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+				).toHaveBeenCalledWith( form, MOCK_AP_CHECKOUT_SESSION_ID );
+				// Form is submitted via AJAX to create the order.
+				expect( mockJQueryAjax ).toHaveBeenCalledWith(
+					expect.objectContaining( {
+						type: 'POST',
+						url: api.getAjaxUrl(),
+					} )
+				);
+				// Confirm is called with the order-received URL.
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: orderReceivedUrl,
+					redirect: 'if_required',
+				} );
+				// After confirm resolves, navigates to the order-received page.
+				expect( window.location.href ).toBe( orderReceivedUrl );
+				window.location = originalLocation;
 			} );
 
 			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						session: { id: 'cs_session_xyz' },
-					} ),
+					confirm: jest.fn().mockResolvedValue( {} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
 					actions: mockActions,
 				} );
 
-				const apServerData = {
+				stripeUtils.getStripeServerData.mockReturnValue( {
 					...BASE_SERVER_DATA,
 					isAdaptivePricingEnabled: true,
 					isLoggedIn: true,
-				};
+				} );
 
-				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
 
-				try {
-					const form = createMockForm( {
-						savePaymentMethodChecked: true,
-					} );
-					paymentProcessing.processPayment( api, form, 'card' );
-					await flushPromises();
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: orderReceivedUrl,
+					redirect: 'if_required',
+					savePaymentMethod: true,
+				} );
 
-					expect( mockActions.confirm ).toHaveBeenCalledWith( {
-						returnUrl: window.location.href,
-						redirect: 'if_required',
-						savePaymentMethod: true,
-					} );
-				} finally {
-					stripeUtils.getStripeServerData.mockReturnValue(
-						apServerData
-					);
-				}
+				window.location = originalLocation;
 			} );
 
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+				const originalLocation = window.location;
+				delete window.location;
+				window.location = { href: '', assign: jest.fn() };
+
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						session: { id: 'cs_session_xyz' },
-					} ),
+					confirm: jest.fn().mockResolvedValue( {} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
 					actions: mockActions,
 				} );
 
-				const apServerData = {
+				stripeUtils.getStripeServerData.mockReturnValue( {
 					...BASE_SERVER_DATA,
 					isAdaptivePricingEnabled: true,
 					isLoggedIn: false,
-				};
+				} );
 
-				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
 
-				try {
-					const form = createMockForm( {
-						savePaymentMethodChecked: true,
-					} );
-					paymentProcessing.processPayment( api, form, 'card' );
-					await flushPromises();
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: orderReceivedUrl,
+					redirect: 'if_required',
+				} );
 
-					expect( mockActions.confirm ).toHaveBeenCalledWith( {
-						returnUrl: window.location.href,
-						redirect: 'if_required',
-					} );
-				} finally {
-					stripeUtils.getStripeServerData.mockReturnValue( {
-						...BASE_SERVER_DATA,
-						isAdaptivePricingEnabled: true,
-					} );
-				}
+				window.location = originalLocation;
+			} );
+
+			it( 'shows error and skips confirm when checkout AJAX fails', async () => {
+				const mockActions = { confirm: jest.fn() };
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockRejectedValue(
+					new Error( 'Checkout failed' )
+				);
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
+				expect( mockActions.confirm ).not.toHaveBeenCalled();
+			} );
+
+			it( 'unblocks form and shows messages when checkout AJAX returns a failure result', async () => {
+				const mockActions = { confirm: jest.fn() };
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				const errorHtml =
+					'<ul class="woocommerce-error" role="alert"><li>Invalid coupon</li></ul>';
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'failure',
+					messages: errorHtml,
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( form.removeClass ).toHaveBeenCalledWith( 'processing' );
+				expect( form.unblock ).toHaveBeenCalled();
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					errorHtml
+				);
+				expect( mockActions.confirm ).not.toHaveBeenCalled();
 			} );
 
 			it( 'shows error and does not submit when loadActions returns an error', async () => {
@@ -627,32 +719,60 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
-			it( 'shows error when confirm succeeds but session is missing', async () => {
-				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						/* no session */
-					} ),
-				};
+			it( 'falls back to standard payment flow when session ID is missing from mount', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+				// Override to not return a session_id — triggers fallback to stripe.elements().
+				api.checkoutSessionsCreateSession.mockResolvedValue( {
+					data: { client_secret: 'cs_test_abc' },
+				} );
+				// Fallback elements should NOT have loadActions (like real stripe.elements()).
+				const bareElements = createMockElements();
+				delete bareElements.loadActions;
+				api._stripe.elements.mockReturnValue( bareElements );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
-					actions: mockActions,
+					actions: { confirm: jest.fn() },
 				} );
 
 				const form = createMockForm();
 				paymentProcessing.processPayment( api, form, 'card' );
 				await flushPromises();
 
-				expect( mockActions.confirm ).toHaveBeenCalled();
+				// Should take the standard path, not the checkout-sessions path.
+				expect( bareElements.submit ).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendPaymentMethodIdToForm
+				).toHaveBeenCalled();
+				expect(
+					stripeUtils.appendCheckoutSessionIdToForm
+				).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows error if checkoutSessionId is null but loadActions exists (defensive)', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Override to not return a session_id.
+				api.checkoutSessionsCreateSession.mockResolvedValue( {
+					data: { client_secret: 'cs_test_abc' },
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: { confirm: jest.fn() },
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
 				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
 					'Payment could not be completed. Please try again.'
 				);
 				expect(
 					stripeUtils.appendCheckoutSessionIdToForm
 				).not.toHaveBeenCalled();
-				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
 			it( 'shows error when actions.confirm resolves to an error object', async () => {
@@ -664,6 +784,11 @@ describe( 'payment-processing', () => {
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: 'https://shop.com/order-received/1/',
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -678,20 +803,19 @@ describe( 'payment-processing', () => {
 				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
 					'Card declined'
 				);
-				expect(
-					stripeUtils.appendCheckoutSessionIdToForm
-				).not.toHaveBeenCalled();
-				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
 
 			it( 'does not call validateElements or appendPaymentMethodIdToForm', async () => {
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {
-						session: { id: 'cs_session_xyz' },
-					} ),
+					confirm: jest.fn().mockResolvedValue( {} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: 'https://shop.com/order-received/1/',
+				} );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
