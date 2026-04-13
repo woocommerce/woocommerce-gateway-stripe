@@ -292,9 +292,12 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertSame( $expected, WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order ) );
+
+		$result = WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->assertSame( $expected, $result );
 	}
 
 	public function ipp_channel_data_provider() {
