@@ -48,7 +48,7 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 		return null;
 	}
 
-	const dispatchSuccessNotice = () => {
+	const showSuccessNotice = () => {
 		const paymentMethodsUrl = getAdminLink(
 			PAYMENT_METHODS_CHECKOUT_SETTINGS_PATH
 		);
@@ -75,16 +75,34 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 		);
 	};
 
-	const handleAction = () => {
-		moveStripeToTop().then( () => {
-			setShowNotice( false );
-
-			if ( refreshPage ) {
-				window.location.reload();
-			} else {
-				dispatchSuccessNotice();
+	const showErrorNotice = () => {
+		dispatch( 'core/notices' ).createErrorNotice(
+			__(
+				'Error moving Stripe to the top of the payment methods list.',
+				'woocommerce-gateway-stripe'
+			),
+			{
+				id: 'wc_stripe_stripe_first_checkout_error',
+				speak: false,
 			}
-		} );
+		);
+	};
+
+	const handleAction = () => {
+		moveStripeToTop()
+			.then( () => {
+				setShowNotice( false );
+
+				// Refresh the page on the WooCommerce > Settings > Payments page.
+				if ( refreshPage ) {
+					window.location.reload();
+				} else {
+					showSuccessNotice();
+				}
+			} )
+			.catch( () => {
+				showErrorNotice();
+			} );
 	};
 
 	const handleRemove = () => {
