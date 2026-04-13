@@ -2388,6 +2388,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Test that the dispatcher is a no-op when guard conditions aren't met.
+	 *
+	 * These guards (missing `wc_stripe_cs`, wrong `wc_payment_method`, invalid
+	 * nonce) all return before `is_order_received_page()` is evaluated, making
+	 * them fully testable in PHPUnit without WordPress query-state setup.
+	 *
+	 * @dataProvider provider_dispatcher_invalid_requests
+	 *
+	 * @param array $get_params The $_GET parameters to set for the request.
+	 */
+	public function test_maybe_process_checkout_session_redirect_is_noop_for_invalid_request( array $get_params ) {
+		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
+
+		$_GET = array_merge( $_GET, $get_params );
+
+		try {
+			$this->mock_gateway->maybe_process_checkout_session_redirect();
+		} finally {
+			foreach ( array_keys( $get_params ) as $key ) {
+				unset( $_GET[ $key ] );
+			}
+		}
+
+		$this->assertEmpty( wc_get_notices( 'error' ) );
+		$this->assertEmpty( wc_get_notices( 'notice' ) );
+	}
+
+	/**
+	 * Data provider for dispatcher guard tests.
+	 *
+	 * @return array
+	 */
+	public function provider_dispatcher_invalid_requests(): array {
+		return [
+			'missing wc_stripe_cs'   => [ [] ],
+			'wrong payment method'   => [
+				[
+					'wc_stripe_cs'      => '1',
+					'wc_payment_method' => 'paypal',
+				],
+			],
+			'invalid nonce'          => [
+				[
+					'wc_stripe_cs'      => '1',
+					'wc_payment_method' => WC_Stripe_UPE_Payment_Gateway::ID,
+					'_wpnonce'          => 'invalid_nonce_value',
+				],
+			],
+			'missing nonce entirely' => [
+				[
+					'wc_stripe_cs'      => '1',
+					'wc_payment_method' => WC_Stripe_UPE_Payment_Gateway::ID,
+				],
+			],
+		];
+	}
+
+	/**
 	 * Test order status corresponds with charge status.
 	 */
 	public function test_process_response_updates_order_by_charge_status() {
