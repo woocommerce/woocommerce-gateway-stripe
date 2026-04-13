@@ -174,9 +174,8 @@ async function main() {
         }));
 
         const typeChoices = [
-            { name: 'Let Claude suggest an entry', value: CLAUDE_SUGGEST },
-            new inquirer.Separator(),
             ...manualTypeChoices,
+            { name: '✨ Let Claude suggest an entry', value: CLAUDE_SUGGEST },
         ];
 
         const first = await inquirer.prompt([{
