@@ -1176,11 +1176,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns true if the order's billing country is within the European Economic Area.
 	 *
-	 * @param WC_Order $order The order object.
+	 * @param WC_Abstract_Order $order The order object.
 	 * @return bool
 	 */
-	private function is_eea_customer( WC_Order $order ): bool {
-		$billing_country = $order->get_billing_country();
+	private function is_eea_customer( WC_Abstract_Order $order ): bool {
+		$billing_country = $order instanceof WC_Order ? $order->get_billing_country() : '';
 		return ! empty( $billing_country ) && in_array( $billing_country, WC_Stripe_Helper::get_european_economic_area_countries(), true );
 	}
 
@@ -1188,11 +1188,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Shows a notice to the order received page to inform the customer about the currency conversion
 	 * when the order is paid with a different currency than the store currency.
 	 *
-	 * @param WC_Order $order The order object.
+	 * @param WC_Abstract_Order $order The order object.
 	 *
 	 * @return void
 	 */
-	public function add_currency_conversion_notice( WC_Order $order ): void {
+	public function add_currency_conversion_notice( WC_Abstract_Order $order ): void {
 		$notice_data = $this->get_currency_conversion_notice_data( $order );
 		if ( null === $notice_data ) {
 			return;
@@ -1218,7 +1218,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.6.0
 	 *
-	 * @param WC_Order $order         Order data.
+	 * @param WC_Abstract_Order $order         Order data.
 	 * @param bool              $sent_to_admin Whether the email is being sent to admin or customer.
 	 * @param bool              $plain_text    Whether the email is plain text (no HTML).
 	 * @return void
