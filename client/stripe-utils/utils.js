@@ -659,7 +659,6 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	const result = {};
 
 	const stripeServerData = getStripeServerData();
-	const isLoggedIn = Boolean( stripeServerData?.isLoggedIn );
 	const isPayerPhoneRequired = Boolean(
 		stripeServerData?.isPayerPhoneRequired
 	);
@@ -748,7 +747,7 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 			getFieldValue( 'billing_phone' ) ||
 			getFieldValue( 'shipping_phone' );
 
-		if ( isLoggedIn && isPayerPhoneRequired && billingOrShippingPhone ) {
+		if ( isPayerPhoneRequired && billingOrShippingPhone ) {
 			result.phoneNumber = billingOrShippingPhone;
 		}
 	}
