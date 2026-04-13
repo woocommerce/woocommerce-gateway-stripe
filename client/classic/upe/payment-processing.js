@@ -438,9 +438,14 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 	} else {
+		const upeSettings = getUpeSettings();
+		// createPaymentElement() (Checkout Sessions API) does not accept terms.link.
+		if ( upeSettings.terms ) {
+			delete upeSettings.terms.link;
+		}
 		paymentElementOptions = {
 			...paymentElementOptions,
-			...getUpeSettings(),
+			...upeSettings,
 		};
 		createdStripePaymentElement = elements.createPaymentElement(
 			paymentElementOptions
