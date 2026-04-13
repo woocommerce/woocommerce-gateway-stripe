@@ -466,6 +466,52 @@ describe( 'AgenticCommerceSection', () => {
 	} );
 
 	// -------------------------------------------------------------------------
+	// Webhook URL and CopyButton
+	// -------------------------------------------------------------------------
+
+	it( 'shows webhook URL with copy button when account has configured webhook URL', async () => {
+		useAccount.mockReturnValue( {
+			data: {
+				configured_webhook_urls: {
+					live: 'https%3A%2F%2Fexample.com%2Fwc-api%2Fwc_stripe',
+				},
+			},
+		} );
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( /Set endpoint URL as/i )
+			).toBeInTheDocument();
+		} );
+
+		expect(
+			screen.getByRole( 'button', { name: /Copy/i } )
+		).toBeInTheDocument();
+	} );
+
+	it( 'shows fallback text when no webhook URL is available', async () => {
+		useAccount.mockReturnValue( { data: null } );
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByText( /Setup webhooks in/i )
+			).toBeInTheDocument();
+		} );
+	} );
+
+	// -------------------------------------------------------------------------
 	// Settings controls
 	// -------------------------------------------------------------------------
 
