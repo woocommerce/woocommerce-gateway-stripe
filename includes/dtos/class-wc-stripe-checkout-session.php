@@ -1,10 +1,10 @@
 <?php
 /**
- * Class WC_Stripe_Agentic_Checkout_Session
+ * Class WC_Stripe_Checkout_Session
  *
  * Typed wrapper around the raw Stripe checkout session object.
  *
- * @package WooCommerce_Stripe/Agentic_Commerce
+ * @package WooCommerce_Stripe/DTOs
  * @since   10.6.0
  */
 
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 10.6.0
  */
-class WC_Stripe_Agentic_Checkout_Session {
+class WC_Stripe_Checkout_Session {
 
 	/**
 	 * The raw Stripe checkout session object.
@@ -208,27 +208,36 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns the line items array.
 	 *
 	 * @since 10.6.0
-	 * @return WC_Stripe_Agentic_Line_Item[]
+	 * @return WC_Stripe_Checkout_Session_Line_Item[]
 	 */
 	public function get_line_items(): array {
 		$raw_items = $this->session->line_items->data ?? [];
 
 		return array_map(
 			function ( $item ) {
-				return new WC_Stripe_Agentic_Line_Item( $item );
+				return new WC_Stripe_Checkout_Session_Line_Item( $item );
 			},
 			$raw_items
 		);
 	}
 
 	/**
-	 * Returns the expanded payment intent ID, or null when absent.
+	 * Returns the payment intent ID, or null when absent.
+	 *
+	 * Handles both a plain string payment intent ID and an expanded payment intent object.
 	 *
 	 * @since 10.6.0
 	 * @return string|null
 	 */
 	public function get_payment_intent_id(): ?string {
-		return isset( $this->session->payment_intent->id ) ? (string) $this->session->payment_intent->id : null;
+		$payment_intent = $this->session->payment_intent ?? null;
+		if ( is_string( $payment_intent ) ) {
+			return $payment_intent;
+		}
+		if ( is_object( $payment_intent ) && isset( $payment_intent->id ) ) {
+			return (string) $payment_intent->id;
+		}
+		return null;
 	}
 
 	/**
@@ -280,6 +289,40 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 */
 	public function get_shipping_amount(): ?int {
 		return isset( $this->session->total_details->amount_shipping ) ? (int) $this->session->total_details->amount_shipping : null;
+	}
+
+	/**
+	 * Returns the presentment currency in lowercase, or null when absent.
+	 *
+	 * @since 10.6.0
+	 * @return string|null
+	 */
+	public function get_presentment_currency(): ?string {
+		return isset( $this->session->presentment_details->presentment_currency )
+			? (string) $this->session->presentment_details->presentment_currency
+			: null;
+	}
+
+	/**
+	 * Returns the presentment amount in the smallest currency unit, or null when absent.
+	 *
+	 * @since 10.6.0
+	 * @return int|null
+	 */
+	public function get_presentment_amount(): ?int {
+		return isset( $this->session->presentment_details->presentment_amount )
+			? (int) $this->session->presentment_details->presentment_amount
+			: null;
+	}
+
+	/**
+	 * Returns whether presentment details are available.
+	 *
+	 * @since 10.6.0
+	 * @return bool
+	 */
+	public function has_presentment_details(): bool {
+		return null !== $this->get_presentment_currency() && null !== $this->get_presentment_amount();
 	}
 
 	/**

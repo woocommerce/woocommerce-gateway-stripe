@@ -26,11 +26,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Creates a WooCommerce order from a Stripe checkout session.
 	 *
 	 * @since 10.6.0
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @return WC_Order The created order.
 	 * @throws Exception When the order cannot be created.
 	 */
-	public function create_order_from_checkout_session( WC_Stripe_Agentic_Checkout_Session $session ): WC_Order {
+	public function create_order_from_checkout_session( WC_Stripe_Checkout_Session $session ): WC_Order {
 		$this->validate_checkout_session( $session );
 
 		WC_Stripe_Logger::info(
@@ -83,10 +83,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Validates that the checkout session has all required fields.
 	 *
 	 * @since 10.6.0
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When required fields are missing or invalid.
 	 */
-	private function validate_checkout_session( WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function validate_checkout_session( WC_Stripe_Checkout_Session $session ): void {
 		if ( null === $session->get_id() ) {
 			throw new Exception( 'Checkout session is missing the id field.' );
 		}
@@ -120,11 +120,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * Creates the WooCommerce order with basic settings.
 	 *
 	 * @since 10.6.0
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @return WC_Order The created order.
 	 * @throws Exception When wc_create_order fails.
 	 */
-	private function create_order( WC_Stripe_Agentic_Checkout_Session $session ): WC_Order {
+	private function create_order( WC_Stripe_Checkout_Session $session ): WC_Order {
 		$order = wc_create_order( [ 'status' => 'pending' ] );
 
 		if ( is_wp_error( $order ) ) {
@@ -163,10 +163,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When the email is not present or invalid.
 	 */
-	private function map_customer( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function map_customer( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$email = $session->get_customer_email() ?? '';
 
 		if ( ! is_email( $email ) ) {
@@ -193,10 +193,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When a product cannot be found for a line item.
 	 */
-	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function map_line_items( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$currency   = $session->get_currency() ?? '';
 		$line_items = $session->get_line_items();
 
@@ -334,9 +334,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 */
-	private function map_addresses( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function map_addresses( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$billing_address = $session->get_billing_address();
 
 		$this->map_address(
@@ -379,9 +379,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 */
-	private function store_stripe_metadata( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function store_stripe_metadata( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Store payment intent ID (also adds an order note).
@@ -413,10 +413,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When no matching WC rate can be found.
 	 */
-	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function map_shipping( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$display_name = $session->get_chosen_shipping_rate_display_name();
 
 		if ( null === $display_name ) {
@@ -503,10 +503,10 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
-	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 	 * @throws Exception When the totals diverge beyond rounding tolerance.
 	 */
-	private function verify_order_total( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+	private function verify_order_total( WC_Order $order, WC_Stripe_Checkout_Session $session ): void {
 		$order->calculate_totals();
 
 		$expected_total = WC_Stripe_Helper::convert_from_stripe_amount(

@@ -1511,14 +1511,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if the event was deferred for async processing, false if handled inline.
 	 */
 	public function process_checkout_session_success( object $notification ): bool {
-		$checkout_session = $notification->data->object;
+		$session = new WC_Stripe_Checkout_Session( $notification->data->object );
 
-		if ( ! isset( $checkout_session->id ) ) {
+		$session_id = $session->get_id();
+		if ( null === $session_id ) {
 			WC_Stripe_Logger::error( 'Checkout session ID is missing from the event data.' );
 			return false;
 		}
-
-		$session_id = $checkout_session->id;
 
 		// Look for an order. If order exists, process the webhook immediately.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
@@ -1549,13 +1548,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	protected function handle_checkout_session_success( object $notification ): void {
-		$checkout_session = $notification->data->object;
+		$session = new WC_Stripe_Checkout_Session( $notification->data->object );
 
-		$session_id = $checkout_session->id;
+		$session_id = $session->get_id();
+		if ( null === $session_id ) {
+			return;
+		}
 
 		// Refresh the cached checkout session with the latest data from the webhook so that
 		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
-		WC_Stripe_Database_Cache::set( 'checkout_session_' . $session_id, $checkout_session, HOUR_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( 'checkout_session_' . $session_id, $notification->data->object, HOUR_IN_SECONDS );
 
 		// Acquire a lock to prevent duplicate order creation from concurrent agentic sessions.
 		$lock_key = 'checkout_session_lock_' . $session_id;
@@ -1569,7 +1571,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
 
 		// Look for an order. If one does not exists, this is probably an agentic hook.
-		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
 		if ( ! $order instanceof \WC_Order ) {
 			try {
 				$this->handle_agentic_checkout_session( $notification );
@@ -1611,7 +1613,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 
-			$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
+			$intent_id = $session->get_payment_intent_id();
 
 			// Store the payment intent ID on the order.
 			if ( ! empty( $intent_id ) ) {
@@ -1619,21 +1621,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Add presentment details if available.
-			$presentment_details = $checkout_session->presentment_details ?? null;
-			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
-				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
-				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
+			$presentment_currency = $session->get_presentment_currency();
+			$presentment_amount   = $session->get_presentment_amount();
+			if ( null !== $presentment_currency && null !== $presentment_amount ) {
+				$order_helper->update_stripe_presentment_currency( $order, $presentment_currency );
+				$order_helper->update_stripe_presentment_amount( $order, $presentment_amount );
 
 				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-					$presentment_details->presentment_amount,
-					$presentment_details->presentment_currency
+					$presentment_amount,
+					$presentment_currency
 				);
 
 				$order->add_order_note(
 					sprintf(
 						/* translators: 1) presentment currency 2) presentment amount */
 						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-						strtoupper( $presentment_details->presentment_currency ),
+						strtoupper( $presentment_currency ),
 						$amount
 					)
 				);
@@ -1687,7 +1690,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				time() + $this->process_checkout_session_metadata_delay,
 				$this->process_checkout_session_metadata_action,
 				[
-					'checkout_session_id' => $checkout_session->id,
+					'checkout_session_id' => $session_id,
 					'metadata'            => [
 						'order_id'   => $order->get_order_number(),
 						'order_key'  => $order->get_order_key(),
@@ -1738,14 +1741,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The Stripe notification containing the checkout session data.
 	 */
 	public function process_checkout_session_failure( object $notification ): bool {
-		$checkout_session = $notification->data->object;
+		$session = new WC_Stripe_Checkout_Session( $notification->data->object );
 
-		if ( ! isset( $checkout_session->id ) ) {
+		$session_id = $session->get_id();
+		if ( null === $session_id ) {
 			WC_Stripe_Logger::debug( 'Checkout session ID is missing from the event data.' );
 			return false;
 		}
-
-		$session_id = $checkout_session->id;
 
 		// Look for an order. If order exists, process the webhook immediately.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
@@ -1776,12 +1778,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	protected function handle_checkout_session_failure( object $notification ): void {
-		$checkout_session = $notification->data->object;
+		$session    = new WC_Stripe_Checkout_Session( $notification->data->object );
+		$session_id = $session->get_id();
 
-		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
+		if ( null === $session_id ) {
+			return;
+		}
+
+		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
 
 		if ( ! $order instanceof \WC_Order ) {
-			WC_Stripe_Logger::debug( 'Could not find order via checkout session ID: ' . $checkout_session->id );
+			WC_Stripe_Logger::debug( 'Could not find order via checkout session ID: ' . $session_id );
 			return;
 		}
 
@@ -2109,18 +2116,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The webhook notification from Stripe.
 	 */
 	private function handle_agentic_checkout_session( $notification ): void {
-		$checkout_session = $notification->data->object;
+		$preliminary_session = new WC_Stripe_Checkout_Session( $notification->data->object );
+		$session_id          = $preliminary_session->get_id();
+
+		if ( null === $session_id ) {
+			return;
+		}
 
 		if ( ! WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			WC_Stripe_Logger::error( 'Agentic commerce is disabled, skipping agentic checkout session: ' . $checkout_session->id );
+			WC_Stripe_Logger::error( 'Agentic commerce is disabled, skipping agentic checkout session: ' . $session_id );
 			return;
 		}
 
 		WC_Stripe_Logger::info(
 			'Webhook checkout.session.completed received.',
 			[
-				'session_id'        => $notification->data->object->id ?? 'unknown',
-				'payment_intent_id' => $notification->data->object->payment_intent ?? 'unknown',
+				'session_id'        => $session_id,
+				'payment_intent_id' => $preliminary_session->get_payment_intent_id() ?? 'unknown',
 			]
 		);
 
@@ -2133,8 +2145,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 			$url         = $this->build_checkout_session_retrieve_url(
-				$notification->data->object->id,
-				WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
+				$session_id,
+				WC_Stripe_Checkout_Session::get_fields_to_expand()
 			);
 			$raw_session = WC_Stripe_API::retrieve( $url );
 
@@ -2150,7 +2162,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			assert( $raw_session instanceof stdClass );
-			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
+			$session = new WC_Stripe_Checkout_Session( $raw_session );
 
 			if ( ! $session->is_agentic() ) {
 				WC_Stripe_Logger::info(
@@ -2188,7 +2200,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 *
 				 * @since 10.6.0
 				 * @param WC_Order                           $order   The created order.
-				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
 			} catch ( Exception $e ) {
@@ -2205,7 +2217,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 *
 				 * @since 10.6.0
 				 * @param Exception                          $e       The exception that was thrown.
-				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+				 * @param WC_Stripe_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
 			}

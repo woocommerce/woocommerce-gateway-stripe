@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Provides typed access to a single customize_checkout line item.
  *
- * Unlike WC_Stripe_Agentic_Line_Item (which wraps a completed checkout
+ * Unlike WC_Stripe_Checkout_Session_Line_Item (which wraps a completed checkout
  * session line item using price.external_reference), this class wraps
  * the line_item_details entries from the customize_checkout event
  * which use sku_id for product identification.

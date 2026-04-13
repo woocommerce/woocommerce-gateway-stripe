@@ -26,7 +26,8 @@
     "autoload": {
       "classmap": [
         "includes/ajax-handlers/",
-        "includes/agentic-commerce/"
+        "includes/agentic-commerce/",
+        "includes/dtos/"
       ]
     },
     "autoload-dev": {

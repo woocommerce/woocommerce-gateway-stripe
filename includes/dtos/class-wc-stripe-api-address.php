@@ -4,7 +4,7 @@
  *
  * Typed wrapper around raw Stripe address objects.
  *
- * @package WooCommerce_Stripe/Agentic_Commerce
+ * @package WooCommerce_Stripe/DTOs
  * @since   10.6.0
  */
 

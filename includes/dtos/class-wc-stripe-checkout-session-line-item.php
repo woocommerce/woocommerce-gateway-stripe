@@ -1,10 +1,10 @@
 <?php
 /**
- * Class WC_Stripe_Agentic_Line_Item
+ * Class WC_Stripe_Checkout_Session_Line_Item
  *
  * Typed wrapper around a raw Stripe checkout session line item.
  *
- * @package WooCommerce_Stripe/Agentic_Commerce
+ * @package WooCommerce_Stripe/DTOs
  * @since   10.6.0
  */
 
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 10.6.0
  */
-class WC_Stripe_Agentic_Line_Item {
+class WC_Stripe_Checkout_Session_Line_Item {
 
 	/**
 	 * The raw Stripe line item object.

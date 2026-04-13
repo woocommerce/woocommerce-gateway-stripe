@@ -1396,9 +1396,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	 *
 	 * @param array<string, mixed>  $overrides Fields to override on the default session.
 	 * @param \WC_Product|null      $product   Product to use for the default line item. Defaults to $this->default_product.
-	 * @return WC_Stripe_Agentic_Checkout_Session The checkout session wrapper.
+	 * @return WC_Stripe_Checkout_Session The checkout session wrapper.
 	 */
-	private function build_checkout_session( array $overrides = [], ?\WC_Product $product = null ): WC_Stripe_Agentic_Checkout_Session {
+	private function build_checkout_session( array $overrides = [], ?\WC_Product $product = null ): WC_Stripe_Checkout_Session {
 		$product  = $product ?? $this->default_product;
 		$defaults = [
 			'id'               => 'cs_test_123',
@@ -1454,7 +1454,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 
 		$merged = array_merge( $defaults, $overrides );
 
-		return new WC_Stripe_Agentic_Checkout_Session( (object) $merged );
+		return new WC_Stripe_Checkout_Session( (object) $merged );
 	}
 
 	/**

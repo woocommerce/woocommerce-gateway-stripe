@@ -1,30 +1,30 @@
 <?php
 /**
- * Tests for WC_Stripe_Agentic_Line_Item
+ * Tests for WC_Stripe_Checkout_Session_Line_Item
  *
  * @package WooCommerce\Stripe\Tests
  */
 
 /**
- * Class WC_Stripe_Agentic_Line_Item_Test
+ * Class WC_Stripe_Checkout_Session_Line_Item_Test
  *
  * Tests the typed wrapper around a Stripe checkout session line item.
  *
- * @covers WC_Stripe_Agentic_Line_Item
+ * @covers WC_Stripe_Checkout_Session_Line_Item
  */
-class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
+class WC_Stripe_Checkout_Session_Line_Item_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test simple scalar getters with present and missing values.
 	 *
-	 * @param array  $raw_props  Properties to pass to `WC_Stripe_Agentic_Line_Item`.
+	 * @param array  $raw_props  Properties to pass to `WC_Stripe_Checkout_Session_Line_Item`.
 	 * @param string $getter     The getter method to call.
 	 * @param mixed  $expected   The expected return value.
 	 * @return void
 	 * @dataProvider provide_test_scalar_getters
 	 */
 	public function test_scalar_getters( array $raw_props, string $getter, $expected ) {
-		$item = new WC_Stripe_Agentic_Line_Item( (object) $raw_props );
+		$item = new WC_Stripe_Checkout_Session_Line_Item( (object) $raw_props );
 		$this->assertSame( $expected, $item->$getter() );
 	}
 
@@ -52,7 +52,7 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_product_id_cases
 	 */
 	public function test_get_product_id( object $raw, int $expected ) {
-		$item = new WC_Stripe_Agentic_Line_Item( $raw );
+		$item = new WC_Stripe_Checkout_Session_Line_Item( $raw );
 		$this->assertSame( $expected, $item->get_product_id() );
 	}
 
@@ -100,7 +100,7 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_has_product_id_cases
 	 */
 	public function test_has_product_id( object $raw, bool $expected ) {
-		$item = new WC_Stripe_Agentic_Line_Item( $raw );
+		$item = new WC_Stripe_Checkout_Session_Line_Item( $raw );
 		$this->assertSame( $expected, $item->has_product_id() );
 	}
 

@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Dev - Move checkout session DTOs to shared includes/dtos/ directory and refactor webhook handler and payment gateway to use typed DTO access instead of raw stdClass properties
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
