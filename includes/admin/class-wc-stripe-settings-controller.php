@@ -294,6 +294,13 @@ class WC_Stripe_Settings_Controller {
 	/**
 	 * Checks whether the site is running inside a WordPress Playground environment.
 	 *
+	 * There is no dedicated WP_PLAYGROUND constant or wp_get_environment_type() value
+	 * for Playground. PLAYGROUND_SQLITE_PLUGIN_VERSION is defined by Playground's
+	 * bundled SQLite integration plugin and is the standard detection method (also
+	 * used by WP-CLI). In practice the constant and the Playground runtime are
+	 * tightly coupled — Playground always loads the SQLite plugin, and the plugin
+	 * is not distributed outside Playground.
+	 *
 	 * @return bool
 	 */
 	private function is_playground_environment(): bool {
