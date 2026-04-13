@@ -10,6 +10,7 @@ jest.mock( 'wcstripe/tracking', () => ( {
 // Mock global variables
 global.wc_stripe_settings_params = {
 	oauth_nonce: 'test-nonce',
+	is_playground: false,
 };
 global.ajaxurl = '/wp-admin/admin-ajax.php';
 
@@ -43,6 +44,9 @@ describe( 'ConnectButton', () => {
 				data: { oauth_url: oauthUrl },
 			} ),
 		};
+
+		// Default to non-Playground environment.
+		global.wc_stripe_settings_params.is_playground = false;
 	} );
 
 	afterEach( () => {
@@ -54,31 +58,19 @@ describe( 'ConnectButton', () => {
 		} );
 	} );
 
-	it( 'opens popup and sets up message listener on success', async () => {
-		const mockPopup = { closed: false };
-		window.open = jest.fn().mockReturnValue( mockPopup );
-		const addEventListenerSpy = jest.spyOn( window, 'addEventListener' );
-
-		render( <ConnectButton testMode={ true } /> );
+	it( 'redirects in same tab on non-Playground environments', async () => {
+		render( <ConnectButton testMode={ false } /> );
 
 		await userEvent.click(
-			screen.getByText( 'Create or connect a test account' )
+			screen.getByText( 'Create or connect an account' )
 		);
 
 		await waitFor( () => {
-			expect( window.open ).toHaveBeenCalledWith( oauthUrl, '_blank' );
+			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
 		} );
-
-		expect( addEventListenerSpy ).toHaveBeenCalledWith(
-			'message',
-			expect.any( Function )
-		);
 	} );
 
-	it( 'sends new_tab=1 in the AJAX request', async () => {
-		const mockPopup = { closed: false };
-		window.open = jest.fn().mockReturnValue( mockPopup );
-
+	it( 'does not send new_tab param on non-Playground environments', async () => {
 		render( <ConnectButton testMode={ false } /> );
 
 		await userEvent.click(
@@ -88,7 +80,7 @@ describe( 'ConnectButton', () => {
 		await waitFor( () => {
 			expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 				expect.objectContaining( {
-					data: expect.objectContaining( {
+					data: expect.not.objectContaining( {
 						new_tab: '1',
 					} ),
 				} )
@@ -96,101 +88,163 @@ describe( 'ConnectButton', () => {
 		} );
 	} );
 
-	it( 'falls back to same-tab redirect when window.open returns null (popup blocked)', async () => {
-		window.open = jest.fn().mockReturnValue( null );
-
-		render( <ConnectButton testMode={ true } /> );
-
-		await userEvent.click(
-			screen.getByText( 'Create or connect a test account' )
-		);
-
-		await waitFor( () => {
-			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
-		} );
-	} );
-
-	it( 'reloads page when valid wc_stripe_oauth_connected postMessage received', async () => {
-		const mockPopup = { closed: false };
-		window.open = jest.fn().mockReturnValue( mockPopup );
-
-		render( <ConnectButton testMode={ true } /> );
-
-		await userEvent.click(
-			screen.getByText( 'Create or connect a test account' )
-		);
-
-		await waitFor( () => {
-			expect( window.open ).toHaveBeenCalled();
+	describe( 'Playground environment', () => {
+		beforeEach( () => {
+			global.wc_stripe_settings_params.is_playground = true;
 		} );
 
-		// Simulate a valid postMessage from the same origin.
-		window.dispatchEvent(
-			new MessageEvent( 'message', {
-				origin: 'https://example.com',
-				data: { type: 'wc_stripe_oauth_connected', success: true },
-			} )
-		);
+		it( 'opens popup and sets up message listener on success', async () => {
+			const mockPopup = { closed: false };
+			window.open = jest.fn().mockReturnValue( mockPopup );
+			const addEventListenerSpy = jest.spyOn(
+				window,
+				'addEventListener'
+			);
 
-		expect( window.location.reload ).toHaveBeenCalled();
-	} );
+			render( <ConnectButton testMode={ true } /> );
 
-	it( 'ignores messages from different origins', async () => {
-		const mockPopup = { closed: false };
-		window.open = jest.fn().mockReturnValue( mockPopup );
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
 
-		render( <ConnectButton testMode={ true } /> );
+			await waitFor( () => {
+				expect( window.open ).toHaveBeenCalledWith(
+					oauthUrl,
+					'_blank'
+				);
+			} );
 
-		await userEvent.click(
-			screen.getByText( 'Create or connect a test account' )
-		);
-
-		await waitFor( () => {
-			expect( window.open ).toHaveBeenCalled();
+			expect( addEventListenerSpy ).toHaveBeenCalledWith(
+				'message',
+				expect.any( Function )
+			);
 		} );
 
-		// Dispatch from a different origin — should be ignored.
-		window.dispatchEvent(
-			new MessageEvent( 'message', {
-				origin: 'https://evil.example.com',
-				data: { type: 'wc_stripe_oauth_connected', success: true },
-			} )
-		);
+		it( 'sends new_tab=1 in the AJAX request', async () => {
+			const mockPopup = { closed: false };
+			window.open = jest.fn().mockReturnValue( mockPopup );
 
-		expect( window.location.reload ).not.toHaveBeenCalled();
-	} );
+			render( <ConnectButton testMode={ false } /> );
 
-	it( 'resets loading state when popup is closed manually', async () => {
-		const mockPopup = { closed: false };
-		window.open = jest.fn().mockReturnValue( mockPopup );
+			await userEvent.click(
+				screen.getByText( 'Create or connect an account' )
+			);
 
-		render( <ConnectButton testMode={ true } /> );
-
-		await userEvent.click(
-			screen.getByText( 'Create or connect a test account' )
-		);
-
-		// Wait for the popup to open.
-		await waitFor( () => {
-			expect( window.open ).toHaveBeenCalled();
+			await waitFor( () => {
+				expect( global.jQuery.ajax ).toHaveBeenCalledWith(
+					expect.objectContaining( {
+						data: expect.objectContaining( {
+							new_tab: '1',
+						} ),
+					} )
+				);
+			} );
 		} );
 
-		// Button should be in loading/busy state.
-		expect(
-			screen.getByText( 'Create or connect a test account' )
-		).toBeDisabled();
+		it( 'falls back to same-tab redirect when popup is blocked', async () => {
+			window.open = jest.fn().mockReturnValue( null );
 
-		// Simulate the popup being closed manually.
-		mockPopup.closed = true;
+			render( <ConnectButton testMode={ true } /> );
 
-		// The interval runs every 500ms. waitFor polls until the assertion passes.
-		await waitFor(
-			() => {
-				expect(
-					screen.getByText( 'Create or connect a test account' )
-				).not.toBeDisabled();
-			},
-			{ timeout: 2000, interval: 100 }
-		);
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+
+			await waitFor( () => {
+				expect( window.location.assign ).toHaveBeenCalledWith(
+					oauthUrl
+				);
+			} );
+		} );
+
+		it( 'reloads page when valid wc_stripe_oauth_connected postMessage received', async () => {
+			const mockPopup = { closed: false };
+			window.open = jest.fn().mockReturnValue( mockPopup );
+
+			render( <ConnectButton testMode={ true } /> );
+
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+
+			await waitFor( () => {
+				expect( window.open ).toHaveBeenCalled();
+			} );
+
+			// Simulate a valid postMessage from the same origin.
+			window.dispatchEvent(
+				new MessageEvent( 'message', {
+					origin: 'https://example.com',
+					data: {
+						type: 'wc_stripe_oauth_connected',
+						success: true,
+					},
+				} )
+			);
+
+			expect( window.location.reload ).toHaveBeenCalled();
+		} );
+
+		it( 'ignores messages from different origins', async () => {
+			const mockPopup = { closed: false };
+			window.open = jest.fn().mockReturnValue( mockPopup );
+
+			render( <ConnectButton testMode={ true } /> );
+
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+
+			await waitFor( () => {
+				expect( window.open ).toHaveBeenCalled();
+			} );
+
+			// Dispatch from a different origin — should be ignored.
+			window.dispatchEvent(
+				new MessageEvent( 'message', {
+					origin: 'https://evil.example.com',
+					data: {
+						type: 'wc_stripe_oauth_connected',
+						success: true,
+					},
+				} )
+			);
+
+			expect( window.location.reload ).not.toHaveBeenCalled();
+		} );
+
+		it( 'resets loading state when popup is closed manually', async () => {
+			const mockPopup = { closed: false };
+			window.open = jest.fn().mockReturnValue( mockPopup );
+
+			render( <ConnectButton testMode={ true } /> );
+
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+
+			// Wait for the popup to open.
+			await waitFor( () => {
+				expect( window.open ).toHaveBeenCalled();
+			} );
+
+			// Button should be in loading/busy state.
+			expect(
+				screen.getByText( 'Create or connect a test account' )
+			).toBeDisabled();
+
+			// Simulate the popup being closed manually.
+			mockPopup.closed = true;
+
+			// The interval runs every 500ms. waitFor polls until the assertion passes.
+			await waitFor(
+				() => {
+					expect(
+						screen.getByText( 'Create or connect a test account' )
+					).not.toBeDisabled();
+				},
+				{ timeout: 2000, interval: 100 }
+			);
+		} );
 	} );
 } );

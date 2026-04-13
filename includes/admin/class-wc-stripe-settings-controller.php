@@ -258,6 +258,7 @@ class WC_Stripe_Settings_Controller {
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
 			'taxes_based_on_billing'                => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
+			'is_playground'                         => $this->is_playground_environment(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
@@ -298,5 +299,14 @@ class WC_Stripe_Settings_Controller {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Checks whether the site is running inside a WordPress Playground environment.
+	 *
+	 * @return bool
+	 */
+	private function is_playground_environment(): bool {
+		return defined( 'PLAYGROUND_SQLITE_PLUGIN_VERSION' );
 	}
 }

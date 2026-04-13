@@ -33,6 +33,8 @@ const ConnectButton = ( {
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
 		: __( 'Create or connect an account', 'woocommerce-gateway-stripe' );
 
+	const isPlayground = wc_stripe_settings_params.is_playground; // eslint-disable-line camelcase
+
 	const handleClick = async () => {
 		setIsLoading( true );
 		setError( null );
@@ -48,54 +50,69 @@ const ConnectButton = ( {
 		}
 
 		try {
+			const data = {
+				action: 'wc_stripe_get_oauth_url',
+				mode: testMode ? 'test' : 'live',
+				nonce: wc_stripe_settings_params.oauth_nonce, // eslint-disable-line camelcase
+			};
+
+			if ( isPlayground ) {
+				data.new_tab = '1'; // eslint-disable-line camelcase
+			}
+
 			const response = await jQuery.ajax( {
 				url: ajaxurl,
 				method: 'POST',
-				data: {
-					action: 'wc_stripe_get_oauth_url',
-					mode: testMode ? 'test' : 'live',
-					nonce: wc_stripe_settings_params.oauth_nonce, // eslint-disable-line camelcase
-					new_tab: '1', // eslint-disable-line camelcase
-				},
+				data,
 			} );
 
 			if ( response.success && response.data.oauth_url ) {
 				const url = response.data.oauth_url;
-				const popup = window.open( url, '_blank' );
 
-				if ( ! popup ) {
-					// Popup blocked — fall back to same-tab redirect.
-					window.location.assign( url );
-					return;
-				}
+				// In Playground environments, open OAuth in a new tab
+				// to avoid navigating away from the Playground iframe.
+				if ( isPlayground ) {
+					const popup = window.open( url, '_blank' );
 
-				const messageListener = ( event ) => {
-					if (
-						event.origin !== window.location.origin ||
-						! event.data ||
-						event.data.type !== 'wc_stripe_oauth_connected'
-					) {
+					if ( ! popup ) {
+						// Popup blocked — fall back to same-tab redirect.
+						window.location.assign( url );
 						return;
 					}
-					// eslint-disable-next-line no-use-before-define
-					cleanup();
-					window.location.reload();
-				};
 
-				window.addEventListener( 'message', messageListener );
-
-				const cleanup = () => {
-					// eslint-disable-next-line no-use-before-define
-					clearInterval( intervalId );
-					window.removeEventListener( 'message', messageListener );
-				};
-
-				const intervalId = setInterval( () => {
-					if ( popup.closed ) {
+					const messageListener = ( event ) => {
+						if (
+							event.origin !== window.location.origin ||
+							! event.data ||
+							event.data.type !== 'wc_stripe_oauth_connected'
+						) {
+							return;
+						}
+						// eslint-disable-next-line no-use-before-define
 						cleanup();
-						setIsLoading( false );
-					}
-				}, 500 );
+						window.location.reload();
+					};
+
+					window.addEventListener( 'message', messageListener );
+
+					const cleanup = () => {
+						// eslint-disable-next-line no-use-before-define
+						clearInterval( intervalId );
+						window.removeEventListener(
+							'message',
+							messageListener
+						);
+					};
+
+					const intervalId = setInterval( () => {
+						if ( popup.closed ) {
+							cleanup();
+							setIsLoading( false );
+						}
+					}, 500 );
+				} else {
+					window.location.assign( url );
+				}
 			} else {
 				setError( true );
 				setIsLoading( false );
