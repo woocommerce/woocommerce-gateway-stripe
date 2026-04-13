@@ -630,7 +630,7 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
  * @param {string} id HTML id attribute.
  * @return {string} Field value, or empty string when missing.
  */
-export const getFieldValue = ( id ) => {
+const getFieldValue = ( id ) => {
 	const value = document.getElementById( id )?.value;
 	return typeof value === 'string' ? value.trim() : '';
 };
