@@ -322,7 +322,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 *
-	 * @return string[]
+	 * @return string[]|null
 	 */
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
