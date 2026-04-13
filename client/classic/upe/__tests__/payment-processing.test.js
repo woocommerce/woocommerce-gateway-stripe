@@ -590,23 +590,17 @@ describe( 'payment-processing', () => {
 
 				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
 
-				try {
-					const form = createMockForm( {
-						savePaymentMethodChecked: true,
-					} );
-					paymentProcessing.processPayment( api, form, 'card' );
-					await flushPromises();
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
 
-					expect( mockActions.confirm ).toHaveBeenCalledWith( {
-						returnUrl: window.location.href,
-						redirect: 'if_required',
-						savePaymentMethod: true,
-					} );
-				} finally {
-					stripeUtils.getStripeServerData.mockReturnValue(
-						apServerData
-					);
-				}
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+					savePaymentMethod: true,
+				} );
 			} );
 
 			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
@@ -632,23 +626,16 @@ describe( 'payment-processing', () => {
 
 				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
 
-				try {
-					const form = createMockForm( {
-						savePaymentMethodChecked: true,
-					} );
-					paymentProcessing.processPayment( api, form, 'card' );
-					await flushPromises();
+				const form = createMockForm( {
+					savePaymentMethodChecked: true,
+				} );
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
 
-					expect( mockActions.confirm ).toHaveBeenCalledWith( {
-						returnUrl: window.location.href,
-						redirect: 'if_required',
-					} );
-				} finally {
-					stripeUtils.getStripeServerData.mockReturnValue( {
-						...BASE_SERVER_DATA,
-						isAdaptivePricingEnabled: true,
-					} );
-				}
+				expect( mockActions.confirm ).toHaveBeenCalledWith( {
+					returnUrl: window.location.href,
+					redirect: 'if_required',
+				} );
 			} );
 
 			it( 'shows error and does not submit when loadActions returns an error', async () => {
