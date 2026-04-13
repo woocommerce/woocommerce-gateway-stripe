@@ -5017,4 +5017,154 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringNotContainsString( '<p', $output );
 		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
 	}
+
+	/**
+	 * Test that add_currency_conversion_notice appends the ECB fee sentence for EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_currency_conversion_notice_appends_ecb_fee_for_eea_customer(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20 );
+		$order->set_billing_country( 'DE' ); // Germany is an EEA country.
+		$order->save();
+
+		$checkout_session_id = 'cs_test_eea_notice_1';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		ob_start();
+		$this->mock_gateway->add_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that add_currency_conversion_notice does not append the ECB fee sentence for non-EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_currency_conversion_notice_does_not_append_ecb_fee_for_non_eea_customer(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20 );
+		$order->set_billing_country( 'US' ); // USA is not an EEA country.
+		$order->save();
+
+		$checkout_session_id = 'cs_test_non_eea_notice_1';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		ob_start();
+		$this->mock_gateway->add_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice (HTML) appends the ECB fee sentence for EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_appends_ecb_fee_html_for_eea_customer(): void {
+		$checkout_session_id = 'cs_test_eea_email_html_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( 'FR' ); // France is an EEA country.
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice (HTML) does not append the ECB fee sentence for non-EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_does_not_append_ecb_fee_html_for_non_eea_customer(): void {
+		$checkout_session_id = 'cs_test_non_eea_email_html_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( 'CA' ); // Canada is not an EEA country.
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice (plain text) appends the ECB fee sentence for EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_appends_ecb_fee_plain_text_for_eea_customer(): void {
+		$checkout_session_id = 'cs_test_eea_email_plain_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( 'NL' ); // Netherlands is an EEA country.
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that add_email_currency_conversion_notice (plain text) does not append the ECB fee sentence for non-EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_does_not_append_ecb_fee_plain_text_for_non_eea_customer(): void {
+		$checkout_session_id = 'cs_test_non_eea_email_plain_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( 'AU' ); // Australia is not an EEA country.
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, false, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
+
+	/**
+	 * Test that the admin email does not include the ECB fee sentence even for EEA customers.
+	 *
+	 * @return void
+	 */
+	public function test_add_email_currency_conversion_notice_does_not_append_ecb_fee_for_admin_email(): void {
+		$checkout_session_id = 'cs_test_eea_email_admin_1';
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( 'DE' ); // Germany is an EEA country.
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, true );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$this->assertStringNotContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	}
 }
