@@ -12,7 +12,6 @@ jest.mock( '@wordpress/data', () => ( {
 	__esModule: true,
 	dispatch: jest.fn( () => ( {
 		createSuccessNotice: mockCreateSuccessNotice,
-		// Required so `.catch( showErrorNotice )` does not throw if the move promise rejects.
 		createErrorNotice: mockCreateErrorNotice,
 	} ) ),
 } ) );
@@ -189,6 +188,30 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 				Object.defineProperty( window, 'location', locationDescriptor );
 			}
 		}
+	} );
+
+	it( 'dispatches an error notice when moveStripeToTop rejects', async () => {
+		moveStripeToTop.mockRejectedValueOnce( new Error( 'network' ) );
+
+		render( <OptimizedCheckoutFirstMethodNotice isOCEnabled={ true } /> );
+
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Move to top' } )
+		);
+
+		await waitFor( () => {
+			expect( mockCreateErrorNotice ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		expect( mockCreateErrorNotice ).toHaveBeenCalledWith(
+			'Error moving Stripe to the top of the payment methods list.',
+			expect.objectContaining( {
+				id: 'wc_stripe_stripe_first_checkout_error',
+				speak: false,
+			} )
+		);
+		expect( mockCreateSuccessNotice ).not.toHaveBeenCalled();
+		expect( screen.getByText( noticeCopy ) ).toBeInTheDocument();
 	} );
 
 	it( 'calls dismissNotice and hides the notice when the notice is dismissed', async () => {
