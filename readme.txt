@@ -215,5 +215,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Dev - Add an option to generate changelog suggestions to the changelog generation script
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
