@@ -48,11 +48,24 @@ jest.mock(
 		handleDisplayOfSavingCheckbox: jest.fn(),
 	} )
 );
-// Mock jQuery.ajax for checkout sessions form submission.
-const mockJQueryAjax = jest.fn();
+// Retrieve the stable mock functions created inside the jest.mock factory
+// (jest.mock is hoisted above const declarations, so they cannot be referenced
+// inside the factory directly without hitting the TDZ).
+const mockJQueryAjax = jest.requireMock( 'jquery' ).ajax;
 const mockJQueryTrigger = jest.fn();
 
-// Set up global jQuery used by payment-processing.js.
+// Mock the 'jquery' module so the imported jQuery in payment-processing.js
+// uses the same mock as assertions below. global.jQuery is also set for any
+// code that accesses window.jQuery directly.
+jest.mock( 'jquery', () => {
+	const jq = jest.fn( () => ( {
+		on: jest.fn(),
+		trigger: jest.fn(),
+	} ) );
+	jq.ajax = jest.fn();
+	return jq;
+} );
+
 global.jQuery = Object.assign(
 	jest.fn( () => ( { trigger: mockJQueryTrigger } ) ),
 	{
