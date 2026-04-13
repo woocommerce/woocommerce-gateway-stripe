@@ -644,8 +644,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Updates the list of enabled payment methods.
 	 *
-	 * @param array $payment_method_ids_to_enable The list of payment method ids to enable.
-	 * @param bool  $is_upe_enabled               Whether UPE is enabled.
+	 * @param array|null $payment_method_ids_to_enable The list of payment method ids to enable, or null to skip.
+	 * @param bool|null  $is_upe_enabled               Whether UPE is enabled.
 	 *
 	 * @return true|\WP_Error|null True on success, WP_Error on failure, null if skipped.
 	 */
