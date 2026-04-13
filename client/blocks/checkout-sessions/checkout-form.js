@@ -13,7 +13,7 @@ import {
 	usePaymentSetupHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
-import { AdaptivePricingDisclosure } from 'wcstripe/blocks/checkout-sessions/adaptive-pricing-disclosure';
+import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps

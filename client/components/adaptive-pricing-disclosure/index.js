@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { isEeaCountry } from 'wcstripe/utils/eea-countries';
-import './styles.scss';
+import './style.scss';
 
 /**
  * Adaptive pricing disclosure for EEA customers.

@@ -36,7 +36,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
-import { AdaptivePricingDisclosure } from 'wcstripe/blocks/checkout-sessions/adaptive-pricing-disclosure';
+import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {Object} UPEComponent
