@@ -295,6 +295,9 @@ class WC_Stripe {
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
+		// Record the first registered gateway ID once gateways are initialized.
+		add_action( 'wc_payment_gateways_initialized', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ] );
+
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
@@ -423,7 +426,6 @@ class WC_Stripe {
 	 * @return void
 	 */
 	public function set_stripe_gateways_in_list( $ordering ) {
-		wc_get_logger()->debug( 'set_stripe_gateways_in_list was called' );
 		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
 		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 

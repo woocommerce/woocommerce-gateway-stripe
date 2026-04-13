@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
@@ -199,8 +200,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
+* Fix - Fall back to split Stripe payment methods when Optimized Checkout is enabled but Stripe is not the first available gateway
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
+* Update - Hide Adaptive Pricing option for Stripe accounts based in India and European Economic Area countries
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
 * Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
 * Fix - Keep adaptive pricing amount in sync on block checkout after order total changes

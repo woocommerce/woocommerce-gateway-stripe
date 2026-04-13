@@ -21,6 +21,13 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * First gateway ID from the woocommerce_available_payment_gateways.
+	 *
+	 * @var string|null
+	 */
+	private static $first_gateway_id_from_available_list = null;
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -741,6 +748,55 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Resets the memoized first gateway ID from the available gateways list.
+	 *
+	 * @return void
+	 */
+	public static function clear_first_available_payment_gateway_record() {
+		self::$first_gateway_id_from_available_list = null;
+	}
+
+	/**
+	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
+	 *
+	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
+	 *
+	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
+	 * @return void
+	 */
+	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
+		if ( null !== self::$first_gateway_id_from_available_list ) {
+			return;
+		}
+
+		$gateways = $gateways->payment_gateways();
+
+		if ( ! is_array( $gateways ) || [] === $gateways ) {
+			return;
+		}
+
+		foreach ( $gateways as $gateway_id => $gateway ) {
+			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
+				self::$first_gateway_id_from_available_list = $gateway_id;
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_first_in_available_list(): bool {
+		if ( null === self::$first_gateway_id_from_available_list ) {
+			return false;
+		}
+
+		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
+	}
+
+	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -876,6 +932,7 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
+		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
@@ -1280,6 +1337,20 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
+	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
+	 * Adaptive Pricing is also not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 *
+	 * @return bool True if the account is not in the EEA.
+	 */
+	public static function is_adaptive_pricing_available_for_account(): bool {
+		$account_country       = WC_Stripe::get_instance()->account->get_account_country();
+		$eea_countries         = self::get_european_economic_area_countries();
+		$unsupported_countries = array_merge( $eea_countries, [ WC_Stripe_Country_Code::INDIA ] );
+		return ! in_array( $account_country, $unsupported_countries, true );
+	}
+
+	/**
 	 * Returns whether adaptive pricing is supported for the current checkout.
 	 *
 	 * When on the checkout page, adaptive pricing is not supported if the cart contains
@@ -1295,6 +1366,11 @@ class WC_Stripe_Helper {
 
 		// False if checkout session feature flag is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
+		if ( ! self::is_adaptive_pricing_available_for_account() ) {
 			return false;
 		}
 
