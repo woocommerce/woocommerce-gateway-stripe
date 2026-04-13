@@ -1338,16 +1338,13 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
-	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
-	 * Adaptive Pricing is also not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
 	 *
-	 * @return bool True if the account is not in the EEA.
+	 * @return bool True if the account is not in supported countries.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
-		$account_country       = WC_Stripe::get_instance()->account->get_account_country();
-		$eea_countries         = self::get_european_economic_area_countries();
-		$unsupported_countries = array_merge( $eea_countries, [ WC_Stripe_Country_Code::INDIA ] );
-		return ! in_array( $account_country, $unsupported_countries, true );
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		return strtoupper( $account_country ) !== WC_Stripe_Country_Code::INDIA;
 	}
 
 	/**
