@@ -16,7 +16,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 *
 	 * @var WC_Stripe_Account
 	 */
-	private $account;
+	private WC_Stripe_Account $account;
 
 	/**
 	 * Constructor
@@ -77,20 +77,9 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 * @return void
 	 */
 	public function enqueue_payments_scripts() {
-		global $current_tab, $current_section;
-
 		$this->register_payments_scripts();
 
-		// Check via WC globals (legacy) or $_GET (new React Payments page).
-		$is_payment_methods_page = (
-			is_admin() &&
-			(
-				( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
-				( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			)
-		);
-
-		if ( $is_payment_methods_page ) {
+		if ( WC_Stripe_Helper::is_admin_payments_page() ) {
 			wp_localize_script(
 				'woocommerce_stripe_payment_gateways_page',
 				'wcStripeExitSurveyParams',

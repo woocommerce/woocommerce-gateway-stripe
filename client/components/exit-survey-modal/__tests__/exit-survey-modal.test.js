@@ -6,12 +6,12 @@ import apiFetch from '@wordpress/api-fetch';
 jest.mock( '@wordpress/api-fetch', () => jest.fn( () => Promise.resolve() ) );
 
 const defaultSurveyParams = {
-	exitSurveyLastShown: null,
-	stripeAccountId: 'acct_test123',
-	wcStoreId: 'uuid-abc-123',
-	pluginVersion: '10.5.3',
-	wcVersion: '9.9.0',
-	wpVersion: '6.7.2',
+	exit_survey_last_shown: null,
+	stripe_account_id: 'acct_test123',
+	wc_store_id: 'uuid-abc-123',
+	plugin_version: '10.5.3',
+	wc_version: '9.9.0',
+	wp_version: '6.7.2',
 };
 
 describe( 'isCooldownActive', () => {

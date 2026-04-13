@@ -51,7 +51,7 @@ const PaymentsPageSurvey = () => {
 					response.success &&
 					response.data === false &&
 					! isCooldownActive(
-						wcStripeExitSurveyParams.exitSurveyLastShown
+						wcStripeExitSurveyParams.exit_survey_last_shown
 					)
 				) {
 					setShowSurvey( true );
@@ -64,7 +64,8 @@ const PaymentsPageSurvey = () => {
 
 	const handleSurveyClose = useCallback( () => {
 		// Update in-memory cooldown to prevent re-show if disable is retried.
-		wcStripeExitSurveyParams.exitSurveyLastShown = new Date().toISOString();
+		wcStripeExitSurveyParams.exit_survey_last_shown =
+			new Date().toISOString();
 		setShowSurvey( false );
 	}, [] );
 

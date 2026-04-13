@@ -40,7 +40,7 @@ const PluginsPageApp = () => {
 			// If cooldown is active, skip survey and let deactivation proceed normally.
 			if (
 				isCooldownActive(
-					wcStripePluginsPageParams.exitSurveyLastShown
+					wcStripePluginsPageParams.exit_survey_last_shown
 				)
 			) {
 				return;

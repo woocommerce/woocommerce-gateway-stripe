@@ -6,12 +6,12 @@ import PluginsPageApp from '../plugins-page-app';
 jest.mock( '@wordpress/api-fetch', () => jest.fn( () => Promise.resolve() ) );
 
 const mockParams = {
-	exitSurveyLastShown: null,
-	stripeAccountId: 'acct_test',
-	wcStoreId: 'uuid-test',
-	pluginVersion: '10.5.3',
-	wcVersion: '9.9.0',
-	wpVersion: '6.7.2',
+	exit_survey_last_shown: null,
+	stripe_account_id: 'acct_test',
+	wc_store_id: 'uuid-test',
+	plugin_version: '10.5.3',
+	wc_version: '9.9.0',
+	wp_version: '6.7.2',
 };
 
 describe( 'PluginsPageApp', () => {
@@ -46,7 +46,7 @@ describe( 'PluginsPageApp', () => {
 		recent.setDate( recent.getDate() - 1 );
 		global.wcStripePluginsPageParams = {
 			...mockParams,
-			exitSurveyLastShown: recent.toISOString(),
+			exit_survey_last_shown: recent.toISOString(),
 		};
 
 		render( <PluginsPageApp /> );

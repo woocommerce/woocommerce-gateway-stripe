@@ -2314,18 +2314,32 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Account $account Stripe account instance.
 	 * @return array Associative array of survey parameters for wp_localize_script.
 	 */
-	public static function get_exit_survey_params( WC_Stripe_Account $account ) {
+	/**
+	 * Check if the current admin page is the WooCommerce Payments settings list page.
+	 *
+	 * @return bool
+	 */
+	public static function is_admin_payments_page(): bool {
+		global $current_tab, $current_section;
+
+		return is_admin() && (
+			( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
+			( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		);
+	}
+
+	public static function get_exit_survey_params( WC_Stripe_Account $account ): array {
 		// Read account data from cache only — avoid triggering a live Stripe API call.
 		$account_cache = WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
 		$account_data  = is_array( $account_cache ) ? $account_cache : [];
 
 		return [
-			'exitSurveyLastShown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
-			'stripeAccountId'     => $account_data['id'] ?? '',
-			'wcStoreId'           => get_option( 'woocommerce_store_id', '' ),
-			'pluginVersion'       => WC_STRIPE_VERSION,
-			'wcVersion'           => defined( 'WC_VERSION' ) ? WC_VERSION : '',
-			'wpVersion'           => get_bloginfo( 'version' ),
+			'exit_survey_last_shown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
+			'stripe_account_id'      => $account_data['id'] ?? '',
+			'wc_store_id'            => get_option( 'woocommerce_store_id', '' ),
+			'plugin_version'         => WC_STRIPE_VERSION,
+			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wp_version'             => get_bloginfo( 'version' ),
 		];
 	}
 }

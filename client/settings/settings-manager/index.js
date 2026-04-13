@@ -94,7 +94,7 @@ const SettingsManager = () => {
 			typeof wc_stripe_settings_params !== 'undefined' &&
 			! isCooldownActive(
 				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.exitSurveyLastShown
+				wc_stripe_settings_params.exit_survey_last_shown
 			)
 		) {
 			setShowExitSurvey( true );

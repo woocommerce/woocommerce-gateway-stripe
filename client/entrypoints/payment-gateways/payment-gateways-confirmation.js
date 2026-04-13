@@ -29,7 +29,9 @@ const PaymentGatewaysConfirmation = () => {
 		// Show exit survey if cooldown is not active.
 		if (
 			typeof wcStripeExitSurveyParams !== 'undefined' &&
-			! isCooldownActive( wcStripeExitSurveyParams.exitSurveyLastShown )
+			! isCooldownActive(
+				wcStripeExitSurveyParams.exit_survey_last_shown
+			)
 		) {
 			setShowExitSurvey( true );
 			return;

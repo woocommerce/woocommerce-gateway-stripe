@@ -57,23 +57,23 @@ export function buildSurveyUrl( surveyParams, trigger ) {
 	url.searchParams.set( 'iframe', '1' );
 	url.searchParams.set(
 		QUESTION_PARAMS.stripeAccountId,
-		surveyParams.stripeAccountId || ''
+		surveyParams.stripe_account_id || ''
 	);
 	url.searchParams.set(
 		QUESTION_PARAMS.wcStoreId,
-		surveyParams.wcStoreId || ''
+		surveyParams.wc_store_id || ''
 	);
 	url.searchParams.set(
 		QUESTION_PARAMS.pluginVersion,
-		surveyParams.pluginVersion || ''
+		surveyParams.plugin_version || ''
 	);
 	url.searchParams.set(
 		QUESTION_PARAMS.wcVersion,
-		surveyParams.wcVersion || ''
+		surveyParams.wc_version || ''
 	);
 	url.searchParams.set(
 		QUESTION_PARAMS.wpVersion,
-		surveyParams.wpVersion || ''
+		surveyParams.wp_version || ''
 	);
 	url.searchParams.set( QUESTION_PARAMS.trigger, trigger );
 
