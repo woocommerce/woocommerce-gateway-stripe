@@ -21,10 +21,10 @@
 		text-decoration: underline;
 		cursor: pointer;
 		vertical-align: baseline;
-	}
 
-	.wc-stripe-adaptive-pricing-disclosure__toggle:hover,
-	.wc-stripe-adaptive-pricing-disclosure__toggle:focus {
-		color: #1d2327;
+		&:hover,
+		&:focus {
+			color: #1d2327;
+		}
 	}
 }
