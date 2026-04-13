@@ -56,6 +56,7 @@ const CheckoutForm = ( {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
+	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
@@ -67,7 +68,8 @@ const CheckoutForm = ( {
 		checkoutSessionId,
 		errorMessage,
 		hasLoadErrorRef,
-		isPaymentElementComplete
+		isPaymentElementComplete,
+		selectedPaymentType
 	);
 	useCheckoutSuccessHandler(
 		checkoutState,
@@ -83,6 +85,7 @@ const CheckoutForm = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 		setIsPaymentElementComplete( complete );
+		setSelectedPaymentType( value?.type ?? '' );
 	};
 
 	const elementOptions = useMemo( () => {
