@@ -675,7 +675,7 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 		const billingAddress = {
 			name: billingName,
 			address: {
-				country: billingCountry,
+				country: billingCountry || undefined,
 				line1: getFieldValue( 'billing_address_1' ) || undefined,
 				line2: getFieldValue( 'billing_address_2' ) || undefined,
 				state: getFieldValue( 'billing_state' ) || undefined,
