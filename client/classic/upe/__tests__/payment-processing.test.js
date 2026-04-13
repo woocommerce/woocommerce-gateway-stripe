@@ -516,7 +516,6 @@ describe( 'payment-processing', () => {
 				expect( mockActions.confirm ).toHaveBeenCalledWith( {
 					returnUrl: window.location.href,
 					redirect: 'if_required',
-					savePaymentMethod: false,
 				} );
 				expect(
 					stripeUtils.appendCheckoutSessionIdToForm
@@ -524,7 +523,7 @@ describe( 'payment-processing', () => {
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
 			} );
 
-			it( 'passes savePaymentMethod true when the save card checkbox is checked', async () => {
+			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
 				const mockActions = {
 					confirm: jest.fn().mockResolvedValue( {
 						session: { id: 'cs_session_xyz' },
@@ -538,17 +537,72 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
-				const form = createMockForm( {
-					savePaymentMethodChecked: true,
-				} );
-				paymentProcessing.processPayment( api, form, 'card' );
-				await flushPromises();
+				const apServerData = {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: true,
+				};
 
-				expect( mockActions.confirm ).toHaveBeenCalledWith( {
-					returnUrl: window.location.href,
-					redirect: 'if_required',
-					savePaymentMethod: true,
+				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
+
+				try {
+					const form = createMockForm( {
+						savePaymentMethodChecked: true,
+					} );
+					paymentProcessing.processPayment( api, form, 'card' );
+					await flushPromises();
+
+					expect( mockActions.confirm ).toHaveBeenCalledWith( {
+						returnUrl: window.location.href,
+						redirect: 'if_required',
+						savePaymentMethod: true,
+					} );
+				} finally {
+					stripeUtils.getStripeServerData.mockReturnValue(
+						apServerData
+					);
+				}
+			} );
+
+			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+				const mockActions = {
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
 				} );
+
+				const apServerData = {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					isLoggedIn: false,
+				};
+
+				stripeUtils.getStripeServerData.mockReturnValue( apServerData );
+
+				try {
+					const form = createMockForm( {
+						savePaymentMethodChecked: true,
+					} );
+					paymentProcessing.processPayment( api, form, 'card' );
+					await flushPromises();
+
+					expect( mockActions.confirm ).toHaveBeenCalledWith( {
+						returnUrl: window.location.href,
+						redirect: 'if_required',
+					} );
+				} finally {
+					stripeUtils.getStripeServerData.mockReturnValue( {
+						...BASE_SERVER_DATA,
+						isAdaptivePricingEnabled: true,
+					} );
+				}
 			} );
 
 			it( 'shows error and does not submit when loadActions returns an error', async () => {

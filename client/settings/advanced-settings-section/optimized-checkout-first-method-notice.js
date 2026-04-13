@@ -20,7 +20,20 @@ const WarningIcon = () => {
 	);
 };
 
-const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
+/**
+ * The Optimized Checkout first method notice component.
+ * This notice is displayed when the Optimized Checkout is enabled and Stripe is not the first available gateway,
+ * to inform the user that Stripe should be moved to the top of the payment methods list to use Optimized Checkout.
+ *
+ * @param {Object}  props             - The component props.
+ * @param {boolean} props.isOCEnabled - Whether the Optimized Checkout is enabled.
+ * @param {boolean} props.refreshPage - Whether to refresh the page after the notice is dismissed.
+ * @return {React.ReactNode} The Optimized Checkout first method notice component.
+ */
+const OptimizedCheckoutFirstMethodNotice = ( {
+	isOCEnabled,
+	refreshPage = false,
+} ) => {
 	const [ showNotice, setShowNotice ] = useState(
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.show_stripe_first_method_notice
@@ -31,8 +44,13 @@ const OptimizedCheckoutFirstMethodNotice = ( { isOCEnabled } ) => {
 	}
 
 	const handleAction = () => {
-		moveStripeToTop();
-		setShowNotice( false );
+		moveStripeToTop().then( () => {
+			setShowNotice( false );
+
+			if ( refreshPage ) {
+				window.location.reload();
+			}
+		} );
 	};
 
 	const handleRemove = () => {
