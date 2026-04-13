@@ -729,19 +729,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api(): array {
 		return [
-			'No rest_route set'         => [
+			'No rest_route set'        => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route'  => [
+			'Store API checkout route' => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
-			'Different Store API route' => [
+			'Store API cart route'     => [
 				'rest_route' => '/wc/store/v1/cart',
-				'expected'   => false,
+				'expected'   => true,
 			],
-			'Non-Store API route'       => [
+			'Store API cart sub-route' => [
+				'rest_route' => '/wc/store/v1/cart/update-customer',
+				'expected'   => true,
+			],
+			'Non-Store API route'      => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],
