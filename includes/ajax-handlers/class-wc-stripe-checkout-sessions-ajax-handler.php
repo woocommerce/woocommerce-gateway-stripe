@@ -70,7 +70,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( $message );
 			}
 
-			if ( empty( $checkout_session->client_secret ) ) {
+			if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
 
