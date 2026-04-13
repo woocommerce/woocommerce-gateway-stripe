@@ -199,28 +199,43 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 												) }
 											</li>
 											<li>
-												{ interpolateComponents( {
-													mixedString: sprintf(
-														/* translators: %s: the site's URL where webhooks will be sent.*/
-														__(
-															'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}}{{copyButton/}}.',
-															'woocommerce-gateway-stripe'
-														),
-														decodeURIComponent(
-															webhookURLForDisplay
-														)
-													),
-													components: {
-														webhookURL: <strong />,
-														copyButton: (
-															<CopyButton
-																text={ decodeURIComponent(
-																	webhookURLForDisplay
-																) }
-															/>
-														),
-													},
-												} ) }
+												{ webhookURLForDisplay
+													? interpolateComponents( {
+															mixedString:
+																sprintf(
+																	/* translators: %s: the site's URL where webhooks will be sent.*/
+																	__(
+																		'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}} {{copyButton/}}',
+																		'woocommerce-gateway-stripe'
+																	),
+																	decodeURIComponent(
+																		webhookURLForDisplay
+																	)
+																),
+															components: {
+																webhookURL: (
+																	<strong />
+																),
+																copyButton: (
+																	<CopyButton
+																		text={ decodeURIComponent(
+																			webhookURLForDisplay
+																		) }
+																	/>
+																),
+															},
+													  } )
+													: interpolateComponents( {
+															mixedString: __(
+																'Setup webhooks in {{strong}}Account details{{/strong}} above, then set endpoint URL to your webhook URL',
+																'woocommerce-gateway-stripe'
+															),
+															components: {
+																strong: (
+																	<strong />
+																),
+															},
+													  } ) }
 											</li>
 											<li>
 												{ interpolateComponents( {
