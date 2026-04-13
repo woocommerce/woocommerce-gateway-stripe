@@ -127,7 +127,9 @@ const CheckoutForm = ( {
 			) }
 			<CurrencySelectorElement />
 			{ checkoutState.type === 'success' && (
-				<AdaptivePricingDisclosure />
+				<AdaptivePricingDisclosure
+					billingCountry={ billing?.billingAddress?.country ?? '' }
+				/>
 			) }
 			<PaymentElement
 				options={ elementOptions }
