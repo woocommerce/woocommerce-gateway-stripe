@@ -9,6 +9,7 @@ import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
@@ -202,7 +203,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 													mixedString: sprintf(
 														/* translators: %s: the site's URL where webhooks will be sent.*/
 														__(
-															'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}}.',
+															'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}}{{copyButton/}}.',
 															'woocommerce-gateway-stripe'
 														),
 														decodeURIComponent(
@@ -211,6 +212,13 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 													),
 													components: {
 														webhookURL: <strong />,
+														copyButton: (
+															<CopyButton
+																text={ decodeURIComponent(
+																	webhookURLForDisplay
+																) }
+															/>
+														),
 													},
 												} ) }
 											</li>
