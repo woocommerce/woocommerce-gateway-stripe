@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -33,6 +35,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { AdaptivePricingDisclosure } from 'wcstripe/blocks/checkout-sessions/adaptive-pricing-disclosure';
 
 /**
  * @typedef {Object} UPEComponent
@@ -442,6 +445,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 		mountCurrencySelectorElement( elements );
+		mountAdaptivePricingDisclosure();
 	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
@@ -482,6 +486,33 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
+}
+
+/**
+ * Mounts the Adaptive Pricing disclosure to the DOM element.
+ *
+ * @return {void}
+ */
+function mountAdaptivePricingDisclosure() {
+	const disclosureContainer = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! disclosureContainer ) {
+		return;
+	}
+
+	disclosureContainer.removeAttribute( 'hidden' );
+
+	const existingElement = disclosureContainer.querySelector(
+		'.wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( existingElement && existingElement.children.length > 0 ) {
+		return;
+	}
+
+	createRoot( disclosureContainer ).render(
+		createElement( AdaptivePricingDisclosure )
+	);
 }
 
 /**

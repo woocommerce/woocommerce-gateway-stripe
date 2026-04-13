@@ -1096,7 +1096,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $show_adaptive_pricing ) :
 				echo '<div id="wc-stripe-adaptive-pricing-currency-wrapper" class="wc-stripe-adaptive-pricing-currency-wrapper" style="margin-top: 12px;">';
 					echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector"></div>';
-					echo '<div id="wc-stripe-adaptive-pricing-disclosure" class="wc-stripe-adaptive-pricing-disclosure" hidden></div>';
+					echo '<div id="wc-stripe-adaptive-pricing-disclosure"></div>';
 				echo '</div>';
 			endif;
 			?>
