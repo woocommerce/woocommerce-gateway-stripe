@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -486,33 +487,67 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
-}
 
-/**
- * Mounts the Adaptive Pricing disclosure to the DOM element.
- *
- * @return {void}
- */
-function mountAdaptivePricingDisclosure() {
 	const disclosureContainer = document.getElementById(
 		'wc-stripe-adaptive-pricing-disclosure'
 	);
 	if ( ! disclosureContainer ) {
 		return;
 	}
+	disclosureContainer.setAttribute( 'isAdaptivePricingEnabled', 'true' );
+}
 
-	disclosureContainer.removeAttribute( 'hidden' );
+/** @type {import('react-dom/client').Root|null} */
+let disclosureRoot = null;
 
-	const existingElement = disclosureContainer.querySelector(
-		'.wc-stripe-adaptive-pricing-disclosure'
+/**
+ * Renders the Adaptive Pricing disclosure with the given billing country.
+ *
+ * @return {void}
+ */
+function renderAdaptivePricingDisclosure() {
+	if ( ! disclosureRoot ) {
+		return;
+	}
+	const billingCountry =
+		document.querySelector( '#billing_country' )?.value ?? '';
+	disclosureRoot.render(
+		createElement( AdaptivePricingDisclosure, { billingCountry } )
 	);
-	if ( existingElement && existingElement.children.length > 0 ) {
+}
+
+/**
+ * Mounts the Adaptive Pricing disclosure and attaches the reactive country-based
+ * visibility. Only creates the React root once.
+ *
+ * @return {void}
+ */
+function mountAdaptivePricingDisclosure() {
+	const container = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! container ) {
 		return;
 	}
 
-	createRoot( disclosureContainer ).render(
-		createElement( AdaptivePricingDisclosure )
-	);
+	const isAdaptivePricingEnabled =
+		container.getAttribute( 'isAdaptivePricingEnabled' ) === 'true';
+	if ( ! isAdaptivePricingEnabled ) {
+		return;
+	}
+
+	if ( ! disclosureRoot ) {
+		disclosureRoot = createRoot( container );
+
+		// WooCommerce fires `updated_checkout` via jQuery.trigger(); native
+		// addEventListener on body does not receive it.
+		jQuery( document.body ).on(
+			'updated_checkout',
+			renderAdaptivePricingDisclosure
+		);
+	}
+
+	renderAdaptivePricingDisclosure();
 }
 
 /**
