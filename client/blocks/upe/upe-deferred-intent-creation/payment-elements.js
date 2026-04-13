@@ -114,7 +114,7 @@ const ElementsContainer = ( props ) => {
 
 	// Build options object.
 	let options = {
-		appearance: initializeUPEAppearance( api, 'true' ),
+		appearance: initializeUPEAppearance( 'true' ),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -132,7 +132,7 @@ const ElementsContainer = ( props ) => {
 			},
 		};
 
-		if ( stripeServerData?.isOCEnabled ) {
+		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			options = {
 				...options,
 				...{
@@ -232,6 +232,8 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
+				isLoggedIn={ stripeServerData?.isLoggedIn }
+				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage
 				}

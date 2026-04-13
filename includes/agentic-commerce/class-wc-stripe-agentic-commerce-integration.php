@@ -53,6 +53,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SCHEDULED_OPTION = 'wc_stripe_agentic_commerce_feed_sync_scheduled';
 
 	/**
+	 * Option key for the merchant-facing enabled toggle.
+	 *
+	 * Distinct from the developer feature flag. This is the value the merchant
+	 * controls via the Agentic Commerce settings UI.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
+
+	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int
@@ -77,6 +88,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function register_hooks(): void {
 		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] );
+
+		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
+		$inventory_tracker->register_hooks();
 	}
 
 	/**
@@ -196,6 +210,19 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public function is_enabled(): bool {
 		return WC_Stripe_Feature_Flags::is_agentic_commerce_enabled();
+	}
+
+	/**
+	 * Check if the merchant has enabled Agentic Commerce via the settings UI.
+	 *
+	 * This is distinct from the developer feature flag. Both must be true for the
+	 * integration to be fully active.
+	 *
+	 * @since 10.6.0
+	 * @return bool True if the merchant has enabled the feature.
+	 */
+	public static function is_merchant_enabled(): bool {
+		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
 	}
 
 	/**

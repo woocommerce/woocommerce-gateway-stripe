@@ -1,7 +1,10 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { getAppearance } from '../styles/upe';
+import {
+	getAppearance,
+	getExpandedOptimizedCheckoutRules,
+} from '../styles/upe';
 import {
 	errorTypes,
 	errorCodes,
@@ -505,6 +508,21 @@ export const getUpeSettings = () => {
 	return upeSettings;
 };
 
+export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
+	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	if ( existingElement.length ) {
+		existingElement.val( checkoutSessionId );
+		return;
+	}
+
+	const hiddenInput = document.createElement( 'input' );
+	hiddenInput.type = 'hidden';
+	hiddenInput.id = 'wc_stripe_checkout_session_id';
+	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.value = checkoutSessionId;
+	form.append( hiddenInput );
+};
+
 /**
  * Craft the defaultValues parameter, used to pre-fill
  * user email and phone number for Link in the Payment Element.
@@ -763,58 +781,63 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 	$container.prepend( messageWrapper );
 };
 
+// In-memory cache for computed appearance objects, keyed by checkout type.
+// Avoids redundant getComputedStyle() calls within a single page load.
+const appearanceCache = {};
+
 /**
- * Initializes the appearance of the payment element by retrieving the UPE configuration
- * from the API and saving the appearance if it doesn't exist.
+ * Initializes the appearance of the payment element. Returns a cached value
+ * when available, otherwise computes from the current page styles and caches
+ * the result for the lifetime of the page.
  *
- * If the appearance already exists, it is simply returned.
- *
- * @param {Object} api             The API object used to save the appearance.
- * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
+ * @param {string}  isBlockCheckout               Whether the checkout is being used in a block context.
+ * @param {boolean} shouldExpandOptimizedCheckout Whether the Optimized Checkout Suite should be expanded. Only applicable for classic checkout.
  *
  * @return {Object} The appearance object for the UPE.
  */
+export const initializeUPEAppearance = (
+	isBlockCheckout = 'false',
+	shouldExpandOptimizedCheckout = false
+) => {
+	const isBlocks = isBlockCheckout === 'true';
+	const location = isBlocks
+		? 'blocks'
+		: 'classic' + ( shouldExpandOptimizedCheckout ? '_expanded' : '' );
 
-// Track if save appearance is already in progress to prevent multiple calls
-let isSavingAppearance = false;
-
-export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
-	let appearance =
-		isBlockCheckout === 'true'
-			? getStripeServerData()?.blocksAppearance
-			: getStripeServerData()?.appearance;
-
-	const data = getStripeServerData();
-
-	if ( ! appearance ) {
-		appearance = getAppearance( isBlockCheckout === 'true' );
-
-		const isValidUpdateContext =
-			isBlockCheckout === 'true' ||
-			( data.isCheckout &&
-				! data.isOrderPay &&
-				! data.isChangingPayment );
-
-		// If we have re-built the appearance, only update the settings in the checkout context
-		if ( isValidUpdateContext && ! isSavingAppearance ) {
-			// Set flag to prevent concurrent saves
-			isSavingAppearance = true;
-
-			// Update the global variable immediately to prevent multiple AJAX calls
-			if ( isBlockCheckout === 'true' ) {
-				data.blocksAppearance = appearance;
-			} else {
-				data.appearance = appearance;
-			}
-
-			api.saveAppearance( appearance, isBlockCheckout ).finally( () => {
-				// Reset flag when save completes (success or failure)
-				isSavingAppearance = false;
-			} );
+	// Check for custom appearance configuration from the server.
+	const customServerField = isBlocks ? 'blocksAppearance' : 'appearance';
+	const customAppearance = getStripeServerData()?.[ customServerField ];
+	if ( customAppearance ) {
+		if ( ! shouldExpandOptimizedCheckout ) {
+			return customAppearance;
 		}
+
+		return {
+			...customAppearance,
+			rules: getExpandedOptimizedCheckoutRules(
+				customAppearance.rules || {}
+			),
+		};
 	}
 
+	if ( appearanceCache[ location ] ) {
+		return appearanceCache[ location ];
+	}
+
+	const appearance = getAppearance( isBlocks, shouldExpandOptimizedCheckout );
+	appearanceCache[ location ] = appearance;
 	return appearance;
+};
+
+/**
+ * Clears the in-memory appearance cache so the next call to
+ * initializeUPEAppearance() re-computes from the current page styles.
+ * Used after web fonts finish loading to refresh stale font families.
+ */
+export const invalidateAppearanceCache = () => {
+	Object.keys( appearanceCache ).forEach(
+		( key ) => delete appearanceCache[ key ]
+	);
 };
 
 /**
@@ -998,7 +1021,8 @@ export const maybeClearBlikCodeValidation = () => {
  * @return {string} The base font size.
  */
 export const getFontSizeBase = ( defaultFontSize ) => {
-	if ( getStripeServerData()?.isOCEnabled && defaultFontSize ) {
+	const stripeServerData = getStripeServerData();
+	if ( stripeServerData?.shouldShowOptimizedCheckout && defaultFontSize ) {
 		// Find numbers for font size.
 		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
 		if ( matches.length > 0 ) {

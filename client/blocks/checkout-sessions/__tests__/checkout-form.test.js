@@ -17,7 +17,23 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 	getStripeElementOptions: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/blocks/checkout-sessions/hooks', () => ( {
+	usePaymentSetupHandler: jest.fn(),
+	useCheckoutSuccessHandler: jest.fn(),
+	usePaymentFailHandler: jest.fn(),
+	useCheckoutSessionTotalsSync: jest.fn(),
+} ) );
+
+jest.mock(
+	'wcstripe/optimized-checkout/handle-display-of-payment-instructions',
+	() => ( {
+		handleDisplayOfPaymentInstructions: jest.fn(),
+	} )
+);
+
 describe( 'CheckoutForm', () => {
+	const api = { checkoutSessionsUpdateSession: jest.fn() };
+
 	const LoadingMask = ( { isLoading, showSpinner, screenReaderLabel } ) => (
 		<div>
 			{ isLoading && showSpinner && <span>{ screenReaderLabel }</span> }
@@ -26,6 +42,14 @@ describe( 'CheckoutForm', () => {
 	const onLoadError = jest.fn();
 	const setShouldLoadStripeElements = jest.fn();
 	const testingInstructions = 'Test instructions';
+	const eventRegistration = {
+		onPaymentSetup: jest.fn(),
+		onCheckoutSuccess: jest.fn(),
+		onCheckoutFail: jest.fn(),
+	};
+	const emitResponse = {
+		noticeContexts: { PAYMENTS: 'payments' },
+	};
 
 	beforeEach( () => {
 		CurrencySelectorElement.mockReturnValue(
@@ -58,6 +82,9 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
 				onLoadError={ onLoadError }
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }
@@ -80,6 +107,9 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
 				onLoadError={ onLoadError }
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }
@@ -101,6 +131,9 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
 				onLoadError={ onLoadError }
 				setShouldLoadStripeElements={ setShouldLoadStripeElements }

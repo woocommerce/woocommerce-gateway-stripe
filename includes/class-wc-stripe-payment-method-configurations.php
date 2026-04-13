@@ -120,7 +120,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
-		$is_test_mode       = WC_Stripe_Mode::is_test();
+		$is_test_mode = WC_Stripe_Mode::is_test();
 
 		/**
 		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
@@ -134,7 +134,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
 			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			$error = null;
+			$error         = null;
 			if ( is_wp_error( $configuration ) ) {
 				$error = $configuration;
 			} elseif ( ! empty( $configuration->error ) ) {
@@ -248,8 +248,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 
 			return [
-				'pmc'     => null,
-				'reason'  => 'no_eligible_pmcs',
+				'pmc'    => null,
+				'reason' => 'no_eligible_pmcs',
 			];
 		}
 
@@ -592,19 +592,19 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Add default express checkout methods to the list if express checkout is enabled
-		if ( ! empty( $stripe_settings['express_checkout'] ) && 'yes' === $stripe_settings['express_checkout'] ) {
+		if (
+			! empty( $stripe_settings['express_checkout'] ) &&
+			'yes' === $stripe_settings['express_checkout'] &&
+			'yes' !== ( $stripe_settings['skip_pmc_express_checkout_defaults'] ?? 'no' )
+		) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
 			);
 
-			// If Amazon Pay is available and should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
-			if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() && 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) ) {
-				$amazon_pay = new WC_Stripe_UPE_Payment_Method_Amazon_Pay();
-
-				if ( $amazon_pay->is_available_for_account_country() && in_array( get_woocommerce_currency(), $amazon_pay->get_supported_currencies(), true ) ) {
-					$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
-				}
+			// If Amazon Pay should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
+			if ( 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) && WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country() && in_array( get_woocommerce_currency(), WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies(), true ) ) {
+				$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 			}
 		}
 
@@ -618,9 +618,8 @@ class WC_Stripe_Payment_Method_Configurations {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 
-				// We want to also include payment methods enabled in the PMC, except for express payment methods.
+				// Add all payment methods enabled in the PMC that are not enabled locally.
 				if (
-					! in_array( $payment_method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) &&
 					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
 					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
 				) {

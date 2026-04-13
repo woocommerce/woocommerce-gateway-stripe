@@ -8,6 +8,22 @@ const paddingColorProps = [
 	'paddingLeft',
 ];
 
+const computedStylePropertyMaps = {
+	'-webkit-font-smoothing': 'WebkitFontSmoothing',
+	'-moz-osx-font-smoothing': 'MozOsxFontSmoothing',
+};
+
+/**
+ * Key to use when reading this property from `getComputedStyle( element )`.
+ * If the property is not present in the computed style map, the original string is returned.
+ *
+ * @param {string} propertyName Appearance property name.
+ * @return {string} Computed-style object key for that property.
+ */
+export const getSourcePropertyName = ( propertyName ) => {
+	return computedStylePropertyMaps[ propertyName ] || propertyName;
+};
+
 const textFontTransitionProps = [
 	'fontFamily',
 	'fontSize',
@@ -18,9 +34,9 @@ const textFontTransitionProps = [
 	'textDecoration',
 	'textShadow',
 	'textTransform',
+	'transition',
 	'-webkit-font-smoothing',
 	'-moz-osx-font-smoothing',
-	'transition',
 ];
 const borderOutlineBackgroundProps = [
 	'border',
@@ -94,6 +110,7 @@ const restrictedTabIconSelectedProperties = [ 'color' ];
 
 export const upeRestrictedProperties = {
 	'.Label': upeSupportedProperties[ '.Label' ],
+	'.Label--floating': [ ...upeSupportedProperties[ '.Label' ], 'transform' ],
 	'.Input': [
 		...upeSupportedProperties[ '.Input' ],
 		'outlineColor',

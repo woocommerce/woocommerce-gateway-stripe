@@ -61,6 +61,9 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+		WC_Stripe_UPE_Availability_Note::init();
+
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
@@ -137,7 +140,7 @@ class WC_Stripe_Inbox_Notes {
 	public static function should_show_marketing_note() {
 		// Display to US merchants only.
 		$base_location = wc_get_base_location();
-		if ( ! $base_location || 'US' !== $base_location['country'] ) {
+		if ( ! $base_location || WC_Stripe_Country_Code::UNITED_STATES !== $base_location['country'] ) {
 			return false;
 		}
 
