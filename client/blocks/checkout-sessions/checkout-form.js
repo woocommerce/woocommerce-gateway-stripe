@@ -13,6 +13,7 @@ import {
 	usePaymentSetupHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
+import { AdaptivePricingDisclosure } from 'wcstripe/blocks/checkout-sessions/adaptive-pricing-disclosure';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -125,6 +126,9 @@ const CheckoutForm = ( {
 				/>
 			) }
 			<CurrencySelectorElement />
+			{ checkoutState.type === 'success' && (
+				<AdaptivePricingDisclosure />
+			) }
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }
