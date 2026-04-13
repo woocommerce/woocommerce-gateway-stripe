@@ -1,10 +1,15 @@
 /* global wc_stripe_settings_params */
+import { getAdminLink } from '@woocommerce/settings';
 import React, { useState } from 'react';
 import GridIcon from 'gridicons';
-import { __ } from '@wordpress/i18n';
 import { Notice } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
+import { dispatch } from '@wordpress/data';
 import './style.scss';
+
+const PAYMENT_METHODS_CHECKOUT_SETTINGS_PATH =
+	'admin.php?page=wc-settings&tab=checkout';
 
 const WarningIcon = () => {
 	return (
@@ -43,12 +48,41 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 		return null;
 	}
 
+	const dispatchSuccessNotice = () => {
+		const paymentMethodsUrl = getAdminLink(
+			PAYMENT_METHODS_CHECKOUT_SETTINGS_PATH
+		);
+
+		dispatch( 'core/notices' ).createSuccessNotice(
+			__(
+				'Stripe is now the first option in checkout.',
+				'woocommerce-gateway-stripe'
+			),
+			{
+				id: 'wc_stripe_stripe_first_checkout_success',
+				actions: [
+					{
+						url: paymentMethodsUrl,
+						label: __(
+							'Review the payment method order',
+							'woocommerce-gateway-stripe'
+						),
+						openInNewTab: true,
+					},
+				],
+				speak: false,
+			}
+		);
+	};
+
 	const handleAction = () => {
 		moveStripeToTop().then( () => {
 			setShowNotice( false );
 
 			if ( refreshPage ) {
 				window.location.reload();
+			} else {
+				dispatchSuccessNotice();
 			}
 		} );
 	};
