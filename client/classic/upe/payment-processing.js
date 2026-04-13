@@ -859,10 +859,6 @@ export const processPayment = (
 				const { actions } = loadActionsResult;
 				const session = await actions.getSession();
 
-				const shouldSavePaymentMethod = jQueryForm
-					.find( '#wc-stripe-new-payment-method' )
-					.is( ':checked' );
-
 				const confirmArgs = {
 					...getUserDataForCheckoutSession( session ),
 					returnUrl: window.location.href,
@@ -870,7 +866,9 @@ export const processPayment = (
 				};
 
 				if ( getStripeServerData()?.isLoggedIn ) {
-					confirmArgs.savePaymentMethod = shouldSavePaymentMethod;
+					confirmArgs.savePaymentMethod = jQueryForm
+						.find( '#wc-stripe-new-payment-method' )
+						.is( ':checked' );
 				}
 
 				const confirmResult = await actions.confirm( confirmArgs );

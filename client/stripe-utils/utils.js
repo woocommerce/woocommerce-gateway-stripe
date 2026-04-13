@@ -639,7 +639,7 @@ export const getFieldValue = ( id ) => {
  * Normalizes a WooCommerce country code for Stripe (uppercase ISO 3166-1 alpha-2 when applicable).
  *
  * @param {string} country Raw country from the form.
- * @return {string|undefined} Normalized country or undefined when empty.
+ * @return {string} If country is a two-letter string, return the uppercase value. If country is some other string, return that value. For falsy values of country, return ''.
  */
 const normalizeCountryForStripe = ( country ) => {
 	if ( ! country ) {
@@ -691,6 +691,8 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 		const shipLine1 = getFieldValue( 'shipping_address_1' );
 		const shipCountryRaw = getFieldValue( 'shipping_country' );
 
+		// Stripe requires at minimum line1 and country for a valid shipping address.
+		// Skip shipping entirely if either of these two fields is absent from the form.
 		if ( shipLine1 && shipCountryRaw ) {
 			const shipCountry = normalizeCountryForStripe( shipCountryRaw );
 			const shipFirst = getFieldValue( 'shipping_first_name' );
