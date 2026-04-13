@@ -855,7 +855,11 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		$gateway_order_updated = update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		if ( $gateway_order_updated ) {
+			// set the user notice option to yes to show the notice if it was dismissed and Stripe is not the first available gateway after the update.
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' );
+		}
 	}
 
 	/**
