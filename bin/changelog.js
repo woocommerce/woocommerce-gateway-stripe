@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
+const readline = require('readline');
 
 const execFileP = promisify(execFile);
 
@@ -113,6 +114,17 @@ function extractJson(text) {
     return JSON.parse(body.slice(start, end + 1));
 }
 
+function promptWithPrefill(question, prefill) {
+    return new Promise((resolve) => {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        rl.question(question, (answer) => {
+            rl.close();
+            resolve(answer);
+        });
+        rl.write(prefill);
+    });
+}
+
 async function suggestWithClaude() {
     const { log, diffstat } = await getBranchContext();
     if (!log && !diffstat) {
@@ -187,24 +199,57 @@ async function main() {
                 console.warn(`Claude suggestion unavailable (${err.message}). Falling back to manual entry.`);
             }
 
-            const answers = await inquirer.prompt([
-                {
+            let action = 'edit';
+            if (suggestion) {
+                const { next } = await inquirer.prompt([{
                     type: 'list',
-                    name: 'changeType',
-                    message: 'Confirm the type of change:',
-                    choices: manualTypeChoices,
-                    default: suggestion ? suggestion.type : undefined,
-                },
-                {
-                    type: 'input',
-                    name: 'message',
-                    message: 'Confirm the changelog message:',
-                    default: suggestion ? suggestion.message : undefined,
-                    validate: (input) => input.trim().length > 0 || 'Message cannot be empty',
-                },
-            ]);
-            changeType = answers.changeType;
-            message = answers.message;
+                    name: 'next',
+                    message: 'What would you like to do?',
+                    choices: [
+                        { name: 'Use suggestion as-is', value: 'accept' },
+                        { name: 'Edit before saving', value: 'edit' },
+                    ],
+                    default: 'accept',
+                }]);
+                action = next;
+            }
+
+            if (action === 'accept') {
+                changeType = suggestion.type;
+                message = suggestion.message;
+            } else if (suggestion) {
+                const typePattern = new RegExp(`^\\s*(${Object.keys(CHANGE_TYPES).join('|')})\\s*-\\s*(.+?)\\s*$`);
+                while (true) {
+                    const line = await promptWithPrefill(
+                        '? Edit entry: ',
+                        `${suggestion.type} - ${suggestion.message}`
+                    );
+                    const match = line.match(typePattern);
+                    if (match) {
+                        changeType = match[1];
+                        message = match[2];
+                        break;
+                    }
+                    console.warn(`Invalid format. Expected "Type - message" where Type is one of: ${Object.keys(CHANGE_TYPES).join(', ')}`);
+                }
+            } else {
+                const answers = await inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'changeType',
+                        message: 'Select the type of change:',
+                        choices: manualTypeChoices,
+                    },
+                    {
+                        type: 'input',
+                        name: 'message',
+                        message: 'Enter the changelog message:',
+                        validate: (input) => input.trim().length > 0 || 'Message cannot be empty',
+                    },
+                ]);
+                changeType = answers.changeType;
+                message = answers.message;
+            }
         } else {
             changeType = first.changeType;
             const answers = await inquirer.prompt([{
