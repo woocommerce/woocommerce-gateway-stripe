@@ -41,6 +41,7 @@ const BASE_PARAMS = {
 		payoutsEnabled: true,
 		accountLink: 'https://stripe.com/support',
 	},
+	is_agentic_commerce_enabled: false,
 };
 
 describe( 'SettingsManager', () => {

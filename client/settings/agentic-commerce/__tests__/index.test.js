@@ -77,9 +77,16 @@ describe( 'AgenticCommercePanel', () => {
 	beforeEach( () => {
 		useTestMode.mockReturnValue( [ false ] );
 		useAccount.mockReturnValue( { data: null } );
+		global.wc_stripe_settings_params = {
+			agentic_commerce_import_sets_url:
+				'https://dashboard.stripe.com/test/data-management/import-sets',
+			agentic_commerce_logs_url:
+				'/wp-admin/admin.php?page=wc-status&tab=logs',
+		};
 	} );
 
 	afterEach( () => {
+		delete global.wc_stripe_settings_params;
 		jest.resetAllMocks();
 	} );
 
@@ -256,7 +263,7 @@ describe( 'AgenticCommercePanel', () => {
 
 		await waitFor( () => {
 			expect( apiFetch ).toHaveBeenCalledWith( {
-				path: '/wc/v3/wc_stripe/agentic-commerce',
+				path: '/wc/v3/wc_stripe/agentic-commerce/status',
 			} );
 		} );
 	} );

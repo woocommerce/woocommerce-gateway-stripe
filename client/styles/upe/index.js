@@ -1,6 +1,6 @@
 /* global wc_stripe_upe_params */
 
-import { upeRestrictedProperties } from './upe-styles';
+import { getSourcePropertyName, upeRestrictedProperties } from './upe-styles';
 import {
 	generateHoverRules,
 	generateOutlineStyle,
@@ -325,8 +325,9 @@ export const getFieldStyles = ( selector, upeElement ) => {
 	const filteredStyles = {};
 
 	for ( const property of validProperties ) {
-		if ( typeof styles[ property ] !== 'undefined' ) {
-			filteredStyles[ property ] = styles[ property ];
+		const sourceProperty = getSourcePropertyName( property );
+		if ( typeof styles[ sourceProperty ] !== 'undefined' ) {
+			filteredStyles[ property ] = styles[ sourceProperty ];
 		}
 	}
 
@@ -403,6 +404,24 @@ export const getFontRulesFromPage = () => {
 	}
 
 	return fontRules;
+};
+
+/**
+ * Reads the current fontFamily from the first available text selector via a
+ * single getComputedStyle() call. Used to detect whether web fonts have changed
+ * since the appearance was last computed, without running the full getAppearance
+ * pipeline.
+ *
+ * @param {boolean} isBlocksCheckout Whether the checkout is a blocks checkout.
+ * @return {string|undefined} The current fontFamily, or undefined if no selector matches.
+ */
+export const sampleFontFamily = ( isBlocksCheckout = false ) => {
+	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
+	// Pass the array directly to querySelector — JS coerces it to a
+	// comma-separated CSS selector list, matching the same element
+	// resolution that getFieldStyles uses for paragraphRules.fontFamily.
+	const el = document.querySelector( selectors.upeThemeTextSelectors );
+	return el ? window.getComputedStyle( el ).fontFamily : undefined;
 };
 
 export const getAppearance = (
