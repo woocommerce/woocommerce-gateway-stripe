@@ -68,9 +68,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			WC()->cart->add_to_cart( $product->get_id(), 1 );
 		}
 
-		// Mock response from Stripe API.
-		$test_request = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_response ) {
-			// Mock the customer retrieval response.
+		// Mock customer API responses (still uses raw HTTP).
+		$test_request = function ( $return_value, $parsed_args, $url ) {
 			if ( strpos( $url, '/v1/customers' ) !== false ) {
 				return [
 					'response' => 200,
@@ -78,19 +77,35 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'body'     => json_encode( (object) [ 'id' => 'cus_123' ] ),
 				];
 			}
-
-			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => json_encode( $checkout_session_response ),
-				];
-			}
-
 			return $return_value;
 		};
-
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		// Mock checkout session SDK responses.
+		if ( null !== $checkout_session_response ) {
+			if ( ! empty( $checkout_session_response->error ) ) {
+				$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+					$this,
+					[
+						'create_exception' => \Stripe\Exception\InvalidRequestException::factory(
+							$checkout_session_response->error->message,
+							400
+						),
+					]
+				);
+			} else {
+				// Use constructFrom directly (no defaults) so tests for missing fields work correctly.
+				$session_data           = (array) $checkout_session_response;
+				$session_data['object'] = 'checkout.session';
+				$mock_sdk               = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+					$this,
+					[
+						'create_response' => \Stripe\Checkout\Session::constructFrom( $session_data ),
+					]
+				);
+			}
+			WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+		}
 
 		// Set up the AJAX request nonce.
 		$_REQUEST['_ajax_nonce'] = $is_valid_nonce ? wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' ) : 'invalid_nonce_value';
@@ -107,6 +122,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		} finally {
 			// Clean up.
 			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+			WC_Stripe_API::set_sdk_for_testing( null );
 			Ajax_Test_Helper::remove_hooks();
 		}
 
@@ -143,15 +159,35 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$product->save();
 		WC()->cart->add_to_cart( $product->get_id(), 2 );
 
+		// Capture the params passed to the SDK's create() method.
 		$captured_request = null;
-		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
-			if ( 'checkout/sessions' === $api ) {
-				$captured_request = $request;
-			}
-			return $request;
-		};
-		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		$session_service  = $this->getMockBuilder( \Stripe\Service\Checkout\SessionService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'create' ] )
+			->getMock();
 
+		$session_service->method( 'create' )
+			->willReturnCallback(
+				function ( $params ) use ( &$captured_request ) {
+					$captured_request = $params;
+					return WC_Stripe_SDK_Test_Helper::create_checkout_session_object(
+						[
+							'id'            => 'cs_test_line_item',
+							'client_secret' => 'cs_secret_test_line_item',
+						]
+					);
+				}
+			);
+
+		$checkout_service           = new stdClass();
+		$checkout_service->sessions = $session_service;
+
+		$mock_client           = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->checkout = $checkout_service;
+
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
+
+		// Mock customer API responses (still uses raw HTTP).
 		$test_request = static function ( $return_value, $parsed_args, $url ) {
 			if ( strpos( $url, '/v1/customers' ) !== false ) {
 				return [
@@ -160,18 +196,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
 				];
 			}
-
-			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode( (object) [ 'client_secret' => 'cs_test_secret' ] ),
-				];
-			}
-
 			return $return_value;
 		};
-
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
 		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_checkout_session_nonce' );
@@ -184,7 +210,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			ob_end_clean();
 		} finally {
 			remove_filter( 'pre_http_request', $test_request, 10, 3 );
-			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			WC_Stripe_API::set_sdk_for_testing( null );
 			Ajax_Test_Helper::remove_hooks();
 		}
 
@@ -228,21 +254,29 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$product->save();
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
-		$test_request = null;
+		// Mock checkout session SDK responses.
 		if ( null !== $checkout_session_response ) {
-			$test_request = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_id, $checkout_session_response ) {
-				$expected_path = 'checkout/sessions/' . $checkout_session_id;
-				if ( is_string( $url ) && strpos( $url, $expected_path ) !== false ) {
-					return [
-						'response' => 200,
-						'headers'  => [ 'Content-Type' => 'application/json' ],
-						'body'     => wp_json_encode( $checkout_session_response ),
-					];
-				}
-
-				return $return_value;
-			};
-			add_filter( 'pre_http_request', $test_request, 10, 3 );
+			if ( ! empty( $checkout_session_response->error ) ) {
+				$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+					$this,
+					[
+						'update_exception' => \Stripe\Exception\InvalidRequestException::factory(
+							$checkout_session_response->error->message,
+							400
+						),
+					]
+				);
+			} else {
+				$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+					$this,
+					[
+						'update_response' => WC_Stripe_SDK_Test_Helper::create_checkout_session_object(
+							(array) $checkout_session_response
+						),
+					]
+				);
+			}
+			WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
 		}
 
 		$_REQUEST['_ajax_nonce'] = $is_valid_nonce ? wp_create_nonce( 'wc_stripe_update_checkout_session_nonce' ) : 'invalid_nonce_value';
@@ -264,9 +298,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			throw $e;
 		} finally {
 			$_POST = $post_before;
-			if ( null !== $test_request ) {
-				remove_filter( 'pre_http_request', $test_request, 10, 3 );
-			}
+			WC_Stripe_API::set_sdk_for_testing( null );
 			Ajax_Test_Helper::remove_hooks();
 		}
 
@@ -395,33 +427,41 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 		$product->save();
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
+		// Capture the params passed to the SDK's create() method.
 		$captured_request = null;
-		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
-			if ( 'checkout/sessions' === $api ) {
-				$captured_request = $request;
-			}
-			return $request;
-		};
-		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		$session_service  = $this->getMockBuilder( \Stripe\Service\Checkout\SessionService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'create' ] )
+			->getMock();
 
+		$session_service->method( 'create' )
+			->willReturnCallback(
+				function ( $params ) use ( &$captured_request ) {
+					$captured_request = $params;
+					return WC_Stripe_SDK_Test_Helper::create_checkout_session_object(
+						[
+							'id'            => 'cs_test_phone',
+							'client_secret' => 'cs_secret_test_phone',
+						]
+					);
+				}
+			);
+
+		$checkout_service           = new stdClass();
+		$checkout_service->sessions = $session_service;
+
+		$mock_client           = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->checkout = $checkout_service;
+
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
+
+		// Mock customer API responses (still uses raw HTTP).
 		$test_request = static function ( $return_value, $parsed_args, $url ) {
 			if ( strpos( $url, '/v1/customers' ) !== false ) {
 				return [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
 					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
-				];
-			}
-			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode(
-						(object) [
-							'client_secret' => 'cs_test_secret',
-							'id'            => 'cs_test_123',
-						]
-					),
 				];
 			}
 			return $return_value;
@@ -438,7 +478,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			ob_end_clean();
 		} finally {
 			remove_filter( 'pre_http_request', $test_request, 10, 3 );
-			remove_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+			WC_Stripe_API::set_sdk_for_testing( null );
 			delete_option( 'woocommerce_checkout_phone_field' );
 			Ajax_Test_Helper::remove_hooks();
 		}

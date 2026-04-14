@@ -1423,10 +1423,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_checkout_session_metadata( string $checkout_session_id, array $metadata ): void {
 		try {
-			$response = WC_Stripe_API::request( [ 'metadata' => $metadata ], 'checkout/sessions/' . $checkout_session_id, 'POST' );
-			if ( ! empty( $response->error->message ) ) {
-				throw new WC_Stripe_Exception( $response->error->message );
-			}
+			WC_Stripe_API::update_checkout_session( $checkout_session_id, [ 'metadata' => $metadata ] );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Failed to update checkout session metadata: ' . $e->getMessage() );
 
@@ -2124,118 +2121,82 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
-		// Temporarily override the API version to get the right fields.
-		$override_version = function ( $headers ) {
-			$headers['Stripe-Version'] = WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION;
-			return $headers;
-		};
-		add_filter( 'wc_stripe_request_headers', $override_version );
+		try {
+			$expand      = array_merge( [ 'payment_intent.agent_details' ], WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand() );
+			$raw_session = WC_Stripe_API::retrieve_checkout_session(
+				$notification->data->object->id,
+				[ 'expand' => $expand ],
+				[ 'stripe_version' => WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION ]
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Failed to retrieve checkout session with expand params.',
+				[
+					'session_id' => $notification->data->object->id,
+					'error'      => $e->getMessage(),
+				]
+			);
+			return;
+		}
+
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
+
+		if ( ! $session->is_agentic() ) {
+			WC_Stripe_Logger::info(
+				'Checkout session is not agentic, skipping agentic processing: ' . $session->get_id()
+			);
+			return;
+		}
+
+		$payment_intent_id = $session->get_payment_intent_id();
+		if ( null === $payment_intent_id || empty( $payment_intent_id ) ) {
+			WC_Stripe_Logger::error(
+				'Checkout session is missing the payment intent id.',
+				[
+					'session_id' => $session->get_id(),
+				]
+			);
+			return;
+		}
 
 		try {
-			$url         = $this->build_checkout_session_retrieve_url(
-				$notification->data->object->id,
-				WC_Stripe_Agentic_Checkout_Session::get_fields_to_expand()
+			$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
+			$order                = $order_mapper->create_order_from_checkout_session( $session );
+			$this->resolved_order = $order;
+
+			WC_Stripe_Logger::info(
+				'Agentic order created from checkout session.',
+				[
+					'session_id' => $session->get_id(),
+					'order_id'   => $order->get_id(),
+				]
 			);
-			$raw_session = WC_Stripe_API::retrieve( $url );
 
-			if ( is_wp_error( $raw_session ) || ! is_object( $raw_session ) ) {
-				WC_Stripe_Logger::error(
-					'Failed to retrieve checkout session with expand params.',
-					[
-						'url'   => $url,
-						'error' => is_wp_error( $raw_session ) ? $raw_session->get_error_message() : 'Unexpected response from Stripe API.',
-					]
-				);
-				return;
-			}
+			/**
+			 * Fires after an agentic commerce order is created from a checkout session.
+			 *
+			 * @since 10.6.0
+			 * @param WC_Order                           $order   The created order.
+			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+			 */
+			do_action( 'wc_stripe_agentic_order_created', $order, $session );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Failed to create agentic order from checkout session.',
+				[
+					'session_id' => $session->get_id(),
+					'error'      => $e->getMessage(),
+				]
+			);
 
-			assert( $raw_session instanceof stdClass );
-			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
-
-			if ( ! $session->is_agentic() ) {
-				WC_Stripe_Logger::info(
-					'Checkout session is not agentic, skipping agentic processing: ' . $session->get_id()
-				);
-				return;
-			}
-
-			$payment_intent_id = $session->get_payment_intent_id();
-			if ( null === $payment_intent_id || empty( $payment_intent_id ) ) {
-				WC_Stripe_Logger::error(
-					'Checkout session is missing the payment intent id.',
-					[
-						'session_id' => $session->get_id(),
-					]
-				);
-				return;
-			}
-
-			try {
-				$order_mapper         = new WC_Stripe_Agentic_Commerce_Order_Mapper();
-				$order                = $order_mapper->create_order_from_checkout_session( $session );
-				$this->resolved_order = $order;
-
-				WC_Stripe_Logger::info(
-					'Agentic order created from checkout session.',
-					[
-						'session_id' => $session->get_id(),
-						'order_id'   => $order->get_id(),
-					]
-				);
-
-				/**
-				 * Fires after an agentic commerce order is created from a checkout session.
-				 *
-				 * @since 10.6.0
-				 * @param WC_Order                           $order   The created order.
-				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-				 */
-				do_action( 'wc_stripe_agentic_order_created', $order, $session );
-			} catch ( Exception $e ) {
-				WC_Stripe_Logger::error(
-					'Failed to create agentic order from checkout session.',
-					[
-						'session_id' => $session->get_id(),
-						'error'      => $e->getMessage(),
-					]
-				);
-
-				/**
-				 * Fires when agentic commerce order creation fails.
-				 *
-				 * @since 10.6.0
-				 * @param Exception                          $e       The exception that was thrown.
-				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-				 */
-				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
-			}
-		} finally {
-			remove_filter( 'wc_stripe_request_headers', $override_version );
+			/**
+			 * Fires when agentic commerce order creation fails.
+			 *
+			 * @since 10.6.0
+			 * @param Exception                          $e       The exception that was thrown.
+			 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+			 */
+			do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
 		}
-	}
-
-	/**
-	 * Builds the Stripe API URL for retrieving a checkout session with expanded fields.
-	 *
-	 * Expands the payment intent's agent_details (to detect agentic sessions)
-	 * and any additional fields required by the checkout session wrapper.
-	 *
-	 * @since 10.6.0
-	 * @param string   $session_id       The Stripe checkout session ID.
-	 * @param string[] $additional_expand Additional fields to expand beyond payment_intent.agent_details.
-	 * @return string The API URL with expand query parameters.
-	 *
-	 * @see https://docs.stripe.com/agentic-commerce/enable-in-context-selling-on-ai-agents?order-monitoring=webhooks#checkout-session-field-reference
-	 */
-	private function build_checkout_session_retrieve_url( string $session_id, array $additional_expand = [] ): string {
-		$url    = 'checkout/sessions/' . rawurlencode( $session_id );
-		$expand = array_merge( [ 'payment_intent.agent_details' ], $additional_expand );
-
-		$params = [];
-		foreach ( $expand as $field ) {
-			$params[] = 'expand[]=' . rawurlencode( $field );
-		}
-
-		return $url . '?' . implode( '&', $params );
 	}
 }

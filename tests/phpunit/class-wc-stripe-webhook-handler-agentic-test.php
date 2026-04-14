@@ -13,32 +13,23 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	private $handler;
 
 	/**
-	 * @var callable|null HTTP mock filter callback to remove in tear_down.
-	 */
-	private $http_filter;
-
-	/**
 	 * Set up the test.
 	 */
 	public function set_up() {
 		parent::set_up();
-		$this->handler     = new WC_Stripe_Webhook_Handler();
-		$this->http_filter = null;
+		$this->handler = new WC_Stripe_Webhook_Handler();
 
-		// Clear any invalid API key cache left by other tests so that
-		// WC_Stripe_API::retrieve() actually fires HTTP requests.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		// Ensure SDK test key is set.
+		WC_Stripe_API::set_secret_key( 'sk_test_mock_key' );
 
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 	}
 
 	/**
-	 * Tear down the test — always remove filters to prevent leaks.
+	 * Tear down the test — always clean up SDK mocks and filters.
 	 */
 	public function tear_down() {
-		if ( null !== $this->http_filter ) {
-			remove_filter( 'pre_http_request', $this->http_filter );
-		}
+		WC_Stripe_API::set_sdk_for_testing( null );
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 
 		parent::tear_down();
@@ -281,122 +272,91 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the wc_stripe_request_headers filter is always removed after processing,
-	 * even when an error occurs before order creation.
+	 * Tests that SDK errors are handled gracefully without leaking state.
 	 */
-	public function test_request_headers_filter_is_removed_after_processing_failure() {
-		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
-
-		$session_id   = 'cs_test_filter_cleanup';
+	public function test_sdk_error_does_not_leak_state() {
+		$session_id   = 'cs_test_sdk_cleanup';
 		$notification = $this->build_notification( $session_id );
 		$this->mock_stripe_api_error();
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API error → filter must still be cleaned up.
+		// Deferred phase: SDK error → no order created, no state leaked.
 		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
-		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
+		$resolved = $this->get_resolved_order( $this->handler );
+		$this->assertNull( $resolved );
 	}
 
 	/**
-	 * Tests that the Stripe API version override header is applied during the retrieve call.
+	 * Tests that the Stripe API version override is passed as an SDK request option.
 	 */
 	public function test_api_version_override_applied() {
-		$captured_headers  = null;
-		$this->http_filter = function ( $preempt, $parsed_args ) use ( &$captured_headers ) {
-			$captured_headers = $parsed_args['headers'] ?? [];
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => wp_json_encode( $this->build_checkout_session_response( 'cs_test_version', true ) ),
-			];
-		};
+		$captured_opts   = null;
+		$session_service = $this->getMockBuilder( \Stripe\Service\Checkout\SessionService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'retrieve' ] )
+			->getMock();
 
-		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+		$mock_response = $this->build_checkout_session_response( 'cs_test_version', true );
+		$session_service->method( 'retrieve' )
+			->willReturnCallback(
+				function ( $id, $params, $opts ) use ( &$captured_opts, $mock_response ) {
+					$captured_opts = $opts;
+					return \Stripe\Checkout\Session::constructFrom( $this->object_to_array( $mock_response ) );
+				}
+			);
+
+		$checkout_service           = new stdClass();
+		$checkout_service->sessions = $session_service;
+		$mock_client                = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->checkout      = $checkout_service;
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
 
 		$session_id   = 'cs_test_version';
 		$notification = $this->build_notification( $session_id );
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API retrieve call must include the Stripe-Version override header.
+		// Deferred phase: API retrieve call must pass stripe_version in opts.
 		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
-		$this->assertNotNull( $captured_headers );
-		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
-		$this->assertEquals( WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION, $captured_headers['Stripe-Version'] );
-	}
-
-	/**
-	 * Tests that build_checkout_session_retrieve_url produces correct URLs.
-	 *
-	 * @dataProvider provide_build_url_cases
-	 */
-	public function test_build_checkout_session_retrieve_url( $session_id, $additional_expand, $expected_url ) {
-		$method = new \ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'build_checkout_session_retrieve_url' );
-		$method->setAccessible( true );
-
-		$result = $method->invoke( $this->handler, $session_id, $additional_expand );
-		$this->assertEquals( $expected_url, $result );
-	}
-
-	public function provide_build_url_cases() {
-		return [
-			'default expand only'           => [
-				'cs_123',
-				[],
-				'checkout/sessions/cs_123?expand[]=payment_intent.agent_details',
-			],
-			'with additional expand'        => [
-				'cs_456',
-				[ 'line_items' ],
-				'checkout/sessions/cs_456?expand[]=payment_intent.agent_details&expand[]=line_items',
-			],
-			'session id with special chars' => [
-				'cs_test/special&chars',
-				[],
-				'checkout/sessions/cs_test%2Fspecial%26chars?expand[]=payment_intent.agent_details',
-			],
-		];
+		$this->assertNotNull( $captured_opts );
+		$this->assertArrayHasKey( 'stripe_version', $captured_opts );
+		$this->assertEquals( WC_Stripe_API::AGENTIC_COMMERCE_API_VERSION, $captured_opts['stripe_version'] );
 	}
 
 	// ---- Helpers ----
 
 	/**
-	 * Intercepts HTTP requests to the Stripe checkout sessions API and returns a mock response.
+	 * Injects a mock SDK that returns the given session object on retrieve().
 	 *
-	 * @param object $response_body The mock response body object.
+	 * @param object $response_body The mock response body object (stdClass).
 	 */
 	private function mock_stripe_checkout_sessions_response( $response_body ) {
-		$this->http_filter = function ( $preempt, $args, $url ) use ( $response_body ) {
-			if ( str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions/' ) ) {
-				return [
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-					'body'     => wp_json_encode( $response_body ),
-				];
-			}
-			return $preempt;
-		};
-
-		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+		$session_data = $this->object_to_array( $response_body );
+		$mock_sdk     = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'retrieve_response' => \Stripe\Checkout\Session::constructFrom( $session_data ),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
 	}
 
 	/**
-	 * Intercepts HTTP requests to the Stripe API and returns an error response.
+	 * Injects a mock SDK that throws an API error on retrieve().
 	 */
 	private function mock_stripe_api_error() {
-		$this->http_filter = function ( $preempt, $args, $url ) {
-			if ( false !== strpos( $url, 'api.stripe.com' ) ) {
-				return new \WP_Error( 'http_request_failed', 'Simulated Stripe API failure' );
-			}
-			return $preempt;
-		};
-
-		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'retrieve_exception' => \Stripe\Exception\ApiConnectionException::factory(
+					'Simulated Stripe API failure'
+				),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
 	}
 
 	/**
@@ -517,5 +477,21 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$prop = new \ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
 		$prop->setAccessible( true );
 		return $prop->getValue( $webhook_handler );
+	}
+
+	/**
+	 * Recursively converts an stdClass/object tree to a nested array for Stripe SDK constructFrom().
+	 *
+	 * @param mixed $obj The object or value to convert.
+	 * @return mixed
+	 */
+	private function object_to_array( $obj ) {
+		if ( is_object( $obj ) ) {
+			$obj = (array) $obj;
+		}
+		if ( is_array( $obj ) ) {
+			return array_map( [ $this, 'object_to_array' ], $obj );
+		}
+		return $obj;
 	}
 }

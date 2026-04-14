@@ -40,6 +40,21 @@ class WC_Stripe_API {
 	protected const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
 
 	/**
+	 * Cached Stripe SDK client instance.
+	 *
+	 * @var \Stripe\StripeClient|null
+	 */
+	private static ?\Stripe\StripeClient $sdk = null;
+
+	/**
+	 * The secret key used to create the current SDK instance.
+	 * Tracked so we can invalidate the SDK when the key changes (e.g. live/test mode switch).
+	 *
+	 * @var string
+	 */
+	private static string $sdk_secret = '';
+
+	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -736,5 +751,173 @@ class WC_Stripe_API {
 			return 'secret_key_not_configured';
 		}
 		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
+	}
+
+	/**
+	 * Inject a StripeClient for testing. Pass null to clear.
+	 *
+	 * @param \Stripe\StripeClient|null $client The client to inject, or null to clear.
+	 */
+	public static function set_sdk_for_testing( ?\Stripe\StripeClient $client ): void {
+		self::$sdk        = $client;
+		self::$sdk_secret = $client ? self::get_secret_key() : '';
+	}
+
+	/**
+	 * Returns a cached StripeClient singleton, automatically invalidated when the secret key changes.
+	 *
+	 * @return \Stripe\StripeClient
+	 */
+	public static function get_sdk(): \Stripe\StripeClient {
+		$secret = self::get_secret_key();
+
+		if ( ! self::$sdk || self::$sdk_secret !== $secret ) {
+			$user_agent = self::get_user_agent();
+			$app_info   = $user_agent['application'];
+
+			self::$sdk        = new \Stripe\StripeClient(
+				[
+					'api_key'        => $secret,
+					'stripe_version' => self::STRIPE_API_VERSION,
+					'app_info'       => [
+						'name'       => $app_info['name'],
+						'version'    => $app_info['version'],
+						'url'        => $app_info['url'],
+						'partner_id' => $app_info['partner_id'],
+					],
+				]
+			);
+			self::$sdk_secret = $secret;
+		}
+
+		return self::$sdk;
+	}
+
+	/**
+	 * Create a Stripe Checkout Session via the SDK.
+	 *
+	 * @param array $params Parameters for session creation.
+	 * @return \Stripe\Checkout\Session
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function create_checkout_session( array $params ): \Stripe\Checkout\Session {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: create checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'request'        => $params,
+				]
+			);
+
+			$session = self::get_sdk()->checkout->sessions->create( $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: create checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session->id,
+				]
+			);
+
+			return $session;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: create checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Retrieve a Stripe Checkout Session via the SDK.
+	 *
+	 * @param string $session_id The checkout session ID.
+	 * @param array  $params     Optional parameters (e.g. expand).
+	 * @param array  $opts       Optional request options (e.g. stripe_version).
+	 * @return \Stripe\Checkout\Session
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function retrieve_checkout_session( string $session_id, array $params = [], array $opts = [] ): \Stripe\Checkout\Session {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: retrieve checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session_id,
+					'params'         => $params,
+					'opts'           => $opts,
+				]
+			);
+
+			$session = self::get_sdk()->checkout->sessions->retrieve( $session_id, $params, $opts );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: retrieve checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session->id,
+				]
+			);
+
+			return $session;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: retrieve checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Update a Stripe Checkout Session via the SDK.
+	 *
+	 * @param string $session_id The checkout session ID.
+	 * @param array  $params     Parameters to update.
+	 * @return \Stripe\Checkout\Session
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function update_checkout_session( string $session_id, array $params ): \Stripe\Checkout\Session {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: update checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session_id,
+					'request'        => $params,
+				]
+			);
+
+			$session = self::get_sdk()->checkout->sessions->update( $session_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: update checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session->id,
+				]
+			);
+
+			return $session;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: update checkout session',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'session_id'     => $session_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
 	}
 }

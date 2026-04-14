@@ -24,19 +24,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Agentic_Checkout_Session {
 
 	/**
-	 * The raw Stripe checkout session object.
+	 * The Stripe checkout session object.
 	 *
-	 * @var stdClass
+	 * @var \Stripe\Checkout\Session|stdClass
 	 */
-	private stdClass $session;
+	private object $session;
 
 	/**
 	 * Constructor.
 	 *
 	 * @since 10.6.0
-	 * @param stdClass $session The raw Stripe checkout session object.
+	 * @param \Stripe\Checkout\Session|stdClass $session The Stripe checkout session object.
 	 */
-	public function __construct( stdClass $session ) {
+	public function __construct( object $session ) {
 		$this->session = $session;
 	}
 

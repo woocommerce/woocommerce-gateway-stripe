@@ -54,5 +54,8 @@
         "phpstan": "Run PHPStan static analysis on the Stripe extension",
         "phpstan:baseline": "Generate a PHPStan baseline file to ignore existing errors"
       }
+    },
+    "require": {
+        "stripe/stripe-php": "^19.4.0"
     }
 }

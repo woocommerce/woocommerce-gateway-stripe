@@ -19,22 +19,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_API_Address {
 	/**
-	 * The raw Stripe address object.
+	 * The Stripe address object.
 	 *
-	 * @var stdClass
+	 * @var object
 	 */
-	private stdClass $address;
+	private object $address;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param object $address The raw Stripe address object.
-	 * @throws \InvalidArgumentException If the address is not a stdClass instance.
+	 * @param object $address The Stripe address object (stdClass or \Stripe\StripeObject).
 	 */
-	public function __construct( $address ) {
-		if ( ! $address instanceof stdClass ) {
-			throw new \InvalidArgumentException( 'Address must be a stdClass instance.' );
-		}
+	public function __construct( object $address ) {
 		$this->address = $address;
 	}
 

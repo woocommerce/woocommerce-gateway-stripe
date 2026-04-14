@@ -63,12 +63,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				];
 			}
 
-			$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
-
-			if ( ! empty( $checkout_session->error ) ) {
-				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-				throw new Exception( $message );
-			}
+			$checkout_session = WC_Stripe_API::create_checkout_session( $request );
 
 			if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
 				throw new Exception( __( 'Unable to create Stripe Checkout Session.', 'woocommerce-gateway-stripe' ) );
@@ -117,12 +112,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'line_items' => $this->build_line_items(),
 			];
 
-			$checkout_session = WC_Stripe_API::request( $request, "checkout/sessions/$session_id" );
-
-			if ( ! empty( $checkout_session->error ) ) {
-				$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-				throw new Exception( $message );
-			}
+			WC_Stripe_API::update_checkout_session( $session_id, $request );
 
 			wp_send_json_success( [ 'result' => 'success' ] );
 

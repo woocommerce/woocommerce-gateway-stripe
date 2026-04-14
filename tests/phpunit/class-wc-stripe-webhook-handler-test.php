@@ -1319,35 +1319,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'tax_amount' => 10,
 		];
 
-		$request_captured = false;
-		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $checkout_session_id, $metadata, &$request_captured ) {
-			$expected_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $checkout_session_id;
-			if ( $url !== $expected_url ) {
-				return $return_value;
-			}
-			$request_captured = true;
-			$this->assertEquals( 'POST', $parsed_args['method'] );
-			$this->assertEquals( $metadata, $parsed_args['body']['metadata'] );
-			return [
-				'headers'  => [],
-				'body'     => wp_json_encode( [ 'id' => $checkout_session_id ] ),
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-				'cookies'  => [],
-				'filename' => null,
-			];
-		};
+		// Capture the params passed to the SDK's update() method.
+		$captured_params = null;
+		$session_service = $this->getMockBuilder( \Stripe\Service\Checkout\SessionService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'update' ] )
+			->getMock();
 
-		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+		$session_service->method( 'update' )
+			->willReturnCallback(
+				function ( $id, $params ) use ( &$captured_params, $checkout_session_id ) {
+					$captured_params = [
+						'id'     => $id,
+						'params' => $params,
+					];
+					return WC_Stripe_SDK_Test_Helper::create_checkout_session_object( [ 'id' => $checkout_session_id ] );
+				}
+			);
 
-		$handler = new WC_Stripe_Webhook_Handler();
-		$handler->process_checkout_session_metadata( $checkout_session_id, $metadata );
+		$checkout_service           = new stdClass();
+		$checkout_service->sessions = $session_service;
+		$mock_client                = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->checkout      = $checkout_service;
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
 
-		remove_filter( 'pre_http_request', $pre_http_filter );
+		try {
+			$handler = new WC_Stripe_Webhook_Handler();
+			$handler->process_checkout_session_metadata( $checkout_session_id, $metadata );
+		} finally {
+			WC_Stripe_API::set_sdk_for_testing( null );
+		}
 
-		$this->assertTrue( $request_captured, 'Expected the API request to be made.' );
+		$this->assertNotNull( $captured_params, 'Expected the SDK update() call to be made.' );
+		$this->assertSame( $checkout_session_id, $captured_params['id'] );
+		$this->assertEquals( $metadata, $captured_params['params']['metadata'] );
 	}
 
 	/**
@@ -1364,27 +1369,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'tax_amount' => 10,
 		];
 
-		$error_message   = 'No such checkout session.';
-		$pre_http_filter = function () use ( $error_message ) {
-			return [
-				'headers'  => [],
-				'body'     => wp_json_encode(
-					[
-						'error' => [
-							'message' => $error_message,
-						],
-					]
+		$error_message = 'No such checkout session.';
+		$mock_sdk      = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'update_exception' => \Stripe\Exception\InvalidRequestException::factory(
+					$error_message,
+					404,
+					null,
+					null,
+					null,
+					'resource_missing'
 				),
-				'response' => [
-					'code'    => 404,
-					'message' => 'Not Found',
-				],
-				'cookies'  => [],
-				'filename' => null,
-			];
-		};
-
-		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
 
 		$handler = new WC_Stripe_Webhook_Handler();
 		$caught  = null;
@@ -1392,9 +1391,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$handler->process_checkout_session_metadata( $checkout_session_id, $metadata );
 		} catch ( Exception $e ) {
 			$caught = $e;
+		} finally {
+			WC_Stripe_API::set_sdk_for_testing( null );
 		}
-
-		remove_filter( 'pre_http_request', $pre_http_filter );
 
 		$this->assertNotNull( $caught, 'Expected an exception to be thrown.' );
 		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught, 'Expected an instance of WC_Stripe_Exception.' );
