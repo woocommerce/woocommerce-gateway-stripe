@@ -2320,6 +2320,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					[
 						'session_status' => $status,
 						'error_code'     => $error_code,
+						'error_message'  => $error_message,
 					]
 				);
 
