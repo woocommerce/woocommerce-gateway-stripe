@@ -201,7 +201,7 @@ describe( 'AccountDetailsSection', () => {
 		expect( stripeAccountId ).toBeInTheDocument();
 	} );
 
-	it( 'should show account display name as tooltip on account ID when available', async () => {
+	it( 'should show account display name above account ID when available', () => {
 		useAccount.mockReturnValue( {
 			data: {
 				webhook_url: 'example.com',
@@ -229,12 +229,8 @@ describe( 'AccountDetailsSection', () => {
 
 		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
 
-		const accountId = screen.getByText( /acct_123/i );
-		expect( accountId ).toBeInTheDocument();
-
-		await userEvent.hover( accountId );
-		const tooltip = await screen.findByText( /My Test Store/i );
-		expect( tooltip ).toBeInTheDocument();
+		expect( screen.getByText( /acct_123/i ) ).toBeInTheDocument();
+		expect( screen.getByText( /My Test Store/i ) ).toBeInTheDocument();
 	} );
 
 	describe( 'Refresh account functionality', () => {

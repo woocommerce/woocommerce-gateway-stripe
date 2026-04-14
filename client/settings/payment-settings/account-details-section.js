@@ -7,13 +7,7 @@ import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
-import {
-	Button,
-	Card,
-	CardHeader,
-	DropdownMenu,
-	Tooltip,
-} from '@wordpress/components';
+import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import './style.scss';
@@ -25,16 +19,29 @@ const HeaderDetails = styled.div`
 	display: flex;
 	margin: 0;
 	font-size: 16px;
-
 	h4 {
+		align-content: center;
 		margin: 0 4px 0 0;
 	}
+`;
+
+const AccountIdentity = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	margin-left: auto;
+	line-height: 1.2;
+`;
+
+const StripeAccountName = styled.span`
+	font-size: 15px;
+	color: #1e1e1e;
+	font-weight: 600;
 `;
 
 const StripeAccountId = styled.span`
 	font-size: 12px;
 	color: #757575;
-	margin-left: auto;
 `;
 
 // @todo - remove setModalType as prop
@@ -153,23 +160,19 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						</Pill>
 					) }
 				</HeaderDetails>
-				{ data.account?.id &&
-					( data.account?.settings?.dashboard?.display_name ||
-					data.account?.business_profile?.name ? (
-						<Tooltip
-							text={
-								data.account.settings?.dashboard
+				{ data.account?.id && (
+					<AccountIdentity>
+						{ ( data.account?.settings?.dashboard?.display_name ||
+							data.account?.business_profile?.name ) && (
+							<StripeAccountName>
+								{ data.account.settings?.dashboard
 									?.display_name ||
-								data.account.business_profile.name
-							}
-						>
-							<StripeAccountId>
-								{ data.account.id }
-							</StripeAccountId>
-						</Tooltip>
-					) : (
+									data.account.business_profile.name }
+							</StripeAccountName>
+						) }
 						<StripeAccountId>{ data.account.id }</StripeAccountId>
-					) ) }
+					</AccountIdentity>
+				) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
 					setKeepModalContent={ setKeepModalContent }
