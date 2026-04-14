@@ -42,7 +42,17 @@ const makeResponse = ( overrides = {} ) => ( {
 const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
 describe( 'AgenticCommercePanel', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = {
+			agentic_commerce_import_sets_url:
+				'https://dashboard.stripe.com/test/data-management/import-sets',
+			agentic_commerce_logs_url:
+				'/wp-admin/admin.php?page=wc-status&tab=logs',
+		};
+	} );
+
 	afterEach( () => {
+		delete global.wc_stripe_settings_params;
 		jest.resetAllMocks();
 	} );
 

@@ -864,7 +864,6 @@ class WC_Stripe {
 		$exit_survey_controller->register_routes();
 
 		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
 			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 			$agentic_commerce_controller->register_routes();
 		}

@@ -180,6 +180,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION,
 			[
 				[
+					'status'        => 'succeeded',
+					'timestamp'     => 1699900000,
+					'products'      => 10,
+					'import_set_id' => 'impset_ok',
+					'file_id'       => 'file_ok',
+					'error'         => '',
+				],
+				[
 					'status'        => 'failed',
 					'timestamp'     => 1700000000,
 					'products'      => 0,
@@ -193,7 +201,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
-		$entry = $response->get_data()['history'][0];
+		$history = $response->get_data()['history'];
+		$this->assertCount( 2, $history );
+
+		// Newest first: the failed entry should be first.
+		$entry = $history[0];
 		$this->assertArrayHasKey( 'status', $entry );
 		$this->assertArrayHasKey( 'timestamp', $entry );
 		$this->assertArrayHasKey( 'products', $entry );
@@ -203,6 +215,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $entry['status'] );
 		$this->assertEquals( 'file_err', $entry['file_id'] );
 		$this->assertEquals( 'Something went wrong', $entry['error'] );
+
+		// Second entry should be the succeeded one.
+		$second = $history[1];
+		$this->assertEquals( 'succeeded', $second['status'] );
+		$this->assertEquals( 10, $second['products'] );
+		$this->assertEquals( 'impset_ok', $second['import_set_id'] );
 	}
 
 	/**
@@ -244,6 +262,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$last_sync = $response->get_data()['last_sync'];
+		$this->assertArrayHasKey( 'status', $last_sync );
+		$this->assertArrayHasKey( 'timestamp', $last_sync );
+		$this->assertArrayHasKey( 'products', $last_sync );
+		$this->assertArrayHasKey( 'import_set_id', $last_sync );
+		$this->assertArrayHasKey( 'file_id', $last_sync );
+		$this->assertArrayHasKey( 'error', $last_sync );
 		$this->assertEquals( 'pending', $last_sync['status'] );
 		$this->assertNull( $last_sync['timestamp'] );
 		$this->assertNull( $last_sync['products'] );

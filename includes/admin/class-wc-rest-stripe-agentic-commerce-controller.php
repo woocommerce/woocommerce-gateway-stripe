@@ -57,9 +57,17 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * Return current sync status, history, and next scheduled run.
 	 *
 	 * @since 10.6.0
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
-	public function get_status(): WP_REST_Response {
+	public function get_status() {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_unavailable',
+				__( 'Agentic Commerce integration is not available.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$last_sync   = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
 		$history_raw = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
 
@@ -69,6 +77,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		if ( ! is_array( $history_raw ) ) {
 			$history_raw = [];
 		}
+
+		// Filter out any non-array entries that may have been stored by corrupted data.
+		$history_raw = array_filter( $history_raw, 'is_array' );
 
 		// Return the 20 most recent history entries, newest first.
 		$history = array_map(
@@ -117,8 +128,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 			// Reset the automatic sync window so the next scheduled run starts
 			// from now, rather than running again shortly after a manual sync.
-			if ( function_exists( 'as_unschedule_all_actions' ) && function_exists( 'as_schedule_recurring_action' ) ) {
-				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+			if ( function_exists( 'as_unschedule_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
+				as_unschedule_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 				as_schedule_recurring_action(
 					time() + WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
 					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,

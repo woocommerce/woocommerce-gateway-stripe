@@ -1,7 +1,8 @@
+/* global wc_stripe_settings_params */
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
 
 const Card = styled.div`
@@ -137,35 +138,40 @@ const SyncStatusBadge = ( { status } ) => {
 };
 
 const formatTimestamp = ( timestamp ) => {
-	if ( ! timestamp ) return '—';
+	if ( ! timestamp ) {
+		return '—';
+	}
 	return new Date( timestamp * 1000 ).toLocaleString();
 };
 
 const humanTimeDiff = ( timestamp ) => {
-	if ( ! timestamp ) return '';
+	if ( ! timestamp ) {
+		return '';
+	}
 	const diffSec = Math.floor( Date.now() / 1000 ) - timestamp;
-	if ( diffSec < 60 ) return __( 'just now', 'woocommerce-gateway-stripe' );
+	if ( diffSec < 60 ) {
+		return __( 'just now', 'woocommerce-gateway-stripe' );
+	}
 	if ( diffSec < 3600 ) {
 		const m = Math.floor( diffSec / 60 );
-		if ( m === 1 )
-			return __( '1 minute ago', 'woocommerce-gateway-stripe' );
 		return sprintf(
 			/* translators: %d: number of minutes */
-			__( '%d minutes ago', 'woocommerce-gateway-stripe' ),
+			_n(
+				'%d minute ago',
+				'%d minutes ago',
+				m,
+				'woocommerce-gateway-stripe'
+			),
 			m
 		);
 	}
 	const h = Math.floor( diffSec / 3600 );
-	if ( h === 1 ) return __( '1 hour ago', 'woocommerce-gateway-stripe' );
 	return sprintf(
 		/* translators: %d: number of hours */
-		__( '%d hours ago', 'woocommerce-gateway-stripe' ),
+		_n( '%d hour ago', '%d hours ago', h, 'woocommerce-gateway-stripe' ),
 		h
 	);
 };
-
-// Minimal sprintf for %d substitution.
-const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
 
 const AgenticCommercePanel = () => {
 	const [ data, setData ] = useState( null );
@@ -232,30 +238,37 @@ const AgenticCommercePanel = () => {
 
 	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
-	const nextSyncLabel = () => {
-		if ( ! nextSync ) return null;
+	const getNextSyncLabel = () => {
+		if ( ! nextSync ) {
+			return null;
+		}
 		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
-		if ( secondsUntil <= 0 )
+		if ( secondsUntil <= 0 ) {
 			return __(
 				'Next automatic sync: imminent.',
 				'woocommerce-gateway-stripe'
 			);
-		const minutes = Math.ceil( secondsUntil / 60 );
-		if ( minutes === 1 ) {
-			return __(
-				'Next automatic sync: in 1 minute.',
-				'woocommerce-gateway-stripe'
-			);
 		}
+		const minutes = Math.ceil( secondsUntil / 60 );
 		return sprintf(
 			/* translators: %d: number of minutes until next sync */
-			__(
+			_n(
+				'Next automatic sync: in %d minute.',
 				'Next automatic sync: in %d minutes.',
+				minutes,
 				'woocommerce-gateway-stripe'
 			),
 			minutes
 		);
 	};
+
+	const importSetsUrl =
+		wc_stripe_settings_params?.agentic_commerce_import_sets_url ?? // eslint-disable-line camelcase
+		'https://dashboard.stripe.com/data-management/import-sets';
+	const logsUrl =
+		wc_stripe_settings_params?.agentic_commerce_logs_url ?? // eslint-disable-line camelcase
+		'/wp-admin/admin.php?page=wc-status&tab=logs';
+	const nextSyncText = getNextSyncLabel();
 
 	return (
 		<div>
@@ -265,7 +278,7 @@ const AgenticCommercePanel = () => {
 					'woocommerce-gateway-stripe'
 				) }{ ' ' }
 				<a
-					href="https://dashboard.stripe.com/data-management/import-sets"
+					href={ importSetsUrl }
 					target="_blank"
 					rel="noopener noreferrer"
 				>
@@ -342,7 +355,9 @@ const AgenticCommercePanel = () => {
 											) }
 										</th>
 										<td>
-											{ lastSync.products.toLocaleString() }
+											{ Number(
+												lastSync.products
+											).toLocaleString() }
 										</td>
 									</tr>
 								) }
@@ -377,8 +392,8 @@ const AgenticCommercePanel = () => {
 							</tbody>
 						</DetailsTable>
 
-						{ nextSyncLabel() && (
-							<p className="description">{ nextSyncLabel() }</p>
+						{ nextSyncText && (
+							<p className="description">{ nextSyncText }</p>
 						) }
 
 						{ lastSync.error && (
@@ -406,10 +421,7 @@ const AgenticCommercePanel = () => {
 							? __( 'Syncing…', 'woocommerce-gateway-stripe' )
 							: __( 'Sync Now', 'woocommerce-gateway-stripe' ) }
 					</Button>
-					<Button
-						variant="secondary"
-						href="/wp-admin/admin.php?page=wc-status&tab=logs"
-					>
+					<Button variant="secondary" href={ logsUrl }>
 						{ __( 'View Logs', 'woocommerce-gateway-stripe' ) }
 					</Button>
 				</Actions>
@@ -479,7 +491,9 @@ const AgenticCommercePanel = () => {
 									</td>
 									<td>
 										{ entry.products !== null
-											? entry.products.toLocaleString()
+											? Number(
+													entry.products
+											  ).toLocaleString()
 											: '—' }
 									</td>
 									<td>
