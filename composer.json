@@ -26,7 +26,9 @@
     "autoload": {
       "classmap": [
         "includes/ajax-handlers/",
-        "includes/agentic-commerce/"
+        "includes/agentic-commerce/",
+        "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
+        "includes/admin/class-wc-stripe-plugins-page-controller.php"
       ]
     },
     "autoload-dev": {
