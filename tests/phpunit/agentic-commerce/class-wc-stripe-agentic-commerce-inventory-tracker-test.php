@@ -137,6 +137,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_register_hooks_attaches_archive_hooks() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		$this->sut->register_hooks();
 
 		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
