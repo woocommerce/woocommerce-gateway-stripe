@@ -71,6 +71,32 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const SYNC_INTERVAL = 15 * MINUTE_IN_SECONDS;
 
 	/**
+	 * Option key for the last sync result.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	public const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
+
+	/**
+	 * Option key for the sync history.
+	 *
+	 * @var string
+	 * @since 10.6.0
+	 */
+	public const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
+
+	/**
+	 * Default maximum number of sync history entries to retain.
+	 *
+	 * Filterable via `wc_stripe_agentic_commerce_sync_history_limit`.
+	 *
+	 * @var int
+	 * @since 10.6.0
+	 */
+	public const SYNC_HISTORY_LIMIT = 50;
+
+	/**
 	 * Get integration ID.
 	 *
 	 * @since 10.5.0
@@ -213,25 +239,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Option key for the last sync result.
+	 * Check if the merchant has enabled Agentic Commerce via the settings UI.
 	 *
-	 * @var string
-	 */
-	const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
-
-	/**
-	 * Option key for the sync history.
+	 * This is distinct from the developer feature flag. Both must be true for the
+	 * integration to be fully active.
 	 *
-	 * @var string
+	 * @since 10.6.0
+	 * @return bool True if the merchant has enabled the feature.
 	 */
-	const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
-
-	/**
-	 * Maximum number of sync history entries to retain.
-	 *
-	 * @var int
-	 */
-	const SYNC_HISTORY_LIMIT = 50;
+	public static function is_merchant_enabled(): bool {
+		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
+	}
 
 	/**
 	 * Execute feed sync process.
@@ -378,6 +396,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public function store_sync_result( array $result ): void {
 		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
 
+		if ( ! is_array( $history ) ) {
+			$history = [];
+		}
+
 		$entry = [
 			'timestamp'     => time(),
 			'products'      => $result['products'] ?? 0,
@@ -389,11 +411,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		$history[] = $entry;
 
-		// Cap history to the configured limit.
-		$history = array_slice( $history, -self::SYNC_HISTORY_LIMIT );
+		/**
+		 * Filter the maximum number of sync history entries to retain.
+		 *
+		 * @since 10.6.0
+		 * @param int $limit Default history limit.
+		 */
+		$limit   = (int) apply_filters( 'wc_stripe_agentic_commerce_sync_history_limit', self::SYNC_HISTORY_LIMIT );
+		$limit   = max( 10, min( 50, $limit ) );
+		$history = array_slice( $history, -$limit );
 
-		update_option( self::SYNC_HISTORY_OPTION, $history );
-		update_option( self::LAST_SYNC_OPTION, end( $history ) );
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
+		update_option( self::LAST_SYNC_OPTION, end( $history ), false );
 	}
 
 	/**

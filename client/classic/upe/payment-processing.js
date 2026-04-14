@@ -1,9 +1,13 @@
+import jQuery from 'jquery';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
 	appendCheckoutSessionIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	invalidateAppearanceCache,
 	isLinkEnabled,
 	getDefaultValues,
 	getStripeServerData,
@@ -16,8 +20,9 @@ import {
 	getAdditionalSetupIntentData,
 	validateBlikCode,
 	getExcludedPaymentMethodTypes,
+	getUserDataForCheckoutSession,
 } from '../../stripe-utils';
-import { getFontRulesFromPage } from '../../styles/upe';
+import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -32,10 +37,12 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {Object} UPEComponent
  * @property {string|null}          intentId          The ID of the intent.
+ * @property {string|null}          checkoutSessionId Stripe Checkout Session id (cs_…) from create session; same value passed to initCheckout as clientSecret.
  * @property {Object|null}          elements          The Stripe elements object.
  * @property {Object|null}          upeElement        The Stripe payment element.
  * @property {boolean}              hasLoadError      Whether the payment element has a load error.
@@ -57,6 +64,7 @@ export function initializeUPEComponents() {
 	for ( const paymentMethodType in paymentMethodsConfig ) {
 		gatewayUPEComponents[ paymentMethodType ] = {
 			intentId: null,
+			checkoutSessionId: null,
 			elements: null,
 			upeElement: null,
 			hasLoadError: false,
@@ -65,6 +73,73 @@ export function initializeUPEComponents() {
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
 	hasCheckoutCompleted = false;
+}
+
+/**
+ * After classic checkout AJAX refresh (e.g. shipping or coupon), sync line items on the Stripe Checkout Session
+ * so the Payment Element amount matches the cart. Uses checkoutSessionId from the create-session response.
+ *
+ * Wraps the server request in Stripe Custom Checkout {@link https://docs.stripe.com/js/custom_checkout/run_server_update runServerUpdate}
+ * when available so the embedded session state stays consistent after the update.
+ *
+ * @param {Object} api WCStripeAPI instance.
+ * @return {Promise<void>}
+ */
+export async function maybeUpdateAdaptivePricingCheckoutSession( api ) {
+	if ( ! getStripeServerData()?.isAdaptivePricingEnabled ) {
+		return;
+	}
+
+	const seen = new Set();
+	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
+		const component = gatewayUPEComponents[ paymentMethodType ];
+		const sessionId = component?.checkoutSessionId;
+		if ( ! sessionId || seen.has( sessionId ) ) {
+			continue;
+		}
+		seen.add( sessionId );
+
+		const checkout = component?.elements;
+
+		if ( checkout && typeof checkout.loadActions === 'function' ) {
+			try {
+				const loadResult = await checkout.loadActions();
+				if (
+					loadResult.type === 'success' &&
+					typeof loadResult.actions?.runServerUpdate === 'function'
+				) {
+					try {
+						const updateResult =
+							await loadResult.actions.runServerUpdate(
+								async () => {
+									await api.checkoutSessionsUpdateSession(
+										sessionId
+									);
+								}
+							);
+						if ( updateResult.type === 'error' ) {
+							// eslint-disable-next-line no-console
+							console.error( updateResult.error );
+						}
+					} catch ( error ) {
+						// eslint-disable-next-line no-console
+						console.error( error );
+					}
+					continue;
+				}
+			} catch ( error ) {
+				// eslint-disable-next-line no-console
+				console.error( error );
+			}
+		}
+
+		try {
+			await api.checkoutSessionsUpdateSession( sessionId );
+		} catch ( error ) {
+			// eslint-disable-next-line no-console
+			console.error( error );
+		}
+	}
 }
 
 /**
@@ -234,15 +309,19 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		try {
 			const response = await api.checkoutSessionsCreateSession();
 			const clientSecret = response?.data?.client_secret;
+			const sessionId = response?.data?.session_id;
 
-			if ( ! clientSecret ) {
+			if ( ! clientSecret || ! sessionId ) {
 				throw new Error(
 					__(
-						'Failed to load payment method due to missing client secret.',
+						'Failed to load payment method due to missing client secret or session id.',
 						'woocommerce-gateway-stripe'
 					)
 				);
 			}
+
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
+				sessionId;
 
 			elements = await api.getStripe().initCheckout( {
 				clientSecret,
@@ -259,11 +338,11 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				adaptivePricing: {
 					allowed: true,
 				},
-				...getDefaultValues( true ),
 			} );
 
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
+			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 			// eslint-disable-next-line no-console
 			console.error( error );
 			shouldLoadStripeElements = true;
@@ -273,8 +352,32 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// If Adaptive Pricing is not enabled, or if there was an error loading the AP elements,
 	// load the Stripe elements as fallback.
 	if ( shouldLoadStripeElements ) {
+		gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 		elements = api.getStripe().elements( options );
 	}
+
+	// After web fonts finish loading, re-compute appearance with correct
+	// font families and update the live Stripe Elements instance.
+	document.fonts?.ready?.then( () => {
+		// Compare the live font with the cached appearance — only
+		// invalidate and recompute if they actually differ.
+		const cachedFont = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		)?.variables?.fontFamily;
+		const liveFont = sampleFontFamily( false );
+		if ( ! liveFont || liveFont === cachedFont ) {
+			return;
+		}
+		invalidateAppearanceCache();
+		const appearance = initializeUPEAppearance(
+			'false',
+			shouldExpandOptimizedCheckout
+		);
+		if ( typeof elements?.update === 'function' ) {
+			elements.update( { appearance } );
+		}
+	} );
 
 	const attachDefaultValuesUpdateEvent = (
 		element,
@@ -339,10 +442,20 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 	} else {
+		const upeSettings = getUpeSettings();
+		// createPaymentElement() (Checkout Sessions API) does not accept terms.link.
+		if ( upeSettings.terms ) {
+			delete upeSettings.terms.link;
+		}
+		paymentElementOptions = {
+			...paymentElementOptions,
+			...upeSettings,
+		};
 		createdStripePaymentElement = elements.createPaymentElement(
 			paymentElementOptions
 		);
 		mountCurrencySelectorElement( elements );
+		mountAdaptivePricingDisclosure();
 	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
@@ -383,6 +496,82 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
+
+	const disclosureContainer = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! disclosureContainer ) {
+		return;
+	}
+	disclosureContainer.setAttribute( 'isAdaptivePricingEnabled', 'true' );
+}
+
+/** @type {import('react-dom/client').Root|null} */
+let disclosureRoot = null;
+/** @type {Element|null} */
+let disclosureContainer = null;
+
+/**
+ * Renders the Adaptive Pricing disclosure with the given billing country.
+ * Re-creates the React root if `updated_checkout` replaced the DOM node.
+ *
+ * @return {void}
+ */
+function renderAdaptivePricingDisclosure() {
+	const container = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! container ) {
+		return;
+	}
+
+	// updated_checkout can replace the container node entirely; if the live
+	// node differs from the one the root was created on, unmount the stale
+	// root and create a fresh one so renders are not lost to the detached tree.
+	if ( disclosureContainer !== container ) {
+		disclosureRoot?.unmount();
+		disclosureRoot = createRoot( container );
+		disclosureContainer = container;
+	}
+
+	const billingCountry =
+		document.querySelector( '#billing_country' )?.value ?? '';
+	disclosureRoot.render(
+		createElement( AdaptivePricingDisclosure, { billingCountry } )
+	);
+}
+
+/**
+ * Mounts the Adaptive Pricing disclosure and attaches the reactive country-based
+ * visibility. Only creates the React root once.
+ *
+ * @return {void}
+ */
+function mountAdaptivePricingDisclosure() {
+	const container = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! container ) {
+		return;
+	}
+
+	const isAdaptivePricingEnabled =
+		container.getAttribute( 'isAdaptivePricingEnabled' ) === 'true';
+	if ( ! isAdaptivePricingEnabled ) {
+		return;
+	}
+
+	// Register the updated_checkout listener only on the first mount.
+	if ( ! disclosureContainer ) {
+		// WooCommerce fires `updated_checkout` via jQuery.trigger(); native
+		// addEventListener on body does not receive it.
+		jQuery( document.body ).on(
+			'updated_checkout',
+			renderAdaptivePricingDisclosure
+		);
+	}
+
+	renderAdaptivePricingDisclosure();
 }
 
 /**
@@ -533,7 +722,21 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	const stripeServerData = getStripeServerData();
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+		const paymentMethodsConfig = stripeServerData?.paymentMethodsConfig;
 		upeElement.on( 'change', ( { value } ) => {
+			// Mirror the actual selected payment method type into the hidden
+			// input so it's submitted with the form. This lets the server set
+			// the order's payment method title to the actual method (e.g.
+			// iDEAL) instead of the OC pseudo-method's default ("Stripe") when
+			// paying via Adaptive Pricing / Checkout Sessions, where the
+			// outer form's `payment_method` is just `stripe`.
+			const selectedTypeInput = document.getElementById(
+				'wc_stripe_selected_upe_payment_type'
+			);
+			if ( selectedTypeInput ) {
+				selectedTypeInput.value = value?.type ?? '';
+			}
+
 			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type, 'classic' );
 
@@ -541,7 +744,10 @@ export async function mountStripePaymentElement( api, domElement ) {
 			const createAccountCheckbox =
 				document.getElementById( 'createaccount' );
 			const updateCheckboxListener = () => {
-				handleDisplayOfSavingCheckbox( value.type );
+				handleDisplayOfSavingCheckbox(
+					value.type,
+					paymentMethodsConfig
+				);
 			};
 			if ( createAccountCheckbox ) {
 				createAccountCheckbox.removeEventListener(
@@ -553,7 +759,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 					updateCheckboxListener
 				);
 			}
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		} );
 	}
 
@@ -745,16 +951,70 @@ export const processPayment = (
 				}
 
 				const { actions } = loadActionsResult;
+				const session = await actions.getSession();
 
-				const shouldSavePaymentMethod = jQueryForm
-					.find( '#wc-stripe-new-payment-method' )
-					.is( ':checked' );
+				// Get the session ID stored during mount.
+				const sessionId =
+					gatewayUPEComponents[ paymentMethodType ].checkoutSessionId;
+				if ( ! sessionId ) {
+					throw new Error(
+						__(
+							'Payment could not be completed. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
 
-				const confirmResult = await actions.confirm( {
-					returnUrl: window.location.href,
-					redirect: 'if_required',
-					savePaymentMethod: shouldSavePaymentMethod,
+				// Append session ID and submit form to create the WC order
+				// BEFORE confirming payment, so the return URL points to the
+				// order-received page (not the checkout page).
+				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+
+				const checkoutUrl = api.getAjaxUrl( 'checkout', '' );
+				const checkoutResponse = await jQuery.ajax( {
+					type: 'POST',
+					url: checkoutUrl,
+					data: jQueryForm.serialize(),
+					dataType: 'json',
 				} );
+
+				if ( checkoutResponse.result !== 'success' ) {
+					// WC core unblocks in its checkout AJAX complete handler; this path
+					// uses a direct jQuery.ajax call, so we must unblock explicitly.
+					jQueryForm.removeClass( 'processing' ).unblock();
+					const messages = checkoutResponse.messages;
+					if (
+						typeof messages === 'string' &&
+						messages.trim().length > 0
+					) {
+						showErrorCheckout( messages );
+					} else {
+						showErrorCheckout(
+							__(
+								'An error occurred while processing your checkout. Please try again.',
+								'woocommerce-gateway-stripe'
+							)
+						);
+					}
+					return;
+				}
+
+				// Confirm payment with the order-received page as return URL
+				// so redirect-based methods (iDEAL, Bancontact, etc.) return
+				// the customer to the thank-you page instead of checkout.
+				const confirmArgs = {
+					...getUserDataForCheckoutSession( session ),
+					returnUrl: checkoutResponse.redirect,
+					redirect: 'if_required',
+				};
+
+				if ( getStripeServerData()?.isLoggedIn ) {
+					confirmArgs.savePaymentMethod = jQueryForm
+						.find( '#wc-stripe-new-payment-method' )
+						.is( ':checked' );
+				}
+
+				const confirmResult = await actions.confirm( confirmArgs );
 
 				if ( confirmResult.type === 'error' ) {
 					throw new Error(
@@ -766,58 +1026,51 @@ export const processPayment = (
 					);
 				}
 
-				const sessionId = confirmResult?.session?.id;
-				if ( ! sessionId ) {
-					throw new Error(
-						__(
-							'Payment could not be completed. Please try again.',
-							'woocommerce-gateway-stripe'
-						)
-					);
-				}
+				// No redirect occurred (non-redirect payment method).
+				// Navigate to the order-received page.
+				window.location.href = checkoutResponse.redirect;
+				return;
+			}
 
-				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
 			} else {
-				if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
-					validateBlikCode( jQueryForm );
-				} else {
-					await validateElements( elements );
-				}
+				await validateElements( elements );
+			}
 
-				const paymentMethodObject = await createStripePaymentMethod(
-					api,
-					elements,
+			const paymentMethodObject = await createStripePaymentMethod(
+				api,
+				elements,
+				jQueryForm,
+				paymentMethodType
+			);
+
+			appendPaymentMethodIdToForm(
+				jQueryForm,
+				paymentMethodObject.paymentMethod.id
+			);
+
+			// Append the intent ID to the form if it was previously created through a non-deferred intent.
+			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+				appendPaymentIntentIdToForm(
 					jQueryForm,
-					paymentMethodType
+					gatewayUPEComponents[ paymentMethodType ].intentId
 				);
+			}
 
-				appendPaymentMethodIdToForm(
-					jQueryForm,
-					paymentMethodObject.paymentMethod.id
-				);
-
-				// Append the intent ID to the form if it was previously created through a non-deferred intent.
-				if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
-					appendPaymentIntentIdToForm(
-						jQueryForm,
-						gatewayUPEComponents[ paymentMethodType ].intentId
-					);
+			let stopFormSubmission = false;
+			await additionalActionsHandler(
+				paymentMethodObject.paymentMethod,
+				jQueryForm,
+				api,
+				() => {
+					// Provide a callback to flag that a redirect has occurred.
+					stopFormSubmission = true;
 				}
+			);
 
-				let stopFormSubmission = false;
-				await additionalActionsHandler(
-					paymentMethodObject.paymentMethod,
-					jQueryForm,
-					api,
-					() => {
-						// Provide a callback to flag that a redirect has occurred.
-						stopFormSubmission = true;
-					}
-				);
-
-				if ( stopFormSubmission ) {
-					return;
-				}
+			if ( stopFormSubmission ) {
+				return;
 			}
 
 			hasCheckoutCompleted = true;

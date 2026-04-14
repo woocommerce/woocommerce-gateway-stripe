@@ -10,12 +10,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.6.0
  */
 class WC_Stripe_Payment_Gateways_Controller {
+
+	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private WC_Stripe_Account $account;
+
 	/**
 	 * Constructor
 	 *
 	 * @since 5.6.0
+	 *
+	 * @param WC_Stripe_Account $account Stripe account.
 	 */
-	public function __construct() {
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
@@ -66,17 +77,25 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 * @return void
 	 */
 	public function enqueue_payments_scripts() {
-		global $current_tab, $current_section;
-
 		$this->register_payments_scripts();
 
-		$is_payment_methods_page = (
-			is_admin() &&
-			$current_tab && ! $current_section
-			&& 'checkout' === $current_tab
-		);
+		if ( WC_Stripe_Helper::is_admin_payments_page() ) {
+			wp_localize_script(
+				'woocommerce_stripe_payment_gateways_page',
+				'wcStripeExitSurveyParams',
+				WC_Stripe_Helper::get_exit_survey_params( $this->account )
+			);
 
-		if ( $is_payment_methods_page ) {
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			wp_localize_script(
+				'woocommerce_stripe_payment_gateways_page',
+				'wc_stripe_settings_params',
+				[
+					'show_stripe_first_method_notice' => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
+					'is_oc_enabled'                   => $gateway->is_oc_enabled(),
+				]
+			);
+
 			wp_enqueue_script( 'woocommerce_stripe_payment_gateways_page' );
 			wp_enqueue_style( 'woocommerce_stripe_payment_gateways_page' );
 		}

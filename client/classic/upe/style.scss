@@ -65,3 +65,10 @@
 	max-width: 50px;
 }
 
+/*
+ * Hide the classic save-card checkbox when Stripe Link handles save consent.
+ * Toggled via document.body class from handleDisplayOfSavingCheckbox().
+ */
+body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
+	display: none !important;
+}
