@@ -63,6 +63,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$last_sync   = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
 		$history_raw = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
 
+		if ( ! is_array( $last_sync ) ) {
+			$last_sync = [];
+		}
+		if ( ! is_array( $history_raw ) ) {
+			$history_raw = [];
+		}
+
 		// Return the 20 most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
