@@ -104,6 +104,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			);
 		}
 
+		// Refresh any pending entries from Stripe before reading.
+		$this->refresh_pending_sync_statuses();
+
 		$last_sync   = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
 		$history_raw = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
 
@@ -227,6 +230,86 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		return $this->get_agentic_settings();
+	}
+
+	/**
+	 * Refresh any pending sync entries by polling Stripe for their current status.
+	 *
+	 * Called lazily when the status endpoint is read. Only entries with a
+	 * "pending" status and a valid import_set_id are refreshed.
+	 *
+	 * @since 10.6.0
+	 * @return void
+	 */
+	private function refresh_pending_sync_statuses(): void {
+		$history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		if ( ! is_array( $history ) ) {
+			return;
+		}
+
+		$updated = false;
+
+		foreach ( $history as &$entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
+				continue;
+			}
+
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id ) {
+				continue;
+			}
+
+			try {
+				$delivery   = $this->create_delivery();
+				$import_set = $delivery->get_import_set( $import_set_id );
+				$new_status = $import_set['status'] ?? 'pending';
+
+				if ( 'pending' !== $new_status ) {
+					$entry['status'] = $new_status;
+					$updated         = true;
+				}
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Agentic Commerce: Failed to refresh ImportSet status',
+					[
+						'import_set_id' => $import_set_id,
+						'error'         => $e->getMessage(),
+					]
+				);
+			}
+		}
+		unset( $entry );
+
+		if ( $updated ) {
+			update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history, false );
+
+			// Also update the last_sync snapshot if it was pending.
+			$last = end( $history );
+			if ( is_array( $last ) ) {
+				update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $last, false );
+			}
+		}
+	}
+
+	/**
+	 * Create a Files API delivery instance using the current Stripe settings.
+	 *
+	 * @since 10.6.0
+	 * @return WC_Stripe_Agentic_Commerce_Files_Api_Delivery
+	 */
+	private function create_delivery(): WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
+		$settings  = WC_Stripe_Helper::get_stripe_settings();
+		$test_mode = isset( $settings['testmode'] ) && 'yes' === $settings['testmode'];
+		$secret    = $test_mode
+			? ( $settings['test_secret_key'] ?? '' )
+			: ( $settings['secret_key'] ?? '' );
+
+		return new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $secret );
 	}
 
 	/**
