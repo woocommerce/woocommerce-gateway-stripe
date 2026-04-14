@@ -6,7 +6,7 @@
  */
 
 /**
- * Creates a mock StripeClient that returns configurable responses for checkout session operations.
+ * Creates a mock StripeClient that returns configurable responses for Stripe SDK operations.
  */
 class WC_Stripe_SDK_Test_Helper {
 
@@ -50,11 +50,42 @@ class WC_Stripe_SDK_Test_Helper {
 		$checkout_service           = new stdClass();
 		$checkout_service->sessions = $session_service;
 
+		// Build charge service mock if any charge config keys are present.
+		$charge_config_keys = [ 'charge_create_response', 'charge_create_exception', 'charge_retrieve_response', 'charge_retrieve_exception', 'charge_capture_response', 'charge_capture_exception' ];
+		$has_charge_config  = ! empty( array_intersect_key( $config, array_flip( $charge_config_keys ) ) );
+
 		$mock_client = $test_case->getMockBuilder( \Stripe\StripeClient::class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_client->checkout = $checkout_service;
+
+		if ( $has_charge_config ) {
+			$charge_service = $test_case->getMockBuilder( \Stripe\Service\ChargeService::class )
+				->disableOriginalConstructor()
+				->onlyMethods( [ 'create', 'retrieve', 'capture' ] )
+				->getMock();
+
+			if ( isset( $config['charge_create_response'] ) ) {
+				$charge_service->method( 'create' )->willReturn( $config['charge_create_response'] );
+			} elseif ( isset( $config['charge_create_exception'] ) ) {
+				$charge_service->method( 'create' )->willThrowException( $config['charge_create_exception'] );
+			}
+
+			if ( isset( $config['charge_retrieve_response'] ) ) {
+				$charge_service->method( 'retrieve' )->willReturn( $config['charge_retrieve_response'] );
+			} elseif ( isset( $config['charge_retrieve_exception'] ) ) {
+				$charge_service->method( 'retrieve' )->willThrowException( $config['charge_retrieve_exception'] );
+			}
+
+			if ( isset( $config['charge_capture_response'] ) ) {
+				$charge_service->method( 'capture' )->willReturn( $config['charge_capture_response'] );
+			} elseif ( isset( $config['charge_capture_exception'] ) ) {
+				$charge_service->method( 'capture' )->willThrowException( $config['charge_capture_exception'] );
+			}
+
+			$mock_client->charges = $charge_service;
+		}
 
 		return $mock_client;
 	}
@@ -75,5 +106,25 @@ class WC_Stripe_SDK_Test_Helper {
 		];
 
 		return \Stripe\Checkout\Session::constructFrom( array_merge( $defaults, $data ) );
+	}
+
+	/**
+	 * Create a \Stripe\Charge from an array of properties.
+	 *
+	 * @param array $data Charge properties.
+	 * @return \Stripe\Charge
+	 */
+	public static function create_charge_object( array $data = [] ): \Stripe\Charge {
+		$defaults = [
+			'id'       => 'ch_test_' . wp_generate_password( 24, false ),
+			'object'   => 'charge',
+			'amount'   => 1000,
+			'currency' => 'usd',
+			'status'   => 'succeeded',
+			'captured' => true,
+			'paid'     => true,
+		];
+
+		return \Stripe\Charge::constructFrom( array_merge( $defaults, $data ) );
 	}
 }

@@ -631,12 +631,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_charge_object\(\) should return object\|string but returns array\|stdClass\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Gateway\:\:get_intent\(\) should return object\|false but returns array\|stdClass\.$#'
 			identifier: return.type
 			count: 1
@@ -2943,6 +2937,24 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_Order_Handler\:\:\$_this has no type specified\.$#'
 			identifier: missingType.property
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Parameter \#1 \$charge of method WC_Stripe_Payment_Gateway\:\:get_balance_transaction_id_from_charge\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-order-handler.php
+
+		-
+			message: '#^Method WC_Stripe_Order_Handler\:\:capture_payment\(\) should return stdClass\|void but returns object\|string\|null\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/class-wc-stripe-order-handler.php
 

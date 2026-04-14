@@ -605,11 +605,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->save();
 		$order_id = $order->get_id();
 
-		// Mock the Stripe API to simulate a successful void/cancel
+		// Mock the SDK for charge retrieval.
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'charge_retrieve_response' => WC_Stripe_SDK_Test_Helper::create_charge_object(
+					[
+						'id'      => 'ch_123',
+						'status'  => 'succeeded',
+						'refunds' => [
+							'data' => [
+								[
+									'id'     => 're_123',
+									'amount' => 1000,
+									'status' => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		// Mock the PaymentIntent cancel via raw HTTP (not yet migrated to SDK).
 		$callback = function ( $preempt, $request_args, $url ) {
-			// Simulate a PaymentIntent cancel or charge refund for pre-auth
 			if ( strpos( $url, 'payment_intents' ) !== false || strpos( $url, 'cancel' ) !== false ) {
-				$response = [
+				return [
 					'headers'  => [],
 					'body'     => wp_json_encode(
 						[
@@ -624,45 +646,21 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'message' => 'OK',
 					],
 				];
-				return $response;
-			}
-			if ( strpos( $url, 'charges' ) !== false ) {
-				$response = [
-					'headers'  => [],
-					'body'     => wp_json_encode(
-						[
-							'id'      => 'ch_123',
-							'object'  => 'charge',
-							'status'  => 'succeeded',
-							'refunds' => [
-								'data' => [
-									[
-										'id'     => 're_123',
-										'amount' => 1000,
-										'status' => 'succeeded',
-									],
-								],
-							],
-						]
-					),
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-				];
-				return $response;
 			}
 			return $preempt;
 		};
 		add_filter( 'pre_http_request', $callback, 10, 3 );
 
-		// Should not return early, should attempt to void pre-auth
-		$result = $this->gateway->process_refund( $order_id );
+		try {
+			// Should not return early, should attempt to void pre-auth
+			$result = $this->gateway->process_refund( $order_id );
 
-		// For uncaptured charges, process_refund returns false if refund was initiated by changing order status
-		$this->assertFalse( $result );
-
-		remove_filter( 'pre_http_request', $callback );
+			// For uncaptured charges, process_refund returns false if refund was initiated by changing order status
+			$this->assertFalse( $result );
+		} finally {
+			remove_filter( 'pre_http_request', $callback );
+			WC_Stripe_API::set_sdk_for_testing( null );
+		}
 	}
 
 	/**

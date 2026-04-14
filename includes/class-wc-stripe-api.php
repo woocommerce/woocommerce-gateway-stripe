@@ -920,4 +920,130 @@ class WC_Stripe_API {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
+
+	/**
+	 * Retrieve a Stripe Charge via the SDK.
+	 *
+	 * @param string $charge_id The charge ID.
+	 * @param array  $params    Optional parameters (e.g. expand).
+	 * @return \Stripe\Charge
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function retrieve_charge( string $charge_id, array $params = [] ): \Stripe\Charge {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: retrieve charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge_id,
+				]
+			);
+
+			$charge = self::get_sdk()->charges->retrieve( $charge_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: retrieve charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge->id,
+				]
+			);
+
+			return $charge;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: retrieve charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Capture a Stripe Charge via the SDK.
+	 *
+	 * @param string $charge_id The charge ID.
+	 * @param array  $params    Capture parameters (e.g. amount).
+	 * @return \Stripe\Charge
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function capture_charge( string $charge_id, array $params = [] ): \Stripe\Charge {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: capture charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge_id,
+					'request'        => $params,
+				]
+			);
+
+			$charge = self::get_sdk()->charges->capture( $charge_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: capture charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge->id,
+				]
+			);
+
+			return $charge;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: capture charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Create a Stripe Charge via the SDK.
+	 *
+	 * @param array $params  Charge creation parameters.
+	 * @param array $opts    Optional request options (e.g. idempotency_key).
+	 * @return \Stripe\Charge
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function create_charge( array $params, array $opts = [] ): \Stripe\Charge {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: create charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'request'        => $params,
+				]
+			);
+
+			$charge = self::get_sdk()->charges->create( $params, $opts );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: create charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'charge_id'      => $charge->id,
+				]
+			);
+
+			return $charge;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: create charge',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
 }

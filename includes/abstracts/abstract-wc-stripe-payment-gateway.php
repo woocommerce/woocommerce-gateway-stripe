@@ -838,13 +838,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$charge_object = WC_Stripe_API::request( $params, 'charges/' . $charge_id, 'GET' );
-
-		if ( ! empty( $charge_object->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message );
-		}
-
-		return $charge_object;
+		return WC_Stripe_API::retrieve_charge( $charge_id, $params );
 	}
 
 	/**

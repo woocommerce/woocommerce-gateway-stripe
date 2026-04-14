@@ -412,15 +412,23 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$mock_subscription->update_status( 'active' );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
 
-		// Mock HTTP: PI confirm returns a Radar-blocked card_declined error; the
-		// subsequent charge fetch returns a charge with outcome.type === 'blocked'.
+		// Mock the SDK for charge retrieval (Radar-blocked charge).
+		$charge_json = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ), true );
+		$mock_sdk    = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'charge_retrieve_response' => \Stripe\Charge::constructFrom( $charge_json ),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		// Mock HTTP for PI confirm (returns a Radar-blocked card_declined error).
 		$pre_http_request_callback = function (
 			$preempt,
 			$request_args,
 			$url
 		) use (
-			$payments_intents_api_endpoint,
-			$charges_api_base
+			$payments_intents_api_endpoint
 		) {
 			if ( $payments_intents_api_endpoint === $url ) {
 				return [
@@ -429,19 +437,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 					'response' => [
 						'code'    => 402,
 						'message' => 'Payment Required',
-					],
-					'cookies'  => [],
-					'filename' => null,
-				];
-			}
-
-			if ( strpos( $url, $charges_api_base ) === 0 ) {
-				return [
-					'headers'  => [],
-					'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ),
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
 					],
 					'cookies'  => [],
 					'filename' => null,
@@ -465,6 +460,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Clean up.
 		remove_filter( 'pre_http_request', $pre_http_request_callback );
+		WC_Stripe_API::set_sdk_for_testing( null );
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
 	}
 

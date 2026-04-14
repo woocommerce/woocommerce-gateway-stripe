@@ -400,9 +400,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			return false;
 		}
 
-		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
-
-		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
+		try {
+			$charge = WC_Stripe_API::retrieve_charge( $charge_id );
+		} catch ( WC_Stripe_Exception $e ) {
 			return false;
 		}
 

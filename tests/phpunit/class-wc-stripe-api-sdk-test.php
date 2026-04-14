@@ -242,4 +242,153 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 			[ 'metadata' => [ 'order_id' => '456' ] ]
 		);
 	}
+
+	// =========================================================================
+	// Charge SDK methods
+	// =========================================================================
+
+	/**
+	 * Tests that retrieve_charge returns a Charge DTO.
+	 */
+	public function test_retrieve_charge_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_charge_object(
+			[
+				'id'       => 'ch_test_retrieve',
+				'captured' => false,
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'charge_retrieve_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::retrieve_charge( 'ch_test_retrieve' );
+
+		$this->assertInstanceOf( \Stripe\Charge::class, $result );
+		$this->assertSame( 'ch_test_retrieve', $result->id );
+		$this->assertFalse( $result->captured );
+	}
+
+	/**
+	 * Tests that retrieve_charge throws WC_Stripe_Exception on API error.
+	 */
+	public function test_retrieve_charge_api_error(): void {
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'charge_retrieve_exception' => \Stripe\Exception\InvalidRequestException::factory(
+					'No such charge',
+					404,
+					null,
+					null,
+					null,
+					'resource_missing'
+				),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->expectExceptionMessage( 'No such charge' );
+
+		WC_Stripe_API::retrieve_charge( 'ch_nonexistent' );
+	}
+
+	/**
+	 * Tests that capture_charge returns a Charge DTO.
+	 */
+	public function test_capture_charge_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_charge_object(
+			[
+				'id'       => 'ch_test_capture',
+				'captured' => true,
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'charge_capture_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::capture_charge( 'ch_test_capture', [ 'amount' => 1000 ] );
+
+		$this->assertInstanceOf( \Stripe\Charge::class, $result );
+		$this->assertSame( 'ch_test_capture', $result->id );
+		$this->assertTrue( $result->captured );
+	}
+
+	/**
+	 * Tests that capture_charge throws WC_Stripe_Exception on API error.
+	 */
+	public function test_capture_charge_api_error(): void {
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'charge_capture_exception' => \Stripe\Exception\InvalidRequestException::factory(
+					'Charge already captured',
+					400
+				),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->expectExceptionMessage( 'Charge already captured' );
+
+		WC_Stripe_API::capture_charge( 'ch_test_already_captured', [ 'amount' => 1000 ] );
+	}
+
+	/**
+	 * Tests that create_charge returns a Charge DTO.
+	 */
+	public function test_create_charge_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_charge_object(
+			[ 'id' => 'ch_test_create' ]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'charge_create_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::create_charge(
+			[
+				'amount'   => 1000,
+				'currency' => 'usd',
+				'source'   => 'src_test',
+			]
+		);
+
+		$this->assertInstanceOf( \Stripe\Charge::class, $result );
+		$this->assertSame( 'ch_test_create', $result->id );
+	}
+
+	/**
+	 * Tests that create_charge throws WC_Stripe_Exception on API error.
+	 */
+	public function test_create_charge_api_error(): void {
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'charge_create_exception' => \Stripe\Exception\ApiConnectionException::factory(
+					'Connection failed'
+				),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->expectExceptionMessage( 'Connection failed' );
+
+		WC_Stripe_API::create_charge(
+			[
+				'amount'   => 1000,
+				'currency' => 'usd',
+			]
+		);
+	}
 }

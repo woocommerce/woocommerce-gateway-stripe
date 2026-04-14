@@ -196,7 +196,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 						return $this->process_redirect_payment( $order_id, true, $response->error );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
@@ -336,35 +336,34 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
 
 					// First retrieve charge to see if it has been captured.
-					$result = WC_Stripe_API::retrieve( 'charges/' . $charge );
-
-					if ( ! empty( $result->error ) ) {
+					try {
+						$result = WC_Stripe_API::retrieve_charge( $charge );
+					} catch ( WC_Stripe_Exception $e ) {
 						/* translators: error message */
-						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
-					} elseif ( false === $result->captured ) {
-						$level3_data = $this->get_level3_data_from_order( $order );
-						$result      = WC_Stripe_API::request_with_level3_data(
-							[
-								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-								'expand[]' => 'balance_transaction',
-							],
-							'charges/' . $charge . '/capture',
-							$level3_data,
-							$order
-						);
+						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+						$result = null;
+					}
 
-						if ( ! empty( $result->error ) ) {
-							/* translators: error message */
-							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
-						} else {
+					if ( null !== $result && false === $result->captured ) {
+						try {
+							$result             = WC_Stripe_API::capture_charge(
+								$charge,
+								[
+									'amount' => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+									'expand' => [ 'balance_transaction' ],
+								]
+							);
 							$is_stripe_captured = true;
+						} catch ( WC_Stripe_Exception $e ) {
+							/* translators: error message */
+							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 						}
-					} elseif ( true === $result->captured ) {
+					} elseif ( null !== $result && true === $result->captured ) {
 						$is_stripe_captured = true;
 					}
 				}
 
-				if ( $is_stripe_captured ) {
+				if ( $is_stripe_captured && is_object( $result ) ) {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					$order_helper->set_stripe_charge_captured( $order, true );
