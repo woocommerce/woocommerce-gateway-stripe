@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.6.0
+* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
@@ -68,6 +69,7 @@ xxxx-xx-xx - version 10.6.0
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 * Fix - Confirm checkout session with user data in classic checkout for guest user
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled
