@@ -405,7 +405,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		// Cap history to the configured limit.
 		$history = array_slice( $history, -self::SYNC_HISTORY_LIMIT );
 
-		update_option( self::SYNC_HISTORY_OPTION, $history );
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
 		update_option( self::LAST_SYNC_OPTION, end( $history ) );
 	}
 
