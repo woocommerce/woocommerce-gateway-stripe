@@ -62,7 +62,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	 * @param bool $show_optimized_checkout_instruction Deprecated. Whether to show optimized checkout instructions.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+	public function get_testing_instructions( $show_optimized_checkout_instruction = false, bool $include_test_mode_label = true ) {
 		if ( false !== $show_optimized_checkout_instruction ) {
 			_deprecated_argument(
 				__FUNCTION__,
@@ -70,12 +70,16 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			);
 		}
 
-		return sprintf(
-			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
-			esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
-			'<strong>',
-			'</strong>',
-		);
+		if ( $include_test_mode_label ) {
+			return sprintf(
+				/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+				esc_html__( '%1$sTest mode:%2$s use any 6-digit number.', 'woocommerce-gateway-stripe' ),
+				'<strong>',
+				'</strong>',
+			);
+		}
+
+		return esc_html__( 'Use any 6-digit number.', 'woocommerce-gateway-stripe' );
 	}
 
 	public function payment_fields() {
