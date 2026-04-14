@@ -687,49 +687,35 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	}
 
 	if ( ! currentSession?.shippingAddress ) {
-		const shipLine1 = getFieldValue( 'shipping_address_1' );
-		const shipCountryRaw = getFieldValue( 'shipping_country' );
+		const shippingLine1 = getFieldValue( 'shipping_address_1' );
+		const shippingCountry = normalizeCountryForStripe(
+			getFieldValue( 'shipping_country' )
+		);
 
 		// Stripe requires at minimum line1 and country for a valid shipping address.
 		// Skip shipping entirely if either of these two fields is absent from the form.
-		if ( shipLine1 && shipCountryRaw ) {
-			const shipCountry = normalizeCountryForStripe( shipCountryRaw );
-			const shipFirst = getFieldValue( 'shipping_first_name' );
-			const shipLast = getFieldValue( 'shipping_last_name' );
-			let shipName = `${ shipFirst } ${ shipLast }`.trim();
+		if ( shippingLine1 && shippingCountry ) {
+			const shippingFirstName = getFieldValue( 'shipping_first_name' );
+			const shippingLastName = getFieldValue( 'shipping_last_name' );
+			let shippingName =
+				`${ shippingFirstName } ${ shippingLastName }`.trim();
 
-			if ( ! shipName ) {
-				shipName = billingName;
+			if ( ! shippingName ) {
+				shippingName = billingName;
 			}
 
 			const shippingAddress = {
-				name: shipName,
+				name: shippingName,
 				address: {
-					country: shipCountry,
-					line1: shipLine1,
+					country: shippingCountry,
+					line1: shippingLine1,
+					line2: getFieldValue( 'shipping_address_2' ) || undefined,
+					state: getFieldValue( 'shipping_state' ) || undefined,
+					city: getFieldValue( 'shipping_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'shipping_postcode' ) || undefined,
 				},
 			};
-
-			const shipLine2 = getFieldValue( 'shipping_address_2' );
-			if ( shipLine2 ) {
-				shippingAddress.address.line2 = shipLine2;
-			}
-
-			const shipState = getFieldValue( 'shipping_state' );
-			if ( shipState ) {
-				shippingAddress.address.state = shipState;
-			}
-
-			const shipCity = getFieldValue( 'shipping_city' );
-			if ( shipCity ) {
-				shippingAddress.address.city = shipCity;
-			}
-
-			const shipPostcode = getFieldValue( 'shipping_postcode' );
-			if ( shipPostcode ) {
-				shippingAddress.address.postal_code = shipPostcode;
-			}
-
 			result.shippingAddress = shippingAddress;
 		}
 	}
