@@ -1196,7 +1196,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	private function is_eea_customer( WC_Abstract_Order $order ): bool {
-		$billing_country = $order instanceof WC_Order ? $order->get_billing_country() : '';
+		$billing_country = $order instanceof WC_Order
+			? strtoupper( (string) $order->get_billing_country() )
+			: '';
+
 		return ! empty( $billing_country ) && in_array( $billing_country, WC_Stripe_Helper::get_european_economic_area_countries(), true );
 	}
 
