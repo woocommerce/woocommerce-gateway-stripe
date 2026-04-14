@@ -499,16 +499,32 @@ function mountCurrencySelectorElement( elements ) {
 
 /** @type {import('react-dom/client').Root|null} */
 let disclosureRoot = null;
+/** @type {Element|null} */
+let disclosureContainer = null;
 
 /**
  * Renders the Adaptive Pricing disclosure with the given billing country.
+ * Re-creates the React root if `updated_checkout` replaced the DOM node.
  *
  * @return {void}
  */
 function renderAdaptivePricingDisclosure() {
-	if ( ! disclosureRoot ) {
+	const container = document.getElementById(
+		'wc-stripe-adaptive-pricing-disclosure'
+	);
+	if ( ! container ) {
 		return;
 	}
+
+	// updated_checkout can replace the container node entirely; if the live
+	// node differs from the one the root was created on, unmount the stale
+	// root and create a fresh one so renders are not lost to the detached tree.
+	if ( disclosureContainer !== container ) {
+		disclosureRoot?.unmount();
+		disclosureRoot = createRoot( container );
+		disclosureContainer = container;
+	}
+
 	const billingCountry =
 		document.querySelector( '#billing_country' )?.value ?? '';
 	disclosureRoot.render(
@@ -536,9 +552,8 @@ function mountAdaptivePricingDisclosure() {
 		return;
 	}
 
-	if ( ! disclosureRoot ) {
-		disclosureRoot = createRoot( container );
-
+	// Register the updated_checkout listener only on the first mount.
+	if ( ! disclosureContainer ) {
 		// WooCommerce fires `updated_checkout` via jQuery.trigger(); native
 		// addEventListener on body does not receive it.
 		jQuery( document.body ).on(
