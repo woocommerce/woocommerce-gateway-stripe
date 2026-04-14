@@ -35,6 +35,7 @@ import { sampleFontFamily } from 'wcstripe/styles/upe';
 import {
 	PAYMENT_METHOD_ACSS,
 	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
@@ -288,6 +289,12 @@ const PaymentProcessor = ( {
 		// Apply single payment element styles if the selected payment method is card and OC is enabled.
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			applyStyles();
+			// Hide the store-level save checkbox on initial load if needed
+			// (e.g., when Link is enabled and card is the default method).
+			handleDisplayOfSavingCheckbox(
+				selectedPaymentMethodType ?? PAYMENT_METHOD_CARD,
+				paymentMethodsConfig
+			);
 
 			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
 			const savingPaymentMethodCheckbox = document.querySelector(
@@ -313,7 +320,12 @@ const PaymentProcessor = ( {
 				}
 			);
 		}
-	}, [ selectedPaymentMethodType, elements, stripeServerData ] );
+	}, [
+		selectedPaymentMethodType,
+		elements,
+		stripeServerData,
+		paymentMethodsConfig,
+	] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.
@@ -371,7 +383,7 @@ const PaymentProcessor = ( {
 		setIsPaymentElementComplete( complete );
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );
 		}
 	};
 

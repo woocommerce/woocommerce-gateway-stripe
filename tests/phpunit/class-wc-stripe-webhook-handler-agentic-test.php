@@ -52,9 +52,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		remove_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_false' );
 
-		$notification = $this->build_notification( 'cs_test_disabled' );
+		$session_id   = 'cs_test_disabled';
+		$notification = $this->build_notification( $session_id );
 
+		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: feature flag off → agentic path skips → no order created.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$orders = wc_get_orders(
 			[
@@ -71,11 +75,15 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Tests that non-agentic checkout sessions are ignored.
 	 */
 	public function test_process_checkout_session_completed_skips_non_agentic() {
-		$notification = $this->build_notification( 'cs_test_non_agentic' );
-		$mock_session = $this->build_checkout_session_response( 'cs_test_non_agentic', false );
+		$session_id   = 'cs_test_non_agentic';
+		$notification = $this->build_notification( $session_id );
+		$mock_session = $this->build_checkout_session_response( $session_id, false );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
+		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: non-agentic session → skips without creating an order.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
@@ -85,10 +93,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Tests that a session with empty network_business_profile is skipped.
 	 */
 	public function test_skips_session_with_empty_network_business_profile() {
-		$session = (object) [
-			'id'             => 'cs_test_empty_nbp',
+		$session_id = 'cs_test_empty_nbp';
+		$session    = (object) [
+			'id'             => $session_id,
 			'payment_intent' => (object) [
-				'id'            => 'pi_test_empty_nbp',
+				'id'            => 'pi_test_' . $session_id,
 				'agent_details' => (object) [
 					'network_business_profile' => '',
 				],
@@ -96,8 +105,12 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		];
 		$this->mock_stripe_checkout_sessions_response( $session );
 
-		$notification = $this->build_notification( 'cs_test_empty_nbp' );
+		$notification = $this->build_notification( $session_id );
+
+		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: empty network_business_profile → skips.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$resolved = $this->get_resolved_order( $this->handler );
 		$this->assertNull( $resolved );
@@ -155,12 +168,15 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$notification = $this->build_notification( 'cs_test_mapper_fail' );
-		$mock_session = $this->build_checkout_session_response( 'cs_test_mapper_fail', true );
+		$session_id   = 'cs_test_mapper_fail';
+		$notification = $this->build_notification( $session_id );
+		$mock_session = $this->build_checkout_session_response( $session_id, true );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		// Should not throw — the handler catches the mapper's exception.
+		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: mapper fails → fires failure action, does not throw.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$this->assertTrue( $failure_action_fired );
 		$this->assertInstanceOf( Exception::class, $captured_exception );
@@ -188,11 +204,15 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$notification = $this->build_notification( 'cs_test_happy' );
-		$mock_session = $this->build_checkout_session_response( 'cs_test_happy', true, (string) $product->get_id() );
+		$session_id   = 'cs_test_happy';
+		$notification = $this->build_notification( $session_id );
+		$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		// Immediate phase: defers the webhook.
+		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: agentic session → creates order.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		try {
 			$this->assertTrue( $success_action_fired );
@@ -213,10 +233,14 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Tests that a failed API fetch is handled gracefully without creating an order.
 	 */
 	public function test_process_checkout_session_completed_handles_api_fetch_failure() {
-		$notification = $this->build_notification( 'cs_test_fetch_fail' );
+		$session_id   = 'cs_test_fetch_fail';
+		$notification = $this->build_notification( $session_id );
 		$this->mock_stripe_api_error();
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		// Immediate phase: defers the webhook.
+		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: Stripe API error → no order created.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$orders = wc_get_orders(
 			[
@@ -231,8 +255,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	 * Tests that a session with a missing payment intent ID is skipped without creating an order.
 	 */
 	public function test_process_checkout_session_completed_skips_when_payment_intent_missing() {
-		$notification                 = $this->build_notification( 'cs_test_no_intent' );
-		$mock_session                 = $this->build_checkout_session_response( 'cs_test_no_intent', true );
+		$session_id                   = 'cs_test_no_intent';
+		$notification                 = $this->build_notification( $session_id );
+		$mock_session                 = $this->build_checkout_session_response( $session_id, true );
 		$mock_session->payment_intent = (object) [
 			'id'            => null,
 			'agent_details' => (object) [
@@ -241,7 +266,10 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		];
 		$this->mock_stripe_checkout_sessions_response( $mock_session );
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		// Immediate phase: defers the webhook.
+		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: missing payment intent ID → no order created.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$orders = wc_get_orders(
 			[
@@ -259,10 +287,14 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	public function test_request_headers_filter_is_removed_after_processing_failure() {
 		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
 
-		$notification = $this->build_notification( 'cs_test_filter_cleanup' );
+		$session_id   = 'cs_test_filter_cleanup';
+		$notification = $this->build_notification( $session_id );
 		$this->mock_stripe_api_error();
 
-		$this->handler->process_webhook( wp_json_encode( $notification ) );
+		// Immediate phase: defers the webhook.
+		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: API error → filter must still be cleaned up.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$this->assertFalse( has_filter( 'wc_stripe_request_headers' ) );
 	}
@@ -283,8 +315,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
 
-		$notification = $this->build_notification( 'cs_test_version' );
+		$session_id   = 'cs_test_version';
+		$notification = $this->build_notification( $session_id );
+
+		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
+		// Deferred phase: API retrieve call must include the Stripe-Version override header.
+		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 
 		$this->assertNotNull( $captured_headers );
 		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
