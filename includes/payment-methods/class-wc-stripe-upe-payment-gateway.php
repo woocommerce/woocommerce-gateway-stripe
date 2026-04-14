@@ -2298,7 +2298,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$error_message      = $payment_error && isset( $payment_error->message ) ? $payment_error->message : '';
 
 			// Hard failure: a real decline/error reported by the upstream payment provider.
-			$is_hard_failure = ! empty( $error_code ) && ! in_array( $error_code, $cancellation_codes, true );
+			// An `expired` session (Stripe's own timeout) is never a hard failure — the
+			// customer needs a fresh session to retry, regardless of any stale
+			// last_payment_error left on the intent from an earlier attempt.
+			$is_hard_failure = 'expired' !== $status
+				&& ! empty( $error_code )
+				&& ! in_array( $error_code, $cancellation_codes, true );
 
 			if ( $is_hard_failure ) {
 				WC_Stripe_Logger::error(

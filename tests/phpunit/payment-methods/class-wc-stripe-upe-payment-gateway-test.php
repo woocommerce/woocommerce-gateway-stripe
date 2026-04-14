@@ -2207,6 +2207,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Regression: an `expired` session that carries a stale `last_payment_error`
+	 * with a hard-failure code (e.g. the customer tried a declined card earlier
+	 * in the flow and then let the session expire) must NOT be treated as a
+	 * hard failure. The order stays retryable; the customer gets a cancel notice.
+	 */
+	public function test_process_checkout_session_redirect_expired_with_stale_error_stays_retryable() {
+		[ $order, $request_url ] = $this->create_order_with_checkout_session( 'cs_test_expired_with_error' );
+
+		$session_mock = $this->array_to_object(
+			[
+				'id'             => 'cs_test_expired_with_error',
+				'status'         => 'expired',
+				'payment_intent' => [
+					'id'                 => 'pi_mock_expired_with_error',
+					'last_payment_error' => [
+						'code'    => 'card_declined',
+						'message' => 'Your card was declined.',
+					],
+				],
+			]
+		);
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( $request_url )
+			->willReturn( $session_mock );
+
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		$final = wc_get_order( $order->get_id() );
+		$this->assertNotEquals( OrderStatus::FAILED, $final->get_status() );
+		$this->assertEmpty( wc_get_notices( 'error' ) );
+		$this->assertNotEmpty( wc_get_notices( 'notice' ) );
+		$this->assertSame( wc_get_checkout_url(), $captured );
+	}
+
+	/**
 	 * Test the pay-for-order variant: cancel must redirect to the order pay URL,
 	 * not the generic checkout URL.
 	 */
