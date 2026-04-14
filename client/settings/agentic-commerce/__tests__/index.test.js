@@ -417,6 +417,12 @@ describe( 'AgenticCommercePanel', () => {
 				screen.getAllByText( /Connection refused/i ).length
 			).toBeGreaterThanOrEqual( 1 );
 		} );
+
+		// Empty-state placeholders should NOT be shown when fetch fails.
+		expect( screen.queryByText( /No syncs yet/i ) ).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( /No sync history available/i )
+		).not.toBeInTheDocument();
 	} );
 
 	// -------------------------------------------------------------------------
