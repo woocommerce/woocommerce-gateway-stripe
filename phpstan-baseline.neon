@@ -4317,7 +4317,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property WooCommerce\:\:\$payment_gateways\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
