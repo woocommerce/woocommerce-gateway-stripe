@@ -13,6 +13,7 @@ import {
 	usePaymentSetupHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
+import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -55,6 +56,7 @@ const CheckoutForm = ( {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
+	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
@@ -66,7 +68,8 @@ const CheckoutForm = ( {
 		checkoutSessionId,
 		errorMessage,
 		hasLoadErrorRef,
-		isPaymentElementComplete
+		isPaymentElementComplete,
+		selectedPaymentType
 	);
 	useCheckoutSuccessHandler(
 		checkoutState,
@@ -82,6 +85,7 @@ const CheckoutForm = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 		setIsPaymentElementComplete( complete );
+		setSelectedPaymentType( value?.type ?? '' );
 	};
 
 	const elementOptions = useMemo( () => {
@@ -125,6 +129,11 @@ const CheckoutForm = ( {
 				/>
 			) }
 			<CurrencySelectorElement />
+			{ checkoutState.type === 'success' && (
+				<AdaptivePricingDisclosure
+					billingCountry={ billing?.billingAddress?.country ?? '' }
+				/>
+			) }
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }
