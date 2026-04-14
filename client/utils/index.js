@@ -29,7 +29,7 @@ export const dismissNotice = ( noticeKey, callback ) => {
  * Moves Stripe to the top of the WooCommerce payment gateway order.
  */
 export const moveStripeToTop = () => {
-	apiFetch( {
+	return apiFetch( {
 		path: '/wc/v3/wc_stripe/settings/set_stripe_gateways_first',
 		method: 'POST',
 	} );

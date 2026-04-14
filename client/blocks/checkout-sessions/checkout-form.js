@@ -13,6 +13,7 @@ import {
 	usePaymentSetupHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
+import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -29,6 +30,7 @@ import {
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
  * @param {Object}                 props.billing                     Billing information for the checkout session.
  * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
+ * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
  * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {JSX.Element}            props.LoadingMask                 LoadingMask component to display while loading.
  * @param {Function}               props.onLoadError                 Callback function to handle load errors.
@@ -43,6 +45,7 @@ const CheckoutForm = ( {
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	billing,
 	isLoggedIn,
+	isPayerPhoneRequired,
 	shippingData,
 	LoadingMask,
 	onLoadError,
@@ -53,6 +56,7 @@ const CheckoutForm = ( {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
 		useState( false );
+	const [ selectedPaymentType, setSelectedPaymentType ] = useState( '' );
 	const hasLoadErrorRef = useRef( false );
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
@@ -64,13 +68,15 @@ const CheckoutForm = ( {
 		checkoutSessionId,
 		errorMessage,
 		hasLoadErrorRef,
-		isPaymentElementComplete
+		isPaymentElementComplete,
+		selectedPaymentType
 	);
 	useCheckoutSuccessHandler(
 		checkoutState,
 		onCheckoutSuccess,
 		billing,
 		isLoggedIn,
+		isPayerPhoneRequired,
 		shippingData
 	);
 	usePaymentFailHandler( onCheckoutFail, emitResponse );
@@ -79,6 +85,7 @@ const CheckoutForm = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 		setIsPaymentElementComplete( complete );
+		setSelectedPaymentType( value?.type ?? '' );
 	};
 
 	const elementOptions = useMemo( () => {
@@ -122,6 +129,11 @@ const CheckoutForm = ( {
 				/>
 			) }
 			<CurrencySelectorElement />
+			{ checkoutState.type === 'success' && (
+				<AdaptivePricingDisclosure
+					billingCountry={ billing?.billingAddress?.country ?? '' }
+				/>
+			) }
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ onSelectedPaymentMethodChange }
