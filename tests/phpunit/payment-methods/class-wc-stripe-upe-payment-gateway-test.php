@@ -211,6 +211,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	public function tear_down() {
+		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
@@ -482,7 +484,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that the Adaptive Pricing currency selector div is rendered or omitted in payment_fields()
-	 * based on the OC enabled flag, valid OC page, checkout sessions feature flag, and adaptive pricing setting.
+	 * based on the OC enabled flag, valid OC page, Stripe being first among available gateways, checkout sessions feature flag, and adaptive pricing setting.
 	 *
 	 * @dataProvider provide_payment_fields_currency_selector_rendering
 	 *
@@ -515,6 +517,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		try {
+			if ( $expect_selector ) {
+				$this->set_stripe_as_first_available_gateway_for_oc_layout_tests();
+			}
+
 			ob_start();
 			$gateway->payment_fields();
 			$output = ob_get_clean();
@@ -522,20 +528,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
-		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
+		$currency_selector_wrapper = 'id="wc-stripe-adaptive-pricing-currency-wrapper"';
 		if ( $expect_selector ) {
-			$this->assertStringContainsString( $selector_div, $output );
-			$selector_position    = strpos( $output, $selector_div );
-			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
-			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
+			$this->assertStringContainsString( $currency_selector_wrapper, $output );
+			$this->assertStringContainsString( 'id="wc-stripe-currency-selector"', $output );
+			$this->assertStringContainsString( 'id="wc-stripe-adaptive-pricing-disclosure"', $output );
+			$currency_selector_position = strpos( $output, $currency_selector_wrapper );
+			$upe_element_position       = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $currency_selector_position, 'Adaptive pricing currency wrap position should be detectable.' );
 			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
 			$this->assertLessThan(
 				$upe_element_position,
-				$selector_position,
+				$currency_selector_position,
 				'Currency selector should render before the payment element.'
 			);
 		} else {
-			$this->assertStringNotContainsString( $selector_div, $output );
+			$this->assertStringNotContainsString( $currency_selector_wrapper, $output );
 		}
 	}
 
@@ -557,6 +565,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		try {
+			$this->set_stripe_as_first_available_gateway_for_oc_layout_tests();
+
 			ob_start();
 			$gateway->payment_fields();
 			$output = ob_get_clean();
@@ -4088,6 +4098,166 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Creates a WC_Payment_Gateways mock that returns a provided map from payment_gateways().
+	 *
+	 * @param array<string, WC_Payment_Gateway> $gateways Available gateways keyed by gateway ID.
+	 * @return WC_Payment_Gateways
+	 */
+	private function create_payment_gateways_registry_mock( array $gateways ): WC_Payment_Gateways {
+		$registry = $this->createMock( WC_Payment_Gateways::class );
+		$registry->method( 'payment_gateways' )->willReturn( $gateways );
+
+		return $registry;
+	}
+
+	/**
+	 * Sets WC_Stripe_Helper first-gateway memo so Stripe is first among available gateways (matches wc_payment_gateways_initialized wiring).
+	 *
+	 * payment_fields() gates OC markup on {@see WC_Stripe_UPE_Payment_Gateway::should_use_optimized_checkout_payment_method_layout()}.
+	 *
+	 * @return void
+	 */
+	private function set_stripe_as_first_available_gateway_for_oc_layout_tests(): void {
+		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+
+		$stripe_gateway = $this->createMock( WC_Payment_Gateway::class );
+		$stripe_gateway->method( 'is_available' )->willReturn( true );
+		$other_gateway = $this->createMock( WC_Payment_Gateway::class );
+		$other_gateway->method( 'is_available' )->willReturn( true );
+
+		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
+			$this->create_payment_gateways_registry_mock(
+				[
+					'stripe' => $stripe_gateway,
+					'bacs'   => $other_gateway,
+				]
+			)
+		);
+	}
+
+	/**
+	 * Regression: when OC is enabled, layout/script flags and the processing gate must follow the first
+	 * available gateway (WC_Stripe_Helper::record_first_gateway_id_from_available_list).
+	 *
+	 * @dataProvider provide_optimized_checkout_depends_on_first_available_gateway
+	 *
+	 * @param bool $stripe_is_first Whether Stripe should be the first available gateway in WooCommerce order.
+	 * @param bool $oc_enabled    Whether the Optimized Checkout feature flag is enabled on the gateway.
+	 * @param bool $expected      Whether OC layout/processing should be active.
+	 *
+	 * @covers WC_Stripe_UPE_Payment_Gateway::should_use_optimized_checkout_payment_method_layout
+	 * @covers WC_Stripe_UPE_Payment_Gateway::javascript_params
+	 */
+	public function test_optimized_checkout_depends_on_first_available_gateway(
+		bool $stripe_is_first,
+		bool $oc_enabled,
+		bool $expected
+	): void {
+		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+
+		$stripe_gateway = $this->createMock( WC_Payment_Gateway::class );
+		$stripe_gateway->method( 'is_available' )->willReturn( true );
+		$other_gateway = $this->createMock( WC_Payment_Gateway::class );
+		$other_gateway->method( 'is_available' )->willReturn( true );
+
+		if ( $stripe_is_first ) {
+			$ordered_gateways = [
+				'stripe' => $stripe_gateway,
+				'bacs'   => $other_gateway,
+			];
+		} else {
+			$ordered_gateways = [
+				'bacs'   => $other_gateway,
+				'stripe' => $stripe_gateway,
+			];
+		}
+
+		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
+			$this->create_payment_gateways_registry_mock( $ordered_gateways )
+		);
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods(
+				[
+					'get_return_url',
+					'get_stripe_return_url',
+					'is_changing_payment_method_for_subscription',
+					'is_subscription_item_in_cart',
+					'is_valid_optimized_checkout_page',
+					'is_adaptive_pricing_supported',
+				]
+			)
+			->getMock();
+
+		$gateway->method( 'get_return_url' )->willReturn( '' );
+		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
+		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
+
+		$gateway->oc_enabled = $oc_enabled;
+
+		$this->assertSame(
+			$expected,
+			$gateway->should_use_optimized_checkout_payment_method_layout(),
+			'OC layout should activate only when OC is enabled, the page is valid for OC, and Stripe is first among available gateways.'
+		);
+
+		$is_oc_active = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_oc_active' );
+		$is_oc_active->setAccessible( true );
+		$this->assertSame(
+			$expected,
+			$is_oc_active->invoke( $gateway ),
+			'is_oc_active() must stay aligned with first-available gateway order for OC processing when this test fixes is_valid_optimized_checkout_page() to true.'
+		);
+
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+		$params = $gateway->javascript_params();
+
+		$this->assertArrayHasKey( 'isOCEnabled', $params );
+		$this->assertArrayHasKey( 'shouldShowOptimizedCheckout', $params );
+		$this->assertSame( $expected, $params['isOCEnabled'] );
+		$this->assertSame( $expected, $params['shouldShowOptimizedCheckout'] );
+
+		if ( $expected ) {
+			$this->assertArrayHasKey( 'OCLayout', $params );
+			$this->assertArrayHasKey( 'paymentMethodConfigurationId', $params );
+			$this->assertArrayHasKey( 'excludedPaymentMethodTypes', $params );
+		} else {
+			$this->assertArrayNotHasKey( 'OCLayout', $params );
+			$this->assertArrayNotHasKey( 'paymentMethodConfigurationId', $params );
+			$this->assertArrayNotHasKey( 'excludedPaymentMethodTypes', $params );
+		}
+	}
+
+	/**
+	 * Data provider for test_optimized_checkout_depends_on_first_available_gateway.
+	 *
+	 * @return array<string, array{stripe_is_first: bool, oc_enabled: bool, expected: bool}>
+	 */
+	public function provide_optimized_checkout_depends_on_first_available_gateway(): array {
+		return [
+			'OC enabled and Stripe is first available'                  => [
+				'stripe_is_first' => true,
+				'oc_enabled'      => true,
+				'expected'        => true,
+			],
+			'OC enabled and Stripe is not first available'              => [
+				'stripe_is_first' => false,
+				'oc_enabled'      => true,
+				'expected'        => false,
+			],
+			'OC disabled does not activate layout when Stripe is first' => [
+				'stripe_is_first' => true,
+				'oc_enabled'      => false,
+				'expected'        => false,
+			],
+		];
+	}
+
+	/**
 	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
 	 *
 	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
@@ -4231,15 +4401,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Tests for `is_optimized_checkout_active`.
+	 * Tests for `should_use_optimized_checkout_payment_method_layout`.
 	 *
-	 * @dataProvider provide_test_is_optimized_checkout_active
+	 * @dataProvider provide_test_should_use_optimized_checkout_payment_method_layout
 	 *
-	 * @param bool $oc_enabled   Whether `oc_enabled` is set on the gateway.
-	 * @param bool $valid_page   Value returned by `is_valid_optimized_checkout_page`.
-	 * @param bool $expected     Expected return value of `is_optimized_checkout_active`.
+	 * @param bool $oc_enabled     Whether `oc_enabled` is set on the gateway.
+	 * @param bool $valid_page     Value returned by `is_valid_optimized_checkout_page`.
+	 * @param bool $stripe_first   Value returned by `WC_Stripe_Helper::is_stripe_gateway_first_in_available_list`.
+	 * @param bool $expected       Expected return value.
 	 */
-	public function test_is_optimized_checkout_active( bool $oc_enabled, bool $valid_page, bool $expected ) {
+	public function test_should_use_optimized_checkout_payment_method_layout( bool $oc_enabled, bool $valid_page, bool $stripe_first, bool $expected ) {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
 			->getMock();
@@ -4247,35 +4418,62 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->oc_enabled = $oc_enabled;
 		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_page );
 
-		$this->assertSame( $expected, $gateway->is_optimized_checkout_active() );
+		// Control whether Stripe is the first available gateway.
+		$original_gateways = WC()->payment_gateways->payment_gateways;
+		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+		try {
+			if ( $stripe_first ) {
+				WC()->payment_gateways->payment_gateways = [ $gateway ];
+			} else {
+				$bacs_mock                               = $this->createMock( WC_Payment_Gateway::class );
+				$bacs_mock->id                           = 'bacs';
+				WC()->payment_gateways->payment_gateways = [ $bacs_mock, $gateway ];
+			}
+			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
+
+			$this->assertSame( $expected, $gateway->should_use_optimized_checkout_payment_method_layout() );
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_gateways;
+			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+		}
 	}
 
 	/**
-	 * Data provider for `test_is_optimized_checkout_active`.
+	 * Data provider for `test_should_use_optimized_checkout_payment_method_layout`.
 	 *
 	 * @return array[]
 	 */
-	public function provide_test_is_optimized_checkout_active() {
+	public function provide_test_should_use_optimized_checkout_payment_method_layout() {
 		return [
-			'OC enabled on a valid page'     => [
-				'oc_enabled' => true,
-				'valid_page' => true,
-				'expected'   => true,
+			'OC enabled, valid page, Stripe first'        => [
+				'oc_enabled'   => true,
+				'valid_page'   => true,
+				'stripe_first' => true,
+				'expected'     => true,
 			],
-			'OC enabled on an invalid page'  => [
-				'oc_enabled' => true,
-				'valid_page' => false,
-				'expected'   => false,
+			'OC enabled, valid page, Stripe not first'    => [
+				'oc_enabled'   => true,
+				'valid_page'   => true,
+				'stripe_first' => false,
+				'expected'     => false,
 			],
-			'OC disabled on a valid page'    => [
-				'oc_enabled' => false,
-				'valid_page' => true,
-				'expected'   => false,
+			'OC enabled, invalid page, Stripe first'      => [
+				'oc_enabled'   => true,
+				'valid_page'   => false,
+				'stripe_first' => true,
+				'expected'     => false,
 			],
-			'OC disabled on an invalid page' => [
-				'oc_enabled' => false,
-				'valid_page' => false,
-				'expected'   => false,
+			'OC disabled, valid page, Stripe first'       => [
+				'oc_enabled'   => false,
+				'valid_page'   => true,
+				'stripe_first' => true,
+				'expected'     => false,
+			],
+			'OC disabled, invalid page, Stripe not first' => [
+				'oc_enabled'   => false,
+				'valid_page'   => false,
+				'stripe_first' => false,
+				'expected'     => false,
 			],
 		];
 	}
@@ -4925,5 +5123,153 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// WooCommerce's get_customer_tokens() only returns tokens for logged-in users.
 		$this->assertIsArray( $tokens );
 		$this->assertEmpty( $tokens, 'get_tokens() should return no tokens for a guest user even when OCS is enabled.' );
+	}
+
+	/**
+	 * Data provider for order currency conversion notice ECB sentence by billing country.
+	 *
+	 * @return array<string, array{billing_country: string, expect_ecb_sentence: bool}>
+	 */
+	public function provide_add_currency_conversion_notice_order_eea_matrix(): array {
+		return [
+			'EEA customer (Germany)'           => [
+				[
+					'billing_country'     => 'DE',
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'non-EEA customer (United States)' => [
+				[
+					'billing_country'     => 'US',
+					'expect_ecb_sentence' => false,
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_add_currency_conversion_notice_order_eea_matrix
+	 *
+	 * @param array{billing_country: string, expect_ecb_sentence: bool} $test_case Row from the matrix.
+	 */
+	public function test_add_currency_conversion_notice_ecb_sentence_by_order_country( array $test_case ): void {
+		$billing_country     = $test_case['billing_country'];
+		$expect_ecb_sentence = $test_case['expect_ecb_sentence'];
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20 );
+		$order->set_billing_country( $billing_country );
+		$order->save();
+
+		$checkout_session_id = sprintf( 'cs_test_order_ecb_mtx_%s', strtolower( $billing_country ) );
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		ob_start();
+		$this->mock_gateway->add_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$ecb_needle = 'European Central Bank (ECB) interbank rate';
+		if ( $expect_ecb_sentence ) {
+			$this->assertStringContainsString( $ecb_needle, $output );
+		} else {
+			$this->assertStringNotContainsString( $ecb_needle, $output );
+		}
+	}
+
+	/**
+	 * Data provider for add_email_currency_conversion_notice ECB sentence: EEA vs non-EEA × customer vs admin × HTML vs plain text.
+	 *
+	 * @return array<string, array{billing_country: string, sent_to_admin: bool, plain_text: bool, expect_ecb_sentence: bool}>
+	 */
+	public function provide_add_email_currency_conversion_notice_ecb_matrix(): array {
+		return [
+			'customer HTML, EEA (France)'              => [
+				[
+					'billing_country'     => 'FR',
+					'sent_to_admin'       => false,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'customer plain text, EEA (Netherlands)'   => [
+				[
+					'billing_country'     => 'NL',
+					'sent_to_admin'       => false,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'customer HTML, non-EEA (Canada)'          => [
+				[
+					'billing_country'     => 'CA',
+					'sent_to_admin'       => false,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'customer plain text, non-EEA (Australia)' => [
+				[
+					'billing_country'     => 'AU',
+					'sent_to_admin'       => false,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'admin HTML, EEA (Germany)'                => [
+				[
+					'billing_country'     => 'DE',
+					'sent_to_admin'       => true,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'admin plain text, EEA (Germany)'          => [
+				[
+					'billing_country'     => 'DE',
+					'sent_to_admin'       => true,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => false,
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_add_email_currency_conversion_notice_ecb_matrix
+	 *
+	 * @param array{billing_country: string, sent_to_admin: bool, plain_text: bool, expect_ecb_sentence: bool} $case Row from the matrix.
+	 */
+	public function test_add_email_currency_conversion_notice_ecb_sentence_by_context( array $case ): void {
+		$billing_country     = $case['billing_country'];
+		$sent_to_admin       = $case['sent_to_admin'];
+		$plain_text          = $case['plain_text'];
+		$expect_ecb_sentence = $case['expect_ecb_sentence'];
+
+		$checkout_session_id = sprintf(
+			'cs_test_ecb_mtx_%s_%d_%d',
+			$billing_country,
+			(int) $sent_to_admin,
+			(int) $plain_text
+		);
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( $billing_country );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, $sent_to_admin, $plain_text );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$ecb_needle = 'European Central Bank (ECB) interbank rate';
+		if ( $expect_ecb_sentence ) {
+			$this->assertStringContainsString( $ecb_needle, $output );
+		} else {
+			$this->assertStringNotContainsString( $ecb_needle, $output );
+		}
 	}
 }
