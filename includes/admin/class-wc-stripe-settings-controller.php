@@ -216,6 +216,8 @@ class WC_Stripe_Settings_Controller {
 			// Show the Stripe Tax banner only if OC is enabled
 			&& $is_oc_enabled;
 
+		$is_ap_available_for_account = WC_Stripe_Helper::is_adaptive_pricing_available_for_account();
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
@@ -232,7 +234,7 @@ class WC_Stripe_Settings_Controller {
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'is_oc_enabled'                         => $is_oc_enabled,
-			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available(),
+			'is_cs_available'                       => WC_Stripe_Feature_Flags::is_checkout_sessions_available() && $is_ap_available_for_account,
 			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_url' ),
 			'is_sepa_tokens_for_ideal_enabled'      => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_ideal', 'no' ),
@@ -245,6 +247,7 @@ class WC_Stripe_Settings_Controller {
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
+		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(
 			'woocommerce_stripe_admin',
 			'wc_stripe_settings_params',

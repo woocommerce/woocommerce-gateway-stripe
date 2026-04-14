@@ -61,11 +61,6 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 			return __( 'Payment methods', 'woocommerce-gateway-stripe' );
 		}
 
-		// Classic checkout page.
-		if ( is_checkout() ) {
-			return __( 'Payment options', 'woocommerce-gateway-stripe' );
-		}
-
 		return parent::get_title();
 	}
 
