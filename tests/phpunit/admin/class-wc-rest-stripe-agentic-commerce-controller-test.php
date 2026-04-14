@@ -24,6 +24,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	private $controller;
 
 	/**
+	 * REST server instance.
+	 *
+	 * @var WP_REST_Server
+	 */
+	private $server;
+
+	/**
 	 * Set up before each test.
 	 *
 	 * @return void
@@ -35,11 +42,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_REST_Stripe_Agentic_Commerce_Controller class not loaded' );
 		}
 
+		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
+		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
+
 		global $wp_rest_server;
 		$wp_rest_server = null;
-
-		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
-		$this->controller->register_routes();
+		$this->server   = rest_get_server();
 
 		wp_set_current_user( 1 );
 
@@ -54,6 +62,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tear_down(): void {
+		remove_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		parent::tear_down();
