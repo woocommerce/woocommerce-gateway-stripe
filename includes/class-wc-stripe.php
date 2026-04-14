@@ -623,13 +623,23 @@ class WC_Stripe {
 			return true;
 		}
 
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return false;
+		$page   = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
+		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS );
+
+		// HPOS order edit screen: wp-admin/admin.php?page=wc-orders&action=edit
+		if ( 'wc-orders' === $page && 'edit' === $action ) {
+			return true;
 		}
 
-		$screen = get_current_screen();
-		// Legacy CPT order screen ('shop_order') and HPOS order screen ('woocommerce_page_wc-orders').
-		return $screen && in_array( $screen->id, [ 'shop_order', 'woocommerce_page_wc-orders' ], true );
+		// Legacy CPT order edit screen: wp-admin/post.php?post=123&action=edit
+		if ( 'edit' === $action ) {
+			$post_id = absint( filter_input( INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT ) );
+			if ( $post_id && 'shop_order' === get_post_type( $post_id ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
