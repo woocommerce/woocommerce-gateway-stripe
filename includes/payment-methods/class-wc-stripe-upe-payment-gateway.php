@@ -1223,7 +1223,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				esc_html( $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'] )
 			);
 		if ( $this->is_eea_customer( $order ) ) {
-			echo ' ' . esc_html__( 'This includes a X% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+			echo ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
 		}
 		echo '</p>';
 	}
@@ -1271,7 +1271,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					esc_html( $exchange_rate )
 				);
 				if ( $this->is_eea_customer( $order ) ) {
-					$customer_message .= ' ' . esc_html__( 'This includes a X% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+					$customer_message .= ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
 				}
 				printf( "\n%s\n", $customer_message ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $customer_message is already escaped.
 			}
@@ -1338,7 +1338,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				esc_html( $exchange_rate )
 			);
 			if ( $this->is_eea_customer( $order ) ) {
-				echo ' ' . esc_html__( 'This includes a X% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+				echo ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
 			}
 		}
 

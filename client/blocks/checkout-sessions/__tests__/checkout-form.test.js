@@ -168,7 +168,7 @@ describe( 'CheckoutForm', () => {
 		);
 
 		expect(
-			screen.getByText( '(Includes X% conversion service).', {
+			screen.getByText( '(Includes 3.8% conversion service).', {
 				exact: false,
 			} )
 		).toBeInTheDocument();
@@ -198,7 +198,7 @@ describe( 'CheckoutForm', () => {
 		);
 
 		expect(
-			screen.queryByText( '(Includes X% conversion service).', {
+			screen.queryByText( '(Includes 3.8% conversion service).', {
 				exact: false,
 			} )
 		).not.toBeInTheDocument();
@@ -228,7 +228,7 @@ describe( 'CheckoutForm', () => {
 		);
 
 		expect(
-			screen.queryByText( '(Includes X% conversion service).', {
+			screen.queryByText( '(Includes 3.8% conversion service).', {
 				exact: false,
 			} )
 		).not.toBeInTheDocument();

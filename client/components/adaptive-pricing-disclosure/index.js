@@ -30,7 +30,7 @@ export function AdaptivePricingDisclosure( { billingCountry = '' } ) {
 					{
 						/* translators: %s: percentage value for the conversion service fee. */
 						__(
-							'(Includes X% conversion service).',
+							'(Includes 3.8% conversion service).',
 							'woocommerce-gateway-stripe'
 						)
 					}
@@ -49,7 +49,7 @@ export function AdaptivePricingDisclosure( { billingCountry = '' } ) {
 					{
 						/* translators: %s: percentage markup over the ECB reference rate. */
 						__(
-							'This rate is X% over the European Central Bank reference rate and guarantees the exchange rate during checkout.',
+							'This rate is 3.8% over the European Central Bank reference rate and guarantees the exchange rate during checkout.',
 							'woocommerce-gateway-stripe'
 						)
 					}
