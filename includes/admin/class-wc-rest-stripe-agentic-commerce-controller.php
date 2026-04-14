@@ -125,9 +125,33 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			);
 		}
 
+		// Prevent concurrent sync runs using a transient-based lock.
+		if ( get_transient( 'wc_stripe_agentic_sync_lock' ) ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_sync_locked',
+				__( 'A sync is already in progress.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 409 ]
+			);
+		}
+
+		set_transient( 'wc_stripe_agentic_sync_lock', true, 5 * MINUTE_IN_SECONDS );
+
 		try {
 			$integration = new WC_Stripe_Agentic_Commerce_Integration();
-			$integration->sync_feed();
+			$success     = $integration->sync_feed();
+
+			if ( ! $success ) {
+				$last_sync = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+				$message   = ! empty( $last_sync['error'] )
+					? $last_sync['error']
+					: __( 'Sync did not complete successfully.', 'woocommerce-gateway-stripe' );
+
+				return new WP_Error(
+					'stripe_agentic_commerce_sync_failed',
+					$message,
+					[ 'status' => 500 ]
+				);
+			}
 
 			// Reset the automatic sync window so the next scheduled run starts
 			// from now, rather than running again shortly after a manual sync.
@@ -147,6 +171,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				$e->getMessage(),
 				[ 'status' => 500 ]
 			);
+		} finally {
+			delete_transient( 'wc_stripe_agentic_sync_lock' );
 		}
 
 		return rest_ensure_response( [ 'success' => true ] );

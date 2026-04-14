@@ -178,6 +178,7 @@ const AgenticCommercePanel = () => {
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSyncing, setIsSyncing ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
+	const [ loadError, setLoadError ] = useState( false );
 
 	const fetchStatus = useCallback( async () => {
 		setIsLoading( true );
@@ -186,7 +187,9 @@ const AgenticCommercePanel = () => {
 				path: '/wc/v3/wc_stripe/agentic-commerce/status',
 			} );
 			setData( result );
+			setLoadError( false );
 		} catch ( err ) {
+			setLoadError( true );
 			setNotice( {
 				status: 'error',
 				message:
@@ -310,7 +313,7 @@ const AgenticCommercePanel = () => {
 				{ isLoading && (
 					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
 				) }
-				{ ! isLoading && ! lastSync && (
+				{ ! isLoading && ! lastSync && ! loadError && (
 					<p>
 						{ __(
 							'No syncs yet. Feed will sync automatically every 15 minutes.',
@@ -435,7 +438,7 @@ const AgenticCommercePanel = () => {
 				{ isLoading && (
 					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
 				) }
-				{ ! isLoading && ! history?.length && (
+				{ ! isLoading && ! history?.length && ! loadError && (
 					<p>
 						{ __(
 							'No sync history available.',
