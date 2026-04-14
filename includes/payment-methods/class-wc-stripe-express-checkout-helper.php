@@ -629,7 +629,52 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function is_page_supported() {
 		return $this->is_product()
 				|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-				|| is_wc_endpoint_url( 'order-pay' );
+				|| is_wc_endpoint_url( 'order-pay' )
+				|| $this->is_change_payment_method_page();
+	}
+
+	/**
+	 * Returns true if the current page is a subscription change payment method page.
+	 *
+	 * @return boolean
+	 */
+	public function is_change_payment_method_page() {
+		return isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+			&& function_exists( 'wcs_is_subscription' )
+			&& wcs_is_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
+	 * Returns true if ECE should be shown on the subscription change payment method page.
+	 *
+	 * Performs only the basic checks needed (account connected, SSL, gateway available,
+	 * ECE enabled) without cart-dependent validations which don't apply to this flow.
+	 *
+	 * @return boolean
+	 */
+	private function should_show_ece_on_change_payment_method_page() {
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return false;
+		}
+
+		if ( ! $this->testmode && ! is_ssl() ) {
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
+		if ( ! $this->is_express_checkout_enabled() ) {
+			return false;
+		}
+
+		if ( ! $this->should_show_ece_on_checkout_page() ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -639,6 +684,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		// For subscription change payment method, only check basic requirements.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->should_show_ece_on_change_payment_method_page();
+		}
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
