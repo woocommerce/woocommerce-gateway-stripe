@@ -286,6 +286,209 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
+	// Lazy status refresh from Stripe
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /status refreshes pending entries by polling Stripe for their current status.
+	 */
+	public function test_get_status_refreshes_pending_entries_from_stripe(): void {
+		$history = [
+			[
+				'status'        => 'pending',
+				'timestamp'     => 1700000000,
+				'products'      => 5,
+				'import_set_id' => 'impset_pending1',
+				'file_id'       => 'file_1',
+				'error'         => '',
+			],
+			[
+				'status'        => 'succeeded',
+				'timestamp'     => 1700000100,
+				'products'      => 10,
+				'import_set_id' => 'impset_done',
+				'file_id'       => 'file_2',
+				'error'         => '',
+			],
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, end( $history ) );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_pending1' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_pending1',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$returned_history = $response->get_data()['history'];
+		$pending_entry    = null;
+		foreach ( $returned_history as $entry ) {
+			if ( 'impset_pending1' === $entry['import_set_id'] ) {
+				$pending_entry = $entry;
+				break;
+			}
+		}
+		$this->assertNotNull( $pending_entry );
+		$this->assertEquals( 'succeeded', $pending_entry['status'] );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'succeeded', $stored_history[0]['status'] );
+	}
+
+	/**
+	 * GET /status does not call Stripe for entries that are already in a terminal state.
+	 */
+	public function test_get_status_skips_refresh_for_non_pending_entries(): void {
+		$history = [
+			[
+				'status'        => 'succeeded',
+				'timestamp'     => 1700000000,
+				'products'      => 10,
+				'import_set_id' => 'impset_ok',
+				'file_id'       => 'file_1',
+				'error'         => '',
+			],
+			[
+				'status'        => 'failed',
+				'timestamp'     => 1700000100,
+				'products'      => 0,
+				'import_set_id' => 'impset_fail',
+				'file_id'       => 'file_2',
+				'error'         => 'oops',
+			],
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, end( $history ) );
+
+		$api_called = false;
+		$http_stub  = function ( $preempt ) use ( &$api_called ) {
+			$api_called = true;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $api_called, 'Stripe API should not be called when no entries are pending.' );
+	}
+
+	/**
+	 * GET /status updates last_sync when the most recent entry transitions from pending.
+	 */
+	public function test_get_status_updates_last_sync_when_latest_entry_refreshed(): void {
+		$entry = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 3,
+			'import_set_id' => 'impset_latest',
+			'file_id'       => 'file_latest',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_latest' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_latest',
+							'status' => 'succeeded_with_errors',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'succeeded_with_errors', $last_sync['status'] );
+
+		$stored_last = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		$this->assertEquals( 'succeeded_with_errors', $stored_last['status'] );
+	}
+
+	/**
+	 * GET /status handles Stripe API errors gracefully during refresh.
+	 */
+	public function test_get_status_handles_stripe_error_during_refresh(): void {
+		$entry = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 3,
+			'import_set_id' => 'impset_errcheck',
+			'file_id'       => 'file_err',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_errcheck' ) ) {
+				return new WP_Error( 'http_request_failed', 'Connection timeout' );
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'pending', $last_sync['status'] );
+	}
+
+	// -------------------------------------------------------------------------
 	// POST /wc/v3/wc_stripe/agentic-commerce/sync
 	// -------------------------------------------------------------------------
 
