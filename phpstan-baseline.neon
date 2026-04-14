@@ -415,12 +415,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$latest_charge on array\|stdClass\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$processing on array\|object\.$#'
 			identifier: property.nonObject
 			count: 1
@@ -2445,23 +2439,11 @@ parameters:
 		-
 			message: '#^Cannot access property \$client_secret on array\|stdClass\.$#'
 			identifier: property.nonObject
-			count: 3
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot access property \$id on array\|stdClass\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Cannot access property \$id on stdClass\|null\.$#'
-			identifier: property.nonObject
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot access property \$message on true\.$#'
+			message: '#^Cannot access property \$id on stdClass\|null\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
@@ -2671,12 +2653,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Part \$intent_id \(non\-empty\-array\|non\-falsy\-string\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Property WC_Stripe_Intent_Controller\:\:\$gateway \(WC_Stripe_UPE_Payment_Gateway\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
 			count: 1
@@ -2687,6 +2663,42 @@ parameters:
 			identifier: empty.variable
 			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$intent_id of static method WC_Stripe_API\:\:retrieve_payment_intent\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$intent_id of static method WC_Stripe_API\:\:retrieve_setup_intent\(\) expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, Stripe\\PaymentIntent\|Stripe\\SetupIntent given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-intent-controller.php
+
+		-
+			message: '#^Parameter \#1 \$params of method Stripe\\Service\\PaymentIntentService\:\:create\(\) expects array.*$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-api.php
+
+		-
+			message: '#^Parameter \#2 \$intent of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects stdClass, Stripe\\PaymentIntent given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-orders-controller.php
+
+		-
+			message: '#^Parameter \#1 \$charge_id of method WC_Stripe_Payment_Gateway\:\:get_charge_object\(\) expects string, string\|Stripe\\Charge\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
 			message: '#^Static property WC_Stripe_Logger\:\:\$logger \(WC_Logger\) does not accept WC_Logger_Interface\.$#'

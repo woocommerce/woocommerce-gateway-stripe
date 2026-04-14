@@ -391,4 +391,167 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 			]
 		);
 	}
+
+	// =========================================================================
+	// PaymentIntent SDK methods
+	// =========================================================================
+
+	/**
+	 * Tests that create_payment_intent returns a PaymentIntent DTO.
+	 */
+	public function test_create_payment_intent_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+			[
+				'id'            => 'pi_test_create',
+				'client_secret' => 'pi_secret_create',
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'pi_create_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::create_payment_intent(
+			[
+				'amount'   => 1000,
+				'currency' => 'usd',
+			]
+		);
+
+		$this->assertInstanceOf( \Stripe\PaymentIntent::class, $result );
+		$this->assertSame( 'pi_test_create', $result->id );
+		$this->assertSame( 'pi_secret_create', $result->client_secret );
+	}
+
+	/**
+	 * Tests that create_payment_intent throws WC_Stripe_Exception on API error.
+	 */
+	public function test_create_payment_intent_api_error(): void {
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'pi_create_exception' => \Stripe\Exception\InvalidRequestException::factory( 'Invalid amount', 400 ),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		WC_Stripe_API::create_payment_intent( [ 'amount' => -1 ] );
+	}
+
+	/**
+	 * Tests that retrieve_payment_intent returns a PaymentIntent DTO.
+	 */
+	public function test_retrieve_payment_intent_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+			[
+				'id'     => 'pi_test_retrieve',
+				'status' => 'succeeded',
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'pi_retrieve_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::retrieve_payment_intent( 'pi_test_retrieve' );
+
+		$this->assertInstanceOf( \Stripe\PaymentIntent::class, $result );
+		$this->assertSame( 'pi_test_retrieve', $result->id );
+		$this->assertSame( 'succeeded', $result->status );
+	}
+
+	/**
+	 * Tests that cancel_payment_intent returns a PaymentIntent DTO.
+	 */
+	public function test_cancel_payment_intent_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+			[
+				'id'     => 'pi_test_cancel',
+				'status' => 'canceled',
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'pi_cancel_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::cancel_payment_intent( 'pi_test_cancel' );
+
+		$this->assertInstanceOf( \Stripe\PaymentIntent::class, $result );
+		$this->assertSame( 'canceled', $result->status );
+	}
+
+	// =========================================================================
+	// SetupIntent SDK methods
+	// =========================================================================
+
+	/**
+	 * Tests that create_setup_intent returns a SetupIntent DTO.
+	 */
+	public function test_create_setup_intent_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_setup_intent_object(
+			[
+				'id'            => 'seti_test_create',
+				'client_secret' => 'seti_secret_create',
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'si_create_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::create_setup_intent( [ 'customer' => 'cus_123' ] );
+
+		$this->assertInstanceOf( \Stripe\SetupIntent::class, $result );
+		$this->assertSame( 'seti_test_create', $result->id );
+		$this->assertSame( 'seti_secret_create', $result->client_secret );
+	}
+
+	/**
+	 * Tests that retrieve_setup_intent returns a SetupIntent DTO.
+	 */
+	public function test_retrieve_setup_intent_success(): void {
+		$expected = WC_Stripe_SDK_Test_Helper::create_setup_intent_object(
+			[
+				'id'     => 'seti_test_retrieve',
+				'status' => 'succeeded',
+			]
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'si_retrieve_response' => $expected ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$result = WC_Stripe_API::retrieve_setup_intent( 'seti_test_retrieve' );
+
+		$this->assertInstanceOf( \Stripe\SetupIntent::class, $result );
+		$this->assertSame( 'seti_test_retrieve', $result->id );
+	}
+
+	/**
+	 * Tests that retrieve_setup_intent throws WC_Stripe_Exception on API error.
+	 */
+	public function test_retrieve_setup_intent_api_error(): void {
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[
+				'si_retrieve_exception' => \Stripe\Exception\InvalidRequestException::factory( 'No such setup intent', 404 ),
+			]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		WC_Stripe_API::retrieve_setup_intent( 'seti_nonexistent' );
+	}
 }

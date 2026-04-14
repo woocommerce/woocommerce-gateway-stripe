@@ -1046,4 +1046,210 @@ class WC_Stripe_API {
 			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
 		}
 	}
+
+	/**
+	 * Create a Stripe PaymentIntent via the SDK.
+	 *
+	 * @param array $params Creation parameters.
+	 * @return \Stripe\PaymentIntent
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function create_payment_intent( array $params ): \Stripe\PaymentIntent {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: create payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'request'        => $params,
+				]
+			);
+
+			$intent = self::get_sdk()->paymentIntents->create( $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: create payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent->id,
+				]
+			);
+
+			return $intent;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: create payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Retrieve a Stripe PaymentIntent via the SDK.
+	 *
+	 * @param string $intent_id The payment intent ID.
+	 * @param array  $params    Optional parameters (e.g. expand).
+	 * @return \Stripe\PaymentIntent
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function retrieve_payment_intent( string $intent_id, array $params = [] ): \Stripe\PaymentIntent {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: retrieve payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+				]
+			);
+
+			$intent = self::get_sdk()->paymentIntents->retrieve( $intent_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: retrieve payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent->id,
+				]
+			);
+
+			return $intent;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: retrieve payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Cancel a Stripe PaymentIntent via the SDK.
+	 *
+	 * @param string $intent_id The payment intent ID.
+	 * @param array  $params    Optional parameters.
+	 * @return \Stripe\PaymentIntent
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function cancel_payment_intent( string $intent_id, array $params = [] ): \Stripe\PaymentIntent {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: cancel payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+				]
+			);
+
+			$intent = self::get_sdk()->paymentIntents->cancel( $intent_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: cancel payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent->id,
+				]
+			);
+
+			return $intent;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: cancel payment intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Create a Stripe SetupIntent via the SDK.
+	 *
+	 * @param array $params Creation parameters.
+	 * @return \Stripe\SetupIntent
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function create_setup_intent( array $params ): \Stripe\SetupIntent {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: create setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'request'        => $params,
+				]
+			);
+
+			$intent = self::get_sdk()->setupIntents->create( $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: create setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent->id,
+				]
+			);
+
+			return $intent;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: create setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Retrieve a Stripe SetupIntent via the SDK.
+	 *
+	 * @param string $intent_id The setup intent ID.
+	 * @param array  $params    Optional parameters (e.g. expand).
+	 * @return \Stripe\SetupIntent
+	 * @throws WC_Stripe_Exception On API error.
+	 */
+	public static function retrieve_setup_intent( string $intent_id, array $params = [] ): \Stripe\SetupIntent {
+		try {
+			WC_Stripe_Logger::debug(
+				'Stripe SDK request: retrieve setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+				]
+			);
+
+			$intent = self::get_sdk()->setupIntents->retrieve( $intent_id, $params );
+
+			WC_Stripe_Logger::debug(
+				'Stripe SDK response: retrieve setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent->id,
+				]
+			);
+
+			return $intent;
+		} catch ( \Stripe\Exception\ApiErrorException $e ) {
+			WC_Stripe_Logger::error(
+				'Stripe SDK error: retrieve setup intent',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'intent_id'      => $intent_id,
+					'error_message'  => $e->getMessage(),
+				]
+			);
+			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+		}
+	}
 }

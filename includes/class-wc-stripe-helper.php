@@ -2152,9 +2152,9 @@ class WC_Stripe_Helper {
 			$intent_id       = $intent;
 			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
 			if ( $is_setup_intent ) {
-				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+				$intent = WC_Stripe_API::retrieve_setup_intent( $intent_id, [ 'expand' => [ 'payment_method' ] ] );
 			} else {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+				$intent = WC_Stripe_API::retrieve_payment_intent( $intent_id, [ 'expand' => [ 'payment_method' ] ] );
 			}
 		}
 

@@ -1252,20 +1252,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					$response         = $intent;
 					$intent_cancelled = true;
 				} elseif ( WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
-					$result           = WC_Stripe_API::request(
-						[],
-						'payment_intents/' . $intent->id . '/cancel'
-					);
+					$result           = WC_Stripe_API::cancel_payment_intent( $intent->id );
 					$intent_cancelled = true;
 
-					if ( ! empty( $result->error ) ) {
-						$response = $result;
-					} else {
-						$charge = $this->get_charge_object( $result->latest_charge, [ 'expand' => [ 'refunds' ] ] );
+					$charge = $this->get_charge_object( $result->latest_charge, [ 'expand' => [ 'refunds' ] ] );
 
-						if ( isset( $charge->refunds->data ) ) {
-							$response = end( $charge->refunds->data );
-						}
+					if ( isset( $charge->refunds->data ) ) {
+						$refunds_data = $charge->refunds->data;
+						$response     = is_array( $refunds_data ) ? end( $refunds_data ) : null;
 					}
 				}
 			}

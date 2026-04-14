@@ -87,7 +87,53 @@ class WC_Stripe_SDK_Test_Helper {
 			$mock_client->charges = $charge_service;
 		}
 
+		// Build PaymentIntent service mock if any PI config keys are present.
+		$pi_config_keys = [ 'pi_create_response', 'pi_create_exception', 'pi_retrieve_response', 'pi_retrieve_exception', 'pi_cancel_response', 'pi_cancel_exception' ];
+		if ( ! empty( array_intersect_key( $config, array_flip( $pi_config_keys ) ) ) ) {
+			$pi_service = $test_case->getMockBuilder( \Stripe\Service\PaymentIntentService::class )
+				->disableOriginalConstructor()
+				->onlyMethods( [ 'create', 'retrieve', 'cancel' ] )
+				->getMock();
+
+			self::configure_mock_method( $pi_service, 'create', $config, 'pi_create_response', 'pi_create_exception' );
+			self::configure_mock_method( $pi_service, 'retrieve', $config, 'pi_retrieve_response', 'pi_retrieve_exception' );
+			self::configure_mock_method( $pi_service, 'cancel', $config, 'pi_cancel_response', 'pi_cancel_exception' );
+
+			$mock_client->paymentIntents = $pi_service; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Stripe SDK property name.
+		}
+
+		// Build SetupIntent service mock if any SI config keys are present.
+		$si_config_keys = [ 'si_create_response', 'si_create_exception', 'si_retrieve_response', 'si_retrieve_exception' ];
+		if ( ! empty( array_intersect_key( $config, array_flip( $si_config_keys ) ) ) ) {
+			$si_service = $test_case->getMockBuilder( \Stripe\Service\SetupIntentService::class )
+				->disableOriginalConstructor()
+				->onlyMethods( [ 'create', 'retrieve' ] )
+				->getMock();
+
+			self::configure_mock_method( $si_service, 'create', $config, 'si_create_response', 'si_create_exception' );
+			self::configure_mock_method( $si_service, 'retrieve', $config, 'si_retrieve_response', 'si_retrieve_exception' );
+
+			$mock_client->setupIntents = $si_service; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Stripe SDK property name.
+		}
+
 		return $mock_client;
+	}
+
+	/**
+	 * Configure a mock method to return a response or throw an exception.
+	 *
+	 * @param \PHPUnit\Framework\MockObject\MockObject $mock   The mock object.
+	 * @param string                                   $method The method name.
+	 * @param array                                    $config The config array.
+	 * @param string                                   $response_key The config key for the response.
+	 * @param string                                   $exception_key The config key for the exception.
+	 */
+	private static function configure_mock_method( $mock, string $method, array $config, string $response_key, string $exception_key ): void {
+		if ( isset( $config[ $response_key ] ) ) {
+			$mock->method( $method )->willReturn( $config[ $response_key ] );
+		} elseif ( isset( $config[ $exception_key ] ) ) {
+			$mock->method( $method )->willThrowException( $config[ $exception_key ] );
+		}
 	}
 
 	/**
@@ -126,5 +172,42 @@ class WC_Stripe_SDK_Test_Helper {
 		];
 
 		return \Stripe\Charge::constructFrom( array_merge( $defaults, $data ) );
+	}
+
+	/**
+	 * Create a \Stripe\PaymentIntent from an array of properties.
+	 *
+	 * @param array $data PaymentIntent properties.
+	 * @return \Stripe\PaymentIntent
+	 */
+	public static function create_payment_intent_object( array $data = [] ): \Stripe\PaymentIntent {
+		$defaults = [
+			'id'             => 'pi_test_' . wp_generate_password( 24, false ),
+			'object'         => 'payment_intent',
+			'client_secret'  => 'pi_secret_test_' . wp_generate_password( 24, false ),
+			'status'         => 'requires_payment_method',
+			'amount'         => 1000,
+			'currency'       => 'usd',
+			'capture_method' => 'automatic',
+		];
+
+		return \Stripe\PaymentIntent::constructFrom( array_merge( $defaults, $data ) );
+	}
+
+	/**
+	 * Create a \Stripe\SetupIntent from an array of properties.
+	 *
+	 * @param array $data SetupIntent properties.
+	 * @return \Stripe\SetupIntent
+	 */
+	public static function create_setup_intent_object( array $data = [] ): \Stripe\SetupIntent {
+		$defaults = [
+			'id'            => 'seti_test_' . wp_generate_password( 24, false ),
+			'object'        => 'setup_intent',
+			'client_secret' => 'seti_secret_test_' . wp_generate_password( 24, false ),
+			'status'        => 'requires_payment_method',
+		];
+
+		return \Stripe\SetupIntent::constructFrom( array_merge( $defaults, $data ) );
 	}
 }

@@ -65,25 +65,37 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			$this->gateway->settings['capture'] = $capture_setting;
 		}
 
-		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_method ) {
-			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
-			$this->assertEquals( $expected_method, $parsed_args['body']['capture_method'] );
+		// Capture the params passed to the SDK's create() method.
+		$captured_params = null;
+		$pi_service      = $this->getMockBuilder( \Stripe\Service\PaymentIntentService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'create' ] )
+			->getMock();
+		$pi_service->method( 'create' )
+			->willReturnCallback(
+				function ( $params ) use ( &$captured_params ) {
+					$captured_params = $params;
+					return WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+						[
+							'id'            => 'pi_test',
+							'client_secret' => 'pi_secret_test',
+						]
+					);
+				}
+			);
 
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'            => 1,
-						'client_secret' => '123',
-					]
-				),
-			];
-		};
+		$mock_client                 = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->paymentIntents = $pi_service; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
 
-		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		try {
+			$this->mock_controller->create_payment_intent( $this->order->get_id() );
 
-		$this->mock_controller->create_payment_intent( $this->order->get_id() );
+			$this->assertArrayHasKey( 'capture_method', $captured_params );
+			$this->assertEquals( $expected_method, $captured_params['capture_method'] );
+		} finally {
+			WC_Stripe_API::set_sdk_for_testing( null );
+		}
 	}
 
 	/**
@@ -123,26 +135,37 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'woocommerce_currency', $currency_callback );
 
-		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expected_currency ) {
-			$this->assertEquals( $expected_currency, $parsed_args['body']['currency'] );
+		// Capture the params passed to the SDK's create() method.
+		$captured_params = null;
+		$pi_service      = $this->getMockBuilder( \Stripe\Service\PaymentIntentService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'create' ] )
+			->getMock();
+		$pi_service->method( 'create' )
+			->willReturnCallback(
+				function ( $params ) use ( &$captured_params ) {
+					$captured_params = $params;
+					return WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+						[
+							'id'            => 'pi_test',
+							'client_secret' => 'pi_secret_test',
+						]
+					);
+				}
+			);
 
-			return [
-				'response' => 200,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode(
-					[
-						'id'            => 1,
-						'client_secret' => '123',
-					]
-				),
-			];
-		};
+		$mock_client                 = $this->createMock( \Stripe\StripeClient::class );
+		$mock_client->paymentIntents = $pi_service; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		WC_Stripe_API::set_sdk_for_testing( $mock_client );
 
-		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		try {
+			$this->mock_controller->create_payment_intent( $order_id );
 
-		$this->mock_controller->create_payment_intent( $order_id );
-
-		remove_filter( 'woocommerce_currency', $currency_callback );
+			$this->assertEquals( $expected_currency, $captured_params['currency'] );
+		} finally {
+			remove_filter( 'woocommerce_currency', $currency_callback );
+			WC_Stripe_API::set_sdk_for_testing( null );
+		}
 	}
 
 	/**

@@ -605,10 +605,17 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->save();
 		$order_id = $order->get_id();
 
-		// Mock the SDK for charge retrieval.
+		// Mock the SDK for both PI cancel and charge retrieval.
 		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
 			$this,
 			[
+				'pi_cancel_response'       => WC_Stripe_SDK_Test_Helper::create_payment_intent_object(
+					[
+						'id'            => 'pi_123',
+						'status'        => 'canceled',
+						'latest_charge' => 'ch_123',
+					]
+				),
 				'charge_retrieve_response' => WC_Stripe_SDK_Test_Helper::create_charge_object(
 					[
 						'id'      => 'ch_123',
@@ -628,9 +635,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		);
 		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
 
-		// Mock the PaymentIntent cancel via raw HTTP (not yet migrated to SDK).
+		// Mock the PI retrieve via raw HTTP (used by get_intent_from_order).
 		$callback = function ( $preempt, $request_args, $url ) {
-			if ( strpos( $url, 'payment_intents' ) !== false || strpos( $url, 'cancel' ) !== false ) {
+			if ( strpos( $url, 'payment_intents' ) !== false ) {
 				return [
 					'headers'  => [],
 					'body'     => wp_json_encode(
