@@ -198,11 +198,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function provide_test_admin_scripts_checkout_sessions_country_restrictions(): array {
 		return [
-			'US account + feature available'              => [ 'US', true, true ],
-			'DE account (EEA) + feature available'        => [ 'DE', true, false ],
-			'DE account (EEA) + feature unavailable'      => [ 'DE', false, false ],
-			'US account + feature unavailable'            => [ 'US', false, false ],
-			'CA account + feature available (not in EEA)' => [ 'CA', true, true ],
+			'US account + feature available'   => [ 'US', true, true ],
+			'IN account + feature available'   => [ 'IN', true, false ],
+			'DE account + feature available'   => [ 'DE', true, true ],
+			'US account + feature unavailable' => [ 'US', false, false ],
 		];
 	}
 }

@@ -45,6 +45,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				],
 			];
 
+			if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
+				$request['phone_number_collection'] = [ 'enabled' => 'true' ];
+			}
+
 			if ( is_user_logged_in() && WC()->customer instanceof WC_Customer ) {
 				try {
 					$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
@@ -53,11 +57,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 					throw new Exception( __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				$request['customer'] = $stripe_customer->get_id();
-
-				if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
-					$request['phone_number_collection'] = [ 'enabled' => true ];
-				}
+				$request['customer']                     = $stripe_customer->get_id();
 				$request['saved_payment_method_options'] = [
 					'payment_method_save' => 'enabled',
 				];
