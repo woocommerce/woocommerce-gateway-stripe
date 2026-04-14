@@ -581,7 +581,7 @@ class WC_Stripe {
 		// 3. Filter out UPE payment methods that are not enabled at checkout, as they are not available in the checkout block
 		// and including them in the list results in warnings about block support
 		// when viewing the payment methods block in the editor for the cart and checkout pages.
-		if ( is_admin() ) {
+		if ( is_admin() && ! $this->is_order_management_context() ) {
 			$methods = array_filter(
 				$methods,
 				function ( $method ) use ( $is_oc_enabled ) {
@@ -605,6 +605,31 @@ class WC_Stripe {
 		}
 
 		return $methods;
+	}
+
+	/**
+	 * Determines whether the current request is an order management context
+	 * (order edit page or refund AJAX action).
+	 *
+	 * In these contexts we must keep all payment gateways registered so that
+	 * WooCommerce can find the gateway for refund processing and transaction
+	 * URL generation.
+	 *
+	 * @return bool
+	 */
+	private function is_order_management_context(): bool {
+		// Refund AJAX action — fired when the merchant clicks "Refund via Gateway".
+		if ( 'woocommerce_refund_line_items' === filter_input( INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS ) ) {
+			return true;
+		}
+
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+		// Legacy CPT order screen ('shop_order') and HPOS order screen ('woocommerce_page_wc-orders').
+		return $screen && in_array( $screen->id, [ 'shop_order', 'woocommerce_page_wc-orders' ], true );
 	}
 
 	/**
