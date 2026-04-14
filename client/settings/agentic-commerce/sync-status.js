@@ -155,7 +155,7 @@ const AgenticCommerceSyncStatus = () => {
 		setIsLoading( true );
 		try {
 			const result = await apiFetch( {
-				path: '/wc/v3/wc_stripe/agentic-commerce',
+				path: '/wc/v3/wc_stripe/agentic-commerce/status',
 			} );
 			setData( result );
 		} catch ( err ) {
