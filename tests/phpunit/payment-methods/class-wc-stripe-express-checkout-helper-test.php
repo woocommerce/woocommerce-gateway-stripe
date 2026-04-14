@@ -1492,6 +1492,36 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'AU',
 				'expected' => 'NSW',
 			],
+			'ES Basque name Gipuzkoa normalizes to SS'                      => [
+				'state'    => 'Gipuzkoa',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
+			'ES Castilian name Guipúzcoa normalizes to SS'                  => [
+				'state'    => 'Guipúzcoa',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
+			'ES Basque name Bizkaia normalizes to BI'                       => [
+				'state'    => 'Bizkaia',
+				'country'  => 'ES',
+				'expected' => 'BI',
+			],
+			'ES Basque name Araba normalizes to VI'                         => [
+				'state'    => 'Araba',
+				'country'  => 'ES',
+				'expected' => 'VI',
+			],
+			'ES Basque name Nafarroa normalizes to NA'                      => [
+				'state'    => 'Nafarroa',
+				'country'  => 'ES',
+				'expected' => 'NA',
+			],
+			'ES case insensitive Basque name GIPUZKOA normalizes to SS'     => [
+				'state'    => 'GIPUZKOA',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
 		];
 	}
 
