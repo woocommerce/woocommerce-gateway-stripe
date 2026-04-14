@@ -10,6 +10,7 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
+	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
 	getStripeServerData: jest.fn().mockReturnValue( {
 		paymentMethodsConfig: {
 			card: { supportsDeferredIntent: true },
@@ -121,6 +122,7 @@ const createMockElements = () => {
 				session: { id: MOCK_AP_CHECKOUT_SESSION_ID },
 			};
 		} ),
+		getSession: jest.fn( () => Promise.resolve( {} ) ),
 		confirm: jest.fn( () => Promise.resolve( {} ) ),
 	};
 	return {
@@ -301,6 +303,9 @@ describe( 'payment-processing', () => {
 		} );
 
 		describe( 'createStripePaymentElement (via mountStripePaymentElement)', () => {
+			afterEach( () => {
+				stripeUtils.getUpeSettings.mockReturnValue( {} );
+			} );
 			it( 'calls initCheckout with the client_secret from the session', async () => {
 				const checkoutElements = createMockElements();
 				checkoutElements.loadActions.mockResolvedValue( {
@@ -342,6 +347,44 @@ describe( 'payment-processing', () => {
 					checkoutElements.createPaymentElement
 				).toHaveBeenCalled();
 				expect( checkoutElements.create ).not.toHaveBeenCalled();
+			} );
+
+			it( 'merges getUpeSettings into createPaymentElement for adaptive pricing (avoid duplicate billing with confirm)', async () => {
+				const billingFields = {
+					billingDetails: {
+						name: 'never',
+						email: 'never',
+						phone: 'auto',
+						address: {
+							country: 'never',
+							line1: 'never',
+							line2: 'never',
+							city: 'never',
+							state: 'never',
+							postalCode: 'never',
+						},
+					},
+				};
+				stripeUtils.getUpeSettings.mockReturnValue( {
+					fields: billingFields,
+				} );
+				const checkoutElements = createMockElements();
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+				} );
+				const api = createMockApi( checkoutElements );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					checkoutElements.createPaymentElement
+				).toHaveBeenCalledWith(
+					expect.objectContaining( {
+						fields: billingFields,
+					} )
+				);
 			} );
 
 			it( 'falls back to standard elements when session creation fails', async () => {
@@ -531,7 +574,10 @@ describe( 'payment-processing', () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {} ),
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -580,7 +626,10 @@ describe( 'payment-processing', () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {} ),
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -624,7 +673,10 @@ describe( 'payment-processing', () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {} ),
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -682,7 +734,10 @@ describe( 'payment-processing', () => {
 			} );
 
 			it( 'unblocks form and shows messages when checkout AJAX returns a failure result', async () => {
-				const mockActions = { confirm: jest.fn() };
+				const mockActions = {
+					confirm: jest.fn(),
+					getSession: jest.fn().mockResolvedValue( {} ),
+				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 
@@ -790,6 +845,7 @@ describe( 'payment-processing', () => {
 
 			it( 'shows error when actions.confirm resolves to an error object', async () => {
 				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
 					confirm: jest.fn().mockResolvedValue( {
 						type: 'error',
 						error: { message: 'Card declined' },
@@ -820,7 +876,10 @@ describe( 'payment-processing', () => {
 
 			it( 'does not call validateElements or appendPaymentMethodIdToForm', async () => {
 				const mockActions = {
-					confirm: jest.fn().mockResolvedValue( {} ),
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						session: { id: 'cs_session_xyz' },
+					} ),
 				};
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );

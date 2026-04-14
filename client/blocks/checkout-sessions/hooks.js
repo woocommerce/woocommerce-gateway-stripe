@@ -223,7 +223,7 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					if ( isLoggedIn && isPayerPhoneRequired ) {
+					if ( isPayerPhoneRequired ) {
 						const userPhone =
 							document.getElementById( 'billing-phone' )?.value ||
 							document.getElementById( 'shipping-phone' )?.value;

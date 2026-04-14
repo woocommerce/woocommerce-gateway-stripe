@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Dev - Autoload all Agentic Commerce classes via Composer classmap, removing manual require_once calls
@@ -216,6 +217,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
 * Update - Allow Adaptive Pricing for merchant accounts based in EEA countries                                                                                                                               
 * Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
+* Fix - Confirm checkout session with user data in classic checkout for guest user
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

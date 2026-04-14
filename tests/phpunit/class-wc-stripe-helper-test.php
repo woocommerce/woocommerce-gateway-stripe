@@ -721,6 +721,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
 		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
 		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
+		$this->assertSame( 'yes', get_option( 'wc_stripe_show_stripe_first_method_notice' ) );
 	}
 
 	/**

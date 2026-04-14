@@ -855,7 +855,11 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		$gateway_order_updated = update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		if ( $gateway_order_updated ) {
+			// set the user notice option to yes to show the notice if it was dismissed and Stripe is not the first available gateway after the update.
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' );
+		}
 	}
 
 	/**
@@ -2379,5 +2383,40 @@ class WC_Stripe_Helper {
 		}
 
 		return 2;
+	}
+
+	/**
+	 * Build the localized survey params array shared across admin controllers.
+	 *
+	 * @param WC_Stripe_Account $account Stripe account instance.
+	 * @return array Associative array of survey parameters for wp_localize_script.
+	 */
+	/**
+	 * Check if the current admin page is the WooCommerce Payments settings list page.
+	 *
+	 * @return bool
+	 */
+	public static function is_admin_payments_page(): bool {
+		global $current_tab, $current_section;
+
+		return is_admin() && (
+			( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
+			( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		);
+	}
+
+	public static function get_exit_survey_params( WC_Stripe_Account $account ): array {
+		// Read account data from cache only — avoid triggering a live Stripe API call.
+		$account_cache = WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$account_data  = is_array( $account_cache ) ? $account_cache : [];
+
+		return [
+			'exit_survey_last_shown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
+			'stripe_account_id'      => $account_data['id'] ?? '',
+			'wc_store_id'            => get_option( 'woocommerce_store_id', '' ),
+			'plugin_version'         => WC_STRIPE_VERSION,
+			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wp_version'             => get_bloginfo( 'version' ),
+		];
 	}
 }
