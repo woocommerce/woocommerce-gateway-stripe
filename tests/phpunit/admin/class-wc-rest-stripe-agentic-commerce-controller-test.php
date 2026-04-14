@@ -13,7 +13,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * REST base path.
 	 */
-	const REST_BASE = '/wc/v3/wc_stripe/agentic-commerce';
+	const REST_BASE    = '/wc/v3/wc_stripe/agentic-commerce';
+	const STATUS_ROUTE = self::REST_BASE . '/status';
 
 	/**
 	 * Controller under test.
@@ -68,7 +69,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function test_get_status_requires_auth(): void {
 		wp_set_current_user( 0 );
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 401, $response->get_status() );
@@ -87,14 +88,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// GET /wc/v3/wc_stripe/agentic-commerce
+	// GET /wc/v3/wc_stripe/agentic-commerce/status
 	// -------------------------------------------------------------------------
 
 	/**
 	 * GET returns 200 with nulls when no sync data exists.
 	 */
 	public function test_get_status_returns_empty_state(): void {
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -125,7 +126,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -158,7 +159,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$returned = $response->get_data()['history'];
@@ -189,7 +190,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$entry = $response->get_data()['history'][0];
@@ -220,7 +221,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$last_sync = $response->get_data()['last_sync'];
@@ -239,7 +240,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			[ 'status' => 'pending' ] // minimal entry, no other keys
 		);
 
-		$request  = new WP_REST_Request( 'GET', self::REST_BASE );
+		$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
 		$response = rest_do_request( $request );
 
 		$last_sync = $response->get_data()['last_sync'];

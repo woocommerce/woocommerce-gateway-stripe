@@ -221,7 +221,7 @@ describe( 'AgenticCommercePanel', () => {
 
 		await waitFor( () => {
 			expect( apiFetch ).toHaveBeenCalledWith( {
-				path: '/wc/v3/wc_stripe/agentic-commerce',
+				path: '/wc/v3/wc_stripe/agentic-commerce/status',
 			} );
 		} );
 	} );
