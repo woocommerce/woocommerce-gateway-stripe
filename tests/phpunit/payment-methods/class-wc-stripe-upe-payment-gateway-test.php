@@ -5021,43 +5021,43 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that add_currency_conversion_notice appends the ECB fee sentence for EEA customers.
+	 * Data provider for order currency conversion notice ECB sentence by billing country.
 	 *
-	 * @return void
+	 * @return array<string, array{billing_country: string, expect_ecb_sentence: bool}>
 	 */
-	public function test_add_currency_conversion_notice_appends_ecb_fee_for_eea_customer(): void {
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_total( 20 );
-		$order->set_billing_country( 'DE' ); // Germany is an EEA country.
-		$order->save();
-
-		$checkout_session_id = 'cs_test_eea_notice_1';
-		$order_helper        = WC_Stripe_Order_Helper::get_instance();
-		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
-		$order_helper->update_stripe_presentment_amount( $order, 1500 );
-		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
-
-		ob_start();
-		$this->mock_gateway->add_currency_conversion_notice( $order );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'European Central Bank (ECB) interbank rate', $output );
+	public function provide_add_currency_conversion_notice_order_eea_matrix(): array {
+		return [
+			'EEA customer (Germany)'           => [
+				[
+					'billing_country'     => 'DE',
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'non-EEA customer (United States)' => [
+				[
+					'billing_country'     => 'US',
+					'expect_ecb_sentence' => false,
+				],
+			],
+		];
 	}
 
 	/**
-	 * Test that add_currency_conversion_notice does not append the ECB fee sentence for non-EEA customers.
+	 * @dataProvider provide_add_currency_conversion_notice_order_eea_matrix
 	 *
-	 * @return void
+	 * @param array{billing_country: string, expect_ecb_sentence: bool} $test_case Row from the matrix.
 	 */
-	public function test_add_currency_conversion_notice_does_not_append_ecb_fee_for_non_eea_customer(): void {
+	public function test_add_currency_conversion_notice_ecb_sentence_by_order_country( array $test_case ): void {
+		$billing_country     = $test_case['billing_country'];
+		$expect_ecb_sentence = $test_case['expect_ecb_sentence'];
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->set_total( 20 );
-		$order->set_billing_country( 'US' ); // USA is not an EEA country.
+		$order->set_billing_country( $billing_country );
 		$order->save();
 
-		$checkout_session_id = 'cs_test_non_eea_notice_1';
+		$checkout_session_id = sprintf( 'cs_test_order_ecb_mtx_%s', strtolower( $billing_country ) );
 		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order_helper->update_stripe_presentment_amount( $order, 1500 );
@@ -5067,7 +5067,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->add_currency_conversion_notice( $order );
 		$output = ob_get_clean();
 
-		$this->assertStringNotContainsString( 'European Central Bank (ECB) interbank rate', $output );
+		$ecb_needle = 'European Central Bank (ECB) interbank rate';
+		if ( $expect_ecb_sentence ) {
+			$this->assertStringContainsString( $ecb_needle, $output );
+		} else {
+			$this->assertStringNotContainsString( $ecb_needle, $output );
+		}
 	}
 
 	/**
