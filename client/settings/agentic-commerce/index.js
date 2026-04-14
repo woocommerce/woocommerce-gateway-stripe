@@ -31,6 +31,8 @@ const OnboardingSteps = styled.ol`
 
 	li {
 		margin-bottom: 6px;
+		color: #757575;
+		font-size: 12px;
 	}
 `;
 
