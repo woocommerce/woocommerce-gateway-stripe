@@ -278,8 +278,15 @@ class WC_Stripe_Express_Checkout_Element {
 		$data     = [];
 		$items    = [];
 
-		// Allow third-party plugins to show itemization on the payment request button.
-		if ( apply_filters( 'wc_stripe_express_checkout_hide_itemization', true ) ) {
+		// Allow third-party plugins to show itemization on express checkout (keep legacy hook for BC).
+		$hide_itemization = apply_filters_deprecated(
+			'wc_stripe_payment_request_hide_itemization',
+			[ true ],
+			'10.6.0',
+			'wc_stripe_express_checkout_hide_itemization'
+		);
+		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
+		if ( $hide_itemization ) {
 			$items[] = [
 				'label'  => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_subtotal(), $currency ),

@@ -193,7 +193,7 @@ return apply_filters(
 		'express_checkout_button_locations'    => [
 			'title'             => __( 'Express Checkout Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
-			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
+			'description'       => __( 'Select where you would like Express Checkout Buttons to be displayed', 'woocommerce-gateway-stripe' ),
 			'desc_tip'          => true,
 			'class'             => 'wc-enhanced-select',
 			'options'           => [
