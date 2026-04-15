@@ -99,3 +99,13 @@ require_once __DIR__ . '/helpers/class-ajax-test-helper.php';
 require_once __DIR__ . '/helpers/class-oc-test-helper.php';
 require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
+
+// Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
+// race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.
+if ( class_exists( \Automattic\WooCommerce\Internal\DataStores\Orders\DataSynchronizer::class ) ) {
+	$_data_sync = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\DataSynchronizer::class );
+	if ( ! $_data_sync->check_orders_table_exists() ) {
+		$_data_sync->create_database_tables();
+	}
+	unset( $_data_sync );
+}
