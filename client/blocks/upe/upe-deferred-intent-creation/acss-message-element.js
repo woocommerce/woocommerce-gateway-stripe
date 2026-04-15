@@ -4,12 +4,17 @@ import { getStripeImageUrl } from 'wcstripe/blocks/utils';
 const AcssMessageElement = () => {
 	return (
 		<div className="wc-stripe-acss-notice">
-			<img
+			<svg
 				className="wc-stripe-acss-notice__icon"
-				src={ getStripeImageUrl( 'acss-redirect' ) }
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 48 40"
+				fill="currentColor"
 				role="presentation"
-				alt=""
-			/>
+			>
+				<use
+					href={ `${ getStripeImageUrl( 'acss-redirect' ) }#icon` }
+				/>
+			</svg>
 			<span className="wc-stripe-acss-notice__text">
 				{ __(
 					'After submission, you will need to authorize the payment with your bank.',
