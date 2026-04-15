@@ -13,7 +13,7 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
-import AcssMessageElement from './acss-message-element';
+import RedirectMessageElement from './redirect-message-element';
 import BlikCodeElement from './blik-code-element';
 import { __ } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
@@ -416,7 +416,12 @@ const PaymentProcessor = ( {
 						className="wcstripe-payment-element"
 					/>
 					{ paymentMethodId === PAYMENT_METHOD_ACSS && (
-						<AcssMessageElement />
+						<RedirectMessageElement
+							text={ __(
+								'After submission, you will need to authorize the payment with your bank.',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
 					) }
 				</>
 			) }

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import AcssMessageElement from '../acss-message-element';
+import RedirectMessageElement from '../redirect-message-element';
 import { PAYMENT_METHOD_ACSS } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/blocks/utils', () => ( {
@@ -9,18 +9,20 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 const NOTICE_TEXT =
 	'After submission, you will need to authorize the payment with your bank.';
 
-describe( 'AcssMessageElement', () => {
-	it( 'renders the authorization notice text', () => {
-		render( <AcssMessageElement /> );
+describe( 'RedirectMessageElement', () => {
+	it( 'renders the text passed via the text prop', () => {
+		render( <RedirectMessageElement text={ NOTICE_TEXT } /> );
 
 		expect( screen.getByText( NOTICE_TEXT ) ).toBeInTheDocument();
 	} );
 
 	it( 'renders an SVG icon that references the redirect asset via <use>', () => {
-		const { container } = render( <AcssMessageElement /> );
+		const { container } = render(
+			<RedirectMessageElement text={ NOTICE_TEXT } />
+		);
 
 		const icon = container.querySelector(
-			'svg.wc-stripe-acss-notice__icon'
+			'svg.wc-stripe-redirect-notice__icon'
 		);
 		expect( icon ).toBeInTheDocument();
 		expect( icon.getAttribute( 'viewBox' ) ).toBe( '0 0 48 40' );
@@ -28,16 +30,18 @@ describe( 'AcssMessageElement', () => {
 		const use = icon.querySelector( 'use' );
 		expect( use ).toBeInTheDocument();
 		expect( use.getAttribute( 'href' ) ).toBe(
-			'/assets/images/acss-redirect.svg#icon'
+			'/assets/images/payment-redirect.svg#icon'
 		);
 	} );
 } );
 
-describe( 'AcssMessageElement gating in payment-processor', () => {
+describe( 'RedirectMessageElement gating in payment-processor', () => {
 	// Mirrors the conditional at
 	// client/blocks/upe/upe-deferred-intent-creation/payment-processor.js
 	const AcssGate = ( { paymentMethodId } ) =>
-		paymentMethodId === PAYMENT_METHOD_ACSS ? <AcssMessageElement /> : null;
+		paymentMethodId === PAYMENT_METHOD_ACSS ? (
+			<RedirectMessageElement text={ NOTICE_TEXT } />
+		) : null;
 
 	it( 'renders the notice when paymentMethodId is ACSS', () => {
 		render( <AcssGate paymentMethodId={ PAYMENT_METHOD_ACSS } /> );

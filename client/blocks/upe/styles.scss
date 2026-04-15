@@ -42,7 +42,7 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 /* Typography/sizing matches Stripe's Payment Element redirect notice so ACSS
  * looks consistent with other redirect-based methods (e.g. Afterpay).
  */
-.wc-stripe-acss-notice {
+.wc-stripe-redirect-notice {
 	display: flex;
 	align-items: center;
 	gap: 12px;

@@ -69,11 +69,11 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
 			</fieldset>
-			<div class="wc-stripe-acss-notice">
-				<svg class="wc-stripe-acss-notice__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 40" fill="currentColor" role="presentation">
-					<use href="<?php echo esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/acss-redirect.svg#icon' ); ?>" />
+			<div class="wc-stripe-redirect-notice">
+				<svg class="wc-stripe-redirect-notice__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 40" fill="currentColor" role="presentation">
+					<use href="<?php echo esc_url( WC_STRIPE_PLUGIN_URL . '/assets/images/payment-redirect.svg#icon' ); ?>" />
 				</svg>
-				<span class="wc-stripe-acss-notice__text">
+				<span class="wc-stripe-redirect-notice__text">
 					<?php echo esc_html__( 'After submission, you will need to authorize the payment with your bank.', 'woocommerce-gateway-stripe' ); ?>
 				</span>
 			</div>
