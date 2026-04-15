@@ -4412,11 +4412,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_should_use_optimized_checkout_payment_method_layout( bool $oc_enabled, bool $valid_page, bool $stripe_first, bool $expected ) {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->onlyMethods( [ 'is_valid_optimized_checkout_page' ] )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_available' ] )
 			->getMock();
 
+		$gateway->id         = WC_Stripe_UPE_Payment_Gateway::ID;
 		$gateway->oc_enabled = $oc_enabled;
 		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_page );
+		$gateway->method( 'is_available' )->willReturn( true );
 
 		// Control whether Stripe is the first available gateway.
 		$original_gateways = WC()->payment_gateways->payment_gateways;
@@ -4425,8 +4427,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			if ( $stripe_first ) {
 				WC()->payment_gateways->payment_gateways = [ $gateway ];
 			} else {
-				$bacs_mock                               = $this->createMock( WC_Payment_Gateway::class );
-				$bacs_mock->id                           = 'bacs';
+				$bacs_mock          = $this->createMock( WC_Payment_Gateway::class );
+				$bacs_mock->id      = 'bacs';
+				$bacs_mock->enabled = 'yes';
+				$bacs_mock->method( 'is_available' )->willReturn( true );
 				WC()->payment_gateways->payment_gateways = [ $bacs_mock, $gateway ];
 			}
 			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
