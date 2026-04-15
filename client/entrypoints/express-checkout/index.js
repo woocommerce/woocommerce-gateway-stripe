@@ -358,11 +358,10 @@ jQuery( function ( $ ) {
 					amount: options.total,
 				} ),
 				currency: options.currency,
-				...( ( isChangePaymentMethod ||
-					isManualPaymentMethodCreation(
-						expressPaymentType,
-						hasFreeTrial
-					) ) && {
+				...( isManualPaymentMethodCreation(
+					expressPaymentType,
+					isChangePaymentMethod || hasFreeTrial
+				) && {
 					paymentMethodCreation: 'manual',
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),

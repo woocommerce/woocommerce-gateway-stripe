@@ -661,7 +661,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
 		if ( ! isset( $available_gateways['stripe'] ) ) {
 			return false;
 		}
