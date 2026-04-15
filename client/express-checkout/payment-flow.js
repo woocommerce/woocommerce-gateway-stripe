@@ -307,7 +307,7 @@ export const handleChangePaymentMethodFlow = async ( {
 
 		// Set the express checkout type so the backend knows this came from ECE.
 		const expressTypeInput = form.find(
-			'input[name="wc-stripe-express-checkout-type"]'
+			'input[name="express_checkout_type"]'
 		);
 		if ( expressTypeInput.length ) {
 			expressTypeInput.val( event.expressPaymentType ?? '' );
@@ -315,7 +315,7 @@ export const handleChangePaymentMethodFlow = async ( {
 			form.append(
 				jQuery( '<input>' )
 					.attr( 'type', 'hidden' )
-					.attr( 'name', 'wc-stripe-express-checkout-type' )
+					.attr( 'name', 'express_checkout_type' )
 					.val( event.expressPaymentType ?? '' )
 			);
 		}
