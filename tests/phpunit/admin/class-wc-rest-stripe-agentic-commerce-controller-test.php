@@ -459,6 +459,114 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /status refreshes entries with non-terminal statuses like queued and validating.
+	 *
+	 * @dataProvider provide_non_terminal_statuses
+	 */
+	public function test_get_status_refreshes_non_terminal_status_entries( string $initial_status ): void {
+		$entry = [
+			'status'        => $initial_status,
+			'timestamp'     => 1700000000,
+			'products'      => 5,
+			'import_set_id' => 'impset_nonterminal',
+			'file_id'       => 'file_nt',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_nonterminal' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_nonterminal',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'succeeded', $response->get_data()['last_sync']['status'] );
+	}
+
+	/**
+	 * Data provider: non-terminal ImportSet statuses that should trigger a refresh.
+	 *
+	 * @return array[]
+	 */
+	public function provide_non_terminal_statuses(): array {
+		return [
+			'pending'    => [ 'pending' ],
+			'queued'     => [ 'queued' ],
+			'validating' => [ 'validating' ],
+		];
+	}
+
+	/**
+	 * GET /status skips refresh for all terminal statuses.
+	 *
+	 * @dataProvider provide_terminal_statuses
+	 */
+	public function test_get_status_skips_refresh_for_terminal_statuses( string $status ): void {
+		$entry = [
+			'status'        => $status,
+			'timestamp'     => 1700000000,
+			'products'      => 10,
+			'import_set_id' => 'impset_term',
+			'file_id'       => 'file_t',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+
+		$api_called = false;
+		$http_stub  = function ( $preempt ) use ( &$api_called ) {
+			$api_called = true;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $api_called, "Stripe API should not be called for terminal status '$status'." );
+	}
+
+	/**
+	 * Data provider: terminal ImportSet statuses that should not trigger a refresh.
+	 *
+	 * @return array[]
+	 */
+	public function provide_terminal_statuses(): array {
+		return [
+			'succeeded'             => [ 'succeeded' ],
+			'failed'                => [ 'failed' ],
+			'succeeded_with_errors' => [ 'succeeded_with_errors' ],
+		];
+	}
+
+	/**
 	 * GET /status handles Stripe API errors gracefully during refresh.
 	 */
 	public function test_get_status_handles_stripe_error_during_refresh(): void {

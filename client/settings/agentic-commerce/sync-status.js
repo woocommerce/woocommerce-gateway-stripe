@@ -89,6 +89,16 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
+	queued: {
+		label: __( 'Queued', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
+	validating: {
+		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
 	failed: {
 		label: __( 'Failed', 'woocommerce-gateway-stripe' ),
 		className: 'error',

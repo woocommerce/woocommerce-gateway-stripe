@@ -255,7 +255,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				continue;
 			}
 
-			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
+			$terminal_statuses = [ 'succeeded', 'failed', 'succeeded_with_errors' ];
+			if ( in_array( $entry['status'] ?? '', $terminal_statuses, true ) ) {
 				continue;
 			}
 
@@ -267,9 +268,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			try {
 				$delivery   = $this->create_delivery();
 				$import_set = $delivery->get_import_set( $import_set_id );
-				$new_status = $import_set['status'] ?? 'pending';
+				$new_status = $import_set['status'] ?? $entry['status'];
 
-				if ( 'pending' !== $new_status ) {
+				if ( $new_status !== $entry['status'] ) {
 					$entry['status'] = $new_status;
 					$updated         = true;
 				}
