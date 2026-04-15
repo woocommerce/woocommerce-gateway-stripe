@@ -1,10 +1,21 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import AgenticCommerceSection from '..';
 import apiFetch from '@wordpress/api-fetch';
+import { dispatch } from '@wordpress/data';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@wordpress/api-fetch' );
+
+const mockCreateSuccessNotice = jest.fn();
+const mockCreateErrorNotice = jest.fn();
+jest.mock( '@wordpress/data', () => ( {
+	...jest.requireActual( '@wordpress/data' ),
+	dispatch: jest.fn( () => ( {
+		createSuccessNotice: mockCreateSuccessNotice,
+		createErrorNotice: mockCreateErrorNotice,
+	} ) ),
+} ) );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn(),
@@ -79,6 +90,10 @@ const mockFetchByPath = (
 
 describe( 'AgenticCommerceSection', () => {
 	beforeEach( () => {
+		dispatch.mockReturnValue( {
+			createSuccessNotice: mockCreateSuccessNotice,
+			createErrorNotice: mockCreateErrorNotice,
+		} );
 		useTestMode.mockReturnValue( [ false ] );
 		useAccount.mockReturnValue( { data: null } );
 		global.wc_stripe_settings_params = {
@@ -92,6 +107,8 @@ describe( 'AgenticCommerceSection', () => {
 	afterEach( () => {
 		delete global.wc_stripe_settings_params;
 		jest.resetAllMocks();
+		mockCreateSuccessNotice.mockClear();
+		mockCreateErrorNotice.mockClear();
 	} );
 
 	// -------------------------------------------------------------------------
@@ -319,9 +336,9 @@ describe( 'AgenticCommerceSection', () => {
 		fireEvent.click( syncBtn );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText( /Sync triggered successfully/i ).length
-			).toBeGreaterThanOrEqual( 1 );
+			expect( mockCreateSuccessNotice ).toHaveBeenCalledWith(
+				'Sync triggered successfully.'
+			);
 		} );
 
 		await waitFor( () => {
@@ -360,9 +377,9 @@ describe( 'AgenticCommerceSection', () => {
 		fireEvent.click( syncBtn );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText( /Server error/i ).length
-			).toBeGreaterThanOrEqual( 1 );
+			expect( mockCreateErrorNotice ).toHaveBeenCalledWith(
+				'Sync failed. Check the WooCommerce logs for details.'
+			);
 		} );
 	} );
 
@@ -388,11 +405,9 @@ describe( 'AgenticCommerceSection', () => {
 		fireEvent.click( syncBtn );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText(
-					/Sync failed. Check the WooCommerce logs/i
-				).length
-			).toBeGreaterThanOrEqual( 1 );
+			expect( mockCreateErrorNotice ).toHaveBeenCalledWith(
+				'Sync failed. Check the WooCommerce logs for details.'
+			);
 		} );
 	} );
 
@@ -411,9 +426,9 @@ describe( 'AgenticCommerceSection', () => {
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText( /Connection refused/i ).length
-			).toBeGreaterThanOrEqual( 1 );
+			expect( mockCreateErrorNotice ).toHaveBeenCalledWith(
+				'Failed to load sync status.'
+			);
 		} );
 	} );
 
