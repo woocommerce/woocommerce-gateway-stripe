@@ -4,6 +4,7 @@ import { Card, CardTitle, Actions } from './styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
+import { dispatch } from '@wordpress/data';
 
 const StatusBadge = styled.span`
 	display: inline-block;
@@ -149,7 +150,6 @@ const AgenticCommerceSyncStatus = () => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSyncing, setIsSyncing ] = useState( false );
-	const [ notice, setNotice ] = useState( null );
 
 	const fetchStatus = useCallback( async () => {
 		setIsLoading( true );
@@ -159,15 +159,12 @@ const AgenticCommerceSyncStatus = () => {
 			} );
 			setData( result );
 		} catch ( err ) {
-			setNotice( {
-				status: 'error',
-				message:
-					err?.message ??
-					__(
-						'Failed to load sync status.',
-						'woocommerce-gateway-stripe'
-					),
-			} );
+			dispatch( 'core/notices' ).createErrorNotice(
+				__(
+					'Failed to load sync status.',
+					'woocommerce-gateway-stripe'
+				)
+			);
 		} finally {
 			setIsLoading( false );
 		}
@@ -179,30 +176,25 @@ const AgenticCommerceSyncStatus = () => {
 
 	const handleSync = async () => {
 		setIsSyncing( true );
-		setNotice( null );
 		try {
 			await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/sync',
 				method: 'POST',
 			} );
-			setNotice( {
-				status: 'success',
-				message: __(
+			dispatch( 'core/notices' ).createSuccessNotice(
+				__(
 					'Sync triggered successfully.',
 					'woocommerce-gateway-stripe'
-				),
-			} );
+				)
+			);
 			await fetchStatus();
 		} catch ( err ) {
-			setNotice( {
-				status: 'error',
-				message:
-					err?.message ??
-					__(
-						'Sync failed. Check the WooCommerce logs for details.',
-						'woocommerce-gateway-stripe'
-					),
-			} );
+			dispatch( 'core/notices' ).createErrorNotice(
+				__(
+					'Sync failed. Check the WooCommerce logs for details.',
+					'woocommerce-gateway-stripe'
+				)
+			);
 		} finally {
 			setIsSyncing( false );
 		}
@@ -253,16 +245,6 @@ const AgenticCommerceSyncStatus = () => {
 					) }
 				</a>
 			</p>
-
-			{ notice && (
-				<Notice
-					status={ notice.status }
-					onRemove={ () => setNotice( null ) }
-					isDismissible
-				>
-					{ notice.message }
-				</Notice>
-			) }
 
 			<Card>
 				<CardTitle>
