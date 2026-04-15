@@ -625,6 +625,123 @@ export const getDefaultValues = ( forCheckoutSession = false ) => {
 };
 
 /**
+ * Reads a value from a field by element id.
+ *
+ * @param {string} id HTML id attribute.
+ * @return {string} Field value, or empty string when missing.
+ */
+const getFieldValue = ( id ) => {
+	const value = document.getElementById( id )?.value;
+	return typeof value === 'string' ? value.trim() : '';
+};
+
+/**
+ * Normalizes a WooCommerce country code for Stripe (uppercase ISO 3166-1 alpha-2 when applicable).
+ *
+ * @param {string} country Raw country from the form.
+ * @return {string} If country is a two-letter string, return the uppercase value. If country is some other string, return that value. For falsy values of country, return ''.
+ */
+const normalizeCountryForStripe = ( country ) => {
+	if ( ! country ) {
+		return '';
+	}
+	return country.length === 2 ? country.toUpperCase() : country;
+};
+
+/**
+ * Reads billing, shipping, email, and (when applicable) phone from the classic WooCommerce checkout
+ * form and returns to use in Stripe Custom Checkout `confirm()` args.
+ *
+ * @param {Object} currentSession The current session object.
+ * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ */
+export const getUserDataForCheckoutSession = ( currentSession = null ) => {
+	const result = {};
+
+	const stripeServerData = getStripeServerData();
+	const isPayerPhoneRequired = Boolean(
+		stripeServerData?.isPayerPhoneRequired
+	);
+
+	const billingFirstName = getFieldValue( 'billing_first_name' );
+	const billingLastName = getFieldValue( 'billing_last_name' );
+	const billingName = `${ billingFirstName } ${ billingLastName }`.trim();
+
+	if ( ! currentSession?.billingAddress ) {
+		const billingCountry = normalizeCountryForStripe(
+			getFieldValue( 'billing_country' )
+		);
+
+		const billingAddress = {
+			name: billingName,
+			address: {
+				country: billingCountry || undefined,
+				line1: getFieldValue( 'billing_address_1' ) || undefined,
+				line2: getFieldValue( 'billing_address_2' ) || undefined,
+				state: getFieldValue( 'billing_state' ) || undefined,
+				city: getFieldValue( 'billing_city' ) || undefined,
+				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
+			},
+		};
+		result.billingAddress = billingAddress;
+	}
+
+	if ( ! currentSession?.shippingAddress ) {
+		const shippingLine1 = getFieldValue( 'shipping_address_1' );
+		const shippingCountry = normalizeCountryForStripe(
+			getFieldValue( 'shipping_country' )
+		);
+
+		// Stripe requires at minimum line1 and country for a valid shipping address.
+		// Skip shipping entirely if either of these two fields is absent from the form.
+		if ( shippingLine1 && shippingCountry ) {
+			const shippingFirstName = getFieldValue( 'shipping_first_name' );
+			const shippingLastName = getFieldValue( 'shipping_last_name' );
+			let shippingName =
+				`${ shippingFirstName } ${ shippingLastName }`.trim();
+
+			if ( ! shippingName ) {
+				shippingName = billingName;
+			}
+
+			const shippingAddress = {
+				name: shippingName,
+				address: {
+					country: shippingCountry,
+					line1: shippingLine1,
+					line2: getFieldValue( 'shipping_address_2' ) || undefined,
+					state: getFieldValue( 'shipping_state' ) || undefined,
+					city: getFieldValue( 'shipping_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'shipping_postcode' ) || undefined,
+				},
+			};
+			result.shippingAddress = shippingAddress;
+		}
+	}
+
+	if ( ! currentSession?.email ) {
+		const email =
+			getFieldValue( 'billing_email' ) || getFieldValue( 'email' );
+		if ( email ) {
+			result.email = email;
+		}
+	}
+
+	if ( ! currentSession?.phoneNumber ) {
+		const billingOrShippingPhone =
+			getFieldValue( 'billing_phone' ) ||
+			getFieldValue( 'shipping_phone' );
+
+		if ( isPayerPhoneRequired && billingOrShippingPhone ) {
+			result.phoneNumber = billingOrShippingPhone;
+		}
+	}
+
+	return result;
+};
+
+/**
  * Gets the list of payment method types to exclude from the Payment Element.
  * The list is populated by the server.
  * Fallback to exclude Amazon Pay, which should be only shown via Express Checkout, and not within Optimized Checkout.
