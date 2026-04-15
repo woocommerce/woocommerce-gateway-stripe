@@ -1541,6 +1541,83 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that `process_checkout_session_success` sets the payment method title on the order.
+	 *
+	 * When adaptive pricing is used, payments go through checkout sessions and are finalised via
+	 * the `checkout.session.completed` webhook. Without an explicit call to
+	 * `set_payment_method_title_for_order()`, the order retains the gateway's default title
+	 * ("Stripe") instead of the actual method name (e.g. "Credit / Debit Card" or "iDEAL").
+	 *
+	 * @dataProvider provider_checkout_session_payment_method_titles
+	 *
+	 * @param string $payment_method_type Stripe payment method type (e.g. 'card', 'ideal').
+	 * @param string $expected_title      Expected WooCommerce payment method title on the order.
+	 * @return void
+	 */
+	public function test_process_checkout_session_success_sets_payment_method_title( string $payment_method_type, string $expected_title ): void {
+		$checkout_session_id = 'cs_test_title_' . $payment_method_type;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+				],
+			],
+		];
+
+		// Build a payment method object that mimics a Stripe expanded payment_method field.
+		$payment_method_object = (object) [
+			'id'   => 'pm_mock_' . $payment_method_type,
+			'type' => $payment_method_type,
+		];
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => $payment_method_object ] ) );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$this->mock_webhook_handler->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( $expected_title, $updated_order->get_payment_method_title() );
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_success_sets_payment_method_title`.
+	 *
+	 * @return array[]
+	 */
+	public function provider_checkout_session_payment_method_titles(): array {
+		return [
+			'card payment'   => [ WC_Stripe_Payment_Methods::CARD, 'Credit / Debit Card' ],
+			'klarna payment' => [ WC_Stripe_Payment_Methods::KLARNA, 'Klarna' ],
+			'ideal payment'  => [ WC_Stripe_Payment_Methods::IDEAL, 'iDEAL | Wero' ],
+		];
+	}
+
+	/**
 	 * Test that `checkout.session.async_payment_succeeded` processes on-hold orders.
 	 *
 	 * @return void

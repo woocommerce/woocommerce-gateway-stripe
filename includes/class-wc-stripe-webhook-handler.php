@@ -193,7 +193,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( $webhook->url === $webhook_url ) {
-				$number_of_webhooks++;
+				++$number_of_webhooks;
 			}
 		}
 
@@ -369,7 +369,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 						return $this->process_webhook_payment( $notification, true );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
@@ -765,7 +765,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
-			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$raw_amount /= 100;
 			}
 
@@ -850,7 +850,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
-			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$raw_amount /= 100;
 			}
 
@@ -1057,7 +1057,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$refund_object = $this->get_refund_object( $notification );
 			$amount        = $refund_object->amount / 100;
 
-			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+			if ( in_array( strtoupper( $notification->data->object->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$amount = $refund_object->amount;
 			}
 
@@ -1078,7 +1078,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $this->is_partial_capture( $notification ) ) {
 			$amount = ( $notification->data->object->amount - $notification->data->object->amount_refunded ) / 100;
 
-			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+			if ( in_array( strtoupper( $notification->data->object->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$amount = ( $notification->data->object->amount - $notification->data->object->amount_refunded );
 			}
 
@@ -1663,6 +1663,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					// Clear the flag so it does not run again on webhook retries.
 					$order_helper->delete_should_save_stripe_payment_method( $order );
+				}
+			}
+
+			// Set the payment method title on the order based on the actual payment method used.
+			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				$payment_method_type = is_object( $intent->payment_method ) && isset( $intent->payment_method->type ) ? $intent->payment_method->type : '';
+				if ( ! empty( $payment_method_type ) ) {
+					$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $intent->payment_method ?? false );
 				}
 			}
 
