@@ -193,7 +193,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( $webhook->url === $webhook_url ) {
-				$number_of_webhooks++;
+				++$number_of_webhooks;
 			}
 		}
 
@@ -369,7 +369,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 						return $this->process_webhook_payment( $notification, true );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
