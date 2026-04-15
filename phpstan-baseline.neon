@@ -3153,7 +3153,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
-			count: 43
+			count: 45
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3177,7 +3177,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 4
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3241,12 +3241,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Cannot call method get_id\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Cannot call method get_id\(\) on WC_Order\|true\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -3254,12 +3248,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_status\(\) on WC_Order\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot call method has_status\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -3481,12 +3469,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Webhook_Handler\:\:handle_deferred_payment_intent_succeeded\(\) expects WC_Order, WC_Order\|WC_Order_Refund\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_pre_order\(\) expects int, WC_Order\|true given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3505,6 +3487,12 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$webhook_notification of method WC_Stripe_Webhook_Handler\:\:defer_webhook_processing\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3513,12 +3501,6 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$str of function explode expects string, array\|string given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Property WC_Stripe_Webhook_Handler\:\:\$resolved_order \(WC_Order\|null\) does not accept WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
 

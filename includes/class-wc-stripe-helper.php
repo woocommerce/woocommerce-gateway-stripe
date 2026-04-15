@@ -21,6 +21,13 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * First gateway ID from the woocommerce_available_payment_gateways.
+	 *
+	 * @var string|null
+	 */
+	private static $first_gateway_id_from_available_list = null;
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -741,6 +748,55 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Resets the memoized first gateway ID from the available gateways list.
+	 *
+	 * @return void
+	 */
+	public static function clear_first_available_payment_gateway_record() {
+		self::$first_gateway_id_from_available_list = null;
+	}
+
+	/**
+	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
+	 *
+	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
+	 *
+	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
+	 * @return void
+	 */
+	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
+		if ( null !== self::$first_gateway_id_from_available_list ) {
+			return;
+		}
+
+		$gateways = $gateways->payment_gateways();
+
+		if ( ! is_array( $gateways ) || [] === $gateways ) {
+			return;
+		}
+
+		foreach ( $gateways as $gateway_id => $gateway ) {
+			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
+				self::$first_gateway_id_from_available_list = $gateway_id;
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_first_in_available_list(): bool {
+		if ( null === self::$first_gateway_id_from_available_list ) {
+			return false;
+		}
+
+		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
+	}
+
+	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -799,7 +855,11 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		$gateway_order_updated = update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		if ( $gateway_order_updated ) {
+			// set the user notice option to yes to show the notice if it was dismissed and Stripe is not the first available gateway after the update.
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' );
+		}
 	}
 
 	/**
@@ -876,6 +936,7 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
+		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
@@ -1281,16 +1342,13 @@ class WC_Stripe_Helper {
 
 	/**
 	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
-	 * Adaptive Pricing is only available in the plugin for accounts not based in a European Economic Area country.
-	 * Adaptive Pricing is also not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
 	 *
-	 * @return bool True if the account is not in the EEA.
+	 * @return bool True if the account is not in supported countries.
 	 */
 	public static function is_adaptive_pricing_available_for_account(): bool {
-		$account_country       = WC_Stripe::get_instance()->account->get_account_country();
-		$eea_countries         = self::get_european_economic_area_countries();
-		$unsupported_countries = array_merge( $eea_countries, [ WC_Stripe_Country_Code::INDIA ] );
-		return ! in_array( $account_country, $unsupported_countries, true );
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		return strtoupper( $account_country ) !== WC_Stripe_Country_Code::INDIA;
 	}
 
 	/**
@@ -2325,5 +2383,40 @@ class WC_Stripe_Helper {
 		}
 
 		return 2;
+	}
+
+	/**
+	 * Build the localized survey params array shared across admin controllers.
+	 *
+	 * @param WC_Stripe_Account $account Stripe account instance.
+	 * @return array Associative array of survey parameters for wp_localize_script.
+	 */
+	/**
+	 * Check if the current admin page is the WooCommerce Payments settings list page.
+	 *
+	 * @return bool
+	 */
+	public static function is_admin_payments_page(): bool {
+		global $current_tab, $current_section;
+
+		return is_admin() && (
+			( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
+			( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		);
+	}
+
+	public static function get_exit_survey_params( WC_Stripe_Account $account ): array {
+		// Read account data from cache only — avoid triggering a live Stripe API call.
+		$account_cache = WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$account_data  = is_array( $account_cache ) ? $account_cache : [];
+
+		return [
+			'exit_survey_last_shown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
+			'stripe_account_id'      => $account_data['id'] ?? '',
+			'wc_store_id'            => get_option( 'woocommerce_store_id', '' ),
+			'plugin_version'         => WC_STRIPE_VERSION,
+			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wp_version'             => get_bloginfo( 'version' ),
+		];
 	}
 }
