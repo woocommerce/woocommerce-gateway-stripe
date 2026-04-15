@@ -57,7 +57,7 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 // The base DB name defaults to 'wc_stripe_tests' (matching install-wp-tests.sh) but can
 // be overridden via the WP_TESTS_DB_NAME environment variable.
 $_test_token = getenv( 'TEST_TOKEN' );
-if ( $_test_token ) {
+if ( $_test_token && ctype_digit( (string) $_test_token ) ) {
 	$_wp_db_host    = getenv( 'WORDPRESS_DB_HOST' );
 	$_db_host_parts = explode( ':', $_wp_db_host ? $_wp_db_host : 'db' );
 	$_db_host       = $_db_host_parts[0];
