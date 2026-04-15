@@ -12,7 +12,6 @@ const StatusBadge = styled.span`
 	border-radius: 3px;
 	font-size: 12px;
 	font-weight: 600;
-	margin-bottom: 12px;
 
 	&.success {
 		background: #d4edda;
