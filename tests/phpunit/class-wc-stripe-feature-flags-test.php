@@ -27,7 +27,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 * @dataProvider provide_test_is_oc_available
 	 */
-	public function test_is_oc_available( $pmc_enabled, $expected ) {
+	public function test_is_oc_available( $pmc_enabled, $filter_function, $expected ) {
 		// Mock the payment method configuration for the test, to avoid it being disabled by default.
 		PMC_Test_Helper::cache_mocked_configuration();
 
@@ -37,9 +37,16 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			PMC_Test_Helper::disable_pmc();
 		}
 
+		if ( ! empty( $filter_function ) ) {
+			add_filter( 'wc_stripe_is_optimized_checkout_available', $filter_function );
+		}
+
 		$actual = WC_Stripe_Feature_Flags::is_oc_available();
 
 		// Clean up
+		if ( ! empty( $filter_function ) ) {
+			remove_filter( 'wc_stripe_is_optimized_checkout_available', $filter_function );
+		}
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
 
@@ -53,13 +60,25 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_is_oc_available() {
 		return [
-			'PMC enabled'  => [
-				'PMC enabled' => true,
-				'expected'    => true,
+			'PMC enabled'                            => [
+				'PMC enabled'     => true,
+				'filter function' => '',
+				'expected'        => true,
 			],
-			'PMC disabled' => [
-				'PMC enabled' => false,
-				'expected'    => false,
+			'PMC disabled'                           => [
+				'PMC enabled'     => false,
+				'filter function' => '',
+				'expected'        => false,
+			],
+			'PMC enabled, filter overrides to false' => [
+				'PMC enabled'     => true,
+				'filter function' => '__return_false',
+				'expected'        => false,
+			],
+			'PMC disabled, filter overrides to true' => [
+				'PMC enabled'     => false,
+				'filter function' => '__return_true',
+				'expected'        => false,
 			],
 		];
 	}

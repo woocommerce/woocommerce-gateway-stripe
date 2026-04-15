@@ -8,11 +8,11 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 class UPE_Test_Helper {
 	/**
-	 * Enable UPE feature flag by deleting main Stripe settings to force re-initialization.
+	 * Deletes Stripe settings and reloads payment gateways to force re-initialization.
 	 *
 	 * @return void
 	 */
-	public function enable_upe_feature_flag(): void {
+	public function reset_stripe_settings_and_reload_gateways(): void {
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$this->reload_payment_gateways();
 	}

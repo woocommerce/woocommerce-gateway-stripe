@@ -4543,18 +4543,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$sepa_tokens_for_other_methods is unused\.$#'
-			identifier: property.unused
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Property WC_Stripe_UPE_Payment_Gateway\:\:\$spe_enabled is unused\.$#'
-			identifier: property.unused
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
 			count: 1

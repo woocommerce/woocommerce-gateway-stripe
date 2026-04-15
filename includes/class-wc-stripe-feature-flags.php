@@ -25,15 +25,6 @@ class WC_Stripe_Feature_Flags {
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
 
 	/**
-	 * Feature flag for OC (Optimized Checkout).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
-
-	/**
 	 * Feature flag for Agentic Commerce.
 	 *
 	 * @var string
@@ -58,7 +49,6 @@ class WC_Stripe_Feature_Flags {
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                                              => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
-		self::OC_FEATURE_FLAG_NAME                                           => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
