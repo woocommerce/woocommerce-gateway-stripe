@@ -177,7 +177,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -495,7 +495,7 @@ parameters:
 		-
 			message: '#^Cannot call method get_currency\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
-			count: 2
+			count: 3
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-

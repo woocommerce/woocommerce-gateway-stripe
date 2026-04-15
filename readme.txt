@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
 * Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
+* Dev - Update WC_Stripe_Currency_Code constants class with zero-decimal and three-decimal currency lists and replace legacy no_decimal_currencies() usage
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
@@ -221,6 +222,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
 * Fix - Confirm checkout session with user data in classic checkout for guest user
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
