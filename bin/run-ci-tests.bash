@@ -14,7 +14,13 @@ echo 'Starting MySQL service...'
 sudo systemctl start mysql.service
 
 echo 'Setting up test environment...'
-bash bin/install-wp-tests.sh woocommerce_test root root localhost $WP_VERSION $WC_VERSION false
+PARATEST=true bash bin/install-wp-tests.sh woocommerce_test root root localhost $WP_VERSION $WC_VERSION false
 
-echo 'Running the tests...'
+# Export DB connection details so paratest workers can create per-worker databases
+# in the bootstrap safety net (tests/phpunit/bootstrap.php).
+export WP_TESTS_DB_NAME=woocommerce_test
+export WORDPRESS_DB_HOST=localhost
+export MYSQL_ROOT_PASSWORD=root
+
+echo 'Running the tests in parallel...'
 bash bin/phpunit.sh
