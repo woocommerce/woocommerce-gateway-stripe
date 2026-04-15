@@ -832,6 +832,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_title() {
 		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
+			// On the order received page and order details page, calling WC_Stripe_UPE_Payment_Method_OC::get_title()
+			// without payment details falls through to the generic "Stripe" title. Use the
+			// payment method title stored on the order instead, which is set correctly by the
+			// webhook handler after the checkout session completes.
+			if ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) {
+				global $theorder;
+				if ( $theorder instanceof WC_Order ) {
+					$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $theorder );
+					if ( ! empty( $checkout_session_id ) ) {
+						$title = $theorder->get_payment_method_title();
+						if ( ! empty( $title ) ) {
+							return $title;
+						}
+					}
+				}
+			}
 			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
 		}
 		return parent::get_title();
@@ -1094,7 +1110,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			endif;
 
 			if ( $show_adaptive_pricing ) :
-				echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
+				echo '<div id="wc-stripe-adaptive-pricing-currency-wrapper" class="wc-stripe-adaptive-pricing-currency-wrapper" style="margin-top: 12px;">';
+					echo '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector"></div>';
+					echo '<div id="wc-stripe-adaptive-pricing-disclosure"></div>';
+				echo '</div>';
 			endif;
 			?>
 
@@ -1171,6 +1190,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns true if the order's billing country is within the European Economic Area.
+	 *
+	 * @param WC_Abstract_Order $order The order object.
+	 * @return bool
+	 */
+	private function is_eea_customer( WC_Abstract_Order $order ): bool {
+		$billing_country = $order instanceof WC_Order
+			? strtoupper( (string) $order->get_billing_country() )
+			: '';
+
+		return ! empty( $billing_country ) && in_array( $billing_country, WC_Stripe_Helper::get_european_economic_area_countries(), true );
+	}
+
+	/**
 	 * Shows a notice to the order received page to inform the customer about the currency conversion
 	 * when the order is paid with a different currency than the store currency.
 	 *
@@ -1192,6 +1225,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				esc_html( strtoupper( $order->get_currency() ) ),
 				esc_html( $notice_data['rate_amount'] . ' ' . $notice_data['presentment_currency'] )
 			);
+		if ( $this->is_eea_customer( $order ) ) {
+			echo ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+		}
 		echo '</p>';
 	}
 
@@ -1230,16 +1266,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					)
 				);
 			} else {
-				printf(
-					"\n%s\n",
-					sprintf(
-						/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
-						esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
-						esc_html( $converted_amount ),
-						esc_html( $order_currency ),
-						esc_html( $exchange_rate )
-					)
+				$customer_message = sprintf(
+					/* translators: %1$s Converted amount and currency. %2$s Order currency. %3$s Exchange rate and currency. */
+					esc_html__( 'Currency Conversion: You chose to pay %1$s for this order at an exchange rate of 1 %2$s = %3$s.', 'woocommerce-gateway-stripe' ),
+					esc_html( $converted_amount ),
+					esc_html( $order_currency ),
+					esc_html( $exchange_rate )
 				);
+				if ( $this->is_eea_customer( $order ) ) {
+					$customer_message .= ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+				}
+				printf( "\n%s\n", $customer_message ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $customer_message is already escaped.
 			}
 			return;
 		}
@@ -1303,6 +1340,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				esc_html( $order_currency ),
 				esc_html( $exchange_rate )
 			);
+			if ( $this->is_eea_customer( $order ) ) {
+				echo ' ' . esc_html__( 'This includes a 3.8% conversion fee above the European Central Bank (ECB) interbank rate.', 'woocommerce-gateway-stripe' );
+			}
 		}
 
 		echo '</div>';
@@ -1399,12 +1439,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->update_should_save_stripe_payment_method( $order, true );
 		}
 
-		$order->save_meta_data();
+		// Eagerly set the payment method title from the customer's selection so the order
+		// reflects the right method as soon as it lands on the order-received page, even if
+		// the checkout.session.completed webhook is delayed. Prefer the type the customer
+		// actually picked inside the Stripe Element (sent via the hidden
+		// `wc_stripe_selected_upe_payment_type` input by the Optimized Checkout JS) over
+		// the gateway-derived `$selected_payment_type`, which for Optimized Checkout is
+		// always 'card' and would otherwise resolve to the OC pseudo-method's "Stripe"
+		// title. The webhook handler will reaffirm/refine this once the actual payment
+		// method type is known from the intent.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_upe_payment_type = isset( $_POST['wc_stripe_selected_upe_payment_type'] )
+			? sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) )
+			: '';
 
-		// Remove cart.
-		if ( WC()->cart ) {
-			WC()->cart->empty_cart();
+		$title_payment_type = ( ! empty( $selected_upe_payment_type ) && isset( $this->payment_methods[ $selected_upe_payment_type ] ) )
+			? $selected_upe_payment_type
+			: $selected_payment_type;
+
+		if ( isset( $this->payment_methods[ $title_payment_type ] ) ) {
+			$this->set_payment_method_title_for_order( $order, $title_payment_type );
 		}
+
+		$order->save_meta_data();
 
 		// With checkout session, payment is completed on Stripe's side. We do not confirm payment here;
 		// the order is updated to paid when the checkout.session.completed webhook fires.

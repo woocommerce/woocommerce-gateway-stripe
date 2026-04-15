@@ -1666,6 +1666,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
+			// Set the payment method title on the order based on the actual payment method used.
+			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				$payment_method_type = is_object( $intent->payment_method ) && isset( $intent->payment_method->type ) ? $intent->payment_method->type : '';
+				if ( ! empty( $payment_method_type ) ) {
+					$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $intent->payment_method ?? false );
+				}
+			}
+
 			$order->save();
 
 			$charge = $this->get_latest_charge_from_intent( $intent );

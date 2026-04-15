@@ -528,20 +528,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
-		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
+		$currency_selector_wrapper = 'id="wc-stripe-adaptive-pricing-currency-wrapper"';
 		if ( $expect_selector ) {
-			$this->assertStringContainsString( $selector_div, $output );
-			$selector_position    = strpos( $output, $selector_div );
-			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
-			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
+			$this->assertStringContainsString( $currency_selector_wrapper, $output );
+			$this->assertStringContainsString( 'id="wc-stripe-currency-selector"', $output );
+			$this->assertStringContainsString( 'id="wc-stripe-adaptive-pricing-disclosure"', $output );
+			$currency_selector_position = strpos( $output, $currency_selector_wrapper );
+			$upe_element_position       = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $currency_selector_position, 'Adaptive pricing currency wrap position should be detectable.' );
 			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
 			$this->assertLessThan(
 				$upe_element_position,
-				$selector_position,
+				$currency_selector_position,
 				'Currency selector should render before the payment element.'
 			);
 		} else {
-			$this->assertStringNotContainsString( $selector_div, $output );
+			$this->assertStringNotContainsString( $currency_selector_wrapper, $output );
 		}
 	}
 
@@ -5016,5 +5018,153 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringNotContainsString( '<div', $output );
 		$this->assertStringNotContainsString( '<p', $output );
 		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
+	}
+
+	/**
+	 * Data provider for order currency conversion notice ECB sentence by billing country.
+	 *
+	 * @return array<string, array{billing_country: string, expect_ecb_sentence: bool}>
+	 */
+	public function provide_add_currency_conversion_notice_order_eea_matrix(): array {
+		return [
+			'EEA customer (Germany)'           => [
+				[
+					'billing_country'     => 'DE',
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'non-EEA customer (United States)' => [
+				[
+					'billing_country'     => 'US',
+					'expect_ecb_sentence' => false,
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_add_currency_conversion_notice_order_eea_matrix
+	 *
+	 * @param array{billing_country: string, expect_ecb_sentence: bool} $test_case Row from the matrix.
+	 */
+	public function test_add_currency_conversion_notice_ecb_sentence_by_order_country( array $test_case ): void {
+		$billing_country     = $test_case['billing_country'];
+		$expect_ecb_sentence = $test_case['expect_ecb_sentence'];
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_total( 20 );
+		$order->set_billing_country( $billing_country );
+		$order->save();
+
+		$checkout_session_id = sprintf( 'cs_test_order_ecb_mtx_%s', strtolower( $billing_country ) );
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_presentment_amount( $order, 1500 );
+		$order_helper->update_stripe_presentment_currency( $order, 'eur' );
+
+		ob_start();
+		$this->mock_gateway->add_currency_conversion_notice( $order );
+		$output = ob_get_clean();
+
+		$ecb_needle = 'European Central Bank (ECB) interbank rate';
+		if ( $expect_ecb_sentence ) {
+			$this->assertStringContainsString( $ecb_needle, $output );
+		} else {
+			$this->assertStringNotContainsString( $ecb_needle, $output );
+		}
+	}
+
+	/**
+	 * Data provider for add_email_currency_conversion_notice ECB sentence: EEA vs non-EEA × customer vs admin × HTML vs plain text.
+	 *
+	 * @return array<string, array{billing_country: string, sent_to_admin: bool, plain_text: bool, expect_ecb_sentence: bool}>
+	 */
+	public function provide_add_email_currency_conversion_notice_ecb_matrix(): array {
+		return [
+			'customer HTML, EEA (France)'              => [
+				[
+					'billing_country'     => 'FR',
+					'sent_to_admin'       => false,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'customer plain text, EEA (Netherlands)'   => [
+				[
+					'billing_country'     => 'NL',
+					'sent_to_admin'       => false,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => true,
+				],
+			],
+			'customer HTML, non-EEA (Canada)'          => [
+				[
+					'billing_country'     => 'CA',
+					'sent_to_admin'       => false,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'customer plain text, non-EEA (Australia)' => [
+				[
+					'billing_country'     => 'AU',
+					'sent_to_admin'       => false,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'admin HTML, EEA (Germany)'                => [
+				[
+					'billing_country'     => 'DE',
+					'sent_to_admin'       => true,
+					'plain_text'          => false,
+					'expect_ecb_sentence' => false,
+				],
+			],
+			'admin plain text, EEA (Germany)'          => [
+				[
+					'billing_country'     => 'DE',
+					'sent_to_admin'       => true,
+					'plain_text'          => true,
+					'expect_ecb_sentence' => false,
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_add_email_currency_conversion_notice_ecb_matrix
+	 *
+	 * @param array{billing_country: string, sent_to_admin: bool, plain_text: bool, expect_ecb_sentence: bool} $case Row from the matrix.
+	 */
+	public function test_add_email_currency_conversion_notice_ecb_sentence_by_context( array $case ): void {
+		$billing_country     = $case['billing_country'];
+		$sent_to_admin       = $case['sent_to_admin'];
+		$plain_text          = $case['plain_text'];
+		$expect_ecb_sentence = $case['expect_ecb_sentence'];
+
+		$checkout_session_id = sprintf(
+			'cs_test_ecb_mtx_%s_%d_%d',
+			$billing_country,
+			(int) $sent_to_admin,
+			(int) $plain_text
+		);
+		$order               = $this->create_order_with_presentment_email_data( $checkout_session_id );
+		$order->set_billing_country( $billing_country );
+		$order->save();
+
+		ob_start();
+		$this->mock_gateway->add_email_currency_conversion_notice( $order, $sent_to_admin, $plain_text );
+		$output = ob_get_clean();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$ecb_needle = 'European Central Bank (ECB) interbank rate';
+		if ( $expect_ecb_sentence ) {
+			$this->assertStringContainsString( $ecb_needle, $output );
+		} else {
+			$this->assertStringNotContainsString( $ecb_needle, $output );
+		}
 	}
 }
