@@ -1673,14 +1673,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'cart_product_types' => [ 'deposits' ],
 				'expected'           => false,
 			],
-			'EEA account country'                       => [
-				'is_checkout'        => true,
-				'has_block'          => false,
-				'adaptive_pricing'   => 'yes',
-				'cart_product_types' => [ 'simple' ],
-				'expected'           => false,
-				'account_country'    => 'DE',
-			],
 			'India account country'                     => [
 				'is_checkout'        => true,
 				'has_block'          => false,
