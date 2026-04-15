@@ -46,6 +46,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function tearDown(): void {
 		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
+		WC_Stripe_API::set_secret_key( '' );
 		remove_all_filters( 'wc_stripe_is_agentic_commerce_enabled' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'pre_http_request' );
@@ -55,6 +57,10 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( 'woocommerce_product_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( 'woocommerce_variation_set_stock', [ $this->sut, 'track_stock_change' ] );
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
+			remove_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] );
+			remove_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] );
+			remove_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] );
+			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
 		parent::tearDown();
@@ -71,7 +77,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_constants() {
 		$this->assertEquals( 'wc_stripe_agentic_pending_inventory', WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
+		$this->assertEquals( 'wc_stripe_agentic_pending_archives', WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
 		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_inventory', WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION );
+		$this->assertEquals( 'wc_stripe_agentic_commerce_sync_archives', WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 		$this->assertEquals( 1000, WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES );
 		$this->assertEquals( 60, WC_Stripe_Agentic_Commerce_Inventory_Tracker::BATCH_DELAY_SECONDS );
 	}
@@ -106,6 +114,142 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 				[ $this->sut, 'sync_inventory' ]
 			)
 		);
+	}
+
+	/**
+	 * Test register_hooks attaches archive hooks.
+	 *
+	 * Uses before_delete_post and wp_trash_post (WordPress-level hooks) rather than
+	 * the WooCommerce data-store hooks, which only fire through the REST API.
+	 *
+	 * @return void
+	 */
+	public function test_register_hooks_attaches_archive_hooks() {
+		$this->sut->register_hooks();
+
+		$this->assertNotFalse( has_action( 'before_delete_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'wp_trash_post', [ $this->sut, 'maybe_track_product_archive' ] ) );
+		$this->assertNotFalse( has_action( 'untrash_post', [ $this->sut, 'maybe_cancel_pending_archive' ] ) );
+		$this->assertNotFalse(
+			has_action(
+				WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION,
+				[ $this->sut, 'sync_archives' ]
+			)
+		);
+	}
+
+	// -------------------------------------------------------------------------
+	// maybe_track_product_archive
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test that maybe_track_product_archive tracks a product.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_tracks_product() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->maybe_track_product_archive( $product->get_id() );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+	}
+
+	/**
+	 * Test that maybe_track_product_archive ignores non-product post types.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_ignores_non_products() {
+		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
+
+		$this->sut->maybe_track_product_archive( $page_id );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
+	/**
+	 * Test that maybe_track_product_archive tracks a product variation.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_track_product_archive_tracks_variation() {
+		$parent = new \WC_Product_Variable();
+		$parent->set_name( 'Variable Product' );
+		$parent->set_status( 'publish' );
+		$parent->set_regular_price( '29.99' );
+		$parent->save();
+
+		$variation = new \WC_Product_Variation();
+		$variation->set_parent_id( $parent->get_id() );
+		$variation->set_regular_price( '29.99' );
+		$variation->set_manage_stock( true );
+		$variation->set_stock_quantity( 5 );
+		$variation->save();
+
+		$this->sut->maybe_track_product_archive( $variation->get_id() );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $variation->get_id(), $pending );
+		$this->assertEquals( 'out_of_stock', $pending[ $variation->get_id() ]['availability'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// maybe_cancel_pending_archive
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test that restoring a trashed product removes it from the pending archives queue.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_removes_product() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+
+		$this->sut->maybe_cancel_pending_archive( $product->get_id() );
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayNotHasKey( $product->get_id(), $after );
+	}
+
+	/**
+	 * Test that restoring a product preserves other pending archives.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_preserves_other_entries() {
+		$product_a = $this->create_simple_product_with_stock( 5 );
+		$product_b = $this->create_simple_product_with_stock( 10 );
+
+		$this->sut->track_product_archive( $product_a );
+		$this->sut->track_product_archive( $product_b );
+
+		$this->sut->maybe_cancel_pending_archive( $product_a->get_id() );
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayNotHasKey( $product_a->get_id(), $after );
+		$this->assertArrayHasKey( $product_b->get_id(), $after );
+	}
+
+	/**
+	 * Test that maybe_cancel_pending_archive ignores non-product post types.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_cancel_pending_archive_ignores_non_products() {
+		$page_id = $this->factory()->post->create( [ 'post_type' => 'page' ] );
+
+		// No error should occur even with no pending archives.
+		$this->sut->maybe_cancel_pending_archive( $page_id );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
 	}
 
 	// -------------------------------------------------------------------------
@@ -382,7 +526,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_sync_inventory_clears_pending_on_success() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -429,7 +573,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_sync_inventory_retains_pending_on_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -460,7 +604,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 */
 	public function test_full_flow_stock_change_to_upload() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
-		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
 
 		$product_a = $this->create_simple_product_with_stock( 10 );
 		$product_b = $this->create_simple_product_with_stock( 0 );
@@ -513,6 +657,333 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	// -------------------------------------------------------------------------
+	// track_product_archive
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test that a product archive is stored in the pending archives option.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_stores_pending_archive() {
+		$product = $this->create_simple_product_with_stock( 5 );
+
+		$this->sut->track_product_archive( $product );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+
+		$this->assertArrayHasKey( $product->get_id(), $pending );
+		$this->assertEquals( (string) $product->get_id(), $pending[ $product->get_id() ]['id'] );
+		$this->assertEquals( 'out_of_stock', $pending[ $product->get_id() ]['availability'] );
+		$this->assertArrayHasKey( 'title', $pending[ $product->get_id() ] );
+		$this->assertArrayHasKey( 'description', $pending[ $product->get_id() ] );
+		$this->assertArrayHasKey( 'link', $pending[ $product->get_id() ] );
+		$this->assertArrayHasKey( 'price', $pending[ $product->get_id() ] );
+		$this->assertArrayHasKey( 'timestamp', $pending[ $product->get_id() ] );
+	}
+
+	/**
+	 * Test that tracking an archive removes the product from pending inventory updates.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_removes_from_pending_inventory() {
+		$product = $this->create_simple_product_with_stock( 10 );
+
+		// First track a stock change, then archive the product.
+		$this->sut->track_stock_change( $product );
+
+		$inventory_before = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
+		$this->assertArrayHasKey( $product->get_id(), $inventory_before );
+
+		$this->sut->track_product_archive( $product );
+
+		$inventory_after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] );
+		$this->assertArrayNotHasKey( $product->get_id(), $inventory_after );
+	}
+
+	/**
+	 * Test that multiple archives are batched into a single option.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_batches_multiple_products() {
+		$product_a = $this->create_simple_product_with_stock( 5 );
+		$product_b = $this->create_simple_product_with_stock( 10 );
+
+		$this->sut->track_product_archive( $product_a );
+		$this->sut->track_product_archive( $product_b );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+
+		$this->assertCount( 2, $pending );
+		$this->assertArrayHasKey( $product_a->get_id(), $pending );
+		$this->assertArrayHasKey( $product_b->get_id(), $pending );
+	}
+
+	/**
+	 * Test that no new archives are added once the MAX_PENDING_UPDATES threshold is reached.
+	 *
+	 * @return void
+	 */
+	public function test_track_product_archive_stops_accumulating_at_threshold() {
+		$max           = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		$extra_product = $this->create_simple_product_with_stock( 1 );
+		$product_id    = $extra_product->get_id();
+
+		$pending       = [];
+		$pending_count = 0;
+		$i             = 1;
+		while ( $pending_count < $max ) {
+			if ( $i !== $product_id ) {
+				$pending[ $i ] = [
+					'id'        => (string) $i,
+					'timestamp' => time(),
+				];
+				++$pending_count;
+			}
+			++$i;
+		}
+		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
+
+		$this->sut->track_product_archive( $extra_product );
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+
+		$this->assertCount( $max, $after );
+		$this->assertArrayNotHasKey( $product_id, $after );
+	}
+
+	// -------------------------------------------------------------------------
+	// generate_archive_feed
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test generate_archive_feed returns null when there are no pending archives.
+	 *
+	 * @return void
+	 */
+	public function test_generate_archive_feed_returns_null_when_no_pending() {
+		$result = $this->sut->generate_archive_feed();
+		$this->assertNull( $result );
+	}
+
+	/**
+	 * Test generate_archive_feed returns a finalized feed.
+	 *
+	 * @return void
+	 */
+	public function test_generate_archive_feed_returns_finalized_feed() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		$feed = $this->sut->generate_archive_feed();
+
+		$this->assertInstanceOf( WC_Stripe_Agentic_Commerce_Csv_Feed::class, $feed );
+		$this->assertNotNull( $feed->get_file_path() );
+		$this->assertFileExists( $feed->get_file_path() );
+
+		wp_delete_file( $feed->get_file_path() );
+	}
+
+	/**
+	 * Test generate_archive_feed CSV contains correct id and availability columns.
+	 *
+	 * @return void
+	 */
+	public function test_generate_archive_feed_csv_content() {
+		$product = $this->create_simple_product_with_stock( 5 );
+		$product->set_regular_price( '19.99' );
+		$product->save();
+		$this->sut->track_product_archive( $product );
+
+		$feed      = $this->sut->generate_archive_feed();
+		$file_path = $feed->get_file_path();
+		$content   = file_get_contents( $file_path );
+		$lines     = array_filter( explode( "\n", trim( $content ) ) );
+
+		// Header row + at least one data row.
+		$this->assertGreaterThanOrEqual( 2, count( $lines ) );
+
+		$header_cols = str_getcsv( array_shift( $lines ) );
+
+		// Archive feed should use all schema columns.
+		$expected_headers = WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers();
+		$this->assertEquals( $expected_headers, $header_cols );
+
+		// Verify data row contains the expected product data.
+		$data_row = str_getcsv( reset( $lines ) );
+		$row      = array_combine( $header_cols, $data_row );
+
+		$this->assertEquals( (string) $product->get_id(), $row['id'] );
+		$this->assertEquals( 'out_of_stock', $row['availability'] );
+		$this->assertNotEmpty( $row['title'] );
+		$this->assertNotEmpty( $row['description'] );
+		$this->assertNotEmpty( $row['link'] );
+		$this->assertNotEmpty( $row['price'] );
+		$this->assertNotEmpty( $row['image_link'] );
+
+		wp_delete_file( $file_path );
+	}
+
+	/**
+	 * Test generate_archive_feed includes all pending products.
+	 *
+	 * @return void
+	 */
+	public function test_generate_archive_feed_includes_all_pending_products() {
+		$product_a = $this->create_simple_product_with_stock( 3 );
+		$product_b = $this->create_simple_product_with_stock( 8 );
+
+		$this->sut->track_product_archive( $product_a );
+		$this->sut->track_product_archive( $product_b );
+
+		$feed      = $this->sut->generate_archive_feed();
+		$file_path = $feed->get_file_path();
+		$content   = file_get_contents( $file_path );
+		$lines     = array_values( array_filter( explode( "\n", trim( $content ) ) ) );
+
+		// Header + 2 data rows.
+		$this->assertCount( 3, $lines );
+
+		wp_delete_file( $file_path );
+	}
+
+	// -------------------------------------------------------------------------
+	// sync_archives
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Test sync_archives skips when feature flag is disabled.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_skips_when_feature_disabled() {
+		// Explicitly disable the feature flag to verify the skip behavior.
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_false' );
+
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		$this->sut->sync_archives();
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertNotEmpty( $pending );
+	}
+
+	/**
+	 * Test sync_archives skips when there are no pending archives.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_skips_when_no_pending() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		$this->sut->sync_archives();
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
+	/**
+	 * Test sync_archives clears pending archives when threshold is exceeded.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_clears_pending_when_threshold_exceeded() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+
+		$max     = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
+		$pending = [];
+		for ( $i = 1; $i <= $max; $i++ ) {
+			$pending[ $i ] = [
+				'id'        => $i,
+				'timestamp' => time(),
+			];
+		}
+		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
+
+		$this->sut->sync_archives();
+
+		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $after );
+	}
+
+	/**
+	 * Test sync_archives clears pending archives after a successful upload.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_clears_pending_on_success() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		// Short-circuit the Files API upload.
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function () {
+				return [ 'id' => 'file_test_arc_123' ];
+			}
+		);
+
+		// Short-circuit the ImportSet creation.
+		add_filter(
+			'pre_http_request',
+			function ( $pre, $args, $url ) {
+				if ( false !== strpos( $url, 'import_sets' ) ) {
+					return [
+						'response' => [ 'code' => 200 ],
+						'body'     => wp_json_encode(
+							[
+								'id'     => 'impset_test_arc_456',
+								'status' => 'pending',
+							]
+						),
+					];
+				}
+				return $pre;
+			},
+			10,
+			3
+		);
+
+		$this->sut->sync_archives();
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertEmpty( $pending );
+	}
+
+	/**
+	 * Test sync_archives retains pending archives when upload fails.
+	 *
+	 * @return void
+	 */
+	public function test_sync_archives_retains_pending_on_failure() {
+		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
+		WC_Stripe_API::set_secret_key( 'sk_test_fake' );
+
+		$product = $this->create_simple_product_with_stock( 5 );
+		$this->sut->track_product_archive( $product );
+
+		// Make the Files API upload throw an exception.
+		add_filter(
+			'wc_stripe_agentic_commerce_files_api_pre_request',
+			function () {
+				throw new Exception( 'Simulated upload failure' );
+			}
+		);
+
+		$this->sut->sync_archives();
+
+		// Pending archives must be retained so the next run can retry.
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertNotEmpty( $pending );
+	}
+
+	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 
@@ -526,6 +997,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		$product = new \WC_Product_Simple();
 		$product->set_name( 'Test Product ' . wp_generate_password( 4, false ) );
 		$product->set_status( 'publish' );
+		$product->set_regular_price( '9.99' );
 		$product->set_manage_stock( true );
 		$product->set_stock_quantity( $quantity );
 		$product->save();

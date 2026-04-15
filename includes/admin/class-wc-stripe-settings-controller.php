@@ -247,6 +247,7 @@ class WC_Stripe_Settings_Controller {
 			'is_card_method_enabled'                => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),
 			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
+		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(
 			'woocommerce_stripe_admin',
 			'wc_stripe_settings_params',
