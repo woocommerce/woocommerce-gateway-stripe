@@ -50,7 +50,7 @@
     "@wordpress/primitives": "^3.0.0",
     "@wordpress/scripts": "^30.24.0",
     "@wordpress/url": "^3.2.1",
-    "allure-playwright": "^2.0.0-beta.20",
+    "allure-playwright": "3.7.1",
     "archiver": "^5.0.0",
     "axios": "^1.15.0",
     "chai": "^4.1.2",
