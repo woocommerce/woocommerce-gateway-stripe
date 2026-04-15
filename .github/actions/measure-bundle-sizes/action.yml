@@ -48,15 +48,19 @@ runs:
       with:
         php-version: '8.4'
 
+    - name: Install pnpm
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: pnpm/action-setup@v4
+
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npm ci
+      run: pnpm install --frozen-lockfile
 
     - name: Build
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npm run build:webpack
+      run: pnpm run build:webpack
 
     - name: Measure bundle sizes
       if: steps.cache.outputs.cache-hit != 'true'

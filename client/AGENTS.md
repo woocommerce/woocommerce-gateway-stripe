@@ -27,12 +27,12 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 
 | Task | Command |
 | --- | --- |
-| Build frontend assets | `npm run build:webpack` |
-| Run dev watcher | `npm start` |
-| Run JS tests | `npm run test:js` |
-| Run JS lint | `npm run lint:js` |
-| Auto-fix JS lint | `npm run lint:js-fix` |
-| Run CSS/SCSS lint | `npm run lint:css` |
+| Build frontend assets | `pnpm run build:webpack` |
+| Run dev watcher | `pnpm start` |
+| Run JS tests | `pnpm run test:js` |
+| Run JS lint | `pnpm run lint:js` |
+| Auto-fix JS lint | `pnpm run lint:js-fix` |
+| Run CSS/SCSS lint | `pnpm run lint:css` |
 
 ## Frontend Conventions
 

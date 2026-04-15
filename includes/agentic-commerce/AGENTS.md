@@ -41,9 +41,9 @@ Read `README.md` in this directory for domain-specific feed requirements.
 
 | Task | Command |
 | --- | --- |
-| Run PHP tests | `npm run test:php` |
-| Run static analysis | `npm run phpstan` |
-| Run PHP lint | `npm run lint:php` |
+| Run PHP tests | `pnpm run test:php` |
+| Run static analysis | `pnpm run phpstan` |
+| Run PHP lint | `pnpm run lint:php` |
 
 ## Test Mapping
 

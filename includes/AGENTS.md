@@ -43,11 +43,11 @@ Agentic Commerce feed integration:
 
 | Task | Command |
 | --- | --- |
-| Run backend tests | `npm run test:php` |
-| Run PHP lint | `npm run lint:php` |
-| Auto-fix PHPCS issues | `npm run lint:php-fix` |
-| Run static analysis | `npm run phpstan` |
-| Refresh baseline after triage | `npm run phpstan:baseline` |
+| Run backend tests | `pnpm run test:php` |
+| Run PHP lint | `pnpm run lint:php` |
+| Auto-fix PHPCS issues | `pnpm run lint:php-fix` |
+| Run static analysis | `pnpm run phpstan` |
+| Refresh baseline after triage | `pnpm run phpstan:baseline` |
 
 ## Backend Conventions
 

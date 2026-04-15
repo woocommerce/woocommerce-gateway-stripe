@@ -16,12 +16,12 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 
 | Task | Command | Notes |
 | --- | --- | --- |
-| Full setup | `npm run test:e2e-setup -- --base_url=<url>` | Remote setup path. Can install/configure WooCommerce and Stripe settings. |
-| Run default project | `npm run test:e2e -- --base_url=<url>` | Uses `default` Playwright project. |
-| Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
-| Debug run | `npm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
-| Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088`). |
-| Tear down Docker | `npm run test:e2e-down` | Stops E2E containers. |
+| Full setup | `pnpm run test:e2e-setup -- --base_url=<url>` | Remote setup path. Can install/configure WooCommerce and Stripe settings. |
+| Run default project | `pnpm run test:e2e -- --base_url=<url>` | Uses `default` Playwright project. |
+| Run specific project | `pnpm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
+| Debug run | `pnpm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
+| Docker setup/run | `pnpm run test:e2e-setup` then `pnpm run test:e2e` | Local Docker path (`http://localhost:8088`). |
+| Tear down Docker | `pnpm run test:e2e-down` | Stops E2E containers. |
 
 ## File Layout
 

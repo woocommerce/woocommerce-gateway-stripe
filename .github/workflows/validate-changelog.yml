@@ -44,7 +44,7 @@ jobs:
             
             if (!changelogUpdated || !readmeUpdated) {
               core.setFailed(
-                'This PR requires changelog entries. Please run `npm run changelog` to add entries to both changelog.txt and readme.txt, ' +
+                'This PR requires changelog entries. Please run `pnpm run changelog` to add entries to both changelog.txt and readme.txt, ' +
                 'or check "This Pull Request does not require a changelog entry" in the PR description if no changelog is needed.'
               );
             } else {

@@ -14,11 +14,11 @@ We adopt the L-2 version support policy for WordPress core strictly, and a loose
 
 ### Install Dependencies & Build
 
--   `npm install`
+-   `pnpm install`
 -   `composer install`
--   `npm run build:webpack`, or if you're developing the client you can have it auto-update when changes are made: `npm start`
+-   `pnpm run build:webpack`, or if you're developing the client you can have it auto-update when changes are made: `pnpm start`
 
-If you run into errors with `npm install` it may be due to node version, try `nvm install` followed by `nvm use` then try again.
+If you run into errors with `pnpm install` it may be due to node version, try `nvm install` followed by `nvm use` then try again.
 
 When running the `composer install/update`, Composer may prompt you for a GitHub OAuth token before it can fetch the `subscriptions` and `pre-orders` extensions from GitHub.
 
@@ -33,7 +33,7 @@ We are using [PHPStan](https://phpstan.org/) to perform static analysis of our c
 
 For the latter two situations, you will need to update the PHPStan baseline file, which you can do by running either of the following commands:
 ```
-npm run phpstan:baseline
+ppnpm run phpstan:baseline
 ```
 or
 ```
@@ -42,7 +42,7 @@ composer run-script phpstan:baseline
 
 You can also run PHPStan against your code before the automated GitHub workflow runs by using either of the following commands:
 ```
-npm run phpstan
+pnpm run phpstan
 ```
 or
 ```

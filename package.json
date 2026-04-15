@@ -96,8 +96,7 @@
     "typescript": "^5.3.3",
     "uglify-js": "^3.1.3",
     "webpack": "^5.101.3",
-    "webpack-cli": "^5.1.4",
-    "yarnhook": "^0.5.1"
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
     "@automattic/interpolate-components": "^1.2.1",
@@ -120,16 +119,16 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install --classmap-authoritative && npx playwright install",
-    "prebuild": "npm install && composer install --classmap-authoritative",
+    "postinstall": "composer install --classmap-authoritative && pnpx playwright install",
+    "prebuild": "pnpm install && composer install --classmap-authoritative",
     "prepare": "is-ci || husky install",
-    "build": "npm run uglify && npm run sass && rimraf build/* && npm run build:webpack && npm run build:i18n && npm run build:release",
-    "build:i18n": "npm run i18n:makepot && npm run i18n:merge",
+    "build": "pnpm run uglify && pnpm run sass && rimraf build/* && pnpm run build:webpack && pnpm run build:i18n && pnpm run build:release",
+    "build:i18n": "pnpm run i18n:makepot && pnpm run i18n:merge",
     "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "build:webpack": "wp-scripts build",
     "i18n:makepot": "./vendor/bin/wp i18n make-pot . languages/woocommerce-gateway-stripe.pot --exclude=assets,bin,build,docker,docs,node_modules,phpunit-html,phpstan-stubs,phpstan-tmp,release,tests,vendor",
     "i18n:merge": "php bin/update-pot-file-references.php languages/woocommerce-gateway-stripe.pot",
-    "start": "npm run start:webpack",
+    "start": "pnpm run start:webpack",
     "start:webpack": "rimraf build/* && wp-scripts start",
     "preuglify": "rm -f $npm_package_config_assets_js_min",
     "uglify": "for f in $npm_package_config_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
@@ -145,14 +144,14 @@
     "postsass": "for f in $npm_package_config_assets_styles_css; do file=${f%.css}; node_modules/.bin/cleancss -o $file.css $f; done",
     "test:php": "./bin/run-tests.sh",
     "test:js": "wp-scripts test-unit-js --config tests/js/jest.config.js",
-    "test:js:watch": "npm run test:js --watch",
+    "test:js:watch": "pnpm run test:js --watch",
     "lint:css": "stylelint 'client/**/*.scss' 'client/**/*.css' 'assets/**/*.scss' 'assets/**/*.css'",
     "lint:js": "eslint . --ext=js,jsx,ts,tsx",
     "lint:js-fix": "eslint . --ext=js,jsx,ts,tsx --fix",
     "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)",
     "lint:php-fix": "./vendor/bin/phpcbf --standard=phpcs.xml.dist $(git ls-files | grep .php$)",
     "format:js": "prettier --write '**/*.js'",
-    "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
+    "jt:setup": "pnpm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
     "phpstan": "composer run-script phpstan",
@@ -160,27 +159,28 @@
     "test:e2e-setup": "./tests/e2e/bin/setup.sh",
     "test:e2e-up": "./tests/e2e/bin/up.sh",
     "test:e2e-down": "./tests/e2e/bin/down.sh",
-    "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
+    "test:e2e-cleanup": "pnpm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
     "test:e2e": "./tests/e2e/bin/run-tests.sh --project=default",
     "test:e2e-run": "./tests/e2e/bin/run-tests.sh",
-    "test:e2e-debug": "npm run test:e2e -- --debug",
+    "test:e2e-debug": "pnpm run test:e2e -- --debug",
     "test:e2e-legacy": "./tests/e2e/bin/run-tests.sh --project=legacy",
-    "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug",
+    "test:e2e-legacy-debug": "pnpm run test:e2e-legacy -- --debug",
     "test:e2e-lpm-acss": "./tests/e2e/bin/run-tests.sh --project=acss",
-    "test:e2e-lpm-acss-debug": "npm run test:e2e-lpm-acss -- --debug",
+    "test:e2e-lpm-acss-debug": "pnpm run test:e2e-lpm-acss -- --debug",
     "test:e2e-oc": "./tests/e2e/bin/run-tests.sh --project=optimized-checkout",
-    "test:e2e-oc-debug": "npm run test:e2e-oc -- --debug",
+    "test:e2e-oc-debug": "pnpm run test:e2e-oc -- --debug",
     "test:e2e-lpm-blik": "./tests/e2e/bin/run-tests.sh --project=blik",
-    "test:e2e-lpm-blik-debug": "npm run test:e2e-lpm-blik -- --debug",
+    "test:e2e-lpm-blik-debug": "pnpm run test:e2e-lpm-blik -- --debug",
     "test:e2e-lpm-becs": "./tests/e2e/bin/run-tests.sh --project=becs",
-    "test:e2e-lpm-becs-debug": "npm run test:e2e-lpm-becs -- --debug",
+    "test:e2e-lpm-becs-debug": "pnpm run test:e2e-lpm-becs -- --debug",
     "test:e2e-isk": "./tests/e2e/bin/run-tests.sh --project=isk",
-    "test:e2e-isk-debug": "npm run test:e2e-isk -- --debug",
+    "test:e2e-isk-debug": "pnpm run test:e2e-isk -- --debug",
     "changelog": "node bin/changelog.js"
   },
+  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=20.18.1",
-    "npm": ">=10.2.3"
+    "pnpm": ">=10.0.0"
   },
   "config": {
     "wp_org_slug": "woocommerce-gateway-stripe",
@@ -201,11 +201,9 @@
       }
     }
   },
-  "overrides": {
-    "@wordpress/eslint-plugin": {
-      "eslint-plugin-jsdoc": "^46.0.0"
-    },
-    "@wordpress/i18n": {
+  "pnpm": {
+    "overrides": {
+      "eslint-plugin-jsdoc": "^46.0.0",
       "memize": "^2.1.1"
     }
   }

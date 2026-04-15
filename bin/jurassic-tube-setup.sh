@@ -41,5 +41,5 @@ ${PWD}/docker/bin/jt/config.sh username ${username}
 ${PWD}/docker/bin/jt/config.sh subdomain ${subdomain}
 
 echo "Setup complete!"
-echo "Use the command: 'npm run jt:start' from the root directory of your WooCommerce Stripe Payment Gateway project to start running Jurassic Tube."
+echo "Use the command: 'pnpm run jt:start' from the root directory of your WooCommerce Stripe Payment Gateway project to start running Jurassic Tube."
 echo

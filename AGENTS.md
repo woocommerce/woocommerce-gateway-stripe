@@ -6,7 +6,7 @@ This file provides guidance to coding agents working in this repository.
 
 WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe payments on WooCommerce stores. It supports 20+ payment methods, including cards, Apple Pay, Google Pay, Klarna, Affirm, SEPA, ACH, Alipay, and Boleto.
 
-**Requirements:** PHP 7.4+, WordPress 6.7+, WooCommerce 9.9+, Node 20.18.1+, npm 10.2.3+
+**Requirements:** PHP 7.4+, WordPress 6.7+, WooCommerce 9.9+, Node 20.18.1+, pnpm 10.0.0+
 
 ## CRITICAL Rules
 
@@ -15,7 +15,7 @@ WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe p
 - **CRITICAL:** Keep changes scoped. Do not perform broad refactors unless explicitly requested.
 - **CRITICAL:** If you change runtime behavior, run the smallest relevant test suite before claiming completion.
 - **CRITICAL:** Bugfixes for fatals, checkout failures, and payment regressions MUST include or update targeted automated tests; code review alone is not enough.
-- **CRITICAL:** If you update `phpstan-baseline.neon`, run `npm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
+- **CRITICAL:** If you update `phpstan-baseline.neon`, run `pnpm run phpstan` first, fix legitimate issues, then baseline only unavoidable items.
 - **CRITICAL:** Do not mix broad feature work with PHPStan baseline churn in a single commit unless explicitly requested.
 - **CRITICAL:** Changes to payment method availability/rendering MUST be validated across classic checkout, Blocks checkout, optimized checkout, and express checkout.
 - **CRITICAL:** Respect version support policy (WordPress strict L-2, WooCommerce loose L-2).
@@ -26,24 +26,24 @@ Use the smallest command set needed for the task:
 
 | Task | Command | Notes |
 | --- | --- | --- |
-| Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
-| Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
-| Stop local environment | `npm run down` | Preserves local Docker state. |
-| Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
-| Dev hot reload | `npm start` | Webpack watch/dev mode. |
-| PHPUnit | `npm run test:php` | Requires Docker environment running. |
-| Jest unit tests | `npm run test:js` | Use `npm run test:js:watch` during iteration. |
-| E2E setup | `npm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
-| E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
-| PHP lint | `npm run lint:php` | Use `npm run lint:php-fix` when appropriate. |
-| JS lint | `npm run lint:js` | Use `npm run lint:js-fix` when appropriate. |
-| PHP static analysis | `npm run phpstan` | Level 8 static analysis for PHP files. |
-| Refresh PHP static analysis baseline | `npm run phpstan:baseline` | Only after triaging `npm run phpstan` results. |
-| Stripe webhook listener | `npm run listen` | For local webhook forwarding. |
+| Install dependencies | `composer install && pnpm install` | Runs Composer install and pnpm install, which then installs all dependencies. |
+| Start local environment | `pnpm run up` | Docker-based site at `http://localhost:8072`. |
+| Stop local environment | `pnpm run down` | Preserves local Docker state. |
+| Build frontend assets | `pnpm run build:webpack` | Use when editing client-side sources that ship built assets. |
+| Dev hot reload | `pnpm start` | Webpack watch/dev mode. |
+| PHPUnit | `pnpm run test:php` | Requires Docker environment running. |
+| Jest unit tests | `pnpm run test:js` | Use `pnpm run test:js:watch` during iteration. |
+| E2E setup | `pnpm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
+| E2E run | `pnpm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
+| PHP lint | `pnpm run lint:php` | Use `pnpm run lint:php-fix` when appropriate. |
+| JS lint | `pnpm run lint:js` | Use `pnpm run lint:js-fix` when appropriate. |
+| PHP static analysis | `pnpm run phpstan` | Level 8 static analysis for PHP files. |
+| Refresh PHP static analysis baseline | `pnpm run phpstan:baseline` | Only after triaging `pnpm run phpstan` results. |
+| Stripe webhook listener | `pnpm run listen` | For local webhook forwarding. |
 
 ## Common Pitfalls
 
-- Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
+- Running PHP tests without Docker: `pnpm run test:php` fails unless containers are up.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.

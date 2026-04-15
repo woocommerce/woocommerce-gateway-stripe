@@ -42,7 +42,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 To set up the test environment, run the command:
 
-`npm run test:e2e-setup -- --base_url=SOME_URL_HERE`
+`pnpm run test:e2e-setup -- --base_url=SOME_URL_HERE`
 
 This command will perform the following actions:
 
@@ -62,7 +62,7 @@ The SSH and admin credentials are mandatory (view the parameters `--with_woo_set
 
 **Test execution**
 
-`npm run test:e2e -- --base_url=SOME_URL_HERE`
+`pnpm run test:e2e -- --base_url=SOME_URL_HERE`
 
 The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
 
@@ -80,7 +80,7 @@ The default command to run the tests. It'll run the tests in the URL indicated b
 
 ### Debugging tests
 
-`npm run test:e2e-debug`
+`pnpm run test:e2e-debug`
 
 [Documentation](https://playwright.dev/docs/debug)
 
@@ -92,13 +92,13 @@ Certain tests are annotated to indicate their specific focus, such as subscripti
 
 To only run tests with a specific annotation, use the `--grep @annotation` parameter when running the tests. For example:
 
-`npm run test:e2e -- --base_url=SOME_URL_HERE --grep @subscriptions`
+`pnpm run test:e2e -- --base_url=SOME_URL_HERE --grep @subscriptions`
 
 **Running Tests by File Name**
 
 You can also run tests by specifying the file name containing the test you want to run. Keep in mind that there may be duplicate file names, especially between tests run in the regular checkout and in the blocks checkout.
 
- `npm run test:e2e -- --base_url=SOME_URL_HERE normal-card`
+ `pnpm run test:e2e -- --base_url=SOME_URL_HERE normal-card`
 
  In the above example, the command would run the tests with a file name containing `normal-card`.
 

@@ -30,12 +30,15 @@ runs:
       shell: bash
       run: composer install --no-progress
         
-    # Node
+    # Node + pnpm
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version-file: '.nvmrc'
-        cache: 'npm'
+        cache: 'pnpm'
 
     - name: Cache Node dependencies
       id: node-cache
@@ -44,9 +47,9 @@ runs:
         path: |
           ./node_modules
           ~/.cache/ms-playwright
-        key: ${{ runner.os }}-node_modules-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-node_modules-${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Install Node dependencies
       if: ${{ steps.node-cache.outputs.cache-hit == false }}
       shell: bash
-      run: npm ci --no-optional --ignore-scripts
+      run: pnpm install --frozen-lockfile --ignore-scripts
