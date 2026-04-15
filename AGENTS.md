@@ -27,11 +27,15 @@ Use the smallest command set needed for the task:
 | Task | Command | Notes |
 | --- | --- | --- |
 | Install dependencies | `composer install && npm install` | Runs Composer install and npm install, which then installs all dependencies. |
-| Start local environment | `npm run up` | Docker-based site at `http://localhost:8072`. |
-| Stop local environment | `npm run down` | Preserves local Docker state. |
+| Start local environment | `npm run up` | wp-env-based site at `http://localhost:8072`. |
+| Stop local environment | `npm run down` | Stops wp-env containers. |
+| Destroy local environment | `npm run destroy` | Removes wp-env containers and data. |
+| Start local environment (legacy Docker) | `npm run docker:up` | Legacy Docker-based site at `http://localhost:8072`. |
+| Stop local environment (legacy Docker) | `npm run docker:down` | Legacy Docker stop. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
-| PHPUnit | `npm run test:php` | Requires Docker environment running. |
+| PHPUnit | `npm run test:php` | Requires legacy Docker environment running. |
+| PHPUnit (wp-env) | `npm run test:php:wp-env` | Requires wp-env environment running (`npm run up`). |
 | Jest unit tests | `npm run test:js` | Use `npm run test:js:watch` during iteration. |
 | E2E setup | `npm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
 | E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |
@@ -40,10 +44,11 @@ Use the smallest command set needed for the task:
 | PHP static analysis | `npm run phpstan` | Level 8 static analysis for PHP files. |
 | Refresh PHP static analysis baseline | `npm run phpstan:baseline` | Only after triaging `npm run phpstan` results. |
 | Stripe webhook listener | `npm run listen` | For local webhook forwarding. |
+| WP-CLI (wp-env) | `npm run wp -- <command>` | Runs WP-CLI commands inside the wp-env container. |
 
 ## Common Pitfalls
 
-- Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
+- Running PHP tests without a running environment: `npm run test:php` (legacy Docker) or `npm run test:php:wp-env` (wp-env) require their respective environments to be running.
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.

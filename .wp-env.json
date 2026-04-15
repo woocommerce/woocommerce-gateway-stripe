@@ -1,0 +1,37 @@
+{
+	"core": null,
+	"phpVersion": "8.0",
+	"plugins": [
+		"https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip",
+		"."
+	],
+	"themes": [
+		"https://downloads.wordpress.org/theme/storefront.latest-stable.zip"
+	],
+	"port": 8072,
+	"testsPort": 8091,
+	"config": {
+		"WP_DEBUG": true,
+		"WP_DEBUG_DISPLAY": true,
+		"WP_DEBUG_LOG": true,
+		"SCRIPT_DEBUG": true,
+		"WP_ENVIRONMENT_TYPE": "development",
+		"JETPACK_AUTOLOAD_DEV": true
+	},
+	"env": {
+		"tests": {
+			"phpVersion": "8.0",
+			"config": {
+				"WP_DEBUG": true,
+				"WP_DEBUG_LOG": true,
+				"WP_TESTS_DOMAIN": "http://localhost:8091",
+				"WP_TESTS_EMAIL": "admin@example.org",
+				"WP_TESTS_TITLE": "WooCommerce Stripe Test",
+				"WP_PHP_BINARY": "php"
+			}
+		}
+	},
+	"lifecycleScripts": {
+		"afterStart": "wp-env run cli -- wp option set woocommerce_store_address '60 29th Street' --quiet 2>/dev/null; wp-env run cli -- wp option set woocommerce_store_city 'San Francisco' --quiet 2>/dev/null; wp-env run cli -- wp option set woocommerce_default_country 'US:CA' --quiet 2>/dev/null; wp-env run cli -- wp option set woocommerce_store_postcode '94110' --quiet 2>/dev/null; wp-env run cli -- wp option set woocommerce_currency 'USD' --quiet 2>/dev/null; echo 'WooCommerce Stripe dev environment ready at http://localhost:8072'"
+	}
+}
