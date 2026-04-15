@@ -573,7 +573,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 				'is_admin'          => true,
-				'request_vars'      => [ 'get' => [ 'action' => 'edit', 'post' => '123' ], 'post' => [] ],
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'action' => 'edit',
+						'post'   => '123',
+					],
+					'post' => [],
+				],
 			],
 			'amazon pay included on HPOS order edit page'                         => [
 				'payment_methods'   => [
@@ -583,7 +590,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 				'is_admin'          => true,
-				'request_vars'      => [ 'get' => [ 'page' => 'wc-orders', 'action' => 'edit' ], 'post' => [] ],
+				'oc_enabled'        => false,
+				'request_vars'      => [
+					'get'  => [
+						'page'   => 'wc-orders',
+						'action' => 'edit',
+					],
+					'post' => [],
+				],
 			],
 			'card filtered out; amazon pay and link correctly included non-admin' => [
 				'payment_methods'   => [

@@ -647,7 +647,7 @@ class WC_Stripe {
 	 * @return string
 	 */
 	protected function get_request_var( string $key, int $input_type = INPUT_GET ): string {
-		return filter_input( $input_type, $key, FILTER_SANITIZE_SPECIAL_CHARS ) ?? '';
+		return (string) ( filter_input( $input_type, $key, FILTER_SANITIZE_SPECIAL_CHARS ) ?? '' );
 	}
 
 	/**
