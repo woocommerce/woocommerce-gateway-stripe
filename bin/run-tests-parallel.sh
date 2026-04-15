@@ -4,7 +4,7 @@ set -e
 
 echo "Installing the test environment..."
 
-docker compose exec -u www-data wordpress \
+docker compose exec -u www-data -e PARATEST=true wordpress \
 	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/bin/install-wp-tests.sh
 
 echo "Running the tests in parallel..."
@@ -28,6 +28,6 @@ fi
 
 docker compose exec -u www-data -e XDEBUG_MODE=$XDEBUG_MODE wordpress \
 	${PLUGIN_DIR}/vendor/bin/paratest \
-	--configuration ${PLUGIN_DIR}/phpunit.xml.dist \
+	--configuration ${PLUGIN_DIR}/phpunit-parallel.xml.dist \
 	$COVERAGE_FLAGS \
-	$*
+	"$@"

@@ -39,15 +39,15 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 */
 	public function load( string $suite_class_file ): ReflectionClass {
 		$suite_class_name = basename( $suite_class_file, '.php' );
-		$loaded_classes   = $this->loadFileIfNeeded( $suite_class_file, get_declared_classes() );
+		$loaded_classes   = $this->load_file_if_needed( $suite_class_file, get_declared_classes() );
 
-		$resolved = $this->resolveByName( $suite_class_name, $loaded_classes );
+		$resolved = $this->resolve_by_name( $suite_class_name, $loaded_classes );
 		if ( null !== $resolved ) {
 			$suite_class_name = $resolved;
 		}
 
 		if ( ! class_exists( $suite_class_name, false ) ) {
-			$ref_class = $this->resolveByFilePath( $suite_class_file );
+			$ref_class = $this->resolve_by_file_path( $suite_class_file );
 
 			if ( null === $ref_class ) {
 				throw new Exception(
@@ -68,7 +68,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 			throw new Exception( $e->getMessage(), (int) $e->getCode(), $e );
 		}
 
-		$this->validateResolvedClass( $class, $suite_class_name, $suite_class_file );
+		$this->validate_resolved_class( $class, $suite_class_name, $suite_class_file );
 
 		return $class;
 	}
@@ -81,7 +81,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 * @param string[] $previous_declared_classes Classes declared before the load.
 	 * @return string[] Newly declared classes, or all declared classes when none are new.
 	 */
-	private function loadFileIfNeeded( string $suite_class_file, array $previous_declared_classes ): array {
+	private function load_file_if_needed( string $suite_class_file, array $previous_declared_classes ): array {
 		$suite_class_name = basename( $suite_class_file, '.php' );
 
 		if ( class_exists( $suite_class_name, false ) ) {
@@ -104,7 +104,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 * @param string[] $loaded_classes   Classes to search against.
 	 * @return string|null Resolved fully-qualified class name, or null when not found.
 	 */
-	private function resolveByName( string $suite_class_name, array $loaded_classes ): ?string {
+	private function resolve_by_name( string $suite_class_name, array $loaded_classes ): ?string {
 		if ( class_exists( $suite_class_name, false ) ) {
 			return null;
 		}
@@ -128,7 +128,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 * @param string $suite_class_file Path to the test file.
 	 * @return ReflectionClass|null The matching class, or null when not found.
 	 */
-	private function resolveByFilePath( string $suite_class_file ): ?ReflectionClass {
+	private function resolve_by_file_path( string $suite_class_file ): ?ReflectionClass {
 		$real_path = realpath( $suite_class_file );
 
 		if ( false === $real_path ) {
@@ -162,7 +162,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 	 * @return void
 	 * @throws Exception When the class or its suite() method fails validation.
 	 */
-	private function validateResolvedClass( ReflectionClass $class, string $suite_class_name, string $suite_class_file ): void {
+	private function validate_resolved_class( ReflectionClass $class, string $suite_class_name, string $suite_class_file ): void {
 		if ( $class->isSubclassOf( TestCase::class ) ) {
 			if ( $class->isAbstract() ) {
 				throw new Exception(

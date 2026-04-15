@@ -57,6 +57,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::SCHEDULED_ACTION, [ $this->sut, 'sync_inventory' ] );
 		}
 
+		// Reset the static secret key cache to prevent leaking into subsequent tests.
+		WC_Stripe_API::set_secret_key( '' );
+
 		parent::tearDown();
 	}
 
@@ -383,6 +386,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function test_sync_inventory_clears_pending_on_success() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -430,6 +434,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function test_sync_inventory_retains_pending_on_failure() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
@@ -461,6 +466,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function test_full_flow_stock_change_to_upload() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		update_option( 'woocommerce_stripe_settings', [ 'secret_key' => 'sk_test_fake' ] );
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		$product_a = $this->create_simple_product_with_stock( 10 );
 		$product_b = $this->create_simple_product_with_stock( 0 );

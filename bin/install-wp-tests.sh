@@ -230,7 +230,9 @@ install_woocommerce() {
 
 install_wp
 install_db
-install_worker_dbs
+if [ "${PARATEST:-false}" = "true" ]; then
+	install_worker_dbs
+fi
 configure_wp
 install_test_suite
 install_woocommerce
