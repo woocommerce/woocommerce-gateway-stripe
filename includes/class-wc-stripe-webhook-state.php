@@ -364,4 +364,4 @@ class WC_Stripe_Webhook_State {
 			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
 		];
 	}
-};
+}
