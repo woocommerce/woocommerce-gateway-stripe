@@ -113,7 +113,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return void
 	 */
 	public function register_hooks(): void {
-		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] );
+		add_action( self::SCHEDULED_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		$inventory_tracker = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 		$inventory_tracker->register_hooks();
@@ -257,12 +257,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Generates product feed using ProductWalker.
 	 *
 	 * @since 10.5.0
-	 * @return void
+	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
-	public function sync_feed(): void {
+	public function sync_feed(): bool {
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
-			return;
+			return false;
 		}
 
 		// Check delivery setup before generating the feed.
@@ -270,7 +270,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		if ( ! $delivery->check_setup() ) {
 			WC_Stripe_Logger::error( 'Agentic Commerce: Sync skipped - Stripe API key not configured' );
-			return;
+			return false;
 		}
 
 		WC_Stripe_Logger::info( 'Agentic Commerce: Starting feed sync' );
@@ -303,7 +303,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
 					wp_delete_file( $file_path );
 				}
-				return;
+				return false;
 			}
 
 			$generation_time = microtime( true ) - $start_time;
@@ -354,6 +354,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'error'         => '',
 				]
 			);
+
+			return true;
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Agentic Commerce: Feed generation failed',
@@ -375,6 +377,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					'error'         => $e->getMessage(),
 				]
 			);
+
+			return false;
 		}
 	}
 

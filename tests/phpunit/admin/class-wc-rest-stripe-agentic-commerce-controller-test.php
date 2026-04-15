@@ -67,6 +67,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
+		delete_transient( 'wc_stripe_agentic_sync_lock' );
 		parent::tear_down();
 	}
 
@@ -636,7 +637,29 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		// Stub out the actual HTTP sync so the test does not hit Stripe.
+		// Enable the Agentic Commerce feature flag so sync_feed() does not bail early.
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
+		// Set a test secret key so check_setup() passes.
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Create a simple product so the walker finds at least one.
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		// Stub the Files API cURL upload (which bypasses pre_http_request).
+		$files_stub = function () {
+			return [ 'id' => 'file_stub' ];
+		};
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		// Stub the ImportSet creation (uses wp_remote_post).
 		$http_stub = function () {
 			return [
 				'response' => [
@@ -644,21 +667,58 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 					'message' => 'OK',
 				],
 				'headers'  => [],
-				'body'     => wp_json_encode( [ 'id' => 'file_stub' ] ),
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_stub',
+						'status' => 'pending',
+					]
+				),
 			];
 		};
-
 		add_filter( 'pre_http_request', $http_stub, 10, 3 );
 
 		try {
 			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
 			$response = rest_do_request( $request );
 		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			$product->delete( true );
 		}
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertTrue( $response->get_data()['success'] );
+	}
+
+	/**
+	 * POST /sync returns 500 when sync_feed() returns false.
+	 */
+	public function test_trigger_sync_returns_500_when_sync_fails(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
+		}
+
+		// Feature flag off means sync_feed() returns false.
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+
+		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 500, $response->get_status() );
+	}
+
+	/**
+	 * POST /sync returns 409 when a sync lock is active.
+	 */
+	public function test_trigger_sync_returns_409_when_locked(): void {
+		set_transient( 'wc_stripe_agentic_sync_lock', true, 5 * MINUTE_IN_SECONDS );
+
+		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 409, $response->get_status() );
+		$this->assertStringContainsString( 'already in progress', $response->get_data()['message'] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -860,5 +920,187 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function test_check_permission_returns_false_for_guest(): void {
 		wp_set_current_user( 0 );
 		$this->assertFalse( $this->controller->check_permission() );
+	}
+
+	// -------------------------------------------------------------------------
+	// Authorization — subscriber role
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Authenticated but unauthorized users (subscriber) get 403.
+	 *
+	 * @dataProvider unauthorized_route_provider
+	 */
+	public function test_restricted_routes_return_403_for_subscriber( string $method, string $route ): void {
+		$user_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $user_id );
+
+		$response = rest_do_request( new WP_REST_Request( $method, $route ) );
+
+		$this->assertSame( 403, $response->get_status() );
+	}
+
+	/**
+	 * Data provider for unauthorized route tests.
+	 *
+	 * @return array
+	 */
+	public static function unauthorized_route_provider(): array {
+		return [
+			'GET status' => [ 'GET', self::REST_BASE . '/status' ],
+			'POST sync'  => [ 'POST', self::REST_BASE . '/sync' ],
+		];
+	}
+
+	// -------------------------------------------------------------------------
+	// last_sync not clobbered by older pending entry refresh
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Refreshing an older pending entry does not overwrite last_sync if a newer entry already succeeded.
+	 */
+	public function test_get_status_refresh_does_not_clobber_last_sync(): void {
+		$history = [
+			[
+				'status'        => 'pending',
+				'timestamp'     => 1700000000,
+				'products'      => 5,
+				'import_set_id' => 'impset_pending1',
+				'file_id'       => 'file_1',
+				'error'         => '',
+			],
+			[
+				'status'        => 'succeeded',
+				'timestamp'     => 1700000100,
+				'products'      => 10,
+				'import_set_id' => 'impset_done',
+				'file_id'       => 'file_2',
+				'error'         => '',
+			],
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, end( $history ) );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_pending1' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_pending1',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		// The last_sync should still point to the newer succeeded entry, not the older refreshed one.
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertSame( 'impset_done', $last_sync['import_set_id'] );
+
+		$stored_last = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		$this->assertSame( 'impset_done', $stored_last['import_set_id'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// next_sync / reschedule contract
+	// -------------------------------------------------------------------------
+
+	/**
+	 * After a successful POST /sync, GET /status returns a non-null next_sync within the expected window.
+	 */
+	public function test_trigger_sync_reschedules_next_sync(): void {
+		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
+			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
+		}
+
+		if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available' );
+		}
+
+		// Enable the Agentic Commerce feature flag.
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
+		// Set a test secret key so check_setup() passes.
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Create a simple product so the walker finds at least one.
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+		$product->save();
+
+		// Stub the Files API cURL upload.
+		$files_stub = function () {
+			return [ 'id' => 'file_stub' ];
+		};
+		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
+
+		// Stub the ImportSet creation.
+		$http_stub = function () {
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'     => 'impset_stub',
+						'status' => 'pending',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$before   = time();
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( 200, $response->get_status() );
+
+			// Now check that next_sync is set.
+			$status_request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$status_response = rest_do_request( $status_request );
+			$next_sync       = $status_response->get_data()['next_sync'];
+
+			$this->assertNotNull( $next_sync, 'next_sync should be non-null after a successful sync' );
+			$this->assertGreaterThan( $before, $next_sync );
+			$this->assertLessThanOrEqual(
+				$before + WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL + 5,
+				$next_sync
+			);
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			$product->delete( true );
+
+			if ( function_exists( 'as_unschedule_all_actions' ) ) {
+				as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
+			}
+		}
 	}
 }
