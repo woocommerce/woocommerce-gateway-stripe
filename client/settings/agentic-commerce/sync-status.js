@@ -89,6 +89,16 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
+	queued: {
+		label: __( 'Queued', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
+	validating: {
+		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
 	failed: {
 		label: __( 'Failed', 'woocommerce-gateway-stripe' ),
 		className: 'error',
@@ -150,15 +160,18 @@ const AgenticCommerceSyncStatus = () => {
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSyncing, setIsSyncing ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
+	const [ hasError, setHasError ] = useState( false );
 
 	const fetchStatus = useCallback( async () => {
 		setIsLoading( true );
+		setHasError( false );
 		try {
 			const result = await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/status',
 			} );
 			setData( result );
 		} catch ( err ) {
+			setHasError( true );
 			setNotice( {
 				status: 'error',
 				message:
@@ -275,7 +288,7 @@ const AgenticCommerceSyncStatus = () => {
 				{ isLoading && (
 					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
 				) }
-				{ ! isLoading && ! lastSync && (
+				{ ! isLoading && ! hasError && ! lastSync && (
 					<p>
 						{ __(
 							'No syncs yet. Feed will sync automatically every 15 minutes.',
@@ -401,7 +414,7 @@ const AgenticCommerceSyncStatus = () => {
 				{ isLoading && (
 					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
 				) }
-				{ ! isLoading && ! history?.length && (
+				{ ! isLoading && ! hasError && ! history?.length && (
 					<p>
 						{ __(
 							'No sync history available.',
