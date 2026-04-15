@@ -427,10 +427,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 * @dataProvider provide_test_add_gateways
 	 */
-	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, string $admin_screen = 'post.php' ): void {
+	public function test_add_gateways( array $payment_methods, array $expected_gateways, bool $is_admin = false, bool $oc_enabled = false, array $request_vars = [] ): void {
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_main_stripe_gateway' ] )
+			->onlyMethods( [ 'get_main_stripe_gateway', 'get_request_var' ] )
 			->getMock();
 
 		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -445,6 +445,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
 
+		$wc_stripe->method( 'get_request_var' )
+			->willReturnCallback(
+				function ( string $key, int $input_type = INPUT_GET ) use ( $request_vars ) {
+					$type = INPUT_POST === $input_type ? 'post' : 'get';
+					return $request_vars[ $type ][ $key ] ?? '';
+				}
+			);
+
 		$initial_current_screen = null;
 		$reset_current_screen   = false;
 
@@ -453,7 +461,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$reset_current_screen   = true;
 
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$GLOBALS['current_screen'] = \WP_Screen::get( $admin_screen );
+			$GLOBALS['current_screen'] = \WP_Screen::get( 'post.php' );
 		}
 
 		$gateways = $wc_stripe->add_gateways( [] );
@@ -563,11 +571,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'klarna'            => $klarna_gateway,
 					'amazon_pay'        => $amazon_pay_gateway,
 				],
-				// On the order edit page the admin filter is skipped entirely, so Amazon Pay is present.
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 				'is_admin'          => true,
-				'oc_enabled'        => false,
-				'admin_screen'      => 'shop_order',
+				'request_vars'      => [ 'get' => [ 'action' => 'edit', 'post' => '123' ], 'post' => [] ],
 			],
 			'amazon pay included on HPOS order edit page'                         => [
 				'payment_methods'   => [
@@ -577,8 +583,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'expected_gateways' => [ $afterpay_clearpay_gateway, $klarna_gateway, $amazon_pay_gateway ],
 				'is_admin'          => true,
-				'oc_enabled'        => false,
-				'admin_screen'      => 'woocommerce_page_wc-orders',
+				'request_vars'      => [ 'get' => [ 'page' => 'wc-orders', 'action' => 'edit' ], 'post' => [] ],
 			],
 			'card filtered out; amazon pay and link correctly included non-admin' => [
 				'payment_methods'   => [

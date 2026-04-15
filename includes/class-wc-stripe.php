@@ -619,27 +619,35 @@ class WC_Stripe {
 	 */
 	private function is_order_management_context(): bool {
 		// Refund AJAX action — fired when the merchant clicks "Refund via Gateway".
-		if ( 'woocommerce_refund_line_items' === filter_input( INPUT_POST, 'action', FILTER_SANITIZE_SPECIAL_CHARS ) ) {
+		if ( 'woocommerce_refund_line_items' === $this->get_request_var( 'action', INPUT_POST ) ) {
 			return true;
 		}
 
-		$page   = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
-		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS );
+		$page   = $this->get_request_var( 'page' );
+		$action = $this->get_request_var( 'action' );
 
 		// HPOS order edit screen: wp-admin/admin.php?page=wc-orders&action=edit
 		if ( 'wc-orders' === $page && 'edit' === $action ) {
 			return true;
 		}
 
-		// Legacy CPT order edit screen: wp-admin/post.php?post=123&action=edit
-		if ( 'edit' === $action ) {
-			$post_id = absint( filter_input( INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT ) );
-			if ( $post_id && 'shop_order' === get_post_type( $post_id ) ) {
-				return true;
-			}
-		}
+		// Legacy CPT order edit screen: wp-admin/post.php?post=<id>&action=edit
+		return 'edit' === $action && (bool) absint( $this->get_request_var( 'post' ) );
+	}
 
-		return false;
+	/**
+	 * Returns a sanitized value from the request input.
+	 *
+	 * Extracted as a protected method so tests can mock it without depending
+	 * on PHP's input stream, following the same convention as get_gateway() in
+	 * WC_Stripe_Intent_Controller.
+	 *
+	 * @param string $key        Request parameter key.
+	 * @param int    $input_type INPUT_GET or INPUT_POST.
+	 * @return string
+	 */
+	protected function get_request_var( string $key, int $input_type = INPUT_GET ): string {
+		return filter_input( $input_type, $key, FILTER_SANITIZE_SPECIAL_CHARS ) ?? '';
 	}
 
 	/**
