@@ -9903,7 +9903,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 12
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
@@ -9925,7 +9925,7 @@ parameters:
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
-			message: '#^Action callback returns array but should not return anything\.$#'
+			message: '#^Action callback returns array\<WC_Payment_Token\> but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
@@ -9963,7 +9963,7 @@ parameters:
 		-
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
-			count: 2
+			count: 3
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
