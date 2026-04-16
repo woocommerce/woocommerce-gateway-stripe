@@ -146,6 +146,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
+* Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
+* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Dev - Add WordPress Playground preview workflow for PRs to enable one-click browser testing
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
@@ -169,6 +172,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename and move the new Checkout Sessions ajax handler class to be autoloaded
 * Add - Process payment with adaptive pricing in the classic checkout
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
+* Dev - Update WC_Stripe_Currency_Code constants class with zero-decimal and three-decimal currency lists and replace legacy no_decimal_currencies() usage
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
 * Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
@@ -176,6 +180,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Support express checkout for free trial subscription products that require shipping
 * Fix - Normalize express checkout button spacing on the block cart page in Safari
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
+* Dev - Add product deletion tracking to Agentic Commerce inventory sync: product deletes and trash events are batched and uploaded to Stripe as a product_catalog_feed with delete:true
 * Dev - Rename PHPUnit test files and directories to match the WordPress kebab-case naming convention used in includes/
 * Add - Process payment with adaptive pricing in the blocks checkout
 * Update - Express Checkout button logging will only occur when verbose debug mode is enabled
@@ -215,5 +220,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only collect and send payer phone in Checkout Sessions when the WooCommerce phone field is required
 * Fix - Restrict Checkout Session saved payment method options to logged-in customers so guest checkout session creation succeeds
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
+* Update - Allow Adaptive Pricing for merchant accounts based in EEA countries                                                                                                                               
+* Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
+* Fix - Confirm checkout session with user data in classic checkout for guest user
+* Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Dev - Add automatic changelog entry suggestions to bin/changelog.js
+* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

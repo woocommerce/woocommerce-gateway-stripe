@@ -205,6 +205,8 @@ class WC_Stripe {
 		new WC_Stripe_Order_Handler();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
+		new WC_Stripe_Payment_Tokens();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
@@ -250,7 +252,9 @@ class WC_Stripe {
 			}
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
-			new WC_Stripe_Payment_Gateways_Controller();
+			new WC_Stripe_Payment_Gateways_Controller( $this->account );
+
+			new WC_Stripe_Plugins_Page_Controller( $this->account );
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
@@ -857,6 +861,9 @@ class WC_Stripe {
 
 		$oc_setting_toggle_controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $this->get_main_stripe_gateway() );
 		$oc_setting_toggle_controller->register_routes();
+
+		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
+		$exit_survey_controller->register_routes();
 	}
 
 	/**
