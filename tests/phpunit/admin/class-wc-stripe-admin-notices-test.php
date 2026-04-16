@@ -288,15 +288,16 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings' => [
+					'woocommerce_stripe_settings'    => [
 						'enabled'         => 'yes',
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
 				],
 				'is oauth connected' => true,
 				[],
@@ -308,12 +309,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings' => [
+					'woocommerce_stripe_settings'    => [
 						'enabled' => 'yes',
 					],
-					'wc_stripe_show_style_notice' => 'no',
-					'wc_stripe_show_sca_notice'   => 'no',
-					'home'                        => 'https://...',
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
 				],
 				'is oauth connected' => true,
 				[
@@ -575,7 +577,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return void
 	 */
-	public function test_currency_notice_is_shown_for_upe_methods(): void {
+	public function test_currency_notice_is_shown_for_upe_methods() {
+		add_filter(
+			'pre_option__wcstripe_feature_upe',
+			function () {
+				return 'yes';
+			}
+		);
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
 		$this->mock_payment_method_configurations(

@@ -11,6 +11,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	class WC_Stripe_Connect {
 
 		/**
+		 * The option name for the Stripe gateway settings.
+		 *
+		 * @deprecated 8.7.0
+		 */
+		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+
+		/**
 		 * Stripe connect api.
 		 *
 		 * @var object $api

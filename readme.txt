@@ -147,7 +147,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.6.0 - xxxx-xx-xx =
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
-* Update - Remove deprecated code up to version 10.1.0
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
