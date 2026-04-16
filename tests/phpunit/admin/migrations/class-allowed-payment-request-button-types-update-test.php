@@ -30,12 +30,12 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 		}
 
 		$this->gateway_mock = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-								   ->disableOriginalConstructor()
-								   ->getMock();
+									->disableOriginalConstructor()
+									->getMock();
 		$this->migration    = $this->getMockBuilder( Allowed_Payment_Request_Button_Types_Update::class )
-								   ->disableOriginalConstructor()
-								   ->setMethods( [ 'get_gateway' ] )
-								   ->getMock();
+									->disableOriginalConstructor()
+									->setMethods( [ 'get_gateway' ] )
+									->getMock();
 	}
 
 	/**
@@ -49,8 +49,8 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 
 		$this->setup_environment( $old_settings );
 		$this->gateway_mock->expects( $this->once() )
-						   ->method( 'update_option' )
-						   ->with( 'payment_request_button_type', $expected_mapped_value );
+							->method( 'update_option' )
+							->with( 'payment_request_button_type', $expected_mapped_value );
 
 		$this->migration->maybe_migrate();
 	}
@@ -61,7 +61,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	public function test_it_does_not_map_values_other_than_deprecated( $button_type ) {
 		$this->setup_environment( [ 'payment_request_button_type' => $button_type ] );
 		$this->gateway_mock->expects( $this->never() )
-						   ->method( 'update_option' );
+							->method( 'update_option' );
 
 		$this->migration->maybe_migrate();
 	}

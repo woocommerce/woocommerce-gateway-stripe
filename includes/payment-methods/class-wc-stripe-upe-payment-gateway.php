@@ -4407,6 +4407,65 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns a user's saved tokens for this gateway.
+	 *
+	 * @since 10.6.0
+	 * @return array
+	 */
+	public function get_tokens() {
+		$tokens = parent::get_tokens();
+
+		if ( ! is_user_logged_in() ) {
+			return $tokens;
+		}
+
+		if ( ! $this->should_use_optimized_checkout_payment_method_layout() ) {
+			return $tokens;
+		}
+
+		// Track gateway IDs already represented in $tokens to avoid fetching the same sub-gateway twice.
+		$fetched_gateway_ids = [];
+		foreach ( $tokens as $token ) {
+			$fetched_gateway_ids[ $token->get_gateway_id() ] = true;
+		}
+
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $stripe_id ) {
+			// Not a reusable payment method, skip.
+			if ( ! array_key_exists( $stripe_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD ) ) {
+				continue;
+			}
+
+			// Skip if not available at checkout (e.g. currency not supported for this method).
+			if ( ! $this->is_enabled_at_checkout( $stripe_id ) ) {
+				continue;
+			}
+
+			$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
+
+			// Already fetched (covers the main gateway and any sub-gateway fetched in a prior iteration).
+			if ( isset( $fetched_gateway_ids[ $gateway_id ] ) ) {
+				continue;
+			}
+
+			$fetched_gateway_ids[ $gateway_id ] = true;
+			$method_tokens                      = WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id );
+			$tokens                             = array_merge( $tokens, $method_tokens );
+		}
+
+		// Deduplicate by WooCommerce token ID (array_unique is unreliable for WC_Payment_Token objects).
+		$seen   = [];
+		$unique = [];
+		foreach ( $tokens as $token ) {
+			$token_id = $token->get_id();
+			if ( ! isset( $seen[ $token_id ] ) ) {
+				$seen[ $token_id ]   = true;
+				$unique[ $token_id ] = $token;
+			}
+		}
+		return $unique;
+	}
+
+	/**
 	 * Ensures validated field values.
 	 *
 	 * @param string       $field_key the form field key.
