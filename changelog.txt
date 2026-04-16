@@ -1,7 +1,6 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.6.0
-* Update - Remove deprecated code up to version 10.1.0
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
@@ -29,7 +28,7 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Add WC_Stripe_Country_Code constants class and replace hardcoded country code strings
 * Dev - Update WC_Stripe_Currency_Code constants class with zero-decimal and three-decimal currency lists and replace legacy no_decimal_currencies() usage
 * Fix - Resolve intermittent "Missing required customer field: address->line1" error during checkout with auto-account creation
-* Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
+* Update - Add deprecation notices to methods and properties that were deprecated without them in older versions
 * Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
 * Fix - Normalize express checkout button spacing on the block cart page in Safari

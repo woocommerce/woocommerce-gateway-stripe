@@ -165,6 +165,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -4007,6 +4008,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
 		$order = WC_Helper_Order::create_order();
+		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
 
 		// GOOGLE PAY
 		$mock_ece_payment_method = (object) [
@@ -4039,6 +4041,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// No wallet type should default to Credit / Debit Card.
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// Unset the feature flag.
+		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
 
 	/**
