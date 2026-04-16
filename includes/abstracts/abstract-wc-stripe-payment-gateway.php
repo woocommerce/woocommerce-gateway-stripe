@@ -1308,10 +1308,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 
 		} elseif ( ! empty( $response->id ) ) {
-			$formatted_amount = wc_price( $response->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-				$formatted_amount = wc_price( $response->amount );
-			}
+			$formatted_amount = wc_price(
+				WC_Stripe_Helper::convert_from_stripe_amount( (int) $response->amount, $order->get_currency() ),
+				[ 'currency' => $order->get_currency() ]
+			);
 
 			// If charge wasn't captured, skip creating a refund and cancel order.
 			if ( ! $captured ) {

@@ -38,8 +38,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
-							 ->disableOriginalConstructor()
-							 ->getMock();
+							->disableOriginalConstructor()
+							->getMock();
 
 		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
 		$this->mock_payment_method_configurations(
