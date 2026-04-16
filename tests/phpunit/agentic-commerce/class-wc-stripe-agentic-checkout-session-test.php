@@ -658,4 +658,30 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 		$this->assertNull( $address->get_line1() );
 		$this->assertNull( $address->get_line2() );
 	}
+
+	/**
+	 * The constructor accepts a stdClass payload (e.g. from webhook json_decode).
+	 */
+	public function test_constructor_accepts_stdclass() {
+		$session = new WC_Stripe_Agentic_Checkout_Session( (object) [ 'id' => 'cs_test_stdclass' ] );
+		$this->assertSame( 'cs_test_stdclass', $session->get_id() );
+	}
+
+	/**
+	 * The constructor accepts a Stripe\StripeObject (e.g. from the SDK).
+	 */
+	public function test_constructor_accepts_stripe_object() {
+		$session = new WC_Stripe_Agentic_Checkout_Session(
+			\Stripe\Checkout\Session::constructFrom( [ 'id' => 'cs_test_sdk' ] )
+		);
+		$this->assertSame( 'cs_test_sdk', $session->get_id() );
+	}
+
+	/**
+	 * The constructor fails fast when given an unrelated object type.
+	 */
+	public function test_constructor_rejects_other_object_types() {
+		$this->expectException( \InvalidArgumentException::class );
+		new WC_Stripe_Agentic_Checkout_Session( new \ArrayObject( [ 'id' => 'cs_bad' ] ) );
+	}
 }

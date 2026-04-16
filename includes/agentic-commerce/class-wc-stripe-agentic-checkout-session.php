@@ -35,8 +35,18 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 *
 	 * @since 10.6.0
 	 * @param \Stripe\Checkout\Session|stdClass $session The Stripe checkout session object.
+	 * @throws InvalidArgumentException When $session is not a stdClass or \Stripe\StripeObject instance.
 	 */
 	public function __construct( object $session ) {
+		// Broad `object` signature keeps PHP 7.4 compatibility, but we validate shape at
+		// construction to fail fast on malformed payloads rather than surface null reads
+		// across the getters downstream.
+		if ( ! $session instanceof stdClass && ! $session instanceof \Stripe\StripeObject ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Expected stdClass or \Stripe\StripeObject, got %s.', get_class( $session ) )
+			);
+		}
+
 		$this->session = $session;
 	}
 

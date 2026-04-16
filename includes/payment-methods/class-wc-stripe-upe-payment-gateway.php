@@ -4448,7 +4448,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$checkout_session = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( ! $checkout_session ) {
 			try {
-				$checkout_session = WC_Stripe_API::retrieve_checkout_session( $checkout_session_id );
+				$sdk_session = WC_Stripe_API::retrieve_checkout_session( $checkout_session_id );
 			} catch ( WC_Stripe_Exception $e ) {
 				WC_Stripe_Logger::error(
 					'Exception fetching checkout session for order.',
@@ -4459,6 +4459,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					]
 				);
 
+				return null;
+			}
+
+			// Sanitize the SDK object before caching: \Stripe\StripeObject carries a protected
+			// `_opts` property (RequestOptions) that includes the raw API key, which would be
+			// persisted by update_option()'s serialization. Convert to a plain stdClass so only
+			// public JSON-visible data is stored.
+			$json             = wp_json_encode( $sdk_session );
+			$checkout_session = false === $json ? null : json_decode( $json );
+			if ( null === $checkout_session ) {
 				return null;
 			}
 

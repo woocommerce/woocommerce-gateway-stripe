@@ -19,7 +19,7 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		// Store original and set a test secret key so SDK methods don't fail.
+		// Set a test secret key so SDK methods don't fail.
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -29,14 +29,18 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 			]
 		);
 		WC_Stripe_API::set_secret_key( 'sk_test_mock_key' );
+
+		// Ensure backoff counter from other test suites doesn't leak into these tests.
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	/**
 	 * Tear down test fixtures.
 	 */
 	public function tear_down(): void {
-		// Clear any injected mock SDK.
+		// Clear any injected mock SDK and reset backoff state.
 		WC_Stripe_API::set_sdk_for_testing( null );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		parent::tear_down();
 	}
 
@@ -241,5 +245,117 @@ class WC_Stripe_API_SDK_Test extends WP_UnitTestCase {
 			'cs_test_expired',
 			[ 'metadata' => [ 'order_id' => '456' ] ]
 		);
+	}
+
+	/**
+	 * The wc_stripe_request_body filter runs on create_checkout_session.
+	 */
+	public function test_create_checkout_session_applies_request_body_filter(): void {
+		$captured_params = null;
+		$session_service = $this->getMockBuilder( \Stripe\Service\Checkout\SessionService::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'create' ] )
+			->getMock();
+		$session_service->method( 'create' )->willReturnCallback(
+			// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+			function ( $params, $opts ) use ( &$captured_params ) {
+				$captured_params = $params;
+				return WC_Stripe_SDK_Test_Helper::create_checkout_session_object( [ 'id' => 'cs_test_filter' ] );
+			}
+		);
+		$checkout           = new stdClass();
+		$checkout->sessions = $session_service;
+		$mock_sdk           = $this->getMockBuilder( \Stripe\StripeClient::class )->disableOriginalConstructor()->getMock();
+		$mock_sdk->checkout = $checkout;
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		$callback = function ( $body, $api ) {
+			$body['metadata']['injected_by_filter'] = 'yes';
+			return $body;
+		};
+		add_filter( 'wc_stripe_request_body', $callback, 10, 2 );
+		try {
+			WC_Stripe_API::create_checkout_session(
+				[
+					'mode'     => 'payment',
+					'metadata' => [],
+				]
+			);
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $callback, 10 );
+		}
+
+		$this->assertSame( 'yes', $captured_params['metadata']['injected_by_filter'] ?? null );
+	}
+
+	/**
+	 * retrieve_checkout_session throws immediately when the backoff threshold is reached.
+	 */
+	public function test_retrieve_checkout_session_throws_when_backoff_active(): void {
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY,
+			10,
+			HOUR_IN_SECONDS
+		);
+
+		$this->expectException( WC_Stripe_Exception::class );
+		try {
+			WC_Stripe_API::retrieve_checkout_session( 'cs_should_not_be_called' );
+		} finally {
+			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		}
+	}
+
+	/**
+	 * A successful retrieve clears any lingering invalid-API-key counter.
+	 */
+	public function test_retrieve_checkout_session_clears_backoff_on_success(): void {
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY,
+			2,
+			HOUR_IN_SECONDS
+		);
+
+		$mock_sdk = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'retrieve_response' => WC_Stripe_SDK_Test_Helper::create_checkout_session_object( [ 'id' => 'cs_ok' ] ) ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		WC_Stripe_API::retrieve_checkout_session( 'cs_ok' );
+
+		$this->assertNull(
+			WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY )
+		);
+	}
+
+	/**
+	 * A 401 from retrieve increments the invalid-API-key counter.
+	 */
+	public function test_retrieve_checkout_session_increments_counter_on_auth_error(): void {
+		$auth_error = \Stripe\Exception\AuthenticationException::factory(
+			'Invalid API Key',
+			401,
+			null,
+			null,
+			null,
+			'invalid_api_key'
+		);
+		$mock_sdk   = WC_Stripe_SDK_Test_Helper::create_mock_sdk(
+			$this,
+			[ 'retrieve_exception' => $auth_error ]
+		);
+		WC_Stripe_API::set_sdk_for_testing( $mock_sdk );
+
+		try {
+			WC_Stripe_API::retrieve_checkout_session( 'cs_test_bad_key' );
+			$this->fail( 'Expected WC_Stripe_Exception' );
+		} catch ( WC_Stripe_Exception $e ) {
+			$this->assertSame(
+				1,
+				(int) WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY )
+			);
+		}
 	}
 }

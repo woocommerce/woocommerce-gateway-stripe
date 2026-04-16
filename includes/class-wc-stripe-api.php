@@ -801,6 +801,9 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception On API error.
 	 */
 	public static function create_checkout_session( array $params ): \Stripe\Checkout\Session {
+		$params = self::apply_checkout_session_body_filters( $params );
+		$opts   = self::build_checkout_session_request_options( 'POST', $params );
+
 		try {
 			WC_Stripe_Logger::debug(
 				'Stripe SDK request: create checkout session',
@@ -810,7 +813,7 @@ class WC_Stripe_API {
 				]
 			);
 
-			$session = self::get_sdk()->checkout->sessions->create( $params );
+			$session = self::get_sdk()->checkout->sessions->create( $params, $opts );
 
 			WC_Stripe_Logger::debug(
 				'Stripe SDK response: create checkout session',
@@ -822,14 +825,7 @@ class WC_Stripe_API {
 
 			return $session;
 		} catch ( \Stripe\Exception\ApiErrorException $e ) {
-			WC_Stripe_Logger::error(
-				'Stripe SDK error: create checkout session',
-				[
-					'stripe_api_key' => self::get_masked_secret_key(),
-					'error_message'  => $e->getMessage(),
-				]
-			);
-			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+			self::handle_checkout_session_api_error( $e, 'create checkout session' );
 		}
 	}
 
@@ -843,6 +839,10 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception On API error.
 	 */
 	public static function retrieve_checkout_session( string $session_id, array $params = [], array $opts = [] ): \Stripe\Checkout\Session {
+		self::throw_if_invalid_api_key_backoff_active();
+
+		$opts = self::build_checkout_session_request_options( 'GET', [], $opts );
+
 		try {
 			WC_Stripe_Logger::debug(
 				'Stripe SDK request: retrieve checkout session',
@@ -856,6 +856,8 @@ class WC_Stripe_API {
 
 			$session = self::get_sdk()->checkout->sessions->retrieve( $session_id, $params, $opts );
 
+			self::clear_invalid_api_key_backoff();
+
 			WC_Stripe_Logger::debug(
 				'Stripe SDK response: retrieve checkout session',
 				[
@@ -865,16 +867,11 @@ class WC_Stripe_API {
 			);
 
 			return $session;
+		} catch ( \Stripe\Exception\AuthenticationException $e ) {
+			self::record_invalid_api_key_error();
+			self::handle_checkout_session_api_error( $e, 'retrieve checkout session', [ 'session_id' => $session_id ] );
 		} catch ( \Stripe\Exception\ApiErrorException $e ) {
-			WC_Stripe_Logger::error(
-				'Stripe SDK error: retrieve checkout session',
-				[
-					'stripe_api_key' => self::get_masked_secret_key(),
-					'session_id'     => $session_id,
-					'error_message'  => $e->getMessage(),
-				]
-			);
-			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+			self::handle_checkout_session_api_error( $e, 'retrieve checkout session', [ 'session_id' => $session_id ] );
 		}
 	}
 
@@ -887,6 +884,9 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception On API error.
 	 */
 	public static function update_checkout_session( string $session_id, array $params ): \Stripe\Checkout\Session {
+		$params = self::apply_checkout_session_body_filters( $params );
+		$opts   = self::build_checkout_session_request_options( 'POST', $params );
+
 		try {
 			WC_Stripe_Logger::debug(
 				'Stripe SDK request: update checkout session',
@@ -897,7 +897,7 @@ class WC_Stripe_API {
 				]
 			);
 
-			$session = self::get_sdk()->checkout->sessions->update( $session_id, $params );
+			$session = self::get_sdk()->checkout->sessions->update( $session_id, $params, $opts );
 
 			WC_Stripe_Logger::debug(
 				'Stripe SDK response: update checkout session',
@@ -909,15 +909,146 @@ class WC_Stripe_API {
 
 			return $session;
 		} catch ( \Stripe\Exception\ApiErrorException $e ) {
-			WC_Stripe_Logger::error(
-				'Stripe SDK error: update checkout session',
+			self::handle_checkout_session_api_error( $e, 'update checkout session', [ 'session_id' => $session_id ] );
+		}
+	}
+
+	/**
+	 * Applies the wc_stripe_request_body filter (and its deprecated predecessor) to the
+	 * given params so SDK-based checkout session calls preserve the same extension surface
+	 * as the legacy request() path.
+	 *
+	 * @param array $params The request params.
+	 * @return array The filtered params.
+	 */
+	private static function apply_checkout_session_body_filters( array $params ): array {
+		$params = apply_filters_deprecated(
+			'woocommerce_stripe_request_body',
+			[ $params, 'checkout/sessions' ],
+			'9.7.0',
+			'wc_stripe_request_body',
+			'The woocommerce_stripe_request_body filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_body instead.'
+		);
+
+		return apply_filters( 'wc_stripe_request_body', $params, 'checkout/sessions' );
+	}
+
+	/**
+	 * Builds SDK request options for checkout session calls, preserving the
+	 * `wc_stripe_idempotency_key` and `wc_stripe_request_headers` extension filters.
+	 *
+	 * Reserved headers owned by the SDK (Authorization, Stripe-Version) are stripped
+	 * before being forwarded so extensions cannot conflict with the client's own auth.
+	 *
+	 * @param string $method     HTTP method (for idempotency key generation).
+	 * @param array  $params     Request params (passed to the idempotency filter).
+	 * @param array  $extra_opts Caller-supplied SDK opts to merge into (e.g. stripe_version).
+	 * @return array The SDK request options.
+	 */
+	private static function build_checkout_session_request_options( string $method, array $params, array $extra_opts = [] ): array {
+		$opts = $extra_opts;
+
+		$idempotency_key = apply_filters(
+			'wc_stripe_idempotency_key',
+			self::get_idempotency_key( 'checkout/sessions', $method, $params ),
+			$params
+		);
+		if ( $idempotency_key && ! isset( $opts['idempotency_key'] ) ) {
+			$opts['idempotency_key'] = $idempotency_key;
+		}
+
+		$reserved_headers = [
+			'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Version' => self::STRIPE_API_VERSION,
+		];
+
+		$filtered_headers = apply_filters_deprecated(
+			'woocommerce_stripe_request_headers',
+			[ $reserved_headers ],
+			'9.7.0',
+			'wc_stripe_request_headers',
+			'The woocommerce_stripe_request_headers filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_headers instead.'
+		);
+		$filtered_headers = apply_filters( 'wc_stripe_request_headers', $filtered_headers );
+
+		$custom_headers = is_array( $filtered_headers ) ? array_diff_key( $filtered_headers, $reserved_headers ) : [];
+		if ( ! empty( $custom_headers ) ) {
+			$opts['headers'] = isset( $opts['headers'] ) && is_array( $opts['headers'] )
+				? array_merge( $custom_headers, $opts['headers'] )
+				: $custom_headers;
+		}
+
+		return $opts;
+	}
+
+	/**
+	 * Throws a WC_Stripe_Exception when the invalid-API-key backoff threshold is active,
+	 * mirroring the behavior of retrieve() on the legacy path.
+	 *
+	 * @throws WC_Stripe_Exception When the threshold has been exceeded.
+	 */
+	private static function throw_if_invalid_api_key_backoff_active(): void {
+		$count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		if ( ! empty( $count ) && self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD <= $count ) {
+			throw new WC_Stripe_Exception(
+				'Invalid API keys request rate limit exceeded',
+				__( 'Stripe API requests are temporarily paused due to invalid API keys. Please update your keys and try again.', 'woocommerce-gateway-stripe' )
+			);
+		}
+	}
+
+	/**
+	 * Clears the invalid-API-key backoff counter after a successful request.
+	 */
+	private static function clear_invalid_api_key_backoff(): void {
+		if ( null !== WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY ) ) {
+			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		}
+	}
+
+	/**
+	 * Logs and rethrows an SDK API error as a WC_Stripe_Exception. Never returns.
+	 *
+	 * @param \Stripe\Exception\ApiErrorException $e       The SDK exception.
+	 * @param string                              $label   Human-readable operation label for logs.
+	 * @param array                               $context Extra log context (e.g. session_id).
+	 * @throws WC_Stripe_Exception Always.
+	 *
+	 * @phpstan-return never
+	 */
+	private static function handle_checkout_session_api_error( \Stripe\Exception\ApiErrorException $e, string $label, array $context = [] ): void {
+		WC_Stripe_Logger::error(
+			'Stripe SDK error: ' . $label,
+			array_merge(
 				[
 					'stripe_api_key' => self::get_masked_secret_key(),
-					'session_id'     => $session_id,
 					'error_message'  => $e->getMessage(),
+				],
+				$context
+			)
+		);
+
+		throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+	}
+
+	/**
+	 * Increments the invalid-API-key counter and invalidates the account cache once the
+	 * threshold is reached, mirroring the 401 handling in retrieve() on the legacy path.
+	 */
+	private static function record_invalid_api_key_error(): void {
+		$count = (int) WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY ) + 1;
+		WC_Stripe_Database_Cache::set( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $count, self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT );
+
+		if ( $count >= self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD ) {
+			WC_Stripe_Logger::error(
+				'Invalid API keys request rate limit exceeded',
+				[
+					'stripe_api_key' => self::get_masked_secret_key(),
+					'count'          => $count,
+					'next_retry'     => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
 				]
 			);
-			throw new WC_Stripe_Exception( $e->getMessage(), $e->getMessage() );
+			WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
 		}
 	}
 }
