@@ -56,12 +56,14 @@ const DetailsTable = styled.table`
 const HistoryTable = styled.table`
 	width: 100%;
 	border-collapse: collapse;
+	table-layout: fixed;
 
 	th,
 	td {
 		text-align: left;
 		padding: 8px;
 		border-bottom: 1px solid #f0f0f0;
+		overflow: hidden;
 	}
 
 	th {
@@ -75,6 +77,45 @@ const HistoryTable = styled.table`
 
 	code {
 		font-size: 11px;
+	}
+
+	.col-timestamp {
+		width: 170px;
+		white-space: nowrap;
+	}
+
+	.col-products {
+		width: 90px;
+		text-align: center;
+		white-space: nowrap;
+	}
+
+	.col-status {
+		width: 160px;
+		white-space: nowrap;
+	}
+
+	.col-import-id {
+		width: auto;
+	}
+
+	.col-import-id code {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+
+	.col-import-id .id-start {
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.col-import-id .id-end {
+		flex: 0 0 auto;
+		white-space: nowrap;
 	}
 `;
 
@@ -412,25 +453,25 @@ const AgenticCommerceSyncStatus = () => {
 					<HistoryTable>
 						<thead>
 							<tr>
-								<th>
+								<th className="col-timestamp">
 									{ __(
 										'Timestamp',
 										'woocommerce-gateway-stripe'
 									) }
 								</th>
-								<th>
+								<th className="col-products">
 									{ __(
 										'Products',
 										'woocommerce-gateway-stripe'
 									) }
 								</th>
-								<th>
+								<th className="col-status">
 									{ __(
 										'Status',
 										'woocommerce-gateway-stripe'
 									) }
 								</th>
-								<th>
+								<th className="col-import-id">
 									{ __(
 										'Import ID',
 										'woocommerce-gateway-stripe'
@@ -441,7 +482,7 @@ const AgenticCommerceSyncStatus = () => {
 						<tbody>
 							{ history.map( ( entry, i ) => (
 								<tr key={ i }>
-									<td>
+									<td className="col-timestamp">
 										{ entry.timestamp
 											? new Date(
 													entry.timestamp * 1000
@@ -454,12 +495,12 @@ const AgenticCommerceSyncStatus = () => {
 											  } )
 											: '—' }
 									</td>
-									<td>
+									<td className="col-products">
 										{ entry.products !== null
 											? entry.products.toLocaleString()
 											: '—' }
 									</td>
-									<td>
+									<td className="col-status">
 										<SyncStatusBadge
 											status={ entry.status }
 										/>
@@ -470,9 +511,21 @@ const AgenticCommerceSyncStatus = () => {
 											</span>
 										) }
 									</td>
-									<td>
+									<td className="col-import-id">
 										{ entry.import_set_id ? (
-											<code>{ entry.import_set_id }</code>
+											<code title={ entry.import_set_id }>
+												<span className="id-start">
+													{ entry.import_set_id.slice(
+														0,
+														-6
+													) }
+												</span>
+												<span className="id-end">
+													{ entry.import_set_id.slice(
+														-6
+													) }
+												</span>
+											</code>
 										) : (
 											'—'
 										) }
