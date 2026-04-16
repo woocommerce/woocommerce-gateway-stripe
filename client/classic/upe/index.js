@@ -9,6 +9,7 @@ import { initializeAlwaysExpandedOptimizedCheckout } from './always-expanded-opt
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import 'wcstripe/stripe-utils/copy-test-number';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -318,7 +319,9 @@ jQuery( function ( $ ) {
 				stripeServerData?.shouldShowOptimizedCheckout &&
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
-				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
+				$( 'label[for=payment_method_stripe]' ).text(
+					'Payment options'
+				);
 			}
 
 			maybeClearBlikCodeValidation();

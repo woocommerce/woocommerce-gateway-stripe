@@ -21,6 +21,7 @@ jest.mock( 'wcstripe/blocks/checkout-sessions/hooks', () => ( {
 	usePaymentSetupHandler: jest.fn(),
 	useCheckoutSuccessHandler: jest.fn(),
 	usePaymentFailHandler: jest.fn(),
+	useCheckoutSessionTotalsSync: jest.fn(),
 } ) );
 
 jest.mock(
@@ -31,6 +32,8 @@ jest.mock(
 );
 
 describe( 'CheckoutForm', () => {
+	const api = { checkoutSessionsUpdateSession: jest.fn() };
+
 	const LoadingMask = ( { isLoading, showSpinner, screenReaderLabel } ) => (
 		<div>
 			{ isLoading && showSpinner && <span>{ screenReaderLabel }</span> }
@@ -79,6 +82,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -103,6 +107,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -126,6 +131,7 @@ describe( 'CheckoutForm', () => {
 
 		render(
 			<CheckoutForm
+				api={ api }
 				emitResponse={ emitResponse }
 				eventRegistration={ eventRegistration }
 				LoadingMask={ LoadingMask }
@@ -136,5 +142,95 @@ describe( 'CheckoutForm', () => {
 		);
 
 		expect( screen.getByText( 'Payment Element' ) ).toBeInTheDocument();
+	} );
+
+	it( 'should render the adaptive pricing disclosure for EEA billing country', () => {
+		useCheckout.mockReturnValue( {
+			type: 'success',
+			checkout: { id: 'test_checkout_id' },
+		} );
+
+		render(
+			<CheckoutForm
+				api={ api }
+				billing={ {
+					billingAddress: {
+						country: 'DE',
+					},
+				} }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
+				LoadingMask={ LoadingMask }
+				onLoadError={ onLoadError }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+				testingInstructions={ testingInstructions }
+			/>
+		);
+
+		expect(
+			screen.getByText( '(Includes 3.8% conversion service).', {
+				exact: false,
+			} )
+		).toBeInTheDocument();
+	} );
+
+	it( 'should not render the adaptive pricing disclosure for non-EEA billing country', () => {
+		useCheckout.mockReturnValue( {
+			type: 'success',
+			checkout: { id: 'test_checkout_id' },
+		} );
+
+		render(
+			<CheckoutForm
+				api={ api }
+				billing={ {
+					billingAddress: {
+						country: 'US',
+					},
+				} }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
+				LoadingMask={ LoadingMask }
+				onLoadError={ onLoadError }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+				testingInstructions={ testingInstructions }
+			/>
+		);
+
+		expect(
+			screen.queryByText( '(Includes 3.8% conversion service).', {
+				exact: false,
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should not render the adaptive pricing disclosure when billing country is absent', () => {
+		useCheckout.mockReturnValue( {
+			type: 'success',
+			checkout: { id: 'test_checkout_id' },
+		} );
+
+		render(
+			<CheckoutForm
+				api={ api }
+				billing={ {
+					billingAddress: {
+						country: '',
+					},
+				} }
+				emitResponse={ emitResponse }
+				eventRegistration={ eventRegistration }
+				LoadingMask={ LoadingMask }
+				onLoadError={ onLoadError }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
+				testingInstructions={ testingInstructions }
+			/>
+		);
+
+		expect(
+			screen.queryByText( '(Includes 3.8% conversion service).', {
+				exact: false,
+			} )
+		).not.toBeInTheDocument();
 	} );
 } );

@@ -15,32 +15,14 @@ class WC_Stripe_Feature_Flags {
 	const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
 
 	/**
-	 * Feature flag for Stripe ECE (Express Checkout Element).
-	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
-	 */
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
-
-	/**
-	 * Feature flag for Optimized Checkout (OC).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
-
-	/**
 	 * Feature flag for Stripe Checkout Sessions.
 	 *
 	 * @var string
 	 * @since 10.4.0
+	 *
+	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is available as of version 10.6.0.
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
-
 
 	/**
 	 * Feature flag for Agentic Commerce.
@@ -67,7 +49,6 @@ class WC_Stripe_Feature_Flags {
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                                              => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
-		self::OC_FEATURE_FLAG_NAME                                           => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
@@ -107,6 +88,8 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Feature flag to control the availability of Stripe Checkout Sessions.
 	 *
+	 * TODO: Remove this method from the class and add a new method in WC_Stripe_Helper instead in version 10.8.0 to check the necessary conditions in settings.
+	 *
 	 * @return bool
 	 * @since 10.4.0
 	 */
@@ -125,16 +108,14 @@ class WC_Stripe_Feature_Flags {
 			return false;
 		}
 
-		$is_checkout_sessions_available = 'yes' === self::get_option_with_default( self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME );
-
 		/**
 		 * Filter to control the availability of the Stripe Checkout Sessions feature.
 		 *
 		 * @since 10.4.0
-		 * Note: This filter will be removed when the feature rolls out.
+		 * @deprecated This filter will be removed in version 10.8.0. Stripe Checkout Sessions is permanently available as of version 10.6.0.
 		 * @param bool $is_checkout_sessions_available Whether Stripe Checkout Sessions should be available.
 		 */
-		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', $is_checkout_sessions_available );
+		return (bool) apply_filters( 'wc_stripe_is_checkout_sessions_available', true );
 	}
 
 	/**

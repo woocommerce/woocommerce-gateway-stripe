@@ -40,6 +40,12 @@ export const CheckoutContainer = ( props ) => {
 			elementsOptions: {
 				appearance: initializeUPEAppearance( 'true' ),
 				fonts: getFontRulesFromPage(),
+				savedPaymentMethod: {
+					// Stripe must not list saved customer payment methods inside the Payment Element; the gateway surfaces the saved payment methods instead.
+					enableRedisplay: 'never',
+					// Stripe must not show the save payment method checkbox in the Payment Element; the gateway has its own save payment method checkbox.
+					enableSave: 'never',
+				},
 			},
 		} ),
 		[ checkoutSessionPromise ]
