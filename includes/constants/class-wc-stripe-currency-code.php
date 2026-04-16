@@ -76,6 +76,7 @@ class WC_Stripe_Currency_Code {
 	const CAMBODIAN_RIEL                          = 'KHR'; // Cambodian riel.
 	const COMORIAN_FRANC                          = 'KMF'; // Comorian franc.
 	const SOUTH_KOREAN_WON                        = 'KRW'; // South Korean won.
+	const KUWAITI_DINAR                           = 'KWD'; // Kuwaiti dinar.
 	const CAYMAN_ISLANDS_DOLLAR                   = 'KYD'; // Cayman Islands dollar.
 	const KAZAKHSTANI_TENGE                       = 'KZT'; // Kazakhstani tenge.
 	const LAO_KIP                                 = 'LAK'; // Lao kip.
@@ -102,6 +103,7 @@ class WC_Stripe_Currency_Code {
 	const NORWEGIAN_KRONE                         = 'NOK'; // Norwegian krone.
 	const NEPALESE_RUPEE                          = 'NPR'; // Nepalese rupee.
 	const NEW_ZEALAND_DOLLAR                      = 'NZD'; // New Zealand dollar.
+	const OMANI_RIAL                              = 'OMR'; // Omani rial.
 	const PANAMANIAN_BALBOA                       = 'PAB'; // Panamanian balboa.
 	const PERUVIAN_SOL                            = 'PEN'; // Peruvian sol.
 	const PAPUA_NEW_GUINEAN_KINA                  = 'PGK'; // Papua New Guinean kina.
@@ -127,6 +129,7 @@ class WC_Stripe_Currency_Code {
 	const SWAZI_LILANGENI                         = 'SZL'; // Swazi lilangeni.
 	const THAI_BAHT                               = 'THB'; // Thai baht.
 	const TAJIKISTANI_SOMONI                      = 'TJS'; // Tajikistani somoni.
+	const TUNISIAN_DINAR                          = 'TND'; // Tunisian dinar.
 	const TONGAN_PAANGA                           = 'TOP'; // Tongan paʻanga.
 	const TURKISH_LIRA                            = 'TRY'; // Turkish lira.
 	const TRINIDAD_AND_TOBAGO_DOLLAR              = 'TTD'; // Trinidad and Tobago dollar.
@@ -146,7 +149,46 @@ class WC_Stripe_Currency_Code {
 	const YEMENI_RIAL                             = 'YER'; // Yemeni rial.
 	const SOUTH_AFRICAN_RAND                      = 'ZAR'; // South African rand.
 	const ZAMBIAN_KWACHA                          = 'ZMW'; // Zambian kwacha.
+
 	// ... add more currencies as needed.
 	// crypto currencies.
 	const BITCOIN = 'BTC'; // Bitcoin.
+
+	/**
+	 * List of currency codes that do not have a decimal component (i.e., no cents).
+	 *
+	 * Source: https://stripe.com/docs/currencies#zero-decimal
+	 *
+	 * @var string[]
+	 */
+	const NO_DECIMAL_CURRENCY_CODES = [
+		self::BURUNDIAN_FRANC,
+		self::CHILEAN_PESO,
+		self::DJIBOUTIAN_FRANC,
+		self::GUINEAN_FRANC,
+		self::JAPANESE_YEN,
+		self::COMORIAN_FRANC,
+		self::SOUTH_KOREAN_WON,
+		self::MALAGASY_ARIARY,
+		self::PARAGUAYAN_GUARANI,
+		self::RWANDAN_FRANC,
+		self::VIETNAMESE_DONG,
+		self::VANUATU_VATU,
+		self::CENTRAL_AFRICAN_CFA_FRANC,
+		self::WEST_AFRICAN_CFA_FRANC,
+		self::CFP_FRANC,
+	];
+
+	/**
+	 * List of currency codes that have three decimal places.
+	 *
+	 * @var string[]
+	 */
+	const THREE_DECIMAL_CURRENCY_CODES = [
+		self::BAHRAINI_DINAR,
+		self::JORDANIAN_DINAR,
+		self::KUWAITI_DINAR,
+		self::OMANI_RIAL,
+		self::TUNISIAN_DINAR,
+	];
 }

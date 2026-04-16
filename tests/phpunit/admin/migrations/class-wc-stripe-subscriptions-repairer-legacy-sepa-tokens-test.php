@@ -62,13 +62,13 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
 
 		$this->logger_mock = $this->getMockBuilder( 'WC_Logger' )
-								   ->disableOriginalConstructor()
-								   ->setMethods( [ 'add' ] )
-								   ->getMock();
+									->disableOriginalConstructor()
+									->setMethods( [ 'add' ] )
+									->getMock();
 		$this->updater     = $this->getMockBuilder( 'WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens' )
-								   ->setConstructorArgs( [ $this->logger_mock ] )
-								   ->setMethods( [ 'init', 'schedule_repair' ] )
-								   ->getMock();
+									->setConstructorArgs( [ $this->logger_mock ] )
+									->setMethods( [ 'init', 'schedule_repair' ] )
+									->getMock();
 
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test_connection_type' => 'connect' ] );
 	}
@@ -93,8 +93,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
 		$this->updater
-			 ->expects( $this->once() )
-			 ->method( 'schedule_repair' );
+			->expects( $this->once() )
+			->method( 'schedule_repair' );
 
 		$this->updater->maybe_update();
 	}
@@ -104,8 +104,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		update_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated', 'yes' );
 
 		$this->updater
-			 ->expects( $this->never() )
-			 ->method( 'schedule_repair' );
+			->expects( $this->never() )
+			->method( 'schedule_repair' );
 
 		$this->updater->maybe_update();
 	}
