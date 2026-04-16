@@ -79,6 +79,7 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 * Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
+* Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled

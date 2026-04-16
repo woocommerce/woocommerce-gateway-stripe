@@ -227,5 +227,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 * Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
+* Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
