@@ -26,7 +26,7 @@ class WC_Stripe_Charge {
 	/**
 	 * The underlying Charge payload.
 	 *
-	 * @var \Stripe\Charge|stdClass
+	 * @var \Stripe\StripeObject|stdClass
 	 */
 	private object $charge;
 
@@ -34,7 +34,7 @@ class WC_Stripe_Charge {
 	 * Constructor.
 	 *
 	 * @since 10.7.0
-	 * @param \Stripe\Charge|stdClass $charge The Stripe charge payload.
+	 * @param \Stripe\StripeObject|stdClass $charge The Stripe charge payload (e.g. \Stripe\Charge or a nested SDK object).
 	 * @throws InvalidArgumentException When $charge is not a stdClass or \Stripe\StripeObject instance.
 	 */
 	public function __construct( object $charge ) {
@@ -53,7 +53,7 @@ class WC_Stripe_Charge {
 	 * Prefer named getters; this is an escape hatch for incremental migration.
 	 *
 	 * @since 10.7.0
-	 * @return \Stripe\Charge|stdClass
+	 * @return \Stripe\StripeObject|stdClass
 	 */
 	public function raw(): object {
 		return $this->charge;
