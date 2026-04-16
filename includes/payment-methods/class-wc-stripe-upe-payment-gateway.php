@@ -3943,6 +3943,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if Google Pay and Apple Pay (ECE) are enabled.
+	 *
+	 * @deprecated 10.6.0 Use is_express_checkout_enabled() instead.
+	 * @return bool
+	 */
+	public function is_payment_request_enabled() {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_UPE_Payment_Gateway::is_express_checkout_enabled' );
+		return $this->is_express_checkout_enabled();
+	}
+
+	/**
 	 * Override the parent admin_options method.
 	 */
 	public function admin_options() {

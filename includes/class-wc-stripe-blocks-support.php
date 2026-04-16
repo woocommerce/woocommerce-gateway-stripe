@@ -333,7 +333,23 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Add payment request data to the order meta as hooked on the
+	 * Add express checkout data to the order meta as hooked on the
+	 * woocommerce_rest_checkout_process_payment_with_context action.
+	 *
+	 * @deprecated 10.6.0 Use add_express_checkout_order_meta() instead.
+	 *
+	 * @param PaymentContext $context Holds context for the payment.
+	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @return void
+	 */
+	public function add_payment_request_order_meta( PaymentContext $context, PaymentResult &$result ) {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_Blocks_Support::add_express_checkout_order_meta' );
+		$this->add_express_checkout_order_meta( $context, $result );
+	}
+
+	/**
+	 * Add express checkout data to the order meta as hooked on the
 	 * woocommerce_rest_checkout_process_payment_with_context action.
 	 *
 	 * @param PaymentContext $context Holds context for the payment.
