@@ -1451,7 +1451,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::CANCELLED,
 				'expected_note_pattern' => '/revoked by the customer.*Reason: customer_request/',
 			],
-			'mandate paused (inactive, no revocation) puts order on hold' => [
+			'mandate paused (inactive, no revocation) puts order on hold'  => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -1459,7 +1459,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => '/is now inactive/',
 			],
-			'mandate active adds note but does not change order status'   => [
+			'mandate active adds note but does not change order status'    => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'active',
 				'payment_method_type'   => 'card',
@@ -1467,7 +1467,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::PROCESSING,
 				'expected_note_pattern' => '/is now active/',
 			],
-			'mandate pending adds note but does not change order status'  => [
+			'mandate pending adds note but does not change order status'   => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'pending',
 				'payment_method_type'   => 'card',
@@ -1475,7 +1475,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::PROCESSING,
 				'expected_note_pattern' => '/status updated to pending/',
 			],
-			'duplicate inactive webhook does not re-update on-hold order' => [
+			'duplicate inactive webhook does not re-update on-hold order'  => [
 				'order_status'          => OrderStatus::ON_HOLD,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -1483,7 +1483,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => null,
 			],
-			'revocation escalates on-hold order to cancelled'             => [
+			'revocation escalates on-hold order to cancelled'              => [
 				'order_status'          => OrderStatus::ON_HOLD,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -1491,7 +1491,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::CANCELLED,
 				'expected_note_pattern' => '/revoked by the customer/',
 			],
-			'unknown mandate status adds generic note without error'    => [
+			'unknown mandate status adds generic note without error'       => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'some_unknown_status',
 				'payment_method_type'   => 'card',

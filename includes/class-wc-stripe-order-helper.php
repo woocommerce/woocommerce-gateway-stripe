@@ -685,7 +685,11 @@ class WC_Stripe_Order_Helper {
 				]
 			);
 
-			return ! empty( $orders ) ? $orders[0] : null;
+			if ( is_array( $orders ) && ! empty( $orders ) && $orders[0] instanceof WC_Order ) {
+				return $orders[0];
+			}
+
+			return null;
 		}
 
 		$order_id = $wpdb->get_var(
@@ -698,7 +702,7 @@ class WC_Stripe_Order_Helper {
 
 		if ( ! empty( $order_id ) ) {
 			$order = wc_get_order( $order_id );
-			if ( $order && $order->get_status() !== OrderStatus::TRASH ) {
+			if ( $order instanceof WC_Order && $order->get_status() !== OrderStatus::TRASH ) {
 				return $order;
 			}
 		}

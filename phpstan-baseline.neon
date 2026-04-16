@@ -3199,18 +3199,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$payment_method_details\.$#'
-			identifier: property.notFound
-			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$payment_method_type\.$#'
-			identifier: property.notFound
-			count: 2
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$token_id\.$#'
 			identifier: property.notFound
 			count: 1

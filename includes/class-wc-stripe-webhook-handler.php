@@ -524,6 +524,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.2.0
 	 * @param object $notification The webhook notification from Stripe.
+	 * @return void
 	 */
 	public function process_webhook_mandate_updated( $notification ) {
 		$mandate = $notification->data->object ?? null;
