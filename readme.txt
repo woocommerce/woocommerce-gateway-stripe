@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Update - Remove deprecated code up to version 10.1.0
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
@@ -225,5 +226,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

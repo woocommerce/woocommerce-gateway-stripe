@@ -143,9 +143,6 @@ function wcstripe_deactivated(): void {
 	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}

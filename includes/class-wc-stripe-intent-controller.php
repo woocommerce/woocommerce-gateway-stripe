@@ -1451,24 +1451,6 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @deprecated 8.3.0
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 *
-	 * @return void
-	 */
-	public function maybe_process_upe_redirect() {
-		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
-
-		$gateway = $this->get_gateway();
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			$gateway->maybe_process_upe_redirect();
-		}
-	}
-
-	/**
 	 * Check if manual renewal is required for the payment method.
 	 *
 	 * @param bool $is_payment_method_reusable Whether the payment method is reusable.

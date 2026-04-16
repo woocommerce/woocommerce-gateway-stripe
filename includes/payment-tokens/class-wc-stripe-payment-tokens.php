@@ -1046,21 +1046,6 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Controls the output for SEPA on the my account page.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @deprecated 8.4.0
-	 * @param  array            $item          Individual list item from woocommerce_saved_payment_methods_list
-	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
-	 * @return array                           Filtered item
-	 */
-	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
-		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
-	}
-
-	/**
 	 * Returns the list of active reusable payment method types based on the enabled gateways and their settings.
 	 *
 	 * @return array List of active reusable payment method types.

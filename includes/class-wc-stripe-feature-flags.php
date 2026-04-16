@@ -15,25 +15,6 @@ class WC_Stripe_Feature_Flags {
 	const AMAZON_PAY_FEATURE_FLAG_NAME = '_wcstripe_feature_amazon_pay';
 
 	/**
-	 * Feature flag for Stripe ECE (Express Checkout Element).
-	 * This feature flag controls whether the new Express Checkout Element (ECE) or the legacy Payment Request Button (PRB) is used to render express checkout buttons.
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 10.1.0. ECE will be permanently enabled.
-	 */
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
-
-	/**
-	 * Feature flag for Optimized Checkout (OC).
-	 *
-	 * @var string
-	 *
-	 * @deprecated This feature flag will be removed in version 9.9.0.
-	 */
-	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
-
-	/**
 	 * Feature flag for Stripe Checkout Sessions.
 	 *
 	 * @var string
@@ -42,7 +23,6 @@ class WC_Stripe_Feature_Flags {
 	 * @deprecated This feature flag will be removed in version 10.8.0. Stripe Checkout Sessions is available as of version 10.6.0.
 	 */
 	const CHECKOUT_SESSIONS_FEATURE_FLAG_NAME = '_wcstripe_feature_stripe_checkout_sessions';
-
 
 	/**
 	 * Feature flag for Agentic Commerce.
@@ -69,7 +49,6 @@ class WC_Stripe_Feature_Flags {
 	protected static $feature_flags = [
 		'_wcstripe_feature_upe'                                              => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME                                   => 'no',
-		self::OC_FEATURE_FLAG_NAME                                           => 'no',
 		self::CHECKOUT_SESSIONS_FEATURE_FLAG_NAME                            => 'no',
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
