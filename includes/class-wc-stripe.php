@@ -205,6 +205,8 @@ class WC_Stripe {
 		new WC_Stripe_Order_Handler();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
+		new WC_Stripe_Payment_Tokens();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
