@@ -542,22 +542,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
-		$currency_selector_wrapper = 'id="wc-stripe-adaptive-pricing-currency-wrapper"';
+		$selector_div = '<div id="wc-stripe-currency-selector" class="wc-stripe-currency-selector" style="margin-top: 12px;"></div>';
 		if ( $expect_selector ) {
-			$this->assertStringContainsString( $currency_selector_wrapper, $output );
-			$this->assertStringContainsString( 'id="wc-stripe-currency-selector"', $output );
-			$this->assertStringContainsString( 'id="wc-stripe-adaptive-pricing-disclosure"', $output );
-			$currency_selector_position = strpos( $output, $currency_selector_wrapper );
-			$upe_element_position       = strpos( $output, 'class="wc-stripe-upe-element"' );
-			$this->assertNotFalse( $currency_selector_position, 'Adaptive pricing currency wrap position should be detectable.' );
+			$this->assertStringContainsString( $selector_div, $output );
+			$selector_position    = strpos( $output, $selector_div );
+			$upe_element_position = strpos( $output, 'class="wc-stripe-upe-element"' );
+			$this->assertNotFalse( $selector_position, 'Currency selector position should be detectable.' );
 			$this->assertNotFalse( $upe_element_position, 'Payment element should be present in output.' );
 			$this->assertLessThan(
 				$upe_element_position,
-				$currency_selector_position,
+				$selector_position,
 				'Currency selector should render before the payment element.'
 			);
 		} else {
-			$this->assertStringNotContainsString( $currency_selector_wrapper, $output );
+			$this->assertStringNotContainsString( $selector_div, $output );
 		}
 	}
 
