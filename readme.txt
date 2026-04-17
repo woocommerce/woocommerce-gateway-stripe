@@ -146,6 +146,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
+* Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
@@ -206,7 +208,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
-* Fix - Fall back to split Stripe payment methods when Optimized Checkout is enabled but Stripe is not the first available gateway
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Update - Hide Adaptive Pricing option for Stripe accounts based in India and European Economic Area countries
@@ -226,5 +227,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
+* Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
