@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Dev - Align Agentic Commerce sync status UI with the WordPress design system and cap Recent Syncs at 10 rows
+* Dev - Align Agentic Commerce sync status UI with the WordPress design system
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout

@@ -16,8 +16,6 @@ import {
 import { dispatch } from '@wordpress/data';
 import Pill from 'wcstripe/components/pill';
 
-const HISTORY_ROW_LIMIT = 10;
-
 const DetailsTable = styled.table`
 	border-collapse: collapse;
 	margin: 16px 0 12px;
@@ -320,12 +318,6 @@ const AgenticCommerceSyncStatus = () => {
 		);
 	};
 
-	const visibleHistory = history?.slice( 0, HISTORY_ROW_LIMIT ) ?? [];
-	const hiddenHistoryCount = Math.max(
-		0,
-		( history?.length ?? 0 ) - visibleHistory.length
-	);
-
 	return (
 		<>
 			<p className="description" style={ { marginTop: '16px' } }>
@@ -506,120 +498,95 @@ const AgenticCommerceSyncStatus = () => {
 							) }
 						</p>
 					) }
-					{ ! isLoading && !! visibleHistory.length && (
-						<>
-							<HistoryTable>
-								<thead>
-									<tr>
-										<th className="col-timestamp">
-											{ __(
-												'Timestamp',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<th className="col-products">
-											{ __(
-												'Products',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<th className="col-status">
-											{ __(
-												'Status',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<th className="col-import-id">
-											{ __(
-												'Import ID',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									{ visibleHistory.map( ( entry, i ) => (
-										<tr key={ i }>
-											<td className="col-timestamp">
-												{ entry.timestamp
-													? new Date(
-															entry.timestamp *
-																1000
-													  ).toLocaleString( [], {
-															year: 'numeric',
-															month: '2-digit',
-															day: '2-digit',
-															hour: '2-digit',
-															minute: '2-digit',
-													  } )
-													: '—' }
-											</td>
-											<td className="col-products">
-												{ entry.products !== null
-													? entry.products.toLocaleString()
-													: '—' }
-											</td>
-											<td className="col-status">
-												<SyncStatusBadge
-													status={ entry.status }
-												/>
-												{ entry.error && (
-													<span title={ entry.error }>
-														{ ' ' }
-														ℹ
-													</span>
-												) }
-											</td>
-											<td className="col-import-id">
-												{ entry.import_set_id ? (
-													<code
-														title={
-															entry.import_set_id
-														}
-													>
-														<span className="id-start">
-															{ entry.import_set_id.slice(
-																0,
-																-6
-															) }
-														</span>
-														<span className="id-end">
-															{ entry.import_set_id.slice(
-																-6
-															) }
-														</span>
-													</code>
-												) : (
-													'—'
-												) }
-											</td>
-										</tr>
-									) ) }
-								</tbody>
-							</HistoryTable>
-							{ hiddenHistoryCount > 0 && (
-								<p
-									className="description"
-									style={ { marginTop: '12px' } }
-								>
-									{ sprintf(
-										/* translators: %d: number of older sync entries not shown. */
-										__(
-											'Showing the %1$d most recent syncs (%2$d older entries hidden).',
-											'woocommerce-gateway-stripe'
-										),
-										visibleHistory.length,
-										hiddenHistoryCount
-									) }{ ' ' }
-									<ExternalLink href="https://dashboard.stripe.com/data-management/import-sets">
+					{ ! isLoading && !! history?.length && (
+						<HistoryTable>
+							<thead>
+								<tr>
+									<th className="col-timestamp">
 										{ __(
-											'View all on the Stripe Dashboard',
+											'Timestamp',
 											'woocommerce-gateway-stripe'
 										) }
-									</ExternalLink>
-								</p>
-							) }
-						</>
+									</th>
+									<th className="col-products">
+										{ __(
+											'Products',
+											'woocommerce-gateway-stripe'
+										) }
+									</th>
+									<th className="col-status">
+										{ __(
+											'Status',
+											'woocommerce-gateway-stripe'
+										) }
+									</th>
+									<th className="col-import-id">
+										{ __(
+											'Import ID',
+											'woocommerce-gateway-stripe'
+										) }
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{ history.map( ( entry, i ) => (
+									<tr key={ i }>
+										<td className="col-timestamp">
+											{ entry.timestamp
+												? new Date(
+														entry.timestamp * 1000
+												  ).toLocaleString( [], {
+														year: 'numeric',
+														month: '2-digit',
+														day: '2-digit',
+														hour: '2-digit',
+														minute: '2-digit',
+												  } )
+												: '—' }
+										</td>
+										<td className="col-products">
+											{ entry.products !== null
+												? entry.products.toLocaleString()
+												: '—' }
+										</td>
+										<td className="col-status">
+											<SyncStatusBadge
+												status={ entry.status }
+											/>
+											{ entry.error && (
+												<span title={ entry.error }>
+													{ ' ' }
+													ℹ
+												</span>
+											) }
+										</td>
+										<td className="col-import-id">
+											{ entry.import_set_id ? (
+												<code
+													title={
+														entry.import_set_id
+													}
+												>
+													<span className="id-start">
+														{ entry.import_set_id.slice(
+															0,
+															-6
+														) }
+													</span>
+													<span className="id-end">
+														{ entry.import_set_id.slice(
+															-6
+														) }
+													</span>
+												</code>
+											) : (
+												'—'
+											) }
+										</td>
+									</tr>
+								) ) }
+							</tbody>
+						</HistoryTable>
 					) }
 				</CardBody>
 			</Card>
