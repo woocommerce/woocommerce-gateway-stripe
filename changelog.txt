@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.6.0
-* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay)
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay, Link)
 * Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
