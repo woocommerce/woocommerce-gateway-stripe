@@ -776,14 +776,16 @@ class WC_Stripe_Payment_Tokens {
 		// Clear cached payment methods.
 		$customer->clear_cache();
 
+		$pm = new WC_Stripe_Payment_Method( $payment_method );
+
 		switch ( $payment_method_type ) {
 			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
 				$token = new WC_Stripe_Payment_Token_CC();
-				$token->set_expiry_month( $payment_method->card->exp_month );
-				$token->set_expiry_year( $payment_method->card->exp_year );
-				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
-				$token->set_last4( $payment_method->card->last4 );
-				$token->set_fingerprint( $payment_method->card->fingerprint );
+				$token->set_expiry_month( (string) $pm->get_card_exp_month() );
+				$token->set_expiry_year( (string) $pm->get_card_exp_year() );
+				$token->set_card_type( strtolower( (string) $pm->get_card_brand() ) );
+				$token->set_last4( (string) $pm->get_card_last4() );
+				$token->set_fingerprint( (string) $pm->get_card_fingerprint() );
 				break;
 			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
 				$token = new WC_Payment_Token_Bacs_Debit();
@@ -793,26 +795,30 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 				$token = new WC_Payment_Token_Link();
-				$token->set_email( $payment_method->link->email );
+				$token->set_email( (string) $pm->get_link_email() );
 				$token->set_payment_method_type( $payment_method_type );
 				break;
 			case WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_Amazon_Pay();
-				$token->set_email( $payment_method->billing_details->email ?? '' );
+				$token->set_email( $pm->get_billing_email( '' ) );
 				break;
 			case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
-				$token = new WC_Payment_Token_ACH();
-				if ( isset( $payment_method->us_bank_account->last4 ) ) {
-					$token->set_last4( $payment_method->us_bank_account->last4 );
+				$token         = new WC_Payment_Token_ACH();
+				$us_bank_last4 = $pm->get_us_bank_last4();
+				if ( null !== $us_bank_last4 ) {
+					$token->set_last4( $us_bank_last4 );
 				}
-				if ( isset( $payment_method->us_bank_account->fingerprint ) ) {
-					$token->set_fingerprint( $payment_method->us_bank_account->fingerprint );
+				$us_bank_fingerprint = $pm->get_us_bank_fingerprint();
+				if ( null !== $us_bank_fingerprint ) {
+					$token->set_fingerprint( $us_bank_fingerprint );
 				}
-				if ( isset( $payment_method->us_bank_account->account_type ) ) {
-					$token->set_account_type( $payment_method->us_bank_account->account_type );
+				$us_bank_account_type = $pm->get_us_bank_account_type();
+				if ( null !== $us_bank_account_type ) {
+					$token->set_account_type( $us_bank_account_type );
 				}
-				if ( isset( $payment_method->us_bank_account->bank_name ) ) {
-					$token->set_bank_name( $payment_method->us_bank_account->bank_name );
+				$us_bank_name = $pm->get_us_bank_bank_name();
+				if ( null !== $us_bank_name ) {
+					$token->set_bank_name( $us_bank_name );
 				}
 				break;
 			case WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID:
@@ -858,13 +864,13 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			default:
 				$token = new WC_Payment_Token_SEPA();
-				$token->set_last4( $payment_method->sepa_debit->last4 );
+				$token->set_last4( (string) $pm->get_sepa_last4() );
 				$token->set_payment_method_type( $payment_method_type );
-				$token->set_fingerprint( $payment_method->sepa_debit->fingerprint );
+				$token->set_fingerprint( (string) $pm->get_sepa_fingerprint() );
 		}
 
 		$token->set_gateway_id( $gateway_id );
-		$token->set_token( $payment_method->id );
+		$token->set_token( (string) $pm->get_id() );
 		$token->set_user_id( $customer->get_user_id() );
 		$token->save();
 
@@ -1086,7 +1092,7 @@ class WC_Stripe_Payment_Tokens {
 			$bancontact_tokens_enabled = $gateway->is_sepa_tokens_for_bancontact_enabled();
 
 			if ( ( $ideal_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true ) )
-				 || ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
+				|| ( $bancontact_tokens_enabled && in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true ) ) ) {
 				$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
 		}

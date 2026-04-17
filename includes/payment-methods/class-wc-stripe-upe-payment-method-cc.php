@@ -91,16 +91,18 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Stripe_Payment_Token_CC
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$pm    = new WC_Stripe_Payment_Method( $payment_method );
 		$token = new WC_Stripe_Payment_Token_CC();
-		$token->set_expiry_month( $payment_method->card->exp_month );
-		$token->set_expiry_year( $payment_method->card->exp_year );
-		$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
-		$token->set_last4( $payment_method->card->last4 );
+		$token->set_expiry_month( (string) $pm->get_card_exp_month() );
+		$token->set_expiry_year( (string) $pm->get_card_exp_year() );
+		$token->set_card_type( strtolower( (string) $pm->get_card_brand() ) );
+		$token->set_last4( (string) $pm->get_card_last4() );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
-		$token->set_token( $payment_method->id );
+		$token->set_token( (string) $pm->get_id() );
 		$token->set_user_id( $user_id );
-		if ( isset( $payment_method->card->fingerprint ) ) {
-			$token->set_fingerprint( $payment_method->card->fingerprint );
+		$fingerprint = $pm->get_card_fingerprint();
+		if ( null !== $fingerprint ) {
+			$token->set_fingerprint( $fingerprint );
 		}
 		$token->save();
 		return $token;

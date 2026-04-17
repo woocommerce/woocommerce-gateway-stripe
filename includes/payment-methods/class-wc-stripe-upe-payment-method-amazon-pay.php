@@ -153,10 +153,11 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 * @return WC_Payment_Token_Amazon_Pay
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$pm    = new WC_Stripe_Payment_Method( $payment_method );
 		$token = new WC_Payment_Token_Amazon_Pay();
-		$token->set_email( $payment_method->billing_details->email ?? '' );
+		$token->set_email( $pm->get_billing_email( '' ) );
 		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
-		$token->set_token( $payment_method->id );
+		$token->set_token( (string) $pm->get_id() );
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;

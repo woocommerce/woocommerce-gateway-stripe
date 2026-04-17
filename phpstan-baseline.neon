@@ -6133,12 +6133,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6349,6 +6343,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
+			message: '#^Parameter \#1 \$email of method WC_Payment_Token_Amazon_Pay\:\:set_email\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
 			message: '#^Parameter \#1 \$order of method WC_Payment_Gateway\:\:get_return_url\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
@@ -6380,6 +6380,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#1 \$payment_method of class WC_Stripe_Payment_Method constructor expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -7737,17 +7743,11 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$card\.$#'
 			identifier: property.notFound
-			count: 5
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$cashapp\.$#'
-			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			message: '#^Access to an undefined property object\:\:\$cashapp\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -7994,6 +7994,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects WC_Order\|null, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#1 \$payment_method of class WC_Stripe_Payment_Method constructor expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -9897,25 +9903,19 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$card\.$#'
 			identifier: property.notFound
-			count: 9
+			count: 4
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 12
-			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$link\.$#'
-			identifier: property.notFound
-			count: 1
+			count: 11
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
 			identifier: property.notFound
-			count: 7
+			count: 5
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
@@ -9964,6 +9964,18 @@ parameters:
 			message: '#^Function remove_action invoked with 4 parameters, 2\-3 required\.$#'
 			identifier: arguments.count
 			count: 3
+			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
+
+		-
+			message: '#^Parameter \#1 \$email of method WC_Payment_Token_Amazon_Pay\:\:set_email\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
+
+		-
+			message: '#^Parameter \#1 \$payment_method of class WC_Stripe_Payment_Method constructor expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
 			path: includes/payment-tokens/class-wc-stripe-payment-tokens.php
 
 		-
