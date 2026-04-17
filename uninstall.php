@@ -129,3 +129,4 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	delete_option( 'upe_checkout_experience_accepted_payments' );
 	delete_option( '_wcstripe_feature_ece' );
 }
+// Test AI review
