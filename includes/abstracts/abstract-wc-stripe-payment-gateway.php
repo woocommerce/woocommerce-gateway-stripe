@@ -1741,11 +1741,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order_helper->update_stripe_setup_intent_id( $order, $intent->id );
+			$setup_intent = new WC_Stripe_Setup_Intent( $intent );
+			$order_helper->update_stripe_setup_intent_id( $order, (string) $setup_intent->get_id() );
 
 			// Add mandate for free trial subscriptions.
-			if ( isset( $intent->mandate ) ) {
-				$order_helper->update_stripe_mandate_id( $order, $intent->mandate );
+			$mandate_id = $setup_intent->get_mandate_id();
+			if ( null !== $mandate_id ) {
+				$order_helper->update_stripe_mandate_id( $order, $mandate_id );
 			}
 		}
 
@@ -1958,8 +1960,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		$order_id     = $order->get_id();
-		$setup_intent = WC_Stripe_API::request(
+		$order_id              = $order->get_id();
+		$setup_intent_response = WC_Stripe_API::request(
 			[
 				'payment_method' => $prepared_source->source,
 				'return_url'     => $this->get_stripe_return_url( $order ),
@@ -1969,13 +1971,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'setup_intents'
 		);
 
-		if ( is_wp_error( $setup_intent ) ) {
-			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id", [ 'response' => $setup_intent ] );
-		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $setup_intent->id );
+		if ( is_wp_error( $setup_intent_response ) ) {
+			WC_Stripe_Logger::error( "Unable to create SetupIntent for Order #$order_id", [ 'response' => $setup_intent_response ] );
+			return;
+		}
+
+		$setup_intent = new WC_Stripe_Setup_Intent( $setup_intent_response );
+		if ( $setup_intent->is_requires_action() ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, (string) $setup_intent->get_id() );
 			$order->save();
 
-			return $setup_intent->client_secret;
+			return $setup_intent->get_client_secret();
 		}
 	}
 

@@ -288,7 +288,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// 4. Generate the setup intent
-			$setup_intent = WC_Stripe_API::request(
+			$setup_intent_response = WC_Stripe_API::request(
 				[
 					'customer'             => $customer->get_id(),
 					'confirm'              => 'true',
@@ -297,21 +297,22 @@ class WC_Stripe_Intent_Controller {
 				],
 				'setup_intents'
 			);
+			$setup_intent          = new WC_Stripe_Setup_Intent( $setup_intent_response );
 
-			if ( ! empty( $setup_intent->error ) ) {
-				WC_Stripe_Logger::error( 'Failed create Setup Intent while saving a card.', [ 'response' => $setup_intent ] );
+			if ( $setup_intent->has_error() ) {
+				WC_Stripe_Logger::error( 'Failed create Setup Intent while saving a card.', [ 'response' => $setup_intent_response ] );
 				throw new Exception( __( 'Your card could not be set up for future usage.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			// 5. Respond.
-			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
+			if ( $setup_intent->is_requires_action() ) {
 				$response = [
 					'status'        => WC_Stripe_Intent_Status::REQUIRES_ACTION,
-					'client_secret' => $setup_intent->client_secret,
+					'client_secret' => $setup_intent->get_client_secret(),
 				];
-			} elseif ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $setup_intent->status
-				|| WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $setup_intent->status
-				|| WC_Stripe_Intent_Status::CANCELED === $setup_intent->status ) {
+			} elseif ( $setup_intent->is_requires_payment_method()
+				|| $setup_intent->is_requires_confirmation()
+				|| $setup_intent->is_canceled() ) {
 				// These statuses should not be possible, as such we return an error.
 				$response = [
 					'status' => 'error',
@@ -660,15 +661,15 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type, true );
 
-		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
+		$setup_intent = new WC_Stripe_Setup_Intent( WC_Stripe_API::request( $request, 'setup_intents' ) );
 
-		if ( ! empty( $setup_intent->error ) ) {
-			throw new Exception( $setup_intent->error->message );
+		if ( $setup_intent->has_error() ) {
+			throw new Exception( (string) $setup_intent->get_error_message() );
 		}
 
 		return [
-			'id'            => $setup_intent->id,
-			'client_secret' => $setup_intent->client_secret,
+			'id'            => $setup_intent->get_id(),
+			'client_secret' => $setup_intent->get_client_secret(),
 		];
 	}
 
@@ -1293,18 +1294,19 @@ class WC_Stripe_Intent_Controller {
 				$payment_information['return_url'] = add_query_arg( "wc-stripe-{$payment_type}-update-all-subscription-payment-methods", 'true', $payment_information['return_url'] );
 			}
 
-			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
+			$setup_intent_response = $this->create_and_confirm_setup_intent( $payment_information );
+			$setup_intent          = new WC_Stripe_Setup_Intent( $setup_intent_response );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_SETUP_INTENT_STATUSES, true ) ) {
-				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
+			if ( ! $setup_intent->is_successful_for_setup() ) {
+				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent_response, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 
 			wp_send_json_success(
 				[
-					'status'        => $setup_intent->status,
-					'id'            => $setup_intent->id,
-					'client_secret' => $setup_intent->client_secret,
-					'next_action'   => $setup_intent->next_action,
+					'status'        => $setup_intent->get_status(),
+					'id'            => $setup_intent->get_id(),
+					'client_secret' => $setup_intent->get_client_secret(),
+					'next_action'   => $setup_intent->get_next_action(),
 					'payment_type'  => $payment_type,
 					'return_url'    => rawurlencode( $payment_information['return_url'] ),
 				],
