@@ -267,7 +267,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
-			count: 4
+			count: 3
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -2473,12 +2473,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Cannot access property \$metadata on object\|false\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Cannot access property \$status on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 4
@@ -2548,12 +2542,6 @@ parameters:
 			message: '#^Parameter \#1 \$haystack of function strpos expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Parameter \#1 \$intent of static method WC_Stripe_Helper\:\:get_payment_method_from_intent\(\) expects object, object\|false given\.$#'
-			identifier: argument.type
-			count: 1
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -2715,7 +2703,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-order-handler.php
 
 		-

@@ -1253,11 +1253,14 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function has_authentication_already_failed( $renewal_order ) {
 		$existing_intent = $this->get_intent_from_order( $renewal_order );
 
+		if ( ! $existing_intent instanceof stdClass ) {
+			return false;
+		}
+
+		$payment_intent = new WC_Stripe_Payment_Intent( $existing_intent );
 		if (
-			! $existing_intent
-			|| WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD !== $existing_intent->status
-			|| empty( $existing_intent->last_payment_error )
-			|| 'authentication_required' !== $existing_intent->last_payment_error->code
+			! $payment_intent->is_requires_payment_method()
+			|| ! $payment_intent->is_authentication_required_error()
 		) {
 			return false;
 		}

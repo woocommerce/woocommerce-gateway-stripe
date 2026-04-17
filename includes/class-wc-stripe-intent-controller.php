@@ -154,29 +154,20 @@ class WC_Stripe_Intent_Controller {
 			$gateway->verify_intent_after_checkout( $order );
 
 			if ( isset( $_GET['save_payment_method'] ) && ! empty( $_GET['save_payment_method'] ) ) {
-				$intent = $gateway->get_intent_from_order( $order );
-				if ( isset( $intent->last_payment_error ) ) {
-					$last_payment_error = $intent->last_payment_error;
-					$source_id          = '';
-
-					// Backwards compatibility for payment intents that use sources.
-					if ( isset( $last_payment_error->payment_method->id ) ) {
-						$source_id = $last_payment_error->payment_method->id;
-					} elseif ( isset( $last_payment_error->source->id ) ) {
-						$source_id = $last_payment_error->source->id;
-					}
-
-					// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
-					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
-					// in order to keep the sources in sync with the data in DB.
-					if ( ! empty( $source_id ) ) {
-						$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-						$customer->delete_source( $source_id );
-					}
-				} else {
-					$metadata = $intent->metadata;
-					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
-						$payment_method = WC_Stripe_Helper::get_payment_method_from_intent( $intent );
+				$intent_response = $gateway->get_intent_from_order( $order );
+				if ( $intent_response instanceof stdClass ) {
+					$payment_intent = new WC_Stripe_Payment_Intent( $intent_response );
+					if ( $payment_intent->has_payment_error() ) {
+						// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
+						// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
+						// in order to keep the sources in sync with the data in DB.
+						$source_id = $payment_intent->get_payment_error_source_id();
+						if ( null !== $source_id ) {
+							$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+							$customer->delete_source( $source_id );
+						}
+					} elseif ( 'true' === $payment_intent->get_metadata_value( 'save_payment_method' ) ) {
+						$payment_method = WC_Stripe_Helper::get_payment_method_from_intent( $intent_response );
 						$source_object  = WC_Stripe_API::get_payment_method(
 							// The object on the intent may have been expanded so we need to check if it's just the ID or the full object.
 							is_string( $payment_method ) ? $payment_method : $payment_method->id
