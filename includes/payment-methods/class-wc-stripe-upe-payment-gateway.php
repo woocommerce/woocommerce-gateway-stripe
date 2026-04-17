@@ -2366,6 +2366,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$error  = isset( $intent->last_setup_error ) ? $intent->last_setup_error : false;
 		}
 
+		// A non-success PaymentIntent status with no `last_payment_error` means the
+		// redirect attempt never produced a charge — typically the shopper cancelled
+		// at the bank before the provider recorded a failed attempt. Without this
+		// guard, the method falls through to the `get_payment_method_data_from_intent()`
+		// → empty `$payment_method_type` → silent early-return path, leaving the
+		// shopper on the order-received page with no notice. Throw the cancellation
+		// exception so the caller's catch adds the generic "Your payment was
+		// cancelled" notice and redirects back to checkout.
+		if (
+			$payment_needed
+			&& empty( $error )
+			&& isset( $intent->status )
+			&& in_array(
+				$intent->status,
+				[ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, WC_Stripe_Intent_Status::CANCELED ],
+				true
+			)
+		) {
+			throw new WC_Stripe_Payment_Cancelled_Exception(
+				sprintf( 'PaymentIntent %s is in %s without a last_payment_error — treating as customer cancellation.', isset( $intent->id ) ? $intent->id : '', $intent->status )
+			);
+		}
+
 		if ( ! empty( $error ) ) {
 			$error_message = isset( $error->message ) ? $error->message : '';
 			$error_code    = isset( $error->code ) ? $error->code : '';
