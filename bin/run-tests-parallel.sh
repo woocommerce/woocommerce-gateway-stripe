@@ -22,12 +22,17 @@ XDEBUG_MODE=${XDEBUG_MODE_PHPUNIT:-off}
 # coverage mode.  Pass --no-coverage unless the caller has explicitly requested
 # coverage via XDEBUG_MODE_PHPUNIT=coverage.
 COVERAGE_FLAGS="--no-coverage"
+PASSTHRU_PHP=()
 if [ "$XDEBUG_MODE" = "coverage" ]; then
 	COVERAGE_FLAGS="--coverage-cobertura ${PLUGIN_DIR}/php-coverage.xml --coverage-html ${PLUGIN_DIR}/phpunit-html"
+	# Paratest spawns child PHP processes that don't inherit the XDEBUG_MODE
+	# env var from Docker. Use --passthru-php to set it for each worker.
+	PASSTHRU_PHP=(--passthru-php="-d xdebug.mode=coverage")
 fi
 
 docker compose exec -u www-data -e XDEBUG_MODE=$XDEBUG_MODE wordpress \
 	${PLUGIN_DIR}/vendor/bin/paratest \
 	--configuration ${PLUGIN_DIR}/phpunit-parallel.xml.dist \
 	$COVERAGE_FLAGS \
+	"${PASSTHRU_PHP[@]}" \
 	"$@"
