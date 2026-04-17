@@ -958,9 +958,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 						'type' => $payment_method_type,
 					],
 					'captured'               => true,
-					'balance_transaction'    => (object) [
-						'fee' => 100,
-					],
+					'balance_transaction'    => 'txn_mockBalanceTransaction',
 				],
 			],
 		];

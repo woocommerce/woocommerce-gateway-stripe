@@ -586,7 +586,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// https://docs.stripe.com/api/events/types#event_types-charge.succeeded
-		$charge = $notification->data->object;
+		$charge        = $notification->data->object;
+		$stripe_charge = new WC_Stripe_Charge( $charge );
+		$charge_id     = $stripe_charge->get_id();
 
 		// The following payment methods are synchronous so does not need to be handled via webhook.
 		$payment_method_type = $this->get_payment_method_type_from_charge( $charge );
@@ -600,10 +602,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
+		$order = WC_Stripe_Helper::get_order_by_charge_id( (string) $charge_id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::debug( 'Could not find order via charge ID: ' . $charge->id );
+			WC_Stripe_Logger::debug( 'Could not find order via charge ID: ' . $charge_id );
 			return;
 		}
 
@@ -618,15 +620,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// setting is enabled, Stripe API still sends a "charge.succeeded" webhook but
 		// the payment has not been captured, yet. This ensures that the payment has been
 		// captured, before completing the payment.
-		if ( ! $charge->captured ) {
+		if ( ! $stripe_charge->is_captured() ) {
 			return;
 		}
 
 		// Store other data such as fees
-		$order->set_transaction_id( $charge->id );
+		$order->set_transaction_id( $charge_id );
 
-		if ( isset( $charge->balance_transaction ) ) {
-			$this->update_fees( $order, $charge->balance_transaction, true );
+		$balance_transaction_id = $stripe_charge->get_balance_transaction_id();
+		if ( null !== $balance_transaction_id ) {
+			$this->update_fees( $order, $balance_transaction_id, true );
 		}
 
 		/**
@@ -641,10 +644,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * to ensure the review.closed event handler will update the status to the proper status.
 		 */
 		if ( 'manual_review' !== $this->get_risk_outcome( $notification ) ) {
-			$order->payment_complete( $charge->id );
+			$order->payment_complete( $charge_id );
 
 			/* translators: transaction id */
-			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s) (via webhook)', 'woocommerce-gateway-stripe' ), $charge->id ) );
+			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s) (via webhook)', 'woocommerce-gateway-stripe' ), $charge_id ) );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {

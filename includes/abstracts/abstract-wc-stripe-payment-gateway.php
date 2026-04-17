@@ -1733,12 +1733,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
 			// The mandate ID is not available for the intent object, so we need to fetch the charge.
 			// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
-			$charge = $this->get_latest_charge_from_intent( $intent );
-
-			if ( isset( $charge->payment_method_details->card->mandate ) ) {
-				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->card->mandate );
-			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
-				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->acss_debit->mandate );
+			$latest_charge = $this->get_latest_charge_from_intent( $intent );
+			if ( $latest_charge instanceof stdClass ) {
+				$mandate_id = ( new WC_Stripe_Charge( $latest_charge ) )->get_mandate_id();
+				if ( null !== $mandate_id ) {
+					$order_helper->update_stripe_mandate_id( $order, $mandate_id );
+				}
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order_helper->update_stripe_setup_intent_id( $order, $intent->id );

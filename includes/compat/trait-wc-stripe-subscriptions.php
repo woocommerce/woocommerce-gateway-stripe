@@ -400,14 +400,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			return false;
 		}
 
-		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
+		$charge_response = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
 
-		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
+		if ( is_wp_error( $charge_response ) || empty( $charge_response ) || ! empty( $charge_response->error ) ) {
 			return false;
 		}
 
-		if ( isset( $charge->outcome->type ) && 'blocked' === $charge->outcome->type ) {
-			return isset( $charge->outcome->reason ) ? (string) $charge->outcome->reason : 'unknown';
+		$charge = new WC_Stripe_Charge( $charge_response );
+		if ( $charge->is_blocked_by_radar() ) {
+			return $charge->get_radar_block_reason() ?? 'unknown';
 		}
 
 		return false;
