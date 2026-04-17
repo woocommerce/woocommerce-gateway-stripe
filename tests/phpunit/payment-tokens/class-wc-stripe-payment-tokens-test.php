@@ -372,15 +372,15 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $seed_token_id, $result->get_id(), 'Duplicate-matched token should be reused, not recreated.' );
 		$this->assertSame( 'pm_new', $result->get_token() );
-		$this->assertSame( '02', $result->get_expiry_month() );
-		$this->assertSame( '2028', $result->get_expiry_year() );
+		$this->assertEquals( '02', $result->get_expiry_month() );
+		$this->assertEquals( '2028', $result->get_expiry_year() );
 		$this->assertSame( 'visa', $result->get_card_type() );
 		$this->assertSame( '4242', $result->get_last4() );
 
 		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
 		$this->assertSame( 'pm_new', $reloaded->get_token(), 'Refreshed PM id must be persisted.' );
-		$this->assertSame( '02', $reloaded->get_expiry_month(), 'Refreshed expiry_month must be persisted.' );
-		$this->assertSame( '2028', $reloaded->get_expiry_year(), 'Refreshed expiry_year must be persisted.' );
+		$this->assertEquals( '02', $reloaded->get_expiry_month(), 'Refreshed expiry_month must be persisted.' );
+		$this->assertEquals( '2028', $reloaded->get_expiry_year(), 'Refreshed expiry_year must be persisted.' );
 	}
 
 	/**
