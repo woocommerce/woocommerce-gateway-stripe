@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.6.0
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay, Link)
+* Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
@@ -80,6 +81,7 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 * Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
+* Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
 2026-03-19 - version 10.5.3
 * Fix - Restore default layout when Optimized Checkout is disabled

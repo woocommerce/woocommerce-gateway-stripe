@@ -148,6 +148,9 @@ install_test_suite() {
 		WP_CORE_DIR=$(echo $WP_CORE_DIR | sed "s:/\+$::")
 		sed $ioption "s:dirname( __FILE__ ) . '/src/':'$WP_CORE_DIR/':" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s/youremptytestdbnamehere/$DB_NAME/" "$WP_TESTS_DIR"/wp-tests-config.php
+		# Make DB_NAME dynamic for parallel test execution: when paratest sets TEST_TOKEN,
+		# each worker uses its own database (e.g. wc_stripe_tests_1) to avoid conflicts.
+		sed $ioption "s/define( 'DB_NAME', '$DB_NAME' );/define( 'DB_NAME', getenv( 'TEST_TOKEN' ) !== false ? '${DB_NAME}_' . getenv( 'TEST_TOKEN' ) : '${DB_NAME}' );/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR"/wp-tests-config.php
@@ -170,6 +173,27 @@ install_db() {
 
 	# create database
 	mysqladmin create $DB_NAME $MYSQLADMIN_FLAGS
+}
+
+install_worker_dbs() {
+	if [ ${SKIP_DB_CREATE} = "true" ]; then
+		return 0
+	fi
+
+	wait_db
+	local MYSQLADMIN_FLAGS=$(get_db_connection_flags)
+	# Create one database per potential paratest worker. Default to nproc so the
+	# number scales with the container's CPU count; fall back to 8 if nproc is
+	# unavailable.
+	local NUM_WORKERS=$(nproc 2>/dev/null || echo 8)
+
+	echo "Creating $NUM_WORKERS paratest worker databases..."
+	for i in $(seq 1 $NUM_WORKERS); do
+		set +e
+		mysqladmin drop --force "${DB_NAME}_${i}" $MYSQLADMIN_FLAGS &> /dev/null
+		set -e
+		mysqladmin create "${DB_NAME}_${i}" $MYSQLADMIN_FLAGS
+	done
 }
 
 install_woocommerce() {
@@ -206,6 +230,9 @@ install_woocommerce() {
 
 install_wp
 install_db
+if [ "${PARATEST:-false}" = "true" ]; then
+	install_worker_dbs
+fi
 configure_wp
 install_test_suite
 install_woocommerce
