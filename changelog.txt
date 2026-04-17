@@ -59,7 +59,6 @@ xxxx-xx-xx - version 10.6.0
 * Dev - Hide Stripe's testing assistant on checkout page
 * Dev - Treat misaligned statements as errors in PHPCS ruleset
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
-* Fix - Fall back to split Stripe payment methods when Optimized Checkout is enabled but Stripe is not the first available gateway
 * Dev - Remove checkout sessions feature flag and make the feature available by default
 * Fix - Treat customer-initiated Klarna (and other redirect BNPL) cancellations as recoverable so the order stays retryable and shoppers can complete checkout with another payment method
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
