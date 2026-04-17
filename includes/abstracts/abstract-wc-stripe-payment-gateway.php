@@ -1308,8 +1308,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 
 		} elseif ( ! empty( $response->id ) ) {
+			$stripe_refund    = new WC_Stripe_Refund( $response );
 			$formatted_amount = wc_price(
-				WC_Stripe_Helper::convert_from_stripe_amount( (int) $response->amount, $order->get_currency() ),
+				WC_Stripe_Helper::convert_from_stripe_amount( (int) $stripe_refund->get_amount(), $order->get_currency() ),
 				[ 'currency' => $order->get_currency() ]
 			);
 
@@ -1328,14 +1329,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			$order_helper->update_stripe_refund_id( $order, $response->id );
+			$order_helper->update_stripe_refund_id( $order, $stripe_refund->get_id() );
 
-			if ( isset( $response->balance_transaction ) ) {
-				$this->update_fees( $order, $response->balance_transaction );
+			$balance_transaction_id = $stripe_refund->get_balance_transaction_id();
+			if ( null !== $balance_transaction_id ) {
+				$this->update_fees( $order, $balance_transaction_id );
 			}
 
 			/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
-			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $response->id, $reason );
+			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $stripe_refund->get_id(), $reason );
 
 			$order->add_order_note( $refund_message );
 			$order_helper->unlock_order_refund( $order );

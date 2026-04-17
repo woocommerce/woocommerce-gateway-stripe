@@ -553,8 +553,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $this->is_partial_capture( $notification ) ) {
 					$partial_amount = $this->get_partial_amount_to_charge( $notification );
 					$order->set_total( $partial_amount );
-					$refund_object = $this->get_refund_object( $notification );
-					$this->update_fees( $order, $refund_object->balance_transaction );
+					$refund = new WC_Stripe_Refund( $this->get_refund_object( $notification ) );
+					$this->update_fees( $order, $refund->get_balance_transaction_id() );
 					/* translators: partial captured amount */
 					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
 				} else {
@@ -738,16 +738,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_refund( $notification ) {
-		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$stripe_refund = new WC_Stripe_Refund( $this->get_refund_object( $notification ) );
+		$refund_id     = $stripe_refund->get_id();
+		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
+			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_id );
 			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 		}
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::warning( "Could not find order via refund ID ({$refund_object->id}) or charge ID ({$notification->data->object->id})" );
+			WC_Stripe_Logger::warning( "Could not find order via refund ID ({$refund_id}) or charge ID ({$notification->data->object->id})" );
 			return;
 		}
 
@@ -759,17 +760,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
-			$charge     = $order->get_transaction_id();
-			$captured   = $order_helper->is_stripe_charge_captured( $order );
-			$refund_id  = $order_helper->get_stripe_refund_id( $order );
-			$currency   = $order->get_currency();
-			$raw_amount = $refund_object->amount;
-
-			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-				$raw_amount /= 100;
-			}
-
-			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
+			$charge           = $order->get_transaction_id();
+			$captured         = $order_helper->is_stripe_charge_captured( $order );
+			$stored_refund_id = $order_helper->get_stripe_refund_id( $order );
+			$currency         = $order->get_currency();
+			$amount           = wc_price( $stripe_refund->get_amount_decimal( $currency ), [ 'currency' => $currency ] );
 
 			// If charge wasn't captured, skip creating a refund.
 			if ( ! $captured ) {
@@ -789,7 +784,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// If the refund ID matches, don't continue to prevent double refunding.
-			if ( $refund_object->id === $refund_id ) {
+			if ( $refund_id === $stored_refund_id ) {
 				return;
 			}
 
@@ -811,16 +806,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					WC_Stripe_Logger::error( 'Error creating refund for order: ' . $order_id, [ 'error_message' => $refund->get_error_message() ] );
 				}
 
-				$order_helper->update_stripe_refund_id( $order, $refund_object->id );
+				$order_helper->update_stripe_refund_id( $order, $refund_id );
 
-				if ( isset( $refund_object->balance_transaction ) ) {
-					$this->update_fees( $order, $refund_object->balance_transaction );
+				$balance_transaction_id = $stripe_refund->get_balance_transaction_id();
+				if ( null !== $balance_transaction_id ) {
+					$this->update_fees( $order, $balance_transaction_id );
 				}
 
 				$order_helper->unlock_order_refund( $order );
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
-				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
+				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_id, $reason ) );
 			}
 		}
 	}
@@ -831,11 +827,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_refund_updated( $notification ) {
-		$refund_object = $notification->data->object;
-		$order         = WC_Stripe_Helper::get_order_by_charge_id( $refund_object->charge );
+		$stripe_refund = new WC_Stripe_Refund( $notification->data->object );
+		$charge_id     = $stripe_refund->get_charge_id();
+		$order         = WC_Stripe_Helper::get_order_by_charge_id( $charge_id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::warning( 'Could not find order to update refund via charge ID: ' . $refund_object->charge );
+			WC_Stripe_Logger::warning( 'Could not find order to update refund via charge ID: ' . $charge_id );
 			return;
 		}
 
@@ -845,19 +842,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id     = $order->get_id();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
-			$charge     = $order->get_transaction_id();
-			$refund_id  = $order_helper->get_stripe_refund_id( $order );
-			$currency   = $order->get_currency();
-			$raw_amount = $refund_object->amount;
-
-			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-				$raw_amount /= 100;
-			}
-
-			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
+			$charge           = $order->get_transaction_id();
+			$stored_refund_id = $order_helper->get_stripe_refund_id( $order );
+			$refund_id        = $stripe_refund->get_id();
+			$currency         = $order->get_currency();
+			$amount           = wc_price( $stripe_refund->get_amount_decimal( $currency ), [ 'currency' => $currency ] );
 
 			// If the refund IDs do not match stop.
-			if ( $refund_object->id !== $refund_id ) {
+			if ( $refund_id !== $stored_refund_id ) {
 				return;
 			}
 
@@ -876,27 +868,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				$refund = $refunds[0];
 
-				if ( in_array( $refund_object->status, [ 'failed', 'canceled' ], true ) ) {
-					if ( isset( $refund_object->failure_balance_transaction ) ) {
-						$this->update_fees( $order, $refund_object->failure_balance_transaction );
+				if ( $stripe_refund->is_failed_or_canceled() ) {
+					$failure_balance_transaction_id = $stripe_refund->get_failure_balance_transaction_id();
+					if ( null !== $failure_balance_transaction_id ) {
+						$this->update_fees( $order, $failure_balance_transaction_id );
 					}
 					$refund->delete( true );
-					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+					do_action( 'woocommerce_refund_deleted', $stored_refund_id, $order_id );
 
-					$order_helper->update_stripe_refund_status( $order, $refund_object->status );
+					$order_helper->update_stripe_refund_status( $order, $stripe_refund->get_status() );
 
-					$friendly_failure_reason = WC_Stripe_Helper::get_refund_reason_description( $refund_object->failure_reason );
-					if ( 'failed' === $refund_object->status ) {
+					$friendly_failure_reason = $stripe_refund->get_friendly_failure_reason();
+					if ( $stripe_refund->is_failed() ) {
 						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
-						$note = sprintf( __( 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $friendly_failure_reason );
+						$note = sprintf( __( 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_id, $friendly_failure_reason );
 					} else {
 						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
-						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $friendly_failure_reason );
+						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_id, $friendly_failure_reason );
 					}
 
 					// Store the raw failure reason
-					if ( isset( $refund_object->failure_reason ) ) {
-						$order_helper->update_stripe_refund_failure_reason( $order, $refund_object->failure_reason );
+					$failure_reason = $stripe_refund->get_failure_reason();
+					if ( null !== $failure_reason ) {
+						$order_helper->update_stripe_refund_failure_reason( $order, $failure_reason );
 					} else {
 						$order_helper->delete_stripe_refund_failure_reason( $order );
 					}
@@ -1054,14 +1048,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_refund_amount( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
-			$refund_object = $this->get_refund_object( $notification );
-			$amount        = $refund_object->amount / 100;
-
-			if ( in_array( strtoupper( $notification->data->object->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-				$amount = $refund_object->amount;
-			}
-
-			return $amount;
+			$stripe_refund = new WC_Stripe_Refund( $this->get_refund_object( $notification ) );
+			return $stripe_refund->get_amount_decimal( $notification->data->object->currency );
 		}
 
 		return false;

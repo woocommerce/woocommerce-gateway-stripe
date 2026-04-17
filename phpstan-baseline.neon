@@ -177,7 +177,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$amount\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -1021,6 +1021,12 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
+			message: '#^Parameter \#1 \$refund of class WC_Stripe_Refund constructor expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:get_localized_error_message_from_response\(\) expects stdClass, WP_Error given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1112,6 +1118,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_Payment_Gateway\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
+
+		-
+			message: '#^Parameter \#2 \$refund_id of method WC_Stripe_Order_Helper\:\:update_stripe_refund_id\(\) expects string, string\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -3139,18 +3151,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$amount\.$#'
-			identifier: property.notFound
-			count: 3
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$balance_transaction\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
 			identifier: property.notFound
 			count: 45
@@ -3159,7 +3159,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 8
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -3439,6 +3439,12 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$charge_id of static method WC_Stripe_Helper\:\:get_order_by_charge_id\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#1 \$json of function json_decode expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3475,6 +3481,24 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#1 \$price of function wc_price expects float, float\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$refund of class WC_Stripe_Refund constructor expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#1 \$refund_id of static method WC_Stripe_Helper\:\:get_order_by_refund_id\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#1 \$request_body of method WC_Stripe_Webhook_Handler\:\:process_webhook\(\) expects string, string\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -3493,7 +3517,25 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
+			message: '#^Parameter \#2 \$balance_transaction_id of method WC_Stripe_Payment_Gateway\:\:update_fees\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#2 \$refund_id of method WC_Stripe_Order_Helper\:\:update_stripe_refund_id\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
 			message: '#^Parameter \#2 \$request_body of method WC_Stripe_Webhook_Handler\:\:validate_request\(\) expects array, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-wc-stripe-webhook-handler.php
+
+		-
+			message: '#^Parameter \#2 \$status of method WC_Stripe_Order_Helper\:\:update_stripe_refund_status\(\) expects string, string\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
