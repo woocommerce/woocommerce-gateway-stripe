@@ -74,7 +74,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		// For change payment method page, only load the minimal set of hooks needed.
-		if ( isset( $_GET['change_payment_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
 			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 			add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
 			add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
@@ -238,7 +238,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
-			'is_change_payment_method'   => isset( $_GET['change_payment_method'] ), // phpcs:ignore WordPress.Security.NonceVerification
+			'is_change_payment_method'   => $this->express_checkout_helper->is_change_payment_method_page(),
 		];
 	}
 
