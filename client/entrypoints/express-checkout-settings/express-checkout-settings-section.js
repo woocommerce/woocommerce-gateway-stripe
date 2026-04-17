@@ -226,6 +226,24 @@ const ExpressCheckoutSettingsSection = () => {
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
 						/>
 					</li>
+					<li>
+						<CheckboxControl
+							disabled={ ! isExpressCheckoutEnabled }
+							checked={
+								isExpressCheckoutEnabled &&
+								expressCheckoutLocations.includes(
+									'change_payment_method'
+								)
+							}
+							onChange={ makeLocationChangeHandler(
+								'change_payment_method'
+							) }
+							label={ __(
+								'Change payment method (subscriptions)',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					</li>
 				</ul>
 				<h4>
 					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }

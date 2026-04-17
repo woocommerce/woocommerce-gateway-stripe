@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $is_gte_wc6_6 = defined( WC_VERSION ) && version_compare( WC_VERSION, '6.6', '>=' );
 
-$wc_stripe_default_express_checkout_locations = [ 'product', 'cart', 'checkout' ];
+$wc_stripe_default_express_checkout_locations = [ 'product', 'cart', 'checkout', 'change_payment_method' ];
 
 return apply_filters(
 	'wc_stripe_settings',
@@ -197,9 +197,10 @@ return apply_filters(
 			'desc_tip'          => true,
 			'class'             => 'wc-enhanced-select',
 			'options'           => [
-				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
-				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
-				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+				'product'               => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'                  => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout'              => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+				'change_payment_method' => __( 'Change payment method (subscriptions)', 'woocommerce-gateway-stripe' ),
 			],
 			'default'           => $wc_stripe_default_express_checkout_locations,
 			'custom_attributes' => [
@@ -257,9 +258,10 @@ return apply_filters(
 			'desc_tip'          => true,
 			'class'             => 'wc-enhanced-select',
 			'options'           => [
-				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
-				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
-				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+				'product'               => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'                  => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout'              => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+				'change_payment_method' => __( 'Change payment method (subscriptions)', 'woocommerce-gateway-stripe' ),
 			],
 			'default'           => $wc_stripe_default_express_checkout_locations,
 			'custom_attributes' => [

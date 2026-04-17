@@ -649,6 +649,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * Performs only the basic checks needed (account connected, SSL, gateway available,
 	 * ECE enabled) without cart-dependent validations which don't apply to this flow.
+	 * The location toggle (`change_payment_method`) lets merchants opt out independently
+	 * of the checkout-page setting.
 	 *
 	 * @return boolean
 	 */
@@ -670,11 +672,34 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( ! $this->should_show_ece_on_checkout_page() ) {
+		if ( ! $this->should_show_ece_on_change_payment_method_location() ) {
 			return false;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns true if any express checkout buttons are enabled for the subscription
+	 * change payment method location, false otherwise.
+	 *
+	 * @since 10.6.0
+	 * @return boolean
+	 */
+	public function should_show_ece_on_change_payment_method_location() {
+		$should_show = $this->should_show_ece_on_location( 'change_payment_method' );
+
+		/**
+		 * Filters whether Express Checkout buttons should appear on the
+		 * WooCommerce Subscriptions "Change payment method" page.
+		 *
+		 * @since 10.6.0
+		 * @param bool $should_show Whether the buttons should be shown.
+		 */
+		return apply_filters(
+			'wc_stripe_show_express_checkout_on_change_payment_method',
+			$should_show
+		);
 	}
 
 	/**
@@ -1725,6 +1750,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	private function is_enabled_for_current_context( string $express_checkout_type ): bool {
+		// Subscription change payment method has its own dedicated location toggle so
+		// merchants can opt out independently of the checkout-page setting.
+		if ( $this->is_change_payment_method_page() ) {
+			return $this->is_enabled_for_location( $express_checkout_type, 'change_payment_method' );
+		}
+
 		// One Page Checkout plugin creates checkout functionality on product pages, so we need to check for it and treat it as a checkout page.
 		$is_one_page_checkout = $this->is_one_page_checkout();
 
