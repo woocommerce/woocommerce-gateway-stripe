@@ -146,7 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
-* Dev - Align the Agentic Commerce sync status UI with the WordPress design system: replace custom Card/CardTitle and ad-hoc status badges with @wordpress/components Card primitives and the shared Pill component, swap unicode icons for @wordpress/icons, widen the Status column so all status labels fit on one line, and cap the Recent Syncs table at the 10 most recent entries
+* Dev - Align Agentic Commerce sync status UI with the WordPress design system and cap Recent Syncs at 10 rows
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
