@@ -4401,6 +4401,88 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests for `should_use_optimized_checkout_payment_method_layout`.
+	 *
+	 * @dataProvider provide_test_should_use_optimized_checkout_payment_method_layout
+	 *
+	 * @param bool $oc_enabled     Whether `oc_enabled` is set on the gateway.
+	 * @param bool $valid_page     Value returned by `is_valid_optimized_checkout_page`.
+	 * @param bool $stripe_first   Value returned by `WC_Stripe_Helper::is_stripe_gateway_first_in_available_list`.
+	 * @param bool $expected       Expected return value.
+	 */
+	public function test_should_use_optimized_checkout_payment_method_layout( bool $oc_enabled, bool $valid_page, bool $stripe_first, bool $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_available' ] )
+			->getMock();
+
+		$gateway->id         = WC_Stripe_UPE_Payment_Gateway::ID;
+		$gateway->oc_enabled = $oc_enabled;
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_page );
+		$gateway->method( 'is_available' )->willReturn( true );
+
+		// Control whether Stripe is the first available gateway.
+		$original_gateways = WC()->payment_gateways->payment_gateways;
+		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+		try {
+			if ( $stripe_first ) {
+				WC()->payment_gateways->payment_gateways = [ $gateway ];
+			} else {
+				$bacs_mock          = $this->createMock( WC_Payment_Gateway::class );
+				$bacs_mock->id      = 'bacs';
+				$bacs_mock->enabled = 'yes';
+				$bacs_mock->method( 'is_available' )->willReturn( true );
+				WC()->payment_gateways->payment_gateways = [ $bacs_mock, $gateway ];
+			}
+			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
+
+			$this->assertSame( $expected, $gateway->should_use_optimized_checkout_payment_method_layout() );
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_gateways;
+			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_use_optimized_checkout_payment_method_layout`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_should_use_optimized_checkout_payment_method_layout() {
+		return [
+			'OC enabled, valid page, Stripe first'        => [
+				'oc_enabled'   => true,
+				'valid_page'   => true,
+				'stripe_first' => true,
+				'expected'     => true,
+			],
+			'OC enabled, valid page, Stripe not first'    => [
+				'oc_enabled'   => true,
+				'valid_page'   => true,
+				'stripe_first' => false,
+				'expected'     => false,
+			],
+			'OC enabled, invalid page, Stripe first'      => [
+				'oc_enabled'   => true,
+				'valid_page'   => false,
+				'stripe_first' => true,
+				'expected'     => false,
+			],
+			'OC disabled, valid page, Stripe first'       => [
+				'oc_enabled'   => false,
+				'valid_page'   => true,
+				'stripe_first' => true,
+				'expected'     => false,
+			],
+			'OC disabled, invalid page, Stripe not first' => [
+				'oc_enabled'   => false,
+				'valid_page'   => false,
+				'stripe_first' => false,
+				'expected'     => false,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for `test_is_valid_optimized_checkout_page`.
 	 *
 	 * @return array[]
@@ -5018,6 +5100,33 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringNotContainsString( '<div', $output );
 		$this->assertStringNotContainsString( '<p', $output );
 		$this->assertStringContainsString( 'Adaptive Pricing Applied', $output );
+	}
+
+	// =========================================================================
+	// Tests for get_tokens() — early return for non-logged-in users (10.6.0)
+	// =========================================================================
+
+	/**
+	 * When no user is logged in, `get_tokens()` must return whatever `parent::get_tokens()`
+	 * returns immediately, without trying to collect sub-gateway tokens (which would fail
+	 * or produce incorrect results for guest sessions).
+	 *
+	 * @return void
+	 */
+	public function test_get_tokens_returns_parent_tokens_when_not_logged_in(): void {
+		// Ensure no user is logged in.
+		wp_set_current_user( 0 );
+
+		// Enable OCS so the inner sub-gateway logic *would* run if the early-return
+		// guard were absent.
+		$this->mock_gateway->oc_enabled = true;
+
+		$tokens = $this->mock_gateway->get_tokens();
+
+		// For a guest session, parent::get_tokens() returns an empty array because
+		// WooCommerce's get_customer_tokens() only returns tokens for logged-in users.
+		$this->assertIsArray( $tokens );
+		$this->assertEmpty( $tokens, 'get_tokens() should return no tokens for a guest user even when OCS is enabled.' );
 	}
 
 	/**
