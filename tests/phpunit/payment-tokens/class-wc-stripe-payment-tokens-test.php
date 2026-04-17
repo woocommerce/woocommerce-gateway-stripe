@@ -12,9 +12,69 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	 */
 	private $stripe_payment_tokens;
 
+	/**
+	 * The original main stripe gateway before test overrides.
+	 *
+	 * @var WC_Stripe_UPE_Payment_Gateway|null
+	 */
+	private $original_main_gateway = null;
+
 	public function set_up() {
 		parent::set_up();
 		$this->stripe_payment_tokens = new WC_Stripe_Payment_Tokens();
+
+		// Save the original main gateway so we can restore it in tear_down.
+		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$reflection->setAccessible( true );
+		$this->original_main_gateway = $reflection->getValue( WC_Stripe::get_instance() );
+	}
+
+	public function tear_down() {
+		// Restore the original main gateway.
+		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$reflection->setAccessible( true );
+		$reflection->setValue( WC_Stripe::get_instance(), $this->original_main_gateway );
+
+		// Ensure no stale user session affects subsequent tests.
+		wp_set_current_user( 0 );
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Sets a mock gateway on the WC_Stripe singleton.
+	 *
+	 * @param object $mock_gateway The mock gateway to set.
+	 */
+	private function set_main_gateway( $mock_gateway ): void {
+		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$reflection->setAccessible( true );
+		$reflection->setValue( WC_Stripe::get_instance(), $mock_gateway );
+	}
+
+	/**
+	 * Creates a mock main gateway with oc_enabled set appropriately.
+	 *
+	 * Uses `onlyMethods` so that `is_oc_enabled()` uses the real property-backed
+	 * implementation (reads `$this->oc_enabled`) rather than the default PHPUnit
+	 * stub (which returns null). `get_upe_enabled_payment_method_ids()` is mocked
+	 * to return a safe array so that the OCS-disabled sync path works without
+	 * needing a fully-initialised gateway or live settings.
+	 *
+	 * @param bool $ocs_enabled Whether OCS should be enabled on the mock.
+	 * @return object PHPUnit partial mock of WC_Stripe_UPE_Payment_Gateway.
+	 */
+	private function get_mock_gateway( bool $ocs_enabled ): object {
+		$mock_gateway             = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'should_use_optimized_checkout_payment_method_layout' ] )
+			->getMock();
+		$mock_gateway->oc_enabled = $ocs_enabled;
+		$mock_gateway->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
+		$mock_gateway->method( 'should_use_optimized_checkout_payment_method_layout' )
+			->willReturn( $ocs_enabled );
+		return $mock_gateway;
 	}
 
 	/**
@@ -458,5 +518,313 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			$this->assertArrayHasKey( $expected_key, $result['method'] );
 			$this->assertEquals( $expected_value, $result['method'][ $expected_key ] );
 		}
+	}
+
+	// =========================================================================
+	// Tests for woocommerce_get_customer_payment_tokens
+	// =========================================================================
+
+	/**
+	 * When the user is not logged in, the tokens array must be returned unchanged
+	 * (no Stripe API call or gateway access is needed).
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_returns_unchanged_when_not_logged_in(): void {
+		wp_set_current_user( 0 );
+
+		$initial_tokens = [ 'mock_token_key' => new WC_Payment_Token_CC() ];
+
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $initial_tokens, 1, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$this->assertSame( $initial_tokens, $result );
+	}
+
+	/**
+	 * When the gateway_id is not in the list of reusable UPE gateways the tokens
+	 * array must be returned unchanged (early-exit before any gateway/API access).
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_returns_unchanged_for_non_reusable_gateway(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		$initial_tokens = [ 'mock_token_key' => new WC_Payment_Token_CC() ];
+
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $initial_tokens, $user_id, 'non_stripe_gateway' );
+
+		$this->assertSame( $initial_tokens, $result );
+	}
+
+	/**
+	 * When the number of existing tokens has reached the posts_per_page limit the
+	 * tokens array must be returned unchanged (no sync happens).
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_returns_unchanged_when_at_token_limit(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		$limit          = (int) get_option( 'posts_per_page', 10 );
+		$initial_tokens = array_fill( 0, $limit, new WC_Payment_Token_CC() );
+
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $initial_tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$this->assertSame( $initial_tokens, $result );
+	}
+
+	/**
+	 * When OCS is enabled, calling woocommerce_get_customer_payment_tokens with the
+	 * main 'stripe' gateway ID must also return tokens that are stored under
+	 * sub-gateway IDs (e.g. 'stripe_cashapp'), because the OCS element handles all
+	 * payment methods in one consolidated block.
+	 *
+	 * The test sets up:
+	 * - A logged-in WordPress user with a Stripe customer ID.
+	 * - A CashApp payment token stored in WooCommerce under 'stripe_cashapp'.
+	 * - A mocked Stripe API (via pre_http_request) that confirms the token still
+	 *   exists in Stripe so it is NOT pruned during the sync step.
+	 * - A mocked main gateway with OCS enabled.
+	 *
+	 * Expected: the CashApp token appears in the result even though the query was
+	 * issued against the main 'stripe' gateway ID.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_includes_sub_gateway_tokens_when_ocs_enabled(): void {
+		// Create and log-in a user.
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Give the user a Stripe customer ID so WC_Stripe_Customer::get_id() returns a non-empty value,
+		// allowing get_all_payment_methods() to proceed to the (mocked) API call.
+		$stripe_customer_id = 'cus_test_ocs_' . $user_id;
+		update_user_option( $user_id, '_stripe_customer_id', $stripe_customer_id, false );
+
+		// Store a CashApp token in WooCommerce under the 'stripe_cashapp' sub-gateway.
+		$cashapp_pm_id = 'pm_cashapp_test_ocs';
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_token( $cashapp_pm_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$cashapp_token->set_cashtag( '$testcashtag' );
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->save();
+
+		// Mock the Stripe API to return the CashApp payment method (prevents the token being
+		// treated as orphaned and deleted during the sync step).
+		$stripe_api_response = [
+			'data'     => [
+				[
+					'id'      => $cashapp_pm_id,
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+					'cashapp' => [ 'cashtag' => '$testcashtag' ],
+				],
+			],
+			'has_more' => false,
+		];
+
+		$mock_http_request = function ( $preempt, $request_args, $url ) use ( $stripe_api_response ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $stripe_api_response ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
+
+		// Enable OCS on the mock main gateway.
+		// Also populate payment_methods with a CashApp stub so the sub-gateway sync (triggered by
+		// the second WC_Stripe_Payment_Tokens instance created during plugin init) does not treat
+		// the stored token as orphaned and delete it before the OCS merge can return it.
+		$mock_cashapp_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled_at_checkout', 'is_enabled' ] )
+			->getMock();
+		$mock_cashapp_pm->method( 'is_enabled_at_checkout' )->willReturn( true );
+		$mock_cashapp_pm->method( 'is_enabled' )->willReturn( true );
+
+		$mock_gateway = $this->get_mock_gateway( true );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] = $mock_cashapp_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_request, 10 );
+		}
+
+		// The CashApp token should appear in the result because OCS sub-gateway tokens are merged.
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertContains( $cashapp_pm_id, $result_token_ids, 'OCS-enabled query for stripe gateway should include sub-gateway (CashApp) tokens.' );
+	}
+
+	/**
+	 * When OCS is disabled, calling woocommerce_get_customer_payment_tokens with
+	 * the main 'stripe' gateway ID must NOT include tokens stored under sub-gateway
+	 * IDs (e.g. 'stripe_cashapp').
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_excludes_sub_gateway_tokens_when_ocs_disabled(): void {
+		// Create and log-in a user.
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Store a CashApp token under the 'stripe_cashapp' sub-gateway.
+		$cashapp_pm_id = 'pm_cashapp_test_no_ocs';
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_token( $cashapp_pm_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$cashapp_token->set_cashtag( '$testcashtag' );
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->save();
+
+		// Disable OCS on the mock main gateway. The user has no Stripe customer ID so the
+		// API will not be called (WC_Stripe_Customer::get_id() returns empty → returns []).
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		// Call with no initial tokens so there is nothing to sync/delete.
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( $cashapp_pm_id, $result_token_ids, 'OCS-disabled query for stripe gateway should NOT include sub-gateway (CashApp) tokens.' );
+	}
+
+	/**
+	 * When OCS is enabled but a sub-gateway payment method is disabled (e.g. Klarna toggled
+	 * off in settings), its stored tokens must NOT appear in the results.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_excludes_disabled_sub_gateway_tokens_when_ocs_enabled(): void {
+		// Create and log-in a user.
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Store a CashApp token in WooCommerce under the 'stripe_cashapp' sub-gateway.
+		$cashapp_pm_id = 'pm_cashapp_disabled_ocs';
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_token( $cashapp_pm_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$cashapp_token->set_cashtag( '$testcashtag' );
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->save();
+
+		// Mock the CashApp payment method as disabled (is_enabled() returns false).
+		$mock_cashapp_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled_at_checkout', 'is_enabled' ] )
+			->getMock();
+		$mock_cashapp_pm->method( 'is_enabled_at_checkout' )->willReturn( true );
+		$mock_cashapp_pm->method( 'is_enabled' )->willReturn( false );
+
+		$mock_gateway = $this->get_mock_gateway( true );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] = $mock_cashapp_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		// No Stripe customer ID so the API is not called and no sync occurs.
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( $cashapp_pm_id, $result_token_ids, 'Disabled sub-gateway tokens must not appear when OCS is enabled.' );
+	}
+
+	/**
+	 * When OCS is enabled and a sub-gateway method is toggled on but not available
+	 * at checkout (e.g. currency incompatibility), its stored tokens must NOT appear
+	 * in the merged results.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_excludes_unavailable_sub_gateway_tokens_when_ocs_enabled(): void {
+		// Create and log-in a user.
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Store a CashApp token in WooCommerce under the 'stripe_cashapp' sub-gateway.
+		$cashapp_pm_id = 'pm_cashapp_unavailable_ocs';
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_token( $cashapp_pm_id );
+		$cashapp_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$cashapp_token->set_cashtag( '$testcashtag' );
+		$cashapp_token->set_user_id( $user_id );
+		$cashapp_token->save();
+
+		// Mock the CashApp payment method as enabled (toggle on) but not available at checkout
+		// (e.g. currency not supported), simulating the classic-checkout regression reported
+		// in https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5146.
+		$mock_cashapp_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled_at_checkout', 'is_enabled' ] )
+			->getMock();
+		$mock_cashapp_pm->method( 'is_enabled' )->willReturn( true );
+		$mock_cashapp_pm->method( 'is_enabled_at_checkout' )->willReturn( false );
+
+		$mock_gateway = $this->get_mock_gateway( true );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CASHAPP_PAY ] = $mock_cashapp_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		// No Stripe customer ID so the API is not called and no sync occurs.
+		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( $cashapp_pm_id, $result_token_ids, 'Sub-gateway tokens for a method not available at checkout must not appear when OCS is enabled.' );
+	}
+
+	// =========================================================================
+	// Tests for get_account_saved_payment_methods_list_item OCS gateway remapping
+	// =========================================================================
+
+	/**
+	 * When OCS is enabled, sub-gateway tokens (e.g. from 'stripe_sepa_debit') must
+	 * have their gateway ID remapped to the main 'stripe' gateway in the list item
+	 * so that the blocks checkout PaymentUtils can find them.
+	 */
+	public function test_get_account_saved_payment_methods_list_item_remaps_gateway_when_ocs_enabled(): void {
+		$this->set_main_gateway( $this->get_mock_gateway( true ) );
+
+		$sepa_token = new WC_Payment_Token_SEPA();
+		$sepa_token->set_last4( '1234' );
+		$sepa_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+		$sepa_token->set_token( 'pm_sepa_remap_test' );
+		$sepa_token->set_user_id( 1 );
+		$sepa_token->save();
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $sepa_token );
+
+		$this->assertArrayHasKey( 'gateway', $result['method'], 'Gateway key should be set when OCS is enabled and token is from a sub-gateway.' );
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $result['method']['gateway'], 'Gateway should be remapped to the main stripe gateway when OCS is enabled.' );
+	}
+
+	/**
+	 * When OCS is enabled but the token already belongs to the main 'stripe' gateway,
+	 * no remapping should happen.
+	 */
+	public function test_get_account_saved_payment_methods_list_item_does_not_remap_main_gateway_when_ocs_enabled(): void {
+		$this->set_main_gateway( $this->get_mock_gateway( true ) );
+
+		$cashapp_token = new WC_Payment_Token_CashApp();
+		$cashapp_token->set_cashtag( '$test' );
+		$cashapp_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$cashapp_token->set_token( 'pm_cc_main_gateway' );
+		$cashapp_token->set_user_id( 1 );
+		$cashapp_token->save();
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $cashapp_token );
+
+		$this->assertArrayNotHasKey( 'gateway', $result['method'], 'Gateway should NOT be remapped for tokens already on the main stripe gateway.' );
+	}
+
+	/**
+	 * When OCS is disabled, sub-gateway tokens must NOT have their gateway ID
+	 * remapped — the gateway key must not be set.
+	 */
+	public function test_get_account_saved_payment_methods_list_item_does_not_remap_gateway_when_ocs_disabled(): void {
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		$sepa_token = new WC_Payment_Token_SEPA();
+		$sepa_token->set_last4( '1234' );
+		$sepa_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+		$sepa_token->set_token( 'pm_sepa_no_remap_test' );
+		$sepa_token->set_user_id( 1 );
+		$sepa_token->save();
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $sepa_token );
+
+		$this->assertArrayNotHasKey( 'gateway', $result['method'], 'Gateway should NOT be remapped when OCS is disabled.' );
 	}
 }
