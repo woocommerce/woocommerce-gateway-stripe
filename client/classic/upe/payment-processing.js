@@ -1,6 +1,4 @@
 import jQuery from 'jquery';
-import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -37,7 +35,6 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
-import { AdaptivePricingDisclosure } from 'wcstripe/components/adaptive-pricing-disclosure';
 
 /**
  * @typedef {Object} UPEComponent
@@ -455,7 +452,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			paymentElementOptions
 		);
 		mountCurrencySelectorElement( elements );
-		mountAdaptivePricingDisclosure();
 	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
@@ -496,82 +492,6 @@ function mountCurrencySelectorElement( elements ) {
 	}
 	const currencySelector = elements.createCurrencySelectorElement();
 	currencySelector.mount( currencySelectorContainer );
-
-	const disclosureContainer = document.getElementById(
-		'wc-stripe-adaptive-pricing-disclosure'
-	);
-	if ( ! disclosureContainer ) {
-		return;
-	}
-	disclosureContainer.setAttribute( 'isAdaptivePricingEnabled', 'true' );
-}
-
-/** @type {import('react-dom/client').Root|null} */
-let disclosureRoot = null;
-/** @type {Element|null} */
-let disclosureContainer = null;
-
-/**
- * Renders the Adaptive Pricing disclosure with the given billing country.
- * Re-creates the React root if `updated_checkout` replaced the DOM node.
- *
- * @return {void}
- */
-function renderAdaptivePricingDisclosure() {
-	const container = document.getElementById(
-		'wc-stripe-adaptive-pricing-disclosure'
-	);
-	if ( ! container ) {
-		return;
-	}
-
-	// updated_checkout can replace the container node entirely; if the live
-	// node differs from the one the root was created on, unmount the stale
-	// root and create a fresh one so renders are not lost to the detached tree.
-	if ( disclosureContainer !== container ) {
-		disclosureRoot?.unmount();
-		disclosureRoot = createRoot( container );
-		disclosureContainer = container;
-	}
-
-	const billingCountry =
-		document.querySelector( '#billing_country' )?.value ?? '';
-	disclosureRoot.render(
-		createElement( AdaptivePricingDisclosure, { billingCountry } )
-	);
-}
-
-/**
- * Mounts the Adaptive Pricing disclosure and attaches the reactive country-based
- * visibility. Only creates the React root once.
- *
- * @return {void}
- */
-function mountAdaptivePricingDisclosure() {
-	const container = document.getElementById(
-		'wc-stripe-adaptive-pricing-disclosure'
-	);
-	if ( ! container ) {
-		return;
-	}
-
-	const isAdaptivePricingEnabled =
-		container.getAttribute( 'isAdaptivePricingEnabled' ) === 'true';
-	if ( ! isAdaptivePricingEnabled ) {
-		return;
-	}
-
-	// Register the updated_checkout listener only on the first mount.
-	if ( ! disclosureContainer ) {
-		// WooCommerce fires `updated_checkout` via jQuery.trigger(); native
-		// addEventListener on body does not receive it.
-		jQuery( document.body ).on(
-			'updated_checkout',
-			renderAdaptivePricingDisclosure
-		);
-	}
-
-	renderAdaptivePricingDisclosure();
 }
 
 /**
