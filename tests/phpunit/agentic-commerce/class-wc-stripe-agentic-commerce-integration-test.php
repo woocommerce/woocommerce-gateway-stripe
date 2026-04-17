@@ -26,6 +26,10 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
+
+		if ( ! class_exists( 'Stripe_Agentic_Commerce_Integration_Dedup_Harness' ) ) {
+			require_once __DIR__ . '/class-stripe-agentic-commerce-integration-dedup-harness.php';
+		}
 	}
 
 	/**
@@ -216,5 +220,178 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Integration::is_merchant_enabled() );
 
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+	}
+
+	/**
+	 * Test get_feed_hash returns SHA-256 of file contents.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_hash_matches_sha256_of_file() {
+		$tmp = tempnam( sys_get_temp_dir(), 'wc-stripe-feed-' );
+		file_put_contents( $tmp, "id,title\n1,Widget\n" );
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertSame( hash_file( 'sha256', $tmp ), $integration->public_get_feed_hash( $tmp ) );
+
+		unlink( $tmp );
+	}
+
+	/**
+	 * Test get_feed_hash returns empty string when file is missing or unreadable.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_hash_returns_empty_when_file_missing() {
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertSame( '', $integration->public_get_feed_hash( '' ) );
+		$this->assertSame( '', $integration->public_get_feed_hash( '/nonexistent/path/feed.csv' ) );
+	}
+
+	/**
+	 * Test is_feed_unchanged returns false on first run (no cached record).
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_returns_false_when_no_cached_upload() {
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+	}
+
+	/**
+	 * Test is_feed_unchanged returns true when hash matches a fresh cached upload.
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_returns_true_when_hash_matches() {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			[
+				'hash'        => 'abc123',
+				'uploaded_at' => time(),
+				'file_id'     => 'file_test',
+			],
+			false
+		);
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertTrue( $integration->public_is_feed_unchanged( 'abc123' ) );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+	}
+
+	/**
+	 * Test is_feed_unchanged returns false when hashes differ.
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_returns_false_when_hash_differs() {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			[
+				'hash'        => 'abc123',
+				'uploaded_at' => time(),
+				'file_id'     => 'file_test',
+			],
+			false
+		);
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertFalse( $integration->public_is_feed_unchanged( 'different_hash' ) );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+	}
+
+	/**
+	 * Test is_feed_unchanged returns false when the cached record is past the TTL,
+	 * forcing a fresh upload as a safety valve.
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_returns_false_when_cache_expired() {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			[
+				'hash'        => 'abc123',
+				'uploaded_at' => time() - ( 2 * WEEK_IN_SECONDS ),
+				'file_id'     => 'file_test',
+			],
+			false
+		);
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+	}
+
+	/**
+	 * Test dedup can be disabled via filter.
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_respects_disable_filter() {
+		update_option(
+			\WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION,
+			[
+				'hash'        => 'abc123',
+				'uploaded_at' => time(),
+				'file_id'     => 'file_test',
+			],
+			false
+		);
+
+		add_filter( 'wc_stripe_agentic_commerce_dedup_enabled', '__return_false' );
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+
+		remove_filter( 'wc_stripe_agentic_commerce_dedup_enabled', '__return_false' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+	}
+
+	/**
+	 * Test is_feed_unchanged tolerates a malformed/partial cached record.
+	 *
+	 * @return void
+	 */
+	public function test_is_feed_unchanged_returns_false_for_malformed_record() {
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION, 'not_an_array', false );
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$this->assertFalse( $integration->public_is_feed_unchanged( 'abc123' ) );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+	}
+
+	/**
+	 * Test remember_feed_upload persists hash, timestamp, and file_id.
+	 *
+	 * @return void
+	 */
+	public function test_remember_feed_upload_persists_expected_fields() {
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+
+		$integration = new Stripe_Agentic_Commerce_Integration_Dedup_Harness();
+		$integration->public_remember_feed_upload(
+			'abc123',
+			[
+				'file_id'       => 'file_123',
+				'import_set_id' => 'imp_456',
+				'status'        => 'processed',
+			]
+		);
+
+		$record = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
+		$this->assertIsArray( $record );
+		$this->assertSame( 'abc123', $record['hash'] );
+		$this->assertSame( 'file_123', $record['file_id'] );
+		$this->assertSame( 'imp_456', $record['import_set_id'] );
+		$this->assertIsInt( $record['uploaded_at'] );
+		$this->assertLessThanOrEqual( time(), $record['uploaded_at'] );
+
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_UPLOAD_OPTION );
 	}
 }
