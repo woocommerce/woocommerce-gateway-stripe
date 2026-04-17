@@ -63,6 +63,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			remove_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION, [ $this->sut, 'sync_archives' ] );
 		}
 
+		// Reset the static secret key cache to prevent leaking into subsequent tests.
+		WC_Stripe_API::set_secret_key( '' );
+
 		parent::tearDown();
 	}
 
