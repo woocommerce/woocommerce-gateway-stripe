@@ -201,7 +201,10 @@ describe( 'AgenticCommerceSection', () => {
 		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
-			expect( screen.getByText( 'impset_prev' ) ).toBeInTheDocument();
+			// The import_set_id is split across two spans (id-start / id-end) in the
+			// history row so we can't match the concatenated string directly;
+			// assert via the `title` attribute on the wrapping <code> instead.
+			expect( screen.getByTitle( 'impset_prev' ) ).toBeInTheDocument();
 		} );
 	} );
 

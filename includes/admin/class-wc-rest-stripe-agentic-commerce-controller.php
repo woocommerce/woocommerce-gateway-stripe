@@ -120,10 +120,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		// Filter out any non-array entries that may have been stored by corrupted data.
 		$history_raw = array_filter( $history_raw, 'is_array' );
 
-		// Return the 5 most recent history entries, newest first.
+		// Return the 20 most recent history entries, newest first.
 		$history = array_map(
 			[ $this, 'format_entry' ],
-			array_reverse( array_slice( $history_raw, -5 ) )
+			array_reverse( array_slice( $history_raw, -20 ) )
 		);
 
 		$next_sync = null;
