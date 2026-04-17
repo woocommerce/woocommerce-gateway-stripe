@@ -144,6 +144,7 @@
     "watchsass": "node_modules/.bin/node-sass $npm_package_config_assets_styles_sass --output $npm_package_config_assets_styles_cssfolder --output-style compressed --watch",
     "postsass": "for f in $npm_package_config_assets_styles_css; do file=${f%.css}; node_modules/.bin/cleancss -o $file.css $f; done",
     "test:php": "./bin/run-tests.sh",
+    "test:php:parallel": "./bin/run-tests-parallel.sh",
     "test:js": "wp-scripts test-unit-js --config tests/js/jest.config.js",
     "test:js:watch": "npm run test:js --watch",
     "lint:css": "stylelint 'client/**/*.scss' 'client/**/*.css' 'assets/**/*.scss' 'assets/**/*.css'",
