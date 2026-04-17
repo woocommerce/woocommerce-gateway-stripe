@@ -4619,7 +4619,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->should_use_optimized_checkout_payment_method_layout() ) {
+		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
 			return $tokens;
 		}
 
