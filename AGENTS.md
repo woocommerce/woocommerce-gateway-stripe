@@ -32,6 +32,7 @@ Use the smallest command set needed for the task:
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
+| PHPUnit (parallel) | `npm run test:php:parallel` | Runs tests in parallel via paratest; requires Docker. Set `XDEBUG_MODE_PHPUNIT=coverage` to enable coverage. |
 | Jest unit tests | `npm run test:js` | Use `npm run test:js:watch` during iteration. |
 | E2E setup | `npm run test:e2e-setup -- --base_url=...` | Requires `tests/e2e/config/local.env`. |
 | E2E run | `npm run test:e2e -- --base_url=...` | Supports Playwright CLI flags. |

@@ -15,4 +15,4 @@ XDEBUG_MODE=${XDEBUG_MODE_PHPUNIT:-coverage}
 docker compose exec -u www-data -e XDEBUG_MODE=$XDEBUG_MODE wordpress \
 	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/vendor/bin/phpunit \
 	--configuration /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpunit.xml.dist \
-	$*
+	"$@"
