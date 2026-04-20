@@ -1,0 +1,64 @@
+<?php
+
+/**
+ * Migrate_Link_Button_Locations unit tests.
+ */
+class Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
+
+	/**
+	 * @var Migrate_Link_Button_Locations
+	 */
+	private $migration;
+
+	public function set_up() {
+		parent::set_up();
+
+		$this->migration = new Migrate_Link_Button_Locations();
+	}
+
+	public function test_copies_payment_request_locations_when_link_setting_is_unset() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[ 'express_checkout_button_locations' => [ 'checkout' ] ]
+		);
+
+		$this->migration->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [ 'checkout' ], $settings['link_button_locations'] );
+	}
+
+	public function test_copies_empty_payment_request_locations_when_link_setting_is_unset() {
+		// Empty string is how the settings UI represents "all locations cleared".
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[ 'express_checkout_button_locations' => '' ]
+		);
+
+		$this->migration->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( '', $settings['link_button_locations'] );
+	}
+
+	public function test_does_not_overwrite_existing_link_locations() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'express_checkout_button_locations' => [ 'checkout' ],
+				'link_button_locations'             => [ 'cart' ],
+			]
+		);
+
+		$this->migration->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [ 'cart' ], $settings['link_button_locations'] );
+	}
+
+	public function test_skips_when_payment_request_locations_are_unset() {
+		WC_Stripe_Helper::update_main_stripe_settings( [] );
+
+		$this->migration->maybe_migrate();
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayNotHasKey( 'link_button_locations', $settings );
+	}
+}
