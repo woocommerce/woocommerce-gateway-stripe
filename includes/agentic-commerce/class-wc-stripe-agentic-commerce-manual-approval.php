@@ -84,13 +84,23 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval {
 	 * @throws Exception When product resolution fails.
 	 */
 	private function validate_line_item( WC_Stripe_Agentic_Customize_Checkout_Line_Item $line_item ): ?array {
-		$product_id = wc_get_product_id_by_sku( $line_item->get_sku_id() );
+		$sku = $line_item->get_sku_id();
+		if ( '' === $sku ) {
+			throw new Exception(
+				sprintf(
+					'Line item %s has no sku_id.',
+					$line_item->get_id()
+				)
+			);
+		}
+
+		$product_id = wc_get_product_id_by_sku( $sku );
 		if ( ! $product_id ) {
 			throw new Exception(
 				sprintf(
 					'Product not found for line item %s with SKU "%s".',
 					$line_item->get_id(),
-					$line_item->get_sku_id()
+					$sku
 				)
 			);
 		}
