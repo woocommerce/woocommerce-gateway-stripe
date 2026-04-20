@@ -125,6 +125,11 @@ const STATUS_CONFIG = {
 		className: 'success',
 		icon: '✓',
 	},
+	creating_records: {
+		label: __( 'Creating records', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
 	pending: {
 		label: __( 'Processing', 'woocommerce-gateway-stripe' ),
 		className: 'info',

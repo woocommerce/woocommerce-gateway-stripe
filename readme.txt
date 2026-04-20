@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
