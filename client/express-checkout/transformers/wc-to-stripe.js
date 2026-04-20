@@ -167,11 +167,11 @@ export const transformCartDataForShippingRates = ( cartData ) => {
 
 	const shippingRates = cartData?.shipping_rates?.[ 0 ]?.shipping_rates || [];
 
-	if ( ! shippingRates || shippingRates.length === 0 ) {
+	if ( shippingRates.length === 0 ) {
 		return [];
 	}
 
-	return shippingRates
+	return [ ...shippingRates ]
 		.sort( ( rateA, rateB ) => {
 			if ( rateA.selected === rateB.selected ) {
 				return 0;
@@ -184,16 +184,17 @@ export const transformCartDataForShippingRates = ( cartData ) => {
 			displayName: decodeEntities( rate.name ),
 			amount: transformPrice(
 				displayPriceIncludingTax
-					? parseInt( rate.price, 10 ) + parseInt( rate.taxes, 10 )
+					? parseInt( rate.price, 10 ) +
+							parseInt( rate.taxes || '0', 10 )
 					: parseInt( rate.price, 10 ),
 				rate
 			),
 			deliveryEstimate: [
-				rate.meta_data.find(
-					( metadata ) => metadata.key === 'pickup_address'
+				rate.meta_data?.find(
+					( metadata ) => metadata?.key === 'pickup_address'
 				)?.value,
-				rate.meta_data.find(
-					( metadata ) => metadata.key === 'pickup_details'
+				rate.meta_data?.find(
+					( metadata ) => metadata?.key === 'pickup_details'
 				)?.value,
 			]
 				.filter( Boolean )
