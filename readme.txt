@@ -161,7 +161,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Fix - Hide duplicate store-level save checkbox when Stripe Link is enabled on checkout
 * Update - Show "Payment Options" as the Optimized Checkout title on classic checkout and "Payment Methods" on Blocks checkout instead of "Stripe"
-* Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Update Stripe Fee and Stripe Payout values correctly after partial capture by replacing authorization-phase values instead of adding to them
 * Fix - Add defensive checks before running renewal meta cleanup when renewal/subscription objects are missing or invalid
 * Fix - Use the order currency instead of the global store currency when creating a payment intent, resolving incorrect charges in multicurrency setups
@@ -175,6 +174,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Put subscription on hold when Stripe Radar blocks a renewal payment to prevent WC Subscriptions from scheduling further retry attempts
 * Fix - Prevent TypeError when processing deferred webhooks using Action Scheduler
 * Fix - Prevent JavaScript error in `elements.update` when using checkout sessions with adaptive pricing
+* Fix - Keep adaptive pricing amount in sync on checkout after order total changes
 * Fix - Better background color detection for block themes and allow fonts from fonts.bunny.net
 * Fix - Re-block UI during express checkout post-modal processing so shoppers see a loading state while the checkout API call completes
 * Fix - Use floating labels and correct field spacing on Blocks checkout
@@ -188,8 +188,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Improve default layout when Optimized Checkout is disabled
 * Fix - Improve performance of CSS style lookups
 * Fix - Fix UPE style transition keys for font smoothing properties
-* Fix - Keep adaptive pricing amount in sync on classic checkout after order total changes
-* Fix - Keep adaptive pricing amount in sync on block checkout after order total changes
+* Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 
