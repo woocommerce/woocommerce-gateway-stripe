@@ -347,6 +347,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
 			$is_payment_request_enabled &&
+			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -571,18 +572,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_amazon_pay_settings( WP_REST_Request $request ) {
-		$attributes = [
-			'amazon_pay_button_size'      => 'amazon_pay_button_size',
-			'amazon_pay_button_locations' => 'amazon_pay_button_locations',
-		];
+		$attributes = [ 'amazon_pay_button_size', 'amazon_pay_button_locations' ];
 
-		foreach ( $attributes as $request_key => $attribute ) {
-			if ( null === $request->get_param( $request_key ) ) {
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
 				continue;
 			}
 
-			$value = $request->get_param( $request_key );
-			$this->gateway->update_validated_option( $attribute, $value );
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
 		}
 	}
 
@@ -594,18 +591,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_link_settings( WP_REST_Request $request ) {
-		$attributes = [
-			'link_button_size'      => 'link_button_size',
-			'link_button_locations' => 'link_button_locations',
-		];
+		$attributes = [ 'link_button_size', 'link_button_locations' ];
 
-		foreach ( $attributes as $request_key => $attribute ) {
-			if ( null === $request->get_param( $request_key ) ) {
+		foreach ( $attributes as $attribute ) {
+			if ( null === $request->get_param( $attribute ) ) {
 				continue;
 			}
 
-			$value = $request->get_param( $request_key );
-			$this->gateway->update_validated_option( $attribute, $value );
+			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
 		}
 	}
 

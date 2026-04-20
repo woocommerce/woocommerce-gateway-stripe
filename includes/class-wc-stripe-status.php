@@ -158,7 +158,15 @@ class WC_Stripe_Status {
 					<mark class="yes"><span class="dashicons dashicons-yes"></span>
 					<?php
 					if ( $express_checkout_helper->is_express_checkout_enabled() ) {
-						$express_checkout_enabled_locations = $express_checkout_helper->get_button_locations();
+						$express_checkout_enabled_locations = array_values(
+							array_unique(
+								array_merge(
+									$express_checkout_helper->get_button_locations( 'payment_request' ),
+									$express_checkout_helper->get_button_locations( 'link' ),
+									$express_checkout_helper->get_button_locations( 'amazon_pay' )
+								)
+							)
+						);
 						$express_checkout_enabled_locations = empty( $express_checkout_enabled_locations ) ? 'no locations enabled' : implode( ',', $express_checkout_enabled_locations );
 						echo esc_html__( 'Enabled', 'woocommerce-gateway-stripe' );
 						echo ' (' . esc_html( $express_checkout_enabled_locations ) . ')';
