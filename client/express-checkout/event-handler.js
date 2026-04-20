@@ -11,6 +11,14 @@ import {
 	transformCartDataForShippingRates,
 } from './transformers/wc-to-stripe';
 
+/**
+ * Module-scoped Cart API singleton used by the shipping handlers.
+ *
+ * `setCartApiHandler` is a test-only injection seam. It permanently replaces
+ * the module-scoped `cartApi` reference, so tests that swap it should rely on
+ * Jest's per-file module registry isolation to avoid leaking mocks into other
+ * files. Production code should not reassign this.
+ */
 let cartApi = new ExpressCheckoutCartApi();
 export const setCartApiHandler = ( handler ) => ( cartApi = handler );
 export const getCartApiHandler = () => cartApi;
