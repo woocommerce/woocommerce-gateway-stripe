@@ -148,23 +148,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 10.6.0 - xxxx-xx-xx =
 
 **New Features**
-* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
+* Add - Support for Adaptive Pricing
 * Add - Allow payment methods for other currencies to be enabled when Adaptive Pricing is enabled
-* Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
-* Add - Process payment with adaptive pricing in the classic checkout
+* Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement
 * Add - New promotional banner to highlight the Stripe Tax extension for OCS-enabled merchants
-* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
 * Add - Support express checkout for free trial subscription products that require shipping
-* Add - Process payment with adaptive pricing in the blocks checkout
 * Add - Allow additional font domains to be included in Stripe fonts
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
-* Add - Handle Checkout Session failure webhook events for expired and async failed payments
-* Add - Process Checkout Session async payment success webhooks
-* Add - Add Ajax endpoint to update line items in a checkout session
-* Add - Allow customers to save payment methods during checkout with adaptive pricing
 * Add - Add an admin notice and one-click action to move Stripe payment methods to the top of WooCommerce payment gateway order for Optimized Checkout
-* Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
-* Add - Handle redirect payment flow in classic checkout for Checkout Sessions
 
 **Important Fixes and Updates**
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
