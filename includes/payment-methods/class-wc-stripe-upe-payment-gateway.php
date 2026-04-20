@@ -628,8 +628,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Optimized Checkout feature flag + setting + whether we are on any of the pages that should not show OC.
-		// Keep OCS gated to cases where Stripe is the first available gateway.
-		$should_show_optimized_checkout                 = $this->should_use_optimized_checkout_payment_method_layout();
+		$should_show_optimized_checkout                 = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;
 		$stripe_params['shouldExpandOptimizedCheckout'] = $should_show_optimized_checkout && WC_Stripe_Feature_Flags::should_expand_ocs_in_legacy_checkout();
@@ -800,30 +799,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Whether Optimized Checkout layout should be used for this request.
-	 *
-	 * When false, split Payment Element path is used.
-	 *
-	 * @return bool
-	 */
-	public function should_use_optimized_checkout_payment_method_layout(): bool {
-		return $this->oc_enabled && $this->is_valid_optimized_checkout_page() && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list();
-	}
-
-	/**
-	 * Whether Optimized Checkout is enabled and Stripe is the first available gateway on this request.
-	 *
-	 * Use this for payment processing paths (process_payment, save card, redirect). For frontend
-	 * rendering, use {@see should_use_optimized_checkout_payment_method_layout()} which also checks
-	 * page validity.
-	 *
-	 * @return bool
-	 */
-	private function is_oc_active(): bool {
-		return $this->oc_enabled && WC_Stripe_Helper::is_stripe_gateway_first_in_available_list();
-	}
-
-	/**
 	 * Returns the payment method title.
 	 *
 	 * When Optimized Checkout is enabled, returns the title from the OC payment method class.
@@ -831,7 +806,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_title() {
-		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			// On the order received page and order details page, calling WC_Stripe_UPE_Payment_Method_OC::get_title()
 			// without payment details falls through to the generic "Stripe" title. Use the
 			// payment method title stored on the order instead, which is set correctly by the
@@ -848,6 +823,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					}
 				}
 			}
+
 			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
 		}
 		return parent::get_title();
@@ -865,9 +841,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$original_method_ids     = $enabled_payment_methods; // For OC, keep the original methods to control availability
 		$payment_methods         = $this->payment_methods;
 
-		// If Optimized Checkout is active for this request, return the OC pseudo-method + express methods only.
-		// All payment methods are rendered inside the card container. Otherwise use split PE (one gateway per method).
-		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
+		// If the Optimized Checkout is enabled (and we are not in any of the pages that should not show OC), we need to return just the card payment method + express methods.
+		// All payment methods are rendered inside the card container.
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods          = array_intersect(
 				$enabled_payment_methods,
@@ -881,7 +857,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// dynamically show/hide the save checkbox as the selected method
 		// changes inside the Payment Element.
 		$show_save_option_by_method = [];
-		if ( $this->should_use_optimized_checkout_payment_method_layout() ) {
+		if ( $this->oc_enabled && $this->is_valid_optimized_checkout_page() ) {
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
 					$show_save_option_by_method[ $method_id ] = $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $method_id ] );
@@ -1053,7 +1029,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		try {
 			$display_tokenization    = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-			$show_optimized_checkout = $this->should_use_optimized_checkout_payment_method_layout();
+			$show_optimized_checkout = $this->oc_enabled && $this->is_valid_optimized_checkout_page();
 			$show_adaptive_pricing   = $show_optimized_checkout && $this->is_adaptive_pricing_supported();
 
 			// Output the form HTML.
@@ -1512,7 +1488,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args                 = [];
 
-			if ( $this->is_oc_active() && isset( $payment_method_details->type ) ) {
+			if ( $this->oc_enabled && isset( $payment_method_details->type ) ) {
 				$upe_payment_method = self::get_payment_method_instance( $payment_method_details->type );
 			}
 
@@ -2997,7 +2973,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method_id = $setup_intent->payment_method;
 
 			$payment_method = null;
-			if ( $this->is_oc_active() ) {
+			if ( $this->oc_enabled ) {
 				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
 				if ( ! empty( $payment_method_type ) ) {
 					$payment_method = self::get_payment_method_instance( $payment_method_type );
@@ -3259,7 +3235,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
 		// When Optimized Checkout is enabled, check which payment method we need to use.
-		if ( $this->is_oc_active() ) {
+		if ( $this->oc_enabled ) {
 			// Check if we are handling an express payment type, where we should not expect a payment method to have been created, and
 			// need to rely on either $selected_payment_type or $express_payment_type.
 			if ( empty( $payment_method_id ) || empty( $payment_method_details->type ) ) {
@@ -3387,7 +3363,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$payment_method_options = [];
 
 		// If the Optimized Checkout is enabled, we need to use the payment method details from the request.
-		if ( $this->is_oc_active() && isset( $payment_method_details->type ) ) {
+		if ( $this->oc_enabled && isset( $payment_method_details->type ) ) {
 			$selected_payment_type = $payment_method_details->type;
 		}
 
@@ -3572,7 +3548,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_type     = WC_Stripe_Payment_Methods::LINK;
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
-		} elseif ( $this->is_oc_active() && isset( $payment_method_object->type ) ) {
+		} elseif ( $this->oc_enabled && isset( $payment_method_object->type ) ) {
 			// When OC is enabled, use the payment method type from the payment method object
 			$payment_method_type     = $payment_method_object->type;
 			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
@@ -4041,7 +4017,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string The redirect URL.
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
-		$selected_payment_type = $this->is_oc_active() ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
+		$selected_payment_type = $this->oc_enabled ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
 		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
@@ -4643,7 +4619,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->should_use_optimized_checkout_payment_method_layout() ) {
+		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
 			return $tokens;
 		}
 

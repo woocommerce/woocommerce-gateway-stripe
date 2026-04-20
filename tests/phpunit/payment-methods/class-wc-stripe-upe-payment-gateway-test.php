@@ -225,8 +225,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	public function tear_down() {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
@@ -498,7 +496,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test that the Adaptive Pricing currency selector div is rendered or omitted in payment_fields()
-	 * based on the OC enabled flag, valid OC page, Stripe being first among available gateways, checkout sessions feature flag, and adaptive pricing setting.
+	 * based on the OC enabled flag, valid OC page, checkout sessions feature flag, and adaptive pricing setting.
 	 *
 	 * @dataProvider provide_payment_fields_currency_selector_rendering
 	 *
@@ -531,10 +529,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		try {
-			if ( $expect_selector ) {
-				$this->set_stripe_as_first_available_gateway_for_oc_layout_tests();
-			}
-
 			ob_start();
 			$gateway->payment_fields();
 			$output = ob_get_clean();
@@ -577,8 +571,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		try {
-			$this->set_stripe_as_first_available_gateway_for_oc_layout_tests();
-
 			ob_start();
 			$gateway->payment_fields();
 			$output = ob_get_clean();
@@ -4815,166 +4807,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Creates a WC_Payment_Gateways mock that returns a provided map from payment_gateways().
-	 *
-	 * @param array<string, WC_Payment_Gateway> $gateways Available gateways keyed by gateway ID.
-	 * @return WC_Payment_Gateways
-	 */
-	private function create_payment_gateways_registry_mock( array $gateways ): WC_Payment_Gateways {
-		$registry = $this->createMock( WC_Payment_Gateways::class );
-		$registry->method( 'payment_gateways' )->willReturn( $gateways );
-
-		return $registry;
-	}
-
-	/**
-	 * Sets WC_Stripe_Helper first-gateway memo so Stripe is first among available gateways (matches wc_payment_gateways_initialized wiring).
-	 *
-	 * payment_fields() gates OC markup on {@see WC_Stripe_UPE_Payment_Gateway::should_use_optimized_checkout_payment_method_layout()}.
-	 *
-	 * @return void
-	 */
-	private function set_stripe_as_first_available_gateway_for_oc_layout_tests(): void {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
-		$stripe_gateway = $this->createMock( WC_Payment_Gateway::class );
-		$stripe_gateway->method( 'is_available' )->willReturn( true );
-		$other_gateway = $this->createMock( WC_Payment_Gateway::class );
-		$other_gateway->method( 'is_available' )->willReturn( true );
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->create_payment_gateways_registry_mock(
-				[
-					'stripe' => $stripe_gateway,
-					'bacs'   => $other_gateway,
-				]
-			)
-		);
-	}
-
-	/**
-	 * Regression: when OC is enabled, layout/script flags and the processing gate must follow the first
-	 * available gateway (WC_Stripe_Helper::record_first_gateway_id_from_available_list).
-	 *
-	 * @dataProvider provide_optimized_checkout_depends_on_first_available_gateway
-	 *
-	 * @param bool $stripe_is_first Whether Stripe should be the first available gateway in WooCommerce order.
-	 * @param bool $oc_enabled    Whether the Optimized Checkout feature flag is enabled on the gateway.
-	 * @param bool $expected      Whether OC layout/processing should be active.
-	 *
-	 * @covers WC_Stripe_UPE_Payment_Gateway::should_use_optimized_checkout_payment_method_layout
-	 * @covers WC_Stripe_UPE_Payment_Gateway::javascript_params
-	 */
-	public function test_optimized_checkout_depends_on_first_available_gateway(
-		bool $stripe_is_first,
-		bool $oc_enabled,
-		bool $expected
-	): void {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
-		$stripe_gateway = $this->createMock( WC_Payment_Gateway::class );
-		$stripe_gateway->method( 'is_available' )->willReturn( true );
-		$other_gateway = $this->createMock( WC_Payment_Gateway::class );
-		$other_gateway->method( 'is_available' )->willReturn( true );
-
-		if ( $stripe_is_first ) {
-			$ordered_gateways = [
-				'stripe' => $stripe_gateway,
-				'bacs'   => $other_gateway,
-			];
-		} else {
-			$ordered_gateways = [
-				'bacs'   => $other_gateway,
-				'stripe' => $stripe_gateway,
-			];
-		}
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->create_payment_gateways_registry_mock( $ordered_gateways )
-		);
-
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setConstructorArgs( [] )
-			->onlyMethods(
-				[
-					'get_return_url',
-					'get_stripe_return_url',
-					'is_changing_payment_method_for_subscription',
-					'is_subscription_item_in_cart',
-					'is_valid_optimized_checkout_page',
-					'is_adaptive_pricing_supported',
-				]
-			)
-			->getMock();
-
-		$gateway->method( 'get_return_url' )->willReturn( '' );
-		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
-		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
-		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
-		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
-		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
-
-		$gateway->oc_enabled = $oc_enabled;
-
-		$this->assertSame(
-			$expected,
-			$gateway->should_use_optimized_checkout_payment_method_layout(),
-			'OC layout should activate only when OC is enabled, the page is valid for OC, and Stripe is first among available gateways.'
-		);
-
-		$is_oc_active = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_oc_active' );
-		$is_oc_active->setAccessible( true );
-		$this->assertSame(
-			$expected,
-			$is_oc_active->invoke( $gateway ),
-			'is_oc_active() must stay aligned with first-available gateway order for OC processing when this test fixes is_valid_optimized_checkout_page() to true.'
-		);
-
-		$this->set_stripe_account_data( [ 'country' => 'US' ] );
-		$params = $gateway->javascript_params();
-
-		$this->assertArrayHasKey( 'isOCEnabled', $params );
-		$this->assertArrayHasKey( 'shouldShowOptimizedCheckout', $params );
-		$this->assertSame( $expected, $params['isOCEnabled'] );
-		$this->assertSame( $expected, $params['shouldShowOptimizedCheckout'] );
-
-		if ( $expected ) {
-			$this->assertArrayHasKey( 'OCLayout', $params );
-			$this->assertArrayHasKey( 'paymentMethodConfigurationId', $params );
-			$this->assertArrayHasKey( 'excludedPaymentMethodTypes', $params );
-		} else {
-			$this->assertArrayNotHasKey( 'OCLayout', $params );
-			$this->assertArrayNotHasKey( 'paymentMethodConfigurationId', $params );
-			$this->assertArrayNotHasKey( 'excludedPaymentMethodTypes', $params );
-		}
-	}
-
-	/**
-	 * Data provider for test_optimized_checkout_depends_on_first_available_gateway.
-	 *
-	 * @return array<string, array{stripe_is_first: bool, oc_enabled: bool, expected: bool}>
-	 */
-	public function provide_optimized_checkout_depends_on_first_available_gateway(): array {
-		return [
-			'OC enabled and Stripe is first available'                  => [
-				'stripe_is_first' => true,
-				'oc_enabled'      => true,
-				'expected'        => true,
-			],
-			'OC enabled and Stripe is not first available'              => [
-				'stripe_is_first' => false,
-				'oc_enabled'      => true,
-				'expected'        => false,
-			],
-			'OC disabled does not activate layout when Stripe is first' => [
-				'stripe_is_first' => true,
-				'oc_enabled'      => false,
-				'expected'        => false,
-			],
-		];
-	}
-
-	/**
 	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
 	 *
 	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
@@ -5113,88 +4945,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'filter_return'      => [ 'fonts.example.com', 'fonts.example.com', 'FONTS.EXAMPLE.COM' ],
 				'expected_in_params' => true,
 				'expected_value'     => [ 'fonts.example.com' ],
-			],
-		];
-	}
-
-	/**
-	 * Tests for `should_use_optimized_checkout_payment_method_layout`.
-	 *
-	 * @dataProvider provide_test_should_use_optimized_checkout_payment_method_layout
-	 *
-	 * @param bool $oc_enabled     Whether `oc_enabled` is set on the gateway.
-	 * @param bool $valid_page     Value returned by `is_valid_optimized_checkout_page`.
-	 * @param bool $stripe_first   Value returned by `WC_Stripe_Helper::is_stripe_gateway_first_in_available_list`.
-	 * @param bool $expected       Expected return value.
-	 */
-	public function test_should_use_optimized_checkout_payment_method_layout( bool $oc_enabled, bool $valid_page, bool $stripe_first, bool $expected ) {
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_available' ] )
-			->getMock();
-
-		$gateway->id         = WC_Stripe_UPE_Payment_Gateway::ID;
-		$gateway->oc_enabled = $oc_enabled;
-		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_page );
-		$gateway->method( 'is_available' )->willReturn( true );
-
-		// Control whether Stripe is the first available gateway.
-		$original_gateways = WC()->payment_gateways->payment_gateways;
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-		try {
-			if ( $stripe_first ) {
-				WC()->payment_gateways->payment_gateways = [ $gateway ];
-			} else {
-				$bacs_mock          = $this->createMock( WC_Payment_Gateway::class );
-				$bacs_mock->id      = 'bacs';
-				$bacs_mock->enabled = 'yes';
-				$bacs_mock->method( 'is_available' )->willReturn( true );
-				WC()->payment_gateways->payment_gateways = [ $bacs_mock, $gateway ];
-			}
-			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
-
-			$this->assertSame( $expected, $gateway->should_use_optimized_checkout_payment_method_layout() );
-		} finally {
-			WC()->payment_gateways->payment_gateways = $original_gateways;
-			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-		}
-	}
-
-	/**
-	 * Data provider for `test_should_use_optimized_checkout_payment_method_layout`.
-	 *
-	 * @return array[]
-	 */
-	public function provide_test_should_use_optimized_checkout_payment_method_layout() {
-		return [
-			'OC enabled, valid page, Stripe first'        => [
-				'oc_enabled'   => true,
-				'valid_page'   => true,
-				'stripe_first' => true,
-				'expected'     => true,
-			],
-			'OC enabled, valid page, Stripe not first'    => [
-				'oc_enabled'   => true,
-				'valid_page'   => true,
-				'stripe_first' => false,
-				'expected'     => false,
-			],
-			'OC enabled, invalid page, Stripe first'      => [
-				'oc_enabled'   => true,
-				'valid_page'   => false,
-				'stripe_first' => true,
-				'expected'     => false,
-			],
-			'OC disabled, valid page, Stripe first'       => [
-				'oc_enabled'   => false,
-				'valid_page'   => true,
-				'stripe_first' => true,
-				'expected'     => false,
-			],
-			'OC disabled, invalid page, Stripe not first' => [
-				'oc_enabled'   => false,
-				'valid_page'   => false,
-				'stripe_first' => false,
-				'expected'     => false,
 			],
 		];
 	}
