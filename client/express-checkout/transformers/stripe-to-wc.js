@@ -12,14 +12,17 @@
 export const transformStripeShippingAddressForStoreApi = (
 	name,
 	shippingAddress
-) => ( {
-	first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-	last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
-	company: shippingAddress.organization ?? '',
-	address_1: shippingAddress.line1 ?? '',
-	address_2: shippingAddress.line2 ?? '',
-	city: shippingAddress.city ?? '',
-	state: shippingAddress.state ?? '',
-	postcode: shippingAddress.postal_code?.replace( /\s/g, '' ) ?? '',
-	country: shippingAddress.country ?? '',
-} );
+) => {
+	const nameTokens = name?.trim().split( /\s+/ ) ?? [];
+	return {
+		first_name: nameTokens[ 0 ] ?? '',
+		last_name: nameTokens.slice( 1 ).join( ' ' ),
+		company: shippingAddress?.organization ?? '',
+		address_1: shippingAddress?.line1 ?? '',
+		address_2: shippingAddress?.line2 ?? '',
+		city: shippingAddress?.city ?? '',
+		state: shippingAddress?.state ?? '',
+		postcode: shippingAddress?.postal_code?.replace( /\s/g, '' ) ?? '',
+		country: shippingAddress?.country ?? '',
+	};
+};

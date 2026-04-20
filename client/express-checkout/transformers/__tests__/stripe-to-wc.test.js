@@ -79,5 +79,43 @@ describe( 'stripe-to-wc transformers', () => {
 
 			expect( result.postcode ).toBe( 'SW1A1AA' );
 		} );
+
+		it( 'handles null/undefined shippingAddress without throwing', () => {
+			expect( () =>
+				transformStripeShippingAddressForStoreApi( 'John Doe', null )
+			).not.toThrow();
+			expect( () =>
+				transformStripeShippingAddressForStoreApi(
+					'John Doe',
+					undefined
+				)
+			).not.toThrow();
+
+			const result = transformStripeShippingAddressForStoreApi(
+				'John Doe',
+				null
+			);
+			expect( result ).toEqual( {
+				first_name: 'John',
+				last_name: 'Doe',
+				company: '',
+				address_1: '',
+				address_2: '',
+				city: '',
+				state: '',
+				postcode: '',
+				country: '',
+			} );
+		} );
+
+		it( 'normalizes leading and collapsed whitespace in name', () => {
+			const result = transformStripeShippingAddressForStoreApi(
+				'  John   Doe  ',
+				{ country: 'US' }
+			);
+
+			expect( result.first_name ).toBe( 'John' );
+			expect( result.last_name ).toBe( 'Doe' );
+		} );
 	} );
 } );
