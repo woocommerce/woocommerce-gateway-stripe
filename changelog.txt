@@ -77,7 +77,7 @@ xxxx-xx-xx - version 10.6.0
 * Fix - Confirm checkout session with user data in classic checkout for guest user
 * Add - Handle redirect payment flow in classic checkout for Checkout Sessions
 * Dev - Add automatic changelog entry suggestions to bin/changelog.js
-* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Improve UX for the "Stripe first method" notice for Optimized Checkout
 * Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
 * Fix - Ensure currency selector appears after saved payment methods in classic checkout
 
