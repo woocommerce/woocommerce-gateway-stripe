@@ -146,5 +146,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
