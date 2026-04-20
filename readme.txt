@@ -190,7 +190,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix UPE style transition keys for font smoothing properties
 * Update - Shorten test mode messaging, add Test Mode badge on Blocks checkout, and add copy-to-clipboard for test card numbers
 * Fix - Use a single Checkout Session line item priced at the full payable cart total so adaptive pricing sessions match checkout totals
-* Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
+* Fix - Improve UX for the "Stripe first method" notice for Optimized Checkout
 
 **Internal Changes and Upcoming Features**
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
