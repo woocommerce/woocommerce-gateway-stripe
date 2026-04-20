@@ -441,6 +441,32 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'display_prices_with_tax', $checkout_data );
+	}
+
+	/**
+	 * Test that get_checkout_data() emits display_prices_with_tax based on the tax display setting.
+	 *
+	 * @return void
+	 */
+	public function test_get_checkout_data_display_prices_with_tax(): void {
+		$wc_stripe_ece_helper      = new WC_Stripe_Express_Checkout_Helper();
+		$original_tax_display_cart = get_option( 'woocommerce_tax_display_cart' );
+
+		update_option( 'woocommerce_tax_display_cart', 'incl' );
+		$checkout_data = $wc_stripe_ece_helper->get_checkout_data();
+		$this->assertTrue( $checkout_data['display_prices_with_tax'] );
+
+		update_option( 'woocommerce_tax_display_cart', 'excl' );
+		$checkout_data = $wc_stripe_ece_helper->get_checkout_data();
+		$this->assertFalse( $checkout_data['display_prices_with_tax'] );
+
+		// Restore original option value.
+		if ( false === $original_tax_display_cart ) {
+			delete_option( 'woocommerce_tax_display_cart' );
+		} else {
+			update_option( 'woocommerce_tax_display_cart', $original_tax_display_cart );
+		}
 	}
 
 	/**
