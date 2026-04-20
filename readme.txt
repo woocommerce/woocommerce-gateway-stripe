@@ -147,7 +147,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Fix - Report the Agentic Commerce synced product count from the CSV entries actually delivered to Stripe, instead of the pre-validation iterated count, so the dashboard matches Stripe's ImportSet
-* Fix - Log Agentic Commerce products that are dropped by the feed validator so merchants can diagnose gaps between iterated and delivered product counts
-* Fix - Default an Agentic Commerce sync entry to "pending" when Stripe's ImportSet creation response omits a status, and refresh "unknown" entries alongside "pending" ones so the dashboard no longer gets stuck on "Unknown"
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
