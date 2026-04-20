@@ -205,6 +205,8 @@ class WC_Stripe {
 		new WC_Stripe_Order_Handler();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
+		new WC_Stripe_Payment_Tokens();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
@@ -300,9 +302,6 @@ class WC_Stripe {
 		// BNPLs when official plugins are active,
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
-
-		// Record the first registered gateway ID once gateways are initialized.
-		add_action( 'wc_payment_gateways_initialized', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ] );
 
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );

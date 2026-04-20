@@ -1492,6 +1492,86 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'country'  => 'AU',
 				'expected' => 'NSW',
 			],
+			'ES Basque name Gipuzkoa normalizes to SS'                      => [
+				'state'    => 'Gipuzkoa',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
+			'ES Castilian name Guipúzcoa normalizes to SS'                  => [
+				'state'    => 'Guipúzcoa',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
+			'ES Basque name Bizkaia normalizes to BI'                       => [
+				'state'    => 'Bizkaia',
+				'country'  => 'ES',
+				'expected' => 'BI',
+			],
+			'ES Basque name Araba normalizes to VI'                         => [
+				'state'    => 'Araba',
+				'country'  => 'ES',
+				'expected' => 'VI',
+			],
+			'ES Basque name Nafarroa normalizes to NA'                      => [
+				'state'    => 'Nafarroa',
+				'country'  => 'ES',
+				'expected' => 'NA',
+			],
+			'ES case insensitive Basque name GIPUZKOA normalizes to SS'     => [
+				'state'    => 'GIPUZKOA',
+				'country'  => 'ES',
+				'expected' => 'SS',
+			],
+			'ES Catalan name Alacant normalizes to A'                       => [
+				'state'    => 'Alacant',
+				'country'  => 'ES',
+				'expected' => 'A',
+			],
+			'ES Catalan name Castelló normalizes to CS'                     => [
+				'state'    => 'Castelló',
+				'country'  => 'ES',
+				'expected' => 'CS',
+			],
+			'ES Catalan name València normalizes to V'                      => [
+				'state'    => 'València',
+				'country'  => 'ES',
+				'expected' => 'V',
+			],
+			'ES Catalan name Illes Balears normalizes to PM'                => [
+				'state'    => 'Illes Balears',
+				'country'  => 'ES',
+				'expected' => 'PM',
+			],
+			'ES Castilian alt Orense normalizes to OR'                      => [
+				'state'    => 'Orense',
+				'country'  => 'ES',
+				'expected' => 'OR',
+			],
+			'ES Castilian alt La Coruña normalizes to C'                    => [
+				'state'    => 'La Coruña',
+				'country'  => 'ES',
+				'expected' => 'C',
+			],
+			'ES Castilian alt Lérida normalizes to L'                       => [
+				'state'    => 'Lérida',
+				'country'  => 'ES',
+				'expected' => 'L',
+			],
+			'ES Castilian alt Gerona normalizes to GI'                      => [
+				'state'    => 'Gerona',
+				'country'  => 'ES',
+				'expected' => 'GI',
+			],
+			'ES Aragonese name Osca normalizes to HU'                       => [
+				'state'    => 'Osca',
+				'country'  => 'ES',
+				'expected' => 'HU',
+			],
+			'ES case insensitive BIZKAIA normalizes to BI'                  => [
+				'state'    => 'BIZKAIA',
+				'country'  => 'ES',
+				'expected' => 'BI',
+			],
 		];
 	}
 
