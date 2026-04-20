@@ -146,6 +146,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Report the Agentic Commerce synced product count from the CSV entries actually delivered to Stripe, instead of the pre-validation iterated count, so the dashboard matches Stripe's ImportSet
+* Fix - Log Agentic Commerce products that are dropped by the feed validator so merchants can diagnose gaps between iterated and delivered product counts
+* Fix - Default an Agentic Commerce sync entry to "pending" when Stripe's ImportSet creation response omits a status, and refresh "unknown" entries alongside "pending" ones so the dashboard no longer gets stuck on "Unknown"
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation

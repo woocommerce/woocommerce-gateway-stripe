@@ -201,7 +201,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				continue;
 			}
 
-			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
+			$current_status = $entry['status'] ?? '';
+			// Refresh both "pending" (expected transient) and "unknown" (stored
+			// when the creation response lacked a status) entries so stale rows
+			// eventually resolve to a terminal state.
+			if ( 'pending' !== $current_status && 'unknown' !== $current_status ) {
 				continue;
 			}
 
@@ -215,7 +219,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				$import_set = $delivery->get_import_set( $import_set_id );
 				$new_status = $import_set['status'] ?? 'pending';
 
-				if ( 'pending' !== $new_status ) {
+				if ( $new_status !== $current_status ) {
 					$entry['status'] = $new_status;
 					$updated         = true;
 				}

@@ -283,7 +283,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$walker = ProductWalker::from_integration( $this, $feed );
 
 			// Walk through products and generate feed.
-			$total_products = $walker->walk(
+			$iterated_products = $walker->walk(
 				function ( WalkerProgress $progress ) {
 					WC_Stripe_Logger::info(
 						'Agentic Commerce: Feed generation progress',
@@ -296,6 +296,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 					);
 				}
 			);
+
+			// Use the CSV entry count as the authoritative "synced" number — the
+			// walker returns the count of products *iterated*, which includes rows
+			// the validator silently dropped before they made it into the feed.
+			$total_products = $feed instanceof WC_Stripe_Agentic_Commerce_Csv_Feed
+				? $feed->get_entry_count()
+				: $iterated_products;
+			$skipped_count  = max( 0, $iterated_products - $total_products );
 
 			if ( 0 === $total_products ) {
 				WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - no products to sync' );
@@ -319,22 +327,48 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed generated successfully',
 				[
-					'total_products'  => $total_products,
-					'generation_time' => round( $generation_time, 2 ) . 's',
-					'file_path'       => $file_path,
-					'file_size_mb'    => round( $file_size / 1024 / 1024, 2 ),
+					'total_products'    => $total_products,
+					'iterated_products' => $iterated_products,
+					'skipped_products'  => $skipped_count,
+					'generation_time'   => round( $generation_time, 2 ) . 's',
+					'file_path'         => $file_path,
+					'file_size_mb'      => round( $file_size / 1024 / 1024, 2 ),
 				]
 			);
 
+			if ( $skipped_count > 0 ) {
+				WC_Stripe_Logger::warning(
+					sprintf(
+						/* translators: 1: number of skipped products, 2: number of iterated products */
+						'Agentic Commerce: %1$d of %2$d products were skipped because they failed feed validation. See earlier log entries for per-product reasons.',
+						$skipped_count,
+						$iterated_products
+					)
+				);
+			}
+
 			// Deliver feed to Stripe via Files API.
 			$result = $delivery->deliver( $feed );
+
+			// If the ImportSet was created successfully but the response did not
+			// include a status string, treat it as "pending". A freshly created
+			// ImportSet is always being processed by Stripe — reporting "unknown"
+			// hides that from the dashboard and blocks the pending-status refresh.
+			$import_set_id = $result['import_set_id'] ?? '';
+			$status        = $result['status'] ?? '';
+			if ( '' === $status && '' !== $import_set_id ) {
+				$status = 'pending';
+			}
+			if ( '' === $status ) {
+				$status = 'unknown';
+			}
 
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed delivered to Stripe',
 				[
 					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
-					'status'        => $result['status'] ?? 'unknown',
+					'import_set_id' => $import_set_id,
+					'status'        => $status,
 				]
 			);
 
@@ -348,9 +382,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$this->store_sync_result(
 				[
 					'products'      => $total_products,
-					'status'        => $result['status'] ?? 'unknown',
+					'status'        => $status,
 					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $result['import_set_id'] ?? '',
+					'import_set_id' => $import_set_id,
 					'error'         => '',
 				]
 			);

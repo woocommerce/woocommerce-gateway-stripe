@@ -360,6 +360,55 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /status also refreshes entries stored as "unknown" (e.g. when the
+	 * initial ImportSet creation response did not carry a status string).
+	 */
+	public function test_get_status_refreshes_unknown_entries_from_stripe(): void {
+		$entry = [
+			'status'        => 'unknown',
+			'timestamp'     => 1700000000,
+			'products'      => 7,
+			'import_set_id' => 'impset_unk',
+			'file_id'       => 'file_unk',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_unk' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_unk',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'succeeded', $stored_history[0]['status'] );
+	}
+
+	/**
 	 * GET /status does not call Stripe for entries that are already in a terminal state.
 	 */
 	public function test_get_status_skips_refresh_for_non_pending_entries(): void {
