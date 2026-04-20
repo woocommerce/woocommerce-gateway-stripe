@@ -111,7 +111,7 @@ test.describe( 'express checkout with ISK in cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, lowAmountProductId );
 		await page.goto( '/cart' );
-		await assertLinkModalLoads( page, true );
+		await assertLinkModalLoads( page, true, 'ISK' );
 	} );
 
 	test( 'loads Link express checkout in block checkout for high ISK amount @blocks @express-checkout @isk', async ( {
@@ -119,7 +119,7 @@ test.describe( 'express checkout with ISK in cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, highAmountProductId );
 		await page.goto( '/checkout' );
-		await assertLinkModalLoads( page, true );
+		await assertLinkModalLoads( page, true, 'ISK' );
 	} );
 
 	test( 'loads Link express checkout in classic cart for low ISK amount @shortcode @express-checkout @isk', async ( {
@@ -127,7 +127,7 @@ test.describe( 'express checkout with ISK in cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, lowAmountProductId );
 		await page.goto( '/cart-shortcode' );
-		await assertLinkModalLoads( page, false );
+		await assertLinkModalLoads( page, false, 'ISK' );
 	} );
 
 	test( 'loads Link express checkout in classic checkout for high ISK amount @shortcode @express-checkout @isk', async ( {
@@ -135,6 +135,6 @@ test.describe( 'express checkout with ISK in cart/checkout', () => {
 	} ) => {
 		await addProductToCartById( page, highAmountProductId );
 		await page.goto( '/checkout-shortcode' );
-		await assertLinkModalLoads( page, false );
+		await assertLinkModalLoads( page, false, 'ISK' );
 	} );
 } );

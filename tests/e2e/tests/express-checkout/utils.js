@@ -12,7 +12,11 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 	} );
 };
 
-export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
+export const assertLinkModalLoads = async (
+	page,
+	isBlockPage = false,
+	currency = null
+) => {
 	const linkButton = await getLinkButton( page, isBlockPage );
 	await expect( linkButton ).toBeVisible();
 	await expect( linkButton ).toBeEnabled();
@@ -25,9 +29,15 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 
 	await popup.waitForLoadState();
 
+	const isValidCurrency =
+		currency && String( currency ).match( /^[A-Z]{3}$/ );
+	const buttonName = isValidCurrency
+		? new RegExp( `^(Pay ${ currency } |Continue payment)` )
+		: /^(Continue payment|Pay )/;
+
 	await expect(
 		page.getByRole( 'button', {
-			name: 'Continue payment',
+			name: buttonName,
 		} )
 	).toBeVisible();
 };
