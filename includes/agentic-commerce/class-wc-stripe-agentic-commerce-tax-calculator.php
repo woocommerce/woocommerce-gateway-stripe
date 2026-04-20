@@ -36,13 +36,23 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 		$line_items = [];
 
 		foreach ( $event->get_line_items() as $line_item ) {
-			$product_id = wc_get_product_id_by_sku( $line_item->get_sku_id() );
+			$sku = $line_item->get_sku_id();
+			if ( '' === $sku ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has no sku_id.',
+						$line_item->get_id()
+					)
+				);
+			}
+
+			$product_id = wc_get_product_id_by_sku( $sku );
 			if ( ! $product_id ) {
 				throw new Exception(
 					sprintf(
 						'Product not found for line item %s with SKU "%s".',
 						$line_item->get_id(),
-						$line_item->get_sku_id()
+						$sku
 					)
 				);
 			}
