@@ -194,6 +194,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Internal Changes and Upcoming Features**
 * Add - Initial implementation of always-expanded Optimized Checkout Suite in shortcode checkout
+* Add - Process payment with adaptive pricing in the classic checkout
+* Add - Process payment with adaptive pricing in the blocks checkout
+* Add - Allow customers to save payment methods during checkout with adaptive pricing
+* Add - Include specific information on converted currency for adaptive pricing in order confirmation emails
+* Add - Include specific information on converted currency for adaptive pricing in the order received page and order details page
+* Add - Show ECB interbank rate conversion fee notice to EEA-based shoppers on the order received page and in customer order confirmation emails
+* Add - Handle redirect payment flow in classic checkout for Checkout Sessions
+* Add - Handle Checkout Session failure webhook events for expired and async failed payments
+* Add - Process Checkout Session async payment success webhooks
+* Add - Add Ajax endpoint to update line items in a checkout session
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Update - Defer checkout sessions webhook processing via Action Scheduler to prevent race conditions when webhook events arrive before order metadata is stored
 * Update - Show Express Checkout on block checkout when Adaptive Pricing is enabled
