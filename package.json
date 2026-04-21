@@ -181,7 +181,7 @@
     "changelog": "node bin/changelog.js"
   },
   "engines": {
-    "node": ">=20.18.1",
+    "node": ">=20.20.2",
     "npm": ">=10.2.3"
   },
   "config": {
@@ -206,9 +206,6 @@
   "overrides": {
     "@wordpress/eslint-plugin": {
       "eslint-plugin-jsdoc": "^46.0.0"
-    },
-    "@wordpress/i18n": {
-      "memize": "^2.1.1"
     }
   }
 }
