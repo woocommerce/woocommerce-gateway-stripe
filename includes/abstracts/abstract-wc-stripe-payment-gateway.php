@@ -532,6 +532,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
+		/**
+		 * Filter the metadata sent with the Stripe Checkout Session payment intent.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param array         $metadata                The metadata array to be sent with the payment intent.
+		 * @param WC_Order|null $order                   The WC_Order object if available, otherwise null.
+		 * @param object|null   $prepared_payment_method The prepared payment method object if available, otherwise null.
+		 */
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
 
 		if ( $prepared_payment_method->customer ) {
@@ -1299,10 +1308,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 
 		} elseif ( ! empty( $response->id ) ) {
-			$formatted_amount = wc_price( $response->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-				$formatted_amount = wc_price( $response->amount );
-			}
+			$formatted_amount = wc_price(
+				WC_Stripe_Helper::convert_from_stripe_amount( (int) $response->amount, $order->get_currency() ),
+				[ 'currency' => $order->get_currency() ]
+			);
 
 			// If charge wasn't captured, skip creating a refund and cancel order.
 			if ( ! $captured ) {

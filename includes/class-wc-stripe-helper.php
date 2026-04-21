@@ -263,11 +263,11 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return absint( $total );
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
 			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
@@ -288,13 +288,13 @@ class WC_Stripe_Helper {
 	 * @return float The decimal amount for WooCommerce.
 	 */
 	public static function convert_from_stripe_amount( int $amount, string $currency ): float {
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return (float) absint( $amount );
 		}
 
-		if ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+		if ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return round( $amount / 1000, 3 );
 		}
 
@@ -313,16 +313,10 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		$currency = strtolower( $currency );
+		$currency = strtoupper( $currency );
 
 		$amount   = self::convert_from_stripe_amount( $stripe_amount, $currency );
-		$decimals = 2;
-
-		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
-			$decimals = 0;
-		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
-			$decimals = 3;
-		}
+		$decimals = self::get_currency_decimals( $currency );
 
 		return wc_format_decimal( $amount, $decimals );
 	}
@@ -418,9 +412,13 @@ class WC_Stripe_Helper {
 	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
 	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function no_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bif', // Burundian Franc
 			'clp', // Chilean Peso
@@ -444,9 +442,13 @@ class WC_Stripe_Helper {
 	 * List of currencies supported by Stripe that has three decimals
 	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 	 *
+	 * @deprecated 10.7.0 Use WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES instead.
+	 *
 	 * @return array $currencies
 	 */
 	public static function three_decimal_currencies() {
+		wc_deprecated_function( __METHOD__, '10.7.0', 'WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES' );
+
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar
@@ -470,7 +472,7 @@ class WC_Stripe_Helper {
 			return;
 		}
 
-		if ( in_array( strtolower( $balance_transaction->currency ), self::no_decimal_currencies() ) ) {
+		if ( in_array( strtoupper( $balance_transaction->currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			if ( 'fee' === $type ) {
 				return $balance_transaction->fee;
 			}
@@ -797,6 +799,87 @@ class WC_Stripe_Helper {
 			foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
 				$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
 			}
+		}
+
+		$gateway_order_updated = update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+		if ( $gateway_order_updated ) {
+			// set the user notice option to yes to show the notice if it was dismissed and Stripe is not the first available gateway after the update.
+			update_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' );
+		}
+	}
+
+	/**
+	 * Checks whether to show the Stripe first method notice.
+	 *
+	 * @return bool
+	 */
+	public static function should_show_stripe_first_method_notice(): bool {
+		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
+			return false;
+		}
+		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+	}
+
+	/**
+	 * Checks whether Stripe is the first gateway in WooCommerce gateway order.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_in_position_one_in_woocommerce_gateway_order(): bool {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+
+		// If the gateway order is empty, assume Stripe is in the first position.
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return true;
+		}
+
+		asort( $gateway_order );
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			// Skip internal WooCommerce Payments entries.
+			if ( 0 === strpos( $gateway_id, '_wc_' ) ) {
+				continue;
+			}
+
+			// The first non-internal gateway decides position one.
+			return WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Moves Stripe gateways to the first positions in WooCommerce gateway order.
+	 * Preserves relative order among Stripe gateways and among non-Stripe gateways.
+	 *
+	 * @return void
+	 */
+	public static function move_stripe_gateways_to_top_in_woocommerce_gateway_order(): void {
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		if ( empty( $gateway_order ) || ! is_array( $gateway_order ) ) {
+			return;
+		}
+
+		asort( $gateway_order );
+		$stripe_gateways     = [];
+		$non_stripe_gateways = [];
+
+		foreach ( array_keys( $gateway_order ) as $gateway_id ) {
+			if ( 'stripe' === $gateway_id || 0 === strpos( $gateway_id, 'stripe_' ) ) {
+				$stripe_gateways[] = $gateway_id;
+			} else {
+				$non_stripe_gateways[] = $gateway_id;
+			}
+		}
+
+		if ( empty( $stripe_gateways ) ) {
+			return;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+
+		foreach ( array_merge( $stripe_gateways, $non_stripe_gateways ) as $gateway_id ) {
+			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
@@ -1203,6 +1286,17 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if Adaptive Pricing is available for the current Stripe account based on country.
+	 * Adaptive Pricing is not supported by Stripe for accounts based in India (see https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?payment-ui=stripe-hosted#restrictions).
+	 *
+	 * @return bool True if the account is not in supported countries.
+	 */
+	public static function is_adaptive_pricing_available_for_account(): bool {
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		return strtoupper( $account_country ) !== WC_Stripe_Country_Code::INDIA;
+	}
+
+	/**
 	 * Returns whether adaptive pricing is supported for the current checkout.
 	 *
 	 * When on the checkout page, adaptive pricing is not supported if the cart contains
@@ -1218,6 +1312,11 @@ class WC_Stripe_Helper {
 
 		// False if checkout session feature flag is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
+		if ( ! self::is_adaptive_pricing_available_for_account() ) {
 			return false;
 		}
 
@@ -2221,13 +2320,48 @@ class WC_Stripe_Helper {
 	 * @return int The number of decimals to use for the currency.
 	 */
 	public static function get_currency_decimals( string $currency_code ): int {
-		$currency_code = strtolower( $currency_code );
-		if ( in_array( $currency_code, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+		$currency_code = strtoupper( $currency_code );
+		if ( in_array( $currency_code, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 0;
-		} elseif ( in_array( $currency_code, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+		} elseif ( in_array( $currency_code, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			return 3;
 		}
 
 		return 2;
+	}
+
+	/**
+	 * Build the localized survey params array shared across admin controllers.
+	 *
+	 * @param WC_Stripe_Account $account Stripe account instance.
+	 * @return array Associative array of survey parameters for wp_localize_script.
+	 */
+	/**
+	 * Check if the current admin page is the WooCommerce Payments settings list page.
+	 *
+	 * @return bool
+	 */
+	public static function is_admin_payments_page(): bool {
+		global $current_tab, $current_section;
+
+		return is_admin() && (
+			( $current_tab && ! $current_section && 'checkout' === $current_tab ) ||
+			( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] && ! isset( $_GET['section'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		);
+	}
+
+	public static function get_exit_survey_params( WC_Stripe_Account $account ): array {
+		// Read account data from cache only — avoid triggering a live Stripe API call.
+		$account_cache = WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$account_data  = is_array( $account_cache ) ? $account_cache : [];
+
+		return [
+			'exit_survey_last_shown' => get_option( 'wc_stripe_exit_survey_last_shown', null ),
+			'stripe_account_id'      => $account_data['id'] ?? '',
+			'wc_store_id'            => get_option( 'woocommerce_store_id', '' ),
+			'plugin_version'         => WC_STRIPE_VERSION,
+			'wc_version'             => defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			'wp_version'             => get_bloginfo( 'version' ),
+		];
 	}
 }
