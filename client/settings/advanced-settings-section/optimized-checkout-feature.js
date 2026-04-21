@@ -6,6 +6,7 @@ import {
 	useIsAdaptivePricingEnabled,
 	useIsOCEnabled,
 	useOCLayout,
+	useManualCapture,
 } from '../../data';
 import OptimizedCheckoutFirstMethodNotice from './optimized-checkout-first-method-notice';
 import {
@@ -32,6 +33,7 @@ const StyledRadioControl = styled( RadioControl )`
 
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isAdaptivePricingEnabled, setIsAdaptivePricingEnabled ] =
 		useIsAdaptivePricingEnabled();
 	const [ OCLayout, setOCLayout ] = useOCLayout();
@@ -86,27 +88,29 @@ const OptimizedCheckoutFeature = () => {
 				onChange={ setIsOCEnabled }
 			/>
 			<OptimizedCheckoutFirstMethodNotice isOCEnabled={ isOCEnabled } />
-			{ isOCEnabled && isCheckoutSessionsAvailable && (
-				<AdaptivePricingCheckbox
-					label={ __(
-						'Let customers pay in their local currency with Adaptive Pricing.',
-						'woocommerce-gateway-stripe'
-					) }
-					help={ createInterpolateElement(
-						__(
-							"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
+			{ isOCEnabled &&
+				! isManualCaptureEnabled &&
+				isCheckoutSessionsAvailable && (
+					<AdaptivePricingCheckbox
+						label={ __(
+							'Let customers pay in their local currency with Adaptive Pricing.',
 							'woocommerce-gateway-stripe'
-						),
-						{
-							learnMoreLink: (
-								<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
+						) }
+						help={ createInterpolateElement(
+							__(
+								"With Adaptive Pricing, Stripe detects the customer's currency via IP and automatically applies localized pricing and conversion. <learnMoreLink>Learn more</learnMoreLink>.",
+								'woocommerce-gateway-stripe'
 							),
-						}
-					) }
-					checked={ isAdaptivePricingEnabled }
-					onChange={ setIsAdaptivePricingEnabled }
-				/>
-			) }
+							{
+								learnMoreLink: (
+									<ExternalLink href="https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing" />
+								),
+							}
+						) }
+						checked={ isAdaptivePricingEnabled }
+						onChange={ setIsAdaptivePricingEnabled }
+					/>
+				) }
 			{ isOCEnabled && (
 				<StyledRadioControl
 					label={ __( 'Layout', 'woocommerce-gateway-stripe' ) }
