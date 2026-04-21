@@ -116,15 +116,12 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_admin_scripts_sets_checkout_sessions_availability_with_country_restrictions(
 		string $account_country,
-		bool $is_checkout_sessions_feature_available,
+		string $is_pmc_enabled,
 		bool $expected_checkout_sessions_availability
 	): void {
 		global $current_tab, $current_section;
 
 		$wp_scripts_backup = $GLOBALS['wp_scripts'];
-		$feature_filter    = static function () use ( $is_checkout_sessions_feature_available ) {
-			return $is_checkout_sessions_feature_available;
-		};
 
 		try {
 			// Avoid stacked `wp_localize_script` output from prior data-provider runs breaking JSON extraction.
@@ -165,11 +162,13 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$gateway->method( 'is_oc_enabled' )->willReturn( false );
 			$gateway->method( 'is_in_test_mode' )->willReturn( false );
 			$gateway->method( 'get_validated_option' )->with( 'optimized_checkout_layout' )->willReturn( 'accordion' );
-			$gateway->method( 'get_option' )->willReturn( 'no' );
+			$gateway->method( 'get_option' )->willReturnCallback(
+				static function ( $key ) use ( $is_pmc_enabled ) {
+					return 'pmc_enabled' === $key ? $is_pmc_enabled : 'no';
+				}
+			);
 
 			$controller = new WC_Stripe_Settings_Controller( $account, $gateway );
-
-			add_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
 
 			$controller->admin_scripts( 'woocommerce_page_wc-settings' );
 
@@ -191,17 +190,16 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
 			}
 			$GLOBALS['wp_scripts'] = $wp_scripts_backup;
-			remove_filter( 'wc_stripe_is_checkout_sessions_available', $feature_filter );
 			unset( $current_tab, $current_section );
 		}
 	}
 
 	public function provide_test_admin_scripts_checkout_sessions_country_restrictions(): array {
 		return [
-			'US account + feature available'   => [ 'US', true, true ],
-			'IN account + feature available'   => [ 'IN', true, false ],
-			'DE account + feature available'   => [ 'DE', true, true ],
-			'US account + feature unavailable' => [ 'US', false, false ],
+			'US account + feature available'   => [ 'US', 'yes', true ],
+			'IN account + feature available'   => [ 'IN', 'yes', false ],
+			'DE account + feature available'   => [ 'DE', 'yes', true ],
+			'US account + feature unavailable' => [ 'US', 'no', false ],
 		];
 	}
 }
