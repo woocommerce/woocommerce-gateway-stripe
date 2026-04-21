@@ -169,7 +169,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$order     = wc_get_order( $order_id );
 
 			// Check that order exists before capturing payment.
-			if ( ! $order ) {
+			if ( ! $order instanceof WC_Order ) {
 				return new WP_Error( 'wc_stripe_missing_order', __( 'Order not found', 'woocommerce-gateway-stripe' ), [ 'status' => 404 ] );
 			}
 
