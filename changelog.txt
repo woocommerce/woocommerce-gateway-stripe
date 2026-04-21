@@ -1,11 +1,8 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 10.7.0
-<<<<<<< add/stripe-899-agentic-commerce-admin-dashboard
 * Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
-=======
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
->>>>>>> develop
 
 2026-04-20 - version 10.6.0
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
