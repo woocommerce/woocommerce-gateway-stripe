@@ -22,6 +22,9 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+const ADAPTIVE_PRICING_CHECKBOX_LABEL =
+	'Let customers pay in their local currency with Adaptive Pricing.';
+
 describe( 'Optimized Checkout Element feature setting', () => {
 	beforeEach( () => {
 		global.wc_stripe_settings_params = { is_cs_available: false };
@@ -59,29 +62,6 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		} );
 	} );
 
-	it( 'Adaptive pricing and layout settings should be available when OC is enabled and checkout sessions is available', () => {
-		global.wc_stripe_settings_params = { is_cs_available: true };
-
-		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <OptimizedCheckoutFeature /> );
-
-		// Layout settings.
-		expect( screen.getByText( 'Layout' ) ).toBeInTheDocument();
-		expect(
-			screen.getByText(
-				'Choose between a vertical accordion layout and a horizontal tabs layout to display payment methods.'
-			)
-		).toBeInTheDocument();
-
-		// Adaptive pricing settings.
-		expect(
-			screen.getByText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
-			)
-		).toBeInTheDocument();
-	} );
-
 	it( 'triggers the hook when changing the layout setting', async () => {
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
@@ -97,6 +77,111 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		await waitFor( async () => {
 			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
 		} );
+	} );
+} );
+
+describe( 'Adaptive Pricing feature', () => {
+	const visibleSetup = () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
+	};
+
+	beforeEach( () => {
+		global.wc_stripe_settings_params = { is_cs_available: false };
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
+	} );
+
+	it( 'shows the Adaptive Pricing checkbox when OC is on, manual capture is off, and checkout sessions are available', () => {
+		visibleSetup();
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect(
+			screen.getByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).toBeInTheDocument();
+	} );
+
+	it( 'hides the Adaptive Pricing checkbox when Optimized Checkout is off', () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'hides the Adaptive Pricing checkbox when manual capture is enabled', () => {
+		global.wc_stripe_settings_params = { is_cs_available: true };
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'hides the Adaptive Pricing checkbox when checkout sessions are unavailable', () => {
+		global.wc_stripe_settings_params = { is_cs_available: false };
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'shows and hides the Adaptive Pricing checkbox when mocked flags are toggled via rerender', () => {
+		visibleSetup();
+
+		const { rerender } = render( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.getByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).toBeInTheDocument();
+
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		rerender( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+
+		global.wc_stripe_settings_params = { is_cs_available: true };
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ true, jest.fn() ] );
+		rerender( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+		rerender( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.getByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).toBeInTheDocument();
+
+		global.wc_stripe_settings_params = { is_cs_available: false };
+		rerender( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.queryByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).not.toBeInTheDocument();
+
+		global.wc_stripe_settings_params = { is_cs_available: true };
+		rerender( <OptimizedCheckoutFeature /> );
+		expect(
+			screen.getByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
+		).toBeInTheDocument();
 	} );
 
 	it( 'triggers the hook when changing the Adaptive Pricing setting', async () => {
@@ -115,9 +200,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		expect( setAdaptivePricingEnabledMock ).not.toHaveBeenCalled();
 
 		await userEvent.click(
-			screen.getByLabelText(
-				'Let customers pay in their local currency with Adaptive Pricing.'
-			)
+			screen.getByLabelText( ADAPTIVE_PRICING_CHECKBOX_LABEL )
 		);
 
 		await waitFor( async () => {
