@@ -13,6 +13,7 @@ jest.useFakeTimers();
 jest.mock( 'wcstripe/data', () => ( {
 	useIsOCEnabled: jest.fn(),
 	useIsAdaptivePricingEnabled: jest.fn(),
+	useManualCapture: jest.fn(),
 	useOCLayout: jest.fn(),
 } ) );
 
