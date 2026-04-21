@@ -5,6 +5,7 @@ import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-sectio
 import {
 	useIsOCEnabled,
 	useIsAdaptivePricingEnabled,
+	useManualCapture,
 	useOCLayout,
 } from 'wcstripe/data';
 
@@ -27,6 +28,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 	} );
 
