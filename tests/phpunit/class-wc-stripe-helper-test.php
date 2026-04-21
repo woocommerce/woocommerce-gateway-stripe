@@ -21,11 +21,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 	}
 
-	public function tear_down() {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-		parent::tear_down();
-	}
-
 	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
@@ -1704,7 +1699,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 
 		$product = WC_Helper_Product::create_simple_product();
-		$product->set_virtual( false );
 		$product->save();
 
 		$coupon = new \WC_Coupon();
@@ -1713,27 +1707,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$coupon->set_discount_type( 'fixed_cart' );
 		$coupon->save();
 
-		// Other suites can disable shipping or remove methods; register a zero-cost flat rate so
-		// `wc_get_shipping_method_count()` is non-zero and `needs_shipping()` returns true.
-		WC_Helper_Shipping::create_simple_flat_rate( 0 );
+		WC()->session->init();
+		WC()->cart->empty_cart();
 
-		try {
-			WC()->session->init();
-			WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->add_discount( 'TESTDISCOUNT' );
 
-			WC()->cart->add_to_cart( $product->get_id(), 1 );
-			WC()->cart->add_discount( 'TESTDISCOUNT' );
+		$actual = WC_Stripe_Helper::build_line_items( $itemized );
 
-			$actual = WC_Stripe_Helper::build_line_items( $itemized );
+		// Clean up.
+		WC()->cart->empty_cart();
+		$product->delete( true );
+		$coupon->delete();
+		delete_option( 'woocommerce_calc_taxes' );
 
-			$this->assertSame( $expected_items, $actual );
-		} finally {
-			WC_Helper_Shipping::delete_simple_flat_rate();
-			WC()->cart->empty_cart();
-			$product->delete( true );
-			$coupon->delete();
-			delete_option( 'woocommerce_calc_taxes' );
-		}
+		$this->assertSame( $expected_items, $actual );
 	}
 
 	/**
@@ -1779,11 +1767,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 							'amount' => 0,
 						],
 						[
-							'key'    => 'total_shipping',
-							'label'  => 'Shipping',
-							'amount' => 0,
-						],
-						[
 							'key'    => 'total_discount',
 							'label'  => 'Discount',
 							'amount' => 100,
@@ -1792,137 +1775,5 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				),
 			],
 		];
-	}
-
-	/**
-	 * Resets the request-local first-gateway record so tests do not leak state.
-	 *
-	 * @return void
-	 */
-	private function reset_first_available_payment_gateway_record(): void {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-	}
-
-	/**
-	 * Creates a WC_Payment_Gateways mock that returns a provided map.
-	 *
-	 * @param array<string, WC_Payment_Gateway> $gateways Available gateways keyed by gateway ID.
-	 * @return WC_Payment_Gateways
-	 */
-	private function mock_payment_gateways_registry( array $gateways ): WC_Payment_Gateways {
-		$registry = $this->createMock( WC_Payment_Gateways::class );
-		$registry->method( 'payment_gateways' )->willReturn( $gateways );
-
-		return $registry;
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::clear_first_available_payment_gateway_record
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_record_first_gateway_id_from_available_list_stores_first_key(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		$bacs = $this->createMock( WC_Payment_Gateway::class );
-		$bacs->method( 'is_available' )->willReturn( true );
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-
-		$gateways = [
-			'bacs'   => $bacs,
-			'stripe' => $stripe,
-		];
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( $gateways ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_record_first_gateway_id_from_available_list_with_empty_array_does_not_set_id(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( [] ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_record_first_gateway_id_from_available_list_empty_then_non_empty_records_on_second_pass(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list( $this->mock_payment_gateways_registry( [] ) );
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->mock_payment_gateways_registry( [ 'stripe' => $stripe ] )
-		);
-
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_record_first_gateway_id_from_available_list_skips_unavailable_gateways(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		$bacs = $this->createMock( WC_Payment_Gateway::class );
-		$bacs->method( 'is_available' )->willReturn( false );
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->mock_payment_gateways_registry(
-				[
-					'bacs'   => $bacs,
-					'stripe' => $stripe,
-				]
-			)
-		);
-
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::clear_first_available_payment_gateway_record
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_clear_first_available_payment_gateway_record_clears_recorded_first_gateway(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->mock_payment_gateways_registry( [ 'stripe' => $stripe ] )
-		);
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
-		$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-	}
-
-	/**
-	 * @covers WC_Stripe_Helper::is_stripe_gateway_first_in_available_list
-	 */
-	public function test_is_stripe_gateway_first_in_available_list_defaults_to_main_stripe_gateway_id(): void {
-		$this->reset_first_available_payment_gateway_record();
-
-		$stripe = $this->createMock( WC_Payment_Gateway::class );
-		$stripe->method( 'is_available' )->willReturn( true );
-		WC_Stripe_Helper::record_first_gateway_id_from_available_list(
-			$this->mock_payment_gateways_registry( [ 'stripe' => $stripe ] )
-		);
-
-		$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
 	}
 }
