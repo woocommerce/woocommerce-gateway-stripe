@@ -154,6 +154,18 @@ install_test_suite() {
 		sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR"/wp-tests-config.php
 		sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR"/wp-tests-config.php
+
+		# Isolate wp-content/uploads per paratest worker. Without this, workers share
+		# /tmp/wordpress/wp-content/uploads and race against WP_UnitTestCase::remove_added_uploads()
+		# (which rmdirs the entire uploads tree in tearDown), producing flaky failures
+		# like "chmod: No such file or directory" in WP_Image_Editor_Imagick::save()
+		# and "exif_imagetype: failed to open stream" from wp_getimagesize().
+		cat >> "$WP_TESTS_DIR"/wp-tests-config.php <<'PHP'
+
+if ( getenv( 'TEST_TOKEN' ) !== false ) {
+	define( 'UPLOADS', 'wp-content/uploads-' . getenv( 'TEST_TOKEN' ) );
+}
+PHP
 	fi
 
 }
