@@ -562,17 +562,29 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 	/**
 	 * POST /sync returns 500 when sync_feed() returns false.
+	 *
+	 * Leaves the feature flag enabled (so the routes remain registered) and
+	 * forces a downstream failure by clearing the Stripe API key, which makes
+	 * `check_setup()` — and therefore `sync_feed()` — return false.
 	 */
 	public function test_trigger_sync_returns_500_when_sync_fails(): void {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		// Feature flag off means sync_feed() returns false.
-		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		$original_settings           = WC_Stripe_Helper::get_stripe_settings();
+		$settings                    = $original_settings;
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = '';
+		$settings['secret_key']      = '';
+		update_option( 'woocommerce_stripe_settings', $settings );
 
-		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
-		$response = rest_do_request( $request );
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+		} finally {
+			update_option( 'woocommerce_stripe_settings', $original_settings );
+		}
 
 		$this->assertEquals( 500, $response->get_status() );
 	}
@@ -581,7 +593,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * POST /sync returns 409 when a sync lock is active.
 	 */
 	public function test_trigger_sync_returns_409_when_locked(): void {
-		set_transient( 'wc_stripe_agentic_sync_lock', true, 5 * MINUTE_IN_SECONDS );
+		// Seed the lock option with a fresh timestamp so acquire_sync_lock() treats it as active.
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION,
+			time(),
+			false
+		);
 
 		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
 		$response = rest_do_request( $request );
