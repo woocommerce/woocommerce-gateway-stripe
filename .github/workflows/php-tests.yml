@@ -38,31 +38,31 @@ jobs:
     strategy:
       fail-fast:    false
       max-parallel: 16
-      # PR matrix reduced to PHP versions × latest WP × latest WC (5 combos) so the
-      # pipeline fits in a single wave under the org's runner quota. Version-specific
-      # regressions almost always surface as PHP compat issues, so we still fan out
-      # across all supported PHP versions. Older WP/WC combinations are deferred to
-      # the merge-time full matrix run (see test_full below).
+      # PR matrix reduced to 12 combos (2 WC × 2 WP × 3 PHP) so the pipeline fits in
+      # a single wave under the org's runner quota. PHP 8.0 and 8.1 are dropped
+      # because both are end-of-life; the floor (7.4) is kept since it's the plugin's
+      # minimum supported runtime. Older WC/WP combinations and full PHP coverage are
+      # deferred to the merge-time full matrix run on develop.
       matrix:
-        woocommerce_support_policy: [ 'L' ]
-        wordpress_support_policy:   [ 'L' ]
-        php_support_policy:         [ 'L', 'L-1', 'L-2', 'L-3', '7.4' ]
+        woocommerce_support_policy: [ 'L', 'L-1' ]
+        wordpress_support_policy:   [ 'L', 'L-1' ]
+        php_support_policy:         [ 'L', 'L-1', '7.4' ]
         include:
           # WooCommerce
           - woocommerce_support_policy: L
             woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
+          - woocommerce_support_policy: L-1
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[1] }}
           # WordPress
           - wordpress_support_policy: L
             wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
+          - wordpress_support_policy: L-1
+            wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[1] }}
           # PHP
           - php_support_policy: L
             php: '8.3'
           - php_support_policy: L-1
             php: '8.2'
-          - php_support_policy: L-2
-            php: '8.1'
-          - php_support_policy: L-3
-            php: '8.0'
           - php_support_policy: '7.4'
             php: '7.4'
 
