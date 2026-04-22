@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for the Agentic Commerce dashboard.
  *
- * @since 10.6.0
+ * @since 10.7.0
  */
 class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Controller {
 
