@@ -630,8 +630,6 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $mock_http_request, 10, 3 );
 
-		add_filter( 'woocommerce_is_checkout', '__return_true' );
-
 		// Enable OCS on the mock main gateway.
 		// Also populate payment_methods with a CashApp stub so the sub-gateway sync (triggered by
 		// the second WC_Stripe_Payment_Tokens instance created during plugin init) does not treat
@@ -651,7 +649,6 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( [], $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
 		} finally {
 			remove_filter( 'pre_http_request', $mock_http_request, 10 );
-			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		}
 
 		// The CashApp token should appear in the result because OCS sub-gateway tokens are merged.
@@ -785,13 +782,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$sepa_token->set_user_id( 1 );
 		$sepa_token->save();
 
-		add_filter( 'woocommerce_is_checkout', '__return_true' );
-
-		try {
-			$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $sepa_token );
-		} finally {
-			remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		}
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [] ], $sepa_token );
 
 		$this->assertArrayHasKey( 'gateway', $result['method'], 'Gateway key should be set when OCS is enabled and token is from a sub-gateway.' );
 		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $result['method']['gateway'], 'Gateway should be remapped to the main stripe gateway when OCS is enabled.' );

@@ -803,6 +803,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks whether Optimized Checkout is the active payment strategy for the current request.
+	 *
+	 * Distinct from {@see self::is_valid_optimized_checkout_page()} which gates *rendering* to
+	 * actual checkout pages. This broader check is true wherever OCS-aware token handling should
+	 * apply (e.g. My Account → Payment Methods, where saved tokens for sub-gateways must still
+	 * surface under the consolidated 'stripe' gateway).
+	 *
+	 * @return bool
+	 */
+	public function is_optimized_checkout_active(): bool {
+		return $this->oc_enabled
+			&& ! $this->is_on_add_payment_method_page()
+			&& ! $this->is_changing_payment_method_for_subscription();
+	}
+
+	/**
 	 * Returns the payment method title.
 	 *
 	 * When Optimized Checkout is enabled, returns the title from the OC payment method class.
@@ -4634,7 +4650,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+		if ( ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 
