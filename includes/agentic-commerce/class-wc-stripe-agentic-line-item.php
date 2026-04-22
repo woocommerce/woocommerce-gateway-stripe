@@ -91,10 +91,11 @@ class WC_Stripe_Agentic_Line_Item {
 	}
 
 	/**
-	 * Returns the WooCommerce product ID from the price's external_reference.
+	 * Returns the WooCommerce product ID resolved from the price's external_reference SKU.
 	 *
-	 * Returns 0 if the price object is missing, external_reference is absent,
-	 * or the value is not a valid nonzero integer.
+	 * Stripe populates price.external_reference with the merchant's SKU. Returns 0
+	 * if the price object is missing, external_reference is absent, or no
+	 * WooCommerce product matches the SKU.
 	 *
 	 * @since 10.6.0
 	 * @return int
@@ -104,7 +105,13 @@ class WC_Stripe_Agentic_Line_Item {
 			return 0;
 		}
 
-		return intval( $this->item->price->external_reference ?? '' );
+		$external_reference = $this->item->price->external_reference ?? '';
+		if ( ! is_string( $external_reference ) || '' === $external_reference ) {
+			return 0;
+		}
+
+		$product_id = wc_get_product_id_by_sku( $external_reference );
+		return $product_id ? (int) $product_id : 0;
 	}
 
 	/**

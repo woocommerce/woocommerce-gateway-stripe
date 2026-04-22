@@ -44,6 +44,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '10.00',
 				'price'         => '10.00',
+				'sku'           => 'MAPPER-DEFAULT-' . uniqid(),
 			]
 		);
 	}
@@ -71,6 +72,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '25.00',
 				'price'         => '25.00',
+				'sku'           => 'MAPPER-COMPLETE-' . uniqid(),
 			]
 		);
 		$session = $this->build_checkout_session(
@@ -80,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => (string) $product->get_id(),
+							'lookup_key'      => (string) $product->get_sku(),
 							'description'     => 'Test Product',
 							'quantity'        => 1,
 							'unit_amount'     => 2500,
@@ -310,6 +312,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '15.00',
 				'price'         => '15.00',
+				'sku'           => 'MAPPER-KNOWN-' . uniqid(),
 			]
 		);
 		$session = $this->build_checkout_session(
@@ -319,7 +322,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => (string) $product->get_id(),
+							'lookup_key'      => (string) $product->get_sku(),
 							'description'     => 'Test Product',
 							'quantity'        => 1,
 							'unit_amount'     => 1500,
@@ -356,11 +359,11 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that an exception is thrown when a lookup_key does not resolve to a product.
+	 * Test that an exception is thrown when the external_reference SKU does not resolve to a product.
 	 *
 	 * @return void
 	 */
-	public function test_exception_thrown_when_product_not_found_for_lookup_key() {
+	public function test_exception_thrown_when_sku_does_not_resolve_to_product() {
 		$session = $this->build_checkout_session(
 			[
 				'amount_total'    => 999,
@@ -368,7 +371,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => '99999999',
+							'lookup_key'      => 'SKU-DOES-NOT-EXIST-' . uniqid(),
 							'description'     => 'Unknown Widget',
 							'quantity'        => 1,
 							'unit_amount'     => 999,
@@ -387,17 +390,17 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'Product not found for lookup_key "99999999"' );
+		$this->expectExceptionMessage( 'has no external_reference SKU that resolves to a WooCommerce product' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
 
 	/**
-	 * Test that an exception is thrown when a line item has no product ID.
+	 * Test that an exception is thrown when a line item has no external_reference.
 	 *
 	 * @return void
 	 */
-	public function test_exception_thrown_when_line_item_has_no_product_id() {
+	public function test_exception_thrown_when_line_item_has_no_external_reference() {
 		$session = $this->build_checkout_session(
 			[
 				'amount_total'    => 999,
@@ -424,7 +427,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'has no integer (product ID) lookup_key' );
+		$this->expectExceptionMessage( 'has no external_reference SKU that resolves to a WooCommerce product' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
@@ -440,6 +443,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '10.00',
 				'price'         => '10.00',
+				'sku'           => 'MAPPER-QTY-' . uniqid(),
 			]
 		);
 		$session = $this->build_checkout_session(
@@ -449,7 +453,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => (string) $product->get_id(),
+							'lookup_key'      => (string) $product->get_sku(),
 							'description'     => 'Test Product',
 							'quantity'        => 3,
 							'unit_amount'     => 1000,
@@ -498,6 +502,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => (string) $product_price,
 				'price'         => (string) $product_price,
+				'sku'           => 'MAPPER-CURRENCY-' . uniqid(),
 			]
 		);
 
@@ -509,7 +514,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => (string) $product->get_id(),
+							'lookup_key'      => (string) $product->get_sku(),
 							'description'     => 'Test',
 							'quantity'        => 1,
 							'unit_amount'     => $stripe_amount,
@@ -862,6 +867,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'virtual'       => true,
 				'regular_price' => '10.00',
 				'price'         => '10.00',
+				'sku'           => 'MAPPER-VIRTUAL-' . uniqid(),
 			]
 		);
 
@@ -977,6 +983,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '10.00',
 				'price'         => '10.00',
+				'sku'           => 'MAPPER-MULTI-1-' . uniqid(),
 			]
 		);
 		$product2 = WC_Helper_Product::create_simple_product(
@@ -984,6 +991,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
+				'sku'           => 'MAPPER-MULTI-2-' . uniqid(),
 			]
 		);
 
@@ -994,7 +1002,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 				'line_items'      => $this->build_line_items(
 					[
 						[
-							'lookup_key'      => (string) $product1->get_id(),
+							'lookup_key'      => (string) $product1->get_sku(),
 							'description'     => 'Product 1',
 							'quantity'        => 1,
 							'unit_amount'     => 1000,
@@ -1003,7 +1011,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 							'amount_tax'      => 0,
 						],
 						[
-							'lookup_key'      => (string) $product2->get_id(),
+							'lookup_key'      => (string) $product2->get_sku(),
 							'description'     => 'Product 2',
 							'quantity'        => 1,
 							'unit_amount'     => 2000,
@@ -1440,7 +1448,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			'line_items'       => $this->build_line_items(
 				[
 					[
-						'lookup_key'      => (string) $product->get_id(),
+						'lookup_key'      => (string) $product->get_sku(),
 						'description'     => 'Default Product',
 						'quantity'        => 1,
 						'unit_amount'     => 1000,
