@@ -21,13 +21,6 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
-	 * First gateway ID from the woocommerce_available_payment_gateways.
-	 *
-	 * @var string|null
-	 */
-	private static $first_gateway_id_from_available_list = null;
-
-	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -750,55 +743,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Resets the memoized first gateway ID from the available gateways list.
-	 *
-	 * @return void
-	 */
-	public static function clear_first_available_payment_gateway_record() {
-		self::$first_gateway_id_from_available_list = null;
-	}
-
-	/**
-	 * Memoizes the first gateway ID that is available for checkout, in WooCommerce gateway order.
-	 *
-	 * Uses each gateway's {@see WC_Payment_Gateway::is_available()} so disabled or internal recommended methods are skipped.
-	 *
-	 * @param WC_Payment_Gateways $gateways The WooCommerce Payment Gateways instance.
-	 * @return void
-	 */
-	public static function record_first_gateway_id_from_available_list( WC_Payment_Gateways $gateways ) {
-		if ( null !== self::$first_gateway_id_from_available_list ) {
-			return;
-		}
-
-		$gateways = $gateways->payment_gateways();
-
-		if ( ! is_array( $gateways ) || [] === $gateways ) {
-			return;
-		}
-
-		foreach ( $gateways as $gateway_id => $gateway ) {
-			if ( $gateway instanceof WC_Payment_Gateway && $gateway->is_available() ) {
-				self::$first_gateway_id_from_available_list = $gateway_id;
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Whether the Stripe UPE gateway is first among WooCommerce's currently available payment gateways.
-	 *
-	 * @return bool
-	 */
-	public static function is_stripe_gateway_first_in_available_list(): bool {
-		if ( null === self::$first_gateway_id_from_available_list ) {
-			return false;
-		}
-
-		return WC_Stripe_UPE_Payment_Gateway::ID === self::$first_gateway_id_from_available_list || 0 === strpos( self::$first_gateway_id_from_available_list, 'stripe_' );
-	}
-
-	/**
 	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
 	 * in the order merchants have chosen in the settings.
 	 *
@@ -938,7 +882,6 @@ class WC_Stripe_Helper {
 			$updated_gateway_order[ $gateway_id ] = (string) $index++;
 		}
 
-		self::clear_first_available_payment_gateway_record();
 		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
