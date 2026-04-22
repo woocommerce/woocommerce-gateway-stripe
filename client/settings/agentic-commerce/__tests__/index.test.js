@@ -236,12 +236,12 @@ describe( 'AgenticCommercePanel', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByText( /Next automatic sync: in \d+ minutes?/i )
+				screen.getByText( /Next automatic sync: in (29|30) minutes?/i )
 			).toBeInTheDocument();
 		} );
 	} );
 
-	it( 'shows "imminent" label when next_sync is in the past', async () => {
+	it( 'shows "imminent" label when next_sync is just in the past', async () => {
 		const pastTs = Math.floor( Date.now() / 1000 ) - 100;
 		mockFetchByPath( makeResponse( { next_sync: pastTs } ) );
 
@@ -250,6 +250,51 @@ describe( 'AgenticCommercePanel', () => {
 		await waitFor( () => {
 			expect( screen.getByText( /imminent/i ) ).toBeInTheDocument();
 		} );
+	} );
+
+	// Excludes the hidden a11y-speak-region (which @wordpress/components Notice
+	// populates as a side effect and persists across renders) so assertions
+	// only inspect what's actually rendered by the panel.
+	const getVisibleText = ( pattern ) =>
+		screen
+			.queryAllByText( pattern )
+			.filter( ( el ) => ! el.closest( '.a11y-speak-region' ) );
+
+	it( 'shows an overdue warning when next_sync is far in the past', async () => {
+		// 30 minutes overdue — well past the 10-minute threshold.
+		const overdueTs = Math.floor( Date.now() / 1000 ) - 30 * 60;
+		apiFetch.mockResolvedValueOnce(
+			makeResponse( { next_sync: overdueTs } )
+		);
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect(
+				getVisibleText( /scheduled sync is overdue by \d+ minutes?/i )
+					.length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
+
+		expect(
+			getVisibleText( /Action Scheduler is running/i ).length
+		).toBeGreaterThanOrEqual( 1 );
+	} );
+
+	it( 'does not show an overdue warning when next_sync is only slightly in the past', async () => {
+		// 2 minutes in the past — within the "imminent" window.
+		const pastTs = Math.floor( Date.now() / 1000 ) - 2 * 60;
+		apiFetch.mockResolvedValueOnce( makeResponse( { next_sync: pastTs } ) );
+
+		render( <AgenticCommercePanel /> );
+
+		await waitFor( () => {
+			expect( screen.getByText( /imminent/i ) ).toBeInTheDocument();
+		} );
+
+		expect( getVisibleText( /scheduled sync is overdue/i ) ).toHaveLength(
+			0
+		);
 	} );
 
 	// -------------------------------------------------------------------------

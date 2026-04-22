@@ -74,7 +74,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Option key for the last sync result.
 	 *
 	 * @var string
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
 
@@ -82,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Option key for the sync history.
 	 *
 	 * @var string
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
 
@@ -92,7 +92,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Filterable via `wc_stripe_agentic_commerce_sync_history_limit`.
 	 *
 	 * @var int
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const SYNC_HISTORY_LIMIT = 50;
 
@@ -385,7 +385,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Persist a sync result to the history option and update the last-sync snapshot.
 	 *
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 * @param array $result {
 	 *     Sync result data.
 	 *
@@ -418,7 +418,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		/**
 		 * Filter the maximum number of sync history entries to retain.
 		 *
-		 * @since 10.6.0
+		 * @since 10.7.0
 		 * @param int $limit Default history limit.
 		 */
 		$limit   = (int) apply_filters( 'wc_stripe_agentic_commerce_sync_history_limit', self::SYNC_HISTORY_LIMIT );
@@ -427,6 +427,89 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		update_option( self::SYNC_HISTORY_OPTION, $history, false );
 		update_option( self::LAST_SYNC_OPTION, end( $history ), false );
+	}
+
+	/**
+	 * Get the last sync result as stored by {@see self::store_sync_result()}.
+	 *
+	 * Supported API for reading the last sync snapshot. External callers should
+	 * use this getter rather than reading the underlying option directly.
+	 *
+	 * @since 10.7.0
+	 * @return array Normalized sync entry, or an empty array when no sync has run.
+	 */
+	public static function get_last_sync(): array {
+		$last_sync = get_option( self::LAST_SYNC_OPTION, [] );
+		return is_array( $last_sync ) ? $last_sync : [];
+	}
+
+	/**
+	 * Get the sync history.
+	 *
+	 * Supported API for reading the sync history. Returned entries are in
+	 * insertion order (oldest first). Non-array entries from corrupted data are
+	 * filtered out.
+	 *
+	 * @since 10.7.0
+	 * @return array<int, array> List of sync entries.
+	 */
+	public static function get_sync_history(): array {
+		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
+		if ( ! is_array( $history ) ) {
+			return [];
+		}
+		return array_values( array_filter( $history, 'is_array' ) );
+	}
+
+	/**
+	 * Apply status updates to non-terminal history entries by import_set_id.
+	 *
+	 * Re-reads the current history at write time and applies the updates to
+	 * matching entries whose stored status is non-terminal (`pending` or
+	 * `creating_records`), so any entries appended concurrently by
+	 * {@see self::store_sync_result()} between read and write (for example
+	 * during a Stripe API round-trip in the dashboard refresh flow) are
+	 * preserved.
+	 *
+	 * @since 10.7.0
+	 * @param array<string, string> $status_updates Map of import_set_id to new status.
+	 * @return void
+	 */
+	public static function update_pending_statuses( array $status_updates ): void {
+		if ( empty( $status_updates ) ) {
+			return;
+		}
+
+		$non_terminal_statuses = [ 'pending', 'creating_records' ];
+
+		$history = self::get_sync_history();
+		$changed = false;
+
+		foreach ( $history as &$entry ) {
+			if ( ! in_array( $entry['status'] ?? '', $non_terminal_statuses, true ) ) {
+				continue;
+			}
+
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id || ! isset( $status_updates[ $import_set_id ] ) ) {
+				continue;
+			}
+
+			$entry['status'] = $status_updates[ $import_set_id ];
+			$changed         = true;
+		}
+		unset( $entry );
+
+		if ( ! $changed ) {
+			return;
+		}
+
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
+
+		$last = end( $history );
+		if ( is_array( $last ) ) {
+			update_option( self::LAST_SYNC_OPTION, $last, false );
+		}
 	}
 
 	/**
