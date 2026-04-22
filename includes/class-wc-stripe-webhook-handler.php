@@ -1577,11 +1577,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->handle_agentic_checkout_session( $notification );
 			} finally {
 				WC_Stripe_Database_Cache::delete( $lock_key );
-				return;
 			}
-		} else {
-			WC_Stripe_Database_Cache::delete( $lock_key );
+			return;
 		}
+
+		WC_Stripe_Database_Cache::delete( $lock_key );
 
 		/**
 		 * Filters the valid order statuses for payment processing.
@@ -2226,12 +2226,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
-			} catch ( Exception $e ) {
+			} catch ( Throwable $e ) {
 				WC_Stripe_Logger::error(
 					'Failed to create agentic order from checkout session.',
 					[
 						'session_id' => $session->get_id(),
 						'error'      => $e->getMessage(),
+						'exception'  => get_class( $e ),
+						'file'       => $e->getFile(),
+						'line'       => $e->getLine(),
+						'trace'      => $e->getTraceAsString(),
 					]
 				);
 
@@ -2239,7 +2243,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * Fires when agentic commerce order creation fails.
 				 *
 				 * @since 10.6.0
-				 * @param Exception                          $e       The exception that was thrown.
+				 * @param Throwable                          $e       The throwable that was thrown.
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
