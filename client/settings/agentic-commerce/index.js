@@ -66,6 +66,9 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const mode = isTestMode ? 'test' : 'live';
 	const { data } = useAccount();
 	const webhookURLForDisplay = data?.configured_webhook_urls?.[ mode ] ?? '';
+	const agenticCommerceUrl = isTestMode
+		? 'https://dashboard.stripe.com/test/agentic-commerce'
+		: 'https://dashboard.stripe.com/agentic-commerce';
 
 	const fetchSettings = useCallback( async () => {
 		setIsLoadingSettings( true );
@@ -99,10 +102,6 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setWebhookSecret( result.webhook_secret ?? '' );
-			setSettingsNotice( {
-				status: 'success',
-				message: __( 'Settings saved.', 'woocommerce-gateway-stripe' ),
-			} );
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
@@ -188,7 +187,11 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 													),
 													components: {
 														agenticLink: (
-															<ExternalLink href="https://dashboard.stripe.com/agentic-commerce" />
+															<ExternalLink
+																href={
+																	agenticCommerceUrl
+																}
+															/>
 														),
 														strong: <strong />,
 													},

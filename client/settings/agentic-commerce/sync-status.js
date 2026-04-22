@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import { Card, CardTitle, Actions } from './styled';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
 import { dispatch } from '@wordpress/data';
 
@@ -181,25 +181,24 @@ const humanTimeDiff = ( timestamp ) => {
 	if ( diffSec < 60 ) return __( 'just now', 'woocommerce-gateway-stripe' );
 	if ( diffSec < 3600 ) {
 		const m = Math.floor( diffSec / 60 );
-		if ( m === 1 )
-			return __( '1 minute ago', 'woocommerce-gateway-stripe' );
 		return sprintf(
 			/* translators: %d: number of minutes */
-			__( '%d minutes ago', 'woocommerce-gateway-stripe' ),
+			_n(
+				'%d minute ago',
+				'%d minutes ago',
+				m,
+				'woocommerce-gateway-stripe'
+			),
 			m
 		);
 	}
 	const h = Math.floor( diffSec / 3600 );
-	if ( h === 1 ) return __( '1 hour ago', 'woocommerce-gateway-stripe' );
 	return sprintf(
 		/* translators: %d: number of hours */
-		__( '%d hours ago', 'woocommerce-gateway-stripe' ),
+		_n( '%d hour ago', '%d hours ago', h, 'woocommerce-gateway-stripe' ),
 		h
 	);
 };
-
-// Minimal sprintf for %d substitution.
-const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
 
 const AgenticCommerceSyncStatus = () => {
 	const [ data, setData ] = useState( null );
@@ -260,7 +259,7 @@ const AgenticCommerceSyncStatus = () => {
 
 	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
-	const nextSyncLabel = () => {
+	const computeNextSyncLabel = () => {
 		if ( ! nextSync ) return null;
 		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
 		if ( secondsUntil <= 0 )
@@ -269,21 +268,18 @@ const AgenticCommerceSyncStatus = () => {
 				'woocommerce-gateway-stripe'
 			);
 		const minutes = Math.ceil( secondsUntil / 60 );
-		if ( minutes === 1 ) {
-			return __(
-				'Next automatic sync: in 1 minute.',
-				'woocommerce-gateway-stripe'
-			);
-		}
 		return sprintf(
 			/* translators: %d: number of minutes until next sync */
-			__(
+			_n(
+				'Next automatic sync: in %d minute.',
 				'Next automatic sync: in %d minutes.',
+				minutes,
 				'woocommerce-gateway-stripe'
 			),
 			minutes
 		);
 	};
+	const nextSyncLabel = computeNextSyncLabel();
 
 	return (
 		<>
@@ -395,8 +391,8 @@ const AgenticCommerceSyncStatus = () => {
 							</tbody>
 						</DetailsTable>
 
-						{ nextSyncLabel() && (
-							<p className="description">{ nextSyncLabel() }</p>
+						{ nextSyncLabel && (
+							<p className="description">{ nextSyncLabel }</p>
 						) }
 
 						{ lastSync.error && (
