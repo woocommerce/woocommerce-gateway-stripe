@@ -183,6 +183,70 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a PHP Throwable (not just Exception) thrown during order
+	 * mapping is caught, logged, and fires the failure action without
+	 * crashing the webhook worker.
+	 */
+	public function test_process_checkout_session_completed_handles_mapper_throwable() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '20.00',
+				'price'         => '20.00',
+				'sku'           => 'THROWABLE-TEST-' . uniqid(),
+			]
+		);
+
+		$failure_action_fired = false;
+		$captured_throwable   = null;
+		add_action(
+			'wc_stripe_agentic_order_creation_failed',
+			function ( $e ) use ( &$failure_action_fired, &$captured_throwable ) {
+				$failure_action_fired = true;
+				$captured_throwable   = $e;
+			}
+		);
+
+		// Force a non-Exception Throwable from inside the mapper flow.
+		// The mapper calls $order->calculate_totals() in verify_order_total,
+		// which runs the woocommerce_calculated_total filter.
+		$throw_filter = function () {
+			throw new \TypeError( 'Simulated fatal inside order mapping' );
+		};
+		add_filter( 'woocommerce_calculated_total', $throw_filter );
+
+		try {
+			$session_id   = 'cs_test_throwable';
+			$notification = $this->build_notification( $session_id );
+			$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
+			$this->mock_stripe_checkout_sessions_response( $mock_session );
+
+			// Immediate phase: defers the webhook.
+			$this->handler->process_checkout_session_success( $notification );
+			// Deferred phase: TypeError is thrown from calculate_totals via the filter.
+			// The handler must catch it (Throwable, not just Exception), log it,
+			// fire the failure action, and return normally.
+			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		} finally {
+			remove_filter( 'woocommerce_calculated_total', $throw_filter );
+		}
+
+		$this->assertTrue( $failure_action_fired );
+		$this->assertInstanceOf( \Throwable::class, $captured_throwable );
+		$this->assertInstanceOf( \TypeError::class, $captured_throwable );
+
+		// The order created by the mapper must be rolled back: the mapper's
+		// inner Throwable catch deletes the order before rethrowing.
+		$orders = wc_get_orders(
+			[
+				'meta_key'   => '_stripe_intent_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value' => 'pi_test_cs_test_throwable', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			]
+		);
+		$this->assertEmpty( $orders );
+	}
+
+	/**
 	 * Tests that a valid agentic session creates an order and fires the success action.
 	 */
 	public function test_process_checkout_session_completed_creates_order() {
