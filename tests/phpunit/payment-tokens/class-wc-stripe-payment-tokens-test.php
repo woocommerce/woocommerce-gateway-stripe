@@ -67,13 +67,11 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	private function get_mock_gateway( bool $ocs_enabled ): object {
 		$mock_gateway             = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_upe_enabled_payment_method_ids', 'should_use_optimized_checkout_payment_method_layout' ] )
+			->onlyMethods( [ 'get_upe_enabled_payment_method_ids' ] )
 			->getMock();
 		$mock_gateway->oc_enabled = $ocs_enabled;
 		$mock_gateway->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( [ WC_Stripe_Payment_Methods::CARD ] );
-		$mock_gateway->method( 'should_use_optimized_checkout_payment_method_layout' )
-			->willReturn( $ocs_enabled );
 		return $mock_gateway;
 	}
 

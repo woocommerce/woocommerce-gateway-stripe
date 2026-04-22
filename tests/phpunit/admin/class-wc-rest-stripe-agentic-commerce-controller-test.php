@@ -42,12 +42,26 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_REST_Stripe_Agentic_Commerce_Controller class not loaded' );
 		}
 
+		// Enable the Agentic Commerce feature flag so the controller registers
+		// its routes (register_routes() is gated on the flag).
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 
 		global $wp_rest_server;
 		$wp_rest_server = null;
 		$this->server   = rest_get_server();
+
+		// Under paratest, each worker runs against an isolated WP install whose
+		// administrator role may not have been granted `manage_woocommerce`
+		// (WC's role setup only runs during activation, not on plugin load).
+		// Grant it explicitly so the REST permission check in this controller
+		// resolves the same way it does in production.
+		$administrator = get_role( 'administrator' );
+		if ( $administrator && ! $administrator->has_cap( 'manage_woocommerce' ) ) {
+			$administrator->add_cap( 'manage_woocommerce' );
+		}
 
 		wp_set_current_user( 1 );
 
@@ -73,7 +87,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
-		delete_transient( 'wc_stripe_agentic_sync_lock' );
+		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION );
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -466,6 +481,191 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /status also refreshes entries that have advanced to `creating_records`.
+	 *
+	 * `creating_records` is an intermediate Stripe ImportSet state (between
+	 * `pending` and the terminal states), so entries sitting there must keep
+	 * getting polled on dashboard load — otherwise the badge would stay
+	 * "Creating records" indefinitely after the first refresh.
+	 */
+	public function test_get_status_refreshes_creating_records_entries(): void {
+		$entry = [
+			'status'        => 'creating_records',
+			'timestamp'     => 1700000000,
+			'products'      => 4,
+			'import_set_id' => 'impset_creating',
+			'file_id'       => 'file_creating',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_creating' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_creating',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'succeeded', $last_sync['status'] );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'succeeded', $stored_history[0]['status'] );
+	}
+
+	/**
+	 * GET /status persists the pending → creating_records transition so the
+	 * next refresh continues polling from the latest state.
+	 */
+	public function test_get_status_persists_pending_to_creating_records_transition(): void {
+		$entry = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 2,
+			'import_set_id' => 'impset_inflight',
+			'file_id'       => 'file_inflight',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_inflight' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_inflight',
+							'status' => 'creating_records',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'creating_records', $last_sync['status'] );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'creating_records', $stored_history[0]['status'] );
+	}
+
+	/**
+	 * GET /status preserves entries appended concurrently during refresh.
+	 *
+	 * Simulates the race where `store_sync_result()` appends a fresh entry
+	 * while the refresh flow is blocked on a Stripe API round-trip: the new
+	 * entry must survive the refresh's writeback.
+	 */
+	public function test_get_status_preserves_concurrent_append_during_refresh(): void {
+		$pending = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 3,
+			'import_set_id' => 'impset_pending_refresh',
+			'file_id'       => 'file_pending',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $pending ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $pending );
+
+		// While the refresh flow is waiting on Stripe, simulate a concurrent
+		// scheduled sync appending a fresh entry via the integration's public
+		// store API.
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_pending_refresh' ) ) {
+				( new WC_Stripe_Agentic_Commerce_Integration() )->store_sync_result(
+					[
+						'status'        => 'succeeded',
+						'products'      => 7,
+						'import_set_id' => 'impset_concurrent',
+						'file_id'       => 'file_concurrent',
+						'error'         => '',
+					]
+				);
+
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_pending_refresh',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertCount( 2, $stored_history, 'Concurrent append must not be clobbered.' );
+
+		$ids = array_column( $stored_history, 'import_set_id' );
+		$this->assertContains( 'impset_pending_refresh', $ids );
+		$this->assertContains( 'impset_concurrent', $ids );
+
+		$by_id = array_column( $stored_history, null, 'import_set_id' );
+		$this->assertEquals( 'succeeded', $by_id['impset_pending_refresh']['status'] );
+		$this->assertEquals( 'succeeded', $by_id['impset_concurrent']['status'] );
+
+		// last_sync should track the newest (concurrently appended) entry.
+		$stored_last = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		$this->assertEquals( 'impset_concurrent', $stored_last['import_set_id'] );
+	}
+
+	/**
 	 * GET /status refreshes entries with non-terminal statuses like queued and validating.
 	 *
 	 * @dataProvider provide_non_terminal_statuses
@@ -617,25 +817,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * POST /sync returns 503 when the integration class is not available.
-	 */
-	public function test_trigger_sync_returns_503_when_integration_unavailable(): void {
-		// We can't unload a class, but we can test the controller method directly
-		// by calling the method in isolation with the class missing guard.
-		// Instead test via the controller's own guard logic by checking the error
-		// response shape when the integration class does not exist.
-		// Since in the test environment the integration class IS loaded, skip if so.
-		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'Integration class is loaded; cannot test the 503 branch in this environment.' );
-		}
-
-		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 503, $response->get_status() );
-	}
-
-	/**
 	 * POST /sync succeeds and returns { success: true } when the integration is available.
 	 */
 	public function test_trigger_sync_returns_success_when_available(): void {
@@ -699,17 +880,29 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 	/**
 	 * POST /sync returns 500 when sync_feed() returns false.
+	 *
+	 * Leaves the feature flag enabled (so the routes remain registered) and
+	 * forces a downstream failure by clearing the Stripe API key, which makes
+	 * `check_setup()` — and therefore `sync_feed()` — return false.
 	 */
 	public function test_trigger_sync_returns_500_when_sync_fails(): void {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
 		}
 
-		// Feature flag off means sync_feed() returns false.
-		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		$original_settings           = WC_Stripe_Helper::get_stripe_settings();
+		$settings                    = $original_settings;
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = '';
+		$settings['secret_key']      = '';
+		update_option( 'woocommerce_stripe_settings', $settings );
 
-		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
-		$response = rest_do_request( $request );
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+		} finally {
+			update_option( 'woocommerce_stripe_settings', $original_settings );
+		}
 
 		$this->assertEquals( 500, $response->get_status() );
 	}
@@ -718,7 +911,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * POST /sync returns 409 when a sync lock is active.
 	 */
 	public function test_trigger_sync_returns_409_when_locked(): void {
-		set_transient( 'wc_stripe_agentic_sync_lock', true, 5 * MINUTE_IN_SECONDS );
+		// Seed the lock option with a fresh timestamp so acquire_sync_lock() treats it as active.
+		update_option(
+			WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION,
+			time(),
+			false
+		);
 
 		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
 		$response = rest_do_request( $request );
@@ -762,7 +960,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertTrue( $data['is_enabled'] );
 		// Real secret must never be returned; the masked placeholder is expected.
-		$this->assertSame( '****', $data['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
 	}
 
 	/**
@@ -833,7 +1031,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 		// Response must return the masked placeholder, not the real secret.
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		$this->assertSame( 'whsec_abc123', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
 
@@ -845,12 +1043,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_original' );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_body( wp_json_encode( [ 'webhook_secret' => '****' ] ) );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET ] ) );
 		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		// Stored value must be unchanged.
 		$this->assertSame( 'whsec_original', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
@@ -875,7 +1073,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$data = $response->get_data();
 		$this->assertTrue( $data['is_enabled'] );
-		$this->assertSame( '****', $data['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
 	}
 
 	/**
@@ -890,7 +1088,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		// sanitize_text_field strips leading/trailing whitespace and tabs;
 		// the response returns the masked placeholder, not the real value.
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		$this->assertSame( 'whsec_trimmed', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
 

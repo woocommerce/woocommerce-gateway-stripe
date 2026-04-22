@@ -135,11 +135,6 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
-	creating_records: {
-		label: __( 'Creating Records', 'woocommerce-gateway-stripe' ),
-		className: 'info',
-		icon: '⏳',
-	},
 	queued: {
 		label: __( 'Queued', 'woocommerce-gateway-stripe' ),
 		className: 'info',

@@ -481,9 +481,8 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @return void
 	 */
 	public function test_sync_inventory_skips_when_feature_disabled() {
-		// Ensure the merchant-facing enabled option is NOT set (defaults to 'no').
-		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
-
+		// ENABLED_OPTION is not set here, so it defaults to 'no' and
+		// sync_inventory() should skip without touching the pending updates.
 		$product = $this->create_simple_product_with_stock( 5 );
 		$this->sut->track_stock_change( $product );
 

@@ -302,7 +302,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		/**
 		 * Allows the ImportSet API request to be short-circuited (e.g. for testing).
 		 *
-		 * @since 10.6.0
+		 * @since 10.7.0
 		 * @param array|null $pre                  Short-circuit response or null.
 		 * @param string     $file_id              Stripe file ID.
 		 * @param string     $standard_data_format Feed format string.
