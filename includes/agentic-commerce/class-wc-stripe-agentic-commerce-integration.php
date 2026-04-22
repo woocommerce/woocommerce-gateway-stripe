@@ -74,7 +74,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Option key for the last sync result.
 	 *
 	 * @var string
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const LAST_SYNC_OPTION = 'wc_stripe_agentic_last_sync';
 
@@ -82,7 +82,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Option key for the sync history.
 	 *
 	 * @var string
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const SYNC_HISTORY_OPTION = 'wc_stripe_agentic_sync_history';
 
@@ -92,7 +92,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Filterable via `wc_stripe_agentic_commerce_sync_history_limit`.
 	 *
 	 * @var int
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 */
 	public const SYNC_HISTORY_LIMIT = 50;
 
