@@ -1387,19 +1387,25 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_express_checkout_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-settings-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_debug_log_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_express_checkout_enabled_for_legacy_checkout\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_payment_request_enabled_for_legacy_checkout\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_is_manual_capture_enabled\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
@@ -1454,12 +1460,6 @@ parameters:
 
 		-
 			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_payment_methods_order\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
-			identifier: missingType.generics
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:update_payment_request_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-settings-controller.php
@@ -1869,7 +1869,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
 			identifier: property.protected
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1881,7 +1881,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
 			identifier: property.protected
-			count: 7
+			count: 6
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-

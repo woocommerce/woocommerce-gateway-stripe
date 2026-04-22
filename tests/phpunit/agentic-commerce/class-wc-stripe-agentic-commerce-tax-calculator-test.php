@@ -51,6 +51,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '25.00',
 				'price'         => '25.00',
+				'sku'           => 'TAX-CALC-MAIN',
 			]
 		);
 
@@ -161,6 +162,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '15.00',
 				'price'         => '15.00',
+				'sku'           => 'TAX-CALC-SECOND',
 			]
 		);
 
@@ -178,30 +180,28 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that a missing product throws an exception.
+	 * Test that an unknown SKU throws an exception during extraction.
 	 */
-	public function test_calculate_throws_for_missing_product() {
+	public function test_extract_throws_for_unknown_sku() {
 		$event = $this->build_event_from_raw_items(
 			[
 				[
 					'id'     => 'li_missing',
-					'sku_id' => '999999',
+					'sku_id' => 'DOES-NOT-EXIST',
 				],
 			]
 		);
 
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'Product not found' );
+		$this->expectExceptionMessage( 'Product not found for line item li_missing with SKU "DOES-NOT-EXIST"' );
 
-		$this->calculator->calculate( $event, $line_items );
+		$this->calculator->extract_line_items_from_customization_hook( $event );
 	}
 
 	/**
-	 * Test that an empty sku_id throws an exception.
+	 * Test that an empty sku_id throws an exception during extraction.
 	 */
-	public function test_calculate_throws_for_empty_sku_id() {
+	public function test_extract_throws_for_empty_sku_id() {
 		$event = $this->build_event_from_raw_items(
 			[
 				[
@@ -211,12 +211,10 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$line_items = $this->calculator->extract_line_items_from_customization_hook( $event );
-
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'has no sku_id' );
+		$this->expectExceptionMessage( 'Line item li_empty_sku has no sku_id' );
 
-		$this->calculator->calculate( $event, $line_items );
+		$this->calculator->extract_line_items_from_customization_hook( $event );
 	}
 
 	/**
@@ -277,6 +275,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 				'regular_price' => '20.00',
 				'price'         => '20.00',
 				'tax_class'     => 'reduced-rate',
+				'sku'           => 'TAX-CALC-REDUCED',
 			]
 		);
 
@@ -294,9 +293,9 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test extract_line_items_from_customization_hook returns correct ID => sku_id mapping.
+	 * Test extract_line_items_from_customization_hook returns correct ID => product ID mapping.
 	 */
-	public function test_extract_line_items_returns_id_to_sku_map() {
+	public function test_extract_line_items_returns_id_to_product_id_map() {
 		$event  = $this->build_event_from_products( [ $this->product ] );
 		$result = $this->calculator->extract_line_items_from_customization_hook( $event );
 
@@ -305,6 +304,6 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 		$values = array_values( $result );
 
 		$this->assertStringStartsWith( 'li_', $keys[0] );
-		$this->assertEquals( (string) $this->product->get_id(), $values[0] );
+		$this->assertSame( $this->product->get_id(), $values[0] );
 	}
 }
