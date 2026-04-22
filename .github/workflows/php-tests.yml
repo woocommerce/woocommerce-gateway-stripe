@@ -38,15 +38,15 @@ jobs:
     strategy:
       fail-fast:    false
       max-parallel: 16
-      # PR matrix reduced to 12 combos (2 WC × 2 WP × 3 PHP) so the pipeline fits in
-      # a single wave under the org's runner quota. PHP 8.0 and 8.1 are dropped
-      # because both are end-of-life; the floor (7.4) is kept since it's the plugin's
-      # minimum supported runtime. Older WC/WP combinations and full PHP coverage are
-      # deferred to the merge-time full matrix run on develop.
+      # PR matrix reduced to 8 combos (2 WC × 2 WP × 2 PHP) so the pipeline fits in
+      # a single wave under the org's runner quota. PHP 8.0, 8.1, and 7.4 are all
+      # end-of-life and are dropped from the PR run; the plugin still targets 7.4+
+      # at runtime, and the minimum-version check moves to the merge-time full
+      # matrix on develop along with older WC/WP combinations.
       matrix:
         woocommerce_support_policy: [ 'L', 'L-1' ]
         wordpress_support_policy:   [ 'L', 'L-1' ]
-        php_support_policy:         [ 'L', 'L-1', '7.4' ]
+        php_support_policy:         [ 'L', 'L-1' ]
         include:
           # WooCommerce
           - woocommerce_support_policy: L
@@ -63,8 +63,6 @@ jobs:
             php: '8.3'
           - php_support_policy: L-1
             php: '8.2'
-          - php_support_policy: '7.4'
-            php: '7.4'
 
     name: Stable (PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
     env:

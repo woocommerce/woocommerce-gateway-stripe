@@ -150,6 +150,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
-* Dev - Reduce PR PHP test matrix by dropping end-of-life PHP versions (8.0, 8.1) while retaining two WooCommerce and WordPress releases for faster CI feedback
+* Dev - Reduce PR PHP test matrix by dropping end-of-life PHP versions (7.4, 8.0, 8.1) while retaining two WooCommerce and WordPress releases for faster CI feedback
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
