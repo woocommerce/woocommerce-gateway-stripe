@@ -947,7 +947,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$data = $response->get_data();
 		$this->assertTrue( $data['is_enabled'] );
 		// Real secret must never be returned; the masked placeholder is expected.
-		$this->assertSame( '****', $data['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
 	}
 
 	/**
@@ -1018,7 +1018,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 		// Response must return the masked placeholder, not the real secret.
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		$this->assertSame( 'whsec_abc123', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
 
@@ -1030,12 +1030,12 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_original' );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
-		$request->set_body( wp_json_encode( [ 'webhook_secret' => '****' ] ) );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET ] ) );
 		$request->set_header( 'content-type', 'application/json' );
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		// Stored value must be unchanged.
 		$this->assertSame( 'whsec_original', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
@@ -1060,7 +1060,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$data = $response->get_data();
 		$this->assertTrue( $data['is_enabled'] );
-		$this->assertSame( '****', $data['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
 	}
 
 	/**
@@ -1075,7 +1075,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		// sanitize_text_field strips leading/trailing whitespace and tabs;
 		// the response returns the masked placeholder, not the real value.
-		$this->assertSame( '****', $response->get_data()['webhook_secret'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		$this->assertSame( 'whsec_trimmed', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
 	}
 

@@ -53,6 +53,9 @@ const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 
 const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
 
+// Mirrors WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET.
+const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
+
 /**
  * Set up apiFetch to route by path. Status calls return `statusResponse`
  * and settings calls return `settingsResponse`. Additional one-off mocks
@@ -263,9 +266,7 @@ describe( 'AgenticCommercePanel', () => {
 	it( 'shows an overdue warning when next_sync is far in the past', async () => {
 		// 30 minutes overdue — well past the 10-minute threshold.
 		const overdueTs = Math.floor( Date.now() / 1000 ) - 30 * 60;
-		apiFetch.mockResolvedValueOnce(
-			makeResponse( { next_sync: overdueTs } )
-		);
+		mockFetchByPath( makeResponse( { next_sync: overdueTs } ) );
 
 		render( <AgenticCommercePanel /> );
 
@@ -284,7 +285,7 @@ describe( 'AgenticCommercePanel', () => {
 	it( 'does not show an overdue warning when next_sync is only slightly in the past', async () => {
 		// 2 minutes in the past — within the "imminent" window.
 		const pastTs = Math.floor( Date.now() / 1000 ) - 2 * 60;
-		apiFetch.mockResolvedValueOnce( makeResponse( { next_sync: pastTs } ) );
+		mockFetchByPath( makeResponse( { next_sync: pastTs } ) );
 
 		render( <AgenticCommercePanel /> );
 
@@ -510,7 +511,7 @@ describe( 'AgenticCommercePanel', () => {
 	it( 'hides onboarding steps when feature is enabled and webhook secret is already saved', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****', // masked placeholder returned by GET when a secret is stored
+			webhook_secret: MASKED_WEBHOOK_SECRET, // masked placeholder returned by GET when a secret is stored
 		} );
 
 		render( <AgenticCommercePanel /> );
@@ -575,7 +576,7 @@ describe( 'AgenticCommercePanel', () => {
 	it( 'prefills webhook secret field with masked placeholder when a secret is stored', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
-			webhook_secret: '****',
+			webhook_secret: MASKED_WEBHOOK_SECRET,
 		} );
 
 		render( <AgenticCommercePanel /> );
@@ -584,7 +585,7 @@ describe( 'AgenticCommercePanel', () => {
 			const input = screen.getByLabelText(
 				/Agentic Commerce Webhook Secret/i
 			);
-			expect( input.value ).toBe( '****' );
+			expect( input.value ).toBe( MASKED_WEBHOOK_SECRET );
 		} );
 	} );
 

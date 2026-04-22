@@ -160,6 +160,11 @@ const humanTimeDiff = ( timestamp ) => {
 // Minimal sprintf for %d substitution.
 const sprintf = ( fmt, ...args ) => fmt.replace( /%d/g, () => args.shift() );
 
+// A scheduled sync is treated as overdue once it's more than this many seconds
+// past its expected run time. Chosen well above the 15-minute sync interval so
+// a single slow run doesn't falsely trigger the warning.
+const OVERDUE_WARNING_THRESHOLD_SECONDS = 10 * 60;
+
 const AgenticCommerceSyncStatus = () => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -228,7 +233,21 @@ const AgenticCommerceSyncStatus = () => {
 
 	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
-	const nextSyncLabel = () => {
+	const secondsUntilNextSync =
+		typeof nextSync === 'number'
+			? nextSync - Math.floor( Date.now() / 1000 )
+			: null;
+
+	const isNextSyncOverdue =
+		secondsUntilNextSync !== null &&
+		secondsUntilNextSync < -OVERDUE_WARNING_THRESHOLD_SECONDS;
+
+	const overdueMinutes =
+		secondsUntilNextSync !== null
+			? Math.floor( Math.abs( secondsUntilNextSync ) / 60 )
+			: 0;
+
+	const computeNextSyncLabel = () => {
 		if ( ! nextSync ) return null;
 		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
 		if ( secondsUntil <= 0 )
@@ -252,6 +271,7 @@ const AgenticCommerceSyncStatus = () => {
 			minutes
 		);
 	};
+	const nextSyncLabel = computeNextSyncLabel();
 
 	return (
 		<>
@@ -279,6 +299,24 @@ const AgenticCommerceSyncStatus = () => {
 					isDismissible
 				>
 					{ notice.message }
+				</Notice>
+			) }
+
+			{ isNextSyncOverdue && (
+				<Notice status="warning" isDismissible={ false }>
+					{ overdueMinutes === 1
+						? __(
+								'The scheduled sync is overdue by 1 minute. Check that Action Scheduler is running on this site.',
+								'woocommerce-gateway-stripe'
+						  )
+						: sprintf(
+								/* translators: %d: number of minutes the scheduled sync is overdue. */
+								__(
+									'The scheduled sync is overdue by %d minutes. Check that Action Scheduler is running on this site.',
+									'woocommerce-gateway-stripe'
+								),
+								overdueMinutes
+						  ) }
 				</Notice>
 			) }
 
@@ -373,8 +411,8 @@ const AgenticCommerceSyncStatus = () => {
 							</tbody>
 						</DetailsTable>
 
-						{ nextSyncLabel() && (
-							<p className="description">{ nextSyncLabel() }</p>
+						{ nextSyncLabel && (
+							<p className="description">{ nextSyncLabel }</p>
 						) }
 
 						{ lastSync.error && (

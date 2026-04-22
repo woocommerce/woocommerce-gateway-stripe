@@ -53,6 +53,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
 
 	/**
+	 * Placeholder returned by GET /settings when a webhook secret is stored.
+	 *
+	 * Mirrors Stripe's `whsec_` prefix so the field looks recognisable in the UI
+	 * without exposing the stored value. The same value is detected on POST so
+	 * saving without editing the field does not overwrite the stored secret.
+	 *
+	 * @var string
+	 * @since 10.7.0
+	 */
+	const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
+
+	/**
 	 * Configure REST API routes.
 	 *
 	 * Routes are only registered when the Agentic Commerce feature flag is on
@@ -232,9 +244,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		return rest_ensure_response(
 			[
 				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
-				// Never expose the real secret. Return '****' when one is stored so
-				// the frontend knows a secret exists without round-tripping the value.
-				'webhook_secret' => '' !== $secret ? '****' : '',
+				// Never expose the real secret. Return a Stripe-style `whsec_`
+				// prefixed mask when one is stored so the field looks familiar
+				// without round-tripping the value to the client.
+				'webhook_secret' => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
 			]
 		);
 	}
@@ -254,10 +267,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 
 		if ( $request->has_param( 'webhook_secret' ) ) {
 			$new_secret = $request->get_param( 'webhook_secret' );
-			// '****' is the masked placeholder returned by GET; skip the update so
-			// the stored secret is not overwritten when the user saves without
-			// changing the field.
-			if ( '****' !== $new_secret ) {
+			// Skip the update when the client echoes back the masked placeholder
+			// returned by GET, so the stored secret is preserved when the user
+			// saves without changing the field.
+			if ( self::MASKED_WEBHOOK_SECRET !== $new_secret ) {
 				update_option( self::WEBHOOK_SECRET_OPTION, sanitize_text_field( $new_secret ) );
 			}
 		}
