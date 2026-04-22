@@ -186,12 +186,25 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	}
 
 	/**
-	 * Refresh any pending sync entries by polling Stripe for their current status.
+	 * ImportSet statuses that are non-terminal and should be re-polled.
 	 *
-	 * Called lazily when the status endpoint is read. Only entries with a
-	 * "pending" status and a valid import_set_id are refreshed. The Stripe API
-	 * round-trips run against an in-memory copy of the history; the resulting
-	 * status updates are then applied through
+	 * Stripe advances an ImportSet through `pending` → `creating_records` →
+	 * one of the terminal states (`succeeded`, `succeeded_with_errors`, or
+	 * `failed`). Entries in either non-terminal state get refreshed on
+	 * dashboard load.
+	 *
+	 * @since 10.7.0
+	 * @var string[]
+	 */
+	private const REFRESHABLE_STATUSES = [ 'pending', 'creating_records' ];
+
+	/**
+	 * Refresh any non-terminal sync entries by polling Stripe for their current status.
+	 *
+	 * Called lazily when the status endpoint is read. Entries in any status
+	 * listed in {@see self::REFRESHABLE_STATUSES} with a valid import_set_id
+	 * are refreshed. The Stripe API round-trips run against an in-memory copy
+	 * of the history; the resulting status updates are then applied through
 	 * {@see WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses()},
 	 * which re-reads the persisted history at write time so any entries
 	 * appended concurrently by the scheduled sync or another manual trigger
@@ -210,7 +223,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		$status_updates = [];
 
 		foreach ( $history as $entry ) {
-			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
+			$current_status = $entry['status'] ?? '';
+			if ( ! in_array( $current_status, self::REFRESHABLE_STATUSES, true ) ) {
 				continue;
 			}
 
@@ -222,9 +236,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			try {
 				$delivery   = $this->create_delivery();
 				$import_set = $delivery->get_import_set( $import_set_id );
-				$new_status = $import_set['status'] ?? 'pending';
+				$new_status = $import_set['status'] ?? $current_status;
 
-				if ( 'pending' !== $new_status ) {
+				if ( $new_status !== $current_status ) {
 					$status_updates[ $import_set_id ] = $new_status;
 				}
 			} catch ( Exception $e ) {

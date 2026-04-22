@@ -469,6 +469,114 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /status also refreshes entries that have advanced to `creating_records`.
+	 *
+	 * `creating_records` is an intermediate Stripe ImportSet state (between
+	 * `pending` and the terminal states), so entries sitting there must keep
+	 * getting polled on dashboard load — otherwise the badge would stay
+	 * "Creating records" indefinitely after the first refresh.
+	 */
+	public function test_get_status_refreshes_creating_records_entries(): void {
+		$entry = [
+			'status'        => 'creating_records',
+			'timestamp'     => 1700000000,
+			'products'      => 4,
+			'import_set_id' => 'impset_creating',
+			'file_id'       => 'file_creating',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_creating' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_creating',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'succeeded', $last_sync['status'] );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'succeeded', $stored_history[0]['status'] );
+	}
+
+	/**
+	 * GET /status persists the pending → creating_records transition so the
+	 * next refresh continues polling from the latest state.
+	 */
+	public function test_get_status_persists_pending_to_creating_records_transition(): void {
+		$entry = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 2,
+			'import_set_id' => 'impset_inflight',
+			'file_id'       => 'file_inflight',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_inflight' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_inflight',
+							'status' => 'creating_records',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$last_sync = $response->get_data()['last_sync'];
+		$this->assertEquals( 'creating_records', $last_sync['status'] );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertEquals( 'creating_records', $stored_history[0]['status'] );
+	}
+
+	/**
 	 * GET /status preserves entries appended concurrently during refresh.
 	 *
 	 * Simulates the race where `store_sync_result()` appends a fresh entry
