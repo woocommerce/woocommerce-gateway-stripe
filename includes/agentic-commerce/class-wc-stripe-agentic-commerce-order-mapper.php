@@ -65,7 +65,50 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		// Complete payment outside the delete-on-failure block, since
 		// payment_complete() fires hooks/emails that cannot be rolled back.
-		$order->payment_complete( $session->get_payment_intent_id() ?? '' );
+		$payment_intent_id = $session->get_payment_intent_id() ?? '';
+
+		$valid_statuses = apply_filters(
+			'woocommerce_valid_order_statuses_for_payment_complete',
+			[ 'on-hold', 'pending', 'failed', 'cancelled' ],
+			$order
+		);
+
+		WC_Stripe_Logger::info(
+			'Agentic order mapper: before payment_complete.',
+			[
+				'order_id'          => $order->get_id(),
+				'status'            => $order->get_status(),
+				'total'             => $order->get_total(),
+				'needs_payment'     => $order->needs_payment(),
+				'needs_processing'  => $order->needs_processing(),
+				'in_valid_statuses' => $order->has_status( $valid_statuses ),
+				'valid_statuses'    => $valid_statuses,
+				'date_paid'         => $order->get_date_paid() ? $order->get_date_paid()->date( 'c' ) : null,
+				'payment_method'    => $order->get_payment_method(),
+				'transaction_id'    => $order->get_transaction_id(),
+				'payment_intent'    => $payment_intent_id,
+			]
+		);
+
+		$completed = $order->payment_complete( $payment_intent_id );
+
+		// Re-read from DB to distinguish "in-memory set but save failed" from "persisted".
+		$fresh_order    = wc_get_order( $order->get_id() );
+		$fresh_is_order = $fresh_order instanceof WC_Order;
+
+		WC_Stripe_Logger::info(
+			'Agentic order mapper: after payment_complete.',
+			[
+				'order_id'          => $order->get_id(),
+				'return_value'      => $completed,
+				'status_in_memory'  => $order->get_status(),
+				'status_from_db'    => $fresh_is_order ? $fresh_order->get_status() : null,
+				'date_paid_from_db' => $fresh_is_order && $fresh_order->get_date_paid()
+					? $fresh_order->get_date_paid()->date( 'c' )
+					: null,
+				'transaction_id'    => $fresh_is_order ? $fresh_order->get_transaction_id() : null,
+			]
+		);
 
 		WC_Stripe_Logger::info(
 			'Agentic order mapper: order created successfully.',
