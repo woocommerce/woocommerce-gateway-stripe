@@ -53,6 +53,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$wp_rest_server = null;
 		$this->server   = rest_get_server();
 
+		// Under paratest, each worker runs against an isolated WP install whose
+		// administrator role may not have been granted `manage_woocommerce`
+		// (WC's role setup only runs during activation, not on plugin load).
+		// Grant it explicitly so the REST permission check in this controller
+		// resolves the same way it does in production.
+		$administrator = get_role( 'administrator' );
+		if ( $administrator && ! $administrator->has_cap( 'manage_woocommerce' ) ) {
+			$administrator->add_cap( 'manage_woocommerce' );
+		}
+
 		wp_set_current_user( 1 );
 
 		// Ensure options start clean.
