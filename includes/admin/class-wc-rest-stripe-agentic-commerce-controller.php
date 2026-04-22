@@ -6,7 +6,7 @@
  * Provides read access to sync status/history and a sync trigger endpoint.
  *
  * @package WooCommerce_Stripe
- * @since 10.6.0
+ * @since 10.7.0
  */
 
 defined( 'ABSPATH' ) || exit;
