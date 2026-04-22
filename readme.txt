@@ -147,6 +147,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Dev - Use paratest in CI workflow for faster PHP test execution
+* Fix - Create Agentic Commerce orders with a free-form shipping line when the session's chosen shipping rate has no wc_rate_id metadata and its display_name does not match any configured WC shipping method, instead of hard-failing
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails

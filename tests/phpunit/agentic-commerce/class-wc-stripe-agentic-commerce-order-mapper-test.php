@@ -1338,18 +1338,35 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that map_shipping throws when no matching rate is found.
+	 * Test that map_shipping falls back to a free-form shipping line when no WC rate matches.
 	 *
-	 * Disables shipping entirely so WC returns no rates, guaranteeing
-	 * the "not available" exception regardless of leaked zones.
+	 * This happens when Stripe/the agent supplies a shipping_rate whose
+	 * metadata has no wc_rate_id and whose display_name does not match any
+	 * configured WC method. Rather than hard-failing and losing the order,
+	 * the mapper creates a shipping line using the Stripe display_name and
+	 * amount.
+	 *
+	 * Disables shipping entirely so WC returns no rates, guaranteeing the
+	 * fallback path regardless of leaked zones.
 	 */
-	public function test_shipping_throws_when_no_matching_rate() {
+	public function test_shipping_falls_back_to_free_form_line_when_no_match() {
 		$original = get_option( 'woocommerce_ship_to_countries' );
 		update_option( 'woocommerce_ship_to_countries', 'disabled' );
 
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
 		$session = $this->build_checkout_session(
 			[
-				'shipping_cost' => (object) [
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
 					'shipping_rate' => (object) [
 						'display_name' => 'Nonexistent Method',
 						'metadata'     => (object) [],
@@ -1358,13 +1375,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'not available' );
-
 		try {
-			$this->mapper->create_order_from_checkout_session( $session );
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Nonexistent Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			$order->delete( true );
 		} finally {
 			update_option( 'woocommerce_ship_to_countries', $original );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
 		}
 	}
 
