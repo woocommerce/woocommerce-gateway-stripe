@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.6.0 - xxxx-xx-xx =
+* Fix - Resolve Agentic Commerce checkout session line items by SKU so orders can be created from agentic checkout.session.completed webhooks
 * Fix - Detect Agentic Commerce checkout sessions from the payment intent's agent_details.network_business_profile so checkout.session.completed webhooks are no longer skipped as non-agentic
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
