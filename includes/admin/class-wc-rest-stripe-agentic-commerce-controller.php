@@ -28,7 +28,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * Configure REST API routes.
 	 *
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 * @return void
 	 */
 	public function register_routes(): void {
