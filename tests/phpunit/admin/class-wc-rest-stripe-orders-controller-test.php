@@ -252,6 +252,63 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 
+	/**
+	 * @dataProvider ipp_channel_data_provider
+	 */
+	public function test_capture_payment_ipp_channel_storage( $metadata, $expected ) {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $metadata ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'       => 'pi_12345',
+						'object'   => 'payment_intent',
+						'status'   => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+						'metadata' => $metadata,
+						'charges'  => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'succeeded',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$result = WC_Stripe_Order_Helper::get_instance()->get_stripe_ipp_channel( $order );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->assertSame( $expected, $result );
+	}
+
+	public function ipp_channel_data_provider() {
+		return [
+			'mobile_pos channel is stored'              => [ [ 'ipp_channel' => 'mobile_pos' ], 'mobile_pos' ],
+			'mobile_store_management channel is stored' => [ [ 'ipp_channel' => 'mobile_store_management' ], 'mobile_store_management' ],
+			'unknown channel is not stored'             => [ [ 'ipp_channel' => 'unknown_channel' ], '' ],
+			'missing ipp_channel is not stored'         => [ (object) [], '' ],
+		];
+	}
+
 	public function test_capture_payment_amount_too_small_supported_currency() {
 		wp_set_current_user( 1 );
 		$order = WC_Helper_Order::create_order();
