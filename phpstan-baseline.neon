@@ -4591,19 +4591,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$generated_sepa_debit on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$payment_method_details on object\|string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot access property \$type on string\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -4923,7 +4911,7 @@ parameters:
 		-
 			message: '#^Offset string does not exist on string\.$#'
 			identifier: offsetAccess.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-

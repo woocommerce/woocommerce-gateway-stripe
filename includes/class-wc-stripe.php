@@ -163,6 +163,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-status.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-ocs-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-currency-code.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-country-code.php';
@@ -866,14 +867,36 @@ class WC_Stripe {
 	/**
 	 * Returns the main Stripe payment gateway class instance.
 	 *
+	 * Returns a {@see WC_Stripe_OCS_Payment_Gateway} when Optimized Checkout is enabled,
+	 * otherwise the classic {@see WC_Stripe_UPE_Payment_Gateway}.
+	 *
 	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
 		if ( ! $this->stripe_gateway ) {
-			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$this->stripe_gateway = $this->is_optimized_checkout_enabled()
+				? new WC_Stripe_OCS_Payment_Gateway()
+				: new WC_Stripe_UPE_Payment_Gateway();
 		}
 
 		return $this->stripe_gateway;
+	}
+
+	/**
+	 * Whether the Optimized Checkout feature is enabled for this store.
+	 *
+	 * Checks the feature flag and the `optimized_checkout_element` gateway setting without
+	 * requiring a gateway instance to already exist — used by {@see self::get_main_stripe_gateway()}
+	 * to pick which gateway class to instantiate.
+	 *
+	 * @return bool
+	 */
+	protected function is_optimized_checkout_enabled(): bool {
+		if ( ! WC_Stripe_Feature_Flags::is_oc_available() ) {
+			return false;
+		}
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		return isset( $settings['optimized_checkout_element'] ) && 'yes' === $settings['optimized_checkout_element'];
 	}
 
 	/**

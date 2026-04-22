@@ -517,12 +517,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// allowing us to mock it directly without depending on the full settings/API stack.
 		$show_adaptive_pricing = $oc_enabled && $valid_oc_page && $feature_flag && 'yes' === $adaptive_pricing;
 
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// Currency-selector rendering under OCS lives on WC_Stripe_OCS_Payment_Gateway;
+		// WC_Stripe_UPE_Payment_Gateway is the non-OCS variant and never renders it.
+		$gateway_class  = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mocked_methods = $oc_enabled
+			? [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ]
+			: [ 'get_return_url', 'is_adaptive_pricing_supported' ];
+
+		$gateway = $this->getMockBuilder( $gateway_class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
+			->onlyMethods( $mocked_methods )
 			->getMock();
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
-		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		if ( $oc_enabled ) {
+			$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( $valid_oc_page );
+		}
 		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( $show_adaptive_pricing );
 		$gateway->oc_enabled = $oc_enabled;
 
@@ -558,7 +567,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * the test copy renders before the currency selector.
 	 */
 	public function test_payment_fields_renders_test_copy_before_currency_selector(): void {
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// Currency-selector rendering under OCS lives on WC_Stripe_OCS_Payment_Gateway.
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
 			->setConstructorArgs( [] )
 			->onlyMethods( [ 'get_return_url', 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported' ] )
 			->getMock();
@@ -4136,13 +4146,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			OC_Test_Helper::enable_oc();
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		// Reset the cached main gateway so that get_main_stripe_gateway() re-evaluates the
+		// current settings and picks UPE vs. OCS based on them.
+		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$reflection->setAccessible( true );
+		$reflection->setValue( WC_Stripe::get_instance(), null );
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		$actual  = $gateway->is_oc_enabled();
 
 		// Clean up
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
 		OC_Test_Helper::disable_oc();
+		$reflection->setValue( WC_Stripe::get_instance(), null );
 
 		$this->assertSame( $expected, $actual );
 	}
@@ -4796,7 +4813,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool $expected                   Whether `is_valid_optimized_checkout_page` should return true.
 	 */
 	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// is_valid_optimized_checkout_page() lives on the OCS gateway only; the non-OCS UPE
+		// gateway has no concept of this page-gating check.
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
 			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
 			->getMock();
 
@@ -4824,7 +4843,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_stripe_return_url',
 					'is_changing_payment_method_for_subscription',
 					'is_subscription_item_in_cart',
-					'is_valid_optimized_checkout_page',
 				]
 			)
 			->getMock();
@@ -4833,7 +4851,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->method( 'get_stripe_return_url' )->willReturn( '' );
 		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( false );
 		$gateway->method( 'is_subscription_item_in_cart' )->willReturn( false );
-		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( false );
 
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 
