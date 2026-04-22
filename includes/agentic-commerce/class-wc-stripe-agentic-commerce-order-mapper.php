@@ -520,21 +520,52 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			}
 		}
 
-		if ( null === $matched_rate ) {
-			throw new Exception(
-				sprintf(
-					'Shipping rate "%s" not available for session %s.',
-					$display_name,
-					$session->get_id()
-				)
-			);
+		if ( null !== $matched_rate ) {
+			$shipping_item = new WC_Order_Item_Shipping();
+			$shipping_item->set_method_title( $matched_rate->get_label() );
+			$shipping_item->set_method_id( $matched_rate->get_method_id() );
+			$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+			$shipping_item->set_total( $matched_rate->get_cost() );
+			$order->add_item( $shipping_item );
+			return;
 		}
 
+		// No WC rate matched. This happens when Stripe/the agent supplies a
+		// shipping rate that did not originate from our customize_checkout
+		// response (so there is no wc_rate_id metadata), and the display name
+		// does not match any configured WC shipping method. Rather than hard
+		// failing and losing the order, fall back to a free-form shipping line
+		// using Stripe's display name and amount so downstream totals match.
+		$stripe_amount = $session->get_shipping_amount();
+		$currency      = $session->get_currency() ?? '';
+		$total         = null !== $stripe_amount
+			? WC_Stripe_Helper::convert_from_stripe_amount( $stripe_amount, $currency )
+			: 0;
+
+		WC_Stripe_Logger::warning(
+			'Agentic order mapper: chosen shipping rate did not match any WC rate; using Stripe rate as free-form shipping line.',
+			[
+				'session_id'          => $session->get_id(),
+				'stripe_display_name' => $display_name,
+				'stripe_wc_rate_hint' => $session->get_chosen_shipping_rate_wc_id(),
+				'stripe_amount'       => $total,
+				'available_wc_rates'  => array_map(
+					static function ( $rate ) {
+						return [
+							'id'    => $rate->get_id(),
+							'label' => $rate->get_label(),
+							'cost'  => $rate->get_cost(),
+						];
+					},
+					$rates
+				),
+			]
+		);
+
 		$shipping_item = new WC_Order_Item_Shipping();
-		$shipping_item->set_method_title( $matched_rate->get_label() );
-		$shipping_item->set_method_id( $matched_rate->get_method_id() );
-		$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
-		$shipping_item->set_total( $matched_rate->get_cost() );
+		$shipping_item->set_method_title( $display_name );
+		$shipping_item->set_method_id( 'stripe_agentic' );
+		$shipping_item->set_total( (string) $total );
 		$order->add_item( $shipping_item );
 	}
 
