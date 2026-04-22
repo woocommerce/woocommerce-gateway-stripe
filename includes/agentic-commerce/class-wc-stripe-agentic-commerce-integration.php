@@ -385,7 +385,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Persist a sync result to the history option and update the last-sync snapshot.
 	 *
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 * @param array $result {
 	 *     Sync result data.
 	 *
@@ -418,7 +418,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		/**
 		 * Filter the maximum number of sync history entries to retain.
 		 *
-		 * @since 10.6.0
+		 * @since 10.7.0
 		 * @param int $limit Default history limit.
 		 */
 		$limit   = (int) apply_filters( 'wc_stripe_agentic_commerce_sync_history_limit', self::SYNC_HISTORY_LIMIT );
@@ -427,6 +427,57 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 		update_option( self::SYNC_HISTORY_OPTION, $history, false );
 		update_option( self::LAST_SYNC_OPTION, end( $history ), false );
+	}
+
+	/**
+	 * Get the last sync result as stored by {@see self::store_sync_result()}.
+	 *
+	 * Supported API for reading the last sync snapshot. External callers should
+	 * use this getter rather than reading the underlying option directly.
+	 *
+	 * @since 10.7.0
+	 * @return array Normalized sync entry, or an empty array when no sync has run.
+	 */
+	public static function get_last_sync(): array {
+		$last_sync = get_option( self::LAST_SYNC_OPTION, [] );
+		return is_array( $last_sync ) ? $last_sync : [];
+	}
+
+	/**
+	 * Get the sync history.
+	 *
+	 * Supported API for reading the sync history. Returned entries are in
+	 * insertion order (oldest first). Non-array entries from corrupted data are
+	 * filtered out.
+	 *
+	 * @since 10.7.0
+	 * @return array<int, array> List of sync entries.
+	 */
+	public static function get_sync_history(): array {
+		$history = get_option( self::SYNC_HISTORY_OPTION, [] );
+		if ( ! is_array( $history ) ) {
+			return [];
+		}
+		return array_values( array_filter( $history, 'is_array' ) );
+	}
+
+	/**
+	 * Replace the persisted sync history.
+	 *
+	 * Used by the refresh flow to update in-place status changes fetched from
+	 * Stripe. Keeps the underlying option private.
+	 *
+	 * @since 10.7.0
+	 * @param array<int, array> $history Sync history entries.
+	 * @return void
+	 */
+	public static function set_sync_history( array $history ): void {
+		update_option( self::SYNC_HISTORY_OPTION, $history, false );
+
+		$last = end( $history );
+		if ( is_array( $last ) ) {
+			update_option( self::LAST_SYNC_OPTION, $last, false );
+		}
 	}
 
 	/**

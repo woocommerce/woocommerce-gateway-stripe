@@ -42,6 +42,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'WC_REST_Stripe_Agentic_Commerce_Controller class not loaded' );
 		}
 
+		// Enable the Agentic Commerce feature flag so the controller registers
+		// its routes (register_routes() is gated on the flag).
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 
@@ -65,7 +69,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		remove_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
-		delete_transient( 'wc_stripe_agentic_sync_lock' );
+		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION );
+		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -492,25 +497,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 	// POST /wc/v3/wc_stripe/agentic-commerce/sync
 	// -------------------------------------------------------------------------
-
-	/**
-	 * POST /sync returns 503 when the integration class is not available.
-	 */
-	public function test_trigger_sync_returns_503_when_integration_unavailable(): void {
-		// We can't unload a class, but we can test the controller method directly
-		// by calling the method in isolation with the class missing guard.
-		// Instead test via the controller's own guard logic by checking the error
-		// response shape when the integration class does not exist.
-		// Since in the test environment the integration class IS loaded, skip if so.
-		if ( class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'Integration class is loaded; cannot test the 503 branch in this environment.' );
-		}
-
-		$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 503, $response->get_status() );
-	}
 
 	/**
 	 * POST /sync succeeds and returns { success: true } when the integration is available.
