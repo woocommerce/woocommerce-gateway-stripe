@@ -2154,6 +2154,39 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			assert( $raw_session instanceof stdClass );
 			$session = new WC_Stripe_Agentic_Checkout_Session( $raw_session );
 
+			$line_items_debug = [];
+			foreach ( ( $raw_session->line_items->data ?? [] ) as $line_item ) {
+				$line_items_debug[] = [
+					'id'                 => $line_item->id ?? null,
+					'description'        => $line_item->description ?? null,
+					'price_id'           => $line_item->price->id ?? null,
+					'external_reference' => $line_item->price->external_reference ?? null,
+					'product'            => is_object( $line_item->price->product ?? null )
+						? ( $line_item->price->product->id ?? null )
+						: ( $line_item->price->product ?? null ),
+				];
+			}
+
+			$payment_intent_debug = $raw_session->payment_intent ?? null;
+			if ( is_object( $payment_intent_debug ) ) {
+				$payment_intent_debug = [
+					'id'            => $payment_intent_debug->id ?? null,
+					'agent_details' => $payment_intent_debug->agent_details ?? null,
+				];
+			}
+
+			WC_Stripe_Logger::info(
+				'Retrieved agentic checkout session for processing.',
+				[
+					'session_id'       => $raw_session->id ?? null,
+					'ui_mode'          => $raw_session->ui_mode ?? null,
+					'origin_context'   => $raw_session->origin_context ?? null,
+					'payment_intent'   => $payment_intent_debug,
+					'line_items_count' => count( $line_items_debug ),
+					'line_items'       => $line_items_debug,
+				]
+			);
+
 			if ( ! $session->is_agentic() ) {
 				WC_Stripe_Logger::info(
 					'Checkout session is not agentic, skipping agentic processing: ' . $session->get_id()
