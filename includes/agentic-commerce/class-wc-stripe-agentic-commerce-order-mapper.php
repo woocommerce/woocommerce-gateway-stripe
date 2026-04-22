@@ -450,9 +450,34 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		$wc_shipping->calculate_shipping( [ $package ] );
-		$packages = $wc_shipping->get_packages();
-		$rates    = $packages[0]['rates'] ?? [];
+		// Under Action Scheduler / WP Cron there's no HTTP request to
+		// bootstrap WC()->session, which WC_Shipping::calculate_shipping_for_package
+		// reads from. Initialize it lazily so shipping methods can cache and
+		// return rates normally.
+		if ( null === WC()->session ) {
+			WC()->initialize_session();
+		}
+
+		// Any failure inside WC shipping (null session variants, broken
+		// third-party shipping methods, missing tax state) should not lose
+		// the order — log and fall through to the free-form fallback below.
+		$rates = [];
+		try {
+			$wc_shipping->calculate_shipping( [ $package ] );
+			$packages = $wc_shipping->get_packages();
+			$rates    = $packages[0]['rates'] ?? [];
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::warning(
+				'Agentic order mapper: WC shipping calculation failed; will use free-form shipping line.',
+				[
+					'session_id' => $session->get_id(),
+					'error'      => $e->getMessage(),
+					'exception'  => get_class( $e ),
+					'file'       => $e->getFile(),
+					'line'       => $e->getLine(),
+				]
+			);
+		}
 
 		// 1. Match by WC rate ID stored in Stripe shipping rate metadata.
 		$wc_rate_id   = $session->get_chosen_shipping_rate_wc_id();
