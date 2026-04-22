@@ -4793,17 +4793,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @param bool $is_add_payment_method      Whether the current page is the "Add payment method" page.
 	 * @param bool $is_changing_payment_method Whether the customer is changing their payment method for a subscription.
+	 * @param bool $is_checkout                Whether the current page is the checkout page.
 	 * @param bool $expected                   Whether `is_valid_optimized_checkout_page` should return true.
 	 */
-	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
+	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $is_checkout, bool $expected ) {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
 			->getMock();
 
 		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
 		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
+		$is_checkout_return = $is_checkout ? '__return_true' : '__return_false';
+		add_filter( 'woocommerce_is_checkout', $is_checkout_return );
 
-		$this->assertSame( $expected, $gateway->is_valid_optimized_checkout_page() );
+		try {
+			$result = $gateway->is_valid_optimized_checkout_page();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', $is_checkout_return );
+		}
+
+		$this->assertSame( $expected, $result );
 	}
 
 	/**
@@ -4959,21 +4968,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'Regular checkout page'                  => [
 				'is_add_payment_method'      => false,
 				'is_changing_payment_method' => false,
+				'is_checkout'                => true,
 				'expected'                   => true,
 			],
 			'Add payment method page'                => [
 				'is_add_payment_method'      => true,
 				'is_changing_payment_method' => false,
+				'is_checkout'                => true,
 				'expected'                   => false,
 			],
 			'Change payment method for subscription' => [
 				'is_add_payment_method'      => false,
 				'is_changing_payment_method' => true,
+				'is_checkout'                => true,
 				'expected'                   => false,
 			],
 			'All special pages'                      => [
 				'is_add_payment_method'      => true,
 				'is_changing_payment_method' => true,
+				'is_checkout'                => true,
+				'expected'                   => false,
+			],
+			'Non-checkout page'                      => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'is_checkout'                => false,
 				'expected'                   => false,
 			],
 		];
