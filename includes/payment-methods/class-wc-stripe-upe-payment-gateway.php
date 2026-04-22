@@ -824,7 +824,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+			return WC_Stripe_UPE_Payment_Method_OC::get_alternative_title();
 		}
 		return parent::get_title();
 	}
