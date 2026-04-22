@@ -189,7 +189,13 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * Refresh any pending sync entries by polling Stripe for their current status.
 	 *
 	 * Called lazily when the status endpoint is read. Only entries with a
-	 * "pending" status and a valid import_set_id are refreshed.
+	 * "pending" status and a valid import_set_id are refreshed. The Stripe API
+	 * round-trips run against an in-memory copy of the history; the resulting
+	 * status updates are then applied through
+	 * {@see WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses()},
+	 * which re-reads the persisted history at write time so any entries
+	 * appended concurrently by the scheduled sync or another manual trigger
+	 * are not clobbered.
 	 *
 	 * @since 10.7.0
 	 * @return void
@@ -201,9 +207,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			return;
 		}
 
-		$updated = false;
+		$status_updates = [];
 
-		foreach ( $history as &$entry ) {
+		foreach ( $history as $entry ) {
 			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
 				continue;
 			}
@@ -219,8 +225,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				$new_status = $import_set['status'] ?? 'pending';
 
 				if ( 'pending' !== $new_status ) {
-					$entry['status'] = $new_status;
-					$updated         = true;
+					$status_updates[ $import_set_id ] = $new_status;
 				}
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error(
@@ -232,11 +237,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				);
 			}
 		}
-		unset( $entry );
 
-		if ( $updated ) {
-			WC_Stripe_Agentic_Commerce_Integration::set_sync_history( $history );
-		}
+		WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( $status_updates );
 	}
 
 	/**

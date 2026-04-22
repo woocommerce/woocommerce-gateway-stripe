@@ -462,16 +462,45 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Replace the persisted sync history.
+	 * Apply status updates to pending history entries by import_set_id.
 	 *
-	 * Used by the refresh flow to update in-place status changes fetched from
-	 * Stripe. Keeps the underlying option private.
+	 * Re-reads the current history at write time and applies the updates to
+	 * matching pending entries, so any entries appended concurrently by
+	 * {@see self::store_sync_result()} between read and write (for example
+	 * during a Stripe API round-trip in the dashboard refresh flow) are
+	 * preserved.
 	 *
 	 * @since 10.7.0
-	 * @param array<int, array> $history Sync history entries.
+	 * @param array<string, string> $status_updates Map of import_set_id to new status.
 	 * @return void
 	 */
-	public static function set_sync_history( array $history ): void {
+	public static function update_pending_statuses( array $status_updates ): void {
+		if ( empty( $status_updates ) ) {
+			return;
+		}
+
+		$history = self::get_sync_history();
+		$changed = false;
+
+		foreach ( $history as &$entry ) {
+			if ( 'pending' !== ( $entry['status'] ?? '' ) ) {
+				continue;
+			}
+
+			$import_set_id = $entry['import_set_id'] ?? '';
+			if ( '' === $import_set_id || ! isset( $status_updates[ $import_set_id ] ) ) {
+				continue;
+			}
+
+			$entry['status'] = $status_updates[ $import_set_id ];
+			$changed         = true;
+		}
+		unset( $entry );
+
+		if ( ! $changed ) {
+			return;
+		}
+
 		update_option( self::SYNC_HISTORY_OPTION, $history, false );
 
 		$last = end( $history );

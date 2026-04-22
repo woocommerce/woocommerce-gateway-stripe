@@ -469,6 +469,83 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /status preserves entries appended concurrently during refresh.
+	 *
+	 * Simulates the race where `store_sync_result()` appends a fresh entry
+	 * while the refresh flow is blocked on a Stripe API round-trip: the new
+	 * entry must survive the refresh's writeback.
+	 */
+	public function test_get_status_preserves_concurrent_append_during_refresh(): void {
+		$pending = [
+			'status'        => 'pending',
+			'timestamp'     => 1700000000,
+			'products'      => 3,
+			'import_set_id' => 'impset_pending_refresh',
+			'file_id'       => 'file_pending',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $pending ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $pending );
+
+		// While the refresh flow is waiting on Stripe, simulate a concurrent
+		// scheduled sync appending a fresh entry via the integration's public
+		// store API.
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_pending_refresh' ) ) {
+				( new WC_Stripe_Agentic_Commerce_Integration() )->store_sync_result(
+					[
+						'status'        => 'succeeded',
+						'products'      => 7,
+						'import_set_id' => 'impset_concurrent',
+						'file_id'       => 'file_concurrent',
+						'error'         => '',
+					]
+				);
+
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_pending_refresh',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$stored_history = get_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		$this->assertCount( 2, $stored_history, 'Concurrent append must not be clobbered.' );
+
+		$ids = array_column( $stored_history, 'import_set_id' );
+		$this->assertContains( 'impset_pending_refresh', $ids );
+		$this->assertContains( 'impset_concurrent', $ids );
+
+		$by_id = array_column( $stored_history, null, 'import_set_id' );
+		$this->assertEquals( 'succeeded', $by_id['impset_pending_refresh']['status'] );
+		$this->assertEquals( 'succeeded', $by_id['impset_concurrent']['status'] );
+
+		// last_sync should track the newest (concurrently appended) entry.
+		$stored_last = get_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
+		$this->assertEquals( 'impset_concurrent', $stored_last['import_set_id'] );
+	}
+
+	/**
 	 * GET /status handles Stripe API errors gracefully during refresh.
 	 */
 	public function test_get_status_handles_stripe_error_during_refresh(): void {
