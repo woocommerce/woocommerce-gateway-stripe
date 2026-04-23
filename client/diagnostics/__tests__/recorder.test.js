@@ -311,6 +311,165 @@ describe( 'Recorder', () => {
 			} );
 		} );
 
+		describe( 'recordBlocksPaymentSetupStart / End', () => {
+			it( 'records start and end events with site, duration_ms, and result_type for a successful payment setup', () => {
+				let mockTime = 1000;
+				const clock = () => mockTime;
+				const recorder = makeRecorder( { now: clock } );
+				recorder.boot();
+
+				const handle =
+					recorder.recordBlocksPaymentSetupStart(
+						'payment_processor'
+					);
+				mockTime = 1750;
+				recorder.recordBlocksPaymentSetupEnd( handle, {
+					type: 'success',
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
+					'blocks.payment_setup.start',
+					'blocks.payment_setup.end',
+				] );
+				expect( body.events[ 0 ].data ).toEqual( {
+					site: 'payment_processor',
+				} );
+				expect( body.events[ 1 ].data ).toEqual( {
+					site: 'payment_processor',
+					duration_ms: 750,
+					result_type: 'success',
+					error_message: undefined,
+				} );
+			} );
+
+			it( 'records error_message on end when the result carries one', () => {
+				let mockTime = 0;
+				const clock = () => mockTime;
+				const recorder = makeRecorder( { now: clock } );
+				recorder.boot();
+
+				const handle =
+					recorder.recordBlocksPaymentSetupStart(
+						'checkout_sessions'
+					);
+				mockTime = 100;
+				recorder.recordBlocksPaymentSetupEnd( handle, {
+					type: 'error',
+					message: 'Your payment information is incomplete.',
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const endEvent = body.events.find(
+					( e ) => e.kind === 'blocks.payment_setup.end'
+				);
+				expect( endEvent.data ).toMatchObject( {
+					site: 'checkout_sessions',
+					duration_ms: 100,
+					result_type: 'error',
+					error_message: 'Your payment information is incomplete.',
+				} );
+			} );
+		} );
+
+		describe( 'attachExpress() integration with the Express Checkout Element', () => {
+			function makeFakeEce() {
+				const handlers = {};
+				return {
+					on: ( event, cb ) => {
+						handlers[ event ] = cb;
+					},
+					emit: ( event, payload ) => handlers[ event ]?.( payload ),
+				};
+			}
+
+			it( 'records paymentmethod with wallet_type and payment_method_type', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const eceButton = makeFakeEce();
+
+				recorder.attachExpress( eceButton );
+				eceButton.emit( 'paymentmethod', {
+					expressPaymentType: 'link',
+					paymentMethod: {
+						type: 'card',
+						card: { brand: 'visa', last4: '4242' },
+					},
+					billingDetails: {
+						name: 'Jane Doe',
+						email: 'jane@example.com',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe( 'express.paymentmethod' );
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: 'link',
+					payment_method_type: 'card',
+				} );
+			} );
+
+			it( 'records shippingaddresschange with wallet_type and country (drops other address fields)', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const eceButton = makeFakeEce();
+
+				recorder.attachExpress( eceButton );
+				eceButton.emit( 'shippingaddresschange', {
+					expressPaymentType: 'google_pay',
+					address: {
+						country: 'CA',
+						postalCode: 'M5V 0J5',
+						city: 'Toronto',
+						state: 'ON',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe(
+					'express.shippingaddresschange'
+				);
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: 'google_pay',
+					country: 'CA',
+				} );
+			} );
+
+			it( 'records click, confirm, cancel, and shippingratechange with wallet_type', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const eceButton = makeFakeEce();
+
+				recorder.attachExpress( eceButton );
+				eceButton.emit( 'click', { expressPaymentType: 'apple_pay' } );
+				eceButton.emit( 'confirm', {
+					expressPaymentType: 'apple_pay',
+				} );
+				eceButton.emit( 'cancel', {
+					expressPaymentType: 'apple_pay',
+				} );
+				eceButton.emit( 'shippingratechange', {
+					expressPaymentType: 'apple_pay',
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
+					'express.click',
+					'express.confirm',
+					'express.cancel',
+					'express.shippingratechange',
+				] );
+				body.events.forEach( ( e ) => {
+					expect( e.data ).toEqual( { wallet_type: 'apple_pay' } );
+				} );
+			} );
+		} );
+
 		describe( 'wrapStripe() integration with the Stripe singleton', () => {
 			function makeFakeStripe( overrides = {} ) {
 				const succeeded = () =>

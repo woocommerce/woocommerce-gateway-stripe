@@ -98,6 +98,43 @@ export class Recorder {
 		}
 	}
 
+	recordBlocksPaymentSetupStart( site ) {
+		this.record( 'blocks.payment_setup.start', { site } );
+		return { startMs: this.now(), site };
+	}
+
+	recordBlocksPaymentSetupEnd( handle, result = {} ) {
+		this.record( 'blocks.payment_setup.end', {
+			site: handle.site,
+			duration_ms: this.now() - handle.startMs,
+			result_type: result.type,
+			error_message: result.message,
+		} );
+	}
+
+	attachExpress( eceButton ) {
+		const simple = [ 'click', 'confirm', 'cancel', 'shippingratechange' ];
+		for ( const ev of simple ) {
+			eceButton.on( ev, ( payload = {} ) => {
+				this.record( `express.${ ev }`, {
+					wallet_type: payload.expressPaymentType,
+				} );
+			} );
+		}
+		eceButton.on( 'shippingaddresschange', ( payload = {} ) => {
+			this.record( 'express.shippingaddresschange', {
+				wallet_type: payload.expressPaymentType,
+				country: payload.address?.country,
+			} );
+		} );
+		eceButton.on( 'paymentmethod', ( payload = {} ) => {
+			this.record( 'express.paymentmethod', {
+				wallet_type: payload.expressPaymentType,
+				payment_method_type: payload.paymentMethod?.type,
+			} );
+		} );
+	}
+
 	attach( element, kind ) {
 		element.on( 'ready', () => {
 			this.record( 'element.ready', { element_type: kind } );
