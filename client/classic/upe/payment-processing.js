@@ -1282,24 +1282,24 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		if ( intentObject.status !== PAYMENT_INTENT_STATUS_REQUIRES_ACTION ) {
 			if ( ! isChangingPayment ) {
 				window.location.href = returnURL;
-			}
-
-			// If we're changing a subscription's payment method, there's an extra step needed.
-			// We need to confirm the change payment intent via the confirm_change_payment AJAX request and then redirect to the return URL.
-			const response = await api.request(
-				api.getAjaxUrl( 'confirm_change_payment' ),
-				{
-					order_id: orderId,
-					intent_id: intentObject.id,
-					payment_method_id: intentObject.payment_method || null,
-					_ajax_nonce: partials[ 6 ],
-				}
-			);
-
-			if ( response.success ) {
-				window.location.href = response.data.return_url;
 			} else {
-				throw new Error( response.data.error.message );
+				// If we're changing a subscription's payment method, there's an extra step needed.
+				// We need to confirm the change payment intent via the confirm_change_payment AJAX request and then redirect to the return URL.
+				const response = await api.request(
+					api.getAjaxUrl( 'confirm_change_payment' ),
+					{
+						order_id: orderId,
+						intent_id: intentObject.id,
+						payment_method_id: intentObject.payment_method || null,
+						_ajax_nonce: partials[ 6 ],
+					}
+				);
+
+				if ( response.success ) {
+					window.location.href = response.data.return_url;
+				} else {
+					throw new Error( response.data.error.message );
+				}
 			}
 		}
 	} catch ( error ) {
