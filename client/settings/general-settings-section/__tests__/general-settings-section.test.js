@@ -252,26 +252,28 @@ describe( 'GeneralSettingsSection', () => {
 			.spyOn( window, 'confirm' )
 			.mockImplementation( () => false );
 
-		render( <GeneralSettingsSection /> );
+		try {
+			render( <GeneralSettingsSection /> );
 
-		const sofortCheckbox = screen.getByRole( 'checkbox', {
-			name: /Sofort/,
-		} );
-		await userEvent.click( sofortCheckbox );
+			const sofortCheckbox = screen.getByRole( 'checkbox', {
+				name: /Sofort/,
+			} );
+			await userEvent.click( sofortCheckbox );
 
-		expect( confirmSpy ).toHaveBeenCalledWith(
-			expect.stringContaining( 'Sofort is being deprecated' )
-		);
-		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+			expect( confirmSpy ).toHaveBeenCalledWith(
+				expect.stringContaining( 'Sofort is being deprecated' )
+			);
+			expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 
-		confirmSpy.mockImplementation( () => true );
-		await userEvent.click( sofortCheckbox );
+			confirmSpy.mockImplementation( () => true );
+			await userEvent.click( sofortCheckbox );
 
-		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-			PAYMENT_METHOD_CARD,
-		] );
-
-		confirmSpy.mockRestore();
+			expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
+				PAYMENT_METHOD_CARD,
+			] );
+		} finally {
+			confirmSpy.mockRestore();
+		}
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supported', () => {
