@@ -211,6 +211,16 @@ export class Recorder {
 	}
 }
 
+let _singleton = null;
+
+export function getRecorder() {
+	if ( ! _singleton ) {
+		_singleton = new Recorder();
+		_singleton.boot();
+	}
+	return _singleton;
+}
+
 function projectChangePayload( kind, payload ) {
 	return {
 		element_type: kind,

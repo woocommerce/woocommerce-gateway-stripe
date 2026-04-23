@@ -26,6 +26,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import { diagAttachExpress } from 'wcstripe/diagnostics/wiring';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
@@ -379,6 +380,8 @@ jQuery( function ( $ ) {
 			} );
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
+
+			diagAttachExpress( eceButton );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.

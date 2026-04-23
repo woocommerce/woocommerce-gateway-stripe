@@ -22,6 +22,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
+import { diagAttach } from 'wcstripe/diagnostics/wiring';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -457,6 +458,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[ paymentMethodType ].upeElement =
 		createdStripePaymentElement;
+
+	diagAttach( createdStripePaymentElement, paymentMethodType, 'classic' );
 
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.

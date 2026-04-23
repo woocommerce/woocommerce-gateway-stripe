@@ -22,6 +22,11 @@ import {
 } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
+	diagAttach,
+	diagBlocksPaymentSetupStart,
+	diagBlocksPaymentSetupEnd,
+} from 'wcstripe/diagnostics/wiring';
+import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
@@ -118,7 +123,9 @@ const PaymentProcessor = ( {
 
 	useEffect(
 		() =>
-			onPaymentSetup( () => {
+			onPaymentSetup( async () => {
+				const diagHandle =
+					diagBlocksPaymentSetupStart( 'payment_processor' );
 				async function handlePaymentProcessing() {
 					if (
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
@@ -251,7 +258,9 @@ const PaymentProcessor = ( {
 						},
 					};
 				}
-				return handlePaymentProcessing();
+				const result = await handlePaymentProcessing();
+				diagBlocksPaymentSetupEnd( diagHandle, result );
+				return result;
 			} ),
 		[
 			activePaymentMethod,
@@ -410,6 +419,12 @@ const PaymentProcessor = ( {
 					options={ getStripeElementOptions() }
 					onChange={ onSelectedPaymentMethodChange }
 					onLoadError={ setHasLoadError }
+					onReady={ () => {
+						const el = elements?.getElement( 'payment' );
+						if ( el ) {
+							diagAttach( el, 'payment', 'blocks' );
+						}
+					} }
 					className="wcstripe-payment-element"
 				/>
 			) }

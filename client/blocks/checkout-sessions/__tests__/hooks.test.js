@@ -5,6 +5,10 @@ import {
 	usePaymentFailHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
+import {
+	diagBlocksPaymentSetupStart,
+	diagBlocksPaymentSetupEnd,
+} from 'wcstripe/diagnostics/wiring';
 import { useEffect } from '@wordpress/element';
 import { select, useSelect } from '@wordpress/data';
 
@@ -16,6 +20,11 @@ jest.mock( '@wordpress/element', () => ( {
 jest.mock( '@wordpress/data', () => ( {
 	select: jest.fn(),
 	useSelect: jest.fn( () => '' ),
+} ) );
+
+jest.mock( 'wcstripe/diagnostics/wiring', () => ( {
+	diagBlocksPaymentSetupStart: jest.fn(),
+	diagBlocksPaymentSetupEnd: jest.fn(),
 } ) );
 
 describe( 'CheckoutSessions hook tests', () => {
@@ -164,6 +173,60 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( result.meta.paymentMethodData.save_payment_method ).toBe(
 				'yes'
 			);
+		} );
+
+		describe( 'diagnostics integration', () => {
+			beforeEach( () => {
+				diagBlocksPaymentSetupStart.mockReset();
+				diagBlocksPaymentSetupEnd.mockReset();
+			} );
+
+			it( 'brackets the handler with start/end calls, forwarding the result to end', async () => {
+				const fakeHandle = {
+					startMs: 0,
+					site: 'checkout_sessions',
+				};
+				diagBlocksPaymentSetupStart.mockReturnValue( fakeHandle );
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				expect( diagBlocksPaymentSetupStart ).toHaveBeenCalledWith(
+					'checkout_sessions'
+				);
+
+				const result = await onPaymentSetupResultPromise;
+
+				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledTimes( 1 );
+				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledWith(
+					fakeHandle,
+					result
+				);
+			} );
+
+			it( 'still returns the original result through the wrapped handler', async () => {
+				diagBlocksPaymentSetupStart.mockReturnValue( null );
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				const result = await onPaymentSetupResultPromise;
+				expect( result.type ).toBe( 'success' );
+			} );
 		} );
 	} );
 
