@@ -795,7 +795,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
-		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
+			return false;
+		}
+
+		return is_checkout();
+	}
+
+	/**
+	 * Checks whether Optimized Checkout is the active payment strategy for the current request.
+	 *
+	 * Distinct from {@see self::is_valid_optimized_checkout_page()} which gates *rendering* to
+	 * actual checkout pages. This broader check is true wherever OCS-aware token handling should
+	 * apply (e.g. My Account → Payment Methods, where saved tokens for sub-gateways must still
+	 * surface under the consolidated 'stripe' gateway).
+	 *
+	 * @return bool
+	 */
+	public function is_optimized_checkout_active(): bool {
+		return $this->oc_enabled
+			&& ! $this->is_on_add_payment_method_page()
+			&& ! $this->is_changing_payment_method_for_subscription();
 	}
 
 	/**
@@ -824,7 +844,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+			return WC_Stripe_UPE_Payment_Method_OC::get_alternative_title();
 		}
 		return parent::get_title();
 	}
@@ -4630,7 +4650,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+		if ( ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 
