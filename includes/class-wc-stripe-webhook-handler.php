@@ -2212,6 +2212,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 				 */
 				do_action( 'wc_stripe_agentic_order_creation_failed', $e, $session );
+
+				// Re-throw so Action Scheduler marks the job as failed. The inner
+				// catch exists to log with full context and fire the failure hook;
+				// swallowing here would make AS report the run as complete.
+				throw $e;
 			}
 		} finally {
 			remove_filter( 'wc_stripe_request_headers', $override_version );

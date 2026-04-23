@@ -151,11 +151,11 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that the mapper is called and errors are handled gracefully.
+	 * Tests that the mapper is called, errors fire the failure hook, and the
+	 * exception is re-thrown so Action Scheduler marks the job as failed.
 	 *
 	 * The order mapper will fail because the mock session references
-	 * a non-existent product, and the handler should catch and log
-	 * without crashing.
+	 * a non-existent product.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_failure() {
 		$failure_action_fired = false;
@@ -175,17 +175,24 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: mapper fails → fires failure action, does not throw.
-		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		// Deferred phase: mapper fails → fires failure action, then rethrows so
+		// Action Scheduler marks the job failed.
+		$rethrown = null;
+		try {
+			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		} catch ( \Throwable $t ) {
+			$rethrown = $t;
+		}
 
 		$this->assertTrue( $failure_action_fired );
 		$this->assertInstanceOf( Exception::class, $captured_exception );
+		$this->assertSame( $captured_exception, $rethrown );
 	}
 
 	/**
 	 * Tests that a PHP Throwable (not just Exception) thrown during order
-	 * mapping is caught, logged, and fires the failure action without
-	 * crashing the webhook worker.
+	 * mapping is caught, logged, fires the failure hook, and is re-thrown so
+	 * Action Scheduler marks the job as failed rather than silently complete.
 	 */
 	public function test_process_checkout_session_completed_handles_mapper_throwable() {
 		$product = WC_Helper_Product::create_simple_product(
@@ -215,6 +222,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		};
 		add_action( 'woocommerce_new_order_item', $throw_action );
 
+		$rethrown = null;
 		try {
 			$session_id   = 'cs_test_throwable';
 			$notification = $this->build_notification( $session_id );
@@ -225,8 +233,13 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			$this->handler->process_checkout_session_success( $notification );
 			// Deferred phase: TypeError is thrown from woocommerce_new_order_item
 			// via the action. The handler must catch it (Throwable, not just
-			// Exception), log it, fire the failure action, and return normally.
-			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+			// Exception), log it, fire the failure action, and then rethrow so
+			// Action Scheduler sees the job as failed.
+			try {
+				$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+			} catch ( \Throwable $t ) {
+				$rethrown = $t;
+			}
 		} finally {
 			remove_action( 'woocommerce_new_order_item', $throw_action );
 		}
@@ -234,6 +247,7 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 		$this->assertTrue( $failure_action_fired );
 		$this->assertInstanceOf( \Throwable::class, $captured_throwable );
 		$this->assertInstanceOf( \TypeError::class, $captured_throwable );
+		$this->assertSame( $captured_throwable, $rethrown );
 
 		// The order created by the mapper must be rolled back: the mapper's
 		// inner Throwable catch deletes the order before rethrowing.
@@ -384,8 +398,17 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 
 		// Immediate phase: defers the webhook.
 		$this->handler->process_checkout_session_success( $notification );
-		// Deferred phase: API retrieve call must include the Stripe-Version override header.
-		$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		// Deferred phase: API retrieve call must include the Stripe-Version override
+		// header. The stub session references a non-existent product, so the mapper
+		// fails and re-throws — that's fine for this test; we only care that the
+		// override filter was applied before the HTTP call.
+		$mapper_threw = null;
+		try {
+			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
+		} catch ( \Throwable $t ) {
+			$mapper_threw = $t;
+		}
+		$this->assertInstanceOf( \Throwable::class, $mapper_threw );
 
 		$this->assertNotNull( $captured_headers );
 		$this->assertArrayHasKey( 'Stripe-Version', $captured_headers );
