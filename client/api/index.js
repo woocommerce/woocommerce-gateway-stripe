@@ -13,7 +13,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 	STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 } from 'wcstripe/stripe-utils/constants';
-import { getRecorder } from 'wcstripe/diagnostics/recorder';
+import { diagAroundStripeCall } from 'wcstripe/diagnostics/wiring';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -81,9 +81,6 @@ export default class WCStripeAPI {
 		const { key, locale } = this.options;
 		if ( ! this.stripe ) {
 			this.stripe = this.createStripe( key, locale );
-			if ( window.wcStripeDiag?.active ) {
-				getRecorder().wrapStripe( this.stripe );
-			}
 		}
 		return this.stripe;
 	}
@@ -356,7 +353,9 @@ export default class WCStripeAPI {
 
 		const confirmAction = isSetupIntent
 			? this.getStripe().confirmSetup( confirmArgs )
-			: this.getStripe( true ).confirmPayment( confirmArgs );
+			: diagAroundStripeCall( 'confirmPayment', () =>
+					this.getStripe( true ).confirmPayment( confirmArgs )
+			  );
 
 		const request = confirmAction
 			// ToDo: Switch to an async function once it works with webpack.

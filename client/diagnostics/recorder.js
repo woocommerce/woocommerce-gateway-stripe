@@ -114,42 +114,15 @@ export class Recorder {
 		}
 	}
 
-	wrapStripe( stripe ) {
-		// NOTE: createPaymentMethod is intentionally NOT in this list.
-		// Mutating stripe.createPaymentMethod (even with a non-async function
-		// of matching shape) breaks @stripe/react-stripe-js's <Elements>
-		// validation in a way the typeof check doesn't explain. Capture for
-		// createPaymentMethod is done via call-site brackets — see
-		// aroundStripeCall() and diagAroundStripeCall().
-		const methods = [
-			'confirmPayment',
-			'confirmCardPayment',
-			'confirmSetupIntent',
-		];
-		for ( const method of methods ) {
-			const original = stripe[ method ].bind( stripe );
-			stripe[ method ] = ( ...args ) =>
-				this._instrumentStripeCall( method, () => original( ...args ) );
-		}
-	}
-
 	/**
 	 * Wrap a Stripe API call with .invoke / .resolve / .throw events,
 	 * preserving the original return value (or rethrown error).
-	 *
-	 * Used by both wrapStripe (for the confirm methods) and at call sites
-	 * where mutating the Stripe instance would break Stripe's internal checks
-	 * (e.g. createPaymentMethod, see wrapStripe note above).
 	 *
 	 * @param {string}   method The Stripe method name being instrumented.
 	 * @param {Function} fn     A zero-arg function that performs the Stripe call and returns its Promise.
 	 * @return {Promise} The promise returned by fn(), with .invoke / .resolve / .throw recorded around it.
 	 */
 	aroundStripeCall( method, fn ) {
-		return this._instrumentStripeCall( method, fn );
-	}
-
-	_instrumentStripeCall( method, fn ) {
 		this.record( `stripe.${ method }.invoke`, { method } );
 		return Promise.resolve()
 			.then( fn )
