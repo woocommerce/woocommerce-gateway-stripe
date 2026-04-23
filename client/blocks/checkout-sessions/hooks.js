@@ -100,9 +100,17 @@ export const usePaymentSetupHandler = (
 						},
 					};
 				}
-				const result = await handlePaymentProcessing();
-				diagBlocksPaymentSetupEnd( diagHandle, result );
-				return result;
+				try {
+					const result = await handlePaymentProcessing();
+					diagBlocksPaymentSetupEnd( diagHandle, result );
+					return result;
+				} catch ( err ) {
+					diagBlocksPaymentSetupEnd( diagHandle, {
+						type: 'error',
+						message: err?.message,
+					} );
+					throw err;
+				}
 			} ),
 		[
 			checkoutSessionId,

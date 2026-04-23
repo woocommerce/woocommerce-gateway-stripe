@@ -4,6 +4,7 @@ const mockAttach = jest.fn();
 const mockRecordBlocksPaymentSetupStart = jest.fn();
 const mockRecordBlocksPaymentSetupEnd = jest.fn();
 const mockAroundStripeCall = jest.fn();
+const mockAttachAfterReady = jest.fn();
 
 jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 	getRecorder: () => ( {
@@ -13,12 +14,14 @@ jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 		recordBlocksPaymentSetupStart: mockRecordBlocksPaymentSetupStart,
 		recordBlocksPaymentSetupEnd: mockRecordBlocksPaymentSetupEnd,
 		aroundStripeCall: mockAroundStripeCall,
+		attachAfterReady: mockAttachAfterReady,
 	} ),
 } ) );
 
 import {
 	diagAttach,
 	diagAttachExpress,
+	diagAttachAfterReady,
 	diagBlocksPaymentSetupStart,
 	diagBlocksPaymentSetupEnd,
 	diagAroundStripeCall,
@@ -32,6 +35,7 @@ describe( 'diagnostics wiring helpers', () => {
 		mockRecordBlocksPaymentSetupStart.mockClear();
 		mockRecordBlocksPaymentSetupEnd.mockClear();
 		mockAroundStripeCall.mockClear();
+		mockAttachAfterReady.mockClear();
 		delete window.wcStripeDiag;
 	} );
 
@@ -149,6 +153,27 @@ describe( 'diagnostics wiring helpers', () => {
 			expect( fn ).toHaveBeenCalledTimes( 1 );
 			expect( mockAroundStripeCall ).not.toHaveBeenCalled();
 			expect( result ).toBe( expected );
+		} );
+	} );
+
+	describe( 'diagAttachAfterReady', () => {
+		it( 'delegates to recorder.attachAfterReady when active', () => {
+			window.wcStripeDiag = { active: true };
+			const element = { id: 'fake' };
+
+			diagAttachAfterReady( element, 'payment', 'blocks' );
+
+			expect( mockAttachAfterReady ).toHaveBeenCalledTimes( 1 );
+			expect( mockAttachAfterReady ).toHaveBeenCalledWith(
+				element,
+				'payment',
+				'blocks'
+			);
+		} );
+
+		it( 'does nothing when wcStripeDiag is absent', () => {
+			diagAttachAfterReady( { id: 'fake' }, 'payment', 'blocks' );
+			expect( mockAttachAfterReady ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

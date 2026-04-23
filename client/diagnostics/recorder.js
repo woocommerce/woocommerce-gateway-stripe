@@ -90,8 +90,9 @@ export class Recorder {
 	_handlePagehide() {
 		// Persist current buffer BEFORE attempting the flush so a torn-down
 		// browser tab can still replay these events on the return page.
-		if ( this.buffer.length > 0 ) {
-			const storageKey = STORAGE_KEY_PREFIX + this.config.sessionId;
+		const hadBuffer = this.buffer.length > 0;
+		const storageKey = STORAGE_KEY_PREFIX + this.config.sessionId;
+		if ( hadBuffer ) {
 			const existing = readStoredState( storageKey ) || {};
 			writeStoredState( storageKey, {
 				...existing,
@@ -99,6 +100,18 @@ export class Recorder {
 			} );
 		}
 		this.flush( 'pagehide' );
+		// If we got here, the synchronous sendBeacon was queued. Clear the
+		// persisted copy so the next boot does not double-send. If the tab
+		// is torn down BEFORE this line runs, the persisted copy survives
+		// and the next-boot replay path acts as the safety net.
+		if ( hadBuffer ) {
+			const existing = readStoredState( storageKey );
+			if ( existing?.bufferedEvents ) {
+				const cleared = { ...existing };
+				delete cleared.bufferedEvents;
+				writeStoredState( storageKey, cleared );
+			}
+		}
 	}
 
 	wrapStripe( stripe ) {
@@ -200,6 +213,22 @@ export class Recorder {
 				payment_method_type: payload.paymentMethod?.type,
 			} );
 		} );
+	}
+
+	/**
+	 * Like attach(), but for elements where the underlying Stripe Element
+	 * has already fired its one-time `ready` event by the time we get here
+	 * (e.g. inside React's <PaymentElement onReady={...}> prop). We synthesize
+	 * the ready event so the trace is symmetric with the classic surface,
+	 * then subscribe for the lifecycle events that fire later.
+	 *
+	 * @param {Object} element The Stripe Element instance.
+	 * @param {string} kind    The element kind (e.g. 'payment', 'card').
+	 * @param {string} surface The checkout surface (e.g. 'classic', 'blocks').
+	 */
+	attachAfterReady( element, kind, surface ) {
+		this.record( 'element.ready', { element_type: kind } );
+		this.attach( element, kind, surface );
 	}
 
 	attach( element, kind ) {

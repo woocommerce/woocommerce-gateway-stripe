@@ -22,7 +22,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
-import { diagAttach } from 'wcstripe/diagnostics/wiring';
+import { diagAttach, diagAroundStripeCall } from 'wcstripe/diagnostics/wiring';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -565,15 +565,15 @@ function createStripePaymentMethod(
 			  }
 			: { elements, params };
 
-	return api
-		.getStripe( paymentMethodType )
-		.createPaymentMethod( paymentMethodData )
-		.then( ( paymentMethod ) => {
-			if ( paymentMethod.error ) {
-				throw paymentMethod.error;
-			}
-			return paymentMethod;
-		} );
+	const stripe = api.getStripe( paymentMethodType );
+	return diagAroundStripeCall( 'createPaymentMethod', () =>
+		stripe.createPaymentMethod( paymentMethodData )
+	).then( ( paymentMethod ) => {
+		if ( paymentMethod.error ) {
+			throw paymentMethod.error;
+		}
+		return paymentMethod;
+	} );
 }
 
 /**

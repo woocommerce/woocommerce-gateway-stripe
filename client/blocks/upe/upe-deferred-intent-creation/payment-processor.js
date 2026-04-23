@@ -22,7 +22,7 @@ import {
 } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
-	diagAttach,
+	diagAttachAfterReady,
 	diagAroundStripeCall,
 	diagBlocksPaymentSetupStart,
 	diagBlocksPaymentSetupEnd,
@@ -263,9 +263,17 @@ const PaymentProcessor = ( {
 						},
 					};
 				}
-				const result = await handlePaymentProcessing();
-				diagBlocksPaymentSetupEnd( diagHandle, result );
-				return result;
+				try {
+					const result = await handlePaymentProcessing();
+					diagBlocksPaymentSetupEnd( diagHandle, result );
+					return result;
+				} catch ( err ) {
+					diagBlocksPaymentSetupEnd( diagHandle, {
+						type: 'error',
+						message: err?.message,
+					} );
+					throw err;
+				}
 			} ),
 		[
 			activePaymentMethod,
@@ -427,7 +435,7 @@ const PaymentProcessor = ( {
 					onReady={ () => {
 						const el = elements?.getElement( 'payment' );
 						if ( el ) {
-							diagAttach( el, 'payment', 'blocks' );
+							diagAttachAfterReady( el, 'payment', 'blocks' );
 						}
 					} }
 					className="wcstripe-payment-element"

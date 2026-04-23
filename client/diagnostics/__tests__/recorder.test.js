@@ -222,6 +222,41 @@ describe( 'Recorder', () => {
 				] );
 			} );
 
+			it( 'attachAfterReady records a synthetic element.ready (the underlying ready event has already fired)', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attachAfterReady( element, 'payment', 'blocks' );
+				// Note: NOT emitting 'ready' on the fake element — the whole
+				// point is that Stripe has already fired ready before we attach.
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ] ).toMatchObject( {
+					kind: 'element.ready',
+					data: { element_type: 'payment' },
+				} );
+			} );
+
+			it( 'attachAfterReady still subscribes to lifecycle events that fire later (focus/blur/change/loaderror)', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attachAfterReady( element, 'payment', 'blocks' );
+				element.emit( 'focus' );
+				element.emit( 'blur' );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
+					'element.ready', // synthetic
+					'element.focus',
+					'element.blur',
+				] );
+			} );
+
 			it( 'records element.focus and element.blur with element_type', () => {
 				const recorder = makeRecorder();
 				recorder.boot();
@@ -828,22 +863,30 @@ describe( 'Recorder', () => {
 			const STORAGE_KEY =
 				'wc_stripe_diag_550e8400-e29b-41d4-a716-446655440000';
 
-			it( 'persists the unflushed buffer to sessionStorage on pagehide (so a 3DS redirect cannot lose events)', () => {
-				const recorder = makeRecorder();
-				recorder.boot();
-				recorder.record( 'element.ready', { element_type: 'card' } );
+			it( 'flushes the buffer on pagehide AND clears the persisted copy so the next boot does not double-send (3DS replay safety net only fires on torn-down tabs)', () => {
+				// First page load: record + pagehide fires the flush.
+				const r1 = makeRecorder();
+				r1.boot();
+				r1.record( 'element.ready', { element_type: 'card' } );
 
 				window.dispatchEvent( new Event( 'pagehide' ) );
 
+				// Pagehide must have triggered exactly one sendBeacon.
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+				// And the persisted bufferedEvents must have been cleared so
+				// the next boot does NOT replay them.
 				const stored = JSON.parse(
 					window.sessionStorage.getItem( STORAGE_KEY )
 				);
-				expect( stored.bufferedEvents ).toEqual( [
-					expect.objectContaining( {
-						kind: 'element.ready',
-						data: { element_type: 'card' },
-					} ),
-				] );
+				expect( stored?.bufferedEvents ).toBeUndefined();
+				expect( stored?.traceStartMs ).toEqual( expect.any( Number ) );
+
+				// Simulate a fresh page load — boot a new recorder. It must
+				// NOT trigger another sendBeacon for the events from r1.
+				const r2 = makeRecorder();
+				r2.boot();
+				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
 			} );
 
 			it( 'replays buffered events from sessionStorage on boot (return from 3DS)', () => {

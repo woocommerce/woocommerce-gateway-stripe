@@ -227,6 +227,46 @@ describe( 'CheckoutSessions hook tests', () => {
 				const result = await onPaymentSetupResultPromise;
 				expect( result.type ).toBe( 'success' );
 			} );
+
+			it( 'still calls end with type=error and error message when the handler throws, then re-throws', async () => {
+				const fakeHandle = {
+					startMs: 0,
+					site: 'checkout_sessions',
+				};
+				diagBlocksPaymentSetupStart.mockReturnValue( fakeHandle );
+
+				// Force the handler to throw by making the validation-store
+				// lookup throw synchronously inside handlePaymentProcessing.
+				window.wc = {
+					wcBlocksData: { validationStore: 'wc/store/validation' },
+				};
+				select.mockImplementation( () => {
+					throw new Error( 'boom' );
+				} );
+
+				const hasLoadErrorRef = { current: false };
+				usePaymentSetupHandler(
+					onPaymentSetup,
+					checkoutSessionId,
+					null,
+					hasLoadErrorRef,
+					true,
+					'card'
+				);
+
+				await expect( onPaymentSetupResultPromise ).rejects.toThrow(
+					'boom'
+				);
+
+				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledTimes( 1 );
+				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledWith(
+					fakeHandle,
+					expect.objectContaining( {
+						type: 'error',
+						message: 'boom',
+					} )
+				);
+			} );
 		} );
 	} );
 

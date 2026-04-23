@@ -18,6 +18,23 @@ export function diagAttach( element, kind, surface ) {
 	getRecorder().attach( element, kind, surface );
 }
 
+/**
+ * Like diagAttach, but for Stripe Element instances where the underlying
+ * `ready` event has already fired (e.g. inside React's PaymentElement
+ * onReady prop). Synthesizes the ready event so the trace stays symmetric
+ * with the classic surface.
+ *
+ * @param {Object} element The Stripe Element instance.
+ * @param {string} kind    The element kind (e.g. 'payment').
+ * @param {string} surface The checkout surface (e.g. 'blocks').
+ */
+export function diagAttachAfterReady( element, kind, surface ) {
+	if ( ! isActive() ) {
+		return;
+	}
+	getRecorder().attachAfterReady( element, kind, surface );
+}
+
 export function diagBlocksPaymentSetupStart( site ) {
 	if ( ! isActive() ) {
 		return null;
