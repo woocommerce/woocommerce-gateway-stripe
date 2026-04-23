@@ -2,10 +2,17 @@
 
 xxxx-xx-xx - version 10.7.0
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
+* Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
+
+2026-04-23 - version 10.6.1
+* Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
 
 2026-04-20 - version 10.6.0
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Dev - Add paratest for parallel PHP unit test execution
+* Dev - Use paratest in CI workflow for faster PHP test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
 * Fix - Restore missing saved payment tokens when Optimized Checkout Suite is enabled
 * Add - Add exit survey to capture merchant feedback on plugin deactivation and gateway disablement

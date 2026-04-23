@@ -126,7 +126,7 @@ class WC_Stripe_Payment_Tokens {
 			$is_ocs_sub_gateway = WC_Stripe_UPE_Payment_Gateway::ID === $payment_method
 				&& in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
 				&& null !== $main_gateway
-				&& $main_gateway->oc_enabled && $main_gateway->is_valid_optimized_checkout_page();
+				&& $main_gateway->is_optimized_checkout_active();
 
 			if ( ! $is_ocs_sub_gateway ) {
 				return null;
@@ -237,7 +237,7 @@ class WC_Stripe_Payment_Tokens {
 				// When OCS is active, is_enabled_at_checkout() handles currency/capability; is_enabled()
 				// ensures explicitly disabled methods are still hidden.
 				// When OCS is not active, use the simple is_enabled() toggle check.
-				if ( $gateway->oc_enabled && $gateway->is_valid_optimized_checkout_page() ) {
+				if ( $gateway->is_optimized_checkout_active() ) {
 					if ( ! $method_obj->is_enabled() || ! $method_obj->is_enabled_at_checkout() ) {
 						// Preserve existing tokens in the DB but exclude them from the results.
 						// This avoids deleting tokens that are temporarily unavailable (e.g. currency change).
@@ -279,7 +279,7 @@ class WC_Stripe_Payment_Tokens {
 			// tokens without triggering the sync path. There is no recursion risk because the filter
 			// is absent for the duration of this try block.
 			// Only merge tokens for sub-gateways whose payment method is currently enabled.
-			if ( $gateway->oc_enabled && $gateway->is_valid_optimized_checkout_page() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+			if ( $gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 				$sub_gateway_to_method_type = [];
 				foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $method_type => $gw_id ) {
 					if ( WC_Stripe_UPE_Payment_Gateway::ID !== $gw_id ) {
@@ -627,7 +627,7 @@ class WC_Stripe_Payment_Tokens {
 		// (gateway ID 'stripe'). Remap sub-gateway tokens (e.g. stripe_sepa_debit) to the main stripe gateway ID
 		// so that PaymentUtils includes them in the blocks checkout saved methods list.
 		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $main_gateway->oc_enabled && $main_gateway->is_valid_optimized_checkout_page() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
+		if ( $main_gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
 			$item['method']['gateway'] = WC_Stripe_UPE_Payment_Gateway::ID;
 		}
 
@@ -1073,7 +1073,7 @@ class WC_Stripe_Payment_Tokens {
 
 		// When OCS is enabled, all reusable payment methods can be used via the consolidated OCS element.
 		// Return all reusable types so existing tokens are verified against Stripe and not incorrectly orphaned.
-		if ( $gateway->oc_enabled && $gateway->is_valid_optimized_checkout_page() ) {
+		if ( $gateway->is_optimized_checkout_active() ) {
 			return $reusable_payment_method_types;
 		}
 
