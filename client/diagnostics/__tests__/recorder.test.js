@@ -193,6 +193,308 @@ describe( 'Recorder', () => {
 			);
 		} );
 
+		describe( 'attach() integration with Stripe Element instances', () => {
+			function makeFakeElement() {
+				const handlers = {};
+				return {
+					on: ( event, cb ) => {
+						handlers[ event ] = cb;
+					},
+					emit: ( event, payload ) => handlers[ event ]?.( payload ),
+				};
+			}
+
+			it( 'records element.ready with element_type when the Stripe Element fires ready', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attach( element, 'card', 'classic' );
+				element.emit( 'ready' );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events ).toEqual( [
+					expect.objectContaining( {
+						kind: 'element.ready',
+						data: { element_type: 'card' },
+					} ),
+				] );
+			} );
+
+			it( 'records element.focus and element.blur with element_type', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attach( element, 'card', 'classic' );
+				element.emit( 'focus' );
+				element.emit( 'blur' );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
+					'element.focus',
+					'element.blur',
+				] );
+				expect( body.events[ 0 ].data ).toEqual( {
+					element_type: 'card',
+				} );
+				expect( body.events[ 1 ].data ).toEqual( {
+					element_type: 'card',
+				} );
+			} );
+
+			it( 'records element.loaderror with element_type and the projected error fields', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attach( element, 'card', 'classic' );
+				element.emit( 'loaderror', {
+					elementType: 'card',
+					error: {
+						type: 'integration_error',
+						code: 'integration_error',
+						message: 'Element failed to load',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ] ).toMatchObject( {
+					kind: 'element.loaderror',
+					data: {
+						element_type: 'card',
+						error_code: 'integration_error',
+						error_type: 'integration_error',
+						error_message: 'Element failed to load',
+					},
+				} );
+			} );
+
+			it( 'records element.change with the contract-allowed projection of the Stripe payload', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const element = makeFakeElement();
+
+				recorder.attach( element, 'card', 'classic' );
+				element.emit( 'change', {
+					elementType: 'card',
+					complete: false,
+					empty: false,
+					brand: 'visa',
+					error: {
+						code: 'incomplete_number',
+						type: 'validation_error',
+						message: 'Your card number is incomplete.',
+					},
+					// Fields that MUST be filtered out (not in §5.1 allow-list):
+					value: { postalCode: '90210' },
+					country: 'US',
+					classes: { focus: false },
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events ).toHaveLength( 1 );
+				expect( body.events[ 0 ].kind ).toBe( 'element.change' );
+				expect( body.events[ 0 ].data ).toEqual( {
+					element_type: 'card',
+					complete: false,
+					empty: false,
+					valid: false,
+					brand: 'visa',
+					error_code: 'incomplete_number',
+					error_type: 'validation_error',
+				} );
+			} );
+		} );
+
+		describe( 'wrapStripe() integration with the Stripe singleton', () => {
+			function makeFakeStripe( overrides = {} ) {
+				const succeeded = () =>
+					Promise.resolve( {
+						paymentIntent: { status: 'succeeded' },
+					} );
+				return {
+					confirmPayment: jest.fn(
+						overrides.confirmPayment || succeeded
+					),
+					confirmCardPayment: jest.fn(
+						overrides.confirmCardPayment || succeeded
+					),
+					confirmSetupIntent: jest.fn(
+						overrides.confirmSetupIntent || succeeded
+					),
+				};
+			}
+
+			it( 'records stripe.confirmPayment.invoke when the wrapped confirmPayment is called', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const stripe = makeFakeStripe();
+
+				recorder.wrapStripe( stripe );
+				await stripe.confirmPayment( {
+					confirmParams: {
+						return_url: 'https://example.com/return',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const invoke = body.events.find(
+					( e ) => e.kind === 'stripe.confirmPayment.invoke'
+				);
+				expect( invoke ).toBeDefined();
+				expect( invoke.data ).toMatchObject( {
+					method: 'confirmPayment',
+				} );
+			} );
+
+			it( 'records stripe.confirmPayment.resolve with intent_status after the promise resolves successfully', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const stripe = makeFakeStripe( {
+					confirmPayment: () =>
+						Promise.resolve( {
+							paymentIntent: { status: 'succeeded' },
+						} ),
+				} );
+
+				recorder.wrapStripe( stripe );
+				await stripe.confirmPayment( {
+					confirmParams: {
+						return_url: 'https://example.com/return',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const resolve = body.events.find(
+					( e ) => e.kind === 'stripe.confirmPayment.resolve'
+				);
+				expect( resolve ).toBeDefined();
+				expect( resolve.data ).toMatchObject( {
+					method: 'confirmPayment',
+					intent_status: 'succeeded',
+					has_error: false,
+				} );
+			} );
+
+			it( 'records stripe.confirmPayment.resolve with error fields when Stripe returns { error }', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const stripe = makeFakeStripe( {
+					confirmPayment: () =>
+						Promise.resolve( {
+							error: {
+								type: 'card_error',
+								code: 'card_declined',
+								decline_code: 'insufficient_funds',
+								message: 'Your card was declined.',
+							},
+						} ),
+				} );
+
+				recorder.wrapStripe( stripe );
+				await stripe.confirmPayment( {} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const resolve = body.events.find(
+					( e ) => e.kind === 'stripe.confirmPayment.resolve'
+				);
+				expect( resolve.data ).toMatchObject( {
+					method: 'confirmPayment',
+					has_error: true,
+					error_type: 'card_error',
+					error_code: 'card_declined',
+					error_decline_code: 'insufficient_funds',
+				} );
+			} );
+
+			it( 'records stripe.confirmPayment.throw when the wrapped method throws, and re-throws the exception', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const stripe = makeFakeStripe( {
+					confirmPayment: () =>
+						Promise.reject( new Error( 'network failed' ) ),
+				} );
+
+				recorder.wrapStripe( stripe );
+
+				await expect( stripe.confirmPayment( {} ) ).rejects.toThrow(
+					'network failed'
+				);
+
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const thrown = body.events.find(
+					( e ) => e.kind === 'stripe.confirmPayment.throw'
+				);
+				expect( thrown ).toBeDefined();
+				expect( thrown.data ).toMatchObject( {
+					method: 'confirmPayment',
+					error_message: 'network failed',
+				} );
+			} );
+
+			it( 'wraps confirmCardPayment and confirmSetupIntent with the same instrumentation', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const stripe = makeFakeStripe( {
+					confirmCardPayment: () =>
+						Promise.resolve( {
+							paymentIntent: { status: 'succeeded' },
+						} ),
+					confirmSetupIntent: () =>
+						Promise.resolve( {
+							setupIntent: { status: 'succeeded' },
+						} ),
+				} );
+
+				recorder.wrapStripe( stripe );
+				await stripe.confirmCardPayment( {} );
+				await stripe.confirmSetupIntent( {} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const kinds = body.events.map( ( e ) => e.kind );
+				expect( kinds ).toEqual(
+					expect.arrayContaining( [
+						'stripe.confirmCardPayment.invoke',
+						'stripe.confirmCardPayment.resolve',
+						'stripe.confirmSetupIntent.invoke',
+						'stripe.confirmSetupIntent.resolve',
+					] )
+				);
+
+				const setupResolve = body.events.find(
+					( e ) => e.kind === 'stripe.confirmSetupIntent.resolve'
+				);
+				expect( setupResolve.data.intent_status ).toBe( 'succeeded' );
+			} );
+
+			it( 'transparently returns the original confirmPayment promise value', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+				const original = {
+					paymentIntent: { id: 'pi_test_123', status: 'succeeded' },
+				};
+				const stripe = makeFakeStripe( {
+					confirmPayment: () => Promise.resolve( original ),
+				} );
+
+				recorder.wrapStripe( stripe );
+				const result = await stripe.confirmPayment( {} );
+
+				expect( result ).toBe( original );
+			} );
+		} );
+
 		describe( 'sessionStorage persistence and replay across page reloads (3DS)', () => {
 			const STORAGE_KEY =
 				'wc_stripe_diag_550e8400-e29b-41d4-a716-446655440000';

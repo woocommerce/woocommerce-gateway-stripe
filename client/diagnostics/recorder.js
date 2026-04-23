@@ -64,6 +64,66 @@ export class Recorder {
 		this.flush( 'pagehide' );
 	}
 
+	wrapStripe( stripe ) {
+		const methods = [
+			'confirmPayment',
+			'confirmCardPayment',
+			'confirmSetupIntent',
+		];
+		for ( const method of methods ) {
+			const original = stripe[ method ].bind( stripe );
+			stripe[ method ] = async ( ...args ) => {
+				this.record( `stripe.${ method }.invoke`, { method } );
+				try {
+					const result = await original( ...args );
+					this.record( `stripe.${ method }.resolve`, {
+						method,
+						intent_status:
+							result?.paymentIntent?.status ??
+							result?.setupIntent?.status,
+						has_error: !! result?.error,
+						error_type: result?.error?.type,
+						error_code: result?.error?.code,
+						error_decline_code: result?.error?.decline_code,
+					} );
+					return result;
+				} catch ( err ) {
+					this.record( `stripe.${ method }.throw`, {
+						method,
+						error_message: err?.message,
+					} );
+					throw err;
+				}
+			};
+		}
+	}
+
+	attach( element, kind ) {
+		element.on( 'ready', () => {
+			this.record( 'element.ready', { element_type: kind } );
+		} );
+		element.on( 'focus', () => {
+			this.record( 'element.focus', { element_type: kind } );
+		} );
+		element.on( 'blur', () => {
+			this.record( 'element.blur', { element_type: kind } );
+		} );
+		element.on( 'change', ( payload = {} ) => {
+			this.record(
+				'element.change',
+				projectChangePayload( kind, payload )
+			);
+		} );
+		element.on( 'loaderror', ( payload = {} ) => {
+			this.record( 'element.loaderror', {
+				element_type: kind,
+				error_code: payload.error?.code,
+				error_type: payload.error?.type,
+				error_message: payload.error?.message,
+			} );
+		} );
+	}
+
 	record( kind, data ) {
 		if ( ! this.config?.active ) {
 			return;
@@ -112,6 +172,18 @@ export class Recorder {
 			this.idleTimer = null;
 		}
 	}
+}
+
+function projectChangePayload( kind, payload ) {
+	return {
+		element_type: kind,
+		complete: !! payload.complete,
+		empty: !! payload.empty,
+		valid: !! payload.complete && ! payload.error,
+		brand: payload.brand,
+		error_code: payload.error?.code,
+		error_type: payload.error?.type,
+	};
 }
 
 function readStoredState( key ) {
