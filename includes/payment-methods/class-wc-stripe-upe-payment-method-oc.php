@@ -16,6 +16,8 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::OC;
 
+	private const DEFAULT_TITLE = 'Stripe';
+
 	/**
 	 * Constructor for the Optimized Checkout payment method (which renders all methods).
 	 */
@@ -27,7 +29,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 		$this->enabled     = $is_stripe_enabled && $this->oc_enabled ? 'yes' : 'no';
 		$this->id          = WC_Stripe_UPE_Payment_Gateway::ID; // Force the ID to be the same as the main payment gateway.
 		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Stripe';
+		$this->title       = self::DEFAULT_TITLE;
 		$this->is_reusable = true;
 		$this->supports[]  = PaymentGatewayFeature::TOKENIZATION;
 
@@ -56,12 +58,21 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 			return $payment_method instanceof self ? parent::get_title() : $payment_method->get_title();
 		}
 
+		return self::get_alternative_title();
+	}
+
+	/**
+	 * Returns the alternative title for the Optimized Checkout payment method.
+	 *
+	 * @return string
+	 */
+	public static function get_alternative_title(): string {
 		// Block checkout and pay for order (checkout) page.
 		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			return __( 'Payment methods', 'woocommerce-gateway-stripe' );
 		}
 
-		return parent::get_title();
+		return self::DEFAULT_TITLE;
 	}
 
 	/**
