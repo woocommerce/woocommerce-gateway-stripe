@@ -470,11 +470,98 @@ describe( 'Recorder', () => {
 			} );
 		} );
 
+		describe( 'aroundStripeCall() — call-site capture for methods we cannot wrap', () => {
+			it( 'records invoke + resolve around a successful Stripe-shaped call (e.g. createPaymentMethod)', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				const stripeResponse = {
+					paymentMethod: { id: 'pm_test_123', type: 'card' },
+				};
+				const result = await recorder.aroundStripeCall(
+					'createPaymentMethod',
+					() => Promise.resolve( stripeResponse )
+				);
+				recorder.flush( 'manual' );
+
+				expect( result ).toBe( stripeResponse );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const kinds = body.events.map( ( e ) => e.kind );
+				expect( kinds ).toEqual( [
+					'stripe.createPaymentMethod.invoke',
+					'stripe.createPaymentMethod.resolve',
+				] );
+
+				const resolve = body.events.find(
+					( e ) => e.kind === 'stripe.createPaymentMethod.resolve'
+				);
+				expect( resolve.data ).toMatchObject( {
+					method: 'createPaymentMethod',
+					payment_method_type: 'card',
+					has_error: false,
+				} );
+			} );
+
+			it( 'records the resolve event with error fields when Stripe returns { error }', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				await recorder.aroundStripeCall( 'createPaymentMethod', () =>
+					Promise.resolve( {
+						error: {
+							type: 'card_error',
+							code: 'incorrect_number',
+							message: 'Your card number is incorrect.',
+						},
+					} )
+				);
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const resolve = body.events.find(
+					( e ) => e.kind === 'stripe.createPaymentMethod.resolve'
+				);
+				expect( resolve.data ).toMatchObject( {
+					method: 'createPaymentMethod',
+					has_error: true,
+					error_type: 'card_error',
+					error_code: 'incorrect_number',
+				} );
+			} );
+
+			it( 'records throw when the wrapped call throws and re-throws the error', async () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				await expect(
+					recorder.aroundStripeCall( 'createPaymentMethod', () =>
+						Promise.reject( new Error( 'network down' ) )
+					)
+				).rejects.toThrow( 'network down' );
+
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const thrown = body.events.find(
+					( e ) => e.kind === 'stripe.createPaymentMethod.throw'
+				);
+				expect( thrown.data ).toMatchObject( {
+					method: 'createPaymentMethod',
+					error_message: 'network down',
+				} );
+			} );
+		} );
+
 		describe( 'wrapStripe() integration with the Stripe singleton', () => {
 			function makeFakeStripe( overrides = {} ) {
 				const succeeded = () =>
 					Promise.resolve( {
 						paymentIntent: { status: 'succeeded' },
+					} );
+				const createPmSucceeded = () =>
+					Promise.resolve( {
+						paymentMethod: { id: 'pm_123', type: 'card' },
 					} );
 				return {
 					confirmPayment: jest.fn(
@@ -485,6 +572,9 @@ describe( 'Recorder', () => {
 					),
 					confirmSetupIntent: jest.fn(
 						overrides.confirmSetupIntent || succeeded
+					),
+					createPaymentMethod: jest.fn(
+						overrides.createPaymentMethod || createPmSucceeded
 					),
 				};
 			}
@@ -653,6 +743,86 @@ describe( 'Recorder', () => {
 				expect( result ).toBe( original );
 			} );
 		} );
+
+		// The no-console rule fires on console.warn/error calls below — these are
+		// intentional, exercising the recorder's console-interception behavior.
+		/* eslint-disable no-console */
+		describe( 'parent-frame console interception', () => {
+			it( 'records console.warn calls as console.warn events with the message', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				console.warn(
+					'[Stripe.js] invalid country code "AS"; "AS" is not a valid 2-letter country code'
+				);
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe( 'console.warn' );
+				expect( body.events[ 0 ].data ).toEqual( {
+					message:
+						'[Stripe.js] invalid country code "AS"; "AS" is not a valid 2-letter country code',
+					source: 'parent_frame',
+				} );
+			} );
+
+			it( 'records console.error calls as console.error events', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				console.error( 'something exploded' );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe( 'console.error' );
+				expect( body.events[ 0 ].data.message ).toBe(
+					'something exploded'
+				);
+			} );
+
+			it( 'truncates messages to 500 chars', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				const longMessage = 'x'.repeat( 1000 );
+				console.warn( longMessage );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].data.message ).toHaveLength( 500 );
+			} );
+
+			it( 'destroy() restores the original console methods', () => {
+				const originalWarn = console.warn;
+				const originalError = console.error;
+
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				expect( console.warn ).not.toBe( originalWarn );
+				expect( console.error ).not.toBe( originalError );
+
+				recorder.destroy();
+
+				expect( console.warn ).toBe( originalWarn );
+				expect( console.error ).toBe( originalError );
+			} );
+
+			it( 'still calls through to the original console method (does not swallow output)', () => {
+				const originalWarn = console.warn;
+				const warnSpy = jest.fn();
+				console.warn = warnSpy;
+
+				const recorder = makeRecorder();
+				recorder.boot();
+				console.warn( 'pass through me' );
+
+				expect( warnSpy ).toHaveBeenCalledWith( 'pass through me' );
+
+				console.warn = originalWarn;
+			} );
+		} );
+		/* eslint-enable no-console */
 
 		describe( 'sessionStorage persistence and replay across page reloads (3DS)', () => {
 			const STORAGE_KEY =

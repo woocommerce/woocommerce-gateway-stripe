@@ -23,6 +23,7 @@ import {
 import WCStripeAPI from 'wcstripe/api';
 import {
 	diagAttach,
+	diagAroundStripeCall,
 	diagBlocksPaymentSetupStart,
 	diagBlocksPaymentSetupEnd,
 } from 'wcstripe/diagnostics/wiring';
@@ -213,9 +214,13 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await api
-						.getStripe()
-						.createPaymentMethod( paymentMethodData );
+					const paymentMethodObject = await diagAroundStripeCall(
+						'createPaymentMethod',
+						() =>
+							api
+								.getStripe()
+								.createPaymentMethod( paymentMethodData )
+					);
 
 					if ( paymentMethodObject.error ) {
 						return {

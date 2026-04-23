@@ -1,5 +1,7 @@
 const STORAGE_KEY_PREFIX = 'wc_stripe_diag_';
 const IDLE_FLUSH_MS = 5000;
+const CONSOLE_MESSAGE_MAX_CHARS = 500;
+const CONSOLE_LEVELS = [ 'warn', 'error' ];
 
 export class Recorder {
 	constructor( {
@@ -15,6 +17,7 @@ export class Recorder {
 		this.traceStartMs = 0;
 		this.idleTimer = null;
 		this.pagehideHandler = null;
+		this.originalConsole = null;
 	}
 
 	boot() {
@@ -48,6 +51,40 @@ export class Recorder {
 
 		this.pagehideHandler = () => this._handlePagehide();
 		window.addEventListener( 'pagehide', this.pagehideHandler );
+
+		this._interceptConsole();
+	}
+
+	_interceptConsole() {
+		if ( this.originalConsole ) {
+			return; // idempotent
+		}
+		this.originalConsole = {};
+		for ( const level of CONSOLE_LEVELS ) {
+			// eslint-disable-next-line no-console
+			this.originalConsole[ level ] = console[ level ];
+			const orig = this.originalConsole[ level ];
+			// eslint-disable-next-line no-console
+			console[ level ] = ( ...args ) => {
+				this.record( `console.${ level }`, {
+					message: String( args[ 0 ] ?? '' ).slice(
+						0,
+						CONSOLE_MESSAGE_MAX_CHARS
+					),
+					source: 'parent_frame',
+				} );
+				return orig.apply( console, args );
+			};
+		}
+	}
+
+	_restoreConsole() {
+		if ( ! this.originalConsole ) return;
+		for ( const level of CONSOLE_LEVELS ) {
+			// eslint-disable-next-line no-console
+			console[ level ] = this.originalConsole[ level ];
+		}
+		this.originalConsole = null;
 	}
 
 	_handlePagehide() {
@@ -65,6 +102,12 @@ export class Recorder {
 	}
 
 	wrapStripe( stripe ) {
+		// NOTE: createPaymentMethod is intentionally NOT in this list.
+		// Mutating stripe.createPaymentMethod (even with a non-async function
+		// of matching shape) breaks @stripe/react-stripe-js's <Elements>
+		// validation in a way the typeof check doesn't explain. Capture for
+		// createPaymentMethod is done via call-site brackets — see
+		// aroundStripeCall() and diagAroundStripeCall().
 		const methods = [
 			'confirmPayment',
 			'confirmCardPayment',
@@ -72,30 +115,54 @@ export class Recorder {
 		];
 		for ( const method of methods ) {
 			const original = stripe[ method ].bind( stripe );
-			stripe[ method ] = async ( ...args ) => {
-				this.record( `stripe.${ method }.invoke`, { method } );
-				try {
-					const result = await original( ...args );
+			stripe[ method ] = ( ...args ) =>
+				this._instrumentStripeCall( method, () => original( ...args ) );
+		}
+	}
+
+	/**
+	 * Wrap a Stripe API call with .invoke / .resolve / .throw events,
+	 * preserving the original return value (or rethrown error).
+	 *
+	 * Used by both wrapStripe (for the confirm methods) and at call sites
+	 * where mutating the Stripe instance would break Stripe's internal checks
+	 * (e.g. createPaymentMethod, see wrapStripe note above).
+	 *
+	 * @param {string}   method The Stripe method name being instrumented.
+	 * @param {Function} fn     A zero-arg function that performs the Stripe call and returns its Promise.
+	 * @return {Promise} The promise returned by fn(), with .invoke / .resolve / .throw recorded around it.
+	 */
+	aroundStripeCall( method, fn ) {
+		return this._instrumentStripeCall( method, fn );
+	}
+
+	_instrumentStripeCall( method, fn ) {
+		this.record( `stripe.${ method }.invoke`, { method } );
+		return Promise.resolve()
+			.then( fn )
+			.then(
+				( result ) => {
 					this.record( `stripe.${ method }.resolve`, {
 						method,
 						intent_status:
 							result?.paymentIntent?.status ??
 							result?.setupIntent?.status,
+						payment_method_type: result?.paymentMethod?.type,
 						has_error: !! result?.error,
 						error_type: result?.error?.type,
 						error_code: result?.error?.code,
 						error_decline_code: result?.error?.decline_code,
 					} );
 					return result;
-				} catch ( err ) {
+				},
+				( err ) => {
 					this.record( `stripe.${ method }.throw`, {
 						method,
 						error_message: err?.message,
 					} );
 					throw err;
 				}
-			};
-		}
+			);
 	}
 
 	recordBlocksPaymentSetupStart( site ) {
@@ -192,6 +259,7 @@ export class Recorder {
 			window.removeEventListener( 'pagehide', this.pagehideHandler );
 			this.pagehideHandler = null;
 		}
+		this._restoreConsole();
 		this.config = null;
 	}
 

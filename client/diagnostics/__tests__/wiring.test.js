@@ -3,6 +3,7 @@ const mockWrapStripe = jest.fn();
 const mockAttach = jest.fn();
 const mockRecordBlocksPaymentSetupStart = jest.fn();
 const mockRecordBlocksPaymentSetupEnd = jest.fn();
+const mockAroundStripeCall = jest.fn();
 
 jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 	getRecorder: () => ( {
@@ -11,6 +12,7 @@ jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 		attach: mockAttach,
 		recordBlocksPaymentSetupStart: mockRecordBlocksPaymentSetupStart,
 		recordBlocksPaymentSetupEnd: mockRecordBlocksPaymentSetupEnd,
+		aroundStripeCall: mockAroundStripeCall,
 	} ),
 } ) );
 
@@ -19,6 +21,7 @@ import {
 	diagAttachExpress,
 	diagBlocksPaymentSetupStart,
 	diagBlocksPaymentSetupEnd,
+	diagAroundStripeCall,
 } from 'wcstripe/diagnostics/wiring';
 
 describe( 'diagnostics wiring helpers', () => {
@@ -28,6 +31,7 @@ describe( 'diagnostics wiring helpers', () => {
 		mockAttach.mockClear();
 		mockRecordBlocksPaymentSetupStart.mockClear();
 		mockRecordBlocksPaymentSetupEnd.mockClear();
+		mockAroundStripeCall.mockClear();
 		delete window.wcStripeDiag;
 	} );
 
@@ -111,6 +115,40 @@ describe( 'diagnostics wiring helpers', () => {
 			diagBlocksPaymentSetupEnd( null, { type: 'success' } );
 
 			expect( mockRecordBlocksPaymentSetupEnd ).not.toHaveBeenCalled();
+		} );
+	} );
+
+	describe( 'diagAroundStripeCall', () => {
+		it( 'delegates to recorder.aroundStripeCall when active', async () => {
+			window.wcStripeDiag = { active: true };
+			const expected = { paymentMethod: { id: 'pm_x', type: 'card' } };
+			mockAroundStripeCall.mockResolvedValue( expected );
+
+			const fn = jest.fn();
+			const result = await diagAroundStripeCall(
+				'createPaymentMethod',
+				fn
+			);
+
+			expect( mockAroundStripeCall ).toHaveBeenCalledWith(
+				'createPaymentMethod',
+				fn
+			);
+			expect( result ).toBe( expected );
+		} );
+
+		it( 'calls fn() directly and bypasses the recorder when wcStripeDiag is absent', async () => {
+			const expected = { paymentMethod: { id: 'pm_y' } };
+			const fn = jest.fn().mockResolvedValue( expected );
+
+			const result = await diagAroundStripeCall(
+				'createPaymentMethod',
+				fn
+			);
+
+			expect( fn ).toHaveBeenCalledTimes( 1 );
+			expect( mockAroundStripeCall ).not.toHaveBeenCalled();
+			expect( result ).toBe( expected );
 		} );
 	} );
 } );
