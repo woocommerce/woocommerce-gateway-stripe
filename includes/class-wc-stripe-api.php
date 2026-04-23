@@ -247,7 +247,7 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_post(
+		$response = wp_remote_post(
 			self::ENDPOINT . $api,
 			[
 				'method'  => $method,
@@ -322,7 +322,7 @@ class WC_Stripe_API {
 			]
 		);
 
-		$response = wp_safe_remote_get(
+		$response = wp_remote_get(
 			self::ENDPOINT . $api,
 			[
 				'method'  => 'GET',

@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Fix - Stop Stripe API calls from failing when WordPress URL validation rejects api.stripe.com due to intermittent DNS resolution
 * Dev - Use paratest in CI workflow for faster PHP test execution
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout

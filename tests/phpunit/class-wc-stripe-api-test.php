@@ -203,6 +203,61 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Regression test for STRIPE-816: the POST path must not use wp_safe_remote_*,
+	 * which would trigger wp_http_validate_url() and fail when the host's DNS is flaky.
+	 */
+	public function test_request_does_not_use_safe_remote_http() {
+		$captured_args = null;
+
+		add_filter(
+			'pre_http_request',
+			function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+				$captured_args = $parsed_args;
+				return $this->mock_successful_response();
+			},
+			10,
+			2
+		);
+
+		WC_Stripe_API::request( [], 'test_endpoint', 'POST' );
+
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertIsArray( $captured_args );
+		$this->assertNotTrue(
+			$captured_args['reject_unsafe_urls'] ?? false,
+			'Stripe API POST requests must not set reject_unsafe_urls (see STRIPE-816).'
+		);
+	}
+
+	/**
+	 * Regression test for STRIPE-816: the GET path must not use wp_safe_remote_*.
+	 */
+	public function test_retrieve_does_not_use_safe_remote_http() {
+		$captured_args = null;
+
+		add_filter(
+			'pre_http_request',
+			function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+				$captured_args = $parsed_args;
+				return $this->mock_successful_response();
+			},
+			10,
+			2
+		);
+
+		WC_Stripe_API::retrieve( 'test_endpoint' );
+
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertIsArray( $captured_args );
+		$this->assertNotTrue(
+			$captured_args['reject_unsafe_urls'] ?? false,
+			'Stripe API GET requests must not set reject_unsafe_urls (see STRIPE-816).'
+		);
+	}
+
+	/**
 	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
 	 *
 	 * @param array|WP_Error $response     The mock response.
