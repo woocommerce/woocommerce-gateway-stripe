@@ -5,6 +5,7 @@ import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
+import { PAYMENT_METHOD_SOFORT } from 'wcstripe/stripe-utils/constants';
 
 const StyledCheckbox = styled( CheckboxControl )`
 	.components-base-control__field {
@@ -37,6 +38,21 @@ const PaymentMethodCheckbox = ( {
 			return;
 		}
 		if ( ! hasBeenChecked ) {
+			// Sofort is being deprecated by Stripe and is hidden from the
+			// available list once disabled, so the action is irreversible
+			// from this UI. Confirm before proceeding.
+			if (
+				id === PAYMENT_METHOD_SOFORT &&
+				// eslint-disable-next-line no-alert
+				! window.confirm(
+					__(
+						'Sofort is being deprecated by Stripe and cannot be re-enabled once disabled. Are you sure you want to disable it?',
+						'woocommerce-gateway-stripe'
+					)
+				)
+			) {
+				return;
+			}
 			setEnabledPaymentMethods(
 				enabledPaymentMethods.filter( ( m ) => m !== id )
 			);

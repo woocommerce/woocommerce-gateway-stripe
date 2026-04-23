@@ -225,9 +225,53 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [] );
 		expect(
 			screen.queryByRole( 'heading', {
-				name: /Remove .* from checkout/,
+				name: 'Remove Credit card / debit card from checkout',
 			} )
 		).not.toBeInTheDocument();
+	} );
+
+	it( 'should confirm before disabling Sofort because the action is irreversible', async () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_SOFORT,
+		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_SOFORT,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+		const updateEnabledMethodsMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_SOFORT ],
+			updateEnabledMethodsMock,
+		] );
+		const confirmSpy = jest
+			.spyOn( window, 'confirm' )
+			.mockImplementation( () => false );
+
+		render( <GeneralSettingsSection /> );
+
+		const sofortCheckbox = screen.getByRole( 'checkbox', {
+			name: /Sofort/,
+		} );
+		await userEvent.click( sofortCheckbox );
+
+		expect( confirmSpy ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Sofort is being deprecated' )
+		);
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+
+		confirmSpy.mockImplementation( () => true );
+		await userEvent.click( sofortCheckbox );
+
+		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
+			PAYMENT_METHOD_CARD,
+		] );
+
+		confirmSpy.mockRestore();
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supported', () => {
