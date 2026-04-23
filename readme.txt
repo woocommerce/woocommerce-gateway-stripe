@@ -149,7 +149,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Dev - Use paratest in CI workflow for faster PHP test execution
-* Fix - Detect Agentic Commerce checkout sessions from the payment intent's agent_details.network_business_profile so checkout.session.completed webhooks are no longer skipped as non-agentic
+* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
