@@ -408,13 +408,16 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 *   1. By WC rate ID from the Stripe shipping rate metadata (wc_rate_id).
 	 *   2. If exactly one rate is available, accept it unconditionally.
 	 *   3. By display name match as a last resort.
+	 *   4. If no WC rate matches (or WC shipping calculation fails), fall back
+	 *      to a free-form WC_Order_Item_Shipping built from
+	 *      shipping_rate.display_name and total_details.amount_shipping.
 	 *
 	 * Does nothing when no shipping rate was chosen (digital goods or not applicable).
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When no matching WC rate can be found.
+	 * @throws Exception When WooCommerce shipping is unavailable (WC()->shipping() is not a WC_Shipping).
 	 */
 	private function map_shipping( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$display_name = $session->get_chosen_shipping_rate_display_name();
@@ -450,19 +453,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		// Under Action Scheduler / WP Cron there's no HTTP request to
-		// bootstrap WC()->session, which WC_Shipping::calculate_shipping_for_package
-		// reads from. Initialize it lazily so shipping methods can cache and
-		// return rates normally.
-		if ( null === WC()->session ) {
-			WC()->initialize_session();
-		}
-
 		// Any failure inside WC shipping (null session variants, broken
 		// third-party shipping methods, missing tax state) should not lose
 		// the order — log and fall through to the free-form fallback below.
+		// The outer handler only catches Exception, so keep session init
+		// inside this Throwable guard too (a broken session handler can raise
+		// Error, not Exception).
 		$rates = [];
 		try {
+			// Under Action Scheduler / WP Cron there's no HTTP request to
+			// bootstrap WC()->session, which WC_Shipping::calculate_shipping_for_package
+			// reads from. Initialize it lazily so shipping methods can cache and
+			// return rates normally.
+			if ( null === WC()->session ) {
+				WC()->initialize_session();
+			}
+
 			$wc_shipping->calculate_shipping( [ $package ] );
 			$packages = $wc_shipping->get_packages();
 			$rates    = $packages[0]['rates'] ?? [];

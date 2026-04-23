@@ -1395,6 +1395,65 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that map_shipping recovers when WC shipping calculation throws a Throwable.
+	 *
+	 * Simulates a broken shipping method / third-party filter / null-session
+	 * Error by hooking woocommerce_package_rates with a callback that throws
+	 * an Error (not an Exception). The outer mapper handler only catches
+	 * Exception, so without the inner catch ( Throwable ) guard this would
+	 * delete the order; with it, the mapper logs and falls through to the
+	 * free-form shipping line.
+	 */
+	public function test_shipping_falls_back_to_free_form_line_when_calculation_throws() {
+		$thrower = static function () {
+			throw new \Error( 'Simulated shipping method failure' );
+		};
+		add_filter( 'woocommerce_package_rates', $thrower );
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$session = $this->build_checkout_session(
+			[
+				// Default product is $10; add $9.99 shipping → $19.99 total.
+				'amount_total'    => 1999,
+				'amount_subtotal' => 1000,
+				'total_details'   => (object) [
+					'amount_shipping' => 999,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'Throwing Method',
+						'metadata'     => (object) [],
+					],
+				],
+			]
+		);
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$this->assertInstanceOf( WC_Order::class, $order );
+
+			$shipping_items = $order->get_items( 'shipping' );
+			$this->assertCount( 1, $shipping_items );
+
+			$shipping_item = reset( $shipping_items );
+			$this->assertEquals( 'Throwing Method', $shipping_item->get_method_title() );
+			$this->assertEquals( 'stripe_agentic', $shipping_item->get_method_id() );
+			$this->assertEqualsWithDelta( 9.99, (float) $shipping_item->get_total(), 0.001 );
+
+			$order->delete( true );
+		} finally {
+			remove_filter( 'woocommerce_package_rates', $thrower );
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+			WC()->shipping()->reset_shipping();
+		}
+	}
+
+	/**
 	 * Test that verify_order_total throws when the totals don't match.
 	 */
 	public function test_exception_thrown_when_order_total_mismatches_session() {
