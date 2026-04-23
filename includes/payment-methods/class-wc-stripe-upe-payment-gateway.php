@@ -501,11 +501,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'woocommerce-gateway-stripe'
 		);
 
-		wp_localize_script(
-			'wc-stripe-upe-classic',
-			'wc_stripe_upe_params',
-			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
-		);
+		$wc_stripe_upe_params = apply_filters( 'wc_stripe_upe_params', $this->javascript_params() );
+
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+		$wc_stripe_upe_params = apply_filters( 'wc_stripe_localized_data', $wc_stripe_upe_params, 'wc-stripe-upe-classic', 'wc_stripe_upe_params' );
+
+		wp_localize_script( 'wc-stripe-upe-classic', 'wc_stripe_upe_params', $wc_stripe_upe_params );
 
 		wp_register_style(
 			'wc-stripe-upe-classic',

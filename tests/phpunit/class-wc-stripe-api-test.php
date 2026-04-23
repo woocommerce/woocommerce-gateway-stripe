@@ -177,6 +177,31 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The `wc_stripe_request_response` filter fires after a request and can mutate the returned body.
+	 */
+	public function test_request_response_filter_fires_and_can_mutate_body() {
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		$captured = [];
+		$filter   = function ( $body, $api, $method, $request ) use ( &$captured ) {
+			$captured = compact( 'body', 'api', 'method', 'request' );
+			return 'filtered';
+		};
+		add_filter( 'wc_stripe_request_response', $filter, 10, 4 );
+
+		$result = WC_Stripe_API::request( [ 'foo' => 'bar' ], 'payment_intents', 'POST' );
+
+		$this->assertSame( 'filtered', $result, 'Filter return value should replace the response body.' );
+		$this->assertSame( 'success', $captured['body'] );
+		$this->assertSame( 'payment_intents', $captured['api'] );
+		$this->assertSame( 'POST', $captured['method'] );
+		$this->assertSame( [ 'foo' => 'bar' ], $captured['request'] );
+
+		remove_filter( 'wc_stripe_request_response', $filter, 10 );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+	}
+
+	/**
 	 * Helper method to mock a successful API response.
 	 */
 	public function mock_successful_response() {

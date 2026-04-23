@@ -281,6 +281,18 @@ class WC_Stripe_API {
 			]
 		);
 
+		/**
+		 * Filters the decoded response body returned from the Stripe API.
+		 *
+		 * @since 10.7.0
+		 *
+		 * @param mixed  $response_body The decoded response body.
+		 * @param string $api           The Stripe API endpoint.
+		 * @param string $method        The HTTP method.
+		 * @param array  $request       The request body sent to the Stripe API.
+		 */
+		$response_body = apply_filters( 'wc_stripe_request_response', $response_body, $api, $method, $request );
+
 		if ( $with_headers ) {
 			return [
 				'headers' => $response_headers,
