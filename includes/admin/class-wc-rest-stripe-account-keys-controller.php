@@ -365,6 +365,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 		}
 
+		// Intentionally uses wp_remote_post() (not wp_safe_remote_post()): the URL is the
+		// hardcoded Stripe endpoint, and wp_http_validate_url() can reject it on hosts with
+		// flaky DNS resolution. See STRIPE-816.
 		$response = wp_remote_post(
 			'https://api.stripe.com/v1/tokens',
 			[
@@ -381,6 +384,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$response_data = json_decode( $response['body'] );
 		$token_id      = $response_data->id;
 
+		// Intentionally uses wp_remote_get() (not wp_safe_remote_get()): the URL is the
+		// hardcoded Stripe endpoint, and wp_http_validate_url() can reject it on hosts with
+		// flaky DNS resolution. See STRIPE-816.
 		$response = wp_remote_get(
 			'https://api.stripe.com/v1/tokens/' . $token_id,
 			[

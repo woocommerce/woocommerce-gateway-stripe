@@ -209,19 +209,17 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_request_does_not_use_safe_remote_http() {
 		$captured_args = null;
 
-		add_filter(
-			'pre_http_request',
-			function ( $return_value, $parsed_args ) use ( &$captured_args ) {
-				$captured_args = $parsed_args;
-				return $this->mock_successful_response();
-			},
-			10,
-			2
-		);
+		$capture_filter = function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+			$captured_args = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 2 );
 
-		WC_Stripe_API::request( [], 'test_endpoint', 'POST' );
-
-		remove_all_filters( 'pre_http_request' );
+		try {
+			WC_Stripe_API::request( [], 'test_endpoint', 'POST' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
 
 		$this->assertIsArray( $captured_args );
 		$this->assertNotTrue(
@@ -236,19 +234,17 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_retrieve_does_not_use_safe_remote_http() {
 		$captured_args = null;
 
-		add_filter(
-			'pre_http_request',
-			function ( $return_value, $parsed_args ) use ( &$captured_args ) {
-				$captured_args = $parsed_args;
-				return $this->mock_successful_response();
-			},
-			10,
-			2
-		);
+		$capture_filter = function ( $return_value, $parsed_args ) use ( &$captured_args ) {
+			$captured_args = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 2 );
 
-		WC_Stripe_API::retrieve( 'test_endpoint' );
-
-		remove_all_filters( 'pre_http_request' );
+		try {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
 
 		$this->assertIsArray( $captured_args );
 		$this->assertNotTrue(

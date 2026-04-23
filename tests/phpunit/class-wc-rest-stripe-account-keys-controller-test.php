@@ -250,41 +250,36 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	public function test_test_account_keys_does_not_use_safe_remote_http() {
 		$captured_args_by_url = [];
 
-		add_filter(
-			'pre_http_request',
-			function ( $return_value, $parsed_args, $url ) use ( &$captured_args_by_url ) {
-				$captured_args_by_url[ $url ] = $parsed_args;
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$captured_args_by_url ) {
+			$captured_args_by_url[ $url ] = $parsed_args;
 
-				if ( 'https://api.stripe.com/v1/tokens' === $url ) {
-					return [
-						'response' => [
-							'code'    => 200,
-							'message' => 'OK',
-						],
-						'body'     => json_encode( [ 'id' => 'tok_visa_test' ] ),
-					];
-				}
-
-				return [
-					'response' => [
-						'code'    => 200,
-						'message' => 'OK',
-					],
-					'body'     => json_encode( [ 'id' => 'tok_visa_test' ] ),
+			$body = 'https://api.stripe.com/v1/tokens' === $url
+				? [ 'id' => 'tok_visa_test' ]
+				: [
+					'id'   => 'tok_visa_test',
+					'type' => 'pii',
 				];
-			},
-			10,
-			3
-		);
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => json_encode( $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
 
 		$request = new WP_REST_Request( 'POST', self::ROUTE . '/test' );
 		$request->set_param( 'live_mode', true );
 		$request->set_param( 'publishable', 'pk_live_test_123' );
 		$request->set_param( 'secret', 'sk_live_test_123' );
 
-		$this->controller->test_account_keys( $request );
-
-		remove_all_filters( 'pre_http_request' );
+		try {
+			$this->controller->test_account_keys( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
 
 		$this->assertArrayHasKey( 'https://api.stripe.com/v1/tokens', $captured_args_by_url );
 		$this->assertNotTrue(

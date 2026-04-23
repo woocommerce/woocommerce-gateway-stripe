@@ -247,6 +247,9 @@ class WC_Stripe_API {
 			]
 		);
 
+		// Intentionally uses wp_remote_post() (not wp_safe_remote_post()): the URL is always
+		// the hardcoded Stripe endpoint, and wp_http_validate_url() can reject it on hosts
+		// with flaky DNS resolution. See STRIPE-816.
 		$response = wp_remote_post(
 			self::ENDPOINT . $api,
 			[
@@ -322,6 +325,9 @@ class WC_Stripe_API {
 			]
 		);
 
+		// Intentionally uses wp_remote_get() (not wp_safe_remote_get()): the URL is always
+		// the hardcoded Stripe endpoint, and wp_http_validate_url() can reject it on hosts
+		// with flaky DNS resolution. See STRIPE-816.
 		$response = wp_remote_get(
 			self::ENDPOINT . $api,
 			[
