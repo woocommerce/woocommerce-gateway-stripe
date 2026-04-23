@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
 Tested up to: 6.9.4
 Requires PHP: 7.4
-Stable tag: 10.5.3
+Stable tag: 10.6.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.6.0
+   - Adaptive Pricing available
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
@@ -146,6 +148,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Dev - Use paratest in CI workflow for faster PHP test execution
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

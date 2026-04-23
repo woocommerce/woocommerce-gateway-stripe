@@ -309,6 +309,7 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 		$defaults = [
 			'regular_price' => '20.00',
 			'price'         => '20.00',
+			'sku'           => 'MANUAL-APPROVAL-' . uniqid(),
 		];
 
 		$product          = WC_Helper_Product::create_simple_product( true, array_merge( $defaults, $args ) );
@@ -329,7 +330,7 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 		foreach ( $products as $index => $product ) {
 			$items[] = (object) [
 				'id'       => 'li_test_' . $index,
-				'sku_id'   => (string) $product->get_id(),
+				'sku_id'   => (string) $product->get_sku(),
 				'quantity' => $quantities[ $index ] ?? 1,
 				'name'     => $product->get_name(),
 			];

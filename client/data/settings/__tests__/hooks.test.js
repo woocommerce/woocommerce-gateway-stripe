@@ -187,25 +187,25 @@ describe( 'Settings hooks tests', () => {
 		},
 		useExpressCheckoutEnabledSettings: {
 			hook: useExpressCheckoutEnabledSettings,
-			storeKey: 'is_payment_request_enabled',
+			storeKey: 'is_express_checkout_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
 		useExpressCheckoutButtonSize: {
 			hook: useExpressCheckoutButtonSize,
-			storeKey: 'payment_request_button_size',
+			storeKey: 'express_checkout_button_size',
 			testedValue: 'large',
 			fallbackValue: '',
 		},
 		useExpressCheckoutButtonType: {
 			hook: useExpressCheckoutButtonType,
-			storeKey: 'payment_request_button_type',
+			storeKey: 'express_checkout_button_type',
 			testedValue: '',
 			fallbackValue: '',
 		},
 		useExpressCheckoutButtonTheme: {
 			hook: useExpressCheckoutButtonTheme,
-			storeKey: 'payment_request_button_theme',
+			storeKey: 'express_checkout_button_theme',
 			testedValue: 'dark',
 			fallbackValue: '',
 		},
@@ -265,7 +265,7 @@ describe( 'Settings hooks tests', () => {
 		},
 		useExpressCheckoutLocations: {
 			hook: useExpressCheckoutLocations,
-			storeKey: 'payment_request_button_locations',
+			storeKey: 'express_checkout_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
