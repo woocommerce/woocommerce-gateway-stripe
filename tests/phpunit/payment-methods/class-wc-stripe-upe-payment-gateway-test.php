@@ -4793,17 +4793,88 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @param bool $is_add_payment_method      Whether the current page is the "Add payment method" page.
 	 * @param bool $is_changing_payment_method Whether the customer is changing their payment method for a subscription.
+	 * @param bool $is_checkout                Whether the current page is the checkout page.
 	 * @param bool $expected                   Whether `is_valid_optimized_checkout_page` should return true.
 	 */
-	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
+	public function test_is_valid_optimized_checkout_page( bool $is_add_payment_method, bool $is_changing_payment_method, bool $is_checkout, bool $expected ) {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
 			->getMock();
 
 		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
 		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
+		$is_checkout_return = $is_checkout ? '__return_true' : '__return_false';
+		add_filter( 'woocommerce_is_checkout', $is_checkout_return );
 
-		$this->assertSame( $expected, $gateway->is_valid_optimized_checkout_page() );
+		try {
+			$result = $gateway->is_valid_optimized_checkout_page();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', $is_checkout_return );
+		}
+
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Tests for `is_optimized_checkout_active`.
+	 *
+	 * Unlike `is_valid_optimized_checkout_page`, this helper must NOT depend on `is_checkout()`
+	 * because OCS-aware token handling has to fire on My Account → Payment Methods (where
+	 * `is_checkout()` is false) so that sub-gateway tokens still surface under the consolidated
+	 * 'stripe' gateway and existing tokens are not orphaned by the cleanup sweep.
+	 *
+	 * @dataProvider provide_test_is_optimized_checkout_active
+	 *
+	 * @param bool $oc_enabled                 Value of the `oc_enabled` property on the gateway.
+	 * @param bool $is_add_payment_method      Whether the current page is the "Add payment method" page.
+	 * @param bool $is_changing_payment_method Whether the customer is changing their payment method for a subscription.
+	 * @param bool $expected                   Whether `is_optimized_checkout_active` should return true.
+	 */
+	public function test_is_optimized_checkout_active( bool $oc_enabled, bool $is_add_payment_method, bool $is_changing_payment_method, bool $expected ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_on_add_payment_method_page', 'is_changing_payment_method_for_subscription' ] )
+			->getMock();
+
+		$gateway->oc_enabled = $oc_enabled;
+		$gateway->method( 'is_on_add_payment_method_page' )->willReturn( $is_add_payment_method );
+		$gateway->method( 'is_changing_payment_method_for_subscription' )->willReturn( $is_changing_payment_method );
+
+		$this->assertSame( $expected, $gateway->is_optimized_checkout_active() );
+	}
+
+	/**
+	 * Data provider for `test_is_optimized_checkout_active`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_optimized_checkout_active() {
+		return [
+			'OCS enabled, neutral page (e.g. My Account)' => [
+				'oc_enabled'                 => true,
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'expected'                   => true,
+			],
+			'OCS disabled'                                => [
+				'oc_enabled'                 => false,
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'expected'                   => false,
+			],
+			'OCS enabled, add payment method page'        => [
+				'oc_enabled'                 => true,
+				'is_add_payment_method'      => true,
+				'is_changing_payment_method' => false,
+				'expected'                   => false,
+			],
+			'OCS enabled, change payment method'          => [
+				'oc_enabled'                 => true,
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => true,
+				'expected'                   => false,
+			],
+		];
 	}
 
 	/**
@@ -4959,21 +5030,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'Regular checkout page'                  => [
 				'is_add_payment_method'      => false,
 				'is_changing_payment_method' => false,
+				'is_checkout'                => true,
 				'expected'                   => true,
 			],
 			'Add payment method page'                => [
 				'is_add_payment_method'      => true,
 				'is_changing_payment_method' => false,
+				'is_checkout'                => true,
 				'expected'                   => false,
 			],
 			'Change payment method for subscription' => [
 				'is_add_payment_method'      => false,
 				'is_changing_payment_method' => true,
+				'is_checkout'                => true,
 				'expected'                   => false,
 			],
 			'All special pages'                      => [
 				'is_add_payment_method'      => true,
 				'is_changing_payment_method' => true,
+				'is_checkout'                => true,
+				'expected'                   => false,
+			],
+			'Non-checkout page'                      => [
+				'is_add_payment_method'      => false,
+				'is_changing_payment_method' => false,
+				'is_checkout'                => false,
 				'expected'                   => false,
 			],
 		];
