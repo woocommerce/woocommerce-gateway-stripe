@@ -193,7 +193,6 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			[
 				'regular_price' => '20.00',
 				'price'         => '20.00',
-				'sku'           => 'THROWABLE-TEST-' . uniqid(),
 			]
 		);
 
@@ -207,28 +206,29 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			}
 		);
 
-		// Force a non-Exception Throwable from inside the mapper flow.
-		// The mapper calls $order->calculate_totals() in verify_order_total,
-		// which runs the woocommerce_calculated_total filter.
-		$throw_filter = function () {
+		// Force a non-Exception Throwable from inside the mapper's try block.
+		// woocommerce_new_order_item fires during $order->add_product() in
+		// map_line_items(), which runs inside the try/catch(Throwable) that the
+		// mapper's rollback depends on.
+		$throw_action = function () {
 			throw new \TypeError( 'Simulated fatal inside order mapping' );
 		};
-		add_filter( 'woocommerce_calculated_total', $throw_filter );
+		add_action( 'woocommerce_new_order_item', $throw_action );
 
 		try {
 			$session_id   = 'cs_test_throwable';
 			$notification = $this->build_notification( $session_id );
-			$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_sku() );
+			$mock_session = $this->build_checkout_session_response( $session_id, true, (string) $product->get_id() );
 			$this->mock_stripe_checkout_sessions_response( $mock_session );
 
 			// Immediate phase: defers the webhook.
 			$this->handler->process_checkout_session_success( $notification );
-			// Deferred phase: TypeError is thrown from calculate_totals via the filter.
-			// The handler must catch it (Throwable, not just Exception), log it,
-			// fire the failure action, and return normally.
+			// Deferred phase: TypeError is thrown from woocommerce_new_order_item
+			// via the action. The handler must catch it (Throwable, not just
+			// Exception), log it, fire the failure action, and return normally.
 			$this->handler->process_deferred_webhook( 'checkout.session.completed', [ 'session_id' => $session_id ], $notification );
 		} finally {
-			remove_filter( 'woocommerce_calculated_total', $throw_filter );
+			remove_action( 'woocommerce_new_order_item', $throw_action );
 		}
 
 		$this->assertTrue( $failure_action_fired );
