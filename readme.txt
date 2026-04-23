@@ -151,5 +151,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
+* Fix - Make the "Update now" link in the account status tooltip clickable and improve its contrast against the tooltip background
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
