@@ -83,6 +83,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
+		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
+		$current_class = get_class( $this );
+		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+			return;
+		}
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
