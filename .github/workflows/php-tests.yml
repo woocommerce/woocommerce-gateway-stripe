@@ -84,6 +84,18 @@ jobs:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
+      - name: Cache WordPress core and test suite
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/wordpress
+            /tmp/wordpress-tests-lib
+          key: wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash') }}
+          restore-keys: |
+            wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-
+            wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-
+            wp-testenv-${{ runner.os }}-
+
       - name: Set up PHP
         uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
         with:
