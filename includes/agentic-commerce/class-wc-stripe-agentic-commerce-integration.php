@@ -73,6 +73,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the last sync result.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_last_sync()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */
@@ -81,6 +83,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the sync history.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_sync_history()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */

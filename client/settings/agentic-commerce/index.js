@@ -11,9 +11,9 @@ import {
 	Notice,
 } from '@wordpress/components';
 
-// Threshold beyond which a missed scheduled sync is surfaced as a warning.
-// Chosen comfortably larger than the sync interval so a single slow run
-// does not trigger a false positive.
+// Grace period past a scheduled next_sync timestamp before we surface the
+// "overdue" warning. Covers normal Action Scheduler jitter and a single
+// slow run without triggering a false positive on every refresh.
 const OVERDUE_WARNING_THRESHOLD_SECONDS = 10 * 60;
 
 const CardTitle = styled.h2`
@@ -282,9 +282,9 @@ const AgenticCommercePanel = () => {
 	const importSetsUrl =
 		wc_stripe_settings_params?.agentic_commerce_import_sets_url ?? // eslint-disable-line camelcase
 		'https://dashboard.stripe.com/data-management/import-sets';
+	// WC log filename is the stable 'source' slug defined by WC_Stripe_Logger::WC_LOG_FILENAME.
 	const logsUrl =
-		wc_stripe_settings_params?.agentic_commerce_logs_url ?? // eslint-disable-line camelcase
-		'/wp-admin/admin.php?page=wc-status&tab=logs';
+		'/wp-admin/admin.php?page=wc-status&tab=logs&source=woocommerce-gateway-stripe';
 	const nextSyncText = getNextSyncLabel();
 
 	const overdueMinutes =
