@@ -239,7 +239,7 @@ describe( 'AgenticCommercePanel', () => {
 
 		await waitFor( () => {
 			expect(
-				getVisibleText( /scheduled sync is overdue by \d+ minutes?/i )
+				getVisibleText( /scheduled sync is overdue by 3(0|1) minutes?/i )
 					.length
 			).toBeGreaterThanOrEqual( 1 );
 		} );
