@@ -150,6 +150,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 10.7.0 - xxxx-xx-xx =
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 * Dev - Use paratest in CI workflow for faster PHP test execution
+* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
