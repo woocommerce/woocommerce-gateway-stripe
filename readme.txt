@@ -152,6 +152,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
-* Fix - Prevent fatal error in wp-admin from overly strict argument type
+* Fix - Prevent fatal error in wp-admin from overly narrow argument type
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
