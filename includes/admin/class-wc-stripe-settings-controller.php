@@ -249,6 +249,8 @@ class WC_Stripe_Settings_Controller {
 			'agentic_commerce_import_sets_url'      => $this->get_gateway()->is_in_test_mode()
 				? 'https://dashboard.stripe.com/test/data-management/import-sets'
 				: 'https://dashboard.stripe.com/data-management/import-sets',
+			// WC log filename uses the stable 'source' slug defined by WC_Stripe_Logger::WC_LOG_FILENAME.
+			'agentic_commerce_logs_url'             => admin_url( 'admin.php?page=wc-status&tab=logs&source=woocommerce-gateway-stripe' ),
 			'show_stripe_first_method_notice'       => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
 		];
 		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );

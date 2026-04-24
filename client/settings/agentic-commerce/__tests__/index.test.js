@@ -46,6 +46,8 @@ describe( 'AgenticCommercePanel', () => {
 		global.wc_stripe_settings_params = {
 			agentic_commerce_import_sets_url:
 				'https://dashboard.stripe.com/test/data-management/import-sets',
+			agentic_commerce_logs_url:
+				'/wp-admin/admin.php?page=wc-status&tab=logs&source=woocommerce-gateway-stripe',
 		};
 	} );
 

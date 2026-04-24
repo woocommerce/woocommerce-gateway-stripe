@@ -286,9 +286,10 @@ const AgenticCommercePanel = () => {
 	const importSetsUrl =
 		wc_stripe_settings_params?.agentic_commerce_import_sets_url ?? // eslint-disable-line camelcase
 		'https://dashboard.stripe.com/data-management/import-sets';
-	// WC log filename is the stable 'source' slug defined by WC_Stripe_Logger::WC_LOG_FILENAME.
+	// Localized from PHP via admin_url() so subdirectory installs resolve correctly.
 	const logsUrl =
-		'/wp-admin/admin.php?page=wc-status&tab=logs&source=woocommerce-gateway-stripe';
+		wc_stripe_settings_params?.agentic_commerce_logs_url ?? // eslint-disable-line camelcase
+		'';
 	const nextSyncText = getNextSyncLabel();
 
 	const overdueMinutes =
