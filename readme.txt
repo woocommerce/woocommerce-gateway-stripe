@@ -157,5 +157,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add WC_Stripe_Diagnostics_Trace_Store (file-backed trace storage with FIFO eviction and size caps) for the upcoming diagnostics recorder
 * Dev - Add POST /wc/v3/wc_stripe/diagnostics/events REST endpoint that accepts batched client events and appends them to the file-backed trace store
 * Dev - Add WC_Stripe_Diagnostics_Redactor (allow-list registry + PII scrubbers) for the upcoming diagnostics recorder
+* Dev - Add WC_Stripe_Diagnostics_Recorder server-side singleton that injects wc_diag_session_id into Stripe metadata and records redacted request/response/webhook events
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

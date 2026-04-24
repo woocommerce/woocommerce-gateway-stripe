@@ -135,6 +135,8 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/diagnostics/class-wc-stripe-diagnostics-redactor.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/diagnostics/class-wc-stripe-diagnostics-recorder.php';
+		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-mode.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
