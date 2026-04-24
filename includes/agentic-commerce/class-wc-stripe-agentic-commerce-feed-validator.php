@@ -88,7 +88,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 		// the gap between the number of products iterated and the number
 		// delivered to Stripe. The walker itself silently skips failing rows.
 		if ( ! empty( $errors ) ) {
-			WC_Stripe_Logger::warning(
+			WC_Stripe_Logger::info(
 				'Agentic Commerce: Product skipped by feed validator',
 				[
 					'product_id' => $product->get_id(),
