@@ -227,10 +227,15 @@ export default class WCStripeAPI {
 					response.data.return_url
 				);
 
-				return this.getStripe()
-					.confirmCashappSetup( response.data.client_secret, {
-						return_url: returnURL,
-					} )
+				return diagnostics
+					.aroundStripeCall( 'confirmCashappSetup', () =>
+						this.getStripe().confirmCashappSetup(
+							response.data.client_secret,
+							{
+								return_url: returnURL,
+							}
+						)
+					)
 					.then( ( confirmedSetupIntent ) => {
 						const { setupIntent, error } = confirmedSetupIntent;
 						if ( error ) {
@@ -248,11 +253,13 @@ export default class WCStripeAPI {
 			}
 
 			// Card Payments.
-			return this.getStripe()
-				.confirmSetup( {
-					clientSecret: response.data.client_secret,
-					redirect: 'if_required',
-				} )
+			return diagnostics
+				.aroundStripeCall( 'confirmSetup', () =>
+					this.getStripe().confirmSetup( {
+						clientSecret: response.data.client_secret,
+						redirect: 'if_required',
+					} )
+				)
 				.then( ( confirmedSetupIntent ) => {
 					const { setupIntent, error } = confirmedSetupIntent;
 					if ( error ) {
@@ -352,7 +359,9 @@ export default class WCStripeAPI {
 		};
 
 		const confirmAction = isSetupIntent
-			? this.getStripe().confirmSetup( confirmArgs )
+			? diagnostics.aroundStripeCall( 'confirmSetup', () =>
+					this.getStripe().confirmSetup( confirmArgs )
+			  )
 			: diagnostics.aroundStripeCall( 'confirmPayment', () =>
 					this.getStripe( true ).confirmPayment( confirmArgs )
 			  );

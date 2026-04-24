@@ -1254,17 +1254,23 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 				break;
 			case PAYMENT_METHOD_CASHAPP:
 				if ( intentType === 'setup_intent' ) {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappSetup( clientSecret, {
-							return_url: returnURL,
-						} );
+					confirmPayment = await diagnostics.aroundStripeCall(
+						'confirmCashappSetup',
+						() =>
+							api.getStripe().confirmCashappSetup( clientSecret, {
+								return_url: returnURL,
+							} )
+					);
 				} else {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappPayment( clientSecret, {
-							return_url: returnURL,
-						} );
+					confirmPayment = await diagnostics.aroundStripeCall(
+						'confirmCashappPayment',
+						() =>
+							api
+								.getStripe()
+								.confirmCashappPayment( clientSecret, {
+									return_url: returnURL,
+								} )
+					);
 				}
 				break;
 			default:

@@ -205,7 +205,10 @@ jQuery( function ( $ ) {
 					() => api.getStripe().confirmPayment( upeConfig )
 				) );
 			} else {
-				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
+				( { error } = await diagnostics.aroundStripeCall(
+					'confirmSetup',
+					() => api.getStripe().confirmSetup( upeConfig )
+				) );
 			}
 
 			if ( error ) {
