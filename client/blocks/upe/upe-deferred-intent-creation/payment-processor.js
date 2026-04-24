@@ -431,11 +431,7 @@ const PaymentProcessor = ( {
 					onReady={ () => {
 						const el = elements?.getElement( 'payment' );
 						if ( el ) {
-							diagnostics.attachAfterReady(
-								el,
-								'payment',
-								'blocks'
-							);
+							diagnostics.attachAfterReady( el, 'payment' );
 						}
 					} }
 					className="wcstripe-payment-element"

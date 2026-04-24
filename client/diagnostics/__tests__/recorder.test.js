@@ -233,7 +233,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attach( element, 'card', 'classic' );
+				recorder.attach( element, 'card' );
 				element.emit( 'ready' );
 				recorder.flush( 'manual' );
 
@@ -251,7 +251,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attachAfterReady( element, 'payment', 'blocks' );
+				recorder.attachAfterReady( element, 'payment' );
 				// Note: NOT emitting 'ready' on the fake element — the whole
 				// point is that Stripe has already fired ready before we attach.
 				recorder.flush( 'manual' );
@@ -268,7 +268,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attachAfterReady( element, 'payment', 'blocks' );
+				recorder.attachAfterReady( element, 'payment' );
 				element.emit( 'focus' );
 				element.emit( 'blur' );
 				recorder.flush( 'manual' );
@@ -286,7 +286,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attach( element, 'card', 'classic' );
+				recorder.attach( element, 'card' );
 				element.emit( 'focus' );
 				element.emit( 'blur' );
 				recorder.flush( 'manual' );
@@ -309,7 +309,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attach( element, 'card', 'classic' );
+				recorder.attach( element, 'card' );
 				element.emit( 'loaderror', {
 					elementType: 'card',
 					error: {
@@ -337,7 +337,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 				const element = makeFakeElement();
 
-				recorder.attach( element, 'card', 'classic' );
+				recorder.attach( element, 'card' );
 				element.emit( 'change', {
 					elementType: 'card',
 					complete: false,

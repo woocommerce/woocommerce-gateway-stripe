@@ -200,16 +200,15 @@ export class Recorder {
 	 * Like attach(), but for elements where the underlying Stripe Element
 	 * has already fired its one-time `ready` event by the time we get here
 	 * (e.g. inside React's <PaymentElement onReady={...}> prop). We synthesize
-	 * the ready event so the trace is symmetric with the classic surface,
+	 * the ready event so the trace stays symmetric with the classic surface,
 	 * then subscribe for the lifecycle events that fire later.
 	 *
 	 * @param {Object} element The Stripe Element instance.
 	 * @param {string} kind    The element kind (e.g. 'payment', 'card').
-	 * @param {string} surface The checkout surface (e.g. 'classic', 'blocks').
 	 */
-	attachAfterReady( element, kind, surface ) {
+	attachAfterReady( element, kind ) {
 		this.record( 'element.ready', { element_type: kind } );
-		this.attach( element, kind, surface );
+		this.attach( element, kind );
 	}
 
 	attach( element, kind ) {

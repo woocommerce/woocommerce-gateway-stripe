@@ -14,7 +14,7 @@ function isActive() {
  *
  *   import { diagnostics } from 'wcstripe/diagnostics/wiring';
  *
- *   diagnostics.attach( cardElement, 'card', 'classic' );
+ *   diagnostics.attach( cardElement, 'card' );
  *   diagnostics.aroundStripeCall( 'confirmPayment', () =>
  *       stripe.confirmPayment( params )
  *   );
@@ -27,11 +27,10 @@ export const diagnostics = {
 	 *
 	 * @param {Object} element The Stripe Element instance.
 	 * @param {string} kind    The element kind (e.g. 'card', 'payment').
-	 * @param {string} surface The checkout surface (e.g. 'classic', 'blocks').
 	 */
-	attach( element, kind, surface ) {
+	attach( element, kind ) {
 		if ( ! isActive() ) return;
-		getRecorder().attach( element, kind, surface );
+		getRecorder().attach( element, kind );
 	},
 
 	/**
@@ -42,11 +41,10 @@ export const diagnostics = {
 	 *
 	 * @param {Object} element The Stripe Element instance.
 	 * @param {string} kind    The element kind (e.g. 'payment').
-	 * @param {string} surface The checkout surface (e.g. 'blocks').
 	 */
-	attachAfterReady( element, kind, surface ) {
+	attachAfterReady( element, kind ) {
 		if ( ! isActive() ) return;
-		getRecorder().attachAfterReady( element, kind, surface );
+		getRecorder().attachAfterReady( element, kind );
 	},
 
 	/**

@@ -58,22 +58,18 @@ describe( 'diagnostics wiring helpers', () => {
 	} );
 
 	describe( 'attach', () => {
-		it( 'calls recorder.attach with element, kind, and surface when active', () => {
+		it( 'calls recorder.attach with element and kind when active', () => {
 			window.wcStripeDiag = { active: true };
 			const element = { id: 'fake-element' };
 
-			diagnostics.attach( element, 'card', 'classic' );
+			diagnostics.attach( element, 'card' );
 
 			expect( mockAttach ).toHaveBeenCalledTimes( 1 );
-			expect( mockAttach ).toHaveBeenCalledWith(
-				element,
-				'card',
-				'classic'
-			);
+			expect( mockAttach ).toHaveBeenCalledWith( element, 'card' );
 		} );
 
 		it( 'does nothing when wcStripeDiag is absent', () => {
-			diagnostics.attach( { id: 'fake' }, 'card', 'classic' );
+			diagnostics.attach( { id: 'fake' }, 'card' );
 
 			expect( mockAttach ).not.toHaveBeenCalled();
 		} );
@@ -156,18 +152,17 @@ describe( 'diagnostics wiring helpers', () => {
 			window.wcStripeDiag = { active: true };
 			const element = { id: 'fake' };
 
-			diagnostics.attachAfterReady( element, 'payment', 'blocks' );
+			diagnostics.attachAfterReady( element, 'payment' );
 
 			expect( mockAttachAfterReady ).toHaveBeenCalledTimes( 1 );
 			expect( mockAttachAfterReady ).toHaveBeenCalledWith(
 				element,
-				'payment',
-				'blocks'
+				'payment'
 			);
 		} );
 
 		it( 'does nothing when wcStripeDiag is absent', () => {
-			diagnostics.attachAfterReady( { id: 'fake' }, 'payment', 'blocks' );
+			diagnostics.attachAfterReady( { id: 'fake' }, 'payment' );
 			expect( mockAttachAfterReady ).not.toHaveBeenCalled();
 		} );
 	} );
