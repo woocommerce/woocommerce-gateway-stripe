@@ -6,6 +6,7 @@ import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
+import PayoutsPanel from '../payouts-section';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
@@ -38,6 +39,10 @@ const TABS_CONTENT = [
 	{
 		name: 'settings',
 		title: __( 'Settings', 'woocommerce-gateway-stripe' ),
+	},
+	{
+		name: 'payouts',
+		title: __( 'Payouts', 'woocommerce-gateway-stripe' ),
 	},
 ];
 
@@ -131,39 +136,61 @@ const SettingsManager = () => {
 			) }
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
-				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
+				initialTabName={
+					[ 'settings', 'payouts' ].includes( panel )
+						? panel
+						: 'methods'
+				}
 				tabs={ TABS_CONTENT }
 				onSelect={ updatePanelUri }
 			>
-				{ ( tab ) => (
-					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' ? (
-							<PaymentSettingsPanel
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
+				{ ( tab ) => {
+					if ( tab.name === 'payouts' ) {
+						return (
+							<div data-testid="payouts-tab">
+								<PayoutsPanel />
+							</div>
+						);
+					}
+
+					return (
+						<div data-testid={ `${ tab.name }-tab` }>
+							{ tab.name === 'settings' ? (
+								<PaymentSettingsPanel
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) : (
+								<PaymentMethodsPanel
+									onSaveChanges={ onSaveChanges }
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) }
+							<SaveSettingsSection
+								onSettingsSave={ onSettingsSave }
 							/>
-						) : (
-							<PaymentMethodsPanel
-								onSaveChanges={ onSaveChanges }
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-						/>
-					</div>
-				) }
+						</div>
+					);
+				} }
 			</StyledTabPanel>
 		</SettingsLayout>
 	);
