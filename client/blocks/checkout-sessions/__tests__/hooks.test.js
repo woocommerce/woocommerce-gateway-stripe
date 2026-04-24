@@ -5,10 +5,7 @@ import {
 	usePaymentFailHandler,
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
-import {
-	diagBlocksPaymentSetupStart,
-	diagBlocksPaymentSetupEnd,
-} from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import { useEffect } from '@wordpress/element';
 import { select, useSelect } from '@wordpress/data';
 
@@ -23,8 +20,10 @@ jest.mock( '@wordpress/data', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/diagnostics/wiring', () => ( {
-	diagBlocksPaymentSetupStart: jest.fn(),
-	diagBlocksPaymentSetupEnd: jest.fn(),
+	diagnostics: {
+		blocksPaymentSetupStart: jest.fn(),
+		blocksPaymentSetupEnd: jest.fn(),
+	},
 } ) );
 
 describe( 'CheckoutSessions hook tests', () => {
@@ -177,8 +176,8 @@ describe( 'CheckoutSessions hook tests', () => {
 
 		describe( 'diagnostics integration', () => {
 			beforeEach( () => {
-				diagBlocksPaymentSetupStart.mockReset();
-				diagBlocksPaymentSetupEnd.mockReset();
+				diagnostics.blocksPaymentSetupStart.mockReset();
+				diagnostics.blocksPaymentSetupEnd.mockReset();
 			} );
 
 			it( 'brackets the handler with start/end calls, forwarding the result to end', async () => {
@@ -186,7 +185,9 @@ describe( 'CheckoutSessions hook tests', () => {
 					startMs: 0,
 					site: 'checkout_sessions',
 				};
-				diagBlocksPaymentSetupStart.mockReturnValue( fakeHandle );
+				diagnostics.blocksPaymentSetupStart.mockReturnValue(
+					fakeHandle
+				);
 
 				const hasLoadErrorRef = { current: false };
 				usePaymentSetupHandler(
@@ -198,21 +199,22 @@ describe( 'CheckoutSessions hook tests', () => {
 					'card'
 				);
 
-				expect( diagBlocksPaymentSetupStart ).toHaveBeenCalledWith(
-					'checkout_sessions'
-				);
+				expect(
+					diagnostics.blocksPaymentSetupStart
+				).toHaveBeenCalledWith( 'checkout_sessions' );
 
 				const result = await onPaymentSetupResultPromise;
 
-				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledTimes( 1 );
-				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledWith(
-					fakeHandle,
-					result
-				);
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledTimes( 1 );
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledWith( fakeHandle, result );
 			} );
 
 			it( 'still returns the original result through the wrapped handler', async () => {
-				diagBlocksPaymentSetupStart.mockReturnValue( null );
+				diagnostics.blocksPaymentSetupStart.mockReturnValue( null );
 
 				const hasLoadErrorRef = { current: false };
 				usePaymentSetupHandler(
@@ -233,7 +235,9 @@ describe( 'CheckoutSessions hook tests', () => {
 					startMs: 0,
 					site: 'checkout_sessions',
 				};
-				diagBlocksPaymentSetupStart.mockReturnValue( fakeHandle );
+				diagnostics.blocksPaymentSetupStart.mockReturnValue(
+					fakeHandle
+				);
 
 				// Force the handler to throw by making the validation-store
 				// lookup throw synchronously inside handlePaymentProcessing.
@@ -258,8 +262,12 @@ describe( 'CheckoutSessions hook tests', () => {
 					'boom'
 				);
 
-				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledTimes( 1 );
-				expect( diagBlocksPaymentSetupEnd ).toHaveBeenCalledWith(
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledTimes( 1 );
+				expect(
+					diagnostics.blocksPaymentSetupEnd
+				).toHaveBeenCalledWith(
 					fakeHandle,
 					expect.objectContaining( {
 						type: 'error',

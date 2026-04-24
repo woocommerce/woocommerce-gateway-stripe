@@ -21,12 +21,7 @@ import {
 	getStripeElementOptions,
 } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
-import {
-	diagAttachAfterReady,
-	diagAroundStripeCall,
-	diagBlocksPaymentSetupStart,
-	diagBlocksPaymentSetupEnd,
-} from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -126,7 +121,7 @@ const PaymentProcessor = ( {
 		() =>
 			onPaymentSetup( async () => {
 				const diagHandle =
-					diagBlocksPaymentSetupStart( 'payment_processor' );
+					diagnostics.blocksPaymentSetupStart( 'payment_processor' );
 				async function handlePaymentProcessing() {
 					if (
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
@@ -214,13 +209,14 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await diagAroundStripeCall(
-						'createPaymentMethod',
-						() =>
-							api
-								.getStripe()
-								.createPaymentMethod( paymentMethodData )
-					);
+					const paymentMethodObject =
+						await diagnostics.aroundStripeCall(
+							'createPaymentMethod',
+							() =>
+								api
+									.getStripe()
+									.createPaymentMethod( paymentMethodData )
+						);
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -265,10 +261,10 @@ const PaymentProcessor = ( {
 				}
 				try {
 					const result = await handlePaymentProcessing();
-					diagBlocksPaymentSetupEnd( diagHandle, result );
+					diagnostics.blocksPaymentSetupEnd( diagHandle, result );
 					return result;
 				} catch ( err ) {
-					diagBlocksPaymentSetupEnd( diagHandle, {
+					diagnostics.blocksPaymentSetupEnd( diagHandle, {
 						type: 'error',
 						message: err?.message,
 					} );
@@ -435,7 +431,11 @@ const PaymentProcessor = ( {
 					onReady={ () => {
 						const el = elements?.getElement( 'payment' );
 						if ( el ) {
-							diagAttachAfterReady( el, 'payment', 'blocks' );
+							diagnostics.attachAfterReady(
+								el,
+								'payment',
+								'blocks'
+							);
 						}
 					} }
 					className="wcstripe-payment-element"

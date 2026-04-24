@@ -13,7 +13,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 	STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT,
 } from 'wcstripe/stripe-utils/constants';
-import { diagAroundStripeCall } from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -353,7 +353,7 @@ export default class WCStripeAPI {
 
 		const confirmAction = isSetupIntent
 			? this.getStripe().confirmSetup( confirmArgs )
-			: diagAroundStripeCall( 'confirmPayment', () =>
+			: diagnostics.aroundStripeCall( 'confirmPayment', () =>
 					this.getStripe( true ).confirmPayment( confirmArgs )
 			  );
 

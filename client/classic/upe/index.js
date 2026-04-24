@@ -19,7 +19,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_OXXO,
 } from 'wcstripe/stripe-utils/constants';
-import { diagAroundStripeCall } from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -147,7 +147,7 @@ jQuery( function ( $ ) {
 		}
 		if ( ! isUPEComplete ) {
 			// If UPE fields are not filled, confirm payment to trigger validation errors
-			const { error } = await diagAroundStripeCall(
+			const { error } = await diagnostics.aroundStripeCall(
 				'confirmPayment',
 				() =>
 					api.getStripe().confirmPayment( {
@@ -200,7 +200,7 @@ jQuery( function ( $ ) {
 			};
 			let error;
 			if ( response.payment_needed ) {
-				( { error } = await diagAroundStripeCall(
+				( { error } = await diagnostics.aroundStripeCall(
 					'confirmPayment',
 					() => api.getStripe().confirmPayment( upeConfig )
 				) );

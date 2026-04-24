@@ -1,5 +1,4 @@
 const mockAttachExpress = jest.fn();
-const mockWrapStripe = jest.fn();
 const mockAttach = jest.fn();
 const mockRecordBlocksPaymentSetupStart = jest.fn();
 const mockRecordBlocksPaymentSetupEnd = jest.fn();
@@ -9,7 +8,6 @@ const mockAttachAfterReady = jest.fn();
 jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 	getRecorder: () => ( {
 		attachExpress: mockAttachExpress,
-		wrapStripe: mockWrapStripe,
 		attach: mockAttach,
 		recordBlocksPaymentSetupStart: mockRecordBlocksPaymentSetupStart,
 		recordBlocksPaymentSetupEnd: mockRecordBlocksPaymentSetupEnd,
@@ -18,19 +16,11 @@ jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 	} ),
 } ) );
 
-import {
-	diagAttach,
-	diagAttachExpress,
-	diagAttachAfterReady,
-	diagBlocksPaymentSetupStart,
-	diagBlocksPaymentSetupEnd,
-	diagAroundStripeCall,
-} from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 describe( 'diagnostics wiring helpers', () => {
 	beforeEach( () => {
 		mockAttachExpress.mockClear();
-		mockWrapStripe.mockClear();
 		mockAttach.mockClear();
 		mockRecordBlocksPaymentSetupStart.mockClear();
 		mockRecordBlocksPaymentSetupEnd.mockClear();
@@ -39,37 +29,37 @@ describe( 'diagnostics wiring helpers', () => {
 		delete window.wcStripeDiag;
 	} );
 
-	describe( 'diagAttachExpress', () => {
+	describe( 'attachExpress', () => {
 		it( 'calls recorder.attachExpress with the button when wcStripeDiag is active', () => {
 			window.wcStripeDiag = { active: true };
 			const eceButton = { id: 'fake-ece' };
 
-			diagAttachExpress( eceButton );
+			diagnostics.attachExpress( eceButton );
 
 			expect( mockAttachExpress ).toHaveBeenCalledTimes( 1 );
 			expect( mockAttachExpress ).toHaveBeenCalledWith( eceButton );
 		} );
 
 		it( 'does nothing when wcStripeDiag is absent', () => {
-			diagAttachExpress( { id: 'fake-ece' } );
+			diagnostics.attachExpress( { id: 'fake-ece' } );
 
 			expect( mockAttachExpress ).not.toHaveBeenCalled();
 		} );
 
 		it( 'does nothing when wcStripeDiag.active is false', () => {
 			window.wcStripeDiag = { active: false };
-			diagAttachExpress( { id: 'fake-ece' } );
+			diagnostics.attachExpress( { id: 'fake-ece' } );
 
 			expect( mockAttachExpress ).not.toHaveBeenCalled();
 		} );
 	} );
 
-	describe( 'diagAttach', () => {
+	describe( 'attach', () => {
 		it( 'calls recorder.attach with element, kind, and surface when active', () => {
 			window.wcStripeDiag = { active: true };
 			const element = { id: 'fake-element' };
 
-			diagAttach( element, 'card', 'classic' );
+			diagnostics.attach( element, 'card', 'classic' );
 
 			expect( mockAttach ).toHaveBeenCalledTimes( 1 );
 			expect( mockAttach ).toHaveBeenCalledWith(
@@ -80,25 +70,26 @@ describe( 'diagnostics wiring helpers', () => {
 		} );
 
 		it( 'does nothing when wcStripeDiag is absent', () => {
-			diagAttach( { id: 'fake' }, 'card', 'classic' );
+			diagnostics.attach( { id: 'fake' }, 'card', 'classic' );
 
 			expect( mockAttach ).not.toHaveBeenCalled();
 		} );
 	} );
 
-	describe( 'diagBlocksPaymentSetupStart / End', () => {
+	describe( 'blocksPaymentSetupStart / End', () => {
 		it( 'returns a handle from start and forwards it to end with the result, when active', () => {
 			window.wcStripeDiag = { active: true };
 			const fakeHandle = { startMs: 1234, site: 'payment_processor' };
 			mockRecordBlocksPaymentSetupStart.mockReturnValue( fakeHandle );
 
-			const handle = diagBlocksPaymentSetupStart( 'payment_processor' );
+			const handle =
+				diagnostics.blocksPaymentSetupStart( 'payment_processor' );
 			expect( mockRecordBlocksPaymentSetupStart ).toHaveBeenCalledWith(
 				'payment_processor'
 			);
 			expect( handle ).toBe( fakeHandle );
 
-			diagBlocksPaymentSetupEnd( handle, { type: 'success' } );
+			diagnostics.blocksPaymentSetupEnd( handle, { type: 'success' } );
 			expect( mockRecordBlocksPaymentSetupEnd ).toHaveBeenCalledWith(
 				fakeHandle,
 				{ type: 'success' }
@@ -106,30 +97,31 @@ describe( 'diagnostics wiring helpers', () => {
 		} );
 
 		it( 'start returns null and end is a no-op when wcStripeDiag is absent', () => {
-			const handle = diagBlocksPaymentSetupStart( 'payment_processor' );
+			const handle =
+				diagnostics.blocksPaymentSetupStart( 'payment_processor' );
 			expect( handle ).toBeNull();
 			expect( mockRecordBlocksPaymentSetupStart ).not.toHaveBeenCalled();
 
-			diagBlocksPaymentSetupEnd( handle, { type: 'success' } );
+			diagnostics.blocksPaymentSetupEnd( handle, { type: 'success' } );
 			expect( mockRecordBlocksPaymentSetupEnd ).not.toHaveBeenCalled();
 		} );
 
 		it( 'end is a no-op when given a null handle (defensive)', () => {
 			window.wcStripeDiag = { active: true };
-			diagBlocksPaymentSetupEnd( null, { type: 'success' } );
+			diagnostics.blocksPaymentSetupEnd( null, { type: 'success' } );
 
 			expect( mockRecordBlocksPaymentSetupEnd ).not.toHaveBeenCalled();
 		} );
 	} );
 
-	describe( 'diagAroundStripeCall', () => {
+	describe( 'aroundStripeCall', () => {
 		it( 'delegates to recorder.aroundStripeCall when active', async () => {
 			window.wcStripeDiag = { active: true };
 			const expected = { paymentMethod: { id: 'pm_x', type: 'card' } };
 			mockAroundStripeCall.mockResolvedValue( expected );
 
 			const fn = jest.fn();
-			const result = await diagAroundStripeCall(
+			const result = await diagnostics.aroundStripeCall(
 				'createPaymentMethod',
 				fn
 			);
@@ -145,7 +137,7 @@ describe( 'diagnostics wiring helpers', () => {
 			const expected = { paymentMethod: { id: 'pm_y' } };
 			const fn = jest.fn().mockResolvedValue( expected );
 
-			const result = await diagAroundStripeCall(
+			const result = await diagnostics.aroundStripeCall(
 				'createPaymentMethod',
 				fn
 			);
@@ -156,12 +148,12 @@ describe( 'diagnostics wiring helpers', () => {
 		} );
 	} );
 
-	describe( 'diagAttachAfterReady', () => {
+	describe( 'attachAfterReady', () => {
 		it( 'delegates to recorder.attachAfterReady when active', () => {
 			window.wcStripeDiag = { active: true };
 			const element = { id: 'fake' };
 
-			diagAttachAfterReady( element, 'payment', 'blocks' );
+			diagnostics.attachAfterReady( element, 'payment', 'blocks' );
 
 			expect( mockAttachAfterReady ).toHaveBeenCalledTimes( 1 );
 			expect( mockAttachAfterReady ).toHaveBeenCalledWith(
@@ -172,7 +164,7 @@ describe( 'diagnostics wiring helpers', () => {
 		} );
 
 		it( 'does nothing when wcStripeDiag is absent', () => {
-			diagAttachAfterReady( { id: 'fake' }, 'payment', 'blocks' );
+			diagnostics.attachAfterReady( { id: 'fake' }, 'payment', 'blocks' );
 			expect( mockAttachAfterReady ).not.toHaveBeenCalled();
 		} );
 	} );

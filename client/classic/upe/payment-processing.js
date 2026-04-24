@@ -22,7 +22,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
-import { diagAttach, diagAroundStripeCall } from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -459,7 +459,11 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	gatewayUPEComponents[ paymentMethodType ].upeElement =
 		createdStripePaymentElement;
 
-	diagAttach( createdStripePaymentElement, paymentMethodType, 'classic' );
+	diagnostics.attach(
+		createdStripePaymentElement,
+		paymentMethodType,
+		'classic'
+	);
 
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
@@ -566,14 +570,16 @@ function createStripePaymentMethod(
 			: { elements, params };
 
 	const stripe = api.getStripe( paymentMethodType );
-	return diagAroundStripeCall( 'createPaymentMethod', () =>
-		stripe.createPaymentMethod( paymentMethodData )
-	).then( ( paymentMethod ) => {
-		if ( paymentMethod.error ) {
-			throw paymentMethod.error;
-		}
-		return paymentMethod;
-	} );
+	return diagnostics
+		.aroundStripeCall( 'createPaymentMethod', () =>
+			stripe.createPaymentMethod( paymentMethodData )
+		)
+		.then( ( paymentMethod ) => {
+			if ( paymentMethod.error ) {
+				throw paymentMethod.error;
+			}
+			return paymentMethod;
+		} );
 }
 
 /**

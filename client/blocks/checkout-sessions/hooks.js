@@ -2,10 +2,7 @@ import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
-import {
-	diagBlocksPaymentSetupStart,
-	diagBlocksPaymentSetupEnd,
-} from 'wcstripe/diagnostics/wiring';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -33,7 +30,7 @@ export const usePaymentSetupHandler = (
 		() =>
 			onPaymentSetup( async () => {
 				const diagHandle =
-					diagBlocksPaymentSetupStart( 'checkout_sessions' );
+					diagnostics.blocksPaymentSetupStart( 'checkout_sessions' );
 				async function handlePaymentProcessing() {
 					const { validationStore } = window.wc?.wcBlocksData ?? {};
 					if ( validationStore ) {
@@ -102,10 +99,10 @@ export const usePaymentSetupHandler = (
 				}
 				try {
 					const result = await handlePaymentProcessing();
-					diagBlocksPaymentSetupEnd( diagHandle, result );
+					diagnostics.blocksPaymentSetupEnd( diagHandle, result );
 					return result;
 				} catch ( err ) {
-					diagBlocksPaymentSetupEnd( diagHandle, {
+					diagnostics.blocksPaymentSetupEnd( diagHandle, {
 						type: 'error',
 						message: err?.message,
 					} );

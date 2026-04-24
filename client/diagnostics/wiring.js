@@ -4,71 +4,103 @@ function isActive() {
 	return !! window.wcStripeDiag?.active;
 }
 
-export function diagAttachExpress( eceButton ) {
-	if ( ! isActive() ) {
-		return;
-	}
-	getRecorder().attachExpress( eceButton );
-}
-
-export function diagAttach( element, kind, surface ) {
-	if ( ! isActive() ) {
-		return;
-	}
-	getRecorder().attach( element, kind, surface );
-}
-
 /**
- * Like diagAttach, but for Stripe Element instances where the underlying
- * `ready` event has already fired (e.g. inside React's PaymentElement
- * onReady prop). Synthesizes the ready event so the trace stays symmetric
- * with the classic surface.
+ * Diagnostics wiring helpers used by the checkout call sites.
  *
- * @param {Object} element The Stripe Element instance.
- * @param {string} kind    The element kind (e.g. 'payment').
- * @param {string} surface The checkout surface (e.g. 'blocks').
- */
-export function diagAttachAfterReady( element, kind, surface ) {
-	if ( ! isActive() ) {
-		return;
-	}
-	getRecorder().attachAfterReady( element, kind, surface );
-}
-
-export function diagBlocksPaymentSetupStart( site ) {
-	if ( ! isActive() ) {
-		return null;
-	}
-	return getRecorder().recordBlocksPaymentSetupStart( site );
-}
-
-export function diagBlocksPaymentSetupEnd( handle, result ) {
-	if ( ! handle || ! isActive() ) {
-		return;
-	}
-	getRecorder().recordBlocksPaymentSetupEnd( handle, result );
-}
-
-/**
- * Bracket a Stripe API call with .invoke / .resolve / .throw events.
+ * Every method is a no-op when window.wcStripeDiag.active is not true,
+ * so production callers can sprinkle these in without conditional guards.
  *
- * Use this for Stripe methods we cannot wrap on the singleton itself
- * (currently `createPaymentMethod` — wrapping it breaks <Elements>).
+ * Usage:
  *
- *   const result = await diagAroundStripeCall(
- *       'createPaymentMethod',
- *       () => stripe.createPaymentMethod( params )
+ *   import { diagnostics } from 'wcstripe/diagnostics/wiring';
+ *
+ *   diagnostics.attach( cardElement, 'card', 'classic' );
+ *   diagnostics.aroundStripeCall( 'confirmPayment', () =>
+ *       stripe.confirmPayment( params )
  *   );
- *
- * When diagnostics is inactive this passes the call through transparently.
- *
- * @param {string}   method The Stripe method name (e.g. 'createPaymentMethod').
- * @param {Function} fn     A zero-arg function that performs the Stripe call and returns its Promise.
- * @return {Promise} The promise returned by fn(), with diagnostics events recorded when active.
  */
-export function diagAroundStripeCall( method, fn ) {
-	if ( ! isActive() ) {
-		return fn();
-	}
-	return getRecorder().aroundStripeCall( method, fn );
-}
+export const diagnostics = {
+	/**
+	 * Subscribe the recorder to a Stripe Element instance's lifecycle events.
+	 * Use BEFORE the element fires its one-time `ready` (e.g. classic UPE,
+	 * where attach happens at create time, before mount).
+	 *
+	 * @param {Object} element The Stripe Element instance.
+	 * @param {string} kind    The element kind (e.g. 'card', 'payment').
+	 * @param {string} surface The checkout surface (e.g. 'classic', 'blocks').
+	 */
+	attach( element, kind, surface ) {
+		if ( ! isActive() ) return;
+		getRecorder().attach( element, kind, surface );
+	},
+
+	/**
+	 * Like attach(), but for elements where the underlying Stripe Element
+	 * has already fired its one-time `ready` event by the time we get here
+	 * (e.g. inside React's PaymentElement onReady prop). Synthesizes the
+	 * ready event so the trace stays symmetric with the classic surface.
+	 *
+	 * @param {Object} element The Stripe Element instance.
+	 * @param {string} kind    The element kind (e.g. 'payment').
+	 * @param {string} surface The checkout surface (e.g. 'blocks').
+	 */
+	attachAfterReady( element, kind, surface ) {
+		if ( ! isActive() ) return;
+		getRecorder().attachAfterReady( element, kind, surface );
+	},
+
+	/**
+	 * Subscribe the recorder to an Express Checkout Element's events
+	 * (click, confirm, cancel, shippingaddresschange, etc.).
+	 *
+	 * @param {Object} eceButton The Express Checkout Element instance.
+	 */
+	attachExpress( eceButton ) {
+		if ( ! isActive() ) return;
+		getRecorder().attachExpress( eceButton );
+	},
+
+	/**
+	 * Bracket a Stripe API call with .invoke / .resolve / .throw events.
+	 *
+	 *   const result = await diagnostics.aroundStripeCall(
+	 *       'createPaymentMethod',
+	 *       () => stripe.createPaymentMethod( params )
+	 *   );
+	 *
+	 * Used at every Stripe SDK call site rather than mutating the Stripe
+	 * instance — see recorder.js for why mutation is unsafe.
+	 *
+	 * @param {string}   method The Stripe method name (e.g. 'confirmPayment').
+	 * @param {Function} fn     A zero-arg function that performs the Stripe call and returns its Promise.
+	 * @return {Promise} The promise returned by fn(), with diagnostics events recorded when active.
+	 */
+	aroundStripeCall( method, fn ) {
+		if ( ! isActive() ) return fn();
+		return getRecorder().aroundStripeCall( method, fn );
+	},
+
+	/**
+	 * Open a bracket around the Blocks onPaymentSetup handler. Returns a
+	 * handle to pass to blocksPaymentSetupEnd, or null when inactive.
+	 *
+	 * @param {string} site Which onPaymentSetup site this is — 'payment_processor' or 'checkout_sessions'.
+	 * @return {Object|null} Handle for the matching end call.
+	 */
+	blocksPaymentSetupStart( site ) {
+		if ( ! isActive() ) return null;
+		return getRecorder().recordBlocksPaymentSetupStart( site );
+	},
+
+	/**
+	 * Close the bracket opened by blocksPaymentSetupStart. No-op if the
+	 * handle is null (inactive at start time).
+	 *
+	 * @param {Object|null} handle Handle from blocksPaymentSetupStart.
+	 * @param {Object}      result The onPaymentSetup result ({ type, message, ... }).
+	 */
+	blocksPaymentSetupEnd( handle, result ) {
+		if ( ! handle || ! isActive() ) return;
+		getRecorder().recordBlocksPaymentSetupEnd( handle, result );
+	},
+};
