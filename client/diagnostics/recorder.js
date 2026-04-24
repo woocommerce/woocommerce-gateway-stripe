@@ -166,26 +166,34 @@ export class Recorder {
 	}
 
 	attachExpress( eceButton ) {
-		const simple = [ 'click', 'confirm', 'cancel', 'shippingratechange' ];
-		for ( const ev of simple ) {
+		const events = [
+			'click',
+			'confirm',
+			'cancel',
+			'shippingratechange',
+			'shippingaddresschange',
+			'paymentmethod',
+		];
+		for ( const ev of events ) {
 			eceButton.on( ev, ( payload = {} ) => {
-				this.record( `express.${ ev }`, {
-					wallet_type: payload.expressPaymentType,
-				} );
+				this.recordExpressEvent( ev, payload );
 			} );
 		}
-		eceButton.on( 'shippingaddresschange', ( payload = {} ) => {
-			this.record( 'express.shippingaddresschange', {
-				wallet_type: payload.expressPaymentType,
-				country: payload.address?.country,
-			} );
-		} );
-		eceButton.on( 'paymentmethod', ( payload = {} ) => {
-			this.record( 'express.paymentmethod', {
-				wallet_type: payload.expressPaymentType,
-				payment_method_type: payload.paymentMethod?.type,
-			} );
-		} );
+	}
+
+	/**
+	 * Record a single Express Checkout Element event. Used by the Blocks ECE
+	 * surface where events arrive via React props rather than `.on()`.
+	 *
+	 * @param {string} eventName One of: click, confirm, cancel, shippingratechange,
+	 *                           shippingaddresschange, paymentmethod.
+	 * @param {Object} payload   The event payload from Stripe.
+	 */
+	recordExpressEvent( eventName, payload = {} ) {
+		this.record(
+			`express.${ eventName }`,
+			projectExpressPayload( eventName, payload )
+		);
 	}
 
 	/**
@@ -289,6 +297,22 @@ export function getRecorder() {
 		_singleton.boot();
 	}
 	return _singleton;
+}
+
+function projectExpressPayload( eventName, payload ) {
+	const base = { wallet_type: payload.expressPaymentType };
+	if ( eventName === 'shippingaddresschange' ) {
+		return { ...base, country: payload.address?.country };
+	}
+	if ( eventName === 'paymentmethod' || eventName === 'confirm' ) {
+		// Blocks surfaces paymentMethod via onConfirm; classic surfaces it
+		// via a separate `paymentmethod` event. Either way, project the
+		// type when present.
+		if ( payload.paymentMethod?.type ) {
+			return { ...base, payment_method_type: payload.paymentMethod.type };
+		}
+	}
+	return base;
 }
 
 function projectChangePayload( kind, payload ) {

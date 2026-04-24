@@ -505,6 +505,109 @@ describe( 'Recorder', () => {
 			} );
 		} );
 
+		describe( 'recordExpressEvent() — call-site capture for the Blocks ECE React component', () => {
+			it( 'records click, cancel, and shippingratechange with wallet_type', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				recorder.recordExpressEvent( 'click', {
+					expressPaymentType: 'apple_pay',
+				} );
+				recorder.recordExpressEvent( 'cancel', {
+					expressPaymentType: 'apple_pay',
+				} );
+				recorder.recordExpressEvent( 'shippingratechange', {
+					expressPaymentType: 'apple_pay',
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
+					'express.click',
+					'express.cancel',
+					'express.shippingratechange',
+				] );
+				body.events.forEach( ( e ) => {
+					expect( e.data ).toEqual( { wallet_type: 'apple_pay' } );
+				} );
+			} );
+
+			it( 'records shippingaddresschange with wallet_type and country, dropping other address fields', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				recorder.recordExpressEvent( 'shippingaddresschange', {
+					expressPaymentType: 'google_pay',
+					address: {
+						country: 'CA',
+						postalCode: 'M5V 0J5',
+						city: 'Toronto',
+						state: 'ON',
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe(
+					'express.shippingaddresschange'
+				);
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: 'google_pay',
+					country: 'CA',
+				} );
+			} );
+
+			it( 'records confirm with wallet_type and payment_method_type when paymentMethod is present (Blocks merges paymentmethod into onConfirm)', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				recorder.recordExpressEvent( 'confirm', {
+					expressPaymentType: 'link',
+					paymentMethod: {
+						type: 'card',
+						card: { brand: 'visa', last4: '4242' },
+					},
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe( 'express.confirm' );
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: 'link',
+					payment_method_type: 'card',
+				} );
+			} );
+
+			it( 'records confirm with only wallet_type when paymentMethod is absent', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				recorder.recordExpressEvent( 'confirm', {
+					expressPaymentType: 'apple_pay',
+				} );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: 'apple_pay',
+				} );
+			} );
+
+			it( 'tolerates an undefined payload (no event payload from React)', () => {
+				const recorder = makeRecorder();
+				recorder.boot();
+
+				recorder.recordExpressEvent( 'click' );
+				recorder.flush( 'manual' );
+
+				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				expect( body.events[ 0 ].kind ).toBe( 'express.click' );
+				expect( body.events[ 0 ].data ).toEqual( {
+					wallet_type: undefined,
+				} );
+			} );
+		} );
+
 		describe( 'aroundStripeCall() — call-site capture for methods we cannot wrap', () => {
 			it( 'records invoke + resolve around a successful Stripe-shaped call (e.g. createPaymentMethod)', async () => {
 				const recorder = makeRecorder();

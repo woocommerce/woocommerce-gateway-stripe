@@ -4,6 +4,7 @@ const mockRecordBlocksPaymentSetupStart = jest.fn();
 const mockRecordBlocksPaymentSetupEnd = jest.fn();
 const mockAroundStripeCall = jest.fn();
 const mockAttachAfterReady = jest.fn();
+const mockRecordExpressEvent = jest.fn();
 
 jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 	getRecorder: () => ( {
@@ -13,6 +14,7 @@ jest.mock( 'wcstripe/diagnostics/recorder', () => ( {
 		recordBlocksPaymentSetupEnd: mockRecordBlocksPaymentSetupEnd,
 		aroundStripeCall: mockAroundStripeCall,
 		attachAfterReady: mockAttachAfterReady,
+		recordExpressEvent: mockRecordExpressEvent,
 	} ),
 } ) );
 
@@ -26,6 +28,7 @@ describe( 'diagnostics wiring helpers', () => {
 		mockRecordBlocksPaymentSetupEnd.mockClear();
 		mockAroundStripeCall.mockClear();
 		mockAttachAfterReady.mockClear();
+		mockRecordExpressEvent.mockClear();
 		delete window.wcStripeDiag;
 	} );
 
@@ -166,6 +169,32 @@ describe( 'diagnostics wiring helpers', () => {
 		it( 'does nothing when wcStripeDiag is absent', () => {
 			diagnostics.attachAfterReady( { id: 'fake' }, 'payment', 'blocks' );
 			expect( mockAttachAfterReady ).not.toHaveBeenCalled();
+		} );
+	} );
+
+	describe( 'recordExpressEvent', () => {
+		it( 'delegates to recorder.recordExpressEvent when active', () => {
+			window.wcStripeDiag = { active: true };
+			const payload = { expressPaymentType: 'apple_pay' };
+
+			diagnostics.recordExpressEvent( 'click', payload );
+
+			expect( mockRecordExpressEvent ).toHaveBeenCalledTimes( 1 );
+			expect( mockRecordExpressEvent ).toHaveBeenCalledWith(
+				'click',
+				payload
+			);
+		} );
+
+		it( 'does nothing when wcStripeDiag is absent', () => {
+			diagnostics.recordExpressEvent( 'click', {} );
+			expect( mockRecordExpressEvent ).not.toHaveBeenCalled();
+		} );
+
+		it( 'does nothing when wcStripeDiag.active is false', () => {
+			window.wcStripeDiag = { active: false };
+			diagnostics.recordExpressEvent( 'click', {} );
+			expect( mockRecordExpressEvent ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

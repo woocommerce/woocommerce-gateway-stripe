@@ -61,6 +61,21 @@ export const diagnostics = {
 	},
 
 	/**
+	 * Record a single Express Checkout Element event. Used by the Blocks ECE
+	 * surface where events arrive via React props (`onClick`, `onConfirm`, etc.)
+	 * rather than `eceButton.on()`. Call from inside each prop handler.
+	 *
+	 * @param {string} eventName One of: click, confirm, cancel,
+	 *                           shippingratechange, shippingaddresschange,
+	 *                           paymentmethod.
+	 * @param {Object} payload   The event payload from Stripe.
+	 */
+	recordExpressEvent( eventName, payload ) {
+		if ( ! isActive() ) return;
+		getRecorder().recordExpressEvent( eventName, payload );
+	},
+
+	/**
 	 * Bracket a Stripe API call with .invoke / .resolve / .throw events.
 	 *
 	 *   const result = await diagnostics.aroundStripeCall(
