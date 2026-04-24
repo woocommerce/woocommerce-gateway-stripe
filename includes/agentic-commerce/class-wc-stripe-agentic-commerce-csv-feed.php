@@ -385,7 +385,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * what is delivered to Stripe — unlike the ProductWalker's iterated count,
 	 * which includes rows dropped by the validator.
 	 *
-	 * @since 10.6.0
+	 * @since 10.7.0
 	 * @return int Number of CSV rows written (excluding the header row).
 	 */
 	public function get_entry_count(): int {
