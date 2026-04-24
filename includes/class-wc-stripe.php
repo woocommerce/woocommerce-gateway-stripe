@@ -865,6 +865,10 @@ class WC_Stripe {
 
 		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
 		$exit_survey_controller->register_routes();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-diagnostics-controller.php';
+		$diagnostics_controller = new WC_REST_Stripe_Diagnostics_Controller();
+		$diagnostics_controller->register_routes();
 	}
 
 	/**
