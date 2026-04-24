@@ -77,6 +77,10 @@ const Actions = styled.div`
 	align-items: center;
 `;
 
+const HistoryCard = styled( Card )`
+	margin-top: 16px;
+`;
+
 const HistoryTable = styled.table`
 	width: 100%;
 	border-collapse: collapse;
@@ -474,7 +478,7 @@ const AgenticCommercePanel = () => {
 				</CardBody>
 			</Card>
 
-			<Card>
+			<HistoryCard>
 				<CardHeader>
 					<CardTitle>
 						{ __( 'Recent Syncs', 'woocommerce-gateway-stripe' ) }
@@ -573,7 +577,7 @@ const AgenticCommercePanel = () => {
 						</HistoryTable>
 					) }
 				</CardBody>
-			</Card>
+			</HistoryCard>
 		</div>
 	);
 };
