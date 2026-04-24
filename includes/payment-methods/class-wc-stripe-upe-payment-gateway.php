@@ -582,6 +582,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
+		if ( $this->testmode ) {
+			/**
+			 * Filters whether the Stripe Developer Widget should be shown in the UI.
+			 * Only available in test mode.
+			 */
+			$show_stripe_developer_widget = (bool) apply_filters( 'wc_stripe_show_stripe_developer_widget', false );
+			if ( $show_stripe_developer_widget ) {
+				$stripe_params['showStripeDeveloperWidget'] = true;
+			}
+		}
+
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
