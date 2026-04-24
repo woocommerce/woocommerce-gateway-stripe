@@ -48,13 +48,37 @@ describe( 'Recorder', () => {
 			};
 		} );
 
-		it( 'flushes recorded events via sendBeacon to the configured endpoint', () => {
+		it( 'flushes recorded events via sendBeacon to the configured endpoint with the nonce as a _wpnonce query param', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
 			recorder.flush( 'manual' );
 
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
+				'/wp-json/wc/v3/wc_stripe/diagnostics/events?_wpnonce=test-nonce'
+			);
+		} );
+
+		it( 'percent-encodes the nonce when appending it as a query param', () => {
+			window.wcStripeDiag.nonce = 'a/b c+d';
+			const recorder = makeRecorder();
+			recorder.boot();
+			recorder.record( 'element.ready', { element_type: 'card' } );
+			recorder.flush( 'manual' );
+
+			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
+				'/wp-json/wc/v3/wc_stripe/diagnostics/events?_wpnonce=a%2Fb%20c%2Bd'
+			);
+		} );
+
+		it( 'omits the _wpnonce query param when no nonce is configured', () => {
+			delete window.wcStripeDiag.nonce;
+			const recorder = makeRecorder();
+			recorder.boot();
+			recorder.record( 'element.ready', { element_type: 'card' } );
+			recorder.flush( 'manual' );
+
 			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
 				'/wp-json/wc/v3/wc_stripe/diagnostics/events'
 			);

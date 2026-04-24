@@ -42,7 +42,7 @@ export class Recorder {
 				diag_session_id: this.config.sessionId,
 				events: persisted.bufferedEvents,
 			} );
-			navigator.sendBeacon( this.config.endpoint, payload );
+			navigator.sendBeacon( buildIngestUrl( this.config ), payload );
 
 			const cleared = { ...persisted };
 			delete cleared.bufferedEvents;
@@ -258,7 +258,7 @@ export class Recorder {
 			diag_session_id: this.config.sessionId,
 			events: this.buffer,
 		} );
-		navigator.sendBeacon( this.config.endpoint, payload );
+		navigator.sendBeacon( buildIngestUrl( this.config ), payload );
 		this.buffer = [];
 		this._clearIdleTimer();
 	}
@@ -297,6 +297,19 @@ export function getRecorder() {
 		_singleton.boot();
 	}
 	return _singleton;
+}
+
+function buildIngestUrl( config ) {
+	if ( ! config.nonce ) {
+		return config.endpoint;
+	}
+	const separator = config.endpoint.includes( '?' ) ? '&' : '?';
+	return (
+		config.endpoint +
+		separator +
+		'_wpnonce=' +
+		encodeURIComponent( config.nonce )
+	);
 }
 
 function projectExpressPayload( eventName, payload ) {
