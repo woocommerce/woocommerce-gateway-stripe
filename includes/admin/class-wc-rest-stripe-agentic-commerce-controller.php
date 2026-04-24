@@ -237,6 +237,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		$status_updates = [];
+		$delivery       = null;
 
 		foreach ( $history as $entry ) {
 			$current_status = $entry['status'] ?? '';
@@ -250,7 +251,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 
 			try {
-				$delivery   = $this->create_delivery();
+				$delivery   = $delivery ?? $this->create_delivery();
 				$import_set = $delivery->get_import_set( $import_set_id );
 				$new_status = $import_set['status'] ?? $current_status;
 
