@@ -78,17 +78,17 @@
 	text-transform: none;
 	transition: none;
 	-webkit-font-smoothing: auto;
+}
 
-	&__icon {
-		flex-shrink: 0;
-		width: 3em;
-		height: 3em;
-	}
+.wc-stripe-redirect-notice__icon {
+	flex-shrink: 0;
+	width: 3em;
+	height: 3em;
+}
 
-	&__text {
-		margin: 0;
-		padding: 0;
-	}
+.wc-stripe-redirect-notice__text {
+	margin: 0;
+	padding: 0;
 }
 
 // Block themes (detected via the core `.wp-site-blocks` wrapper, which classic
