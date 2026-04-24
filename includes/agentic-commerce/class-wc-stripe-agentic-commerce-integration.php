@@ -350,18 +350,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Deliver feed to Stripe via Files API.
 			$result = $delivery->deliver( $feed );
 
-			// If the ImportSet was created successfully but the response did not
-			// include a status string, treat it as "pending". A freshly created
-			// ImportSet is always being processed by Stripe — reporting "unknown"
-			// hides that from the dashboard and blocks the pending-status refresh.
 			$import_set_id = $result['import_set_id'] ?? '';
-			$status        = $result['status'] ?? '';
-			if ( '' === $status && '' !== $import_set_id ) {
-				$status = 'pending';
-			}
-			if ( '' === $status ) {
-				$status = 'unknown';
-			}
+			$status        = self::normalize_delivery_status( $result );
 
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed delivered to Stripe',
@@ -493,6 +483,34 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return [];
 		}
 		return array_values( array_filter( $history, 'is_array' ) );
+	}
+
+	/**
+	 * Resolve the status to persist from an ImportSet creation response.
+	 *
+	 * When Stripe returns an `import_set_id` but omits a `status` string, the
+	 * ImportSet is being processed and should be recorded as `pending` so the
+	 * dashboard renders "Processing" and the lazy refresh keeps polling until
+	 * a terminal state. Falls back to `unknown` only when the delivery failed
+	 * outright (no `import_set_id` returned).
+	 *
+	 * @since 10.7.0
+	 * @param array $result Delivery result from the Files API.
+	 * @return string Normalized status string.
+	 */
+	private static function normalize_delivery_status( array $result ): string {
+		$status        = $result['status'] ?? '';
+		$import_set_id = $result['import_set_id'] ?? '';
+
+		if ( '' !== $status ) {
+			return $status;
+		}
+
+		if ( '' !== $import_set_id ) {
+			return 'pending';
+		}
+
+		return 'unknown';
 	}
 
 	/**

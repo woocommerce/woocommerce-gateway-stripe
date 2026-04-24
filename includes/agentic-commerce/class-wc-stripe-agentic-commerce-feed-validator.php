@@ -92,7 +92,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 				'Agentic Commerce: Product skipped by feed validator',
 				[
 					'product_id' => $product->get_id(),
-					'sku'        => $row['id'] ?? '',
 					'errors'     => $errors,
 				]
 			);

@@ -315,4 +315,55 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $last_sync['status'] );
 		$this->assertEquals( 'Stripe API key not configured', $last_sync['error'] );
 	}
+
+	/**
+	 * normalize_delivery_status falls back to "pending" when the ImportSet was
+	 * created successfully (response has `import_set_id`) but the response
+	 * omitted a `status` string. Regression guard for the "stuck on Unknown"
+	 * dashboard bug: persisting "unknown" here hides Stripe's actual pending
+	 * state from the dashboard and blocks the lazy refresh.
+	 *
+	 * @dataProvider provider_normalize_delivery_status
+	 *
+	 * @param array  $result   Simulated delivery result from the Files API.
+	 * @param string $expected Normalized status that should be persisted.
+	 * @return void
+	 */
+	public function test_normalize_delivery_status( array $result, string $expected ): void {
+		$method = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'normalize_delivery_status' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( null, $result ) );
+	}
+
+	/**
+	 * @return array<string, array{0: array, 1: string}>
+	 */
+	public function provider_normalize_delivery_status(): array {
+		return [
+			'explicit status wins'              => [
+				[
+					'status'        => 'succeeded',
+					'import_set_id' => 'impset_ok',
+				],
+				'succeeded',
+			],
+			'created without status is pending' => [
+				[
+					'status'        => '',
+					'import_set_id' => 'impset_new',
+				],
+				'pending',
+			],
+			'missing status key is pending'     => [ [ 'import_set_id' => 'impset_new' ], 'pending' ],
+			'no import_set_id falls to unknown' => [
+				[
+					'status'        => '',
+					'import_set_id' => '',
+				],
+				'unknown',
+			],
+			'empty result is unknown'           => [ [], 'unknown' ],
+		];
+	}
 }
