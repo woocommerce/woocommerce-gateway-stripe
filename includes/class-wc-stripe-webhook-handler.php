@@ -2192,6 +2192,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 */
 				do_action( 'wc_stripe_agentic_order_created', $order, $session );
 			} catch ( Throwable $e ) {
+				// Cap trace length to avoid overwhelming log handlers that may
+				// truncate or reject very large context fields.
+				$trace = $e->getTraceAsString();
+				if ( strlen( $trace ) > 4000 ) {
+					$trace = substr( $trace, 0, 4000 ) . '... [truncated]';
+				}
+
 				WC_Stripe_Logger::error(
 					'Failed to create agentic order from checkout session.',
 					[
@@ -2200,7 +2207,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'exception'  => get_class( $e ),
 						'file'       => $e->getFile(),
 						'line'       => $e->getLine(),
-						'trace'      => $e->getTraceAsString(),
+						'trace'      => $trace,
 					]
 				);
 
