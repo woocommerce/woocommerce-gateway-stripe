@@ -158,5 +158,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add POST /wc/v3/wc_stripe/diagnostics/events REST endpoint that accepts batched client events and appends them to the file-backed trace store
 * Dev - Add WC_Stripe_Diagnostics_Redactor (allow-list registry + PII scrubbers) for the upcoming diagnostics recorder
 * Dev - Add WC_Stripe_Diagnostics_Recorder server-side singleton that injects wc_diag_session_id into Stripe metadata and records redacted request/response/webhook events
+* Dev - Add diagnostics admin toggle (REST endpoints at /wc/v3/wc_stripe/diagnostics/state and /toggle) with per-shopper session id generation and auto-disable at 20 captured traces
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

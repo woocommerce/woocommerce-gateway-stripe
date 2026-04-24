@@ -867,6 +867,10 @@ class WC_Stripe {
 
 		$diagnostics_controller = new WC_REST_Stripe_Diagnostics_Controller();
 		$diagnostics_controller->register_routes();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-diagnostics-toggle-controller.php';
+		$diagnostics_toggle_controller = new WC_REST_Stripe_Diagnostics_Toggle_Controller();
+		$diagnostics_toggle_controller->register_routes();
 	}
 
 	/**

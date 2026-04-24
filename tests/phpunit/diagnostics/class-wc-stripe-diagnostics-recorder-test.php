@@ -161,4 +161,29 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$recorder = new WC_Stripe_Diagnostics_Recorder( $this->store, new WC_Stripe_Diagnostics_Redactor() );
 		$this->assertSame( 'resumed', $recorder->current_session_id() );
 	}
+
+	public function test_ensure_shopper_session_returns_null_when_disabled() {
+		delete_option( 'wc_stripe_diagnostics_enabled' );
+		$this->assertNull( $this->recorder->ensure_shopper_session() );
+	}
+
+	public function test_ensure_shopper_session_generates_fresh_id_when_enabled() {
+		update_option( 'wc_stripe_diagnostics_enabled', 'yes' );
+		$id = $this->recorder->ensure_shopper_session();
+		$this->assertIsString( $id );
+		$this->assertNotEmpty( $id );
+		// Subsequent calls on the same request return the same id.
+		$this->assertSame( $id, $this->recorder->current_session_id() );
+		delete_option( 'wc_stripe_diagnostics_enabled' );
+	}
+
+	public function test_ensure_shopper_session_auto_disables_at_capture_limit() {
+		update_option( 'wc_stripe_diagnostics_enabled', 'yes' );
+		for ( $i = 0; $i < WC_Stripe_Diagnostics_Recorder::CAPTURE_LIMIT; $i++ ) {
+			$this->store->create( 'cap' . $i );
+		}
+		$this->assertSame( WC_Stripe_Diagnostics_Recorder::CAPTURE_LIMIT, $this->store->count() );
+		$this->assertNull( $this->recorder->ensure_shopper_session() );
+		$this->assertFalse( WC_Stripe_Diagnostics_Recorder::is_enabled() );
+	}
 }

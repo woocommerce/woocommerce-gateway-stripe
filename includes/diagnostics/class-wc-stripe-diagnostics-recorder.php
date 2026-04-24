@@ -28,6 +28,24 @@ class WC_Stripe_Diagnostics_Recorder {
 	const METADATA_ENABLED_APIS = [ 'payment_intents', 'setup_intents', 'customers' ];
 
 	/**
+	 * WC session key under which each shopper's diagnostics session id is
+	 * stored. Per-shopper (not a global transient) so different shoppers
+	 * don't share a trace.
+	 *
+	 * @var string
+	 */
+	const WC_SESSION_KEY = 'wc_stripe_diag_session_id';
+
+	/**
+	 * Number of traces the trace store may hold before the toggle
+	 * auto-disables. Bounds the merchant's exposure and keeps a debugging
+	 * window from running indefinitely if they forget to flip it back off.
+	 *
+	 * @var int
+	 */
+	const CAPTURE_LIMIT = 20;
+
+	/**
 	 * Singleton instance.
 	 *
 	 * @var self|null
@@ -120,12 +138,18 @@ class WC_Stripe_Diagnostics_Recorder {
 	}
 
 	/**
-	 * Return the currently active session id, reading from the persisted
-	 * transient when this request didn't explicitly start one.
+	 * Return the currently active session id for this request, checking (in
+	 * order): in-memory field, the WC session key that the enqueue path
+	 * stores a per-shopper id in, and the admin-initiated transient.
 	 */
 	public function current_session_id(): ?string {
 		if ( null !== $this->current_session_id ) {
 			return $this->current_session_id;
+		}
+		$from_wc = self::read_wc_session();
+		if ( null !== $from_wc ) {
+			$this->current_session_id = $from_wc;
+			return $from_wc;
 		}
 		$persisted = get_transient( self::SESSION_OPTION );
 		if ( is_string( $persisted ) && '' !== $persisted ) {
@@ -133,6 +157,73 @@ class WC_Stripe_Diagnostics_Recorder {
 			return $persisted;
 		}
 		return null;
+	}
+
+	/**
+	 * Ensure this shopper has a diagnostics session id when the feature is
+	 * toggled on. Called from the localized-data filter during script
+	 * enqueue, so every checkout page load gets a fresh id (per shopper,
+	 * not per hit — the id is cached on the WC session).
+	 *
+	 * Auto-disables the toggle when the store already holds
+	 * {@see self::CAPTURE_LIMIT} traces, so merchants don't have to babysit it.
+	 *
+	 * @return string|null The session id to publish to the frontend, or null
+	 *                     when the feature is off / the limit was reached.
+	 */
+	public function ensure_shopper_session(): ?string {
+		if ( ! self::is_enabled() ) {
+			return null;
+		}
+
+		// Budget check runs first — when the merchant has their N traces the
+		// toggle flips off even for shoppers who were already mid-session.
+		if ( $this->store->count() >= self::CAPTURE_LIMIT ) {
+			update_option( 'wc_stripe_diagnostics_enabled', 'no' );
+			return null;
+		}
+
+		$existing = self::read_wc_session();
+		if ( null !== $existing ) {
+			$this->current_session_id = $existing;
+			return $existing;
+		}
+
+		$new_id = WC_Stripe_Diagnostics_Trace_Store::sanitize_id( 'diag-' . wp_generate_password( 12, false, false ) );
+		if ( '' === $new_id ) {
+			return null;
+		}
+		self::write_wc_session( $new_id );
+		$this->current_session_id = $new_id;
+		return $new_id;
+	}
+
+	/**
+	 * Read this shopper's diagnostics session id from WC session, if any.
+	 */
+	private static function read_wc_session(): ?string {
+		if ( ! function_exists( 'WC' ) || null === WC()->session ) {
+			return null;
+		}
+		$value = WC()->session->get( self::WC_SESSION_KEY );
+		return is_string( $value ) && '' !== $value ? $value : null;
+	}
+
+	/**
+	 * Write this shopper's diagnostics session id into WC session.
+	 */
+	private static function write_wc_session( string $session_id ): void {
+		if ( ! function_exists( 'WC' ) || null === WC()->session ) {
+			return;
+		}
+		WC()->session->set( self::WC_SESSION_KEY, $session_id );
+	}
+
+	/**
+	 * Whether the diagnostics feature is currently enabled.
+	 */
+	public static function is_enabled(): bool {
+		return 'yes' === get_option( 'wc_stripe_diagnostics_enabled', 'no' );
 	}
 
 	/**
@@ -259,7 +350,7 @@ class WC_Stripe_Diagnostics_Recorder {
 	 * @return array
 	 */
 	public function on_localized_data( $data, $script_handle, $object_name ) {
-		$session_id = $this->current_session_id();
+		$session_id = $this->current_session_id() ?? $this->ensure_shopper_session();
 		if ( null === $session_id ) {
 			return $data;
 		}

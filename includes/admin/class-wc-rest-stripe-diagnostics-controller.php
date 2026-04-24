@@ -114,9 +114,10 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * Whether the diagnostics feature is currently enabled.
+	 * Whether the diagnostics feature is currently enabled. Thin shim over
+	 * the recorder's is_enabled so both classes share one source of truth.
 	 */
 	public static function is_enabled(): bool {
-		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
+		return WC_Stripe_Diagnostics_Recorder::is_enabled();
 	}
 }
