@@ -517,9 +517,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Apply status updates to non-terminal history entries by import_set_id.
 	 *
 	 * Re-reads the current history at write time and applies the updates to
-	 * matching entries whose stored status is non-terminal (`pending` or
-	 * `creating_records`), so any entries appended concurrently by
-	 * {@see self::store_sync_result()} between read and write (for example
+	 * matching entries whose stored status is non-terminal (`pending`,
+	 * `creating_records`, or `unknown`), so any entries appended concurrently
+	 * by {@see self::store_sync_result()} between read and write (for example
 	 * during a Stripe API round-trip in the dashboard refresh flow) are
 	 * preserved.
 	 *
