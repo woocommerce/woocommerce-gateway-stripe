@@ -100,17 +100,14 @@
 // classic/shortcode checkout form — this stylesheet (upe-classic.css) is also
 // enqueued on the Blocks checkout page, and Blocks doesn't render this form.
 body:has( > .wp-site-blocks ) form.woocommerce-checkout .wc-stripe-redirect-notice {
-	// border: 1px solid #e0e0e0;
-	// border-radius: 5px;
-	// display: block;
-    min-inline-size: min-content;
-    margin-inline: 2px;
-    border-width: 2px;
-    border-style: groove;
-    border-color: threedface;
-    border-image: initial;
-    padding-block: 1.35em 1.625em;
-    padding-inline: 1.75em;
+	min-inline-size: min-content;
+	margin-inline: 2px;
+	border-width: 2px;
+	border-style: groove;
+	border-color: threedface;
+	border-image: initial;
+	padding-block: 1.35em 1.625em;
+	padding-inline: 1.75em;
 }
 
 // stylelint-disable-next-line selector-id-pattern
