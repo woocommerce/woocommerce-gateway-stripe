@@ -3,22 +3,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
 import apiFetch from '@wordpress/api-fetch';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { Button, Notice } from '@wordpress/components';
+import {
+	Button,
+	Card,
+	CardBody,
+	CardHeader,
+	Notice,
+} from '@wordpress/components';
 
-const Card = styled.div`
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	padding: 20px 24px;
-	margin-bottom: 20px;
-`;
+// Threshold beyond which a missed scheduled sync is surfaced as a warning.
+// Chosen comfortably larger than the sync interval so a single slow run
+// does not trigger a false positive.
+const OVERDUE_WARNING_THRESHOLD_SECONDS = 10 * 60;
 
 const CardTitle = styled.h2`
+	margin: 0;
 	font-size: 14px;
 	font-weight: 600;
-	margin: 0 0 16px;
-	padding-bottom: 8px;
-	border-bottom: 1px solid #eee;
 `;
 
 const StatusBadge = styled.span`
@@ -246,18 +247,26 @@ const AgenticCommercePanel = () => {
 
 	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
 
+	const secondsUntilNextSync =
+		typeof nextSync === 'number'
+			? nextSync - Math.floor( Date.now() / 1000 )
+			: null;
+
+	const isNextSyncOverdue =
+		secondsUntilNextSync !== null &&
+		secondsUntilNextSync < -OVERDUE_WARNING_THRESHOLD_SECONDS;
+
 	const getNextSyncLabel = () => {
-		if ( ! nextSync ) {
+		if ( secondsUntilNextSync === null ) {
 			return null;
 		}
-		const secondsUntil = nextSync - Math.floor( Date.now() / 1000 );
-		if ( secondsUntil <= 0 ) {
+		if ( secondsUntilNextSync <= 0 ) {
 			return __(
 				'Next automatic sync: imminent.',
 				'woocommerce-gateway-stripe'
 			);
 		}
-		const minutes = Math.ceil( secondsUntil / 60 );
+		const minutes = Math.ceil( secondsUntilNextSync / 60 );
 		return sprintf(
 			/* translators: %d: number of minutes until next sync */
 			_n(
@@ -277,6 +286,11 @@ const AgenticCommercePanel = () => {
 		wc_stripe_settings_params?.agentic_commerce_logs_url ?? // eslint-disable-line camelcase
 		'/wp-admin/admin.php?page=wc-status&tab=logs';
 	const nextSyncText = getNextSyncLabel();
+
+	const overdueMinutes =
+		secondsUntilNextSync !== null
+			? Math.floor( Math.abs( secondsUntilNextSync ) / 60 )
+			: 0;
 
 	return (
 		<div>
@@ -307,226 +321,258 @@ const AgenticCommercePanel = () => {
 				</Notice>
 			) }
 
-			<Card>
-				<CardTitle>
-					{ __(
-						'Product Feed Status',
-						'woocommerce-gateway-stripe'
+			{ isNextSyncOverdue && (
+				<Notice status="warning" isDismissible={ false }>
+					{ sprintf(
+						/* translators: %d: number of minutes the scheduled sync is overdue. */
+						_n(
+							'The scheduled sync is overdue by %d minute. Check that Action Scheduler is running on this site.',
+							'The scheduled sync is overdue by %d minutes. Check that Action Scheduler is running on this site.',
+							overdueMinutes,
+							'woocommerce-gateway-stripe'
+						),
+						overdueMinutes
 					) }
-				</CardTitle>
+				</Notice>
+			) }
 
-				{ isLoading && (
-					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
-				) }
-				{ ! isLoading && ! lastSync && ! loadError && (
-					<p>
+			<Card>
+				<CardHeader>
+					<CardTitle>
 						{ __(
-							'No syncs yet. Feed will sync automatically every 15 minutes.',
+							'Product Feed Status',
 							'woocommerce-gateway-stripe'
 						) }
-					</p>
-				) }
-				{ ! isLoading && lastSync && (
-					<>
-						<SyncStatusBadge status={ lastSync.status } />
+					</CardTitle>
+				</CardHeader>
+				<CardBody>
+					{ isLoading && (
+						<p>
+							{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }
+						</p>
+					) }
+					{ ! isLoading && ! lastSync && ! loadError && (
+						<p>
+							{ __(
+								'No syncs yet. Feed will sync automatically every 15 minutes.',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					) }
+					{ ! isLoading && lastSync && (
+						<>
+							<SyncStatusBadge status={ lastSync.status } />
 
-						<DetailsTable>
-							<tbody>
-								{ lastSync.timestamp && (
-									<tr>
-										<th>
-											{ __(
-												'Last Sync',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<td>
-											{ humanTimeDiff(
-												lastSync.timestamp
-											) }{ ' ' }
-											<small>
-												(
-												{ formatTimestamp(
-													lastSync.timestamp
+							<DetailsTable>
+								<tbody>
+									{ lastSync.timestamp && (
+										<tr>
+											<th>
+												{ __(
+													'Last Sync',
+													'woocommerce-gateway-stripe'
 												) }
-												)
-											</small>
-										</td>
-									</tr>
-								) }
-								{ lastSync.products !== null && (
-									<tr>
-										<th>
-											{ __(
-												'Products Synced',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<td>
-											{ Number(
-												lastSync.products
-											).toLocaleString() }
-										</td>
-									</tr>
-								) }
-								{ lastSync.import_set_id && (
-									<tr>
-										<th>
-											{ __(
-												'ImportSet ID',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<td>
-											<code>
-												{ lastSync.import_set_id }
-											</code>
-										</td>
-									</tr>
-								) }
-								{ lastSync.file_id && (
-									<tr>
-										<th>
-											{ __(
-												'File ID',
-												'woocommerce-gateway-stripe'
-											) }
-										</th>
-										<td>
-											<code>{ lastSync.file_id }</code>
-										</td>
-									</tr>
-								) }
-							</tbody>
-						</DetailsTable>
-
-						{ nextSyncText && (
-							<p className="description">{ nextSyncText }</p>
-						) }
-
-						{ lastSync.error && (
-							<Notice status="error" isDismissible={ false }>
-								<strong>
-									{ __(
-										'Last Sync Error:',
-										'woocommerce-gateway-stripe'
+											</th>
+											<td>
+												{ humanTimeDiff(
+													lastSync.timestamp
+												) }{ ' ' }
+												<small>
+													(
+													{ formatTimestamp(
+														lastSync.timestamp
+													) }
+													)
+												</small>
+											</td>
+										</tr>
 									) }
-								</strong>{ ' ' }
-								{ lastSync.error }
-							</Notice>
-						) }
-					</>
-				) }
+									{ lastSync.products !== null && (
+										<tr>
+											<th>
+												{ __(
+													'Products Synced',
+													'woocommerce-gateway-stripe'
+												) }
+											</th>
+											<td>
+												{ Number(
+													lastSync.products
+												).toLocaleString() }
+											</td>
+										</tr>
+									) }
+									{ lastSync.import_set_id && (
+										<tr>
+											<th>
+												{ __(
+													'ImportSet ID',
+													'woocommerce-gateway-stripe'
+												) }
+											</th>
+											<td>
+												<code>
+													{ lastSync.import_set_id }
+												</code>
+											</td>
+										</tr>
+									) }
+									{ lastSync.file_id && (
+										<tr>
+											<th>
+												{ __(
+													'File ID',
+													'woocommerce-gateway-stripe'
+												) }
+											</th>
+											<td>
+												<code>
+													{ lastSync.file_id }
+												</code>
+											</td>
+										</tr>
+									) }
+								</tbody>
+							</DetailsTable>
 
-				<Actions>
-					<Button
-						variant="primary"
-						isBusy={ isSyncing }
-						disabled={ isSyncing || isLoading }
-						onClick={ handleSync }
-					>
-						{ isSyncing
-							? __( 'Syncing…', 'woocommerce-gateway-stripe' )
-							: __( 'Sync Now', 'woocommerce-gateway-stripe' ) }
-					</Button>
-					<Button variant="secondary" href={ logsUrl }>
-						{ __( 'View Logs', 'woocommerce-gateway-stripe' ) }
-					</Button>
-				</Actions>
+							{ nextSyncText && (
+								<p className="description">{ nextSyncText }</p>
+							) }
+
+							{ lastSync.error && (
+								<Notice status="error" isDismissible={ false }>
+									<strong>
+										{ __(
+											'Last Sync Error:',
+											'woocommerce-gateway-stripe'
+										) }
+									</strong>{ ' ' }
+									{ lastSync.error }
+								</Notice>
+							) }
+						</>
+					) }
+
+					<Actions>
+						<Button
+							variant="primary"
+							isBusy={ isSyncing }
+							disabled={ isSyncing || isLoading }
+							onClick={ handleSync }
+						>
+							{ isSyncing
+								? __( 'Syncing…', 'woocommerce-gateway-stripe' )
+								: __(
+										'Sync Now',
+										'woocommerce-gateway-stripe'
+								  ) }
+						</Button>
+						<Button variant="secondary" href={ logsUrl }>
+							{ __( 'View Logs', 'woocommerce-gateway-stripe' ) }
+						</Button>
+					</Actions>
+				</CardBody>
 			</Card>
 
 			<Card>
-				<CardTitle>
-					{ __( 'Recent Syncs', 'woocommerce-gateway-stripe' ) }
-				</CardTitle>
-
-				{ isLoading && (
-					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
-				) }
-				{ ! isLoading && ! history?.length && ! loadError && (
-					<p>
-						{ __(
-							'No sync history available.',
-							'woocommerce-gateway-stripe'
-						) }
-					</p>
-				) }
-				{ ! isLoading && !! history?.length && (
-					<HistoryTable>
-						<thead>
-							<tr>
-								<th>
-									{ __(
-										'Timestamp',
-										'woocommerce-gateway-stripe'
-									) }
-								</th>
-								<th>
-									{ __(
-										'Products',
-										'woocommerce-gateway-stripe'
-									) }
-								</th>
-								<th>
-									{ __(
-										'Status',
-										'woocommerce-gateway-stripe'
-									) }
-								</th>
-								<th>
-									{ __(
-										'Import ID',
-										'woocommerce-gateway-stripe'
-									) }
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{ history.map( ( entry, i ) => (
-								<tr key={ i }>
-									<td>
-										{ entry.timestamp
-											? new Date(
-													entry.timestamp * 1000
-											  ).toLocaleString( [], {
-													year: 'numeric',
-													month: '2-digit',
-													day: '2-digit',
-													hour: '2-digit',
-													minute: '2-digit',
-											  } )
-											: '—' }
-									</td>
-									<td>
-										{ entry.products !== null
-											? Number(
-													entry.products
-											  ).toLocaleString()
-											: '—' }
-									</td>
-									<td>
-										<SyncStatusBadge
-											status={ entry.status }
-										/>
-										{ entry.error && (
-											<span title={ entry.error }>
-												{ ' ' }
-												ℹ
-											</span>
+				<CardHeader>
+					<CardTitle>
+						{ __( 'Recent Syncs', 'woocommerce-gateway-stripe' ) }
+					</CardTitle>
+				</CardHeader>
+				<CardBody>
+					{ isLoading && (
+						<p>
+							{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }
+						</p>
+					) }
+					{ ! isLoading && ! history?.length && ! loadError && (
+						<p>
+							{ __(
+								'No sync history available.',
+								'woocommerce-gateway-stripe'
+							) }
+						</p>
+					) }
+					{ ! isLoading && !! history?.length && (
+						<HistoryTable>
+							<thead>
+								<tr>
+									<th>
+										{ __(
+											'Timestamp',
+											'woocommerce-gateway-stripe'
 										) }
-									</td>
-									<td>
-										{ entry.import_set_id ? (
-											<code>{ entry.import_set_id }</code>
-										) : (
-											'—'
+									</th>
+									<th>
+										{ __(
+											'Products',
+											'woocommerce-gateway-stripe'
 										) }
-									</td>
+									</th>
+									<th>
+										{ __(
+											'Status',
+											'woocommerce-gateway-stripe'
+										) }
+									</th>
+									<th>
+										{ __(
+											'Import ID',
+											'woocommerce-gateway-stripe'
+										) }
+									</th>
 								</tr>
-							) ) }
-						</tbody>
-					</HistoryTable>
-				) }
+							</thead>
+							<tbody>
+								{ history.map( ( entry, i ) => (
+									<tr key={ i }>
+										<td>
+											{ entry.timestamp
+												? new Date(
+														entry.timestamp * 1000
+												  ).toLocaleString( [], {
+														year: 'numeric',
+														month: '2-digit',
+														day: '2-digit',
+														hour: '2-digit',
+														minute: '2-digit',
+												  } )
+												: '—' }
+										</td>
+										<td>
+											{ entry.products !== null
+												? Number(
+														entry.products
+												  ).toLocaleString()
+												: '—' }
+										</td>
+										<td>
+											<SyncStatusBadge
+												status={ entry.status }
+											/>
+											{ entry.error && (
+												<span title={ entry.error }>
+													{ ' ' }
+													ℹ
+												</span>
+											) }
+										</td>
+										<td>
+											{ entry.import_set_id ? (
+												<code>
+													{ entry.import_set_id }
+												</code>
+											) : (
+												'—'
+											) }
+										</td>
+									</tr>
+								) ) }
+							</tbody>
+						</HistoryTable>
+					) }
+				</CardBody>
 			</Card>
 		</div>
 	);
