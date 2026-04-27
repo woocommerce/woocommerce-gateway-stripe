@@ -33,10 +33,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	}
 
 	private function clear_state() {
-		foreach ( $this->store->get_all_ids() as $id ) {
-			$this->store->delete( $id );
-		}
-		delete_option( WC_Stripe_Diagnostics_Trace_Store::INDEX_OPTION );
+		$this->store->delete_all();
 		delete_transient( WC_Stripe_Diagnostics_Recorder::SESSION_OPTION );
 	}
 
