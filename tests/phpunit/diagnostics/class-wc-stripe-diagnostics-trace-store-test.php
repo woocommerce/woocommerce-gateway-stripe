@@ -15,19 +15,12 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		$this->store = new WC_Stripe_Diagnostics_Trace_Store();
-		$this->clear_all_traces();
+		$this->store->delete_all();
 	}
 
 	public function tear_down() {
-		$this->clear_all_traces();
+		$this->store->delete_all();
 		parent::tear_down();
-	}
-
-	private function clear_all_traces() {
-		foreach ( $this->store->get_all_ids() as $id ) {
-			$this->store->delete( $id );
-		}
-		delete_option( WC_Stripe_Diagnostics_Trace_Store::INDEX_OPTION );
 	}
 
 	public function test_create_and_get_round_trip() {
@@ -106,6 +99,20 @@ class WC_Stripe_Diagnostics_Trace_Store_Test extends WP_UnitTestCase {
 		$this->assertSame( 'abc', WC_Stripe_Diagnostics_Trace_Store::sanitize_id( 'a/b;c' ) );
 		$this->assertSame( '', WC_Stripe_Diagnostics_Trace_Store::sanitize_id( '@#$' ) );
 		$this->assertSame( '', WC_Stripe_Diagnostics_Trace_Store::sanitize_id( null ) );
+	}
+
+	public function test_get_trace_path_returns_file_on_disk_for_existing_trace() {
+		$this->store->create( 'on-disk', [ 'source' => 'checkout' ] );
+		$path = $this->store->get_trace_path( 'on-disk' );
+		$this->assertNotNull( $path );
+		$this->assertFileExists( $path );
+		$decoded = json_decode( file_get_contents( $path ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$this->assertSame( 'on-disk', $decoded['id'] );
+		$this->assertSame( 'checkout', $decoded['meta']['source'] );
+	}
+
+	public function test_get_trace_path_returns_null_for_invalid_id() {
+		$this->assertNull( $this->store->get_trace_path( '@#$' ) );
 	}
 
 	public function test_is_full_reflects_trace_count() {

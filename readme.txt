@@ -152,6 +152,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
-* Dev - Add WC_Stripe_Diagnostics_Trace_Store (options-backed trace storage with FIFO eviction and size caps) for the upcoming diagnostics recorder
+* Dev - Add WC_Stripe_Diagnostics_Trace_Store (file-backed trace storage with FIFO eviction and size caps) for the upcoming diagnostics recorder
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

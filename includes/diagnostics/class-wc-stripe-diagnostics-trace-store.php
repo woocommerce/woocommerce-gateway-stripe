@@ -1,29 +1,36 @@
 <?php
 
+use Automattic\WooCommerce\Internal\Utilities\FilesystemUtil;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Option-backed store for diagnostics traces.
+ * File-backed store for diagnostics traces.
  *
  * A "trace" is the redacted record of a single checkout session keyed by a
- * client-generated sessionId. The store is deliberately plain: each trace
- * is a single `wp_options` row keyed by `wc_stripe_diag_trace_<id>` plus a
- * shared index row (`wc_stripe_diag_index`) holding the ordered list of ids.
+ * client-generated sessionId. Each trace is persisted as a single JSON file
+ * inside a dedicated, non-indexable directory under the WordPress uploads
+ * folder, alongside an `index.json` file holding the ordered list of trace
+ * ids.
+ *
+ * Storing traces as files (rather than wp_options rows) makes it easy to
+ * download, attach, or hand off an individual trace, and keeps diagnostics
+ * data out of regular database backups.
  *
  * Invariants enforced here:
  * - at most {@see self::MAX_TRACES} traces exist at any time (FIFO eviction)
  * - at most {@see self::MAX_EVENTS_PER_TRACE} events per trace
  * - the serialized trace blob is capped at {@see self::MAX_TRACE_BYTES}
  *
- * A transient lock serializes writers so concurrent requests never clobber
- * each other's index updates.
+ * An advisory `flock()` on a dedicated lock file serializes writers so
+ * concurrent requests never clobber each other's index updates.
  */
 class WC_Stripe_Diagnostics_Trace_Store {
 
-	const TRACE_OPTION_PREFIX = 'wc_stripe_diag_trace_';
-	const INDEX_OPTION        = 'wc_stripe_diag_index';
-	const LOCK_TRANSIENT      = 'wc_stripe_diag_index_lock';
-	const LOCK_TIMEOUT        = 10;
+	const STORAGE_SUBDIR = 'wc-stripe-diagnostics';
+	const INDEX_FILENAME = 'index.json';
+	const LOCK_FILENAME  = '.index.lock';
+	const TRACE_SUFFIX   = '.json';
 
 	const MAX_TRACES           = 200;
 	const MAX_EVENTS_PER_TRACE = 200;
@@ -34,6 +41,13 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	const STATUS_ABANDONED = 'abandoned';
 
 	/**
+	 * Cached absolute path (with trailing slash) to the trace storage dir.
+	 *
+	 * @var string|null
+	 */
+	private $base_dir;
+
+	/**
 	 * Create a new trace record. No-op if a trace with this id already exists.
 	 *
 	 * @param string $session_id Client-generated session identifier.
@@ -42,10 +56,10 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 */
 	public function create( $session_id, array $meta = [] ) {
 		$session_id = self::sanitize_id( $session_id );
-		if ( '' === $session_id ) {
+		if ( '' === $session_id || ! $this->ensure_storage_dir() ) {
 			return false;
 		}
-		if ( false !== get_option( self::option_name( $session_id ), false ) ) {
+		if ( file_exists( $this->trace_path( $session_id ) ) ) {
 			return false;
 		}
 
@@ -60,7 +74,9 @@ class WC_Stripe_Diagnostics_Trace_Store {
 
 		return (bool) $this->with_lock(
 			function () use ( $session_id, $trace ) {
-				update_option( self::option_name( $session_id ), wp_json_encode( $trace ), false );
+				if ( ! $this->write_trace( $session_id, $trace ) ) {
+					return false;
+				}
 				$index = $this->read_index();
 				if ( ! in_array( $session_id, $index, true ) ) {
 					$index[] = $session_id;
@@ -84,7 +100,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 */
 	public function append_event( $session_id, array $event ) {
 		$session_id = self::sanitize_id( $session_id );
-		if ( '' === $session_id ) {
+		if ( '' === $session_id || ! $this->ensure_storage_dir() ) {
 			return false;
 		}
 
@@ -103,8 +119,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 				if ( false === $encoded || strlen( $encoded ) > self::MAX_TRACE_BYTES ) {
 					return false;
 				}
-				update_option( self::option_name( $session_id ), $encoded, false );
-				return true;
+				return false !== @file_put_contents( $this->trace_path( $session_id ), $encoded ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			}
 		);
 	}
@@ -121,6 +136,9 @@ class WC_Stripe_Diagnostics_Trace_Store {
 		if ( ! in_array( $status, [ self::STATUS_COMPLETED, self::STATUS_ABANDONED ], true ) ) {
 			return false;
 		}
+		if ( '' === $session_id || ! $this->ensure_storage_dir() ) {
+			return false;
+		}
 
 		return (bool) $this->with_lock(
 			function () use ( $session_id, $status ) {
@@ -130,8 +148,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 				}
 				$trace['status']     = $status;
 				$trace['updated_at'] = time();
-				update_option( self::option_name( $session_id ), wp_json_encode( $trace ), false );
-				return true;
+				return $this->write_trace( $session_id, $trace );
 			}
 		);
 	}
@@ -164,9 +181,31 @@ class WC_Stripe_Diagnostics_Trace_Store {
 
 		return (bool) $this->with_lock(
 			function () use ( $session_id ) {
-				delete_option( self::option_name( $session_id ) );
+				$this->delete_trace_file( $session_id );
 				$index = array_values( array_diff( $this->read_index(), [ $session_id ] ) );
 				$this->write_index( $index );
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Wipe every trace plus the index. Intended for tests and future uninstall.
+	 */
+	public function delete_all(): void {
+		if ( null === $this->base_dir && ! is_dir( $this->base_dir() ) ) {
+			return;
+		}
+
+		$this->with_lock(
+			function () {
+				foreach ( $this->read_index() as $id ) {
+					$this->delete_trace_file( (string) $id );
+				}
+				$index_path = $this->index_path();
+				if ( file_exists( $index_path ) ) {
+					@unlink( $index_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink
+				}
 				return true;
 			}
 		);
@@ -200,7 +239,22 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Evict oldest trace rows until the index is under {@see self::MAX_TRACES}.
+	 * Absolute filesystem path to a trace file. Useful for downstream code
+	 * that wants to stream or attach the raw JSON without re-decoding.
+	 *
+	 * @param string $session_id Session identifier (raw or sanitized).
+	 * @return string|null Path, or null when the id is invalid.
+	 */
+	public function get_trace_path( $session_id ) {
+		$session_id = self::sanitize_id( $session_id );
+		if ( '' === $session_id ) {
+			return null;
+		}
+		return $this->trace_path( $session_id );
+	}
+
+	/**
+	 * Evict the oldest trace files until the index is under {@see self::MAX_TRACES}.
 	 *
 	 * @param string[] $index The current index.
 	 * @return string[] The (possibly trimmed) index.
@@ -210,7 +264,7 @@ class WC_Stripe_Diagnostics_Trace_Store {
 		while ( $count > self::MAX_TRACES ) {
 			$oldest = array_shift( $index );
 			if ( is_string( $oldest ) ) {
-				delete_option( self::option_name( $oldest ) );
+				$this->delete_trace_file( $oldest );
 			}
 			--$count;
 		}
@@ -218,14 +272,18 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Read and decode a single trace row.
+	 * Read and decode a single trace file.
 	 *
 	 * @param string $session_id Sanitized session id.
 	 * @return array|null Decoded trace, or null when absent or malformed.
 	 */
 	private function read_trace( string $session_id ): ?array {
-		$raw = get_option( self::option_name( $session_id ), false );
-		if ( false === $raw || ! is_string( $raw ) ) {
+		$path = $this->trace_path( $session_id );
+		if ( ! is_readable( $path ) ) {
+			return null;
+		}
+		$raw = @file_get_contents( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $raw ) {
 			return null;
 		}
 		$decoded = json_decode( $raw, true );
@@ -233,13 +291,39 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	}
 
 	/**
-	 * Read the trace id index from wp_options.
+	 * Encode and persist a trace to disk.
+	 *
+	 * @param string $session_id Sanitized session id.
+	 * @param array  $trace      Trace payload.
+	 * @return bool True on success.
+	 */
+	private function write_trace( string $session_id, array $trace ): bool {
+		$encoded = wp_json_encode( $trace );
+		if ( false === $encoded ) {
+			return false;
+		}
+		return false !== @file_put_contents( $this->trace_path( $session_id ), $encoded ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+	}
+
+	/**
+	 * Read the trace id index from disk.
 	 *
 	 * @return string[] Ordered list of trace ids, oldest first.
 	 */
 	private function read_index(): array {
-		$raw = get_option( self::INDEX_OPTION, [] );
-		return is_array( $raw ) ? array_values( $raw ) : [];
+		$path = $this->index_path();
+		if ( ! is_readable( $path ) ) {
+			return [];
+		}
+		$raw = @file_get_contents( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $raw ) {
+			return [];
+		}
+		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) ) {
+			return [];
+		}
+		return array_values( array_filter( $decoded, 'is_string' ) );
 	}
 
 	/**
@@ -248,32 +332,90 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 * @param string[] $index Ordered list of trace ids.
 	 */
 	private function write_index( array $index ): void {
-		update_option( self::INDEX_OPTION, array_values( $index ), false );
+		$encoded = wp_json_encode( array_values( $index ) );
+		if ( false !== $encoded ) {
+			@file_put_contents( $this->index_path(), $encoded ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+	}
+
+	private function delete_trace_file( string $session_id ): void {
+		$path = $this->trace_path( $session_id );
+		if ( file_exists( $path ) ) {
+			@unlink( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink
+		}
 	}
 
 	/**
-	 * Acquire a short-lived transient lock and run $callback. Returns the
-	 * callback's return value, or null if the lock could not be acquired.
+	 * Acquire an exclusive flock on the lock file and run $callback. Returns
+	 * the callback's return value (or null when the lock file cannot be
+	 * opened — best-effort: better to risk a rare lost write than drop the
+	 * event entirely).
 	 *
 	 * @param callable $callback The critical section to run under the lock.
 	 * @return mixed|null
 	 */
 	private function with_lock( callable $callback ) {
-		// Best-effort lock: transients can silently fail under object-cache
-		// contention, and we'd rather accept a rare lost write than drop the
-		// event entirely. The failure mode is a concurrent reader's stale view,
-		// not corruption (each trace row is a single atomic option write).
-		set_transient( self::LOCK_TRANSIENT, 1, self::LOCK_TIMEOUT );
+		if ( ! $this->ensure_storage_dir() ) {
+			return null;
+		}
+
+		$fp = @fopen( $this->base_dir() . self::LOCK_FILENAME, 'c' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( false === $fp ) {
+			return $callback();
+		}
 		try {
+			@flock( $fp, LOCK_EX ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			return $callback();
 		} finally {
-			delete_transient( self::LOCK_TRANSIENT );
+			@flock( $fp, LOCK_UN ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			@fclose( $fp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		}
 	}
 
 	/**
+	 * Resolve and lazily create the storage directory. Returns false if the
+	 * directory cannot be created (read-only filesystem, missing uploads dir).
+	 *
+	 * @return bool
+	 */
+	private function ensure_storage_dir(): bool {
+		$dir = rtrim( $this->base_dir(), '/' );
+		if ( is_dir( $dir ) ) {
+			return true;
+		}
+		if ( class_exists( FilesystemUtil::class ) ) {
+			FilesystemUtil::mkdir_p_not_indexable( $dir );
+		} else {
+			wp_mkdir_p( $dir );
+		}
+		return is_dir( $dir );
+	}
+
+	/**
+	 * Resolve the storage directory path (uploads/wc-stripe-diagnostics/).
+	 *
+	 * @return string Path with trailing slash.
+	 */
+	private function base_dir(): string {
+		if ( null !== $this->base_dir ) {
+			return $this->base_dir;
+		}
+		$uploads        = wp_upload_dir( null, false );
+		$this->base_dir = trailingslashit( $uploads['basedir'] ) . self::STORAGE_SUBDIR . '/';
+		return $this->base_dir;
+	}
+
+	private function trace_path( string $session_id ): string {
+		return $this->base_dir() . $session_id . self::TRACE_SUFFIX;
+	}
+
+	private function index_path(): string {
+		return $this->base_dir() . self::INDEX_FILENAME;
+	}
+
+	/**
 	 * Reduce an id to a slug-safe form. Session ids are client-generated so
-	 * we must never trust them as option-name fragments.
+	 * we must never trust them as filename fragments.
 	 *
 	 * @param string $id Raw session identifier.
 	 * @return string
@@ -284,9 +426,5 @@ class WC_Stripe_Diagnostics_Trace_Store {
 		}
 		$id = preg_replace( '/[^a-zA-Z0-9_-]/', '', $id );
 		return is_string( $id ) ? substr( $id, 0, 64 ) : '';
-	}
-
-	private static function option_name( string $session_id ): string {
-		return self::TRACE_OPTION_PREFIX . $session_id;
 	}
 }
