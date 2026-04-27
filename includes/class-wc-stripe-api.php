@@ -282,7 +282,9 @@ class WC_Stripe_API {
 		);
 
 		/**
-		 * Filters the decoded response body returned from the Stripe API.
+		 * Fires after the Stripe API returns a successful response, before it is
+		 * returned to the caller. Observe-only: handlers must not mutate the
+		 * response. Used by diagnostics to capture API exchanges.
 		 *
 		 * @since 10.7.0
 		 *
@@ -291,7 +293,7 @@ class WC_Stripe_API {
 		 * @param string $method        The HTTP method.
 		 * @param array  $request       The request body sent to the Stripe API.
 		 */
-		$response_body = apply_filters( 'wc_stripe_request_response', $response_body, $api, $method, $request );
+		do_action( 'wc_stripe_api_response_received', $response_body, $api, $method, $request );
 
 		if ( $with_headers ) {
 			return [
