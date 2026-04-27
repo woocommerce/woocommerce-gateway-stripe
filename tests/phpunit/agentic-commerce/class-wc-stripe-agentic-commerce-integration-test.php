@@ -217,4 +217,156 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 	}
+
+	// -------------------------------------------------------------------------
+	// store_sync_result
+	// -------------------------------------------------------------------------
+
+	/**
+	 * store_sync_result persists an entry in the history option and updates last sync.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_persists_entry(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$result = [
+			'products'      => 100,
+			'status'        => 'succeeded',
+			'file_id'       => 'file_abc',
+			'import_set_id' => 'impset_xyz',
+			'error'         => '',
+		];
+
+		$integration->store_sync_result( $result );
+
+		$history   = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertCount( 1, $history );
+		$this->assertEquals( 100, $history[0]['products'] );
+		$this->assertEquals( 'succeeded', $history[0]['status'] );
+		$this->assertEquals( 'impset_xyz', $history[0]['import_set_id'] );
+		$this->assertArrayHasKey( 'timestamp', $history[0] );
+
+		$this->assertEquals( $history[0], $last_sync );
+	}
+
+	/**
+	 * store_sync_result caps history at SYNC_HISTORY_LIMIT entries.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_caps_history_at_limit(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		// Pre-fill history at the limit.
+		$history = [];
+		for ( $i = 0; $i < \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_LIMIT; $i++ ) {
+			$history[] = [
+				'timestamp'     => time() - ( $i * 60 ),
+				'products'      => $i,
+				'status'        => 'succeeded',
+				'file_id'       => "file_{$i}",
+				'import_set_id' => "impset_{$i}",
+				'error'         => '',
+			];
+		}
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		// Add one more entry.
+		$integration->store_sync_result(
+			[
+				'products'      => 999,
+				'status'        => 'succeeded',
+				'file_id'       => 'file_new',
+				'import_set_id' => 'impset_new',
+				'error'         => '',
+			]
+		);
+
+		$stored = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+
+		$this->assertCount( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_LIMIT, $stored );
+		// The newest entry should be last.
+		$this->assertEquals( 'impset_new', end( $stored )['import_set_id'] );
+	}
+
+	/**
+	 * store_sync_result records error information.
+	 *
+	 * @return void
+	 */
+	public function test_store_sync_result_records_error(): void {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$integration->store_sync_result(
+			[
+				'products'      => 0,
+				'status'        => 'failed',
+				'file_id'       => '',
+				'import_set_id' => '',
+				'error'         => 'Stripe API key not configured',
+			]
+		);
+
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertEquals( 'failed', $last_sync['status'] );
+		$this->assertEquals( 'Stripe API key not configured', $last_sync['error'] );
+	}
+
+	/**
+	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
+	 *
+	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
+	 * (`pending`, `creating_records`, `unknown`); entries in terminal statuses
+	 * must not be mutated.
+	 *
+	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
+	 *
+	 * @param string $initial_status  Status initially persisted on the entry.
+	 * @param string $expected_status Status expected after the update is applied.
+	 * @return void
+	 */
+	public function test_update_pending_statuses_rewrites_non_terminal_entries( string $initial_status, string $expected_status ): void {
+		$history = [
+			[
+				'timestamp'     => time() - 60,
+				'products'      => 5,
+				'status'        => $initial_status,
+				'file_id'       => 'file_a',
+				'import_set_id' => 'impset_a',
+				'error'         => '',
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_a' => 'succeeded' ] );
+
+		$stored    = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertEquals( $expected_status, $stored[0]['status'] );
+
+		if ( $initial_status !== $expected_status ) {
+			// Terminal transitions also refresh the LAST_SYNC_OPTION pointer.
+			$this->assertEquals( $expected_status, $last_sync['status'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_update_pending_statuses_rewrites_non_terminal_entries.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
+		return [
+			'pending is refreshable'          => [ 'pending', 'succeeded' ],
+			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
+			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],
+			'succeeded is terminal'           => [ 'succeeded', 'succeeded' ],
+			'failed is terminal'              => [ 'failed', 'failed' ],
+		];
+	}
 }
