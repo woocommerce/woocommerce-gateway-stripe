@@ -222,4 +222,41 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $this->modal->should_display() );
 	}
+
+	public function test_handle_dismiss_updates_option_and_clears_transient(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
+
+		$_POST['nonce']    = wp_create_nonce( WC_Stripe_Whats_New_Modal::DISMISS_AJAX_ACTION );
+		$_POST['dwell_ms'] = '4200';
+		$_POST['source']   = 'primary_button';
+
+		try {
+			$this->modal->handle_dismiss();
+			$this->fail( 'wp_send_json_success should terminate via WPDieException.' );
+		} catch ( WPDieException $exception ) {
+			unset( $exception );
+		} finally {
+			unset( $_POST['nonce'], $_POST['dwell_ms'], $_POST['source'] );
+		}
+
+		$this->assertSame(
+			WC_STRIPE_VERSION,
+			get_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION )
+		);
+		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
+	}
+
+	public function test_handle_dismiss_rejects_unauthorized_user(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'subscriber' ] ) );
+
+		try {
+			$this->modal->handle_dismiss();
+			$this->fail( 'wp_send_json_error should terminate via WPDieException.' );
+		} catch ( WPDieException $exception ) {
+			unset( $exception );
+		}
+
+		$this->assertFalse( get_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION ) );
+	}
 }

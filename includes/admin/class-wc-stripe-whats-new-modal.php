@@ -153,12 +153,15 @@ class WC_Stripe_Whats_New_Modal {
 
 		wp_set_script_translations( 'wc-stripe-whats-new-modal', 'woocommerce-gateway-stripe' );
 
+		$changes = $this->parse_changelog_for_version( WC_STRIPE_VERSION );
+
 		wp_localize_script(
 			'wc-stripe-whats-new-modal',
 			'wcStripeWhatsNewModalParams',
 			[
 				'version'           => WC_STRIPE_VERSION,
-				'changes'           => $this->parse_changelog_for_version( WC_STRIPE_VERSION ),
+				'changes'           => $changes,
+				'isTestMode'        => class_exists( 'WC_Stripe_Mode' ) && WC_Stripe_Mode::is_test(),
 				'fullChangelogUrl'  => 'https://wordpress.org/plugins/woocommerce-gateway-stripe/#developers',
 				'dismissAjaxUrl'    => admin_url( 'admin-ajax.php' ),
 				'dismissAjaxAction' => self::DISMISS_AJAX_ACTION,
@@ -168,6 +171,11 @@ class WC_Stripe_Whats_New_Modal {
 
 		wp_enqueue_script( 'wc-stripe-whats-new-modal' );
 		wp_enqueue_style( 'wc-stripe-whats-new-modal' );
+
+		$this->record_event(
+			'wcstripe_whats_new_modal_enqueued',
+			[ 'entry_count' => count( $changes ) ]
+		);
 	}
 
 	/**
@@ -198,7 +206,41 @@ class WC_Stripe_Whats_New_Modal {
 		update_option( self::DISMISSED_OPTION, WC_STRIPE_VERSION, false );
 		delete_transient( self::PENDING_TRANSIENT );
 
+		$dwell_ms = isset( $_POST['dwell_ms'] ) ? absint( wp_unslash( $_POST['dwell_ms'] ) ) : 0;
+		$source   = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
+
+		$this->record_event(
+			'wcstripe_whats_new_modal_dismissed',
+			[
+				'dwell_ms' => $dwell_ms,
+				'source'   => $source,
+			]
+		);
+
 		wp_send_json_success();
+	}
+
+	/**
+	 * Records a Tracks event, automatically tagging it with the plugin version
+	 * and current Stripe mode. Silently no-ops when WC_Tracks is unavailable
+	 * (e.g. older WooCommerce installs or test environments).
+	 *
+	 * @param string              $name  Event name.
+	 * @param array<string,mixed> $props Event properties.
+	 *
+	 * @return void
+	 */
+	protected function record_event( string $name, array $props = [] ) {
+		if ( ! class_exists( 'WC_Tracks' ) ) {
+			return;
+		}
+
+		$props['stripe_version'] = WC_STRIPE_VERSION;
+		if ( class_exists( 'WC_Stripe_Mode' ) ) {
+			$props['is_test_mode'] = WC_Stripe_Mode::is_test() ? 'yes' : 'no';
+		}
+
+		WC_Tracks::record_event( $name, $props );
 	}
 
 	/**
