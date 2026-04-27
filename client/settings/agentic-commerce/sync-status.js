@@ -5,6 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button, Notice } from '@wordpress/components';
 import { dispatch } from '@wordpress/data';
+import { useTestMode } from 'wcstripe/data';
 
 const StatusBadge = styled.span`
 	display: inline-block;
@@ -206,6 +207,11 @@ const AgenticCommerceSyncStatus = () => {
 	const [ isSyncing, setIsSyncing ] = useState( false );
 	const [ hasError, setHasError ] = useState( false );
 
+	const [ isTestMode ] = useTestMode();
+	const importSetsUrl = isTestMode
+		? 'https://dashboard.stripe.com/test/data-management/import-sets'
+		: 'https://dashboard.stripe.com/data-management/import-sets';
+
 	const fetchStatus = useCallback( async () => {
 		setIsLoading( true );
 		setHasError( false );
@@ -289,7 +295,7 @@ const AgenticCommerceSyncStatus = () => {
 					'woocommerce-gateway-stripe'
 				) }{ ' ' }
 				<a
-					href="https://dashboard.stripe.com/data-management/import-sets"
+					href={ importSetsUrl }
 					target="_blank"
 					rel="noopener noreferrer"
 				>
