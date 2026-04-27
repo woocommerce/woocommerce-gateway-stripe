@@ -32,7 +32,7 @@ describe( 'Recorder', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			expect( sendBeaconSpy ).not.toHaveBeenCalled();
 		} );
@@ -52,7 +52,7 @@ describe( 'Recorder', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
 			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
@@ -65,7 +65,7 @@ describe( 'Recorder', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
 				'/wp-json/wc/v3/wc_stripe/diagnostics/events?_wpnonce=a%2Fb%20c%2Bd'
@@ -77,7 +77,7 @@ describe( 'Recorder', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			expect( sendBeaconSpy.mock.calls[ 0 ][ 0 ] ).toBe(
 				'/wp-json/wc/v3/wc_stripe/diagnostics/events'
@@ -88,7 +88,7 @@ describe( 'Recorder', () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 			expect( body ).toEqual( {
@@ -112,7 +112,7 @@ describe( 'Recorder', () => {
 			const r1 = makeRecorder( { now: clock } );
 			r1.boot();
 			r1.record( 'element.ready', { element_type: 'card' } );
-			r1.flush( 'manual' );
+			r1.flush();
 
 			// Time passes (e.g., shopper goes through 3DS challenge).
 			mockTime = 5000;
@@ -121,7 +121,7 @@ describe( 'Recorder', () => {
 			const r2 = makeRecorder( { now: clock } );
 			r2.boot();
 			r2.record( 'element.change', { element_type: 'card' } );
-			r2.flush( 'manual' );
+			r2.flush();
 
 			const body1 = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 			const body2 = JSON.parse( sendBeaconSpy.mock.calls[ 1 ][ 1 ] );
@@ -205,7 +205,7 @@ describe( 'Recorder', () => {
 			recorder.record( 'element.ready', { element_type: 'card' } );
 			recorder.record( 'element.change', { element_type: 'card' } );
 			recorder.record( 'element.focus', { element_type: 'card' } );
-			recorder.flush( 'manual' );
+			recorder.flush();
 
 			const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 			expect( body.events ).toHaveLength( 3 );
@@ -235,7 +235,7 @@ describe( 'Recorder', () => {
 
 				recorder.attach( element, 'card' );
 				element.emit( 'ready' );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events ).toEqual( [
@@ -254,7 +254,7 @@ describe( 'Recorder', () => {
 				recorder.attachAfterReady( element, 'payment' );
 				// Note: NOT emitting 'ready' on the fake element — the whole
 				// point is that Stripe has already fired ready before we attach.
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ] ).toMatchObject( {
@@ -271,7 +271,7 @@ describe( 'Recorder', () => {
 				recorder.attachAfterReady( element, 'payment' );
 				element.emit( 'focus' );
 				element.emit( 'blur' );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
@@ -289,7 +289,7 @@ describe( 'Recorder', () => {
 				recorder.attach( element, 'card' );
 				element.emit( 'focus' );
 				element.emit( 'blur' );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
@@ -318,7 +318,7 @@ describe( 'Recorder', () => {
 						message: 'Element failed to load',
 					},
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ] ).toMatchObject( {
@@ -353,7 +353,7 @@ describe( 'Recorder', () => {
 					country: 'US',
 					classes: { focus: false },
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events ).toHaveLength( 1 );
@@ -385,7 +385,7 @@ describe( 'Recorder', () => {
 				recorder.recordBlocksPaymentSetupEnd( handle, {
 					type: 'success',
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
@@ -418,7 +418,7 @@ describe( 'Recorder', () => {
 					type: 'error',
 					message: 'Your payment information is incomplete.',
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				const endEvent = body.events.find(
@@ -461,7 +461,7 @@ describe( 'Recorder', () => {
 						email: 'jane@example.com',
 					},
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe( 'express.paymentmethod' );
@@ -486,7 +486,7 @@ describe( 'Recorder', () => {
 						state: 'ON',
 					},
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe(
@@ -514,7 +514,7 @@ describe( 'Recorder', () => {
 				eceButton.emit( 'shippingratechange', {
 					expressPaymentType: 'apple_pay',
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
@@ -543,7 +543,7 @@ describe( 'Recorder', () => {
 				recorder.recordExpressEvent( 'shippingratechange', {
 					expressPaymentType: 'apple_pay',
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
@@ -569,7 +569,7 @@ describe( 'Recorder', () => {
 						state: 'ON',
 					},
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe(
@@ -592,7 +592,7 @@ describe( 'Recorder', () => {
 						card: { brand: 'visa', last4: '4242' },
 					},
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe( 'express.confirm' );
@@ -609,7 +609,7 @@ describe( 'Recorder', () => {
 				recorder.recordExpressEvent( 'confirm', {
 					expressPaymentType: 'apple_pay',
 				} );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].data ).toEqual( {
@@ -622,7 +622,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 
 				recorder.recordExpressEvent( 'click' );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe( 'express.click' );
@@ -644,7 +644,7 @@ describe( 'Recorder', () => {
 					'createPaymentMethod',
 					() => Promise.resolve( stripeResponse )
 				);
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				expect( result ).toBe( stripeResponse );
 
@@ -678,7 +678,7 @@ describe( 'Recorder', () => {
 						},
 					} )
 				);
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				const resolve = body.events.find(
@@ -702,7 +702,7 @@ describe( 'Recorder', () => {
 					)
 				).rejects.toThrow( 'network down' );
 
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				const thrown = body.events.find(
@@ -726,7 +726,7 @@ describe( 'Recorder', () => {
 				console.warn(
 					'[Stripe.js] invalid country code "AS"; "AS" is not a valid 2-letter country code'
 				);
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe( 'console.warn' );
@@ -742,7 +742,7 @@ describe( 'Recorder', () => {
 				recorder.boot();
 
 				console.error( 'something exploded' );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].kind ).toBe( 'console.error' );
@@ -757,7 +757,7 @@ describe( 'Recorder', () => {
 
 				const longMessage = 'x'.repeat( 1000 );
 				console.warn( longMessage );
-				recorder.flush( 'manual' );
+				recorder.flush();
 
 				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
 				expect( body.events[ 0 ].data.message ).toHaveLength( 500 );

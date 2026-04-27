@@ -99,7 +99,7 @@ export class Recorder {
 				bufferedEvents: [ ...this.buffer ],
 			} );
 		}
-		this.flush( 'pagehide' );
+		this.flush();
 		// If we got here, the synchronous sendBeacon was queued. Clear the
 		// persisted copy so the next boot does not double-send. If the tab
 		// is torn down BEFORE this line runs, the persisted copy survives
@@ -274,10 +274,7 @@ export class Recorder {
 
 	_resetIdleTimer() {
 		this._clearIdleTimer();
-		this.idleTimer = this.setTimer(
-			() => this.flush( 'idle' ),
-			IDLE_FLUSH_MS
-		);
+		this.idleTimer = this.setTimer( () => this.flush(), IDLE_FLUSH_MS );
 	}
 
 	_clearIdleTimer() {
