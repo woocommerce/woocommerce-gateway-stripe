@@ -23,6 +23,7 @@ jest.mock( 'wcstripe/diagnostics/wiring', () => ( {
 	diagnostics: {
 		blocksPaymentSetupStart: jest.fn(),
 		blocksPaymentSetupEnd: jest.fn(),
+		aroundStripeCall: jest.fn( ( _method, fn ) => fn() ),
 	},
 } ) );
 
@@ -411,6 +412,36 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( await onCheckoutSuccessResultPromise ).toEqual( {
 				type: 'success',
 			} );
+		} );
+
+		it( 'wraps checkout.confirm with diagnostics.aroundStripeCall so the SDK timing is captured', async () => {
+			diagnostics.aroundStripeCall.mockClear();
+			const mockConfirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				true,
+				false,
+				shippingData
+			);
+
+			await onCheckoutSuccessResultPromise;
+
+			expect( diagnostics.aroundStripeCall ).toHaveBeenCalledTimes( 1 );
+			expect( diagnostics.aroundStripeCall.mock.calls[ 0 ][ 0 ] ).toBe(
+				'confirm'
+			);
+			expect( mockConfirm ).toHaveBeenCalledTimes( 1 );
 		} );
 
 		it( 'includes email from DOM when checkout.email is absent', async () => {

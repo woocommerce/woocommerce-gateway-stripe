@@ -245,7 +245,10 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					const confirmResult = await checkout.confirm( confirmArgs );
+					const confirmResult = await diagnostics.aroundStripeCall(
+						'confirm',
+						() => checkout.confirm( confirmArgs )
+					);
 					if ( confirmResult?.type === 'error' ) {
 						return {
 							type: 'error',
