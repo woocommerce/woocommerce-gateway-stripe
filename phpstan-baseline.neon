@@ -3703,8 +3703,8 @@ parameters:
 			path: includes/compat/class-wc-stripe-email-customer-failed-refund.php
 
 		-
-			message: '#^Call to method get_time\(\) on an unknown class WCS_Retry\.$#'
-			identifier: class.notFound
+			message: '#^Call to function method_exists\(\) with WCS_Retry and ''get_time'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 
@@ -3729,12 +3729,6 @@ parameters:
 		-
 			message: '#^Property WC_Email\:\:\$object \(bool\|object\) does not accept WC_Order\|null\.$#'
 			identifier: assign.propertyType
-			count: 1
-			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
-
-		-
-			message: '#^Property WC_Stripe_Email_Failed_Authentication_Retry\:\:\$retry has unknown class WCS_Retry as its type\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/compat/class-wc-stripe-email-failed-authentication-retry.php
 

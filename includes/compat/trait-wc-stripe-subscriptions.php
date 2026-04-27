@@ -560,9 +560,11 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$renewal_order->update_status( OrderStatus::FAILED );
 
-			// If the payment was blocked by Stripe Radar, suspend the parent subscription(s)
-			// so that WC Subscriptions does not schedule further retry attempts. Each retry
-			// would create a new charge that Radar would block again, inflating the block rate.
+			// If the payment was blocked by Stripe Radar, cancel any scheduled retry attempt.
+			// Without this, WC Subscriptions schedules a retry that would create another charge
+			// for Radar to block, inflating the block rate. The renewal order has already been
+			// marked failed above, which causes WCS to put the parent subscription on hold and
+			// schedule the retry; we tear down that retry here.
 			if ( false !== $radar_reason ) {
 				switch ( $radar_reason ) {
 					case 'rule':
@@ -577,20 +579,26 @@ trait WC_Stripe_Subscriptions_Trait {
 						break;
 				}
 				try {
-					$subscriptions     = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+					$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
 						? wcs_get_subscriptions_for_renewal_order( $renewal_order )
 						: [];
-					$terminal_statuses = [ 'cancelled', 'expired', 'trash', 'completed', OrderStatus::ON_HOLD ];
+
 					foreach ( $subscriptions as $subscription ) {
-						if ( in_array( $subscription->get_status(), $terminal_statuses, true ) ) {
-							continue;
+						if ( class_exists( 'WCS_Retry_Manager' ) && WCS_Retry_Manager::is_retry_enabled() ) {
+							$last_retry = WCS_Retry_Manager::store()->get_last_retry_for_order( $renewal_order->get_id() );
+							if ( $last_retry && 'pending' === $last_retry->get_status() ) {
+								$last_retry->update_status( 'cancelled' );
+							}
+							if ( $subscription->get_date( 'payment_retry' ) > 0 ) {
+								$subscription->delete_date( 'payment_retry' );
+							}
 						}
-						$subscription->update_status( OrderStatus::ON_HOLD, $radar_note );
+						$subscription->add_order_note( $radar_note );
 					}
 					$renewal_order->add_order_note( $radar_note );
 				} catch ( Exception $radar_e ) {
 					WC_Stripe_Logger::error(
-						'Failed to put subscription on hold after Stripe Radar block: ' . $radar_e->getMessage(),
+						'Failed to cancel scheduled retry after Stripe Radar block: ' . $radar_e->getMessage(),
 						[ 'order_id' => $renewal_order->get_id() ]
 					);
 				}

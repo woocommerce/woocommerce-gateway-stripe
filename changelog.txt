@@ -5,6 +5,7 @@ xxxx-xx-xx - version 10.7.0
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
+* Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
