@@ -253,9 +253,15 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		wp_set_current_user( $user_id );
 		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
 
-		$_POST['nonce']    = wp_create_nonce( WC_Stripe_Whats_New_Modal::DISMISS_AJAX_ACTION );
+		$nonce             = wp_create_nonce( WC_Stripe_Whats_New_Modal::DISMISS_AJAX_ACTION );
+		$_POST['nonce']    = $nonce;
 		$_POST['dwell_ms'] = '4200';
 		$_POST['source']   = 'primary_button';
+		// check_ajax_referer reads from $_REQUEST, which is not guaranteed to
+		// include $_POST under every CI php request_order ini setting.
+		$_REQUEST['nonce']    = $nonce;
+		$_REQUEST['dwell_ms'] = '4200';
+		$_REQUEST['source']   = 'primary_button';
 
 		try {
 			ob_start();
@@ -268,6 +274,7 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 			ob_end_clean();
 		} finally {
 			unset( $_POST['nonce'], $_POST['dwell_ms'], $_POST['source'] );
+			unset( $_REQUEST['nonce'], $_REQUEST['dwell_ms'], $_REQUEST['source'] );
 			$this->tear_down_ajax_context();
 		}
 
