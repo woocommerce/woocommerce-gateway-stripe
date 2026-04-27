@@ -8,6 +8,8 @@ jest.mock( '../../payment-methods' );
 
 jest.mock( '../../save-settings-section' );
 
+jest.mock( '../../agentic-commerce' );
+
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
 	useSettings: jest.fn().mockReturnValue( {} ),
@@ -31,24 +33,27 @@ jest.mock(
 	} )
 );
 
+const BASE_PARAMS = {
+	accountStatus: {
+		email: 'test@example.com',
+		mode: 'test',
+		paymentsEnabled: true,
+		payoutsEnabled: true,
+		accountLink: 'https://stripe.com/support',
+	},
+	is_agentic_commerce_enabled: false,
+};
+
 describe( 'SettingsManager', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = {
-			accountStatus: {
-				email: 'test@example.com',
-				mode: 'test',
-				paymentsEnabled: true,
-				payoutsEnabled: true,
-				accountLink: 'https://stripe.com/support',
-			},
-		};
+		global.wc_stripe_settings_params = { ...BASE_PARAMS };
 	} );
 
 	afterEach( () => {
 		jest.clearAllMocks();
 	} );
 
-	it( 'should render two tabs when mounted', async () => {
+	it( 'should render two tabs when agentic commerce is disabled', async () => {
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
@@ -60,6 +65,37 @@ describe( 'SettingsManager', () => {
 		await waitFor( () => {
 			expect(
 				screen.getByRole( 'tab', { name: /Settings/i } )
+			).toBeInTheDocument();
+		} );
+
+		expect(
+			screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should render three tabs when agentic commerce is enabled', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', { name: /Payment Methods/i } )
+			).toBeInTheDocument();
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', { name: /Settings/i } )
+			).toBeInTheDocument();
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', { name: /Agentic Commerce/i } )
 			).toBeInTheDocument();
 		} );
 	} );
@@ -93,5 +129,41 @@ describe( 'SettingsManager', () => {
 				screen.queryByTestId( 'methods-tab' )
 			).not.toBeInTheDocument();
 		} );
+	} );
+
+	it( 'should render the agentic commerce tab content when the URL matches and flag is enabled', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'agentic-commerce-tab' )
+			).toBeInTheDocument();
+		} );
+
+		expect( screen.queryByTestId( 'methods-tab' ) ).not.toBeInTheDocument();
+		expect(
+			screen.queryByTestId( 'settings-tab' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should not show the agentic commerce tab even with panel URL when flag is disabled', async () => {
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		render( <SettingsManager /> );
+
+		// Falls back to methods tab.
+		await waitFor( () => {
+			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
+		} );
+
+		expect(
+			screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
+		).not.toBeInTheDocument();
 	} );
 } );
