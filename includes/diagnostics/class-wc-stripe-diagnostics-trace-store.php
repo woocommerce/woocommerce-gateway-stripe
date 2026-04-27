@@ -13,10 +13,6 @@ defined( 'ABSPATH' ) || exit;
  * folder, alongside an `index.json` file holding the ordered list of trace
  * ids.
  *
- * Storing traces as files (rather than wp_options rows) makes it easy to
- * download, attach, or hand off an individual trace, and keeps diagnostics
- * data out of regular database backups.
- *
  * Invariants enforced here:
  * - at most {@see self::MAX_TRACES} traces exist at any time (FIFO eviction)
  * - at most {@see self::MAX_EVENTS_PER_TRACE} events per trace
