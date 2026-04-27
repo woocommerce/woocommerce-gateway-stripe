@@ -73,11 +73,17 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		// Apply the express checkout title after intent confirmation (e.g. 3DS) for the
+		// subscription change-payment-method flow. Registered unconditionally because the
+		// AJAX confirmation request doesn't run through the change-payment-method page check.
+		add_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', [ $this, 'maybe_apply_express_title_after_confirmed_intent' ] );
+
 		// For change payment method page, only load the minimal set of hooks needed.
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
 			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 			add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
 			add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
+			add_action( 'wc_stripe_change_subs_payment_method_success', [ $this, 'update_subscription_payment_method_title' ] );
 			return;
 		}
 
@@ -494,6 +500,86 @@ class WC_Stripe_Express_Checkout_Element {
 				$order->save_meta_data();
 			}
 		}
+	}
+
+	/**
+	 * Updates the subscription's payment method title to reflect the express checkout type.
+	 *
+	 * Mirrors `add_order_meta()` for the subscription change-payment-method flow, which
+	 * doesn't fire `woocommerce_checkout_order_processed`. Hooked on
+	 * `wc_stripe_change_subs_payment_method_success` (success path with $_POST data).
+	 *
+	 * @return void
+	 */
+	public function update_subscription_payment_method_title() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended
+		if ( empty( $_POST['express_checkout_type'] ) || ! isset( $_GET['change_payment_method'] ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wcs_get_subscription' ) ) {
+			return;
+		}
+
+		$subscription = wcs_get_subscription( absint( $_GET['change_payment_method'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! $subscription ) {
+			return;
+		}
+
+		$express_checkout_type = is_array( $_POST['express_checkout_type'] ) ? '' : sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$this->apply_express_checkout_title_to_order( $subscription, $express_checkout_type );
+	}
+
+	/**
+	 * After intent confirmation (e.g. post-3DS), re-apply the express checkout title to
+	 * the subscription using the type persisted to subscription meta during the change-
+	 * payment-method redirect. This compensates for `set_payment_method_title_for_order()`
+	 * resetting the title to the underlying card type during 3DS confirmation.
+	 *
+	 * Hooked on `wc_stripe_after_set_payment_method_title_for_confirmed_intent`.
+	 *
+	 * @param WC_Order $order The order or subscription that was just confirmed.
+	 * @return void
+	 */
+	public function maybe_apply_express_title_after_confirmed_intent( $order ) {
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		$express_checkout_type = $order->get_meta( '_wc_stripe_express_checkout_type' );
+		if ( empty( $express_checkout_type ) ) {
+			return;
+		}
+
+		if ( $this->apply_express_checkout_title_to_order( $order, $express_checkout_type ) ) {
+			$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
+			$order->save();
+		}
+	}
+
+	/**
+	 * Applies an express checkout title (Apple Pay / Google Pay) to the given order or
+	 * subscription. Returns true when the title was applied.
+	 *
+	 * @param WC_Order $order                 Order or subscription to update.
+	 * @param string   $express_checkout_type The express checkout type (apple_pay, google_pay).
+	 * @return bool    Whether the title was applied.
+	 */
+	private function apply_express_checkout_title_to_order( $order, $express_checkout_type ) {
+		$payment_method_title = '';
+		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
+			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
+		} elseif ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
+			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+		}
+
+		if ( ! $payment_method_title ) {
+			return false;
+		}
+
+		$order->set_payment_method_title( $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix() );
+		$order->save();
+		return true;
 	}
 
 	/**
