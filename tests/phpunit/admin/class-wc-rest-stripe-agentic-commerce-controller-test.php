@@ -46,6 +46,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// its routes (register_routes() is gated on the flag).
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 
+		// Enable the merchant-facing toggle so trigger_sync() does not bail on
+		// the disabled-feature gate. Tests that exercise the disabled path
+		// override this explicitly.
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 
@@ -79,6 +84,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		remove_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
 		// Controller's SYNC_LOCK_OPTION is private; keep the literal in sync by hand if it is renamed.
 		delete_option( 'wc_stripe_agentic_sync_lock' );
 		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
@@ -690,6 +697,117 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'pending', $last_sync['status'] );
 	}
 
+	/**
+	 * GET /status refreshes entries with non-terminal statuses (queued, validating,
+	 * pending, creating_records, unknown).
+	 *
+	 * @dataProvider provide_non_terminal_statuses
+	 */
+	public function test_get_status_refreshes_non_terminal_status_entries( string $initial_status ): void {
+		$entry = [
+			'status'        => $initial_status,
+			'timestamp'     => 1700000000,
+			'products'      => 5,
+			'import_set_id' => 'impset_nonterminal',
+			'file_id'       => 'file_nt',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, $entry );
+
+		$http_stub = function ( $preempt, $args, $url ) {
+			if ( str_contains( $url, 'impset_nonterminal' ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_nonterminal',
+							'status' => 'succeeded',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'succeeded', $response->get_data()['last_sync']['status'] );
+	}
+
+	/**
+	 * Data provider: non-terminal ImportSet statuses that should trigger a refresh.
+	 *
+	 * @return array[]
+	 */
+	public function provide_non_terminal_statuses(): array {
+		return [
+			'queued'           => [ 'queued' ],
+			'validating'       => [ 'validating' ],
+			'pending'          => [ 'pending' ],
+			'creating_records' => [ 'creating_records' ],
+			'unknown'          => [ 'unknown' ],
+		];
+	}
+
+	/**
+	 * GET /status skips refresh for all terminal statuses.
+	 *
+	 * @dataProvider provide_terminal_statuses
+	 */
+	public function test_get_status_skips_refresh_for_terminal_statuses( string $status ): void {
+		$entry = [
+			'status'        => $status,
+			'timestamp'     => 1700000000,
+			'products'      => 10,
+			'import_set_id' => 'impset_term',
+			'file_id'       => 'file_t',
+			'error'         => '',
+		];
+		update_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [ $entry ] );
+
+		$api_called = false;
+		$http_stub  = function ( $preempt ) use ( &$api_called ) {
+			$api_called = true;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'GET', self::STATUS_ROUTE );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $api_called, "Stripe API should not be called for terminal status '$status'." );
+	}
+
+	/**
+	 * Data provider: terminal ImportSet statuses that should not trigger a refresh.
+	 *
+	 * @return array[]
+	 */
+	public function provide_terminal_statuses(): array {
+		return [
+			'succeeded'             => [ 'succeeded' ],
+			'failed'                => [ 'failed' ],
+			'succeeded_with_errors' => [ 'succeeded_with_errors' ],
+		];
+	}
+
 	// -------------------------------------------------------------------------
 	// POST /wc/v3/wc_stripe/agentic-commerce/sync
 	// -------------------------------------------------------------------------
@@ -802,6 +920,220 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 409, $response->get_status() );
 		$this->assertStringContainsString( 'already in progress', $response->get_data()['message'] );
+	}
+
+	/**
+	 * POST /sync returns 409 when the merchant has disabled the feature, even
+	 * if the developer feature flag and Stripe credentials are otherwise valid.
+	 *
+	 * Regression: a stale admin tab or a direct curl POST must not push the
+	 * catalog to Stripe after the merchant flips the toggle off.
+	 */
+	public function test_trigger_sync_returns_409_when_merchant_toggle_off(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+
+		$api_called = false;
+		$http_stub  = function ( $preempt ) use ( &$api_called ) {
+			$api_called = true;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 409, $response->get_status() );
+		$this->assertSame( 'stripe_agentic_commerce_disabled', $response->get_data()['code'] );
+		$this->assertFalse( $api_called, 'Stripe API must not be called when the merchant toggle is off.' );
+	}
+
+	// -------------------------------------------------------------------------
+	// GET /wc/v3/wc_stripe/agentic-commerce/settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * GET /settings returns default values when no options are set.
+	 */
+	public function test_get_settings_returns_defaults(): void {
+		// set_up() enables the merchant toggle so trigger_sync tests pass; this
+		// test specifically asserts the off-by-default response.
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertArrayHasKey( 'is_enabled', $data );
+		$this->assertArrayHasKey( 'webhook_secret', $data );
+		$this->assertFalse( $data['is_enabled'] );
+		$this->assertSame( '', $data['webhook_secret'] );
+	}
+
+	/**
+	 * GET /settings reflects stored option values, masking the webhook secret.
+	 */
+	public function test_get_settings_reflects_stored_values(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test123' );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['is_enabled'] );
+		// Real secret must never be returned; the masked placeholder is expected.
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
+	}
+
+	/**
+	 * GET /settings returns empty string when no secret is stored.
+	 */
+	public function test_get_settings_returns_empty_string_when_no_secret(): void {
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( '', $response->get_data()['webhook_secret'] );
+	}
+
+	/**
+	 * Unauthenticated GET /settings requests should be refused.
+	 */
+	public function test_get_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
+	}
+
+	// -------------------------------------------------------------------------
+	// POST /wc/v3/wc_stripe/agentic-commerce/settings
+	// -------------------------------------------------------------------------
+
+	/**
+	 * POST /settings enables the feature flag.
+	 */
+	public function test_update_settings_enables_feature(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['is_enabled'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
+	}
+
+	/**
+	 * POST /settings disables the feature flag.
+	 */
+	public function test_update_settings_disables_feature(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $response->get_data()['is_enabled'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION ) );
+	}
+
+	/**
+	 * POST /settings stores the webhook secret and returns the masked placeholder.
+	 */
+	public function test_update_settings_stores_webhook_secret(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => 'whsec_abc123' ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		// Response must return the masked placeholder, not the real secret.
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
+		$this->assertSame( 'whsec_abc123', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
+	}
+
+	/**
+	 * POST /settings does not overwrite the stored secret when the masked
+	 * placeholder is submitted (e.g. user saved without changing the field).
+	 */
+	public function test_update_settings_preserves_secret_when_placeholder_sent(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_original' );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
+		// Stored value must be unchanged.
+		$this->assertSame( 'whsec_original', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
+	}
+
+	/**
+	 * POST /settings can update both is_enabled and webhook_secret together.
+	 */
+	public function test_update_settings_updates_both_fields(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'is_enabled'     => true,
+					'webhook_secret' => 'whsec_combined',
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['is_enabled'] );
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $data['webhook_secret'] );
+	}
+
+	/**
+	 * POST /settings sanitizes the webhook secret value.
+	 */
+	public function test_update_settings_sanitizes_webhook_secret(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'webhook_secret' => "  whsec_trimmed\t" ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		// sanitize_text_field strips leading/trailing whitespace and tabs;
+		// the response returns the masked placeholder, not the real value.
+		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
+		$this->assertSame( 'whsec_trimmed', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
+	}
+
+	/**
+	 * Unauthenticated POST /settings requests should be refused.
+	 */
+	public function test_update_settings_requires_auth(): void {
+		wp_set_current_user( 0 );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 401, $response->get_status() );
 	}
 
 	// -------------------------------------------------------------------------
