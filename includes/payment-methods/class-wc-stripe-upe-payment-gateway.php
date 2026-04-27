@@ -578,7 +578,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['subscriptionManualRenewalEnabled']  = WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		$stripe_params['forceSavePaymentMethod']            = WC_Stripe_Helper::should_force_save_payment_method();
 		$stripe_params['accountCountry']                    = WC_Stripe::get_instance()->account->get_account_country();
-		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_payment_request_enabled();
+		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_express_checkout_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
 
@@ -795,7 +795,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if we are on a page where the optimized checkout can be shown, false otherwise.
 	 */
 	public function is_valid_optimized_checkout_page(): bool {
-		return ! $this->is_on_add_payment_method_page() && ! $this->is_changing_payment_method_for_subscription();
+		if ( $this->is_on_add_payment_method_page() || $this->is_changing_payment_method_for_subscription() ) {
+			return false;
+		}
+
+		return is_checkout();
+	}
+
+	/**
+	 * Checks whether Optimized Checkout is the active payment strategy for the current request.
+	 *
+	 * Distinct from {@see self::is_valid_optimized_checkout_page()} which gates *rendering* to
+	 * actual checkout pages. This broader check is true wherever OCS-aware token handling should
+	 * apply (e.g. My Account → Payment Methods, where saved tokens for sub-gateways must still
+	 * surface under the consolidated 'stripe' gateway).
+	 *
+	 * @return bool
+	 */
+	public function is_optimized_checkout_active(): bool {
+		return $this->oc_enabled
+			&& ! $this->is_on_add_payment_method_page()
+			&& ! $this->is_changing_payment_method_for_subscription();
 	}
 
 	/**
@@ -824,7 +844,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			return ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title();
+			return WC_Stripe_UPE_Payment_Method_OC::get_alternative_title();
 		}
 		return parent::get_title();
 	}
@@ -4126,7 +4146,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	public function is_payment_request_enabled() {
+	public function is_express_checkout_enabled() {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			return 'yes' === $this->get_option( 'express_checkout' );
@@ -4140,6 +4160,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// considered enabled if either is enabled in Stripe.
 		return in_array( WC_Stripe_Payment_Methods::APPLE_PAY, $enabled_payment_method_ids, true ) ||
 			in_array( WC_Stripe_Payment_Methods::GOOGLE_PAY, $enabled_payment_method_ids, true );
+	}
+
+	/**
+	 * Checks if Google Pay and Apple Pay (ECE) are enabled.
+	 *
+	 * @deprecated 10.6.0 Use is_express_checkout_enabled() instead.
+	 * @return bool
+	 */
+	public function is_payment_request_enabled() {
+		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_UPE_Payment_Gateway::is_express_checkout_enabled' );
+		return $this->is_express_checkout_enabled();
 	}
 
 	/**
@@ -4619,7 +4650,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $tokens;
 		}
 
-		if ( ! $this->oc_enabled || ! $this->is_valid_optimized_checkout_page() ) {
+		if ( ! $this->is_optimized_checkout_active() ) {
 			return $tokens;
 		}
 

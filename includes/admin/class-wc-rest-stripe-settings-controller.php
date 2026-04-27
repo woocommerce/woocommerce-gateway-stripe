@@ -108,31 +108,31 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_payment_request_enabled'            => [
+					'is_express_checkout_enabled'           => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_type'           => [
+					'express_checkout_button_type'          => [
 						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['express_checkout_button_type']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_theme'          => [
+					'express_checkout_button_theme'         => [
 						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['express_checkout_button_theme']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_size'           => [
+					'express_checkout_button_size'          => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						// it can happen that `$form_fields['express_checkout_button_size']` is empty (in tests) - fixing temporarily.
 						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_locations'      => [
+					'express_checkout_button_locations'     => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -251,11 +251,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Express checkouts */
 				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'is_payment_request_enabled'            => $this->gateway->is_payment_request_enabled(),
-				'payment_request_button_type'           => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
-				'payment_request_button_theme'          => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
-				'payment_request_button_size'           => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'payment_request_button_locations'      => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
+				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
+				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
+				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
+				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'express_checkout_button_locations'     => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
@@ -294,9 +294,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
-			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
+			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
-		$this->update_payment_request_settings( $request );
+		$this->update_express_checkout_settings( $request );
 		$this->update_amazon_pay_settings( $request );
 
 		/* Settings > Payments & transactions */
@@ -324,11 +324,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
+		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
-			$is_payment_request_enabled &&
+			$is_express_checkout_enabled &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -416,14 +416,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_is_payment_request_enabled_for_legacy_checkout( WP_REST_Request $request ) {
-		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
+	private function update_is_express_checkout_enabled_for_legacy_checkout( WP_REST_Request $request ) {
+		$is_express_checkout_enabled = $request->get_param( 'is_express_checkout_enabled' );
 
-		if ( null === $is_payment_request_enabled ) {
+		if ( null === $is_express_checkout_enabled ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'payment_request', $is_payment_request_enabled ? 'yes' : 'no' );
+		$this->gateway->update_option( 'express_checkout', $is_express_checkout_enabled ? 'yes' : 'no' );
 	}
 
 	/**
@@ -575,12 +575,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_payment_request_settings( WP_REST_Request $request ) {
+	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'payment_request_button_type'      => 'express_checkout_button_type',
-			'payment_request_button_size'      => 'express_checkout_button_size',
-			'payment_request_button_theme'     => 'express_checkout_button_theme',
-			'payment_request_button_locations' => 'express_checkout_button_locations',
+			'express_checkout_button_type'      => 'express_checkout_button_type',
+			'express_checkout_button_size'      => 'express_checkout_button_size',
+			'express_checkout_button_theme'     => 'express_checkout_button_theme',
+			'express_checkout_button_locations' => 'express_checkout_button_locations',
 		];
 
 		foreach ( $attributes as $request_key => $attribute ) {
