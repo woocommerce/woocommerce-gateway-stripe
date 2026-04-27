@@ -208,6 +208,7 @@
     },
     "@wordpress/i18n": {
       "memize": "^2.1.1"
-    }
+    },
+    "serialize-javascript": "^7.0.5"
   }
 }
