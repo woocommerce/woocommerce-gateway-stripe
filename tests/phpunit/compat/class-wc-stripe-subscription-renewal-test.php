@@ -379,19 +379,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When Stripe Radar blocks a subscription renewal payment we cancel any
-	 * pending retry and clear the subscription's payment_retry date so that WC
-	 * Subscriptions does not fire another charge that Radar would block again.
-	 *
-	 * Setting the subscription itself to on-hold is intentionally NOT this
-	 * trait's job: by the time control reaches the Radar branch, the renewal
-	 * order has already been transitioned to failed, which causes core's
-	 * WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment to
-	 * call $subscription->payment_failed() and put the subscription on hold.
-	 * Trying to set on-hold again from here is a same-status no-op AND, worse,
-	 * the on-hold transition is the one that does NOT cancel the scheduled
-	 * retry rule -- so the prior implementation produced exactly the retry
-	 * loop the PR was meant to prevent (STRIPE-1110).
+	 * On a Radar-blocked renewal we cancel the pending retry and clear the
+	 * subscription's payment_retry date so WC Subscriptions doesn't fire another
+	 * charge for Radar to block. The subscription's own on-hold transition is
+	 * left to core's payment_failed() — the trait used to do it here too, but it
+	 * was a same-status no-op and on-hold is the one transition that does NOT
+	 * cancel the scheduled retry (see STRIPE-1110).
 	 */
 	public function test_renewal_radar_blocked_cancels_pending_retry() {
 		// Arrange.
