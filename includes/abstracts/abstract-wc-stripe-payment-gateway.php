@@ -2230,11 +2230,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
 
-		wp_localize_script(
-			'woocommerce_stripe',
-			'wc_stripe_params',
-			apply_filters( 'wc_stripe_params', $this->javascript_params() )
-		);
+		$wc_stripe_params = apply_filters( 'wc_stripe_params', $this->javascript_params() );
+
+		/**
+		 * Filters the localized data passed to a Stripe frontend script.
+		 *
+		 * Fires for every `wp_localize_script` call site in the plugin's
+		 * UPE and express checkout enqueue paths. Subscribers can modify
+		 * the data, or attach additional globals to the same handle.
+		 *
+		 * @since 10.7.0
+		 *
+		 * @param array  $data          The localized data array.
+		 * @param string $script_handle The registered script handle.
+		 * @param string $object_name   The JS variable name the data will be assigned to.
+		 */
+		$wc_stripe_params = apply_filters( 'wc_stripe_localized_data', $wc_stripe_params, 'woocommerce_stripe', 'wc_stripe_params' );
+
+		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', $wc_stripe_params );
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );

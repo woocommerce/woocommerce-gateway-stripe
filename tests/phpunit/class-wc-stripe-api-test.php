@@ -177,6 +177,32 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The `wc_stripe_api_response_received` action fires after a successful
+	 * request with the decoded response body and request metadata, and the
+	 * response returned to the caller is unaffected by the action.
+	 */
+	public function test_api_response_received_action_fires_with_request_metadata() {
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		$captured = [];
+		$listener = function ( $body, $api, $method, $request ) use ( &$captured ) {
+			$captured = compact( 'body', 'api', 'method', 'request' );
+		};
+		add_action( 'wc_stripe_api_response_received', $listener, 10, 4 );
+
+		$result = WC_Stripe_API::request( [ 'foo' => 'bar' ], 'payment_intents', 'POST' );
+
+		$this->assertSame( 'success', $result, 'Response body returned to caller is unchanged by observers.' );
+		$this->assertSame( 'success', $captured['body'] );
+		$this->assertSame( 'payment_intents', $captured['api'] );
+		$this->assertSame( 'POST', $captured['method'] );
+		$this->assertSame( [ 'foo' => 'bar' ], $captured['request'] );
+
+		remove_action( 'wc_stripe_api_response_received', $listener, 10 );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+	}
+
+	/**
 	 * Helper method to mock a successful API response.
 	 */
 	public function mock_successful_response() {
