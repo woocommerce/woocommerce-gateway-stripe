@@ -64,6 +64,21 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
+	 * Option key for the Agentic Commerce webhook secret.
+	 *
+	 * Lives on the integration class (not the REST controller) because this
+	 * value is read on every webhook delivery via the
+	 * `woocommerce_api_wc_stripe` hook, which does not trigger
+	 * `rest_api_init`. Keeping the const here ensures it is always reachable
+	 * — the integration class is in the Composer autoload classmap — even
+	 * when the REST controller has not been instantiated.
+	 *
+	 * @var string
+	 * @since 10.7.0
+	 */
+	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+
+	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int

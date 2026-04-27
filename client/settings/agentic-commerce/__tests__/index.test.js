@@ -54,6 +54,9 @@ const EMPTY_RESPONSE = { last_sync: null, history: [], next_sync: null };
 const SETTINGS_RESPONSE = { is_enabled: true, webhook_secret: '' };
 
 // Mirrors WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET.
+// (The webhook secret *option key* lives on the integration class so it is
+// always loaded for webhook deliveries; only the masking placeholder lives on
+// the controller as it is UI-presentation only.)
 const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
 
 /**
@@ -469,6 +472,49 @@ describe( 'AgenticCommercePanel', () => {
 		expect(
 			screen.queryByText( /No sync history available/i )
 		).not.toBeInTheDocument();
+	} );
+
+	it( 'does not render the settings form when the GET /settings request fails', async () => {
+		apiFetch.mockImplementation( ( { path, method = 'GET' } ) => {
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				if ( method === 'GET' ) {
+					return Promise.reject( {
+						message: 'Settings load failed',
+					} );
+				}
+				// A POST should never happen in this scenario; if it does the
+				// assertions below will fail loudly.
+				return Promise.resolve( SETTINGS_RESPONSE );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommercePanel /> );
+
+		// The error notice surfaces the load failure.
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( /Settings load failed/i ).length
+			).toBeGreaterThanOrEqual( 1 );
+		} );
+
+		// The form is locked: no toggle, no save button.
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Enable Agentic Commerce/i,
+			} )
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', { name: /Save Settings/i } )
+		).not.toBeInTheDocument();
+
+		// And no destructive POST has been issued.
+		expect( apiFetch ).not.toHaveBeenCalledWith(
+			expect.objectContaining( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
+				method: 'POST',
+			} )
+		);
 	} );
 
 	// -------------------------------------------------------------------------

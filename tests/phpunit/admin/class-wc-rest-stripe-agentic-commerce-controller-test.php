@@ -46,6 +46,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// its routes (register_routes() is gated on the flag).
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 
+		// Enable the merchant-facing toggle so trigger_sync() does not bail on
+		// the disabled-feature gate. Tests that exercise the disabled path
+		// override this explicitly.
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+
 		$this->controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 		add_action( 'rest_api_init', [ $this->controller, 'register_routes' ] );
 
@@ -80,7 +85,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
-		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
 		// Controller's SYNC_LOCK_OPTION is private; keep the literal in sync by hand if it is renamed.
 		delete_option( 'wc_stripe_agentic_sync_lock' );
 		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
@@ -917,6 +922,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'already in progress', $response->get_data()['message'] );
 	}
 
+	/**
+	 * POST /sync returns 409 when the merchant has disabled the feature, even
+	 * if the developer feature flag and Stripe credentials are otherwise valid.
+	 *
+	 * Regression: a stale admin tab or a direct curl POST must not push the
+	 * catalog to Stripe after the merchant flips the toggle off.
+	 */
+	public function test_trigger_sync_returns_409_when_merchant_toggle_off(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+
+		$api_called = false;
+		$http_stub  = function ( $preempt ) use ( &$api_called ) {
+			$api_called = true;
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_stub, 10, 3 );
+
+		try {
+			$request  = new WP_REST_Request( 'POST', self::REST_BASE . '/sync' );
+			$response = rest_do_request( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10 );
+		}
+
+		$this->assertEquals( 409, $response->get_status() );
+		$this->assertSame( 'stripe_agentic_commerce_disabled', $response->get_data()['code'] );
+		$this->assertFalse( $api_called, 'Stripe API must not be called when the merchant toggle is off.' );
+	}
+
 	// -------------------------------------------------------------------------
 	// GET /wc/v3/wc_stripe/agentic-commerce/settings
 	// -------------------------------------------------------------------------
@@ -925,6 +959,10 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * GET /settings returns default values when no options are set.
 	 */
 	public function test_get_settings_returns_defaults(): void {
+		// set_up() enables the merchant toggle so trigger_sync tests pass; this
+		// test specifically asserts the off-by-default response.
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+
 		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
 		$response = rest_do_request( $request );
 
@@ -942,7 +980,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_settings_reflects_stored_values(): void {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
-		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_test123' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test123' );
 
 		$request  = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
 		$response = rest_do_request( $request );
@@ -1024,7 +1062,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		// Response must return the masked placeholder, not the real secret.
 		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
-		$this->assertSame( 'whsec_abc123', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
+		$this->assertSame( 'whsec_abc123', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
 	}
 
 	/**
@@ -1032,7 +1070,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * placeholder is submitted (e.g. user saved without changing the field).
 	 */
 	public function test_update_settings_preserves_secret_when_placeholder_sent(): void {
-		update_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION, 'whsec_original' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_original' );
 
 		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
 		$request->set_body( wp_json_encode( [ 'webhook_secret' => WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET ] ) );
@@ -1042,7 +1080,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		// Stored value must be unchanged.
-		$this->assertSame( 'whsec_original', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
+		$this->assertSame( 'whsec_original', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
 	}
 
 	/**
@@ -1081,7 +1119,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// sanitize_text_field strips leading/trailing whitespace and tabs;
 		// the response returns the masked placeholder, not the real value.
 		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
-		$this->assertSame( 'whsec_trimmed', get_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION ) );
+		$this->assertSame( 'whsec_trimmed', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
 	}
 
 	/**

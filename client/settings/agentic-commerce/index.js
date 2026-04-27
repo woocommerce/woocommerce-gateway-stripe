@@ -29,6 +29,7 @@ const AgenticCommercePanel = () => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
+	const [ areSettingsLoaded, setAreSettingsLoaded ] = useState( false );
 	const [ isSavingSettings, setIsSavingSettings ] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 	const [ webhookURLCopied, setWebhookURLCopied ] = useState( false );
@@ -43,14 +44,28 @@ const AgenticCommercePanel = () => {
 
 	const fetchSettings = useCallback( async () => {
 		setIsLoadingSettings( true );
+		setSettingsNotice( null );
 		try {
 			const result = await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setWebhookSecret( result.webhook_secret ?? '' );
-		} catch {
-			// Settings fetch failure is non-fatal; defaults remain.
+			setAreSettingsLoaded( true );
+		} catch ( err ) {
+			// Leave the form locked — POST-ing the unloaded defaults would
+			// silently disable the feature and clear the stored webhook secret
+			// for a transient GET failure.
+			setAreSettingsLoaded( false );
+			setSettingsNotice( {
+				status: 'error',
+				message:
+					err?.message ??
+					__(
+						'Failed to load Agentic Commerce settings. Refresh the page to retry.',
+						'woocommerce-gateway-stripe'
+					),
+			} );
 		} finally {
 			setIsLoadingSettings( false );
 		}
@@ -61,6 +76,11 @@ const AgenticCommercePanel = () => {
 	}, [ fetchSettings ] );
 
 	const handleSaveSettings = async () => {
+		// Defensive: never POST defaults that came from an unloaded form.
+		if ( ! areSettingsLoaded ) {
+			return;
+		}
+
 		setIsSavingSettings( true );
 		setSettingsNotice( null );
 		try {
@@ -241,9 +261,11 @@ const AgenticCommercePanel = () => {
 					</Notice>
 				) }
 
-				{ isLoadingSettings ? (
+				{ isLoadingSettings && (
 					<p>{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }</p>
-				) : (
+				) }
+
+				{ ! isLoadingSettings && areSettingsLoaded && (
 					<>
 						<ToggleControl
 							label={ __(
@@ -280,7 +302,9 @@ const AgenticCommercePanel = () => {
 								variant="primary"
 								isBusy={ isSavingSettings }
 								disabled={
-									isSavingSettings || isLoadingSettings
+									isSavingSettings ||
+									isLoadingSettings ||
+									! areSettingsLoaded
 								}
 								onClick={ handleSaveSettings }
 							>
