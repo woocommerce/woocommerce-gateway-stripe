@@ -17,8 +17,9 @@ defined( 'ABSPATH' ) || exit;
  *   script params so the frontend recorder can boot.
  *
  * The recorder is a singleton so the running session id can be shared across
- * `wc_stripe_request_body` (request capture) and `wc_stripe_request_response`
- * (response capture) without threading state through every call site.
+ * `wc_stripe_request_body` (request capture) and
+ * `wc_stripe_api_response_received` (response capture) without threading state
+ * through every call site.
  */
 class WC_Stripe_Diagnostics_Recorder {
 
@@ -92,7 +93,7 @@ class WC_Stripe_Diagnostics_Recorder {
 	 */
 	public function init(): void {
 		add_filter( 'wc_stripe_request_body', [ $this, 'on_request_body' ], 10, 2 );
-		add_filter( 'wc_stripe_request_response', [ $this, 'on_request_response' ], 10, 4 );
+		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 4 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'on_webhook_received' ], 10, 3 );
 		add_filter( 'wc_stripe_localized_data', [ $this, 'on_localized_data' ], 10, 3 );
 	}
@@ -185,12 +186,11 @@ class WC_Stripe_Diagnostics_Recorder {
 	 * @param string $api           The Stripe endpoint.
 	 * @param string $method        HTTP method.
 	 * @param array  $request       The request body.
-	 * @return mixed The unchanged response body.
 	 */
-	public function on_request_response( $response_body, $api, $method, $request ) {
+	public function on_request_response( $response_body, $api, $method, $request ): void {
 		$session_id = $this->current_session_id();
 		if ( null === $session_id ) {
-			return $response_body;
+			return;
 		}
 
 		$start_key = $this->request_key( $api );
@@ -210,8 +210,6 @@ class WC_Stripe_Diagnostics_Recorder {
 			'error'      => self::extract_error( $response_body ),
 		];
 		$this->store->append_event( $session_id, $this->redactor->redact( $event ) );
-
-		return $response_body;
 	}
 
 	/**

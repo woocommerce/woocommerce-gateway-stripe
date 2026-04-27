@@ -161,4 +161,29 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$recorder = new WC_Stripe_Diagnostics_Recorder( $this->store, new WC_Stripe_Diagnostics_Redactor() );
 		$this->assertSame( 'resumed', $recorder->current_session_id() );
 	}
+
+	/**
+	 * Production wiring smoke test: registering the recorder via init() and
+	 * then firing the same hook the API class fires must populate the trace.
+	 * Catches drift between the recorder's hook subscriptions and the actual
+	 * action names used in includes/class-wc-stripe-api.php.
+	 */
+	public function test_init_subscribes_to_real_api_hooks() {
+		$this->recorder->init();
+		$this->recorder->start_session( 'wired' );
+
+		$response         = new stdClass();
+		$response->id     = 'pi_wired';
+		$response->status = 'succeeded';
+		do_action( 'wc_stripe_api_response_received', $response, 'payment_intents', 'POST', [ 'amount' => 1 ] );
+
+		$events = $this->store->get( 'wired' )['events'];
+		$this->assertNotEmpty( $events );
+		$this->assertSame( 'apiResponse', end( $events )['kind'] );
+
+		remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
+		remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
+		remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
+		remove_filter( 'wc_stripe_localized_data', [ $this->recorder, 'on_localized_data' ], 10 );
+	}
 }
