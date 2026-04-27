@@ -197,7 +197,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @since 10.7.0
 	 * @return bool True if the sync was rescheduled, false otherwise.
 	 */
-	public function reschedule_next_feed_sync(): bool {
+	public function reschedule_next_feed_sync( ?int $start_time = null ): bool {
 		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
 			return false;
 		}
@@ -205,7 +205,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		as_unschedule_all_actions( self::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( self::SCHEDULED_OPTION );
 
-		return $this->schedule_recurring_feed_sync( time() + $this->get_feed_sync_interval() );
+		$current_time  = time();
+		$sync_interval = $this->get_feed_sync_interval();
+		if ( null === $start_time || $start_time <= $current_time ) {
+			$start_time = $current_time + $sync_interval;
+		}
+
+		return $this->schedule_recurring_feed_sync( $start_time );
 	}
 
 	/**
