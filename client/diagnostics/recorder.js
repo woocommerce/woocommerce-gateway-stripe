@@ -100,11 +100,13 @@ export class Recorder {
 			} );
 		}
 		this.flush();
-		// If we got here, the synchronous sendBeacon was queued. Clear the
-		// persisted copy so the next boot does not double-send. If the tab
-		// is torn down BEFORE this line runs, the persisted copy survives
-		// and the next-boot replay path acts as the safety net.
-		if ( hadBuffer ) {
+		// Only clear the persisted copy if flush() actually drained the
+		// buffer. If sendBeacon refused (returned false), flush() preserves
+		// `this.buffer`, but on pagehide that in-memory buffer is useless —
+		// the page is unloading. Keeping the sessionStorage copy means the
+		// next-boot replay path can recover the events. If the tab is torn
+		// down BEFORE this line runs, the persisted copy also survives.
+		if ( hadBuffer && this.buffer.length === 0 ) {
 			const existing = readStoredState( storageKey );
 			if ( existing?.bufferedEvents ) {
 				const cleared = { ...existing };
