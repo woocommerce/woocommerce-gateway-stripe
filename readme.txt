@@ -148,7 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
-* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay, Link)
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
 * Dev - Use paratest in CI workflow for faster PHP test execution
 * Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
