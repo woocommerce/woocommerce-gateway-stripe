@@ -54,7 +54,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $expected_oc, string $expected_ap ): void {
 		if ( $marker_set ) {
-			update_option( 'wc_stripe_optimized_checkout_default_on', true );
+			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		}
 
 		$result                 = new stdClass();

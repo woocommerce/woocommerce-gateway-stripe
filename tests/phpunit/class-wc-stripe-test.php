@@ -249,7 +249,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$this->assertNotEmpty( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_amazon_pay_default_on' ) );
 	}
 
