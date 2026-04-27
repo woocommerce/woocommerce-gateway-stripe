@@ -295,6 +295,15 @@ export class Recorder {
 
 let _singleton = null;
 
+/**
+ * Lazily-constructed recorder singleton. Boots on first access, capturing
+ * `window.wcStripeDiag` once at boot time. Runtime mutations to that global
+ * (flipping `.active`, rotating `sessionId`, swapping `endpoint`, etc.) do
+ * NOT propagate to an already-booted recorder by design — config is a
+ * per-pageview snapshot. To pick up new config, reload the page.
+ *
+ * @return {Recorder} The booted singleton.
+ */
 export function getRecorder() {
 	if ( ! _singleton ) {
 		_singleton = new Recorder();
