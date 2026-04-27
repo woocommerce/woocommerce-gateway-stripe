@@ -257,8 +257,16 @@ export class Recorder {
 			diag_session_id: this.config.sessionId,
 			events: this.buffer,
 		} );
-		navigator.sendBeacon( buildIngestUrl( this.config ), payload );
-		this.buffer = [];
+		const queued = navigator.sendBeacon(
+			buildIngestUrl( this.config ),
+			payload
+		);
+		// sendBeacon returns false when the browser refuses
+		// Preserve the buffer so the next flush retries instead
+		// of silently dropping events.
+		if ( queued ) {
+			this.buffer = [];
+		}
 		this._clearIdleTimer();
 	}
 

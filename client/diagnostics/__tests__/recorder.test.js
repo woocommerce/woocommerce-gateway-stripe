@@ -104,6 +104,26 @@ describe( 'Recorder', () => {
 			expect( body.events[ 0 ].t ).toBeGreaterThanOrEqual( 0 );
 		} );
 
+		it( 'preserves the buffer when sendBeacon refuses the request (returns false), so the next flush retries instead of dropping events', () => {
+			sendBeaconSpy.mockReturnValueOnce( false );
+
+			const recorder = makeRecorder();
+			recorder.boot();
+			recorder.record( 'element.ready', { element_type: 'card' } );
+			recorder.flush();
+
+			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+			// Second flush should retry the same events; sendBeaconSpy now returns true.
+			recorder.flush();
+
+			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
+			const retryBody = JSON.parse( sendBeaconSpy.mock.calls[ 1 ][ 1 ] );
+			expect( retryBody.events.map( ( e ) => e.kind ) ).toEqual( [
+				'element.ready',
+			] );
+		} );
+
 		it( 'anchors t to a trace-start timestamp persisted across recorder boots within the same session', () => {
 			let mockTime = 1000;
 			const clock = () => mockTime;
