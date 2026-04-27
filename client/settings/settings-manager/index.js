@@ -7,6 +7,7 @@ import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
+import AgenticCommercePanel from '../agentic-commerce';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -30,7 +31,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS_CONTENT = [
+const BASE_TABS = [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -41,7 +42,18 @@ const TABS_CONTENT = [
 	},
 ];
 
+const AGENTIC_TAB = {
+	name: 'agentic-commerce',
+	title: __( 'Agentic Commerce', 'woocommerce-gateway-stripe' ),
+};
+
 const SettingsManager = () => {
+	const isAgenticCommerceEnabled =
+		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
+
+	const TABS_CONTENT = isAgenticCommerceEnabled
+		? [ ...BASE_TABS, AGENTIC_TAB ]
+		: BASE_TABS;
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
 	const { data } = useAccount();
@@ -117,6 +129,16 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
+	const getInitialTab = () => {
+		if ( panel === 'settings' ) {
+			return 'settings';
+		}
+		if ( panel === 'agentic-commerce' && isAgenticCommerceEnabled ) {
+			return 'agentic-commerce';
+		}
+		return 'methods';
+	};
+
 	return (
 		<SettingsLayout>
 			{ showExitSurvey && (
@@ -131,39 +153,54 @@ const SettingsManager = () => {
 			) }
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
-				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
+				initialTabName={ getInitialTab() }
 				tabs={ TABS_CONTENT }
 				onSelect={ updatePanelUri }
 			>
-				{ ( tab ) => (
-					<div data-testid={ `${ tab.name }-tab` }>
-						{ tab.name === 'settings' ? (
-							<PaymentSettingsPanel
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) : (
-							<PaymentMethodsPanel
-								onSaveChanges={ onSaveChanges }
-								showPromotionalBanner={ showPromotionalBanner }
-								setShowPromotionalBanner={
-									setShowPromotionalBanner
-								}
-								promotionalBannerType={ promotionalBannerType }
-								isOCEnabled={ isOCEnabled }
-								setIsOCEnabled={ setIsOCEnabled }
-							/>
-						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-						/>
-					</div>
-				) }
+				{ ( tab ) => {
+					const isAgenticTab = tab.name === 'agentic-commerce';
+					return (
+						<div data-testid={ `${ tab.name }-tab` }>
+							{ isAgenticTab && <AgenticCommercePanel /> }
+							{ tab.name === 'settings' && (
+								<PaymentSettingsPanel
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) }
+							{ tab.name === 'methods' && (
+								<PaymentMethodsPanel
+									onSaveChanges={ onSaveChanges }
+									showPromotionalBanner={
+										showPromotionalBanner
+									}
+									setShowPromotionalBanner={
+										setShowPromotionalBanner
+									}
+									promotionalBannerType={
+										promotionalBannerType
+									}
+									isOCEnabled={ isOCEnabled }
+									setIsOCEnabled={ setIsOCEnabled }
+								/>
+							) }
+							{ ! isAgenticTab && (
+								<SaveSettingsSection
+									onSettingsSave={ onSettingsSave }
+								/>
+							) }
+						</div>
+					);
+				} }
 			</StyledTabPanel>
 		</SettingsLayout>
 	);
