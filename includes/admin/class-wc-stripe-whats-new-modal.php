@@ -23,10 +23,11 @@ class WC_Stripe_Whats_New_Modal {
 	const PENDING_TRANSIENT = 'wc_stripe_whats_new_modal_pending';
 
 	/**
-	 * Option key recording the last version for which the user dismissed the
-	 * modal. Suppresses re-display for the same version.
+	 * User meta key recording the last version for which the current admin
+	 * dismissed the modal. Per-user so that one admin closing the modal does
+	 * not suppress it for everyone else on the site.
 	 */
-	const DISMISSED_OPTION = 'wc_stripe_whats_new_modal_dismissed_version';
+	const DISMISSED_USER_META = 'wc_stripe_whats_new_modal_dismissed_version';
 
 	/**
 	 * AJAX action used by the modal to persist dismissal.
@@ -107,7 +108,8 @@ class WC_Stripe_Whats_New_Modal {
 			return false;
 		}
 
-		if ( get_option( self::DISMISSED_OPTION ) === WC_STRIPE_VERSION ) {
+		$dismissed_version = get_user_meta( get_current_user_id(), self::DISMISSED_USER_META, true );
+		if ( WC_STRIPE_VERSION === $dismissed_version ) {
 			return false;
 		}
 
@@ -199,12 +201,15 @@ class WC_Stripe_Whats_New_Modal {
 	public function handle_dismiss() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( [ 'message' => 'forbidden' ], 403 );
+			return; // @phpstan-ignore-line — defensive return; wp_send_json_error always exits in production AJAX, but a non-throwing test die handler would otherwise fall through to check_ajax_referer.
 		}
 
 		check_ajax_referer( self::DISMISS_AJAX_ACTION, 'nonce' );
 
-		update_option( self::DISMISSED_OPTION, WC_STRIPE_VERSION, false );
-		delete_transient( self::PENDING_TRANSIENT );
+		// Per-user dismissal only. The site-wide PENDING_TRANSIENT is left in
+		// place so that other admins still see the modal once after the
+		// update; it will expire on its own.
+		update_user_meta( get_current_user_id(), self::DISMISSED_USER_META, WC_STRIPE_VERSION );
 
 		$dwell_ms = isset( $_POST['dwell_ms'] ) ? absint( wp_unslash( $_POST['dwell_ms'] ) ) : 0;
 		$source   = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
@@ -254,7 +259,7 @@ class WC_Stripe_Whats_New_Modal {
 	 * @return array<int, array{tag: string, text: string}>
 	 */
 	public function parse_changelog_for_version( string $version ): array {
-		$readme_path = WC_STRIPE_PLUGIN_PATH . '/readme.txt';
+		$readme_path = $this->get_readme_path();
 		if ( ! is_readable( $readme_path ) ) {
 			return [];
 		}
@@ -302,5 +307,15 @@ class WC_Stripe_Whats_New_Modal {
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Returns the absolute path to readme.txt. Overridable via subclass for
+	 * tests so the production parsing logic can be exercised against a fixture.
+	 *
+	 * @return string
+	 */
+	protected function get_readme_path(): string {
+		return WC_STRIPE_PLUGIN_PATH . '/readme.txt';
 	}
 }

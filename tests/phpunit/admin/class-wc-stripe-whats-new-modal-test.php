@@ -17,8 +17,53 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		delete_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT );
-		delete_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION );
+		$current_user = get_current_user_id();
+		if ( $current_user ) {
+			delete_user_meta( $current_user, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META );
+		}
 		parent::tear_down();
+	}
+
+	/**
+	 * Sets up the AJAX context so that wp_send_json_* paths throw
+	 * WPDieException instead of calling die() and killing the worker.
+	 */
+	private function set_up_ajax_context(): void {
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		add_filter(
+			'wp_die_ajax_handler',
+			static function () {
+				return static function ( $message ) {
+					throw new WPDieException( is_string( $message ) ? $message : '' );
+				};
+			}
+		);
+	}
+
+	/**
+	 * Removes the AJAX context filters set up by set_up_ajax_context().
+	 */
+	private function tear_down_ajax_context(): void {
+		remove_all_filters( 'wp_doing_ajax' );
+		remove_all_filters( 'wp_die_ajax_handler' );
+	}
+
+	/**
+	 * Builds a fixture-backed subject that exercises the production parsing
+	 * logic against a custom readme path via the protected seam.
+	 */
+	private function make_modal_with_readme( string $readme_path ): WC_Stripe_Whats_New_Modal {
+		return new class( $readme_path ) extends WC_Stripe_Whats_New_Modal {
+			private string $path;
+
+			public function __construct( string $path ) {
+				$this->path = $path;
+			}
+
+			protected function get_readme_path(): string {
+				return $this->path;
+			}
+		};
 	}
 
 	public function test_parse_changelog_returns_entries_for_current_version(): void {
@@ -42,150 +87,116 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 	}
 
 	public function test_parse_changelog_extracts_tagged_entries_from_fixture(): void {
-		$readme  = WC_STRIPE_PLUGIN_PATH . '/readme.txt';
-		$content = file_get_contents( $readme );
-		$this->assertNotFalse( $content );
-
-		// Ensure regex anchors and the line-prefix detection still match a
-		// realistic block. We synthesize a known version and write it into a
-		// throwaway readme.
-		$tmp_dir = sys_get_temp_dir() . '/wc-stripe-whats-new-' . wp_generate_password( 6, false );
-		mkdir( $tmp_dir );
+		$tmp_dir    = sys_get_temp_dir() . '/wc-stripe-whats-new-' . wp_generate_password( 6, false );
 		$tmp_readme = $tmp_dir . '/readme.txt';
-		file_put_contents(
-			$tmp_readme,
-			"== Changelog ==\n\n= 99.99.99 - 2099-01-01 =\n* Fix - First fix entry\n* Add - Brand new thing\n* Untagged plain entry\n\n= 99.99.98 - 2098-01-01 =\n* Fix - Older fix\n\n[See changelog](https://example.com)\n"
-		);
+		mkdir( $tmp_dir );
 
-		// Use reflection to invoke the parser against the fixture path by
-		// temporarily symlinking via a subclass override.
-		$test_subject                  = new class() extends WC_Stripe_Whats_New_Modal {
-			public string $readme_override = '';
+		try {
+			file_put_contents(
+				$tmp_readme,
+				"== Changelog ==\n\n= 99.99.99 - 2099-01-01 =\n* Fix - First fix entry\n* Add - Brand new thing\n* Untagged plain entry\n\n= 99.99.98 - 2098-01-01 =\n* Fix - Older fix\n\n[See changelog](https://example.com)\n"
+			);
 
-			public function parse_changelog_for_version( string $version ): array {
-				if ( '' !== $this->readme_override ) {
-					$contents = file_get_contents( $this->readme_override );
-					$pattern  = '/^=\s*' . preg_quote( $version, '/' ) . '\s*-[^=\r\n]*=\s*\R(?P<body>.*?)(?=^=\s*\d+\.\d+\.\d+\s*-|\[See changelog|\z)/ms';
-					if ( ! preg_match( $pattern, $contents, $matches ) ) {
-						return [];
-					}
-					$body  = trim( $matches['body'] );
-					$items = [];
-					foreach ( preg_split( '/\R/', $body ) as $line ) {
-						$line = trim( $line );
-						if ( '' === $line || '*' !== substr( $line, 0, 1 ) ) {
-							continue;
-						}
-						$line = ltrim( $line, "* \t" );
-						if ( preg_match( '/^([A-Za-z][A-Za-z ]*?)\s+-\s+(.+)$/', $line, $parts ) ) {
-							$items[] = [
-								'tag'  => trim( $parts[1] ),
-								'text' => trim( $parts[2] ),
-							];
-							continue;
-						}
-						$items[] = [
-							'tag'  => '',
-							'text' => $line,
-						];
-					}
-					return $items;
-				}
-				return parent::parse_changelog_for_version( $version );
+			$entries = $this->make_modal_with_readme( $tmp_readme )
+				->parse_changelog_for_version( '99.99.99' );
+
+			$this->assertCount( 3, $entries );
+			$this->assertSame( 'Fix', $entries[0]['tag'] );
+			$this->assertSame( 'First fix entry', $entries[0]['text'] );
+			$this->assertSame( 'Add', $entries[1]['tag'] );
+			$this->assertSame( 'Brand new thing', $entries[1]['text'] );
+			$this->assertSame( '', $entries[2]['tag'] );
+			$this->assertSame( 'Untagged plain entry', $entries[2]['text'] );
+		} finally {
+			if ( file_exists( $tmp_readme ) ) {
+				unlink( $tmp_readme );
 			}
-		};
-		$test_subject->readme_override = $tmp_readme;
-
-		$entries = $test_subject->parse_changelog_for_version( '99.99.99' );
-
-		$this->assertCount( 3, $entries );
-		$this->assertSame( 'Fix', $entries[0]['tag'] );
-		$this->assertSame( 'First fix entry', $entries[0]['text'] );
-		$this->assertSame( 'Add', $entries[1]['tag'] );
-		$this->assertSame( 'Brand new thing', $entries[1]['text'] );
-		$this->assertSame( '', $entries[2]['tag'] );
-		$this->assertSame( 'Untagged plain entry', $entries[2]['text'] );
-
-		unlink( $tmp_readme );
-		rmdir( $tmp_dir );
+			if ( is_dir( $tmp_dir ) ) {
+				rmdir( $tmp_dir );
+			}
+		}
 	}
 
-	public function test_standalone_update_with_single_plugin_sets_transient(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action'  => 'update',
-				'type'    => 'plugin',
-				'plugins' => [ plugin_basename( WC_STRIPE_MAIN_FILE ) ],
-			]
-		);
+	/**
+	 * @dataProvider provide_flag_standalone_update_cases
+	 */
+	public function test_maybe_flag_standalone_update( array $hook_extra, $expected_transient ): void {
+		$this->modal->maybe_flag_standalone_update( null, $hook_extra );
 
-		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
+		$this->assertSame(
+			$expected_transient,
+			get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT )
+		);
 	}
 
-	public function test_standalone_update_via_single_plugin_key_sets_transient(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action' => 'update',
-				'type'   => 'plugin',
-				'plugin' => plugin_basename( WC_STRIPE_MAIN_FILE ),
-			]
-		);
+	public function provide_flag_standalone_update_cases(): array {
+		$self = plugin_basename( WC_STRIPE_MAIN_FILE );
 
-		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
-	}
-
-	public function test_bulk_update_with_multiple_plugins_does_not_set_transient(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action'  => 'update',
-				'type'    => 'plugin',
-				'plugins' => [ plugin_basename( WC_STRIPE_MAIN_FILE ), 'some-other/plugin.php' ],
-			]
-		);
-
-		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
-	}
-
-	public function test_update_targeting_a_different_plugin_does_not_set_transient(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action'  => 'update',
-				'type'    => 'plugin',
-				'plugins' => [ 'some-other/plugin.php' ],
-			]
-		);
-
-		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
-	}
-
-	public function test_non_plugin_upgrade_event_is_ignored(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action' => 'update',
-				'type'   => 'theme',
-				'themes' => [ 'twentytwentyfour' ],
-			]
-		);
-
-		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
-	}
-
-	public function test_non_update_action_is_ignored(): void {
-		$this->modal->maybe_flag_standalone_update(
-			null,
-			[
-				'action' => 'install',
-				'type'   => 'plugin',
-				'plugin' => plugin_basename( WC_STRIPE_MAIN_FILE ),
-			]
-		);
-
-		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
+		return [
+			'single plugin via plugins list'  => [
+				[
+					'action'  => 'update',
+					'type'    => 'plugin',
+					'plugins' => [ $self ],
+				],
+				'1',
+			],
+			'single plugin via plugin key'    => [
+				[
+					'action' => 'update',
+					'type'   => 'plugin',
+					'plugin' => $self,
+				],
+				'1',
+			],
+			'bulk update with another plugin' => [
+				[
+					'action'  => 'update',
+					'type'    => 'plugin',
+					'plugins' => [ $self, 'some-other/plugin.php' ],
+				],
+				false,
+			],
+			'different plugin only'           => [
+				[
+					'action'  => 'update',
+					'type'    => 'plugin',
+					'plugins' => [ 'some-other/plugin.php' ],
+				],
+				false,
+			],
+			'theme upgrade ignored'           => [
+				[
+					'action' => 'update',
+					'type'   => 'theme',
+					'themes' => [ 'twentytwentyfour' ],
+				],
+				false,
+			],
+			'install action ignored'          => [
+				[
+					'action' => 'install',
+					'type'   => 'plugin',
+					'plugin' => $self,
+				],
+				false,
+			],
+			'empty plugins array ignored'     => [
+				[
+					'action'  => 'update',
+					'type'    => 'plugin',
+					'plugins' => [],
+				],
+				false,
+			],
+			'missing action ignored'          => [
+				[
+					'type'   => 'plugin',
+					'plugin' => $self,
+				],
+				false,
+			],
+		];
 	}
 
 	public function test_should_display_requires_pending_transient(): void {
@@ -196,12 +207,24 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->modal->should_display() );
 	}
 
-	public function test_should_display_returns_false_when_dismissed_for_current_version(): void {
-		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+	public function test_should_display_returns_false_when_user_dismissed_current_version(): void {
+		$user_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $user_id );
 		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
-		update_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION, WC_STRIPE_VERSION );
+		update_user_meta( $user_id, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META, WC_STRIPE_VERSION );
 
 		$this->assertFalse( $this->modal->should_display() );
+	}
+
+	public function test_should_display_returns_true_when_a_different_user_dismissed(): void {
+		$dismissing_user = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		update_user_meta( $dismissing_user, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META, WC_STRIPE_VERSION );
+
+		$other_user = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $other_user );
+		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
+
+		$this->assertTrue( $this->modal->should_display() );
 	}
 
 	public function test_should_display_respects_disable_filter(): void {
@@ -223,8 +246,11 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->modal->should_display() );
 	}
 
-	public function test_handle_dismiss_updates_option_and_clears_transient(): void {
-		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+	public function test_handle_dismiss_records_user_meta_and_leaves_transient(): void {
+		$this->set_up_ajax_context();
+
+		$user_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $user_id );
 		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
 
 		$_POST['nonce']    = wp_create_nonce( WC_Stripe_Whats_New_Modal::DISMISS_AJAX_ACTION );
@@ -232,31 +258,47 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$_POST['source']   = 'primary_button';
 
 		try {
-			$this->modal->handle_dismiss();
-			$this->fail( 'wp_send_json_success should terminate via WPDieException.' );
-		} catch ( WPDieException $exception ) {
-			unset( $exception );
+			ob_start();
+			try {
+				$this->modal->handle_dismiss();
+				$this->fail( 'wp_send_json_success should terminate via WPDieException.' );
+			} catch ( WPDieException $exception ) {
+				unset( $exception );
+			}
+			ob_end_clean();
 		} finally {
 			unset( $_POST['nonce'], $_POST['dwell_ms'], $_POST['source'] );
+			$this->tear_down_ajax_context();
 		}
 
 		$this->assertSame(
 			WC_STRIPE_VERSION,
-			get_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION )
+			get_user_meta( $user_id, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META, true )
 		);
-		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
+		// Transient is intentionally left in place so other admins still see
+		// the modal once after the update.
+		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 	}
 
 	public function test_handle_dismiss_rejects_unauthorized_user(): void {
-		wp_set_current_user( $this->factory->user->create( [ 'role' => 'subscriber' ] ) );
+		$this->set_up_ajax_context();
+
+		$user_id = $this->factory->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $user_id );
 
 		try {
-			$this->modal->handle_dismiss();
-			$this->fail( 'wp_send_json_error should terminate via WPDieException.' );
-		} catch ( WPDieException $exception ) {
-			unset( $exception );
+			ob_start();
+			try {
+				$this->modal->handle_dismiss();
+				$this->fail( 'wp_send_json_error should terminate via WPDieException.' );
+			} catch ( WPDieException $exception ) {
+				unset( $exception );
+			}
+			ob_end_clean();
+		} finally {
+			$this->tear_down_ajax_context();
 		}
 
-		$this->assertFalse( get_option( WC_Stripe_Whats_New_Modal::DISMISSED_OPTION ) );
+		$this->assertSame( '', get_user_meta( $user_id, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META, true ) );
 	}
 }
