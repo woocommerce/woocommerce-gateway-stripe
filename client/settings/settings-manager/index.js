@@ -133,11 +133,9 @@ const SettingsManager = () => {
 		if ( panel === 'settings' ) {
 			return 'settings';
 		}
-
 		if ( panel === 'agentic-commerce' && isAgenticCommerceEnabled ) {
 			return 'agentic-commerce';
 		}
-
 		return 'methods';
 	};
 

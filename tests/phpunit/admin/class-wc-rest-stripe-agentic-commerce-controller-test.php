@@ -81,7 +81,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
 		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::WEBHOOK_SECRET_OPTION );
-		delete_option( WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION );
+		// Controller's SYNC_LOCK_OPTION is private; keep the literal in sync by hand if it is renamed.
+		delete_option( 'wc_stripe_agentic_sync_lock' );
 		delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
@@ -692,7 +693,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET /status refreshes entries with non-terminal statuses like queued and validating.
+	 * GET /status refreshes entries with non-terminal statuses (queued, validating,
+	 * pending, creating_records, unknown).
 	 *
 	 * @dataProvider provide_non_terminal_statuses
 	 */
@@ -746,9 +748,11 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_non_terminal_statuses(): array {
 		return [
-			'pending'    => [ 'pending' ],
-			'queued'     => [ 'queued' ],
-			'validating' => [ 'validating' ],
+			'queued'           => [ 'queued' ],
+			'validating'       => [ 'validating' ],
+			'pending'          => [ 'pending' ],
+			'creating_records' => [ 'creating_records' ],
+			'unknown'          => [ 'unknown' ],
 		];
 	}
 
@@ -899,8 +903,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function test_trigger_sync_returns_409_when_locked(): void {
 		// Seed the lock option with a fresh timestamp so acquire_sync_lock() treats it as active.
+		// Controller's SYNC_LOCK_OPTION is private; keep the literal in sync by hand if it is renamed.
 		update_option(
-			WC_REST_Stripe_Agentic_Commerce_Controller::SYNC_LOCK_OPTION,
+			'wc_stripe_agentic_sync_lock',
 			time(),
 			false
 		);

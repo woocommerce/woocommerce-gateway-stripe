@@ -28,7 +28,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var string
 	 * @since 10.7.0
 	 */
-	const SYNC_LOCK_OPTION = 'wc_stripe_agentic_sync_lock';
+	private const SYNC_LOCK_OPTION = 'wc_stripe_agentic_sync_lock';
 
 	/**
 	 * Maximum age in seconds before a sync lock is considered stale.
@@ -36,7 +36,22 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var int
 	 * @since 10.7.0
 	 */
-	const SYNC_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
+	private const SYNC_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
+	 * ImportSet statuses that are non-terminal and should be re-polled.
+	 *
+	 * Stripe advances an ImportSet through `queued` → `validating` →
+	 * `pending` → `creating_records` → one of the terminal states
+	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
+	 * non-terminal state get refreshed on dashboard load. `unknown` is also
+	 * refreshed so rows persisted before the creation response included a
+	 * status eventually resolve.
+	 *
+	 * @since 10.7.0
+	 * @var string[]
+	 */
+	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
 
 	/**
 	 * Endpoint path.
@@ -137,7 +152,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 */
 	public function get_status() {
 		if ( ! $this->is_available() ) {
-			return $this->unavailable_error();
+			return $this->get_unavailable_error();
 		}
 
 		// Refresh any pending entries from Stripe before reading.
@@ -180,7 +195,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 */
 	public function trigger_sync() {
 		if ( ! $this->is_available() ) {
-			return $this->unavailable_error();
+			return $this->get_unavailable_error();
 		}
 
 		if ( ! $this->acquire_sync_lock() ) {
@@ -211,10 +226,25 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			// Reset the automatic sync window so the next scheduled run starts
 			// from now, rather than running again shortly after a manual sync.
 			if ( function_exists( 'as_unschedule_action' ) && function_exists( 'as_schedule_recurring_action' ) ) {
+				/**
+				 * Filter the recurring sync interval (in seconds) used when the
+				 * next scheduled action is rebuilt after a manual sync.
+				 *
+				 * @since 10.7.0
+				 * @param int $sync_interval Default sync interval in seconds.
+				 */
+				$sync_interval = apply_filters(
+					'wc_stripe_agentic_commerce_feed_sync_interval',
+					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL
+				);
+				if ( ! is_int( $sync_interval ) || $sync_interval <= 0 ) {
+					$sync_interval = WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL;
+				}
+
 				as_unschedule_action( WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 				as_schedule_recurring_action(
-					time() + WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
-					WC_Stripe_Agentic_Commerce_Integration::SYNC_INTERVAL,
+					time() + $sync_interval,
+					$sync_interval,
 					WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION,
 					[],
 					'wc-stripe'
@@ -279,19 +309,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	}
 
 	/**
-	 * ImportSet statuses that are non-terminal and should be re-polled.
-	 *
-	 * Stripe advances an ImportSet through `queued` → `validating` →
-	 * `pending` → `creating_records` → one of the terminal states
-	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
-	 * non-terminal state get refreshed on dashboard load.
-	 *
-	 * @since 10.7.0
-	 * @var string[]
-	 */
-	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records' ];
-
-	/**
 	 * Refresh any non-terminal sync entries by polling Stripe for their current status.
 	 *
 	 * Called lazily when the status endpoint is read. Entries in any status
@@ -314,6 +331,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		$status_updates = [];
+		$delivery       = null;
 
 		foreach ( $history as $entry ) {
 			$current_status = $entry['status'] ?? '';
@@ -327,7 +345,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			}
 
 			try {
-				$delivery   = $this->create_delivery();
+				$delivery   = $delivery ?? $this->create_delivery();
 				$import_set = $delivery->get_import_set( $import_set_id );
 				$new_status = $import_set['status'] ?? $current_status;
 
@@ -402,7 +420,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @since 10.7.0
 	 * @return WP_Error
 	 */
-	private function unavailable_error(): WP_Error {
+	private function get_unavailable_error(): WP_Error {
 		return new WP_Error(
 			'stripe_agentic_commerce_unavailable',
 			__( 'Agentic Commerce integration is not available.', 'woocommerce-gateway-stripe' ),

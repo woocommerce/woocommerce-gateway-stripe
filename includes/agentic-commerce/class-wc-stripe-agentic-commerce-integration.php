@@ -73,6 +73,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the last sync result.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_last_sync()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */
@@ -81,6 +83,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the sync history.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_sync_history()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */
@@ -466,10 +470,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 *
 	 * Re-reads the current history at write time and applies the updates to
 	 * matching entries whose stored status is non-terminal (`queued`,
-	 * `validating`, `pending`, or `creating_records`), so any entries appended
-	 * concurrently by {@see self::store_sync_result()} between read and write
-	 * (for example during a Stripe API round-trip in the dashboard refresh
-	 * flow) are preserved.
+	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * the controller's
+	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
+	 * This preserves any entries appended concurrently by
+	 * {@see self::store_sync_result()} between read and write (for example
+	 * during a Stripe API round-trip in the dashboard refresh flow).
 	 *
 	 * @since 10.7.0
 	 * @param array<string, string> $status_updates Map of import_set_id to new status.
@@ -480,7 +486,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;
