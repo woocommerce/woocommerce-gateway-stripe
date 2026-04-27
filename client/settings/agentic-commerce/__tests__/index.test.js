@@ -393,4 +393,83 @@ describe( 'AgenticCommercePanel', () => {
 			screen.queryByText( /No sync history available/i )
 		).not.toBeInTheDocument();
 	} );
+
+	// -------------------------------------------------------------------------
+	// Auto-refresh while sync is in progress
+	// -------------------------------------------------------------------------
+
+	describe( 'auto-refresh while sync is in progress', () => {
+		// Use a tiny poll interval so the test can wait on real timers without
+		// pulling in fake-timer plumbing. The component accepts pollIntervalMs
+		// as a prop precisely to keep this lightweight.
+		const TEST_POLL_INTERVAL_MS = 25;
+
+		it( 'polls /status while last sync is in a non-terminal state and stops once terminal', async () => {
+			const inProgress = makeResponse( {
+				last_sync: {
+					...LAST_SYNC_SUCCESS,
+					status: 'creating_records',
+				},
+			} );
+			const terminal = makeResponse();
+
+			apiFetch
+				.mockResolvedValueOnce( inProgress ) // initial mount
+				.mockResolvedValueOnce( inProgress ) // poll 1
+				.mockResolvedValueOnce( terminal ) // poll 2 → terminal
+				.mockResolvedValue( terminal ); // any extra polls
+
+			render(
+				<AgenticCommercePanel
+					pollIntervalMs={ TEST_POLL_INTERVAL_MS }
+				/>
+			);
+
+			// Wait until the dashboard has actually polled at least once
+			// past its initial mount fetch — proves polling is active.
+			await waitFor( () => {
+				expect( apiFetch.mock.calls.length ).toBeGreaterThanOrEqual(
+					2
+				);
+			} );
+
+			// Wait until the terminal response has been consumed (third call).
+			await waitFor( () => {
+				expect( apiFetch.mock.calls.length ).toBeGreaterThanOrEqual(
+					3
+				);
+			} );
+
+			// After the terminal response, polling should stop. Capture the
+			// current count and confirm it doesn't grow over several intervals.
+			const callsAfterTerminal = apiFetch.mock.calls.length;
+			await new Promise( ( resolve ) =>
+				setTimeout( resolve, TEST_POLL_INTERVAL_MS * 6 )
+			);
+			expect( apiFetch ).toHaveBeenCalledTimes( callsAfterTerminal );
+		} );
+
+		it( 'does not poll when last sync is already in a terminal state', async () => {
+			apiFetch.mockResolvedValueOnce( makeResponse() );
+
+			render(
+				<AgenticCommercePanel
+					pollIntervalMs={ TEST_POLL_INTERVAL_MS }
+				/>
+			);
+
+			// Wait for the initial fetch to settle. We can't simply
+			// look for "Success" text because @wordpress/components Notice
+			// retains text from prior tests in its a11y-speak region.
+			await waitFor( () => {
+				expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+			} );
+
+			// Wait several polling intervals — terminal state must not poll.
+			await new Promise( ( resolve ) =>
+				setTimeout( resolve, TEST_POLL_INTERVAL_MS * 6 )
+			);
+			expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		} );
+	} );
 } );

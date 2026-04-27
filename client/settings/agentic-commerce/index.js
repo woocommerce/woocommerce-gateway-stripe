@@ -16,6 +16,16 @@ import {
 // slow run without triggering a false positive on every refresh.
 const OVERDUE_WARNING_THRESHOLD_SECONDS = 10 * 60;
 
+// Mirrors WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES.
+// While the latest sync is in any of these states, the backend continues to
+// poll Stripe for a terminal result — so we mirror that on the dashboard to
+// avoid forcing a manual page reload.
+const NON_TERMINAL_SYNC_STATUSES = [ 'pending', 'creating_records', 'unknown' ];
+
+// 10s balances dashboard responsiveness against the per-poll Stripe API
+// round-trips the backend issues during refresh.
+const SYNC_POLL_INTERVAL_MS = 10 * 1000;
+
 const CardTitle = styled.h2`
 	margin: 0;
 	font-size: 14px;
@@ -79,6 +89,10 @@ const Actions = styled.div`
 
 const HistoryCard = styled( Card )`
 	margin-top: 16px;
+`;
+
+const StyledNotice = styled( Notice )`
+	margin: 0 0 16px 0;
 `;
 
 const HistoryTable = styled.table`
@@ -183,15 +197,19 @@ const humanTimeDiff = ( timestamp ) => {
 	);
 };
 
-const AgenticCommercePanel = () => {
+const AgenticCommercePanel = ( {
+	pollIntervalMs = SYNC_POLL_INTERVAL_MS,
+} = {} ) => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSyncing, setIsSyncing ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
 	const [ loadError, setLoadError ] = useState( false );
 
-	const fetchStatus = useCallback( async () => {
-		setIsLoading( true );
+	const fetchStatus = useCallback( async ( { background = false } = {} ) => {
+		if ( ! background ) {
+			setIsLoading( true );
+		}
 		try {
 			const result = await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/status',
@@ -199,6 +217,12 @@ const AgenticCommercePanel = () => {
 			setData( result );
 			setLoadError( false );
 		} catch ( err ) {
+			// Background polls only update on success; surfacing transient
+			// errors here would replace the user-visible "Sync triggered"
+			// notice with a generic load-failure one.
+			if ( background ) {
+				return;
+			}
 			setLoadError( true );
 			setNotice( {
 				status: 'error',
@@ -210,13 +234,31 @@ const AgenticCommercePanel = () => {
 					),
 			} );
 		} finally {
-			setIsLoading( false );
+			if ( ! background ) {
+				setIsLoading( false );
+			}
 		}
 	}, [] );
 
 	useEffect( () => {
 		fetchStatus();
 	}, [ fetchStatus ] );
+
+	const lastSyncStatus = data?.last_sync?.status;
+	const isSyncInProgress =
+		!! lastSyncStatus &&
+		NON_TERMINAL_SYNC_STATUSES.includes( lastSyncStatus );
+
+	useEffect( () => {
+		if ( ! isSyncInProgress ) {
+			return;
+		}
+		const id = setInterval(
+			() => fetchStatus( { background: true } ),
+			pollIntervalMs
+		);
+		return () => clearInterval( id );
+	}, [ isSyncInProgress, fetchStatus, pollIntervalMs ] );
 
 	const handleSync = async () => {
 		setIsSyncing( true );
@@ -317,17 +359,17 @@ const AgenticCommercePanel = () => {
 			</p>
 
 			{ notice && (
-				<Notice
+				<StyledNotice
 					status={ notice.status }
 					onRemove={ () => setNotice( null ) }
 					isDismissible
 				>
 					{ notice.message }
-				</Notice>
+				</StyledNotice>
 			) }
 
 			{ isNextSyncOverdue && (
-				<Notice status="warning" isDismissible={ false }>
+				<StyledNotice status="warning" isDismissible={ false }>
 					{ sprintf(
 						/* translators: %d: number of minutes the scheduled sync is overdue. */
 						_n(
@@ -338,7 +380,7 @@ const AgenticCommercePanel = () => {
 						),
 						overdueMinutes
 					) }
-				</Notice>
+				</StyledNotice>
 			) }
 
 			<Card>
