@@ -133,10 +133,13 @@ class WC_Stripe_Diagnostics_Trace_Store {
 	 */
 	public function set_status( $session_id, $status ) {
 		$session_id = self::sanitize_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
 		if ( ! in_array( $status, [ self::STATUS_COMPLETED, self::STATUS_ABANDONED ], true ) ) {
 			return false;
 		}
-		if ( '' === $session_id || ! $this->ensure_storage_dir() ) {
+		if ( ! $this->ensure_storage_dir() ) {
 			return false;
 		}
 
