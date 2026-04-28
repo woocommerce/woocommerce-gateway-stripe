@@ -98,6 +98,8 @@ The changes in this pull request can be previewed and tested using a [WordPress 
 
 [Test this pull request with WordPress Playground](${ url }).
 
+**Scope:** Playground runs PHP in a browser WASM sandbox, so outbound calls to \`api.stripe.com\` are subject to browser CORS. In practice, account connection, payment-method listing, checkout against Stripe, and webhook delivery will not work end-to-end here. Use the preview to review admin UI, settings shape, and install/activation flow; use a real local environment (\`npm run up\`) for anything that needs to talk to Stripe.
+
 Note that this URL is valid for 30 days from when this comment was last updated. You can update it by closing/reopening the PR or pushing a new commit.
 `;
 
