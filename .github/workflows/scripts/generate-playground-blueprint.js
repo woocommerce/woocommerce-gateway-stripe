@@ -105,9 +105,16 @@ async function run( { github, context, core } ) {
 		devToolsAvailable
 	);
 
-	const url = `https://playground.wordpress.net/#${ JSON.stringify(
-		blueprint
-	) }`;
+	// Base64-encode the blueprint so paren-, bracket-, and quote-containing
+	// payloads (e.g. PHP source written via the writeFile step) don't break
+	// the [text](url) Markdown link in the sticky PR comment. Playground's
+	// fragment parser accepts both raw JSON and base64; base64 is the
+	// recommended encoding when payloads contain special characters.
+	const blueprintBase64 = Buffer.from(
+		JSON.stringify( blueprint ),
+		'utf8'
+	).toString( 'base64' );
+	const url = `https://playground.wordpress.net/#${ blueprintBase64 }`;
 
 	const body = `## Test using WordPress Playground
 The changes in this pull request can be previewed and tested using a [WordPress Playground](https://developer.wordpress.org/playground/) instance.
