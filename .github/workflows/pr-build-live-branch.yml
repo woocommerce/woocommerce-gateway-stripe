@@ -16,6 +16,7 @@ on:
             - '.github/**'
             - '!.github/workflows/pr-build-live-branch.yml'
             - '!.github/workflows/scripts/generate-playground-blueprint.js'
+            - '!.github/workflows/scripts/playground-mu-plugins/**'
             - '**/tests/**'
             - 'docker/**'
             - '*.md'

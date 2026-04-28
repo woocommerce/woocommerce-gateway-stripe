@@ -1,5 +1,21 @@
+const fs = require( 'fs' );
+const path = require( 'path' );
+
+const stripeCorsMuPlugin = fs.readFileSync(
+	path.join( __dirname, 'playground-mu-plugins/stripe-cors-headers.php' ),
+	'utf8'
+);
+
 const generatePlaygroundBlueprint = ( runId, prNumber, devToolsAvailable ) => {
 	const steps = [
+		{
+			/* Playground's CORS proxy strips Authorization headers by default.
+			This mu-plugin opts Stripe's auth headers through the proxy so
+			account retrieval and payment-method listing work in the sandbox. */
+			step: 'writeFile',
+			path: '/wordpress/wp-content/mu-plugins/stripe-cors-headers.php',
+			data: stripeCorsMuPlugin,
+		},
 		{
 			step: 'installPlugin',
 			pluginData: {
@@ -98,7 +114,7 @@ The changes in this pull request can be previewed and tested using a [WordPress 
 
 [Test this pull request with WordPress Playground](${ url }).
 
-**Scope:** Playground runs PHP in a browser WASM sandbox, so outbound calls to \`api.stripe.com\` are subject to browser CORS. In practice, account connection, payment-method listing, checkout against Stripe, and webhook delivery will not work end-to-end here. Use the preview to review admin UI, settings shape, and install/activation flow; use a real local environment (\`npm run up\`) for anything that needs to talk to Stripe.
+**Scope:** Playground runs PHP in a browser WASM sandbox. Outbound calls to \`api.stripe.com\` are routed through Playground's CORS proxy, which the bundled mu-plugin opts the Stripe \`Authorization\` header through — so account connect, payment-method listing, and checkout requests should work. Webhook delivery still won't (no inbound HTTP into the sandbox); for anything webhook-driven, use a real local environment (\`npm run up\`).
 
 Note that this URL is valid for 30 days from when this comment was last updated. You can update it by closing/reopening the PR or pushing a new commit.
 `;
