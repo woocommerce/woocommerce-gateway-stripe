@@ -38,7 +38,7 @@ export class Recorder {
 		// Replay any buffer left over from a prior pageload (e.g. 3DS redirect)
 		// then clear it from sessionStorage to prevent a second replay on the next boot.
 		if ( persisted?.bufferedEvents?.length ) {
-			const payload = JSON.stringify( {
+			const payload = buildIngestBlob( {
 				diag_session_id: this.config.sessionId,
 				events: persisted.bufferedEvents,
 			} );
@@ -255,7 +255,7 @@ export class Recorder {
 		if ( ! this.config?.active || this.buffer.length === 0 ) {
 			return;
 		}
-		const payload = JSON.stringify( {
+		const payload = buildIngestBlob( {
 			diag_session_id: this.config.sessionId,
 			events: this.buffer,
 		} );
@@ -312,6 +312,15 @@ export function getRecorder() {
 		_singleton.boot();
 	}
 	return _singleton;
+}
+
+// Wrap the JSON payload in a Blob so sendBeacon sets Content-Type to
+// application/json. Without this, sendBeacon defaults to text/plain and
+// WP's REST server skips JSON body parsing.
+function buildIngestBlob( payload ) {
+	return new Blob( [ JSON.stringify( payload ) ], {
+		type: 'application/json',
+	} );
 }
 
 function buildIngestUrl( config ) {

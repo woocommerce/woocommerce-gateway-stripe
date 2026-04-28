@@ -10,6 +10,21 @@ describe( 'Recorder', () => {
 		return recorder;
 	}
 
+	// sendBeacon is now invoked with a Blob (so the request goes out as
+	// application/json). Tests previously read mock.calls[i][1] as a string;
+	// route those reads through this helper instead. Uses FileReader since
+	// the older jsdom in this repo's Jest config exposes neither
+	// `Blob.prototype.text()` nor `Response`.
+	function readBeaconBody( call ) {
+		const blob = call[ 1 ];
+		return new Promise( ( resolve, reject ) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve( JSON.parse( reader.result ) );
+			reader.onerror = () => reject( reader.error );
+			reader.readAsText( blob );
+		} );
+	}
+
 	beforeEach( () => {
 		sendBeaconSpy = jest.fn().mockReturnValue( true );
 		Object.defineProperty( navigator, 'sendBeacon', {
@@ -84,13 +99,13 @@ describe( 'Recorder', () => {
 			);
 		} );
 
-		it( 'sends a body with diag_session_id and events shaped per contract', () => {
+		it( 'sends a body with diag_session_id and events shaped per contract', async () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
 			recorder.flush();
 
-			const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+			const body = await readBeaconBody( sendBeaconSpy.mock.calls[ 0 ] );
 			expect( body ).toEqual( {
 				diag_session_id: '550e8400-e29b-41d4-a716-446655440000',
 				events: [
@@ -104,7 +119,18 @@ describe( 'Recorder', () => {
 			expect( body.events[ 0 ].t ).toBeGreaterThanOrEqual( 0 );
 		} );
 
-		it( 'preserves the buffer when sendBeacon refuses the request (returns false), so the next flush retries instead of dropping events', () => {
+		it( 'uses a Blob with type application/json so WP auto-parses the body', () => {
+			const recorder = makeRecorder();
+			recorder.boot();
+			recorder.record( 'element.ready', { element_type: 'card' } );
+			recorder.flush();
+
+			const sentBody = sendBeaconSpy.mock.calls[ 0 ][ 1 ];
+			expect( sentBody ).toBeInstanceOf( Blob );
+			expect( sentBody.type ).toBe( 'application/json' );
+		} );
+
+		it( 'preserves the buffer when sendBeacon refuses the request (returns false), so the next flush retries instead of dropping events', async () => {
 			sendBeaconSpy.mockReturnValueOnce( false );
 
 			const recorder = makeRecorder();
@@ -118,13 +144,15 @@ describe( 'Recorder', () => {
 			recorder.flush();
 
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
-			const retryBody = JSON.parse( sendBeaconSpy.mock.calls[ 1 ][ 1 ] );
+			const retryBody = await readBeaconBody(
+				sendBeaconSpy.mock.calls[ 1 ]
+			);
 			expect( retryBody.events.map( ( e ) => e.kind ) ).toEqual( [
 				'element.ready',
 			] );
 		} );
 
-		it( 'anchors t to a trace-start timestamp persisted across recorder boots within the same session', () => {
+		it( 'anchors t to a trace-start timestamp persisted across recorder boots within the same session', async () => {
 			let mockTime = 1000;
 			const clock = () => mockTime;
 
@@ -143,8 +171,8 @@ describe( 'Recorder', () => {
 			r2.record( 'element.change', { element_type: 'card' } );
 			r2.flush();
 
-			const body1 = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
-			const body2 = JSON.parse( sendBeaconSpy.mock.calls[ 1 ][ 1 ] );
+			const body1 = await readBeaconBody( sendBeaconSpy.mock.calls[ 0 ] );
+			const body2 = await readBeaconBody( sendBeaconSpy.mock.calls[ 1 ] );
 
 			// First event sits at the trace start.
 			expect( body1.events[ 0 ].t ).toBe( 0 );
@@ -179,7 +207,7 @@ describe( 'Recorder', () => {
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
 		} );
 
-		it( 'resets the idle timer each time record() is called', () => {
+		it( 'resets the idle timer each time record() is called', async () => {
 			const cleared = [];
 			let nextId = 1;
 			let scheduledFn = null;
@@ -205,7 +233,7 @@ describe( 'Recorder', () => {
 			scheduledFn();
 
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
-			const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+			const body = await readBeaconBody( sendBeaconSpy.mock.calls[ 0 ] );
 			expect( body.events ).toHaveLength( 2 );
 		} );
 
@@ -219,7 +247,7 @@ describe( 'Recorder', () => {
 			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
 		} );
 
-		it( 'assigns monotonically non-decreasing t to recorded events', () => {
+		it( 'assigns monotonically non-decreasing t to recorded events', async () => {
 			const recorder = makeRecorder();
 			recorder.boot();
 			recorder.record( 'element.ready', { element_type: 'card' } );
@@ -227,7 +255,7 @@ describe( 'Recorder', () => {
 			recorder.record( 'element.focus', { element_type: 'card' } );
 			recorder.flush();
 
-			const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+			const body = await readBeaconBody( sendBeaconSpy.mock.calls[ 0 ] );
 			expect( body.events ).toHaveLength( 3 );
 			expect( body.events[ 0 ].t ).toBeLessThanOrEqual(
 				body.events[ 1 ].t
@@ -248,7 +276,7 @@ describe( 'Recorder', () => {
 				};
 			}
 
-			it( 'records element.ready with element_type when the Stripe Element fires ready', () => {
+			it( 'records element.ready with element_type when the Stripe Element fires ready', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -257,7 +285,9 @@ describe( 'Recorder', () => {
 				element.emit( 'ready' );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events ).toEqual( [
 					expect.objectContaining( {
 						kind: 'element.ready',
@@ -266,7 +296,7 @@ describe( 'Recorder', () => {
 				] );
 			} );
 
-			it( 'attachAfterReady records a synthetic element.ready (the underlying ready event has already fired)', () => {
+			it( 'attachAfterReady records a synthetic element.ready (the underlying ready event has already fired)', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -276,14 +306,16 @@ describe( 'Recorder', () => {
 				// point is that Stripe has already fired ready before we attach.
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ] ).toMatchObject( {
 					kind: 'element.ready',
 					data: { element_type: 'payment' },
 				} );
 			} );
 
-			it( 'attachAfterReady still subscribes to lifecycle events that fire later (focus/blur/change/loaderror)', () => {
+			it( 'attachAfterReady still subscribes to lifecycle events that fire later (focus/blur/change/loaderror)', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -293,7 +325,9 @@ describe( 'Recorder', () => {
 				element.emit( 'blur' );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
 					'element.ready', // synthetic
 					'element.focus',
@@ -301,7 +335,7 @@ describe( 'Recorder', () => {
 				] );
 			} );
 
-			it( 'records element.focus and element.blur with element_type', () => {
+			it( 'records element.focus and element.blur with element_type', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -311,7 +345,9 @@ describe( 'Recorder', () => {
 				element.emit( 'blur' );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
 					'element.focus',
 					'element.blur',
@@ -324,7 +360,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records element.loaderror with element_type and the projected error fields', () => {
+			it( 'records element.loaderror with element_type and the projected error fields', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -340,7 +376,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ] ).toMatchObject( {
 					kind: 'element.loaderror',
 					data: {
@@ -352,7 +390,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records element.change with the contract-allowed projection of the Stripe payload', () => {
+			it( 'records element.change with the contract-allowed projection of the Stripe payload', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const element = makeFakeElement();
@@ -375,7 +413,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events ).toHaveLength( 1 );
 				expect( body.events[ 0 ].kind ).toBe( 'element.change' );
 				expect( body.events[ 0 ].data ).toEqual( {
@@ -391,7 +431,7 @@ describe( 'Recorder', () => {
 		} );
 
 		describe( 'recordBlocksPaymentSetupStart / End', () => {
-			it( 'records start and end events with site, duration_ms, and result_type for a successful payment setup', () => {
+			it( 'records start and end events with site, duration_ms, and result_type for a successful payment setup', async () => {
 				let mockTime = 1000;
 				const clock = () => mockTime;
 				const recorder = makeRecorder( { now: clock } );
@@ -407,7 +447,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
 					'blocks.payment_setup.start',
 					'blocks.payment_setup.end',
@@ -423,7 +465,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records error_message on end when the result carries one', () => {
+			it( 'records error_message on end when the result carries one', async () => {
 				let mockTime = 0;
 				const clock = () => mockTime;
 				const recorder = makeRecorder( { now: clock } );
@@ -440,7 +482,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				const endEvent = body.events.find(
 					( e ) => e.kind === 'blocks.payment_setup.end'
 				);
@@ -464,7 +508,7 @@ describe( 'Recorder', () => {
 				};
 			}
 
-			it( 'records paymentmethod with wallet_type and payment_method_type', () => {
+			it( 'records paymentmethod with wallet_type and payment_method_type', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const eceButton = makeFakeEce();
@@ -483,7 +527,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe( 'express.paymentmethod' );
 				expect( body.events[ 0 ].data ).toEqual( {
 					wallet_type: 'link',
@@ -491,7 +537,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records shippingaddresschange with wallet_type and country (drops other address fields)', () => {
+			it( 'records shippingaddresschange with wallet_type and country (drops other address fields)', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const eceButton = makeFakeEce();
@@ -508,7 +554,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe(
 					'express.shippingaddresschange'
 				);
@@ -518,7 +566,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records click, confirm, cancel, and shippingratechange with wallet_type', () => {
+			it( 'records click, confirm, cancel, and shippingratechange with wallet_type', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 				const eceButton = makeFakeEce();
@@ -536,7 +584,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
 					'express.click',
 					'express.confirm',
@@ -550,7 +600,7 @@ describe( 'Recorder', () => {
 		} );
 
 		describe( 'recordExpressEvent() — call-site capture for the Blocks ECE React component', () => {
-			it( 'records click, cancel, and shippingratechange with wallet_type', () => {
+			it( 'records click, cancel, and shippingratechange with wallet_type', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -565,7 +615,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events.map( ( e ) => e.kind ) ).toEqual( [
 					'express.click',
 					'express.cancel',
@@ -576,7 +628,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records shippingaddresschange with wallet_type and country, dropping other address fields', () => {
+			it( 'records shippingaddresschange with wallet_type and country, dropping other address fields', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -591,7 +643,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe(
 					'express.shippingaddresschange'
 				);
@@ -601,7 +655,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records confirm with wallet_type and payment_method_type when paymentMethod is present (Blocks merges paymentmethod into onConfirm)', () => {
+			it( 'records confirm with wallet_type and payment_method_type when paymentMethod is present (Blocks merges paymentmethod into onConfirm)', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -614,7 +668,9 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe( 'express.confirm' );
 				expect( body.events[ 0 ].data ).toEqual( {
 					wallet_type: 'link',
@@ -622,7 +678,7 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records confirm with only wallet_type when paymentMethod is absent', () => {
+			it( 'records confirm with only wallet_type when paymentMethod is absent', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -631,20 +687,24 @@ describe( 'Recorder', () => {
 				} );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].data ).toEqual( {
 					wallet_type: 'apple_pay',
 				} );
 			} );
 
-			it( 'tolerates an undefined payload (no event payload from React)', () => {
+			it( 'tolerates an undefined payload (no event payload from React)', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
 				recorder.recordExpressEvent( 'click' );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe( 'express.click' );
 				expect( body.events[ 0 ].data ).toEqual( {
 					wallet_type: undefined,
@@ -668,7 +728,9 @@ describe( 'Recorder', () => {
 
 				expect( result ).toBe( stripeResponse );
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				const kinds = body.events.map( ( e ) => e.kind );
 				expect( kinds ).toEqual( [
 					'stripe.createPaymentMethod.invoke',
@@ -700,7 +762,9 @@ describe( 'Recorder', () => {
 				);
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				const resolve = body.events.find(
 					( e ) => e.kind === 'stripe.createPaymentMethod.resolve'
 				);
@@ -724,7 +788,9 @@ describe( 'Recorder', () => {
 
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				const thrown = body.events.find(
 					( e ) => e.kind === 'stripe.createPaymentMethod.throw'
 				);
@@ -739,7 +805,7 @@ describe( 'Recorder', () => {
 		// intentional, exercising the recorder's console-interception behavior.
 		/* eslint-disable no-console */
 		describe( 'parent-frame console interception', () => {
-			it( 'records console.warn calls as console.warn events with the message', () => {
+			it( 'records console.warn calls as console.warn events with the message', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -748,7 +814,9 @@ describe( 'Recorder', () => {
 				);
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe( 'console.warn' );
 				expect( body.events[ 0 ].data ).toEqual( {
 					message:
@@ -757,21 +825,23 @@ describe( 'Recorder', () => {
 				} );
 			} );
 
-			it( 'records console.error calls as console.error events', () => {
+			it( 'records console.error calls as console.error events', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
 				console.error( 'something exploded' );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].kind ).toBe( 'console.error' );
 				expect( body.events[ 0 ].data.message ).toBe(
 					'something exploded'
 				);
 			} );
 
-			it( 'truncates messages to 500 chars', () => {
+			it( 'truncates messages to 500 chars', async () => {
 				const recorder = makeRecorder();
 				recorder.boot();
 
@@ -779,7 +849,9 @@ describe( 'Recorder', () => {
 				console.warn( longMessage );
 				recorder.flush();
 
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events[ 0 ].data.message ).toHaveLength( 500 );
 			} );
 
@@ -845,7 +917,7 @@ describe( 'Recorder', () => {
 				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
 			} );
 
-			it( 'replays buffered events from sessionStorage on boot (return from 3DS)', () => {
+			it( 'replays buffered events from sessionStorage on boot (return from 3DS)', async () => {
 				window.sessionStorage.setItem(
 					STORAGE_KEY,
 					JSON.stringify( {
@@ -864,7 +936,9 @@ describe( 'Recorder', () => {
 				recorder.boot();
 
 				expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
-				const body = JSON.parse( sendBeaconSpy.mock.calls[ 0 ][ 1 ] );
+				const body = await readBeaconBody(
+					sendBeaconSpy.mock.calls[ 0 ]
+				);
 				expect( body.events ).toEqual( [
 					{
 						t: 100,
