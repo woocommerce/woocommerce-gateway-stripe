@@ -232,6 +232,32 @@ describe( 'Recorder', () => {
 			expect( body.events ).toHaveLength( 2 );
 		} );
 
+		it( 'auto-flushes the buffer when it reaches the server batch cap, so the controller never silently truncates', async () => {
+			const recorder = makeRecorder();
+			recorder.boot();
+
+			// Fill to 199 — no flush yet.
+			for ( let i = 0; i < 199; i++ ) {
+				recorder.record( 'element.change', { element_type: 'card' } );
+			}
+			expect( sendBeaconSpy ).not.toHaveBeenCalled();
+
+			// 200th event triggers an immediate flush.
+			recorder.record( 'element.change', { element_type: 'card' } );
+			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 1 );
+
+			const body = await readBeaconBody( sendBeaconSpy.mock.calls[ 0 ] );
+			expect( body.events ).toHaveLength( 200 );
+
+			// Buffer is empty after the size-triggered flush, so subsequent
+			// events start a fresh batch.
+			recorder.record( 'element.change', { element_type: 'card' } );
+			recorder.flush();
+			expect( sendBeaconSpy ).toHaveBeenCalledTimes( 2 );
+			const next = await readBeaconBody( sendBeaconSpy.mock.calls[ 1 ] );
+			expect( next.events ).toHaveLength( 1 );
+		} );
+
 		it( 'auto-flushes the buffer when the pagehide event fires', () => {
 			const recorder = makeRecorder();
 			recorder.boot();

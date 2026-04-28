@@ -1,5 +1,9 @@
 const STORAGE_KEY_PREFIX = 'wc_stripe_diag_';
 const IDLE_FLUSH_MS = 5000;
+// Server caps a batch at 200 events; flush early so a noisy checkout
+// (e.g., intercepted console.warn/error) can't push past the cap and
+// have the controller silently truncate.
+const MAX_BUFFER_BEFORE_FLUSH = 200;
 const CONSOLE_MESSAGE_MAX_CHARS = 500;
 const CONSOLE_LEVELS = [ 'warn', 'error' ];
 
@@ -248,6 +252,10 @@ export class Recorder {
 			kind,
 			data,
 		} );
+		if ( this.buffer.length >= MAX_BUFFER_BEFORE_FLUSH ) {
+			this.flush();
+			return;
+		}
 		this._resetIdleTimer();
 	}
 
