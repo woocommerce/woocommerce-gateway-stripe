@@ -5,7 +5,10 @@ export const Card = styled.div`
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 	padding: 20px 24px;
-	margin-bottom: 20px;
+
+	& + & {
+		margin-top: 20px;
+	}
 `;
 
 export const CardTitle = styled.h2`
