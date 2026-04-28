@@ -299,6 +299,20 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 	 * @throws Exception If the request fails.
 	 */
 	private function create_import_set( string $file_id, string $standard_data_format ): array {
+		/**
+		 * Allows the ImportSet API request to be short-circuited (e.g. for testing).
+		 *
+		 * @since 10.7.0
+		 * @param array|null $pre                  Short-circuit response or null.
+		 * @param string     $file_id              Stripe file ID.
+		 * @param string     $standard_data_format Feed format string.
+		 * @return array|null
+		 */
+		$pre = apply_filters( 'wc_stripe_agentic_commerce_import_set_pre_request', null, $file_id, $standard_data_format );
+		if ( ! is_null( $pre ) ) {
+			return $pre;
+		}
+
 		$response = wp_remote_post(
 			self::IMPORT_SETS_ENDPOINT,
 			[
