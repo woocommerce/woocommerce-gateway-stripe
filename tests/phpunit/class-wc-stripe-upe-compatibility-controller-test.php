@@ -24,16 +24,16 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		// saving these values to that they can be restored after the test runs
+		// saving these values so that they can be restored after the test runs
 		global $wp_version;
 		$this->initial_wp_version = $wp_version;
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 
 		$this->controller = $this->getMockBuilder( WC_Stripe_UPE_Compatibility_Controller::class )
-								->disableOriginalConstructor()
-								->setMethods( [ 'get_wc_version' ] )
-								->getMock();
+								 ->disableOriginalConstructor()
+								 ->onlyMethods( [ 'get_wc_version' ] )
+								 ->getMock();
 	}
 
 	public function tear_down() {
