@@ -151,8 +151,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
 * Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 * Dev - Use paratest in CI workflow for faster PHP test execution
-* Fix - Initialize the WooCommerce session and guard the shipping calculation in the Agentic Commerce order mapper so Action Scheduler / WP Cron runs of the checkout.session.completed webhook no longer fail on a null session or a misbehaving shipping method
-* Fix - Create Agentic Commerce orders with a free-form shipping line when the session's chosen shipping rate has no wc_rate_id metadata and its display_name does not match any configured WC shipping method, instead of hard-failing
+* Fix - Stop Agentic Commerce checkout.session.completed orders from failing on null WC sessions or shipping rates that don't match any configured WC method
 * Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
 * Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
 * Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
