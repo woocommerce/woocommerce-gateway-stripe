@@ -2,6 +2,7 @@ import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { select, useSelect } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -27,7 +28,9 @@ export const usePaymentSetupHandler = (
 ) => {
 	useEffect(
 		() =>
-			onPaymentSetup( () => {
+			onPaymentSetup( async () => {
+				const diagHandle =
+					diagnostics.blocksPaymentSetupStart( 'checkout_sessions' );
 				async function handlePaymentProcessing() {
 					const { validationStore } = window.wc?.wcBlocksData ?? {};
 					if ( validationStore ) {
@@ -94,7 +97,17 @@ export const usePaymentSetupHandler = (
 						},
 					};
 				}
-				return handlePaymentProcessing();
+				try {
+					const result = await handlePaymentProcessing();
+					diagnostics.blocksPaymentSetupEnd( diagHandle, result );
+					return result;
+				} catch ( err ) {
+					diagnostics.blocksPaymentSetupEnd( diagHandle, {
+						type: 'error',
+						message: err?.message,
+					} );
+					throw err;
+				}
 			} ),
 		[
 			checkoutSessionId,
@@ -232,7 +245,10 @@ export const useCheckoutSuccessHandler = (
 						}
 					}
 
-					const confirmResult = await checkout.confirm( confirmArgs );
+					const confirmResult = await diagnostics.aroundStripeCall(
+						'confirm',
+						() => checkout.confirm( confirmArgs )
+					);
 					if ( confirmResult?.type === 'error' ) {
 						return {
 							type: 'error',

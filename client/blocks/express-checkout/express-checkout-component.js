@@ -9,6 +9,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 
 const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	const allDisabled = {
@@ -107,12 +108,30 @@ const ExpressCheckoutComponent = ( {
 				...adjustButtonHeights( buttonOptions, expressPaymentMethod ),
 				...getPaymentMethodsOverride( expressPaymentMethod ),
 			} }
-			onClick={ onButtonClick }
-			onConfirm={ onConfirm }
+			onClick={ ( event ) => {
+				diagnostics.recordExpressEvent( 'click', event );
+				return onButtonClick( event );
+			} }
+			onConfirm={ ( event ) => {
+				diagnostics.recordExpressEvent( 'confirm', event );
+				return onConfirm( event );
+			} }
 			onReady={ onElementsReady }
-			onCancel={ onCancel }
-			onShippingAddressChange={ onShippingAddressChange }
-			onShippingRateChange={ onShippingRateChange }
+			onCancel={ ( event ) => {
+				diagnostics.recordExpressEvent( 'cancel', event );
+				return onCancel( event );
+			} }
+			onShippingAddressChange={ ( event ) => {
+				diagnostics.recordExpressEvent(
+					'shippingaddresschange',
+					event
+				);
+				return onShippingAddressChange( event );
+			} }
+			onShippingRateChange={ ( event ) => {
+				diagnostics.recordExpressEvent( 'shippingratechange', event );
+				return onShippingRateChange( event );
+			} }
 		/>
 	);
 };
