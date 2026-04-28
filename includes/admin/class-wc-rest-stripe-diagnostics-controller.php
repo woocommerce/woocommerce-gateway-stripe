@@ -57,8 +57,11 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * Permission callback.
 	 *
 	 * The endpoint is intentionally shopper-facing and unauthenticated.
-	 * Abuse mitigation comes from the `is_enabled()` toggle and the
-	 * trace store's caps (200 events/trace, FIFO trace-count eviction).
+	 * Abuse mitigation relies on the bounded debug window — the
+	 * `is_enabled()` toggle is meant to be on only briefly while a
+	 * merchant is actively debugging. Don't default it on: with the
+	 * toggle on, anyone can rotate `diag_session_id` to evict
+	 * legitimate traces from the FIFO trace store.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request
 	 * @return bool|WP_Error
