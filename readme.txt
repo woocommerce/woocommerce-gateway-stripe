@@ -149,7 +149,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 10.7.0 - xxxx-xx-xx =
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
-* Fix - Report the Agentic Commerce synced product count from the CSV entries actually delivered to Stripe, instead of the pre-validation iterated count, so the dashboard matches Stripe's ImportSet
+* Fix - Report Agentic Commerce dashboard product count from delivered CSV rows so it matches Stripe's ImportSet
 * Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 * Dev - Use paratest in CI workflow for faster PHP test execution
 * Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
