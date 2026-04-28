@@ -320,8 +320,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
 	 *
 	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
-	 * (`pending`, `creating_records`, `unknown`); entries in terminal statuses
-	 * must not be mutated.
+	 * (`queued`, `validating`, `pending`, `creating_records`, `unknown`);
+	 * entries in terminal statuses must not be mutated.
 	 *
 	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
 	 *
@@ -362,6 +362,8 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 */
 	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
 		return [
+			'queued is refreshable'           => [ 'queued', 'succeeded' ],
+			'validating is refreshable'       => [ 'validating', 'succeeded' ],
 			'pending is refreshable'          => [ 'pending', 'succeeded' ],
 			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
 			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],

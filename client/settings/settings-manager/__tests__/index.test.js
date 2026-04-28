@@ -8,8 +8,6 @@ jest.mock( '../../payment-methods' );
 
 jest.mock( '../../save-settings-section' );
 
-jest.mock( '../../agentic-commerce' );
-
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
 	useSettings: jest.fn().mockReturnValue( {} ),
@@ -53,7 +51,7 @@ describe( 'SettingsManager', () => {
 		jest.clearAllMocks();
 	} );
 
-	it( 'should render two tabs when agentic commerce is disabled', async () => {
+	it( 'should render two tabs', async () => {
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
@@ -67,13 +65,9 @@ describe( 'SettingsManager', () => {
 				screen.getByRole( 'tab', { name: /Settings/i } )
 			).toBeInTheDocument();
 		} );
-
-		expect(
-			screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
-		).not.toBeInTheDocument();
 	} );
 
-	it( 'should render three tabs when agentic commerce is enabled', async () => {
+	it( 'should not render a third tab when agentic commerce is enabled', async () => {
 		global.wc_stripe_settings_params = {
 			...BASE_PARAMS,
 			is_agentic_commerce_enabled: true,
@@ -93,11 +87,9 @@ describe( 'SettingsManager', () => {
 			).toBeInTheDocument();
 		} );
 
-		await waitFor( () => {
-			expect(
-				screen.getByRole( 'tab', { name: /Agentic Commerce/i } )
-			).toBeInTheDocument();
-		} );
+		expect(
+			screen.queryByRole( 'tab', { name: /Agentic/i } )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should render the Stripe payment method tab content by default', async () => {
@@ -131,39 +123,13 @@ describe( 'SettingsManager', () => {
 		} );
 	} );
 
-	it( 'should render the agentic commerce tab content when the URL matches and flag is enabled', async () => {
-		global.wc_stripe_settings_params = {
-			...BASE_PARAMS,
-			is_agentic_commerce_enabled: true,
-		};
+	it( 'should fall back to methods tab for unknown panel values', async () => {
 		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
 
 		render( <SettingsManager /> );
 
-		await waitFor( () => {
-			expect(
-				screen.queryByTestId( 'agentic-commerce-tab' )
-			).toBeInTheDocument();
-		} );
-
-		expect( screen.queryByTestId( 'methods-tab' ) ).not.toBeInTheDocument();
-		expect(
-			screen.queryByTestId( 'settings-tab' )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'should not show the agentic commerce tab even with panel URL when flag is disabled', async () => {
-		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
-
-		render( <SettingsManager /> );
-
-		// Falls back to methods tab.
 		await waitFor( () => {
 			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
 		} );
-
-		expect(
-			screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
-		).not.toBeInTheDocument();
 	} );
 } );
