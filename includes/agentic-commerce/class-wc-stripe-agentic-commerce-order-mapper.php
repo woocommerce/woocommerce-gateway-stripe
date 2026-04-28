@@ -453,18 +453,12 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			);
 		}
 
-		// Any failure inside WC shipping (null session variants, broken
-		// third-party shipping methods, missing tax state) should not lose
-		// the order — log and fall through to the free-form fallback below.
-		// The outer handler only catches Exception, so keep session init
-		// inside this Throwable guard too (a broken session handler can raise
-		// Error, not Exception).
+		// Catch Throwable: the outer handler only catches Exception, so a broken
+		// shipping method or null-session Error here would bypass the fallback.
 		$rates = [];
 		try {
-			// Under Action Scheduler / WP Cron there's no HTTP request to
-			// bootstrap WC()->session, which WC_Shipping::calculate_shipping_for_package
-			// reads from. Initialize it lazily so shipping methods can cache and
-			// return rates normally.
+			// Action Scheduler / WP Cron has no HTTP request to bootstrap
+			// WC()->session, which calculate_shipping_for_package reads from.
 			if ( null === WC()->session ) {
 				WC()->initialize_session();
 			}
@@ -518,12 +512,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			return;
 		}
 
-		// No WC rate matched. This happens when Stripe/the agent supplies a
-		// shipping rate that did not originate from our customize_checkout
-		// response (so there is no wc_rate_id metadata), and the display name
-		// does not match any configured WC shipping method. Rather than hard
-		// failing and losing the order, fall back to a free-form shipping line
-		// using Stripe's display name and amount so downstream totals match.
+		// No WC rate matched (Stripe/agent supplied a rate from outside our
+		// customize_checkout response). Fall back to a free-form shipping line
+		// so the order still lands and downstream totals balance.
 		$stripe_amount = $session->get_shipping_amount();
 		$currency      = $session->get_currency() ?? '';
 		$total         = null !== $stripe_amount

@@ -1338,16 +1338,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that map_shipping falls back to a free-form shipping line when no WC rate matches.
-	 *
-	 * This happens when Stripe/the agent supplies a shipping_rate whose
-	 * metadata has no wc_rate_id and whose display_name does not match any
-	 * configured WC method. Rather than hard-failing and losing the order,
-	 * the mapper creates a shipping line using the Stripe display_name and
-	 * amount.
-	 *
-	 * Disables shipping entirely so WC returns no rates, guaranteeing the
-	 * fallback path regardless of leaked zones.
+	 * Falls back to a free-form shipping line built from the Stripe rate when
+	 * WC returns no matching rate. Disables shipping entirely so the fallback
+	 * path runs regardless of any zones leaked from prior tests.
 	 */
 	public function test_shipping_falls_back_to_free_form_line_when_no_match() {
 		$original = get_option( 'woocommerce_ship_to_countries' );
@@ -1395,13 +1388,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that map_shipping recovers when WC shipping calculation throws a Throwable.
-	 *
-	 * Simulates a broken shipping method / third-party filter / null-session
-	 * Error by hooking woocommerce_package_rates with a callback that throws
-	 * an Error (not an Exception). The outer mapper handler only catches
-	 * Exception, so without the inner catch ( Throwable ) guard this would
-	 * delete the order; with it, the mapper logs and falls through to the
+	 * Recovers when WC shipping calculation throws an Error (not Exception):
+	 * the outer mapper handler only catches Exception, so without the inner
+	 * Throwable guard the order would be deleted instead of getting the
 	 * free-form shipping line.
 	 */
 	public function test_shipping_falls_back_to_free_form_line_when_calculation_throws() {
