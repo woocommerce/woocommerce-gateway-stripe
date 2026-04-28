@@ -38,14 +38,9 @@ jobs:
     strategy:
       fail-fast:    false
       max-parallel: 16
-      # PR matrix reduced to 12 combos (2 WC × 2 WP × 3 PHP) so the pipeline fits
-      # under the org's runner quota while keeping the support-policy extremes
-      # under test on every PR: PHP 7.4 (runtime floor) and 8.5 (latest, for
-      # upcoming-deprecation signal), WC/WP at L and L-2 (newest and the floor
-      # of the L-2 support policy). 8.2 sits in the PHP middle as the
-      # security-maintenance line. Intermediate WC/WP (L-1) and older PHP
-      # (8.0/8.1/8.3/8.4) are deferred to a planned merge-time full matrix
-      # (PR description, follow-up #1).
+      # Try to keep basic matrix small to stay within our runner quota.
+      # The current matrix includes 12 combos (2 WC × 2 WP × 3 PHP),
+      # with coverage of PHP 7.4, 8.2, and 8.5.
       matrix:
         woocommerce_support_policy: [ 'L', 'L-2' ]
         wordpress_support_policy:   [ 'L', 'L-2' ]
