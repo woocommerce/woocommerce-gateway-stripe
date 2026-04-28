@@ -64,6 +64,21 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	const ENABLED_OPTION = 'wc_stripe_agentic_commerce_enabled';
 
 	/**
+	 * Option key for the Agentic Commerce webhook secret.
+	 *
+	 * Lives on the integration class (not the REST controller) because this
+	 * value is read on every webhook delivery via the
+	 * `woocommerce_api_wc_stripe` hook, which does not trigger
+	 * `rest_api_init`. Keeping the const here ensures it is always reachable
+	 * — the integration class is in the Composer autoload classmap — even
+	 * when the REST controller has not been instantiated.
+	 *
+	 * @var string
+	 * @since 10.7.0
+	 */
+	const WEBHOOK_SECRET_OPTION = 'wc_stripe_agentic_commerce_webhook_secret';
+
+	/**
 	 * Sync interval in seconds.
 	 *
 	 * @var int
@@ -73,6 +88,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the last sync result.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_last_sync()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */
@@ -81,6 +98,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key for the sync history.
 	 *
+	 * @internal Not part of the public API. Use {@see self::get_sync_history()}
+	 *           rather than reading the underlying option directly.
 	 * @var string
 	 * @since 10.7.0
 	 */
@@ -517,11 +536,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Apply status updates to non-terminal history entries by import_set_id.
 	 *
 	 * Re-reads the current history at write time and applies the updates to
-	 * matching entries whose stored status is non-terminal (`pending`,
-	 * `creating_records`, or `unknown`), so any entries appended concurrently
-	 * by {@see self::store_sync_result()} between read and write (for example
-	 * during a Stripe API round-trip in the dashboard refresh flow) are
-	 * preserved.
+	 * matching entries whose stored status is non-terminal (`queued`,
+	 * `validating`, `pending`, `creating_records`, or `unknown`), matching
+	 * the controller's
+	 * {@see WC_REST_Stripe_Agentic_Commerce_Controller::REFRESHABLE_STATUSES}.
+	 * This preserves any entries appended concurrently by
+	 * {@see self::store_sync_result()} between read and write (for example
+	 * during a Stripe API round-trip in the dashboard refresh flow).
 	 *
 	 * @since 10.7.0
 	 * @param array<string, string> $status_updates Map of import_set_id to new status.
@@ -532,7 +553,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return;
 		}
 
-		$non_terminal_statuses = [ 'pending', 'creating_records', 'unknown' ];
+		$non_terminal_statuses = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
 
 		$history = self::get_sync_history();
 		$changed = false;

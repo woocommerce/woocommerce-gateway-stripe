@@ -366,4 +366,60 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			'empty result is unknown'           => [ [], 'unknown' ],
 		];
 	}
+
+	/**
+	 * update_pending_statuses rewrites entries whose stored status is non-terminal.
+	 *
+	 * The non-terminal set must match the controller's REFRESHABLE_STATUSES
+	 * (`queued`, `validating`, `pending`, `creating_records`, `unknown`);
+	 * entries in terminal statuses must not be mutated.
+	 *
+	 * @dataProvider provider_update_pending_statuses_rewrites_non_terminal_entries
+	 *
+	 * @param string $initial_status  Status initially persisted on the entry.
+	 * @param string $expected_status Status expected after the update is applied.
+	 * @return void
+	 */
+	public function test_update_pending_statuses_rewrites_non_terminal_entries( string $initial_status, string $expected_status ): void {
+		$history = [
+			[
+				'timestamp'     => time() - 60,
+				'products'      => 5,
+				'status'        => $initial_status,
+				'file_id'       => 'file_a',
+				'import_set_id' => 'impset_a',
+				'error'         => '',
+			],
+		];
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, $history );
+
+		\WC_Stripe_Agentic_Commerce_Integration::update_pending_statuses( [ 'impset_a' => 'succeeded' ] );
+
+		$stored    = get_option( \WC_Stripe_Agentic_Commerce_Integration::SYNC_HISTORY_OPTION, [] );
+		$last_sync = get_option( \WC_Stripe_Agentic_Commerce_Integration::LAST_SYNC_OPTION, [] );
+
+		$this->assertEquals( $expected_status, $stored[0]['status'] );
+
+		if ( $initial_status !== $expected_status ) {
+			// Terminal transitions also refresh the LAST_SYNC_OPTION pointer.
+			$this->assertEquals( $expected_status, $last_sync['status'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_update_pending_statuses_rewrites_non_terminal_entries.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provider_update_pending_statuses_rewrites_non_terminal_entries(): array {
+		return [
+			'queued is refreshable'           => [ 'queued', 'succeeded' ],
+			'validating is refreshable'       => [ 'validating', 'succeeded' ],
+			'pending is refreshable'          => [ 'pending', 'succeeded' ],
+			'creating_records is refreshable' => [ 'creating_records', 'succeeded' ],
+			'unknown is refreshable'          => [ 'unknown', 'succeeded' ],
+			'succeeded is terminal'           => [ 'succeeded', 'succeeded' ],
+			'failed is terminal'              => [ 'failed', 'failed' ],
+		];
+	}
 }

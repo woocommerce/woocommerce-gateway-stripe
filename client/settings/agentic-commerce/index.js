@@ -1,581 +1,287 @@
-/* global wc_stripe_settings_params */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+	useState,
+	useEffect,
+	useCallback,
+	useImperativeHandle,
+	forwardRef,
+} from 'react';
+import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
+import SettingsSection from '../settings-section';
+import CardBody from '../card-body';
+import CopyButton from '../../components/copy-button';
+import AgenticCommerceSyncStatus from './sync-status';
 import apiFetch from '@wordpress/api-fetch';
-import { __, _n, sprintf } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import {
-	Button,
-	Card,
-	CardBody,
-	CardHeader,
 	Notice,
+	CheckboxControl,
+	TextControl,
+	ExternalLink,
+	Card,
 } from '@wordpress/components';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+import { useAccount } from 'wcstripe/data/account';
+import { useTestMode } from 'wcstripe/data';
+import { HorizontalRule } from '@wordpress/primitives';
 
-// Threshold beyond which a missed scheduled sync is surfaced as a warning.
-// Chosen comfortably larger than the sync interval so a single slow run
-// does not trigger a false positive.
-const OVERDUE_WARNING_THRESHOLD_SECONDS = 10 * 60;
+const OnboardingSteps = styled.ol`
+	margin: 12px 0 24px;
+	padding-left: 20px;
 
-const CardTitle = styled.h2`
-	margin: 0;
-	font-size: 14px;
-	font-weight: 600;
-`;
-
-const StatusBadge = styled.span`
-	display: inline-block;
-	padding: 3px 8px;
-	border-radius: 3px;
-	font-size: 12px;
-	font-weight: 600;
-	margin-bottom: 12px;
-
-	&.success {
-		background: #d4edda;
-		color: #155724;
-	}
-	&.error {
-		background: #f8d7da;
-		color: #721c24;
-	}
-	&.warning {
-		background: #fff3cd;
-		color: #856404;
-	}
-	&.info {
-		background: #d1ecf1;
-		color: #0c5460;
-	}
-	&.unknown {
-		background: #e2e3e5;
-		color: #383d41;
+	li {
+		margin-bottom: 6px;
+		color: #757575;
+		font-size: 12px;
 	}
 `;
 
-const DetailsTable = styled.table`
-	border-collapse: collapse;
-	margin-bottom: 12px;
-	width: 100%;
-
-	th {
-		width: 160px;
-		text-align: left;
-		padding: 4px 8px 4px 0;
-		font-weight: 600;
-		vertical-align: top;
-	}
-
-	td {
-		padding: 4px 0;
-	}
-`;
-
-const Actions = styled.div`
-	display: flex;
-	gap: 8px;
-	margin-top: 16px;
-	align-items: center;
-`;
-
-const HistoryTable = styled.table`
-	width: 100%;
-	border-collapse: collapse;
-
-	th,
-	td {
-		text-align: left;
-		padding: 8px;
-		border-bottom: 1px solid #f0f0f0;
-	}
-
-	th {
-		font-weight: 600;
-		background: #f9f9f9;
-	}
-
-	tr:last-child td {
-		border-bottom: none;
-	}
-
-	code {
-		font-size: 11px;
-	}
-`;
-
-const STATUS_CONFIG = {
-	succeeded: {
-		label: __( 'Success', 'woocommerce-gateway-stripe' ),
-		className: 'success',
-		icon: '✓',
-	},
-	creating_records: {
-		label: __( 'Creating records', 'woocommerce-gateway-stripe' ),
-		className: 'info',
-		icon: '⏳',
-	},
-	pending: {
-		label: __( 'Processing', 'woocommerce-gateway-stripe' ),
-		className: 'info',
-		icon: '⏳',
-	},
-	failed: {
-		label: __( 'Failed', 'woocommerce-gateway-stripe' ),
-		className: 'error',
-		icon: '✗',
-	},
-	succeeded_with_errors: {
-		label: __( 'Partial Success', 'woocommerce-gateway-stripe' ),
-		className: 'warning',
-		icon: '⚠',
-	},
-};
-
-const SyncStatusBadge = ( { status } ) => {
-	const config = STATUS_CONFIG[ status ] ?? {
-		label: __( 'Unknown', 'woocommerce-gateway-stripe' ),
-		className: 'unknown',
-		icon: '?',
-	};
-	return (
-		<StatusBadge className={ config.className }>
-			{ config.icon } { config.label }
-		</StatusBadge>
-	);
-};
-
-const formatTimestamp = ( timestamp ) => {
-	if ( ! timestamp ) {
-		return '—';
-	}
-	return new Date( timestamp * 1000 ).toLocaleString();
-};
-
-const humanTimeDiff = ( timestamp ) => {
-	if ( ! timestamp ) {
-		return '';
-	}
-	const diffSec = Math.floor( Date.now() / 1000 ) - timestamp;
-	if ( diffSec < 60 ) {
-		return __( 'just now', 'woocommerce-gateway-stripe' );
-	}
-	if ( diffSec < 3600 ) {
-		const m = Math.floor( diffSec / 60 );
-		return sprintf(
-			/* translators: %d: number of minutes */
-			_n(
-				'%d minute ago',
-				'%d minutes ago',
-				m,
+const AgenticCommerceDescription = () => (
+	<>
+		<h2>{ __( 'Agentic commerce', 'woocommerce-gateway-stripe' ) }</h2>
+		<p>
+			{ __(
+				'Enable and configure agentic commerce for your store.',
 				'woocommerce-gateway-stripe'
-			),
-			m
-		);
-	}
-	const h = Math.floor( diffSec / 3600 );
-	return sprintf(
-		/* translators: %d: number of hours */
-		_n( '%d hour ago', '%d hours ago', h, 'woocommerce-gateway-stripe' ),
-		h
-	);
-};
+			) }
+		</p>
+		<p>
+			<ExternalLink href="https://docs.stripe.com/agentic-commerce">
+				{ __(
+					'Learn more about agentic commerce',
+					'woocommerce-gateway-stripe'
+				) }
+			</ExternalLink>
+		</p>
+	</>
+);
 
-const AgenticCommercePanel = () => {
-	const [ data, setData ] = useState( null );
-	const [ isLoading, setIsLoading ] = useState( true );
-	const [ isSyncing, setIsSyncing ] = useState( false );
-	const [ notice, setNotice ] = useState( null );
-	const [ loadError, setLoadError ] = useState( false );
+const AgenticCommerceSection = forwardRef( ( props, ref ) => {
+	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
+	const [ webhookSecret, setWebhookSecret ] = useState( '' );
+	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
+	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
-	const fetchStatus = useCallback( async () => {
-		setIsLoading( true );
+	const [ isTestMode ] = useTestMode();
+	const mode = isTestMode ? 'test' : 'live';
+	const { data } = useAccount();
+	const webhookURLForDisplay = data?.configured_webhook_urls?.[ mode ] ?? '';
+	const agenticCommerceUrl = isTestMode
+		? 'https://dashboard.stripe.com/test/agentic-commerce'
+		: 'https://dashboard.stripe.com/agentic-commerce';
+
+	const fetchSettings = useCallback( async () => {
+		setIsLoadingSettings( true );
 		try {
 			const result = await apiFetch( {
-				path: '/wc/v3/wc_stripe/agentic-commerce/status',
+				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
 			} );
-			setData( result );
-			setLoadError( false );
-		} catch ( err ) {
-			setLoadError( true );
-			setNotice( {
-				status: 'error',
-				message:
-					err?.message ??
-					__(
-						'Failed to load sync status.',
-						'woocommerce-gateway-stripe'
-					),
-			} );
+			setIsFeatureEnabled( result.is_enabled );
+			setWebhookSecret( result.webhook_secret ?? '' );
+		} catch {
+			// Settings fetch failure is non-fatal; defaults remain.
 		} finally {
-			setIsLoading( false );
+			setIsLoadingSettings( false );
 		}
 	}, [] );
 
 	useEffect( () => {
-		fetchStatus();
-	}, [ fetchStatus ] );
+		fetchSettings();
+	}, [ fetchSettings ] );
 
-	const handleSync = async () => {
-		setIsSyncing( true );
-		setNotice( null );
+	const handleSaveSettings = useCallback( async () => {
+		setSettingsNotice( null );
 		try {
-			await apiFetch( {
-				path: '/wc/v3/wc_stripe/agentic-commerce/sync',
+			const result = await apiFetch( {
+				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
 				method: 'POST',
+				data: {
+					is_enabled: isFeatureEnabled,
+					webhook_secret: webhookSecret,
+				},
 			} );
-			setNotice( {
-				status: 'success',
-				message: __(
-					'Sync triggered successfully.',
-					'woocommerce-gateway-stripe'
-				),
-			} );
-			await fetchStatus();
+			setIsFeatureEnabled( result.is_enabled );
+			setWebhookSecret( result.webhook_secret ?? '' );
 		} catch ( err ) {
-			setNotice( {
+			setSettingsNotice( {
 				status: 'error',
 				message:
 					err?.message ??
 					__(
-						'Sync failed. Check the WooCommerce logs for details.',
+						'Failed to save settings.',
 						'woocommerce-gateway-stripe'
 					),
 			} );
-		} finally {
-			setIsSyncing( false );
 		}
-	};
+	}, [ isFeatureEnabled, webhookSecret ] );
 
-	const { last_sync: lastSync, history, next_sync: nextSync } = data ?? {};
-
-	const secondsUntilNextSync =
-		typeof nextSync === 'number'
-			? nextSync - Math.floor( Date.now() / 1000 )
-			: null;
-
-	const isNextSyncOverdue =
-		secondsUntilNextSync !== null &&
-		secondsUntilNextSync < -OVERDUE_WARNING_THRESHOLD_SECONDS;
-
-	const getNextSyncLabel = () => {
-		if ( secondsUntilNextSync === null ) {
-			return null;
-		}
-		if ( secondsUntilNextSync <= 0 ) {
-			return __(
-				'Next automatic sync: imminent.',
-				'woocommerce-gateway-stripe'
-			);
-		}
-		const minutes = Math.ceil( secondsUntilNextSync / 60 );
-		return sprintf(
-			/* translators: %d: number of minutes until next sync */
-			_n(
-				'Next automatic sync: in %d minute.',
-				'Next automatic sync: in %d minutes.',
-				minutes,
-				'woocommerce-gateway-stripe'
-			),
-			minutes
-		);
-	};
-
-	const importSetsUrl =
-		wc_stripe_settings_params?.agentic_commerce_import_sets_url ?? // eslint-disable-line camelcase
-		'https://dashboard.stripe.com/data-management/import-sets';
-	const logsUrl =
-		wc_stripe_settings_params?.agentic_commerce_logs_url ?? // eslint-disable-line camelcase
-		'/wp-admin/admin.php?page=wc-status&tab=logs';
-	const nextSyncText = getNextSyncLabel();
-
-	const overdueMinutes =
-		secondsUntilNextSync !== null
-			? Math.floor( Math.abs( secondsUntilNextSync ) / 60 )
-			: 0;
+	// Expose save function to parent via ref so the global Save changes
+	// button can trigger it alongside the main settings save.
+	useImperativeHandle(
+		ref,
+		() => ( {
+			save: handleSaveSettings,
+		} ),
+		[ handleSaveSettings ]
+	);
 
 	return (
-		<div>
-			<p className="description">
-				{ __(
-					'Monitor the product feed sync status for the Agentic Commerce integration.',
-					'woocommerce-gateway-stripe'
-				) }{ ' ' }
-				<a
-					href={ importSetsUrl }
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					{ __(
-						'View import results on the Stripe Dashboard',
-						'woocommerce-gateway-stripe'
-					) }
-				</a>
-			</p>
-
-			{ notice && (
-				<Notice
-					status={ notice.status }
-					onRemove={ () => setNotice( null ) }
-					isDismissible
-				>
-					{ notice.message }
-				</Notice>
-			) }
-
-			{ isNextSyncOverdue && (
-				<Notice status="warning" isDismissible={ false }>
-					{ sprintf(
-						/* translators: %d: number of minutes the scheduled sync is overdue. */
-						_n(
-							'The scheduled sync is overdue by %d minute. Check that Action Scheduler is running on this site.',
-							'The scheduled sync is overdue by %d minutes. Check that Action Scheduler is running on this site.',
-							overdueMinutes,
-							'woocommerce-gateway-stripe'
-						),
-						overdueMinutes
-					) }
-				</Notice>
-			) }
-
-			<Card>
-				<CardHeader>
-					<CardTitle>
-						{ __(
-							'Product Feed Status',
-							'woocommerce-gateway-stripe'
+		<SettingsSection Description={ AgenticCommerceDescription }>
+			<LoadableSettingsSection numLines={ 10 }>
+				<Card>
+					<CardBody>
+						{ settingsNotice && (
+							<Notice
+								status={ settingsNotice.status }
+								onRemove={ () => setSettingsNotice( null ) }
+								isDismissible
+								style={ { marginBottom: '16px' } }
+							>
+								{ settingsNotice.message }
+							</Notice>
 						) }
-					</CardTitle>
-				</CardHeader>
-				<CardBody>
-					{ isLoading && (
-						<p>
-							{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }
-						</p>
-					) }
-					{ ! isLoading && ! lastSync && ! loadError && (
-						<p>
-							{ __(
-								'No syncs yet. Feed will sync automatically every 15 minutes.',
-								'woocommerce-gateway-stripe'
-							) }
-						</p>
-					) }
-					{ ! isLoading && lastSync && (
-						<>
-							<SyncStatusBadge status={ lastSync.status } />
 
-							<DetailsTable>
-								<tbody>
-									{ lastSync.timestamp && (
-										<tr>
-											<th>
-												{ __(
-													'Last Sync',
-													'woocommerce-gateway-stripe'
-												) }
-											</th>
-											<td>
-												{ humanTimeDiff(
-													lastSync.timestamp
-												) }{ ' ' }
-												<small>
-													(
-													{ formatTimestamp(
-														lastSync.timestamp
-													) }
-													)
-												</small>
-											</td>
-										</tr>
-									) }
-									{ lastSync.products !== null && (
-										<tr>
-											<th>
-												{ __(
-													'Products Synced',
-													'woocommerce-gateway-stripe'
-												) }
-											</th>
-											<td>
-												{ Number(
-													lastSync.products
-												).toLocaleString() }
-											</td>
-										</tr>
-									) }
-									{ lastSync.import_set_id && (
-										<tr>
-											<th>
-												{ __(
-													'ImportSet ID',
-													'woocommerce-gateway-stripe'
-												) }
-											</th>
-											<td>
-												<code>
-													{ lastSync.import_set_id }
-												</code>
-											</td>
-										</tr>
-									) }
-									{ lastSync.file_id && (
-										<tr>
-											<th>
-												{ __(
-													'File ID',
-													'woocommerce-gateway-stripe'
-												) }
-											</th>
-											<td>
-												<code>
-													{ lastSync.file_id }
-												</code>
-											</td>
-										</tr>
-									) }
-								</tbody>
-							</DetailsTable>
-
-							{ nextSyncText && (
-								<p className="description">{ nextSyncText }</p>
-							) }
-
-							{ lastSync.error && (
-								<Notice status="error" isDismissible={ false }>
-									<strong>
-										{ __(
-											'Last Sync Error:',
-											'woocommerce-gateway-stripe'
-										) }
-									</strong>{ ' ' }
-									{ lastSync.error }
-								</Notice>
-							) }
-						</>
-					) }
-
-					<Actions>
-						<Button
-							variant="primary"
-							isBusy={ isSyncing }
-							disabled={ isSyncing || isLoading }
-							onClick={ handleSync }
-						>
-							{ isSyncing
-								? __( 'Syncing…', 'woocommerce-gateway-stripe' )
-								: __(
-										'Sync Now',
+						{ isLoadingSettings ? (
+							<p>
+								{ __(
+									'Loading\u2026',
+									'woocommerce-gateway-stripe'
+								) }
+							</p>
+						) : (
+							<>
+								<CheckboxControl
+									label={ __(
+										'Enable agentic commerce',
 										'woocommerce-gateway-stripe'
-								  ) }
-						</Button>
-						<Button variant="secondary" href={ logsUrl }>
-							{ __( 'View Logs', 'woocommerce-gateway-stripe' ) }
-						</Button>
-					</Actions>
-				</CardBody>
-			</Card>
+									) }
+									help={ __(
+										'When enabled, your product catalog will be synced to Stripe and AI agents will be able to purchase on behalf of your customers.',
+										'woocommerce-gateway-stripe'
+									) }
+									checked={ isFeatureEnabled }
+									onChange={ setIsFeatureEnabled }
+								/>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>
-						{ __( 'Recent Syncs', 'woocommerce-gateway-stripe' ) }
-					</CardTitle>
-				</CardHeader>
-				<CardBody>
-					{ isLoading && (
-						<p>
-							{ __( 'Loading…', 'woocommerce-gateway-stripe' ) }
-						</p>
-					) }
-					{ ! isLoading && ! history?.length && ! loadError && (
-						<p>
-							{ __(
-								'No sync history available.',
-								'woocommerce-gateway-stripe'
-							) }
-						</p>
-					) }
-					{ ! isLoading && !! history?.length && (
-						<HistoryTable>
-							<thead>
-								<tr>
-									<th>
-										{ __(
-											'Timestamp',
-											'woocommerce-gateway-stripe'
-										) }
-									</th>
-									<th>
-										{ __(
-											'Products',
-											'woocommerce-gateway-stripe'
-										) }
-									</th>
-									<th>
-										{ __(
-											'Status',
-											'woocommerce-gateway-stripe'
-										) }
-									</th>
-									<th>
-										{ __(
-											'Import ID',
-											'woocommerce-gateway-stripe'
-										) }
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{ history.map( ( entry, i ) => (
-									<tr key={ i }>
-										<td>
-											{ entry.timestamp
-												? new Date(
-														entry.timestamp * 1000
-												  ).toLocaleString( [], {
-														year: 'numeric',
-														month: '2-digit',
-														day: '2-digit',
-														hour: '2-digit',
-														minute: '2-digit',
-												  } )
-												: '—' }
-										</td>
-										<td>
-											{ entry.products !== null
-												? Number(
-														entry.products
-												  ).toLocaleString()
-												: '—' }
-										</td>
-										<td>
-											<SyncStatusBadge
-												status={ entry.status }
-											/>
-											{ entry.error && (
-												<span title={ entry.error }>
-													{ ' ' }
-													ℹ
-												</span>
+								{ isFeatureEnabled && (
+									<>
+										<HorizontalRule
+											className="wcstripe-agentic-commerce-onboarding__separator"
+											style={ { margin: '24px 0' } }
+										/>
+										<p>
+											<strong>
+												{ __(
+													'Getting started',
+													'woocommerce-gateway-stripe'
+												) }
+											</strong>
+										</p>
+
+										<OnboardingSteps>
+											<li>
+												{ interpolateComponents( {
+													mixedString: __(
+														'Log into your {{agenticLink}}Stripe Dashboard{{/agenticLink}} and go to {{strong}}Payments > Agentic commerce{{/strong}}',
+														'woocommerce-gateway-stripe'
+													),
+													components: {
+														agenticLink: (
+															<ExternalLink
+																href={
+																	agenticCommerceUrl
+																}
+															/>
+														),
+														strong: <strong />,
+													},
+												} ) }
+											</li>
+											<li>
+												{ __(
+													'Follow the setup instructions to enable the feature',
+													'woocommerce-gateway-stripe'
+												) }
+											</li>
+											<li>
+												{ webhookURLForDisplay
+													? interpolateComponents( {
+															mixedString:
+																sprintf(
+																	/* translators: %s: the site's URL where webhooks will be sent.*/
+																	__(
+																		'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}} {{copyButton/}}',
+																		'woocommerce-gateway-stripe'
+																	),
+																	decodeURIComponent(
+																		webhookURLForDisplay
+																	)
+																),
+															components: {
+																webhookURL: (
+																	<strong />
+																),
+																copyButton: (
+																	<CopyButton
+																		text={ decodeURIComponent(
+																			webhookURLForDisplay
+																		) }
+																	/>
+																),
+															},
+													  } )
+													: interpolateComponents( {
+															mixedString: __(
+																'Setup webhooks in {{strong}}Account details{{/strong}} above, then set endpoint URL to your webhook URL',
+																'woocommerce-gateway-stripe'
+															),
+															components: {
+																strong: (
+																	<strong />
+																),
+															},
+													  } ) }
+											</li>
+											<li>
+												{ interpolateComponents( {
+													mixedString: __(
+														'Go to {{strong}}Developers > Webhooks{{/strong}} and copy and paste the webhook secret into the field below',
+														'woocommerce-gateway-stripe'
+													),
+													components: {
+														strong: <strong />,
+													},
+												} ) }
+											</li>
+										</OnboardingSteps>
+
+										<TextControl
+											label={ __(
+												'Agentic commerce webhook secret',
+												'woocommerce-gateway-stripe'
 											) }
-										</td>
-										<td>
-											{ entry.import_set_id ? (
-												<code>
-													{ entry.import_set_id }
-												</code>
-											) : (
-												'—'
+											help={ __(
+												'Get the webhook signing secret in the Stripe dashboard to enable this feature.',
+												'woocommerce-gateway-stripe'
 											) }
-										</td>
-									</tr>
-								) ) }
-							</tbody>
-						</HistoryTable>
-					) }
-				</CardBody>
-			</Card>
-		</div>
+											type="password"
+											value={ webhookSecret }
+											onChange={ setWebhookSecret }
+											autoComplete="off"
+										/>
+									</>
+								) }
+							</>
+						) }
+					</CardBody>
+				</Card>
+			</LoadableSettingsSection>
+
+			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+		</SettingsSection>
 	);
-};
+} );
 
-export default AgenticCommercePanel;
+AgenticCommerceSection.displayName = 'AgenticCommerceSection';
+
+export default AgenticCommerceSection;
