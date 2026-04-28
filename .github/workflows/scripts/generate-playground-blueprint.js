@@ -121,7 +121,7 @@ The changes in this pull request can be previewed and tested using a [WordPress 
 
 [Test this pull request with WordPress Playground](${ url }).
 
-**Scope:** Playground runs PHP in a browser WASM sandbox. Outbound calls to \`api.stripe.com\` are routed through Playground's CORS proxy, which the bundled mu-plugin opts the Stripe \`Authorization\` header through — so account connect, payment-method listing, and checkout requests should work. Webhook delivery still won't (no inbound HTTP into the sandbox); for anything webhook-driven, use a real local environment (\`npm run up\`).
+**Scope:** Playground runs PHP in a browser WASM sandbox. Stripe REST API calls do **not** work end-to-end in this preview — Playground's service worker strips JS-set \`Authorization\` headers on direct fetches before falling back to its CORS proxy ([WordPress/wordpress-playground#3559](https://github.com/WordPress/wordpress-playground/issues/3559)), so account connect, payment-method listing, checkout-against-Stripe, and webhook delivery all fail. Use this preview to review admin UI, settings shape, and install/activation flow only; use a real local environment (\`npm run up\`) for anything that talks to Stripe.
 
 Note that this URL is valid for 30 days from when this comment was last updated. You can update it by closing/reopening the PR or pushing a new commit.
 `;
