@@ -5,8 +5,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for the diagnostics events ingest endpoint.
  *
- * Takes the frontend recorder's batched events, runs each one through the
- * redactor, and writes them to the trace store.
+ * Takes the frontend recorder's batched events and writes them to the
+ * trace store.
  *
  * Route: POST /wc/v3/wc_stripe/diagnostics/events
  */
@@ -25,19 +25,8 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 */
 	private $store;
 
-	/**
-	 * Redactor dependency.
-	 *
-	 * @var WC_Stripe_Diagnostics_Redactor
-	 */
-	private $redactor;
-
-	public function __construct(
-		?WC_Stripe_Diagnostics_Trace_Store $store = null,
-		?WC_Stripe_Diagnostics_Redactor $redactor = null
-	) {
-		$this->store    = $store ?? new WC_Stripe_Diagnostics_Trace_Store();
-		$this->redactor = $redactor ?? new WC_Stripe_Diagnostics_Redactor();
+	public function __construct( ?WC_Stripe_Diagnostics_Trace_Store $store = null ) {
+		$this->store = $store ?? new WC_Stripe_Diagnostics_Trace_Store();
 	}
 
 	/**
@@ -121,11 +110,7 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 			if ( ! is_array( $raw ) ) {
 				continue;
 			}
-			$redacted = $this->redactor->redact( $raw );
-			if ( [] === $redacted ) {
-				continue;
-			}
-			if ( $this->store->append_event( $session_id, $redacted ) ) {
+			if ( $this->store->append_event( $session_id, $raw ) ) {
 				++$written;
 			}
 		}

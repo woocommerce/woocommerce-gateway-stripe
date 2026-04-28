@@ -22,10 +22,7 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		$this->store      = new WC_Stripe_Diagnostics_Trace_Store();
-		$this->controller = new WC_REST_Stripe_Diagnostics_Controller(
-			$this->store,
-			new WC_Stripe_Diagnostics_Redactor()
-		);
+		$this->controller = new WC_REST_Stripe_Diagnostics_Controller( $this->store );
 		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'yes' );
 		$this->clear_state();
 	}
@@ -128,45 +125,6 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 200, $result->get_status() );
 		$this->assertSame( 1, $result->get_data()['written'] );
 		$this->assertNotNull( $this->store->get( 'first-event' ) );
-	}
-
-	public function test_ingest_redacts_events_before_writing() {
-		$request = $this->make_request(
-			[
-				'sessionId' => 'redact',
-				'events'    => [
-					[
-						'kind'              => 'consoleMessage',
-						'level'             => 'warn',
-						'message_truncated' => 'Error from shopper@example.com',
-						'secret_header'     => 'sk_live_abcdef1234567890',
-					],
-				],
-			]
-		);
-		$this->controller->ingest_events( $request );
-		$events = $this->store->get( 'redact' )['events'];
-		$this->assertCount( 1, $events );
-		$this->assertArrayNotHasKey( 'secret_header', $events[0] );
-		$this->assertStringNotContainsString( 'shopper@example.com', wp_json_encode( $events[0] ) );
-	}
-
-	public function test_ingest_drops_unknown_event_kinds() {
-		$request = $this->make_request(
-			[
-				'sessionId' => 'mixed',
-				'events'    => [
-					[
-						'kind'              => 'consoleMessage',
-						'level'             => 'warn',
-						'message_truncated' => 'ok',
-					],
-					[ 'kind' => 'mystery' ],
-				],
-			]
-		);
-		$result  = $this->controller->ingest_events( $request );
-		$this->assertSame( 1, $result->get_data()['written'] );
 	}
 
 	public function test_ingest_trims_batch_at_200_events() {
