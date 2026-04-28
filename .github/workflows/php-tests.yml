@@ -30,7 +30,7 @@ jobs:
         id: get-wordpress-versions
         uses: ./.github/actions/get-wordpress-versions
         with:
-          version-count: 3
+          version-count: 2
 
   test:
     runs-on: ubuntu-22.04
@@ -38,32 +38,11 @@ jobs:
     strategy:
       fail-fast:    false
       max-parallel: 16
-      # Try to keep basic matrix small to stay within our runner quota.
-      # The current matrix includes 10 combos (2 WC × 2 WP × 3 PHP, minus
-      # the 2 PHP-8.5 × WP-L-1 exclusions below), with coverage of PHP
-      # 7.4, 8.2, and 8.5.
-      #
-      # WP backlevel is L-1, not L-2: every released WC major in our matrix
-      # (the L and L-2 cells) requires WP >= 6.8, and WP L-2 is 6.7. Pinning
-      # WP=L-2 here makes WC's installer reject the WP version and the
-      # whole job fails before PHPUnit runs. Once a future WC major lifts
-      # its WP minimum past 6.9 we can revisit, but until WC ships a
-      # release that supports WP L-2 again we have no way to honour the
-      # strict L-2 policy from AGENTS.md without rolling WC back further
-      # than the loose L-2 policy allows.
+      # WC support policy for WP is L and L-1 (https://woocommerce.com/support-policy/).
       matrix:
-        woocommerce_support_policy: [ 'L', 'L-2' ]
-        wordpress_support_policy:   [ 'L', 'L-1' ]
-        php:                        [ '7.4', '8.2', '8.5' ]
-        # Skip PHP 8.5 + WP L-1: WP 6.8 ships pre-PHP-8.5 casts in
-        # wp-includes/IXR/class-IXR-message.php (`(double)` / `(boolean)`),
-        # which PHP 8.5 emits as E_DEPRECATED and PHPUnit promotes to test
-        # errors on every test that loads core. WP 6.9 patched the casts,
-        # so PHP 8.5 × WP=L still exercises the upcoming-deprecation
-        # signal we wanted out of the 8.5 row.
-        exclude:
-          - php: '8.5'
-            wordpress_support_policy: 'L-1'
+        woocommerce_support_policy: ['L', 'L-2']
+        wordpress_support_policy: ['L', 'L-1']
+        php: ['7.4', '8.2', '8.5']
         include:
           # WooCommerce
           - woocommerce_support_policy: L
