@@ -39,8 +39,9 @@ jobs:
       fail-fast:    false
       max-parallel: 16
       # Try to keep basic matrix small to stay within our runner quota.
-      # The current matrix includes 12 combos (2 WC × 2 WP × 3 PHP),
-      # with coverage of PHP 7.4, 8.2, and 8.5.
+      # The current matrix includes 10 combos (2 WC × 2 WP × 3 PHP, minus
+      # the 2 PHP-8.5 × WP-L-1 exclusions below), with coverage of PHP
+      # 7.4, 8.2, and 8.5.
       #
       # WP backlevel is L-1, not L-2: every released WC major in our matrix
       # (the L and L-2 cells) requires WP >= 6.8, and WP L-2 is 6.7. Pinning
