@@ -21,6 +21,7 @@ import {
 	getStripeElementOptions,
 } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
+import { diagnostics } from 'wcstripe/diagnostics/wiring';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -118,7 +119,9 @@ const PaymentProcessor = ( {
 
 	useEffect(
 		() =>
-			onPaymentSetup( () => {
+			onPaymentSetup( async () => {
+				const diagHandle =
+					diagnostics.blocksPaymentSetupStart( 'payment_processor' );
 				async function handlePaymentProcessing() {
 					if (
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
@@ -206,9 +209,14 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await api
-						.getStripe()
-						.createPaymentMethod( paymentMethodData );
+					const paymentMethodObject =
+						await diagnostics.aroundStripeCall(
+							'createPaymentMethod',
+							() =>
+								api
+									.getStripe()
+									.createPaymentMethod( paymentMethodData )
+						);
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -251,7 +259,17 @@ const PaymentProcessor = ( {
 						},
 					};
 				}
-				return handlePaymentProcessing();
+				try {
+					const result = await handlePaymentProcessing();
+					diagnostics.blocksPaymentSetupEnd( diagHandle, result );
+					return result;
+				} catch ( err ) {
+					diagnostics.blocksPaymentSetupEnd( diagHandle, {
+						type: 'error',
+						message: err?.message,
+					} );
+					throw err;
+				}
 			} ),
 		[
 			activePaymentMethod,
@@ -410,6 +428,12 @@ const PaymentProcessor = ( {
 					options={ getStripeElementOptions() }
 					onChange={ onSelectedPaymentMethodChange }
 					onLoadError={ setHasLoadError }
+					onReady={ () => {
+						const el = elements?.getElement( 'payment' );
+						if ( el ) {
+							diagnostics.attachAfterReady( el, 'payment' );
+						}
+					} }
 					className="wcstripe-payment-element"
 				/>
 			) }
