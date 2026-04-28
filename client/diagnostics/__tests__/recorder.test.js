@@ -10,11 +10,6 @@ describe( 'Recorder', () => {
 		return recorder;
 	}
 
-	// sendBeacon is now invoked with a Blob (so the request goes out as
-	// application/json). Tests previously read mock.calls[i][1] as a string;
-	// route those reads through this helper instead. Uses FileReader since
-	// the older jsdom in this repo's Jest config exposes neither
-	// `Blob.prototype.text()` nor `Response`.
 	function readBeaconBody( call ) {
 		const blob = call[ 1 ];
 		return new Promise( ( resolve, reject ) => {
