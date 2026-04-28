@@ -39,12 +39,26 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 				'methods'             => 'POST',
 				'callback'            => [ $this, 'ingest_events' ],
 				'permission_callback' => [ $this, 'permissions_check' ],
+				'args'                => [
+					'diag_session_id' => [
+						'required' => true,
+						'type'     => 'string',
+					],
+					'events'          => [
+						'required' => true,
+						'type'     => 'array',
+					],
+				],
 			]
 		);
 	}
 
 	/**
 	 * Permission callback.
+	 *
+	 * The endpoint is intentionally shopper-facing and unauthenticated.
+	 * Abuse mitigation comes from the `is_enabled()` toggle and the
+	 * trace store's caps (200 events/trace, FIFO trace-count eviction).
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request
 	 * @return bool|WP_Error
