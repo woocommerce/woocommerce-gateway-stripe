@@ -13,8 +13,9 @@ defined( 'ABSPATH' ) || exit;
  *   correlated back to the originating trace.
  * - Records a redacted event for each Stripe API request/response round trip.
  * - Records a redacted event for each webhook received.
- * - Injects a `wcStripeDiag` global alongside the plugin's existing localized
- *   script params so the frontend recorder can boot.
+ *
+ * Frontend `wcStripeDiag` localization is owned by
+ * {@see WC_Stripe_Diagnostics_Frontend_Loader} (#5372).
  *
  * The recorder is a singleton so the running session id can be shared across
  * `wc_stripe_request_body` (request capture) and
@@ -24,8 +25,7 @@ defined( 'ABSPATH' ) || exit;
 class WC_Stripe_Diagnostics_Recorder {
 
 	const SESSION_ID_META_KEY   = 'wc_diag_session_id';
-	const SESSION_OPTION        = 'wc_stripe_diag_active_session';
-	const SESSION_TTL           = 30 * MINUTE_IN_SECONDS;
+	const SESSION_KEY           = 'wc_stripe_diag_session_id';
 	const METADATA_ENABLED_APIS = [ 'payment_intents', 'setup_intents', 'customers' ];
 
 	/**
@@ -67,16 +67,6 @@ class WC_Stripe_Diagnostics_Recorder {
 	private $request_start_times = [];
 
 	/**
-	 * Whether the wcStripeDiag global has already been emitted for this
-	 * request. The wc_stripe_localized_data filter fires from up to four
-	 * call sites per checkout (gateway, UPE gateway, express checkout x2);
-	 * without this guard each pass would print a redundant inline script.
-	 *
-	 * @var bool
-	 */
-	private $has_localized_diag = false;
-
-	/**
 	 * Return the shared recorder instance, lazily constructing it (and the
 	 * trace store + redactor it depends on) on first access.
 	 *
@@ -114,7 +104,6 @@ class WC_Stripe_Diagnostics_Recorder {
 		add_filter( 'wc_stripe_request_body', [ $this, 'on_request_body' ], 10, 2 );
 		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 4 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'on_webhook_received' ], 10, 3 );
-		add_filter( 'wc_stripe_localized_data', [ $this, 'on_localized_data' ], 10, 3 );
 	}
 
 	/**
@@ -134,20 +123,30 @@ class WC_Stripe_Diagnostics_Recorder {
 		}
 		$this->current_session_id = $session_id;
 		$this->store->create( $session_id, [ 'started_at' => time() ] );
-		// Persist so later requests within the TTL window can resume.
-		set_transient( self::SESSION_OPTION, $session_id, self::SESSION_TTL );
+		// Persist on the shopper's WC session so subsequent requests in the
+		// same checkout (Stripe API hooks, redirects) resume the same id.
+		// Per-shopper storage; concurrent shoppers don't share state.
+		$session = WC()->session;
+		if ( $session instanceof WC_Session_Handler ) {
+			$session->set( self::SESSION_KEY, $session_id );
+		}
 		return true;
 	}
 
 	/**
-	 * Return the currently active session id, reading from the persisted
-	 * transient when this request didn't explicitly start one.
+	 * Return the currently active session id, reading from the WC session
+	 * when this request didn't explicitly start one. WC Sessions scope state
+	 * to the shopper, so concurrent shoppers don't read each other's ids.
 	 */
 	public function current_session_id(): ?string {
 		if ( null !== $this->current_session_id ) {
 			return $this->current_session_id;
 		}
-		$persisted = get_transient( self::SESSION_OPTION );
+		$session = WC()->session;
+		if ( ! $session instanceof WC_Session_Handler ) {
+			return null;
+		}
+		$persisted = $session->get( self::SESSION_KEY );
 		if ( is_string( $persisted ) && '' !== $persisted ) {
 			$this->current_session_id = $persisted;
 			return $persisted;
@@ -184,7 +183,7 @@ class WC_Stripe_Diagnostics_Recorder {
 			$session_id,
 			$this->redactor->redact(
 				[
-					'kind'         => 'apiRequest',
+					'kind'         => 'stripe.api.request',
 					'ts'           => time(),
 					'api'          => (string) $api,
 					'method'       => 'POST',
@@ -220,7 +219,7 @@ class WC_Stripe_Diagnostics_Recorder {
 		}
 
 		$event = [
-			'kind'       => 'apiResponse',
+			'kind'       => 'stripe.api.response',
 			'ts'         => time(),
 			'api'        => (string) $api,
 			'method'     => (string) $method,
@@ -253,7 +252,7 @@ class WC_Stripe_Diagnostics_Recorder {
 			$session_id,
 			$this->redactor->redact(
 				[
-					'kind'       => 'webhookReceived',
+					'kind'       => 'webhook.received',
 					'ts'         => time(),
 					'type'       => (string) $webhook_type,
 					'status'     => is_object( $object ) && isset( $object->status ) ? (string) $object->status : null,
@@ -264,43 +263,6 @@ class WC_Stripe_Diagnostics_Recorder {
 				]
 			)
 		);
-	}
-
-	/**
-	 * Publish the `wcStripeDiag` global to the frontend recorder whenever a
-	 * Stripe script is being localized. Only runs when a session is active.
-	 *
-	 * The filter fires from multiple call sites per checkout; we attach the
-	 * global to the first invocation only to avoid emitting duplicate inline
-	 * `<script>` tags.
-	 *
-	 * @param array  $data          The existing localized data.
-	 * @param string $script_handle The script handle being localized.
-	 * @param string $object_name   The JS variable name.
-	 * @return array
-	 */
-	public function on_localized_data( $data, $script_handle, $object_name ) {
-		if ( $this->has_localized_diag ) {
-			return $data;
-		}
-		$session_id = $this->current_session_id();
-		if ( null === $session_id ) {
-			return $data;
-		}
-
-		$this->has_localized_diag = true;
-		wp_localize_script(
-			(string) $script_handle,
-			'wcStripeDiag',
-			[
-				'active'    => true,
-				'sessionId' => $session_id,
-				'nonce'     => wp_create_nonce( 'wc_stripe_diagnostics' ),
-				'endpoint'  => esc_url_raw( rest_url( 'wc/v3/wc_stripe/diagnostics/events' ) ),
-			]
-		);
-
-		return $data;
 	}
 
 	/**

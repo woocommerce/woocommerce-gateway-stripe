@@ -19,6 +19,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 
 	public function set_up() {
 		parent::set_up();
+		WC()->initialize_session();
 		$this->store    = new WC_Stripe_Diagnostics_Trace_Store();
 		$this->recorder = new WC_Stripe_Diagnostics_Recorder(
 			$this->store,
@@ -34,7 +35,9 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 
 	private function clear_state() {
 		$this->store->delete_all();
-		delete_transient( WC_Stripe_Diagnostics_Recorder::SESSION_OPTION );
+		if ( WC()->session instanceof WC_Session ) {
+			WC()->session->set( WC_Stripe_Diagnostics_Recorder::SESSION_KEY, null );
+		}
 	}
 
 	public function test_request_body_is_untouched_when_no_session_is_active() {
@@ -64,16 +67,16 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'metadata', $out );
 	}
 
-	public function test_request_body_records_apiRequest_event() {
+	public function test_request_body_records_api_request_event() {
 		$this->recorder->start_session( 'rec1' );
 		$this->recorder->on_request_body( [ 'amount' => 100 ], 'payment_intents' );
 		$events = $this->store->get( 'rec1' )['events'];
 		$this->assertCount( 1, $events );
-		$this->assertSame( 'apiRequest', $events[0]['kind'] );
+		$this->assertSame( 'stripe.api.request', $events[0]['kind'] );
 		$this->assertSame( 'payment_intents', $events[0]['api'] );
 	}
 
-	public function test_request_response_records_apiResponse_event_with_latency() {
+	public function test_request_response_records_api_response_event_with_latency() {
 		$this->recorder->start_session( 'rec2' );
 		$this->recorder->on_request_body( [ 'amount' => 100 ], 'payment_intents' );
 
@@ -84,7 +87,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 
 		$events = $this->store->get( 'rec2' )['events'];
 		$this->assertCount( 2, $events );
-		$this->assertSame( 'apiResponse', $events[1]['kind'] );
+		$this->assertSame( 'stripe.api.response', $events[1]['kind'] );
 		$this->assertSame( 'payment_intents', $events[1]['api'] );
 		$this->assertArrayHasKey( 'latency_ms', $events[1] );
 	}
@@ -121,7 +124,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 
 		$events = $this->store->get( 'webhook-session' )['events'];
 		$this->assertCount( 1, $events );
-		$this->assertSame( 'webhookReceived', $events[0]['kind'] );
+		$this->assertSame( 'webhook.received', $events[0]['kind'] );
 		$this->assertSame( 'payment_intent.succeeded', $events[0]['type'] );
 		$this->assertSame( 'pi_xyz', $events[0]['intent_id'] );
 	}
@@ -155,34 +158,16 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->recorder->start_session( 'too-late' ) );
 	}
 
-	public function test_current_session_id_reads_from_transient_between_requests() {
-		set_transient( WC_Stripe_Diagnostics_Recorder::SESSION_OPTION, 'resumed', 60 );
+	public function test_current_session_id_reads_from_wc_session_between_requests() {
+		WC()->session->set( WC_Stripe_Diagnostics_Recorder::SESSION_KEY, 'resumed' );
 		// Fresh recorder: no in-memory session.
 		$recorder = new WC_Stripe_Diagnostics_Recorder( $this->store, new WC_Stripe_Diagnostics_Redactor() );
 		$this->assertSame( 'resumed', $recorder->current_session_id() );
 	}
 
-	/**
-	 * The wc_stripe_localized_data filter fires from multiple call sites per
-	 * checkout; the recorder must attach wcStripeDiag once so we don't print
-	 * duplicate inline scripts.
-	 */
-	public function test_on_localized_data_attaches_wc_stripe_diag_only_to_first_invocation() {
-		wp_register_script( 'first-handle', 'https://example.test/first.js' );
-		wp_register_script( 'second-handle', 'https://example.test/second.js' );
-
-		$this->recorder->start_session( 'dedup-session' );
-
-		$this->recorder->on_localized_data( [], 'first-handle', 'firstParams' );
-		$first_data = (string) wp_scripts()->get_data( 'first-handle', 'data' );
-		$this->assertStringContainsString( 'wcStripeDiag', $first_data );
-
-		$this->recorder->on_localized_data( [], 'second-handle', 'secondParams' );
-		$second_data = (string) wp_scripts()->get_data( 'second-handle', 'data' );
-		$this->assertStringNotContainsString( 'wcStripeDiag', $second_data );
-
-		wp_deregister_script( 'first-handle' );
-		wp_deregister_script( 'second-handle' );
+	public function test_start_session_persists_id_in_wc_session() {
+		$this->recorder->start_session( 'persisted' );
+		$this->assertSame( 'persisted', WC()->session->get( WC_Stripe_Diagnostics_Recorder::SESSION_KEY ) );
 	}
 
 	/**
@@ -202,11 +187,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 
 		$events = $this->store->get( 'wired' )['events'];
 		$this->assertNotEmpty( $events );
-		$this->assertSame( 'apiResponse', end( $events )['kind'] );
+		$this->assertSame( 'stripe.api.response', end( $events )['kind'] );
 
 		remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
 		remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
 		remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
-		remove_filter( 'wc_stripe_localized_data', [ $this->recorder, 'on_localized_data' ], 10 );
 	}
 }
