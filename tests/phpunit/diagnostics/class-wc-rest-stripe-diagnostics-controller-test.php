@@ -23,18 +23,31 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		parent::set_up();
 		$this->store      = new WC_Stripe_Diagnostics_Trace_Store();
 		$this->controller = new WC_REST_Stripe_Diagnostics_Controller( $this->store );
-		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'yes' );
+		$this->set_diagnostics_enabled( true );
 		$this->clear_state();
 	}
 
 	public function tear_down() {
 		$this->clear_state();
-		delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+		$this->set_diagnostics_enabled( false );
 		parent::tear_down();
 	}
 
 	private function clear_state() {
 		$this->store->delete_all();
+	}
+
+	/**
+	 * Toggle the merchant-facing diagnostics setting (lives inside the
+	 * shared `woocommerce_stripe_settings` option group).
+	 */
+	private function set_diagnostics_enabled( bool $enabled ): void {
+		$settings = get_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		$settings[ WC_REST_Stripe_Diagnostics_Controller::SETTINGS_KEY ] = $enabled ? 'yes' : 'no';
+		update_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, $settings );
 	}
 
 	private function make_request( array $body ): WP_REST_Request {
@@ -48,7 +61,7 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_permission_denied_when_toggle_off() {
-		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'no' );
+		$this->set_diagnostics_enabled( false );
 		$request = $this->make_request(
 			[
 				'diag_session_id' => 'abc',

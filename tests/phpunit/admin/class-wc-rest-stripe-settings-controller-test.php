@@ -588,6 +588,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				'is_short_statement_descriptor_enabled',
 			],
 			'is_debug_log_enabled'                  => [ 'is_debug_log_enabled', 'logging' ],
+			'is_diagnostics_enabled'                => [ 'is_diagnostics_enabled', 'diagnostics' ],
 		];
 	}
 
