@@ -49,17 +49,30 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * When no session is active, the request body must pass through
+	 * untouched — no metadata injection and no recorded event.
+	 */
 	public function test_request_body_is_untouched_when_no_session_is_active() {
 		$request = [ 'amount' => 1000 ];
 		$this->assertSame( $request, $this->recorder->on_request_body( $request, 'payment_intents' ) );
 	}
 
+	/**
+	 * With an active session, payment_intents requests carry the session id
+	 * as `metadata[wc_diag_session_id]` so the matching webhook can be
+	 * correlated back to the same trace.
+	 */
 	public function test_request_body_injects_session_id_metadata_for_pi() {
 		$this->recorder->start_session( 'smoke-xyz' );
 		$out = $this->recorder->on_request_body( [ 'amount' => 1000 ], 'payment_intents' );
 		$this->assertSame( 'smoke-xyz', $out['metadata']['wc_diag_session_id'] );
 	}
 
+	/**
+	 * Injection must merge with — not replace — existing caller metadata
+	 * (e.g. the order_id the gateway already attaches).
+	 */
 	public function test_request_body_preserves_existing_metadata() {
 		$this->recorder->start_session( 'abc' );
 		$out = $this->recorder->on_request_body(
@@ -70,12 +83,21 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertSame( 'abc', $out['metadata']['wc_diag_session_id'] );
 	}
 
+	/**
+	 * Metadata injection is scoped to PI / SI / customers — the resources
+	 * whose metadata survives in webhook payloads. Unrelated APIs (here,
+	 * `balance`) must not have a metadata bag bolted on.
+	 */
 	public function test_request_body_does_not_inject_for_unrelated_apis() {
 		$this->recorder->start_session( 'abc' );
 		$out = $this->recorder->on_request_body( [ 'foo' => 'bar' ], 'balance' );
 		$this->assertArrayNotHasKey( 'metadata', $out );
 	}
 
+	/**
+	 * Each request emits one `stripe.api.request` event into the matching
+	 * trace, tagged with the api the call hit.
+	 */
 	public function test_request_body_records_api_request_event() {
 		$this->recorder->start_session( 'rec1' );
 		$this->recorder->on_request_body( [ 'amount' => 100 ], 'payment_intents' );
@@ -85,6 +107,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertSame( 'payment_intents', $events[0]['api'] );
 	}
 
+	/**
+	 * Each round trip produces a request + response pair, with the response
+	 * carrying a `latency_ms` computed from the matching request's start time.
+	 */
 	public function test_request_response_records_api_response_event_with_latency() {
 		$this->recorder->start_session( 'rec2' );
 		$this->recorder->on_request_body( [ 'amount' => 100 ], 'payment_intents' );
@@ -101,6 +127,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'latency_ms', $events[1] );
 	}
 
+	/**
+	 * Stripe error responses are normalized into the `error.code/type/decline_code`
+	 * shape on the response event so traces show declines without the raw payload.
+	 */
 	public function test_response_with_error_captures_error_shape() {
 		$this->recorder->start_session( 'err1' );
 		$this->recorder->on_request_body( [ 'amount' => 1 ], 'payment_intents' );
@@ -117,6 +147,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertSame( 'insufficient_funds', $events[1]['error']['decline_code'] );
 	}
 
+	/**
+	 * Webhooks are routed back to the originating trace by reading
+	 * `metadata.wc_diag_session_id` off the webhook's data object.
+	 */
 	public function test_webhook_received_correlates_by_metadata_session_id() {
 		$this->store->create( 'webhook-session' );
 
@@ -138,8 +172,12 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertSame( 'pi_xyz', $events[0]['intent_id'] );
 	}
 
+	/**
+	 * If a webhook arrives before any other activity on its session, the
+	 * recorder lazily creates the trace — matches the parent issue's
+	 * "first-wins decrement" rule.
+	 */
 	public function test_webhook_received_creates_trace_when_missing() {
-		// Simulate a webhook that arrives before any other activity on this session.
 		$notification               = new stdClass();
 		$notification->data         = new stdClass();
 		$notification->data->object = (object) [
@@ -151,6 +189,11 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertNotNull( $this->store->get( 'fresh-from-webhook' ) );
 	}
 
+	/**
+	 * Webhooks that don't carry our session metadata key are unrelated
+	 * activity (e.g. PIs created outside diagnostics mode) and must not
+	 * cause a stray trace to be created.
+	 */
 	public function test_webhook_without_session_metadata_is_ignored() {
 		$notification               = new stdClass();
 		$notification->data         = new stdClass();
@@ -159,8 +202,12 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->store->get_all_ids() );
 	}
 
+	/**
+	 * When the trace store is at its FIFO cap, `start_session()` returns
+	 * false so the REST endpoint can react instead of letting an in-flight
+	 * session silently fail later when the first event tries to land.
+	 */
 	public function test_start_session_fails_when_store_is_full() {
-		// Force the store to saturation using the real store instance.
 		for ( $i = 0; $i < WC_Stripe_Diagnostics_Trace_Store::MAX_TRACES; $i++ ) {
 			$this->store->create( 'f' . $i );
 		}
