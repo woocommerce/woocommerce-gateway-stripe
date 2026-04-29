@@ -13,6 +13,12 @@ class Migrate_Link_Button_Locations_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// Seed the settings option so update_main_stripe_settings() does not hit the
+		// "option does not exist yet" branch of the pre_update_option_woocommerce_stripe_settings
+		// filter, which would otherwise merge in gateway defaults (including link_button_locations)
+		// and break these assertions.
+		add_option( WC_Stripe_Helper::SETTINGS_OPTION, [] );
+
 		$this->migration = new Migrate_Link_Button_Locations();
 	}
 
