@@ -43,6 +43,13 @@ jobs:
         woocommerce_support_policy: ['L', 'L-2']
         wordpress_support_policy: ['L', 'L-1']
         php: ['7.4', '8.2', '8.5']
+        # Skip PHP 8.5 + WP L-1: WP 6.8 ships pre-PHP-8.5 casts in
+        # wp-includes/IXR/class-IXR-message.php (`(double)` / `(boolean)`),
+        # which PHP 8.5 emits as E_DEPRECATED and PHPUnit promotes to test
+        # errors on every test that loads core. WP 6.9 patched the casts.
+        exclude:
+          - php: '8.5'
+            wordpress_support_policy: 'L-1'
         include:
           # WooCommerce
           - woocommerce_support_policy: L
