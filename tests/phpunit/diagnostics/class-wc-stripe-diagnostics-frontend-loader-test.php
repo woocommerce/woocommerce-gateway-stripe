@@ -25,8 +25,19 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		$this->set_diagnostics_enabled( false );
 		WC()->session->set( WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY, null );
+		unset( $_COOKIE[ 'wp_woocommerce_session_' . COOKIEHASH ] );
 		wp_set_current_user( 0 );
 		parent::tear_down();
+	}
+
+	/**
+	 * Make WC_Session_Handler::has_session() return true without going
+	 * through set_customer_session_cookie(), which calls wc_setcookie()
+	 * and triggers a "headers already sent" notice in the PHPUnit CLI
+	 * environment. has_session() is satisfied by isset($_COOKIE[...]).
+	 */
+	private function simulate_active_wc_session(): void {
+		$_COOKIE[ 'wp_woocommerce_session_' . COOKIEHASH ] = 'test-session';
 	}
 
 	private function set_diagnostics_enabled( bool $enabled ): void {
@@ -40,7 +51,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 
 	public function test_should_not_localize_when_toggle_off() {
 		$this->set_diagnostics_enabled( false );
-		WC()->session->set_customer_session_cookie( true );
+		$this->simulate_active_wc_session();
 		$this->assertFalse( $this->loader->should_localize() );
 	}
 
@@ -52,7 +63,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	}
 
 	public function test_should_localize_when_session_exists() {
-		WC()->session->set_customer_session_cookie( true );
+		$this->simulate_active_wc_session();
 		$this->assertTrue( $this->loader->should_localize() );
 	}
 
@@ -63,7 +74,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	}
 
 	public function test_session_id_is_generated_and_stable_across_calls() {
-		WC()->session->set_customer_session_cookie( true );
+		$this->simulate_active_wc_session();
 
 		$first  = $this->loader->get_or_create_session_id();
 		$second = $this->loader->get_or_create_session_id();
@@ -76,7 +87,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	}
 
 	public function test_session_id_persists_in_wc_session() {
-		WC()->session->set_customer_session_cookie( true );
+		$this->simulate_active_wc_session();
 		$id = $this->loader->get_or_create_session_id();
 		$this->assertSame(
 			$id,
@@ -85,7 +96,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	}
 
 	public function test_session_id_regenerates_when_stored_value_is_invalid() {
-		WC()->session->set_customer_session_cookie( true );
+		$this->simulate_active_wc_session();
 		WC()->session->set(
 			WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY,
 			'not-a-uuid'
