@@ -12,7 +12,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
-	const ENABLED_OPTION = 'wc_stripe_diagnostics_enabled';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+	const SETTINGS_KEY    = 'diagnostics';
 
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
@@ -115,8 +116,13 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
 	/**
 	 * Whether the diagnostics feature is currently enabled.
+	 *
+	 * Reads from the gateway's settings group so the merchant-facing toggle
+	 * (`is_diagnostics_enabled` in the settings REST controller) is the
+	 * single source of truth.
 	 */
 	public static function is_enabled(): bool {
-		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
+		$settings = get_option( self::SETTINGS_OPTION, [] );
+		return is_array( $settings ) && isset( $settings[ self::SETTINGS_KEY ] ) && 'yes' === $settings[ self::SETTINGS_KEY ];
 	}
 }
