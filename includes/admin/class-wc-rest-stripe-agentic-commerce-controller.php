@@ -41,16 +41,17 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * ImportSet statuses that are non-terminal and should be re-polled.
 	 *
-	 * Stripe advances an ImportSet through `pending` → `creating_records` →
-	 * one of the terminal states (`succeeded`, `succeeded_with_errors`, or
-	 * `failed`). Entries in either non-terminal state get refreshed on
-	 * dashboard load. `unknown` is also refreshed so rows persisted before
-	 * the creation response included a status eventually resolve.
+	 * Stripe advances an ImportSet through `queued` → `validating` →
+	 * `pending` → `creating_records` → one of the terminal states
+	 * (`succeeded`, `succeeded_with_errors`, or `failed`). Entries in any
+	 * non-terminal state get refreshed on dashboard load. `unknown` is also
+	 * refreshed so rows persisted before the creation response included a
+	 * status eventually resolve.
 	 *
 	 * @since 10.7.0
 	 * @var string[]
 	 */
-	private const REFRESHABLE_STATUSES = [ 'pending', 'creating_records', 'unknown' ];
+	private const REFRESHABLE_STATUSES = [ 'queued', 'validating', 'pending', 'creating_records', 'unknown' ];
 
 	/**
 	 * Endpoint path.
@@ -58,6 +59,18 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * @var string
 	 */
 	protected $rest_base = 'wc_stripe/agentic-commerce';
+
+	/**
+	 * Placeholder returned by GET /settings when a webhook secret is stored.
+	 *
+	 * Mirrors Stripe's `whsec_` prefix so the field looks recognisable in the UI
+	 * without exposing the stored value. The same value is detected on POST so
+	 * saving without editing the field does not overwrite the stored secret.
+	 *
+	 * @var string
+	 * @since 10.7.0
+	 */
+	const MASKED_WEBHOOK_SECRET = 'whsec_********************************';
 
 	/**
 	 * Configure REST API routes.
@@ -91,6 +104,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'trigger_sync' ],
 				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/settings',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_agentic_settings' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => [ $this, 'update_agentic_settings' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'is_enabled'     => [
+							'description'       => __( 'Whether Agentic Commerce is enabled.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'boolean',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+						'webhook_secret' => [
+							'description'       => __( 'Webhook signing secret for Agentic Commerce delegated checkout events.', 'woocommerce-gateway-stripe' ),
+							'type'              => 'string',
+							'validate_callback' => 'rest_validate_request_arg',
+						],
+					],
+				],
 			]
 		);
 	}
@@ -147,6 +189,14 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	public function trigger_sync() {
 		if ( ! $this->is_available() ) {
 			return $this->get_unavailable_error();
+		}
+
+		if ( ! $this->is_merchant_enabled() ) {
+			return new WP_Error(
+				'stripe_agentic_commerce_disabled',
+				__( 'Agentic Commerce is disabled. Enable it in settings before triggering a sync.', 'woocommerce-gateway-stripe' ),
+				[ 'status' => 409 ]
+			);
 		}
 
 		if ( ! $this->acquire_sync_lock() ) {
@@ -212,6 +262,51 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		}
 
 		return rest_ensure_response( [ 'success' => true ] );
+	}
+
+	/**
+	 * Return the Agentic Commerce feature settings.
+	 *
+	 * @since 10.7.0
+	 * @return WP_REST_Response
+	 */
+	public function get_agentic_settings(): WP_REST_Response {
+		$secret = (string) get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, '' );
+		return rest_ensure_response(
+			[
+				'is_enabled'     => 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' ),
+				// Never expose the real secret. Return a Stripe-style `whsec_`
+				// prefixed mask when one is stored so the field looks familiar
+				// without round-tripping the value to the client.
+				'webhook_secret' => '' !== $secret ? self::MASKED_WEBHOOK_SECRET : '',
+			]
+		);
+	}
+
+	/**
+	 * Update the Agentic Commerce feature settings.
+	 *
+	 * @since 10.7.0
+	 * @param WP_REST_Request $request Full request data.
+	 * @return WP_REST_Response
+	 */
+	public function update_agentic_settings( WP_REST_Request $request ): WP_REST_Response {
+		if ( $request->has_param( 'is_enabled' ) ) {
+			$value = $request->get_param( 'is_enabled' ) ? 'yes' : 'no';
+			update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $value );
+		}
+
+		if ( $request->has_param( 'webhook_secret' ) ) {
+			$new_secret = $request->get_param( 'webhook_secret' );
+			// Skip the update when the client echoes back the masked placeholder
+			// returned by GET, so the stored secret is preserved when the user
+			// saves without changing the field.
+			if ( self::MASKED_WEBHOOK_SECRET !== $new_secret ) {
+				update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, sanitize_text_field( $new_secret ) );
+			}
+		}
+
+		return $this->get_agentic_settings();
 	}
 
 	/**
@@ -318,6 +413,21 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 		return class_exists( 'WC_Stripe_Feature_Flags' )
 			&& WC_Stripe_Feature_Flags::is_agentic_commerce_enabled()
 			&& class_exists( 'WC_Stripe_Agentic_Commerce_Integration' );
+	}
+
+	/**
+	 * Whether the merchant has enabled Agentic Commerce via the settings UI.
+	 *
+	 * Distinct from {@see self::is_available()} which checks the developer
+	 * feature flag and class availability. This check enforces the merchant-
+	 * facing toggle on write paths so a stale admin tab or direct POST cannot
+	 * push the catalog to Stripe after the merchant has disabled the feature.
+	 *
+	 * @since 10.7.0
+	 * @return bool
+	 */
+	private function is_merchant_enabled(): bool {
+		return 'yes' === get_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
 	}
 
 	/**

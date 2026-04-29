@@ -38,6 +38,11 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'blocks' );
+		await expect(
+			page.getByText(
+				'After submission, you will need to authorize the payment with your bank.'
+			)
+		).toBeVisible();
 		await clickPlaceOrder( page );
 		await fillACSSDetails( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
