@@ -32,7 +32,7 @@ class WC_Stripe_Diagnostics_Redactor_Test extends WP_UnitTestCase {
 
 	public function test_fields_outside_allow_list_are_dropped() {
 		$event  = [
-			'kind'           => 'apiResponse',
+			'kind'           => 'stripe.api.response',
 			'api'            => 'payment_intents',
 			'method'         => 'POST',
 			'status'         => 200,
@@ -50,7 +50,7 @@ class WC_Stripe_Diagnostics_Redactor_Test extends WP_UnitTestCase {
 
 	public function test_nested_allow_list_paths_are_kept() {
 		$event  = [
-			'kind'     => 'apiRequest',
+			'kind'     => 'stripe.api.request',
 			'api'      => 'payment_intents',
 			'method'   => 'POST',
 			'metadata' => [
@@ -69,10 +69,10 @@ class WC_Stripe_Diagnostics_Redactor_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_pii_payloads
 	 */
 	public function test_pii_patterns_are_scrubbed( string $allowed_field, string $raw_value, array $forbidden_substrings ) {
-		// Inject the PII into an allow-listed consoleMessage field.
+		// Inject the PII into an allow-listed console.warn field.
 		$event                   = [
-			'kind'  => 'consoleMessage',
-			'level' => 'warn',
+			'kind'   => 'console.warn',
+			'source' => 'parent_frame',
 		];
 		$event[ $allowed_field ] = $raw_value;
 
@@ -86,11 +86,11 @@ class WC_Stripe_Diagnostics_Redactor_Test extends WP_UnitTestCase {
 
 	public function provide_pii_payloads(): array {
 		return [
-			'email in message'     => [ 'message_truncated', 'Failed for user shopper@example.com trying again', [ 'shopper@example.com' ] ],
-			'ipv4 in message'      => [ 'message_truncated', 'Blocked from 192.168.1.42 after 3 retries', [ '192.168.1.42' ] ],
-			'ipv6 in message'      => [ 'message_truncated', 'Blocked from 2001:0db8:85a3:0000:0000:8a2e:0370:7334', [ '2001:0db8:85a3:0000:0000:8a2e:0370:7334' ] ],
-			'stripe secret in msg' => [ 'message_truncated', 'Authorization: Bearer sk_live_abcdef1234567890', [ 'sk_live_abcdef1234567890' ] ],
-			'url with query'       => [ 'message_truncated', 'Redirected to https://example.com/pay?email=shopper@example.com&token=xyz', [ 'shopper@example.com', 'token=xyz' ] ],
+			'email in message'     => [ 'message', 'Failed for user shopper@example.com trying again', [ 'shopper@example.com' ] ],
+			'ipv4 in message'      => [ 'message', 'Blocked from 192.168.1.42 after 3 retries', [ '192.168.1.42' ] ],
+			'ipv6 in message'      => [ 'message', 'Blocked from 2001:0db8:85a3:0000:0000:8a2e:0370:7334', [ '2001:0db8:85a3:0000:0000:8a2e:0370:7334' ] ],
+			'stripe secret in msg' => [ 'message', 'Authorization: Bearer sk_live_abcdef1234567890', [ 'sk_live_abcdef1234567890' ] ],
+			'url with query'       => [ 'message', 'Redirected to https://example.com/pay?email=shopper@example.com&token=xyz', [ 'shopper@example.com', 'token=xyz' ] ],
 		];
 	}
 
@@ -124,11 +124,11 @@ class WC_Stripe_Diagnostics_Redactor_Test extends WP_UnitTestCase {
 	public function test_long_string_is_truncated() {
 		$raw    = str_repeat( 'a', 600 );
 		$event  = [
-			'kind'              => 'consoleMessage',
-			'message_truncated' => $raw,
+			'kind'    => 'console.warn',
+			'message' => $raw,
 		];
 		$result = $this->redactor->redact( $event );
-		$this->assertLessThan( 600, strlen( $result['message_truncated'] ) );
+		$this->assertLessThan( 600, strlen( $result['message'] ) );
 	}
 
 	/**

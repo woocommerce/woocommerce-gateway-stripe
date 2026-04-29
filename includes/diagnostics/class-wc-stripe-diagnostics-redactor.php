@@ -7,10 +7,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * Two layers run against every event before it reaches the trace store:
  *
- * 1. An **allow-list registry** keyed by event kind (`apiRequest`,
- *    `apiResponse`, `webhookReceived`, `consoleMessage`, ...). Any field not
- *    explicitly listed for the event's kind is dropped. Unknown kinds produce
- *    an empty event (fail-closed).
+ * 1. An **allow-list registry** keyed by event kind (`element.ready`,
+ *    `console.warn`, `stripe.confirmPayment.invoke`, `webhook.received`, ...).
+ *    Any field not explicitly listed for the event's kind is dropped. Unknown
+ *    kinds produce an empty event (fail-closed).
  *
  * 2. A set of **string scrubbers** applied to every remaining value: emails
  *    become `[email]`, IPv4/IPv6 become `[ip]`, URL query strings are
@@ -97,27 +97,70 @@ class WC_Stripe_Diagnostics_Redactor {
 	 * @return array<string, string[]>
 	 */
 	public static function default_allow_list(): array {
-		return [
-			'apiRequest'      => [
+		$list = [
+			// Stripe Element lifecycle (frontend: client/diagnostics/recorder.js).
+			'element.ready'                 => [ 'element_type' ],
+			'element.focus'                 => [ 'element_type' ],
+			'element.blur'                  => [ 'element_type' ],
+			'element.change'                => [
+				'element_type',
+				'complete',
+				'empty',
+				'valid',
+				'brand',
+				'error_code',
+				'error_type',
+			],
+			'element.loaderror'             => [
+				'element_type',
+				'error_code',
+				'error_type',
+				'error_message',
+			],
+
+			// Blocks onPaymentSetup brackets.
+			'blocks.payment_setup.start'    => [ 'site' ],
+			'blocks.payment_setup.end'      => [
+				'site',
+				'duration_ms',
+				'result_type',
+				'error_message',
+			],
+
+			// Express Checkout Element events.
+			'express.click'                 => [ 'wallet_type' ],
+			'express.confirm'               => [ 'wallet_type', 'payment_method_type' ],
+			'express.cancel'                => [ 'wallet_type' ],
+			'express.shippingratechange'    => [ 'wallet_type' ],
+			'express.shippingaddresschange' => [ 'wallet_type', 'country' ],
+			'express.paymentmethod'         => [ 'wallet_type', 'payment_method_type' ],
+
+			// Parent-frame console interception.
+			'console.warn'                  => [ 'message', 'source' ],
+			'console.error'                 => [ 'message', 'source' ],
+
+			// Server-side: Stripe API request / response.
+			'stripe.api.request'            => [
 				'api',
 				'method',
-				'request_id',
-				'fields',
 				'has_metadata',
 				'metadata.order_id',
 				'metadata.wc_diag_session_id',
+				'fields',
 			],
-			'apiResponse'     => [
+			'stripe.api.response'           => [
 				'api',
 				'method',
 				'status',
 				'request_id',
+				'latency_ms',
 				'error.code',
 				'error.type',
 				'error.decline_code',
-				'latency_ms',
 			],
-			'webhookReceived' => [
+
+			// Server-side: webhook receipt (correlated via metadata session id).
+			'webhook.received'              => [
 				'type',
 				'status',
 				'intent_id',
@@ -125,39 +168,37 @@ class WC_Stripe_Diagnostics_Redactor {
 				'order_id',
 				'session_id',
 			],
-			'consoleMessage'  => [
-				'level',
-				'message_truncated',
-				'source',
-			],
-			'elementEvent'    => [
-				'element',
-				'type',
-				'complete',
-				'empty',
-				'error_code',
-			],
-			'sdkCall'         => [
-				'method',
-				'ok',
-				'latency_ms',
-				'error_code',
-			],
-			'blocksEvent'     => [
-				'phase',
-				'type',
-				'ok',
-				'error_code',
-			],
-			'expressCheckout' => [
-				'phase',
-				'type',
-				'payment_method',
-			],
-			'sessionEnd'      => [
-				'reason',
-			],
 		];
+
+		// Stripe SDK call brackets emitted by the frontend recorder via
+		// `diagnostics.aroundStripeCall( method, fn )`. Each method gets
+		// .invoke / .resolve / .throw with method-agnostic shapes.
+		$sdk_call_methods = [
+			'confirmPayment',
+			'confirmSetup',
+			'confirmCashappSetup',
+			'confirmCashappPayment',
+			'createPaymentMethod',
+			'confirm', // Custom Checkout Sessions (Blocks).
+		];
+		foreach ( $sdk_call_methods as $method ) {
+			$list[ "stripe.{$method}.invoke" ]  = [ 'method' ];
+			$list[ "stripe.{$method}.resolve" ] = [
+				'method',
+				'intent_status',
+				'payment_method_type',
+				'has_error',
+				'error_type',
+				'error_code',
+				'error_decline_code',
+			];
+			$list[ "stripe.{$method}.throw" ]   = [
+				'method',
+				'error_message',
+			];
+		}
+
+		return $list;
 	}
 
 	/**
