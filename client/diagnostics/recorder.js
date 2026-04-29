@@ -1,5 +1,9 @@
 const STORAGE_KEY_PREFIX = 'wc_stripe_diag_';
 const IDLE_FLUSH_MS = 5000;
+// Server caps a batch at 200 events; flush early so a noisy checkout
+// (e.g., intercepted console.warn/error) can't push past the cap and
+// have the controller silently truncate.
+const MAX_BUFFER_BEFORE_FLUSH = 200;
 const CONSOLE_MESSAGE_MAX_CHARS = 500;
 const CONSOLE_LEVELS = [ 'warn', 'error' ];
 
@@ -38,7 +42,7 @@ export class Recorder {
 		// Replay any buffer left over from a prior pageload (e.g. 3DS redirect)
 		// then clear it from sessionStorage to prevent a second replay on the next boot.
 		if ( persisted?.bufferedEvents?.length ) {
-			const payload = JSON.stringify( {
+			const payload = buildIngestBlob( {
 				diag_session_id: this.config.sessionId,
 				events: persisted.bufferedEvents,
 			} );
@@ -248,6 +252,10 @@ export class Recorder {
 			kind,
 			data,
 		} );
+		if ( this.buffer.length >= MAX_BUFFER_BEFORE_FLUSH ) {
+			this.flush();
+			return;
+		}
 		this._resetIdleTimer();
 	}
 
@@ -255,7 +263,7 @@ export class Recorder {
 		if ( ! this.config?.active || this.buffer.length === 0 ) {
 			return;
 		}
-		const payload = JSON.stringify( {
+		const payload = buildIngestBlob( {
 			diag_session_id: this.config.sessionId,
 			events: this.buffer,
 		} );
@@ -312,6 +320,15 @@ export function getRecorder() {
 		_singleton.boot();
 	}
 	return _singleton;
+}
+
+// Wrap the JSON payload in a Blob so sendBeacon sets Content-Type to
+// application/json. Without this, sendBeacon defaults to text/plain and
+// WP's REST server skips JSON body parsing.
+function buildIngestBlob( payload ) {
+	return new Blob( [ JSON.stringify( payload ) ], {
+		type: 'application/json',
+	} );
 }
 
 function buildIngestUrl( config ) {
