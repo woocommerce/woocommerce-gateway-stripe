@@ -9,12 +9,20 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 	 */
 	private WC_Stripe_Whats_New_Modal $modal;
 
+	/**
+	 * Load the modal class and instantiate a fresh subject for each test so
+	 * state carried in private fields can't leak between cases.
+	 */
 	public function set_up() {
 		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-whats-new-modal.php';
 		$this->modal = new WC_Stripe_Whats_New_Modal();
 	}
 
+	/**
+	 * Reset the two pieces of persisted state the modal touches — the pending
+	 * transient and the per-user dismissal meta — so the next test starts clean.
+	 */
 	public function tear_down() {
 		delete_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT );
 		$current_user = get_current_user_id();
@@ -66,6 +74,12 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		};
 	}
 
+	/**
+	 * Smoke-tests the parser against the bundled `readme.txt`: the result must
+	 * always be an array, and any entries returned must carry non-empty text.
+	 * The release branch may not yet have a block for `WC_STRIPE_VERSION`, so
+	 * we don't assert the count — only the shape of whatever is returned.
+	 */
 	public function test_parse_changelog_returns_entries_for_current_version(): void {
 		$entries = $this->modal->parse_changelog_for_version( WC_STRIPE_VERSION );
 
@@ -81,11 +95,21 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Asking for a version that doesn't appear in `readme.txt` returns an empty
+	 * array rather than throwing or matching an adjacent version's block.
+	 */
 	public function test_parse_changelog_returns_empty_when_version_missing(): void {
 		$entries = $this->modal->parse_changelog_for_version( '0.0.1' );
 		$this->assertSame( [], $entries );
 	}
 
+	/**
+	 * Exercises the production parsing regex against a fixture readme: the
+	 * target version's block is extracted, tagged entries split into
+	 * `tag` + `text`, untagged entries surface with an empty `tag`, and the
+	 * lookahead stops at the next version header.
+	 */
 	public function test_parse_changelog_extracts_tagged_entries_from_fixture(): void {
 		$tmp_dir    = sys_get_temp_dir() . '/wc-stripe-whats-new-' . wp_generate_password( 6, false );
 		$tmp_readme = $tmp_dir . '/readme.txt';
@@ -118,6 +142,12 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The `upgrader_process_complete` listener must only set the pending
+	 * transient when the upgrader run targets exactly this plugin and nothing
+	 * else. The provider below covers single-plugin success paths plus every
+	 * shape that should be ignored (bulk updates, theme/core upgrades,
+	 * installs, malformed `$hook_extra`).
+	 *
 	 * @dataProvider provide_flag_standalone_update_cases
 	 */
 	public function test_maybe_flag_standalone_update( array $hook_extra, $expected_transient ): void {
@@ -199,6 +229,11 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * The pending transient is the gate that says "an update just landed."
+	 * Without it set, an admin loading wp-admin must not see the modal; with
+	 * it set (and no other gate failing), they must.
+	 */
 	public function test_should_display_requires_pending_transient(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		$this->assertFalse( $this->modal->should_display() );
@@ -207,6 +242,11 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->modal->should_display() );
 	}
 
+	/**
+	 * Once a user dismisses the modal for the current version, it must stay
+	 * dismissed for them — the dismissed-version user meta wins over the
+	 * still-set pending transient.
+	 */
 	public function test_should_display_returns_false_when_user_dismissed_current_version(): void {
 		$user_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
 		wp_set_current_user( $user_id );
@@ -216,6 +256,10 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->modal->should_display() );
 	}
 
+	/**
+	 * Dismissal is per-user, not site-wide: one admin closing the modal must
+	 * not suppress it for other admins on the same store.
+	 */
 	public function test_should_display_returns_true_when_a_different_user_dismissed(): void {
 		$dismissing_user = $this->factory->user->create( [ 'role' => 'administrator' ] );
 		update_user_meta( $dismissing_user, WC_Stripe_Whats_New_Modal::DISMISSED_USER_META, WC_STRIPE_VERSION );
@@ -227,6 +271,12 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->modal->should_display() );
 	}
 
+	/**
+	 * The `wc_stripe_whats_new_modal_enabled` filter is the documented kill
+	 * switch for the experiment. When it returns false, no other gate matters
+	 * — the modal must stay hidden even with a fresh transient and no prior
+	 * dismissal.
+	 */
 	public function test_should_display_respects_disable_filter(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
@@ -239,6 +289,11 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * The modal is a merchant-facing surface, not a shopper-facing one. Users
+	 * without `manage_woocommerce` (e.g. Subscribers) must not see it even
+	 * when the pending transient is set.
+	 */
 	public function test_should_display_requires_manage_woocommerce_capability(): void {
 		set_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'subscriber' ] ) );
@@ -246,6 +301,12 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->modal->should_display() );
 	}
 
+	/**
+	 * The dismissal AJAX handler must record the dismissed version on the
+	 * current user (so it doesn't pop again for them) but leave the site-wide
+	 * transient alone (so other admins still see it once after the same
+	 * update). The dwell + source POST fields are accepted as Tracks props.
+	 */
 	public function test_handle_dismiss_records_user_meta_and_leaves_transient(): void {
 		$this->set_up_ajax_context();
 
@@ -287,6 +348,11 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 	}
 
+	/**
+	 * The dismissal endpoint is `manage_woocommerce`-gated. A request from a
+	 * Subscriber (or unauthenticated session, by extension) must short-circuit
+	 * with a 403-style error and must not mutate user meta.
+	 */
 	public function test_handle_dismiss_rejects_unauthorized_user(): void {
 		$this->set_up_ajax_context();
 
