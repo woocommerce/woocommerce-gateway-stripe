@@ -116,6 +116,18 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const SYNC_HISTORY_LIMIT = 50;
 
 	/**
+	 * Cached validator instance for the current sync, so the walker (via
+	 * {@see ProductWalker::from_integration()}) and the post-walk caller in
+	 * {@see self::sync_feed()} share state — specifically, the validator's
+	 * accumulated per-product failures. Reset to null at the start of each
+	 * sync_feed() call so successive syncs in the same request don't pool
+	 * errors across runs.
+	 *
+	 * @var FeedValidatorInterface|null
+	 */
+	protected ?FeedValidatorInterface $feed_validator = null;
+
+	/**
 	 * Get integration ID.
 	 *
 	 * @since 10.5.0
@@ -234,7 +246,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return FeedValidatorInterface Feed validator instance.
 	 */
 	public function get_feed_validator(): FeedValidatorInterface {
-		return new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		if ( null === $this->feed_validator ) {
+			$this->feed_validator = new WC_Stripe_Agentic_Commerce_Feed_Validator();
+		}
+		return $this->feed_validator;
 	}
 
 	/**
@@ -279,6 +294,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	public function sync_feed(): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
+
 		if ( ! $this->is_enabled() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - feature not enabled' );
 			return false;
@@ -356,13 +375,27 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			);
 
 			if ( $skipped_count > 0 ) {
+				$validator       = $this->get_feed_validator();
+				$collected       = $validator instanceof WC_Stripe_Agentic_Commerce_Feed_Validator
+					? $validator->get_collected_errors()
+					: [
+						'products'  => [],
+						'truncated' => 0,
+					];
+				$logged_products = $collected['products'] ?? [];
+				$truncated       = $collected['truncated'] ?? 0;
+
 				WC_Stripe_Logger::warning(
 					sprintf(
 						/* translators: 1: number of skipped products, 2: number of iterated products */
-						'Agentic Commerce: %1$d of %2$d products were skipped because they failed feed validation. See earlier log entries for per-product reasons.',
+						'Agentic Commerce: %1$d of %2$d products were skipped because they failed feed validation.',
 						$skipped_count,
 						$iterated_products
-					)
+					),
+					[
+						'products'  => $logged_products,
+						'truncated' => $truncated,
+					]
 				);
 			}
 

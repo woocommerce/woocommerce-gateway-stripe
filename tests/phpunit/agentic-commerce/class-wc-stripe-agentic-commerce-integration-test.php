@@ -113,6 +113,44 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The walker (via ProductWalker::from_integration) and the post-walk
+	 * caller both go through get_feed_validator(); they must end up with
+	 * the same instance so the validator's accumulated per-product errors
+	 * are observable from the caller after the walk.
+	 *
+	 * @return void
+	 */
+	public function test_get_feed_validator_returns_same_instance_within_sync() {
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+		$first  = $integration->get_feed_validator();
+		$second = $integration->get_feed_validator();
+
+		$this->assertSame( $first, $second );
+	}
+
+	/**
+	 * Each sync_feed() run must start with a clean validator — otherwise a
+	 * previous sync's accumulated errors would leak into the current one.
+	 * Verifying via the early-return path (feature disabled) keeps the test
+	 * isolated from the rest of the sync pipeline.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_resets_cached_validator() {
+		delete_option( 'woocommerce_stripe_settings' );
+
+		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+		$before      = $integration->get_feed_validator();
+
+		$integration->sync_feed();
+
+		$after = $integration->get_feed_validator();
+
+		$this->assertNotSame( $before, $after );
+	}
+
+	/**
 	 * Test is_enabled returns false by default.
 	 *
 	 * @return void
