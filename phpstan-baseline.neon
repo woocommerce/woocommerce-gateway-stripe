@@ -1189,6 +1189,12 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
 
 		-
+			message: '#^Method WC_REST_Stripe_Agentic_Commerce_Controller\:\:update_agentic_settings\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
+			identifier: missingType.generics
+			count: 1
+			path: includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php
+
+		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:test_account_keys\(\) has parameter \$request with generic class WP_REST_Request but does not specify its types\: T$#'
 			identifier: missingType.generics
 			count: 1
@@ -9983,3 +9989,4 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: woocommerce-gateway-stripe.php
+

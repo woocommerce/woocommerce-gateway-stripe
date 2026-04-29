@@ -58,7 +58,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			// Confirm everything is right.
 			$this->verify_order_total( $order, $session );
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			$order->delete( true );
 			throw $e;
 		}
