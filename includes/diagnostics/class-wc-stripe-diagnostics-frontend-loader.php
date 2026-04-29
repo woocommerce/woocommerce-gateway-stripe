@@ -2,11 +2,6 @@
 /**
  * Localizes window.wcStripeDiag on pages that load the Stripe checkout
  * bundles, so client/diagnostics/recorder.js can boot.
- *
- * Bound to the merchant-facing diagnostics toggle. Only activates on
- * requests that already have a WC session (or a logged-in user), so the
- * localization itself never triggers a Set-Cookie that would expand the
- * no-cache surface for first-time visitors.
  */
 
 defined( 'ABSPATH' ) || exit;
