@@ -563,9 +563,9 @@ class WC_Stripe_Webhook_Handler_Agentic_Test extends WP_UnitTestCase {
 			'id'               => $session_id,
 			'payment_intent'   => (object) [
 				'id'            => 'pi_test_' . $session_id,
-				'agent_details' => (object) [
-					'network_business_profile' => 'nbp_test_123',
-				],
+				'agent_details' => $agentic
+					? (object) [ 'network_business_profile' => 'nbp_test_123' ]
+					: null,
 			],
 			'customer'         => 'cus_test_789',
 			'customer_email'   => 'test@example.com',
