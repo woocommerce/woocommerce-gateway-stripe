@@ -3,6 +3,7 @@ import React from 'react';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
+import DiagnosticsMode from './diagnostics-mode';
 import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
@@ -28,6 +29,7 @@ const AdvancedSettings = ( { isOCEnabled, setIsOCEnabled } ) => {
 				<Card>
 					<CardBody>
 						<DebugMode />
+						<DiagnosticsMode />
 						{ isOcAvailable && (
 							<OptimizedCheckoutFeature
 								isOCEnabled={ isOCEnabled }
