@@ -91,11 +91,13 @@ class WC_Stripe_Agentic_Line_Item {
 	}
 
 	/**
-	 * Returns the WooCommerce product ID resolved from the price's external_reference SKU.
+	 * Returns the WooCommerce product ID resolved from the price's external_reference.
 	 *
-	 * Stripe populates price.external_reference with the merchant's SKU. Returns 0
-	 * if the price object is missing, external_reference is absent, or no
-	 * WooCommerce product matches the SKU.
+	 * Tries the merchant SKU first (current sync contract), then falls back to
+	 * a numeric product-ID lookup so catalogs synced under the legacy
+	 * "external_reference = product_id" contract — and products without a SKU —
+	 * keep resolving instead of failing the checkout. Returns 0 when neither
+	 * path matches a real product.
 	 *
 	 * @since 10.6.0
 	 * @return int
@@ -111,7 +113,20 @@ class WC_Stripe_Agentic_Line_Item {
 		}
 
 		$product_id = wc_get_product_id_by_sku( $external_reference );
-		return $product_id ? (int) $product_id : 0;
+		if ( $product_id ) {
+			return (int) $product_id;
+		}
+
+		// Fallback for the legacy product-ID contract: if external_reference is
+		// purely numeric, see if it matches a real WC_Product.
+		if ( ctype_digit( $external_reference ) ) {
+			$candidate = wc_get_product( (int) $external_reference );
+			if ( $candidate instanceof WC_Product ) {
+				return (int) $candidate->get_id();
+			}
+		}
+
+		return 0;
 	}
 
 	/**

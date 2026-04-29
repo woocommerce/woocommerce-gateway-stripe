@@ -71,6 +71,37 @@ class WC_Stripe_Agentic_Line_Item_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Catalogs synced under the legacy contract carry the WooCommerce product ID
+	 * in `external_reference`. SKU lookup misses (no product has that ID as a SKU),
+	 * but the numeric fallback must still resolve so those checkouts complete.
+	 */
+	public function test_get_product_id_falls_back_to_numeric_product_id() {
+		$product = WC_Helper_Product::create_simple_product( true );
+
+		$item = new WC_Stripe_Agentic_Line_Item(
+			(object) [
+				'price' => (object) [ 'external_reference' => (string) $product->get_id() ],
+			]
+		);
+
+		$this->assertSame( $product->get_id(), $item->get_product_id() );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A numeric `external_reference` that doesn't match any real product must
+	 * still return 0 — the fallback is a lookup, not a coercion.
+	 */
+	public function test_get_product_id_returns_zero_for_unknown_numeric_reference() {
+		$item = new WC_Stripe_Agentic_Line_Item(
+			(object) [ 'price' => (object) [ 'external_reference' => '99999999' ] ]
+		);
+
+		$this->assertSame( 0, $item->get_product_id() );
+	}
+
+	/**
 	 * @dataProvider provide_unresolvable_product_id_cases
 	 */
 	public function test_get_product_id_returns_zero_when_unresolvable( object $raw ) {

@@ -390,7 +390,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'has no external_reference SKU that resolves to a WooCommerce product' );
+		$this->expectExceptionMessage( 'has no external_reference that resolves to a WooCommerce product' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
@@ -427,7 +427,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		);
 
 		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'has no external_reference SKU that resolves to a WooCommerce product' );
+		$this->expectExceptionMessage( 'has no external_reference that resolves to a WooCommerce product' );
 
 		$this->mapper->create_order_from_checkout_session( $session );
 	}
