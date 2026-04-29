@@ -106,6 +106,8 @@ class WC_Stripe {
 		$this->init();
 
 		add_action( 'rest_api_init', [ $this, 'register_routes' ] );
+
+		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 	}
 
 	/**
