@@ -59,9 +59,6 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 		if ( ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
 			return false;
 		}
-		if ( is_user_logged_in() ) {
-			return true;
-		}
 		$session = WC()->session;
 		return $session instanceof WC_Session_Handler && $session->has_session();
 	}

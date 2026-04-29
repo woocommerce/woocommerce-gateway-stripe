@@ -30,10 +30,12 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 	}
 
 	private function set_diagnostics_enabled( bool $enabled ): void {
-		update_option(
-			WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION,
-			$enabled ? 'yes' : 'no'
-		);
+		$settings = get_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		$settings[ WC_REST_Stripe_Diagnostics_Controller::SETTINGS_KEY ] = $enabled ? 'yes' : 'no';
+		update_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, $settings );
 	}
 
 	public function test_should_not_localize_when_toggle_off() {
