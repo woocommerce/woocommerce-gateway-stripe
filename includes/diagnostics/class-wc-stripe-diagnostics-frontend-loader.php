@@ -25,6 +25,13 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 */
 	const SESSION_KEY = 'wc_stripe_diag_session_id';
 
+	/**
+	 * Cached inline-config string for this request.
+	 *
+	 * @var string|null
+	 */
+	private $cached = null;
+
 	public function init(): void {
 		add_action( 'wp_footer', [ $this, 'maybe_localize' ], 11 );
 	}
@@ -40,6 +47,9 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 			return;
 		}
 		$inline = $this->build_inline_config();
+		if ( null === $inline ) {
+			return;
+		}
 		foreach ( self::SCRIPT_HANDLES as $handle ) {
 			if ( wp_script_is( $handle, 'enqueued' ) || wp_script_is( $handle, 'registered' ) ) {
 				wp_add_inline_script( $handle, $inline, 'before' );
@@ -51,9 +61,11 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 * Whether the loader should emit `wcStripeDiag` for this request.
 	 *
 	 * Skipped when the toggle is off, or when the request has no
-	 * established WC session and no logged-in user — writing to the WC
-	 * session in that state would set a session cookie and break
-	 * full-page caching for first-time visitors.
+	 * established WC session — writing to the WC session in that state
+	 * would set a session cookie and break full-page caching for
+	 * first-time visitors. Logged-in users are covered by the same
+	 * check because WC_Session_Handler::has_session() returns true for
+	 * them.
 	 */
 	public function should_localize(): bool {
 		if ( ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
@@ -68,10 +80,9 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 * page that has multiple recorder-host handles enqueued sees the
 	 * same sessionId/nonce.
 	 */
-	private function build_inline_config(): string {
-		static $cached = null;
-		if ( null !== $cached ) {
-			return $cached;
+	private function build_inline_config(): ?string {
+		if ( null !== $this->cached ) {
+			return $this->cached;
 		}
 
 		$config = [
@@ -81,8 +92,13 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 		];
 
-		$cached = 'window.wcStripeDiag = ' . wp_json_encode( $config ) . ';';
-		return $cached;
+		$encoded = wp_json_encode( $config );
+		if ( false === $encoded ) {
+			return null;
+		}
+
+		$this->cached = 'window.wcStripeDiag = ' . $encoded . ';';
+		return $this->cached;
 	}
 
 	/**
