@@ -24,9 +24,7 @@ class WC_Stripe_Diagnostics_Frontend_Loader_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		$this->set_diagnostics_enabled( false );
-		if ( WC()->session instanceof WC_Session ) {
-			WC()->session->set( WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY, null );
-		}
+		WC()->session->set( WC_Stripe_Diagnostics_Frontend_Loader::SESSION_KEY, null );
 		wp_set_current_user( 0 );
 		parent::tear_down();
 	}

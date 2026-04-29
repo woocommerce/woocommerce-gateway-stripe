@@ -64,11 +64,11 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 		if ( ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
 			return false;
 		}
-		$session = WC()->session ?? null;
-		if ( ! $session instanceof WC_Session ) {
-			return false;
+		if ( is_user_logged_in() ) {
+			return true;
 		}
-		return $session->has_session() || is_user_logged_in();
+		$session = WC()->session;
+		return $session instanceof WC_Session_Handler && $session->has_session();
 	}
 
 	/**
@@ -99,11 +99,8 @@ class WC_Stripe_Diagnostics_Frontend_Loader {
 	 * session lives.
 	 */
 	public function get_or_create_session_id(): string {
-		$session = WC()->session ?? null;
-		if ( ! $session instanceof WC_Session ) {
-			return wp_generate_uuid4();
-		}
-		$id = $session->get( self::SESSION_KEY );
+		$session = WC()->session;
+		$id      = $session->get( self::SESSION_KEY );
 		if ( ! is_string( $id ) || ! self::looks_like_uuid( $id ) ) {
 			$id = wp_generate_uuid4();
 			$session->set( self::SESSION_KEY, $id );
