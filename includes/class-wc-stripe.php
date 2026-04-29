@@ -321,7 +321,7 @@ class WC_Stripe {
 	/**
 	 * Initialize the diagnostics frontend loader.
 	 */
-	public function initialize_diagnostics_frontend_loader() {
+	public function initialize_diagnostics_frontend_loader(): void {
 		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 	}
 
