@@ -17,6 +17,11 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 */
 	private $recorder;
 
+	/**
+	 * Boot WC sessions before instantiating the recorder. Without
+	 * `initialize_session()`, `WC()->session` is null and the recorder's
+	 * WC-session-backed session id storage silently no-ops.
+	 */
 	public function set_up() {
 		parent::set_up();
 		WC()->initialize_session();
@@ -33,6 +38,10 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Reset the trace store and clear the recorder's WC-session entry so
+	 * tests don't observe leakage from each other.
+	 */
 	private function clear_state() {
 		$this->store->delete_all();
 		if ( WC()->session instanceof WC_Session ) {
@@ -158,13 +167,21 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->recorder->start_session( 'too-late' ) );
 	}
 
+	/**
+	 * Reader side of the resume-across-requests contract: a fresh recorder
+	 * (no in-memory session) reads the active id from the WC session that
+	 * an earlier request persisted.
+	 */
 	public function test_current_session_id_reads_from_wc_session_between_requests() {
 		WC()->session->set( WC_Stripe_Diagnostics_Recorder::SESSION_KEY, 'resumed' );
-		// Fresh recorder: no in-memory session.
 		$recorder = new WC_Stripe_Diagnostics_Recorder( $this->store, new WC_Stripe_Diagnostics_Redactor() );
 		$this->assertSame( 'resumed', $recorder->current_session_id() );
 	}
 
+	/**
+	 * Writer side of the resume contract: start_session() persists the id
+	 * onto the WC session so the next request can resume it.
+	 */
 	public function test_start_session_persists_id_in_wc_session() {
 		$this->recorder->start_session( 'persisted' );
 		$this->assertSame( 'persisted', WC()->session->get( WC_Stripe_Diagnostics_Recorder::SESSION_KEY ) );
