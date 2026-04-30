@@ -108,25 +108,11 @@ class WC_Stripe_Agentic_Line_Item {
 		}
 
 		$external_reference = $this->item->price->external_reference ?? '';
-		if ( ! is_string( $external_reference ) || '' === $external_reference ) {
+		if ( ! is_string( $external_reference ) ) {
 			return 0;
 		}
 
-		$product_id = wc_get_product_id_by_sku( $external_reference );
-		if ( $product_id ) {
-			return (int) $product_id;
-		}
-
-		// Fallback for the legacy product-ID contract: if external_reference is
-		// purely numeric, see if it matches a real WC_Product.
-		if ( ctype_digit( $external_reference ) ) {
-			$candidate = wc_get_product( (int) $external_reference );
-			if ( $candidate instanceof WC_Product ) {
-				return (int) $candidate->get_id();
-			}
-		}
-
-		return 0;
+		return WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $external_reference );
 	}
 
 	/**
