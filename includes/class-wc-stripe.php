@@ -319,11 +319,15 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Initialize diagnostics components. The recorder's `init()` is itself
-	 * gated on the diagnostics toggle, so this method is safe to call
-	 * unconditionally.
+	 * Initialize diagnostics components: the frontend loader (which emits
+	 * `wcStripeDiag` for the recorder.js boot) and the server-side recorder
+	 * (which subscribes to the Stripe API + webhook hooks). The recorder's
+	 * own `init()` is gated on the diagnostics toggle; the frontend loader
+	 * gates per-request inside `should_localize()`. Both are safe to call
+	 * unconditionally here.
 	 */
 	public function initialize_diagnostics(): void {
+		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
 	}
 

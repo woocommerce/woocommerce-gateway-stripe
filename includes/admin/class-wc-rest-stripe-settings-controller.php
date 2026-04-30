@@ -176,6 +176,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_diagnostics_enabled'                => [
+						'description'       => __( 'When enabled, captures structured client/server traces of checkout sessions for support diagnostics.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 				],
 			]
 		);
@@ -267,6 +272,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
+				'is_diagnostics_enabled'                => 'yes' === $this->gateway->get_option( 'diagnostics' ),
 				'is_upe_enabled'                        => true,
 				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),
@@ -309,6 +315,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
+		$this->update_is_diagnostics_enabled( $request );
 		$this->update_oc_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
@@ -543,6 +550,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'logging', $is_debug_log_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates whether checkout diagnostics capture is enabled.
+	 *
+	 * @param WP_REST_Request<array<string, mixed>> $request Request object.
+	 *
+	 * @return void
+	 */
+	private function update_is_diagnostics_enabled( WP_REST_Request $request ) {
+		$is_diagnostics_enabled = $request->get_param( 'is_diagnostics_enabled' );
+
+		if ( null === $is_diagnostics_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'diagnostics', $is_diagnostics_enabled ? 'yes' : 'no' );
 	}
 
 	/**

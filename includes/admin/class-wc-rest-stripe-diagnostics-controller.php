@@ -12,8 +12,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
-	const ENABLED_OPTION = 'wc_stripe_diagnostics_enabled';
-	const NONCE_ACTION   = 'wc_stripe_diagnostics';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+	const SETTINGS_KEY    = 'diagnostics';
 
 	protected $namespace = 'wc/v3';
 	protected $rest_base = 'wc_stripe/diagnostics';
@@ -41,11 +41,11 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 				'callback'            => [ $this, 'ingest_events' ],
 				'permission_callback' => [ $this, 'permissions_check' ],
 				'args'                => [
-					'sessionId' => [
+					'diag_session_id' => [
 						'required' => true,
 						'type'     => 'string',
 					],
-					'events'    => [
+					'events'          => [
 						'required' => true,
 						'type'     => 'array',
 					],
@@ -55,9 +55,14 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * Permission callback. Requires:
-	 * 1. The diagnostics feature is enabled.
-	 * 2. A valid `wc_stripe_diagnostics` nonce in either an HTTP header or the body.
+	 * Permission callback.
+	 *
+	 * The endpoint is intentionally shopper-facing and unauthenticated.
+	 * Abuse mitigation relies on the bounded debug window — the
+	 * `is_enabled()` toggle is meant to be on only briefly while a
+	 * merchant is actively debugging. Don't default it on: with the
+	 * toggle on, anyone can rotate `diag_session_id` to evict
+	 * legitimate traces from the FIFO trace store.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request
 	 * @return bool|WP_Error
@@ -66,15 +71,6 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 		if ( ! self::is_enabled() ) {
 			return new WP_Error( 'wc_stripe_diagnostics_disabled', 'Diagnostics mode is not enabled.', [ 'status' => 403 ] );
 		}
-
-		$nonce = $request->get_header( 'x_wp_nonce' );
-		if ( ! is_string( $nonce ) || '' === $nonce ) {
-			$nonce = (string) $request->get_param( 'nonce' );
-		}
-		if ( ! wp_verify_nonce( $nonce, self::NONCE_ACTION ) ) {
-			return new WP_Error( 'wc_stripe_diagnostics_bad_nonce', 'Invalid diagnostics nonce.', [ 'status' => 403 ] );
-		}
-
 		return true;
 	}
 
@@ -85,9 +81,9 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function ingest_events( $request ) {
-		$session_id = WC_Stripe_Diagnostics_Trace_Store::sanitize_id( (string) $request->get_param( 'sessionId' ) );
+		$session_id = WC_Stripe_Diagnostics_Trace_Store::sanitize_id( (string) $request->get_param( 'diag_session_id' ) );
 		if ( '' === $session_id ) {
-			return new WP_Error( 'wc_stripe_diagnostics_bad_session', 'Invalid sessionId.', [ 'status' => 400 ] );
+			return new WP_Error( 'wc_stripe_diagnostics_bad_session', 'Invalid diag_session_id.', [ 'status' => 400 ] );
 		}
 
 		$raw_events = $request->get_param( 'events' );
@@ -120,8 +116,13 @@ class WC_REST_Stripe_Diagnostics_Controller extends WP_REST_Controller {
 
 	/**
 	 * Whether the diagnostics feature is currently enabled.
+	 *
+	 * Reads from the gateway's settings group so the merchant-facing toggle
+	 * (`is_diagnostics_enabled` in the settings REST controller) is the
+	 * single source of truth.
 	 */
 	public static function is_enabled(): bool {
-		return 'yes' === get_option( self::ENABLED_OPTION, 'no' );
+		$settings = get_option( self::SETTINGS_OPTION, [] );
+		return is_array( $settings ) && isset( $settings[ self::SETTINGS_KEY ] ) && 'yes' === $settings[ self::SETTINGS_KEY ];
 	}
 }

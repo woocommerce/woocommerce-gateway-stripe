@@ -23,13 +23,13 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		parent::set_up();
 		$this->store      = new WC_Stripe_Diagnostics_Trace_Store();
 		$this->controller = new WC_REST_Stripe_Diagnostics_Controller( $this->store );
-		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'yes' );
+		$this->set_diagnostics_enabled( true );
 		$this->clear_state();
 	}
 
 	public function tear_down() {
 		$this->clear_state();
-		delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+		$this->set_diagnostics_enabled( false );
 		parent::tear_down();
 	}
 
@@ -37,22 +37,35 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$this->store->delete_all();
 	}
 
-	private function make_request( array $body, ?string $nonce = null ): WP_REST_Request {
-		$nonce   = $nonce ?? wp_create_nonce( WC_REST_Stripe_Diagnostics_Controller::NONCE_ACTION );
-		$request = new WP_REST_Request( 'POST', '/wc/v3/wc_stripe/diagnostics/events' );
-		$request->set_header( 'X-WP-Nonce', $nonce );
-		foreach ( $body as $k => $v ) {
-			$request->set_param( $k, $v );
+	/**
+	 * Toggle the merchant-facing diagnostics setting (lives inside the
+	 * shared `woocommerce_stripe_settings` option group).
+	 */
+	private function set_diagnostics_enabled( bool $enabled ): void {
+		$settings = get_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
 		}
+		$settings[ WC_REST_Stripe_Diagnostics_Controller::SETTINGS_KEY ] = $enabled ? 'yes' : 'no';
+		update_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, $settings );
+	}
+
+	private function make_request( array $body ): WP_REST_Request {
+		$request = new WP_REST_Request( 'POST', '/wc/v3/wc_stripe/diagnostics/events' );
+		// The recorder posts via sendBeacon with a Blob typed as
+		// `application/json`, so WP auto-decodes the body. Mirror that here
+		// to exercise the same parameter-parsing path in tests.
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( $body ) );
 		return $request;
 	}
 
 	public function test_permission_denied_when_toggle_off() {
-		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'no' );
+		$this->set_diagnostics_enabled( false );
 		$request = $this->make_request(
 			[
-				'sessionId' => 'abc',
-				'events'    => [],
+				'diag_session_id' => 'abc',
+				'events'          => [],
 			]
 		);
 		$result  = $this->controller->permissions_check( $request );
@@ -60,24 +73,11 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 'wc_stripe_diagnostics_disabled', $result->get_error_code() );
 	}
 
-	public function test_permission_denied_when_nonce_invalid() {
+	public function test_permission_granted_when_toggle_on() {
 		$request = $this->make_request(
 			[
-				'sessionId' => 'abc',
-				'events'    => [],
-			],
-			'not-a-nonce'
-		);
-		$result  = $this->controller->permissions_check( $request );
-		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'wc_stripe_diagnostics_bad_nonce', $result->get_error_code() );
-	}
-
-	public function test_permission_granted_with_valid_nonce_and_toggle_on() {
-		$request = $this->make_request(
-			[
-				'sessionId' => 'abc',
-				'events'    => [],
+				'diag_session_id' => 'abc',
+				'events'          => [],
 			]
 		);
 		$this->assertTrue( $this->controller->permissions_check( $request ) );
@@ -86,8 +86,8 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	public function test_ingest_rejects_invalid_session_id() {
 		$request = $this->make_request(
 			[
-				'sessionId' => '@@@',
-				'events'    => [],
+				'diag_session_id' => '@@@',
+				'events'          => [],
 			]
 		);
 		$result  = $this->controller->ingest_events( $request );
@@ -98,8 +98,8 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	public function test_ingest_rejects_non_array_events() {
 		$request = $this->make_request(
 			[
-				'sessionId' => 'abc',
-				'events'    => 'nope',
+				'diag_session_id' => 'abc',
+				'events'          => 'nope',
 			]
 		);
 		$result  = $this->controller->ingest_events( $request );
@@ -110,8 +110,8 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 	public function test_ingest_creates_trace_on_first_event() {
 		$request = $this->make_request(
 			[
-				'sessionId' => 'first-event',
-				'events'    => [
+				'diag_session_id' => 'first-event',
+				'events'          => [
 					[
 						'kind'              => 'consoleMessage',
 						'level'             => 'warn',
@@ -138,8 +138,8 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		}
 		$request = $this->make_request(
 			[
-				'sessionId' => 'big',
-				'events'    => $events,
+				'diag_session_id' => 'big',
+				'events'          => $events,
 			]
 		);
 		$result  = $this->controller->ingest_events( $request );
@@ -154,8 +154,8 @@ class WC_REST_Stripe_Diagnostics_Controller_Test extends WP_UnitTestCase {
 		}
 		$request = $this->make_request(
 			[
-				'sessionId' => 'overflow',
-				'events'    => [
+				'diag_session_id' => 'overflow',
+				'events'          => [
 					[
 						'kind'   => 'sdkCall',
 						'method' => 'x',

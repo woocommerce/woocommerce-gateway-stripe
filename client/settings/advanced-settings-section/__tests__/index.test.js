@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
 import {
 	useDebugLog,
+	useDiagnosticsMode,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
@@ -13,6 +14,7 @@ import {
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
+	useDiagnosticsMode: jest.fn(),
 	useIsOCEnabled: jest.fn(),
 	useIsAdaptivePricingEnabled: jest.fn(),
 	useOCLayout: jest.fn(),
@@ -32,6 +34,7 @@ describe( 'AdvancedSettings', () => {
 		};
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
+		useDiagnosticsMode.mockReturnValue( [ false, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
@@ -63,6 +66,29 @@ describe( 'AdvancedSettings', () => {
 		await userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'should enable diagnostics mode when checkbox is clicked', async () => {
+		const setIsDiagnosticsCheckedMock = jest.fn();
+		useDiagnosticsMode.mockReturnValue( [
+			false,
+			setIsDiagnosticsCheckedMock,
+		] );
+
+		render( <AdvancedSettings /> );
+
+		const diagnosticsCheckbox = screen.getByLabelText(
+			'Capture checkout diagnostics'
+		);
+
+		expect(
+			screen.getByText( 'Checkout diagnostics' )
+		).toBeInTheDocument();
+		expect( diagnosticsCheckbox ).not.toBeChecked();
+
+		await userEvent.click( diagnosticsCheckbox );
+
+		expect( setIsDiagnosticsCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
 	it( 'should not display optimized checkout element setting if the feature flag is disabled', () => {

@@ -242,7 +242,9 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 */
 	public function test_init_subscribes_to_real_api_hooks() {
 		// init() is gated on the diagnostics toggle, so flip it on for this test.
-		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'yes' );
+		$settings = get_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, [] );
+		$settings[ WC_REST_Stripe_Diagnostics_Controller::SETTINGS_KEY ] = 'yes';
+		update_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION, $settings );
 
 		try {
 			$this->recorder->init();
@@ -260,7 +262,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 			remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
 			remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
 			remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
-			delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+			delete_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION );
 		}
 	}
 
@@ -271,7 +273,7 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 * even though nothing is being recorded.
 	 */
 	public function test_init_skips_hook_registration_when_toggle_off() {
-		delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+		delete_option( WC_REST_Stripe_Diagnostics_Controller::SETTINGS_OPTION );
 
 		$this->recorder->init();
 
