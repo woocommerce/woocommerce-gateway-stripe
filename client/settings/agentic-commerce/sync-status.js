@@ -146,6 +146,11 @@ const STATUS_CONFIG = {
 		className: 'info',
 		icon: '⏳',
 	},
+	validating_records: {
+		label: __( 'Validating', 'woocommerce-gateway-stripe' ),
+		className: 'info',
+		icon: '⏳',
+	},
 	failed: {
 		label: __( 'Failed', 'woocommerce-gateway-stripe' ),
 		className: 'error',

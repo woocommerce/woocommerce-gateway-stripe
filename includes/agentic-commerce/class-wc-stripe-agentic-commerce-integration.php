@@ -423,11 +423,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist sync result for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => $total_products,
-					'status'        => $status,
-					'file_id'       => $result['file_id'] ?? '',
-					'import_set_id' => $import_set_id,
-					'error'         => '',
+					'products'         => $total_products,
+					'status'           => $status,
+					'file_id'          => $result['file_id'] ?? '',
+					'import_set_id'    => $import_set_id,
+					'error'            => '',
+					'skipped_products' => $skipped_count,
 				]
 			);
 
@@ -446,11 +447,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			// Persist failure for dashboard display.
 			$this->store_sync_result(
 				[
-					'products'      => 0,
-					'status'        => 'failed',
-					'file_id'       => '',
-					'import_set_id' => '',
-					'error'         => $e->getMessage(),
+					'products'         => 0,
+					'status'           => 'failed',
+					'file_id'          => '',
+					'import_set_id'    => '',
+					'error'            => $e->getMessage(),
+					'skipped_products' => 0,
 				]
 			);
 
@@ -465,11 +467,17 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @param array $result {
 	 *     Sync result data.
 	 *
-	 *     @type int    $products      Number of products synced.
-	 *     @type string $status        Sync status (e.g. "succeeded", "failed").
-	 *     @type string $file_id       Stripe file ID.
-	 *     @type string $import_set_id Stripe ImportSet ID.
-	 *     @type string $error         Error message, if any.
+	 *     @type int    $products         Number of products synced.
+	 *     @type string $status           Sync status (e.g. "succeeded", "failed").
+	 *     @type string $file_id          Stripe file ID.
+	 *     @type string $import_set_id    Stripe ImportSet ID.
+	 *     @type string $error            Error message, if any.
+	 *     @type int    $skipped_products Count of products dropped by the local
+	 *                                    feed validator before the CSV reached
+	 *                                    Stripe. Persisted so the refresh poll
+	 *                                    can upgrade a Stripe-reported `succeeded`
+	 *                                    to `succeeded_with_errors` once the
+	 *                                    ImportSet completes.
 	 * }
 	 * @return void
 	 */
@@ -481,12 +489,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		$entry = [
-			'timestamp'     => time(),
-			'products'      => $result['products'] ?? 0,
-			'status'        => $result['status'] ?? 'unknown',
-			'file_id'       => $result['file_id'] ?? '',
-			'import_set_id' => $result['import_set_id'] ?? '',
-			'error'         => $result['error'] ?? '',
+			'timestamp'        => time(),
+			'products'         => $result['products'] ?? 0,
+			'status'           => $result['status'] ?? 'unknown',
+			'file_id'          => $result['file_id'] ?? '',
+			'import_set_id'    => $result['import_set_id'] ?? '',
+			'error'            => $result['error'] ?? '',
+			'skipped_products' => isset( $result['skipped_products'] ) ? max( 0, (int) $result['skipped_products'] ) : 0,
 		];
 
 		$history[] = $entry;
@@ -564,6 +573,26 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$status = '' !== $import_set_id ? 'pending' : 'unknown';
 		}
 
+		return self::apply_partial_success_rule( $status, $skipped_count );
+	}
+
+	/**
+	 * Upgrade `succeeded` to `succeeded_with_errors` when the local validator
+	 * dropped products at sync time.
+	 *
+	 * Centralizes the upgrade so it runs both at initial sync (via
+	 * {@see self::normalize_delivery_status()}) and at refresh time (via
+	 * {@see self::update_pending_statuses()}). The initial-sync call rarely
+	 * sees `succeeded` directly because Stripe processes the ImportSet
+	 * asynchronously; the refresh path is where the upgrade typically fires.
+	 *
+	 * @since 10.7.0
+	 * @param string $status        Status reported by Stripe (or normalized fallback).
+	 * @param int    $skipped_count Count of products dropped by the local validator
+	 *                              for the corresponding sync.
+	 * @return string Status with the partial-success upgrade applied if applicable.
+	 */
+	private static function apply_partial_success_rule( string $status, int $skipped_count ): string {
 		if ( 'succeeded' === $status && $skipped_count > 0 ) {
 			return 'succeeded_with_errors';
 		}
@@ -607,7 +636,14 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 				continue;
 			}
 
-			$entry['status'] = $status_updates[ $import_set_id ];
+			$skipped_count = isset( $entry['skipped_products'] ) ? (int) $entry['skipped_products'] : 0;
+			$new_status    = self::apply_partial_success_rule( $status_updates[ $import_set_id ], $skipped_count );
+
+			if ( ( $entry['status'] ?? '' ) === $new_status ) {
+				continue;
+			}
+
+			$entry['status'] = $new_status;
 			$changed         = true;
 		}
 		unset( $entry );
