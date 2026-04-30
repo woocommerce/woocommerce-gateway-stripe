@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.7.0
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Add - Add a "Change payment method (subscriptions)" visibility toggle to the Express Checkout and Amazon Pay settings so merchants can opt in or out of showing the buttons on the subscription change-payment screen independently of the checkout-page toggle
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 * Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
