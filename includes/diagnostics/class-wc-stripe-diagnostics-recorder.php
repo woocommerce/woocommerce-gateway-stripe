@@ -50,6 +50,15 @@ class WC_Stripe_Diagnostics_Recorder {
 	private $redactor;
 
 	/**
+	 * Outcome promoter — keeps the trace's stored status field in sync with
+	 * the events as they're recorded so the merchant-facing "Copy failed
+	 * traces" filter can read a single field instead of re-walking events.
+	 *
+	 * @var WC_Stripe_Diagnostics_Outcome_Promoter
+	 */
+	private $promoter;
+
+	/**
 	 * The current session id for this request, if any.
 	 *
 	 * @var string|null
@@ -77,9 +86,11 @@ class WC_Stripe_Diagnostics_Recorder {
 	 */
 	public static function get_instance(): self {
 		if ( null === self::$instance ) {
+			$store          = new WC_Stripe_Diagnostics_Trace_Store();
 			self::$instance = new self(
-				new WC_Stripe_Diagnostics_Trace_Store(),
-				new WC_Stripe_Diagnostics_Redactor()
+				$store,
+				new WC_Stripe_Diagnostics_Redactor(),
+				new WC_Stripe_Diagnostics_Outcome_Promoter( $store )
 			);
 		}
 		return self::$instance;
@@ -89,12 +100,18 @@ class WC_Stripe_Diagnostics_Recorder {
 	 * Construct with explicit dependencies. Tests inject fakes via this ctor;
 	 * production callers should use {@see self::get_instance()}.
 	 *
-	 * @param WC_Stripe_Diagnostics_Trace_Store $store    Trace store.
-	 * @param WC_Stripe_Diagnostics_Redactor    $redactor Redaction engine.
+	 * @param WC_Stripe_Diagnostics_Trace_Store           $store    Trace store.
+	 * @param WC_Stripe_Diagnostics_Redactor              $redactor Redaction engine.
+	 * @param WC_Stripe_Diagnostics_Outcome_Promoter|null $promoter Optional outcome promoter; defaults to one wrapping $store.
 	 */
-	public function __construct( WC_Stripe_Diagnostics_Trace_Store $store, WC_Stripe_Diagnostics_Redactor $redactor ) {
+	public function __construct(
+		WC_Stripe_Diagnostics_Trace_Store $store,
+		WC_Stripe_Diagnostics_Redactor $redactor,
+		?WC_Stripe_Diagnostics_Outcome_Promoter $promoter = null
+	) {
 		$this->store    = $store;
 		$this->redactor = $redactor;
+		$this->promoter = $promoter ?? new WC_Stripe_Diagnostics_Outcome_Promoter( $store );
 	}
 
 	/**
@@ -225,7 +242,7 @@ class WC_Stripe_Diagnostics_Recorder {
 			unset( $this->request_start_times[ $start_key ] );
 		}
 
-		$event = [
+		$event    = [
 			'kind'       => 'stripe.api.response',
 			'ts'         => time(),
 			'api'        => (string) $api,
@@ -234,7 +251,9 @@ class WC_Stripe_Diagnostics_Recorder {
 			'request_id' => self::extract_request_id( $response_body ),
 			'error'      => self::extract_error( $response_body ),
 		];
-		$this->store->append_event( $session_id, $this->redactor->redact( $event ) );
+		$redacted = $this->redactor->redact( $event );
+		$this->store->append_event( $session_id, $redacted );
+		$this->promoter->maybe_promote( $session_id, $redacted );
 	}
 
 	/**
@@ -255,21 +274,20 @@ class WC_Stripe_Diagnostics_Recorder {
 
 		$object = self::webhook_object( $notification );
 
-		$this->store->append_event(
-			$session_id,
-			$this->redactor->redact(
-				[
-					'kind'       => 'webhook.received',
-					'ts'         => time(),
-					'type'       => (string) $webhook_type,
-					'status'     => is_object( $object ) && isset( $object->status ) ? (string) $object->status : null,
-					'intent_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'payment_intent' === $object->object ? (string) $object->id : null,
-					'charge_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'charge' === $object->object ? (string) $object->id : null,
-					'order_id'   => is_object( $resolved_order ) && method_exists( $resolved_order, 'get_id' ) ? (int) $resolved_order->get_id() : null,
-					'session_id' => $session_id,
-				]
-			)
+		$redacted = $this->redactor->redact(
+			[
+				'kind'       => 'webhook.received',
+				'ts'         => time(),
+				'type'       => (string) $webhook_type,
+				'status'     => is_object( $object ) && isset( $object->status ) ? (string) $object->status : null,
+				'intent_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'payment_intent' === $object->object ? (string) $object->id : null,
+				'charge_id'  => is_object( $object ) && isset( $object->object, $object->id ) && 'charge' === $object->object ? (string) $object->id : null,
+				'order_id'   => is_object( $resolved_order ) && method_exists( $resolved_order, 'get_id' ) ? (int) $resolved_order->get_id() : null,
+				'session_id' => $session_id,
+			]
 		);
+		$this->store->append_event( $session_id, $redacted );
+		$this->promoter->maybe_promote( $session_id, $redacted );
 	}
 
 	/**
