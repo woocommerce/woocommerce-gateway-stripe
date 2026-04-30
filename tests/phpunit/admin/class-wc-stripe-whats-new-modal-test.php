@@ -142,91 +142,26 @@ class WC_Stripe_Whats_New_Modal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The `upgrader_process_complete` listener must only set the pending
-	 * transient when the upgrader run targets exactly this plugin and nothing
-	 * else. The provider below covers single-plugin success paths plus every
-	 * shape that should be ignored (bulk updates, theme/core upgrades,
-	 * installs, malformed `$hook_extra`).
-	 *
-	 * @dataProvider provide_flag_standalone_update_cases
+	 * `flag_pending_modal` is the `woocommerce_stripe_updated` listener. When
+	 * fired it must set the pending transient so the next admin page load
+	 * surfaces the modal.
 	 */
-	public function test_maybe_flag_standalone_update( array $hook_extra, $expected_transient ): void {
-		$this->modal->maybe_flag_standalone_update( null, $hook_extra );
+	public function test_flag_pending_modal_sets_transient(): void {
+		$this->assertFalse( get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 
-		$this->assertSame(
-			$expected_transient,
-			get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT )
-		);
+		$this->modal->flag_pending_modal();
+
+		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 	}
 
-	public function provide_flag_standalone_update_cases(): array {
-		$self = plugin_basename( WC_STRIPE_MAIN_FILE );
+	/**
+	 * Wiring smoke test: triggering the action the constructor subscribes to
+	 * must result in the pending transient being set.
+	 */
+	public function test_woocommerce_stripe_updated_action_sets_transient(): void {
+		do_action( 'woocommerce_stripe_updated' );
 
-		return [
-			'single plugin via plugins list'  => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [ $self ],
-				],
-				'1',
-			],
-			'single plugin via plugin key'    => [
-				[
-					'action' => 'update',
-					'type'   => 'plugin',
-					'plugin' => $self,
-				],
-				'1',
-			],
-			'bulk update with another plugin' => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [ $self, 'some-other/plugin.php' ],
-				],
-				false,
-			],
-			'different plugin only'           => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [ 'some-other/plugin.php' ],
-				],
-				false,
-			],
-			'theme upgrade ignored'           => [
-				[
-					'action' => 'update',
-					'type'   => 'theme',
-					'themes' => [ 'twentytwentyfour' ],
-				],
-				false,
-			],
-			'install action ignored'          => [
-				[
-					'action' => 'install',
-					'type'   => 'plugin',
-					'plugin' => $self,
-				],
-				false,
-			],
-			'empty plugins array ignored'     => [
-				[
-					'action'  => 'update',
-					'type'    => 'plugin',
-					'plugins' => [],
-				],
-				false,
-			],
-			'missing action ignored'          => [
-				[
-					'type'   => 'plugin',
-					'plugin' => $self,
-				],
-				false,
-			],
-		];
+		$this->assertSame( '1', get_transient( WC_Stripe_Whats_New_Modal::PENDING_TRANSIENT ) );
 	}
 
 	/**

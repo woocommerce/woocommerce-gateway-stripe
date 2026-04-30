@@ -4,12 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Shows a "What's new" modal to admins after a standalone update of this plugin.
+ * Shows a "What's new" modal to admins after this plugin updates.
  *
- * Part of the Radical Speed Month (RSM) experiment: when only this extension is
- * updated (i.e. not bundled with other plugins in the same upgrader run), the
- * next admin page load surfaces the changelog entries for the new version,
- * sourced from readme.txt.
+ * On the next admin page load following a version bump, surfaces the
+ * changelog entries for the new version, sourced from readme.txt.
  *
  * Disable via: add_filter( 'wc_stripe_whats_new_modal_enabled', '__return_false' ).
  *
@@ -17,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Whats_New_Modal {
 	/**
-	 * Transient key used to flag that a standalone update has just completed and
-	 * the modal should be shown on the next admin page load.
+	 * Transient key used to flag that an update has just completed and the
+	 * modal should be shown on the next admin page load.
 	 */
 	const PENDING_TRANSIENT = 'wc_stripe_whats_new_modal_pending';
 
@@ -38,50 +36,20 @@ class WC_Stripe_Whats_New_Modal {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_action( 'upgrader_process_complete', [ $this, 'maybe_flag_standalone_update' ], 10, 2 );
+		add_action( 'woocommerce_stripe_updated', [ $this, 'flag_pending_modal' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'maybe_enqueue_modal' ] );
 		add_action( 'admin_footer', [ $this, 'maybe_render_container' ] );
 		add_action( 'wp_ajax_' . self::DISMISS_AJAX_ACTION, [ $this, 'handle_dismiss' ] );
 	}
 
 	/**
-	 * Captures plugin updates and, when the run targets only this plugin,
-	 * records that the modal should appear on the next admin page load.
-	 *
-	 * @param WP_Upgrader|mixed $upgrader   The WP_Upgrader instance.
-	 * @param array|mixed       $hook_extra Extras passed by the upgrader.
+	 * Records that the modal should appear on the next admin page load.
+	 * Hooked to `woocommerce_stripe_updated`, which fires once per version
+	 * bump on the first admin request after an update.
 	 *
 	 * @return void
 	 */
-	public function maybe_flag_standalone_update( $upgrader, $hook_extra ) {
-		unset( $upgrader );
-
-		if ( ! is_array( $hook_extra ) ) {
-			return;
-		}
-
-		$action = isset( $hook_extra['action'] ) ? $hook_extra['action'] : '';
-		$type   = isset( $hook_extra['type'] ) ? $hook_extra['type'] : '';
-
-		if ( 'update' !== $action || 'plugin' !== $type ) {
-			return;
-		}
-
-		$updated_plugins = [];
-		if ( ! empty( $hook_extra['plugins'] ) && is_array( $hook_extra['plugins'] ) ) {
-			$updated_plugins = array_values( array_filter( $hook_extra['plugins'] ) );
-		} elseif ( ! empty( $hook_extra['plugin'] ) && is_string( $hook_extra['plugin'] ) ) {
-			$updated_plugins = [ $hook_extra['plugin'] ];
-		}
-
-		if ( 1 !== count( $updated_plugins ) ) {
-			return;
-		}
-
-		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) !== reset( $updated_plugins ) ) {
-			return;
-		}
-
+	public function flag_pending_modal() {
 		set_transient( self::PENDING_TRANSIENT, '1', DAY_IN_SECONDS );
 	}
 
@@ -174,7 +142,7 @@ class WC_Stripe_Whats_New_Modal {
 		wp_enqueue_script( 'wc-stripe-whats-new-modal' );
 		wp_enqueue_style( 'wc-stripe-whats-new-modal' );
 
-		$this->record_event(
+		$this->record_whats_new_modal_event(
 			'wcstripe_whats_new_modal_enqueued',
 			[ 'entry_count' => count( $changes ) ]
 		);
@@ -214,7 +182,7 @@ class WC_Stripe_Whats_New_Modal {
 		$dwell_ms = isset( $_POST['dwell_ms'] ) ? absint( wp_unslash( $_POST['dwell_ms'] ) ) : 0;
 		$source   = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
 
-		$this->record_event(
+		$this->record_whats_new_modal_event(
 			'wcstripe_whats_new_modal_dismissed',
 			[
 				'dwell_ms' => $dwell_ms,
@@ -226,17 +194,18 @@ class WC_Stripe_Whats_New_Modal {
 	}
 
 	/**
-	 * Records a Tracks event, automatically tagging it with the plugin version
-	 * and current Stripe mode. Silently no-ops when WC_Tracks is unavailable
-	 * (e.g. older WooCommerce installs or test environments).
+	 * Records a Tracks event for the modal, automatically tagging it with the
+	 * plugin version and current Stripe mode. Silently no-ops when
+	 * `wc_admin_record_tracks_event()` is unavailable (e.g. older WooCommerce
+	 * installs or test environments).
 	 *
 	 * @param string              $name  Event name.
 	 * @param array<string,mixed> $props Event properties.
 	 *
 	 * @return void
 	 */
-	protected function record_event( string $name, array $props = [] ) {
-		if ( ! class_exists( 'WC_Tracks' ) ) {
+	protected function record_whats_new_modal_event( string $name, array $props = [] ) {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
 
@@ -245,7 +214,7 @@ class WC_Stripe_Whats_New_Modal {
 			$props['is_test_mode'] = WC_Stripe_Mode::is_test() ? 'yes' : 'no';
 		}
 
-		WC_Tracks::record_event( $name, $props );
+		wc_admin_record_tracks_event( $name, $props );
 	}
 
 	/**

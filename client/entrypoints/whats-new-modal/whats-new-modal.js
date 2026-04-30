@@ -53,11 +53,9 @@ const WhatsNewModal = ( { params } ) => {
 
 			setIsOpen( false );
 
-			recordEvent( 'wcstripe_whats_new_modal_dismissed', {
-				...baseProps,
-				dwell_ms: dwellMs,
-				source: resolvedSource,
-			} );
+			// The dismiss event is fired server-side from `handle_dismiss` so
+			// the version/mode tagging matches the other modal events. Skipping
+			// it here avoids a duplicate.
 
 			if ( ! dismissAjaxUrl || ! dismissAjaxAction || ! dismissNonce ) {
 				return;
