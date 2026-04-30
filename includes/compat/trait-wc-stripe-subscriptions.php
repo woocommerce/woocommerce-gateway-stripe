@@ -326,11 +326,20 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Persist the express checkout type so it can be applied to the payment method
 				// title after the customer completes the 3DS/redirect confirmation, since the
-				// post-confirmation flow doesn't have access to the form's $_POST.
-				if ( ! empty( $_POST['express_checkout_type'] ) ) {
-					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) );
-					$subscription->save();
+				// post-confirmation flow doesn't have access to the form's $_POST. Validate
+				// the value as a string and clear any stale marker when this submission
+				// did not come from an express checkout, so a previous express attempt
+				// can't leak its title into the confirmation that's about to happen.
+				$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					: '';
+
+				if ( '' !== $express_checkout_type ) {
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+				} else {
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
 				}
+				$subscription->save();
 
 				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
 				exit;

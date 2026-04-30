@@ -558,10 +558,13 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		if ( $this->apply_express_checkout_title_to_order( $order, $express_checkout_type ) ) {
-			$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
-			$order->save();
-		}
+		// One-shot consumption: clear the marker regardless of whether the
+		// title override succeeded, so an aborted/cancelled 3DS redirect or an
+		// unmappable stored value can't leak a stale Apple Pay/Google Pay
+		// title into a later confirmation flow.
+		$this->apply_express_checkout_title_to_order( $order, $express_checkout_type );
+		$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
+		$order->save();
 	}
 
 	/**
