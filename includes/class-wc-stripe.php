@@ -291,6 +291,8 @@ class WC_Stripe {
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
+		add_action( 'init', [ $this, 'initialize_diagnostics_frontend_loader' ] );
+
 		// Initialize Agentic Commerce integration.
 		add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
 
@@ -314,6 +316,13 @@ class WC_Stripe {
 	 */
 	public function initialize_apple_pay_registration() {
 		new WC_Stripe_Apple_Pay_Registration();
+	}
+
+	/**
+	 * Initialize the diagnostics frontend loader.
+	 */
+	public function initialize_diagnostics_frontend_loader(): void {
+		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
 	}
 
 	/**
