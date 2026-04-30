@@ -78,14 +78,8 @@ class WC_Stripe_Express_Checkout_Element {
 		// AJAX confirmation request doesn't run through the change-payment-method page check.
 		add_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', [ $this, 'maybe_apply_express_title_after_confirmed_intent' ] );
 
-		// For change payment method page, only load the minimal set of hooks needed.
-		// WC Subscriptions renders this flow with its own
-		// `checkout/form-change-payment-method.php` template (not the standard
-		// `form-pay.php`), and fires `before_woocommerce_pay` immediately before
-		// rendering it. That's the action we ride to inject the button container.
-		// `woocommerce_checkout_before_customer_details` and
-		// `woocommerce_pay_order_before_payment` both belong to other templates and
-		// never fire here.
+		// Change-payment uses WC Subscriptions' own template, so ride
+		// `before_woocommerce_pay` (the only action the gateway fires before it).
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
 			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 			add_action( 'before_woocommerce_pay', [ $this, 'display_express_checkout_button_html' ], 1 );
@@ -558,10 +552,8 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		// One-shot consumption: clear the marker regardless of whether the
-		// title override succeeded, so an aborted/cancelled 3DS redirect or an
-		// unmappable stored value can't leak a stale Apple Pay/Google Pay
-		// title into a later confirmation flow.
+		// One-shot: clear the marker even if the override didn't apply, so a
+		// stale value can't leak into a later confirmation.
 		$this->apply_express_checkout_title_to_order( $order, $express_checkout_type );
 		$order->delete_meta_data( '_wc_stripe_express_checkout_type' );
 		$order->save();
