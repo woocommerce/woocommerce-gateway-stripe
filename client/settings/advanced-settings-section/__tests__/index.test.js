@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	useDebugLog,
 	useDiagnosticsMode,
@@ -26,12 +27,21 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+// DiagnosticsTraces (rendered by DiagnosticsMode) fires a /summary fetch on
+// mount. Stub it out at this layer so the existing AdvancedSettings tests
+// don't trigger an unwrapped state update warning. The component's own
+// behavior is covered by diagnostics-traces.test.js.
+jest.mock( '@wordpress/api-fetch', () => jest.fn() );
+
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
 		global.wc_stripe_settings_params = {
 			is_cs_available: false,
 			is_oc_available: false,
 		};
+
+		// Default: no traces stored, so DiagnosticsTraces collapses to null.
+		apiFetch.mockResolvedValue( { counts: {}, total: 0 } );
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useDiagnosticsMode.mockReturnValue( [ false, jest.fn() ] );
