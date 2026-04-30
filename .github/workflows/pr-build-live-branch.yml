@@ -98,16 +98,22 @@ jobs:
           echo "plugin-data=$PLUGIN_DATA" >> $GITHUB_OUTPUT
 
       - name: "Inform Jetpack Beta Builder webhook"
-        if: steps.get-plugin-data.outputs.plugin-data != '{}'
+        # Skip when the secret is unavailable (fork PRs receive empty secrets).
+        # `secrets.X` can't be referenced in `if:` directly — bind to env first.
+        if: steps.get-plugin-data.outputs.plugin-data != '{}' && env.SECRET != ''
         env:
           SECRET: ${{ secrets.STRIPE_LIVE_BRANCH_SECRET }}
           PLUGIN_DATA: ${{ steps.get-plugin-data.outputs.plugin-data }}
           PR: ${{ github.event.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
+          # On `pull_request` events GITHUB_REF is `refs/pull/<n>/merge`, so
+          # send the PR head ref explicitly — that's what JN's
+          # `branches.woocommerce-gateway-stripe=<ref>` flag will look up.
           curl -v --fail -L \
             --url "https://betadownload.jetpack.me/gh-action.php?run_id=$GITHUB_RUN_ID&pr=$PR&commit=$GITHUB_SHA" \
             --form-string "repo=$GITHUB_REPOSITORY" \
-            --form-string "branch=${GITHUB_REF#refs/heads/}" \
+            --form-string "branch=$PR_HEAD_REF" \
             --form-string "plugins=$PLUGIN_DATA" \
             --form-string "secret=$SECRET"
 
