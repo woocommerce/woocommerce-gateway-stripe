@@ -214,7 +214,12 @@ class WC_Stripe_Whats_New_Modal {
 			$props['is_test_mode'] = WC_Stripe_Mode::is_test() ? 'yes' : 'no';
 		}
 
-		wc_admin_record_tracks_event( $name, $props );
+		try {
+			wc_admin_record_tracks_event( $name, $props );
+		} catch ( \Throwable $e ) {
+			// Best-effort telemetry: never break admin flows on a Tracks failure.
+			unset( $e );
+		}
 	}
 
 	/**
