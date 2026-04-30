@@ -355,53 +355,87 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * normalize_delivery_status falls back to "pending" when the ImportSet was
-	 * created successfully (response has `import_set_id`) but the response
-	 * omitted a `status` string. Regression guard for the "stuck on Unknown"
-	 * dashboard bug: persisting "unknown" here hides Stripe's actual pending
-	 * state from the dashboard and blocks the lazy refresh.
+	 * normalize_delivery_status() must:
+	 *   - Pass through whatever Stripe returns when present.
+	 *   - Default to `pending` when an import_set_id was returned but no status,
+	 *     so the dashboard's lazy refresh keeps polling instead of getting
+	 *     stuck on "Unknown".
+	 *   - Fall back to `unknown` only when delivery failed outright (no
+	 *     import_set_id returned).
+	 *   - Upgrade a Stripe-reported `succeeded` to `succeeded_with_errors`
+	 *     whenever the local validator dropped products, so the
+	 *     "Partial Success" badge matches the warning log.
 	 *
 	 * @dataProvider provider_normalize_delivery_status
 	 *
-	 * @param array  $result   Simulated delivery result from the Files API.
-	 * @param string $expected Normalized status that should be persisted.
+	 * @param array  $result        Simulated delivery result from the Files API.
+	 * @param int    $skipped_count Local-validator drops to fold into the result.
+	 * @param string $expected      Normalized status that should be persisted.
 	 * @return void
 	 */
-	public function test_normalize_delivery_status( array $result, string $expected ): void {
-		$method = new \ReflectionMethod( \WC_Stripe_Agentic_Commerce_Integration::class, 'normalize_delivery_status' );
-		$method->setAccessible( true );
-
-		$this->assertSame( $expected, $method->invoke( null, $result ) );
+	public function test_normalize_delivery_status( array $result, int $skipped_count, string $expected ): void {
+		$this->assertSame(
+			$expected,
+			\WC_Stripe_Agentic_Commerce_Integration::normalize_delivery_status( $result, $skipped_count )
+		);
 	}
 
 	/**
-	 * @return array<string, array{0: array, 1: string}>
+	 * @return array<string, array{0: array, 1: int, 2: string}>
 	 */
 	public function provider_normalize_delivery_status(): array {
 		return [
-			'explicit status wins'              => [
+			'explicit status wins'                     => [
 				[
 					'status'        => 'succeeded',
 					'import_set_id' => 'impset_ok',
 				],
+				0,
 				'succeeded',
 			],
-			'created without status is pending' => [
+			'created without status is pending'        => [
 				[
 					'status'        => '',
 					'import_set_id' => 'impset_new',
 				],
+				0,
 				'pending',
 			],
-			'missing status key is pending'     => [ [ 'import_set_id' => 'impset_new' ], 'pending' ],
-			'no import_set_id falls to unknown' => [
+			'missing status key is pending'            => [
+				[ 'import_set_id' => 'impset_new' ],
+				0,
+				'pending',
+			],
+			'no import_set_id falls to unknown'        => [
 				[
 					'status'        => '',
 					'import_set_id' => '',
 				],
+				0,
 				'unknown',
 			],
-			'empty result is unknown'           => [ [], 'unknown' ],
+			'empty result is unknown'                  => [ [], 0, 'unknown' ],
+			'succeeded with skips upgrades to partial' => [
+				[
+					'status'        => 'succeeded',
+					'import_set_id' => 'impset_ok',
+				],
+				2,
+				'succeeded_with_errors',
+			],
+			'failed status preserved despite skips'    => [
+				[
+					'status'        => 'failed',
+					'import_set_id' => 'impset_ok',
+				],
+				1,
+				'failed',
+			],
+			'pending preserved despite skips'          => [
+				[ 'import_set_id' => 'impset_new' ],
+				3,
+				'pending',
+			],
 		];
 	}
 

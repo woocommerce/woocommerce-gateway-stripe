@@ -403,7 +403,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			$result = $delivery->deliver( $feed );
 
 			$import_set_id = $result['import_set_id'] ?? '';
-			$status        = self::normalize_delivery_status( $result );
+			$status        = self::normalize_delivery_status( $result, $skipped_count );
 
 			WC_Stripe_Logger::info(
 				'Agentic Commerce: Feed delivered to Stripe',
@@ -541,28 +541,34 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * Resolve the status to persist from an ImportSet creation response.
 	 *
 	 * When Stripe returns an `import_set_id` but omits a `status` string, the
-	 * ImportSet is being processed and should be recorded as `pending` so the
-	 * dashboard renders "Processing" and the lazy refresh keeps polling until
-	 * a terminal state. Falls back to `unknown` only when the delivery failed
+	 * ImportSet is in-flight and should be recorded as `pending` so the
+	 * dashboard's non-terminal poll keeps refreshing until Stripe returns a
+	 * terminal state. Falls back to `unknown` only when the delivery failed
 	 * outright (no `import_set_id` returned).
 	 *
+	 * When `$skipped_count` is positive — i.e. the local validator dropped
+	 * some products before they reached the CSV — a Stripe-reported
+	 * `succeeded` is upgraded to `succeeded_with_errors` so the dashboard
+	 * badge ("Partial Success") matches the warning logged for the skips.
+	 *
 	 * @since 10.7.0
-	 * @param array $result Delivery result from the Files API.
+	 * @param array $result        Delivery result from the Files API.
+	 * @param int   $skipped_count Count of products dropped by the local validator.
 	 * @return string Normalized status string.
 	 */
-	private static function normalize_delivery_status( array $result ): string {
+	public static function normalize_delivery_status( array $result, int $skipped_count = 0 ): string {
 		$status        = $result['status'] ?? '';
 		$import_set_id = $result['import_set_id'] ?? '';
 
-		if ( '' !== $status ) {
-			return $status;
+		if ( '' === $status ) {
+			$status = '' !== $import_set_id ? 'pending' : 'unknown';
 		}
 
-		if ( '' !== $import_set_id ) {
-			return 'pending';
+		if ( 'succeeded' === $status && $skipped_count > 0 ) {
+			return 'succeeded_with_errors';
 		}
 
-		return 'unknown';
+		return $status;
 	}
 
 	/**
