@@ -99,8 +99,15 @@ class WC_Stripe_Diagnostics_Recorder {
 
 	/**
 	 * Wire up the filter subscriptions. Called once during plugin init.
+	 *
+	 * Gated on the diagnostics toggle: when the merchant has the feature
+	 * disabled, no hooks register and the recorder is effectively dormant.
 	 */
 	public function init(): void {
+		if ( class_exists( 'WC_REST_Stripe_Diagnostics_Controller' ) && ! WC_REST_Stripe_Diagnostics_Controller::is_enabled() ) {
+			return;
+		}
+
 		add_filter( 'wc_stripe_request_body', [ $this, 'on_request_body' ], 10, 2 );
 		add_action( 'wc_stripe_api_response_received', [ $this, 'on_request_response' ], 10, 4 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'on_webhook_received' ], 10, 3 );

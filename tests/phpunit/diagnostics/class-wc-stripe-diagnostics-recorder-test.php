@@ -241,20 +241,42 @@ class WC_Stripe_Diagnostics_Recorder_Test extends WP_UnitTestCase {
 	 * action names used in includes/class-wc-stripe-api.php.
 	 */
 	public function test_init_subscribes_to_real_api_hooks() {
+		// init() is gated on the diagnostics toggle, so flip it on for this test.
+		update_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION, 'yes' );
+
+		try {
+			$this->recorder->init();
+			$this->recorder->start_session( 'wired' );
+
+			$response         = new stdClass();
+			$response->id     = 'pi_wired';
+			$response->status = 'succeeded';
+			do_action( 'wc_stripe_api_response_received', $response, 'payment_intents', 'POST', [ 'amount' => 1 ] );
+
+			$events = $this->store->get( 'wired' )['events'];
+			$this->assertNotEmpty( $events );
+			$this->assertSame( 'stripe.api.response', end( $events )['kind'] );
+		} finally {
+			remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
+			remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
+			remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
+			delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+		}
+	}
+
+	/**
+	 * The toggle gate: when the diagnostics feature is disabled (default),
+	 * init() must not register any of the Stripe API hooks — otherwise we'd
+	 * be paying the dispatch cost of the recorder for every Stripe request
+	 * even though nothing is being recorded.
+	 */
+	public function test_init_skips_hook_registration_when_toggle_off() {
+		delete_option( WC_REST_Stripe_Diagnostics_Controller::ENABLED_OPTION );
+
 		$this->recorder->init();
-		$this->recorder->start_session( 'wired' );
 
-		$response         = new stdClass();
-		$response->id     = 'pi_wired';
-		$response->status = 'succeeded';
-		do_action( 'wc_stripe_api_response_received', $response, 'payment_intents', 'POST', [ 'amount' => 1 ] );
-
-		$events = $this->store->get( 'wired' )['events'];
-		$this->assertNotEmpty( $events );
-		$this->assertSame( 'stripe.api.response', end( $events )['kind'] );
-
-		remove_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ], 10 );
-		remove_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ], 10 );
-		remove_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ], 10 );
+		$this->assertFalse( has_filter( 'wc_stripe_request_body', [ $this->recorder, 'on_request_body' ] ) );
+		$this->assertFalse( has_action( 'wc_stripe_api_response_received', [ $this->recorder, 'on_request_response' ] ) );
+		$this->assertFalse( has_action( 'wc_stripe_webhook_received', [ $this->recorder, 'on_webhook_received' ] ) );
 	}
 }

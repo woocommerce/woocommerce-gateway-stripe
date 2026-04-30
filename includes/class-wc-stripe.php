@@ -134,7 +134,6 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
-		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-mode.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
@@ -292,6 +291,8 @@ class WC_Stripe {
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
+		add_action( 'init', [ $this, 'initialize_diagnostics' ] );
+
 		// Initialize Agentic Commerce integration.
 		add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
 
@@ -315,6 +316,15 @@ class WC_Stripe {
 	 */
 	public function initialize_apple_pay_registration() {
 		new WC_Stripe_Apple_Pay_Registration();
+	}
+
+	/**
+	 * Initialize diagnostics components. The recorder's `init()` is itself
+	 * gated on the diagnostics toggle, so this method is safe to call
+	 * unconditionally.
+	 */
+	public function initialize_diagnostics(): void {
+		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
 	}
 
 	/**
