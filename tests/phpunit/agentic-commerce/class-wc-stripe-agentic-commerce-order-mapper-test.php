@@ -112,6 +112,66 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Integration guard for the legacy product-ID fallback: a SKU-less product
+	 * synced under the old "external_reference = product_id" contract still
+	 * resolves end-to-end through `map_line_items() → resolve_product()` and
+	 * an order is created. Catches regressions in how the fallback is plumbed
+	 * across the resolver helper and the mapper.
+	 *
+	 * @return void
+	 */
+	public function test_create_order_resolves_line_item_via_legacy_product_id_fallback() {
+		$product = WC_Helper_Product::create_simple_product(
+			true,
+			[
+				'regular_price' => '25.00',
+				'price'         => '25.00',
+				'sku'           => '',
+			]
+		);
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 2500,
+				'amount_subtotal' => 2500,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $product->get_id(),
+							'description'     => 'Test Product',
+							'quantity'        => 1,
+							'unit_amount'     => 2500,
+							'amount_total'    => 2500,
+							'amount_subtotal' => 2500,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+				'total_details'   => (object) [
+					'amount_shipping' => 0,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+			]
+		);
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+
+			$this->assertInstanceOf( 'WC_Order', $order );
+			$this->assertGreaterThan( 0, $order->get_id() );
+			$this->assertEquals( '25.00', $order->get_total() );
+
+			$items = array_values( $order->get_items() );
+			$this->assertCount( 1, $items );
+			$this->assertSame( $product->get_id(), $items[0]->get_product_id() );
+
+			$order->delete( true );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * Test that the order currency is set from the checkout session.
 	 *
 	 * @return void
