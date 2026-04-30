@@ -43,17 +43,11 @@ class WC_Stripe_Agentic_Commerce_Product_Resolver {
 	}
 
 	/**
-	 * Resolves the WooCommerce product ID for a Stripe-supplied external
-	 * reference (`price.external_reference` on the checkout session, or
-	 * `sku_id` on customize_checkout line items — both halves of the
-	 * Agentic Commerce sync contract).
+	 * Resolves a WC product ID from a Stripe external reference.
 	 *
-	 * Tries the merchant SKU first (the current sync contract) and falls
-	 * back to a numeric product-ID lookup so catalogs synced under the
-	 * legacy "external_reference = product_id" contract — and SKU-less
-	 * products that fall through to the product-ID path on sync — keep
-	 * resolving instead of failing the checkout. Returns 0 when neither
-	 * path matches a real product.
+	 * Tries SKU first, then a numeric product-ID fallback so catalogs synced
+	 * under the legacy contract (or SKU-less products) still resolve.
+	 * Returns 0 on miss.
 	 *
 	 * @since 10.7.0
 	 * @param string $external_reference The reference Stripe sent back.
