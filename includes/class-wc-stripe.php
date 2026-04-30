@@ -291,7 +291,7 @@ class WC_Stripe {
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
-		add_action( 'init', [ $this, 'initialize_diagnostics_frontend_loader' ] );
+		add_action( 'init', [ $this, 'initialize_diagnostics' ] );
 
 		// Initialize Agentic Commerce integration.
 		add_action( 'woocommerce_init', [ $this, 'initialize_agentic_commerce' ] );
@@ -319,10 +319,16 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Initialize the diagnostics frontend loader.
+	 * Initialize diagnostics components: the frontend loader (which emits
+	 * `wcStripeDiag` for the recorder.js boot) and the server-side recorder
+	 * (which subscribes to the Stripe API + webhook hooks). The recorder's
+	 * own `init()` is gated on the diagnostics toggle; the frontend loader
+	 * gates per-request inside `should_localize()`. Both are safe to call
+	 * unconditionally here.
 	 */
-	public function initialize_diagnostics_frontend_loader(): void {
+	public function initialize_diagnostics(): void {
 		( new WC_Stripe_Diagnostics_Frontend_Loader() )->init();
+		WC_Stripe_Diagnostics_Recorder::get_instance()->init();
 	}
 
 	/**
