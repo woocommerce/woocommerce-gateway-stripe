@@ -79,9 +79,16 @@ class WC_Stripe_Express_Checkout_Element {
 		add_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', [ $this, 'maybe_apply_express_title_after_confirmed_intent' ] );
 
 		// For change payment method page, only load the minimal set of hooks needed.
+		// WC Subscriptions renders this flow with its own
+		// `checkout/form-change-payment-method.php` template (not the standard
+		// `form-pay.php`), and fires `before_woocommerce_pay` immediately before
+		// rendering it. That's the action we ride to inject the button container.
+		// `woocommerce_checkout_before_customer_details` and
+		// `woocommerce_pay_order_before_payment` both belong to other templates and
+		// never fire here.
 		if ( $this->express_checkout_helper->is_change_payment_method_page() ) {
 			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
-			add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
+			add_action( 'before_woocommerce_pay', [ $this, 'display_express_checkout_button_html' ], 1 );
 			add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
 			add_action( 'wc_stripe_change_subs_payment_method_success', [ $this, 'update_subscription_payment_method_title' ] );
 			return;
