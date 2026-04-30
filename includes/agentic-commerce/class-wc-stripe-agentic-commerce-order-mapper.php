@@ -188,8 +188,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	/**
 	 * Maps line items from the checkout session to order products.
 	 *
-	 * Uses the price external_reference to find matching WooCommerce products.
-	 * Throws if a line item has an external_reference that does not resolve to a valid product.
+	 * Resolves the price's external_reference to a WooCommerce product (SKU
+	 * first, falling back to product ID for catalogs synced under the legacy
+	 * contract). Throws if neither lookup matches a product.
 	 *
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
@@ -214,7 +215,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			if ( 0 === $product_id ) {
 				throw new Exception(
 					sprintf(
-						'Line item %s has no integer (product ID) lookup_key.',
+						'Line item %s has no external_reference that resolves to a WooCommerce product (SKU or legacy product-ID).',
 						$line_item->get_id()
 					)
 				);
