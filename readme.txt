@@ -148,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 10.7.0 - xxxx-xx-xx =
+* Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
 * Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
 * Dev - Use paratest in CI workflow for faster PHP test execution
@@ -157,6 +158,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Rename payment request references to express checkout
 * Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
 * Fix - Cancel pending WC Subscriptions retry when Stripe Radar blocks a renewal payment so further automatic retries do not re-trigger the same Radar block
+* Fix - Stale saved-card metadata after updating a card's expiry or CVC
 * Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
 * Dev - Use paratest in CI workflow for faster PHP test execution
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
