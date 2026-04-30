@@ -23,71 +23,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * WC_Stripe::init() must register the helper on WooCommerce's gateway bootstrap hook so checkout order is captured once gateways exist.
-	 *
-	 * @return void
-	 *
-	 * @covers WC_Stripe::init
-	 */
-	public function test_registers_record_first_gateway_on_wc_payment_gateways_initialized(): void {
-		$priority = has_action(
-			'wc_payment_gateways_initialized',
-			[ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ]
-		);
-
-		$this->assertNotFalse(
-			$priority,
-			'record_first_gateway_id_from_available_list should be hooked to wc_payment_gateways_initialized.'
-		);
-	}
-
-	/**
-	 * Firing wc_payment_gateways_initialized should run the Stripe hook and memoize the first available gateway for the request.
-	 *
-	 * @return void
-	 *
-	 * @covers WC_Stripe_Helper::record_first_gateway_id_from_available_list
-	 */
-	public function test_wc_payment_gateways_initialized_populates_first_available_gateway_memo(): void {
-		$original_gateways = WC()->payment_gateways->payment_gateways;
-
-		$bacs_mock = $this->createMock( WC_Payment_Gateway::class );
-		$bacs_mock->method( 'is_available' )->willReturn( true );
-		$bacs_mock->id      = 'bacs';
-		$bacs_mock->enabled = 'no';
-
-		$stripe_mock = $this->createMock( WC_Payment_Gateway::class );
-		$stripe_mock->method( 'is_available' )->willReturn( true );
-		$stripe_mock->id      = 'stripe';
-		$stripe_mock->enabled = 'no';
-
-		try {
-			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
-			WC()->payment_gateways->payment_gateways = [
-				0 => $bacs_mock,
-				1 => $stripe_mock,
-			];
-			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
-
-			$this->assertFalse( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-
-			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-
-			WC()->payment_gateways->payment_gateways = [
-				0 => $stripe_mock,
-				1 => $bacs_mock,
-			];
-			do_action( 'wc_payment_gateways_initialized', WC()->payment_gateways );
-
-			$this->assertTrue( WC_Stripe_Helper::is_stripe_gateway_first_in_available_list() );
-		} finally {
-			WC()->payment_gateways->payment_gateways = $original_gateways;
-			WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-		}
-	}
-
-	/**
 	 * Tests for `maybe_toggle_payment_methods`.
 	 *
 	 * @param array $active_gateways The active payment gateways.
@@ -758,13 +693,5 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expect_call' => false,
 			],
 		];
-	}
-
-	/**
-	 * @return void
-	 */
-	public function tear_down(): void {
-		WC_Stripe_Helper::clear_first_available_payment_gateway_record();
-		parent::tear_down();
 	}
 }

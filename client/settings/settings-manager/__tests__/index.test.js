@@ -31,24 +31,27 @@ jest.mock(
 	} )
 );
 
+const BASE_PARAMS = {
+	accountStatus: {
+		email: 'test@example.com',
+		mode: 'test',
+		paymentsEnabled: true,
+		payoutsEnabled: true,
+		accountLink: 'https://stripe.com/support',
+	},
+	is_agentic_commerce_enabled: false,
+};
+
 describe( 'SettingsManager', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = {
-			accountStatus: {
-				email: 'test@example.com',
-				mode: 'test',
-				paymentsEnabled: true,
-				payoutsEnabled: true,
-				accountLink: 'https://stripe.com/support',
-			},
-		};
+		global.wc_stripe_settings_params = { ...BASE_PARAMS };
 	} );
 
 	afterEach( () => {
 		jest.clearAllMocks();
 	} );
 
-	it( 'should render two tabs when mounted', async () => {
+	it( 'should render two tabs', async () => {
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
@@ -62,6 +65,31 @@ describe( 'SettingsManager', () => {
 				screen.getByRole( 'tab', { name: /Settings/i } )
 			).toBeInTheDocument();
 		} );
+	} );
+
+	it( 'should not render a third tab when agentic commerce is enabled', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', { name: /Payment Methods/i } )
+			).toBeInTheDocument();
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', { name: /Settings/i } )
+			).toBeInTheDocument();
+		} );
+
+		expect(
+			screen.queryByRole( 'tab', { name: /Agentic/i } )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should render the Stripe payment method tab content by default', async () => {
@@ -92,6 +120,16 @@ describe( 'SettingsManager', () => {
 			expect(
 				screen.queryByTestId( 'methods-tab' )
 			).not.toBeInTheDocument();
+		} );
+	} );
+
+	it( 'should fall back to methods tab for unknown panel values', async () => {
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
 		} );
 	} );
 } );

@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.7
-Tested up to: 6.9.1
+Tested up to: 6.9.4
 Requires PHP: 7.4
-Stable tag: 10.5.3
+Stable tag: 10.6.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 10.6.0
+   - Adaptive Pricing available
 * 10.4.0
    - Optimized Checkout Suite no longer enabled by default for new installs
    - Removed the main Payment Request Buttons backend class, WC_Stripe_Payment_Request, which was deprecated in 10.2.0
@@ -145,8 +147,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 10.6.0 - xxxx-xx-xx =
-* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Amazon Pay, Link)
+= 10.7.0 - xxxx-xx-xx =
+* Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
+* Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
+* Add - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Dev - Use paratest in CI workflow for faster PHP test execution
+* Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
+* Fix - Surface PHP Throwables from the Agentic Commerce checkout.session.completed flow so fatals are logged, the order rollback runs, and Action Scheduler marks the job failed
+* Fix - Look up products by SKU in Agentic Commerce manual approval and tax calculation flows
+* Dev - Rename payment request references to express checkout
+* Fix - Store Stripe Terminal IPP channel metadata on orders so WooCommerce can identify POS payments and suppress standard transactional emails
+* Fix - Stale saved-card metadata after updating a card's expiry or CVC
+* Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
+* Dev - Use paratest in CI workflow for faster PHP test execution
 * Remove - Remove EU adaptive pricing disclosure component from classic and Blocks checkout as it is shown natively within the Stripe currency selector element
 * Dev - Add paratest for parallel PHP unit test execution
 * Fix - Accept regional language names for Spanish provinces (e.g., Basque "Gipuzkoa") in Apple Pay and express checkout address validation
@@ -190,6 +204,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove unused frontend code: legacy blocks payment request API helpers, related normalize utilities, and unused Stripe icon component
 * Add - Allow additional font domains to be included in Stripe fonts
 * Dev - Add incremental inventory sync for Agentic Commerce: tracks stock changes via WooCommerce hooks and uploads a minimal inventory_feed CSV to Stripe one minute after the first change
+* Dev - Add Agentic Commerce admin dashboard for monitoring product feed sync status, history, errors, and triggering manual syncs
+* Update - Move Agentic Commerce settings from a separate tab to an inline section in the Settings tab, use sentence case, and integrate save into the global Save changes button
 * Dev - Skip registering Stripe email classes when WooCommerce email class is not loaded
 * Fix - Add order and payment method validation to prevent errors
 * Dev - Remove @woocommerce/currency dev dependency to resolve locutus CVE-2026-32304 (GHSA-vh9h-29pq-r5m8)
@@ -230,5 +246,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix: Improve UX for the "Stripe first method" notice for Optimized Checkout
 * Fix - Change Checkout Sessions (Adaptive Pricing) redirect-based flow to match the existing PaymentIntent flow (redirect to checkout page)
 * Fix - Ensure currency selector appears after saved payment methods in classic checkout
+* Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

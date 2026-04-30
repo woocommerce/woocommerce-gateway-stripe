@@ -299,9 +299,6 @@ class WC_Stripe {
 		// cards when the Optimized Checkout is enabled, etc.
 		add_action( 'wc_payment_gateways_initialized', [ $this, 'maybe_toggle_payment_methods' ] );
 
-		// Record the first registered gateway ID once gateways are initialized.
-		add_action( 'wc_payment_gateways_initialized', [ 'WC_Stripe_Helper', 'record_first_gateway_id_from_available_list' ] );
-
 		// Reconfigure webhooks when Adaptive Pricing is enabled in the settings.
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
@@ -864,6 +861,11 @@ class WC_Stripe {
 
 		$exit_survey_controller = new WC_REST_Stripe_Exit_Survey_Controller();
 		$exit_survey_controller->register_routes();
+
+		if ( WC_Stripe_Feature_Flags::is_agentic_commerce_enabled() ) {
+			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
+			$agentic_commerce_controller->register_routes();
+		}
 	}
 
 	/**

@@ -83,6 +83,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $this->id ) {
 			return;
 		}
+		// Secondary check to skip registration for the OC payment method, which mimics the Stripe ID.
+		$current_class = get_class( $this );
+		if ( WC_Stripe_UPE_Payment_Gateway::class !== $current_class ) {
+			return;
+		}
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
@@ -318,6 +323,19 @@ trait WC_Stripe_Subscriptions_Trait {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
 					$subscription->save();
 				}
+
+				// Persist the express type for the post-confirmation title override,
+				// or clear any stale marker when this submission isn't express.
+				$express_checkout_type = isset( $_POST['express_checkout_type'] ) && is_string( $_POST['express_checkout_type'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					? wc_clean( wp_unslash( $_POST['express_checkout_type'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					: '';
+
+				if ( '' !== $express_checkout_type ) {
+					$subscription->update_meta_data( '_wc_stripe_express_checkout_type', $express_checkout_type );
+				} else {
+					$subscription->delete_meta_data( '_wc_stripe_express_checkout_type' );
+				}
+				$subscription->save();
 
 				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
 				exit;
