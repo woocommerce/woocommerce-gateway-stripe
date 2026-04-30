@@ -643,38 +643,40 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 		$failing = WC_Helper_Product::create_simple_product();
 		$passing = WC_Helper_Product::create_simple_product();
 
-		$validator->validate_entry(
-			[
-				'id'    => '1',
-				'title' => 'Bad',
-			],
-			$failing
-		);
-		$validator->validate_entry(
-			[
-				'id'               => '2',
-				'title'            => 'Good',
-				'description'      => 'Test',
-				'link'             => 'https://example.com/p',
-				'brand'            => 'Brand',
-				'image_link'       => 'https://example.com/i.jpg',
-				'availability'     => 'in_stock',
-				'price'            => '19.99 USD',
-				'gtin'             => '1234567890123',
-				'product_category' => 'Cat',
-			],
-			$passing
-		);
+		try {
+			$validator->validate_entry(
+				[
+					'id'    => '1',
+					'title' => 'Bad',
+				],
+				$failing
+			);
+			$validator->validate_entry(
+				[
+					'id'               => '2',
+					'title'            => 'Good',
+					'description'      => 'Test',
+					'link'             => 'https://example.com/p',
+					'brand'            => 'Brand',
+					'image_link'       => 'https://example.com/i.jpg',
+					'availability'     => 'in_stock',
+					'price'            => '19.99 USD',
+					'gtin'             => '1234567890123',
+					'product_category' => 'Cat',
+				],
+				$passing
+			);
 
-		$collected = $validator->get_collected_errors();
+			$collected = $validator->get_collected_errors();
 
-		$this->assertSame( 0, $collected['truncated'] );
-		$this->assertArrayHasKey( $failing->get_id(), $collected['products'] );
-		$this->assertArrayNotHasKey( $passing->get_id(), $collected['products'] );
-		$this->assertNotEmpty( $collected['products'][ $failing->get_id() ] );
-
-		$failing->delete( true );
-		$passing->delete( true );
+			$this->assertSame( 0, $collected['truncated'] );
+			$this->assertArrayHasKey( $failing->get_id(), $collected['products'] );
+			$this->assertArrayNotHasKey( $passing->get_id(), $collected['products'] );
+			$this->assertNotEmpty( $collected['products'][ $failing->get_id() ] );
+		} finally {
+			$failing->delete( true );
+			$passing->delete( true );
+		}
 	}
 
 	/**
@@ -689,25 +691,27 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 		$max       = \WC_Stripe_Agentic_Commerce_Feed_Validator::MAX_COLLECTED_ERRORS;
 		$products  = [];
 
-		for ( $i = 0; $i < $max + 5; $i++ ) {
-			$product    = WC_Helper_Product::create_simple_product();
-			$products[] = $product;
-			$validator->validate_entry(
-				[
-					'id'    => (string) $i,
-					'title' => 'Bad',
-				],
-				$product
-			);
-		}
+		try {
+			for ( $i = 0; $i < $max + 5; $i++ ) {
+				$product    = WC_Helper_Product::create_simple_product();
+				$products[] = $product;
+				$validator->validate_entry(
+					[
+						'id'    => (string) $i,
+						'title' => 'Bad',
+					],
+					$product
+				);
+			}
 
-		$collected = $validator->get_collected_errors();
+			$collected = $validator->get_collected_errors();
 
-		$this->assertCount( $max, $collected['products'] );
-		$this->assertSame( 5, $collected['truncated'] );
-
-		foreach ( $products as $product ) {
-			$product->delete( true );
+			$this->assertCount( $max, $collected['products'] );
+			$this->assertSame( 5, $collected['truncated'] );
+		} finally {
+			foreach ( $products as $product ) {
+				$product->delete( true );
+			}
 		}
 	}
 }
