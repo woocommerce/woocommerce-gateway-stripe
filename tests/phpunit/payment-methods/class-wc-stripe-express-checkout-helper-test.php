@@ -1211,11 +1211,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
-			->onlyMethods( [ 'is_amazon_pay_enabled', 'is_payment_request_enabled', 'is_link_enabled' ] )
+			->onlyMethods( [ 'is_amazon_pay_enabled', 'is_apple_google_pay_enabled', 'is_link_enabled' ] )
 			->getMock();
 
 		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
-		$helper->method( 'is_payment_request_enabled' )->willReturn( false );
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( false );
 		$helper->method( 'is_link_enabled' )->willReturn( false );
 		$helper->testmode = true;
 

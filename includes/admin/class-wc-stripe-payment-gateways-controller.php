@@ -30,9 +30,9 @@ class WC_Stripe_Payment_Gateways_Controller {
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
-		$upe_payment_requests_enabled = 'yes' === ( $stripe_settings['express_checkout'] ?? 'no' );
+		$upe_express_checkout_enabled = 'yes' === ( $stripe_settings['express_checkout'] ?? 'no' );
 
-		if ( ( is_array( $enabled_upe_payment_methods ) && count( $enabled_upe_payment_methods ) > 0 ) || $upe_payment_requests_enabled ) {
+		if ( ( is_array( $enabled_upe_payment_methods ) && count( $enabled_upe_payment_methods ) > 0 ) || $upe_express_checkout_enabled ) {
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_payments_scripts' ] );
 			add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'wc_stripe_gateway_container' ] );
 		}
