@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 10.7.0
 * Add - Allow shoppers to change a subscription payment method using Express Checkout (Apple Pay, Google Pay, Link)
+* Fix - Use SKU as the Agentic Commerce catalog identifier so checkout.session.completed line items resolve correctly; keep the product-ID fallback for SKU-less products and catalogs synced under the legacy contract
 * Add - Display a bank authorization notice for Pre-Authorized Debit (ACSS) payments on checkout
 * Fix - Detect Agentic Commerce sessions via payment_intent.agent_details so their checkout.session.completed webhooks aren't skipped
 * Add - Add Agentic Commerce settings UI with feature introduction, onboarding guide, enable/disable toggle, and webhook secret management
@@ -13,6 +14,7 @@ xxxx-xx-xx - version 10.7.0
 * Fix - Stale saved-card metadata after updating a card's expiry or CVC
 * Dev - Reduce PR PHP test matrix from 30 to 12 jobs (PHP 7.4, 8.2, 8.5; WC/WP at L and L-2) for faster CI feedback
 * Dev - Bump transitive minimatch dev dependency to resolve ReDoS CVE-2026-27903 (GHSA-7r86-cg39-jmmj)
+* Fix - Prevent fatal error in wp-admin from overly narrow argument type
 
 2026-04-23 - version 10.6.1
 * Fix - Fix Optimized Checkout Suite bugs that could result in duplicate subscription charges and generic payment methods names
