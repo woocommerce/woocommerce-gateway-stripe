@@ -19,6 +19,7 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 describe( 'load-stripe', () => {
 	beforeEach( () => {
 		mockLoadStripe.mockClear();
+		getStripeDevWidgetOptions.mockReset();
 	} );
 
 	it( 'passes developerTools.assistant.enabled false to Stripe loadStripe when disabled', async () => {
