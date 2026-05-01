@@ -81,6 +81,22 @@ class WC_Stripe_Diagnostics_Outcome_Promoter_Test extends WP_UnitTestCase {
 				],
 				$completed,
 			],
+			'webhook_charge_succeeded_completed'       => [
+				[
+					'kind' => 'webhook.received',
+					'type' => 'charge.succeeded',
+				],
+				$completed,
+			],
+			'webhook_setup_intent_succeeded_null'      => [
+				// Save-card flow never charges; must NOT mark a checkout
+				// as completed via the generic `.succeeded` suffix.
+				[
+					'kind' => 'webhook.received',
+					'type' => 'setup_intent.succeeded',
+				],
+				null,
+			],
 			'create_payment_method_error_failed'       => [
 				[
 					'kind' => 'stripe.createPaymentMethod.resolve',
@@ -119,6 +135,13 @@ class WC_Stripe_Diagnostics_Outcome_Promoter_Test extends WP_UnitTestCase {
 			'express_cancel_abandoned'                 => [
 				[ 'kind' => 'express.cancel' ],
 				$abandoned,
+			],
+			'stripe_call_throw_failed'                 => [
+				// aroundStripeCall() emits stripe.<method>.throw on Promise
+				// rejection (network drop, JS exception). Caught by the
+				// prefix/suffix check, not the case list.
+				[ 'kind' => 'stripe.confirmPayment.throw' ],
+				$failed,
 			],
 			'unrelated_event_kind_null'                => [
 				[

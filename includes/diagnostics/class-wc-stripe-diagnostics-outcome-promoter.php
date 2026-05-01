@@ -81,6 +81,13 @@ class WC_Stripe_Diagnostics_Outcome_Promoter {
 			return null;
 		}
 
+		// Stripe.js wrapped-call rejections, emitted by aroundStripeCall()
+		// as `stripe.<method>.throw` for any thrown error (network drop, JS
+		// exception). Treat as failure regardless of which method threw.
+		if ( 0 === strncmp( $kind, 'stripe.', 7 ) && str_ends_with( $kind, '.throw' ) ) {
+			return WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED;
+		}
+
 		switch ( $kind ) {
 			case 'stripe.api.response':
 				if ( isset( $event['error'] ) && ! empty( $event['error'] ) ) {
@@ -96,7 +103,11 @@ class WC_Stripe_Diagnostics_Outcome_Promoter {
 				if ( str_ends_with( $type, '.payment_failed' ) ) {
 					return WC_Stripe_Diagnostics_Trace_Store::STATUS_FAILED;
 				}
-				if ( str_ends_with( $type, '.succeeded' ) ) {
+				// Explicit allowlist — `setup_intent.succeeded` etc. fire
+				// for save-card flows that never charge, so a generic
+				// `.succeeded` match would mislabel those as completed
+				// checkouts.
+				if ( in_array( $type, [ 'payment_intent.succeeded', 'charge.succeeded' ], true ) ) {
 					return WC_Stripe_Diagnostics_Trace_Store::STATUS_COMPLETED;
 				}
 				return null;
