@@ -34,7 +34,9 @@ const downloadAsFile = ( contents ) => {
 	document.body.appendChild( link );
 	link.click();
 	document.body.removeChild( link );
-	URL.revokeObjectURL( url );
+	// Defer the revoke to give Safari/iOS time to start the download —
+	// synchronous revoke can produce a 0-byte file there.
+	setTimeout( () => URL.revokeObjectURL( url ), 0 );
 };
 
 const DiagnosticsTraces = () => {
@@ -132,7 +134,7 @@ const DiagnosticsTraces = () => {
 			setFeedback( {
 				status: 'error',
 				message: __(
-					'Could not copy traces. Try again, or check the browser console for details.',
+					'Could not copy traces. Try again.',
 					'woocommerce-gateway-stripe'
 				),
 			} );
