@@ -10,13 +10,25 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 } ) );
 
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
+import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
+
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeDevWidgetOptions: jest.fn(),
+} ) );
 
 describe( 'load-stripe', () => {
 	beforeEach( () => {
 		mockLoadStripe.mockClear();
 	} );
 
-	it( 'passes developerTools.assistant.enabled false to Stripe loadStripe', async () => {
+	it( 'passes developerTools.assistant.enabled false to Stripe loadStripe when disabled', async () => {
+		getStripeDevWidgetOptions.mockReturnValue( {
+			developerTools: {
+				assistant: {
+					enabled: false,
+				},
+			},
+		} );
 		await loadStripe();
 		expect( mockLoadStripe ).toHaveBeenCalledWith(
 			'pk_test_xxx',
@@ -25,6 +37,28 @@ describe( 'load-stripe', () => {
 				developerTools: {
 					assistant: {
 						enabled: false,
+					},
+				},
+			} )
+		);
+	} );
+
+	it( 'passes developerTools.assistant.enabled true to Stripe loadStripe when enabled', async () => {
+		getStripeDevWidgetOptions.mockReturnValue( {
+			developerTools: {
+				assistant: {
+					enabled: true,
+				},
+			},
+		} );
+		await loadStripe();
+		expect( mockLoadStripe ).toHaveBeenCalledWith(
+			'pk_test_xxx',
+			expect.objectContaining( {
+				locale: 'en',
+				developerTools: {
+					assistant: {
+						enabled: true,
 					},
 				},
 			} )
